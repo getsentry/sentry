@@ -15,11 +15,120 @@ import documentation from '!!type-loader!@sentry/scraps/layout/stack';
 
 export {documentation};
 
-The `Surface` component is a simplified layout component built on top of the `Flex` component. It provides a focused API for surfaces with only the essential props: `variant` and `elevation`.
+The `Surface` component is a simplified layout component built on top of the `Container` component. It provides a focused API for surfaces with only the essential props: `variant`, `elevation`, and `radius`.
+
+Layout inside of `Surface` should use a specific layout component (`Flex`, `Stack`, `Grid`, etc).
 
 ## Basic Usage
 
-To create a basic primary surface, wrap elements in `<Surface variant="primary">`.
+The default surface has no background color applied.
+
+<Storybook.Demo>
+  <Surface>Default surface (no background)</Surface>
+</Storybook.Demo>
+```jsx
+<Surface>Default surface (no background)</Surface>
+```
+
+## Variants
+
+### Primary
+
+Use `variant="primary"` for primary content areas.
+
+<Storybook.Demo>
+  <Surface variant="primary">Primary surface</Surface>
+</Storybook.Demo>
+```jsx
+<Surface variant="primary">Primary surface</Surface>
+```
+
+### Secondary
+
+Use `variant="secondary"` for secondary content areas.
+
+<Storybook.Demo>
+  <Surface variant="secondary">Secondary surface</Surface>
+</Storybook.Demo>
+```jsx
+<Surface variant="secondary">Secondary surface</Surface>
+```
+
+### Tertiary
+
+Use `variant="tertiary"` for tertiary content areas.
+
+<Storybook.Demo>
+  <Surface variant="tertiary">Tertiary surface</Surface>
+</Storybook.Demo>
+```jsx
+<Surface variant="tertiary">Tertiary surface</Surface>
+```
+
+### Overlay
+
+Use `variant="overlay"` for floating surfaces like dropdowns, modals, and popovers. Overlay surfaces include a border and box-shadow.
+
+<Storybook.Demo>
+  <Surface variant="overlay">Overlay surface (default high elevation)</Surface>
+</Storybook.Demo>
+```jsx
+<Surface variant="overlay">Overlay surface</Surface>
+```
+
+## Elevation
+
+The `elevation` prop is only available for `variant="overlay"`. It controls the shadow intensity.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    <Surface variant="overlay" elevation="low">
+      Low elevation
+    </Surface>
+    <Surface variant="overlay" elevation="high">
+      High elevation (default)
+    </Surface>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Surface variant="overlay" elevation="low">
+  Low elevation
+</Surface>
+<Surface variant="overlay" elevation="high">
+  High elevation (default)
+</Surface>
+```
+
+## Radius
+
+The `radius` prop controls the border radius. Overlay surfaces default to `md` radius; other variants have no radius by default.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    <Surface variant="primary" radius="sm">
+      Small radius
+    </Surface>
+    <Surface variant="primary" radius="md">
+      Medium radius
+    </Surface>
+    <Surface variant="primary" radius="lg">
+      Large radius
+    </Surface>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Surface variant="primary" radius="sm">
+  Small radius
+</Surface>
+<Surface variant="primary" radius="md">
+  Medium radius
+</Surface>
+<Surface variant="primary" radius="lg">
+  Large radius
+</Surface>
+```
+
+## All Variants
 
 <Storybook.Demo>
   <Stack minWidth="0" flexGrow={1} gap="md">
