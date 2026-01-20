@@ -20,7 +20,7 @@ interface OverlaySurfaceProps extends BaseSurfaceProps {
   elevation?: 'low' | 'high';
 }
 
-export type SurfaceProps = FlatSurfaceProps | OverlaySurfaceProps;
+type SurfaceProps = FlatSurfaceProps | OverlaySurfaceProps;
 
 const omitSurfaceProps = new Set(['variant', 'elevation', 'radius']);
 
