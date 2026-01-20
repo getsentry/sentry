@@ -303,8 +303,8 @@ class WorkflowEngineExamples:
                     "owner": {
                         "type": "user",
                         "id": "12345",
-                        "name": "colleen@sentry.io",
-                        "email": "colleen@sentry.io",
+                        "name": "jane@example.com",
+                        "email": "jane@example.com",
                     },
                     "createdBy": "12345",
                     "dateCreated": "2025-04-28T22:46:12.469771Z",
