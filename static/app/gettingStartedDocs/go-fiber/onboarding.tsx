@@ -4,6 +4,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {metricsVerify} from 'sentry/gettingStartedDocs/go/metrics';
 import {t, tct} from 'sentry/locale';
 
 const getConfigureSnippet = (params: DocsParams) => `
@@ -229,7 +230,12 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: (params: DocsParams) => [
+    {
+      type: StepType.VERIFY,
+      content: [metricsVerify(params)],
+    },
+  ],
   nextSteps: (params: DocsParams) => {
     const steps = [];
 

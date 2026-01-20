@@ -383,6 +383,14 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
+  'go',
+  'go-echo',
+  'go-fasthttp',
+  'go-fiber',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-negroni',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -445,6 +453,7 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
 export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
 
 export const limitedMetricsSupportPrefixes: Set<string> = new Set([
+  'go',
   'javascript',
   'node',
   'python',
