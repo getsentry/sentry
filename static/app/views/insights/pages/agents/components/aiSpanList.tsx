@@ -100,16 +100,15 @@ export function AISpanList({
   return (
     <Stack gap="xs">
       {Array.from(nodesByTransaction.entries()).map(([transaction, transactionNodes]) => (
-        <Fragment key={transaction.id}>
-          <TransactionWrapper
-            canCollapse={nodesByTransaction.size > 1}
-            transaction={transaction}
-            nodes={transactionNodes}
-            onSelectNode={onSelectNode}
-            selectedNodeKey={selectedNodeKey}
-            compressGaps={compressGaps}
-          />
-        </Fragment>
+        <TransactionWrapper
+          key={transaction.id}
+          canCollapse={nodesByTransaction.size > 1}
+          transaction={transaction}
+          nodes={transactionNodes}
+          onSelectNode={onSelectNode}
+          selectedNodeKey={selectedNodeKey}
+          compressGaps={compressGaps}
+        />
       ))}
     </Stack>
   );
