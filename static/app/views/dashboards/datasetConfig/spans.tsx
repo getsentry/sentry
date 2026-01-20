@@ -229,7 +229,9 @@ function extractSeriesMetadata<T>({
         widgetQuery.aggregates?.forEach(aggregate => {
           // Multi-series can be keyed by aggregate or series name depending on aggregate count
           const key = widgetQuery.aggregates?.length > 1 ? aggregate : seriesName;
-          result[key] = getMetaField(seriesData.meta!, aggregate);
+          if (seriesData.meta) {
+            result[key] = getMetaField(seriesData.meta, aggregate);
+          }
         });
       });
     }
@@ -237,10 +239,9 @@ function extractSeriesMetadata<T>({
     Object.keys(data).forEach(groupName => {
       widgetQuery.aggregates?.forEach(aggregate => {
         const seriesData = data[groupName]![aggregate] as EventsStats;
-        if (!seriesData?.meta) {
-          return;
+        if (seriesData?.meta) {
+          result[aggregate] = getMetaField(seriesData.meta, aggregate);
         }
-        result[aggregate] = getMetaField(seriesData.meta, aggregate);
       });
     });
   }
