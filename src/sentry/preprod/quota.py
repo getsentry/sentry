@@ -18,5 +18,5 @@ def has_installable_quota(
     organization: Organization, actor: User | AnonymousUser | None = None
 ) -> bool:
     if not features.has("organizations:preprod-enforce-quota", organization, actor=actor):
-        return True
+        return False
     return quotas.backend.has_usage_quota(organization.id, DataCategory.INSTALLABLE_BUILD)
