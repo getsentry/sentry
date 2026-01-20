@@ -158,6 +158,13 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           fieldAliases: [''],
           conditions: `${SpanFields.DB_SYSTEM}:[${Object.values(SupportedDatabaseSystem).join(',')}]`,
           orderby: `-p75(${SpanFields.SPAN_SELF_TIME})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.NORMALIZED_DESCRIPTION,
+              staticDashboardId: 3,
+            },
+          ],
         },
       ],
       limit: 3,
