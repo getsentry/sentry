@@ -348,7 +348,6 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             action_data=[
                 {
                     "sentryAppInstallationUuid": self.install.uuid,
-                    "legacy_rule_id": "123",
                 }
             ]
         )
@@ -379,7 +378,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert payload["data"]["triggered_rule"] == rule.label
         assert payload["data"]["issue_alert"] == {
             # Use the legacy rule id
-            "id": 123,
+            "id": rule.data["actions"][0]["legacy_rule_id"],
             "title": rule.label,
             "sentry_app_id": self.sentry_app.id,
             "settings": settings,
