@@ -2,6 +2,8 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
@@ -96,11 +98,15 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       options={categoryOptions}
       value={selectedCategory ?? undefined}
       onChange={onChange}
-      triggerProps={{
-        children: selectedCategory ? selectedCategory : t('Filter'),
-        icon: <IconFilter />,
-        'aria-label': t('Filter by category'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconFilter />}
+          aria-label={t('Filter by category')}
+        >
+          {selectedCategory ? selectedCategory : t('Filter')}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
