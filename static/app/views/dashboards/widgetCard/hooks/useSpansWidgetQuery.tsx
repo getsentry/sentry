@@ -40,6 +40,7 @@ import {
   cleanWidgetForRequest,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type SpansSeriesResponse =
   | EventsStats
@@ -342,6 +343,13 @@ export function useSpansTableQuery(
           }
         }
         requestParams.sort = toArray(orderBy);
+      }
+
+      // Always sort by is_starred_transaction first if it's in the fields
+      const hasStarredField = query.fields?.includes(SpanFields.IS_STARRED_TRANSACTION);
+      if (hasStarredField) {
+        const existingSort = requestParams.sort || [];
+        requestParams.sort = [`-${SpanFields.IS_STARRED_TRANSACTION}`, ...existingSort];
       }
 
       const queryParams = {
