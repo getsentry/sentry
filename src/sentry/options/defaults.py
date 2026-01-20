@@ -97,6 +97,15 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Organization
+register(
+    "organization.default-owner-id-cache-ttl",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
