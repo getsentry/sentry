@@ -61,7 +61,7 @@ const getConfigureJsonSnippet = (params: DocsParams) => `
         : ''
     }${
       params.isLogsSelected
-        ? `
+        ? `,
     // Enable logs to be sent to Sentry
     "EnableLogs": true`
         : ''
