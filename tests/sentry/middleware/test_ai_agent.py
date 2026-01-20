@@ -51,7 +51,7 @@ class AIAgentMiddlewareTest(TestCase):
         assert response.status_code == 200
         assert response["Content-Type"] == "text/markdown"
         content = response.content.decode()
-        assert "Hey, you've hit the Sentry web UI" in content
+        assert "# This Is the Web UI" in content
         assert "https://mcp.sentry.dev/mcp/test-org" in content
 
     def test_includes_project_in_mcp_url(self):
