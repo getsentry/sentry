@@ -17,10 +17,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
-from sentry.preprod.size_analysis.utils import (
-    build_size_metrics_map,
-    can_compare_size_metrics,
-)
+from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
