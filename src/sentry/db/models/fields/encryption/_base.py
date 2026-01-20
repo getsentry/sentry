@@ -77,6 +77,10 @@ class EncryptedField(Field):
             },
         }
 
+    def __set_name__(self, owner: type, name: str) -> None:
+        super().__set_name__(owner, name)  # type: ignore[misc]
+        self._model_name = owner.__name__
+
     @sentry_sdk.trace
     def _format_encrypted_value(
         self, encrypted_data: bytes, marker: str, key_id: str | None = None
@@ -120,6 +124,7 @@ class EncryptedField(Field):
         tags = {
             "method": encryption_method,
             "field_type": self.__class__.__name__,
+            "model": getattr(self, "_model_name", "unknown"),
         }
 
         try:
@@ -280,6 +285,7 @@ class EncryptedField(Field):
                 tags = {
                     "method": method_name,
                     "field_type": self.__class__.__name__,
+                    "model": getattr(self, "_model_name", "unknown"),
                     "marker": marker,
                 }
 
