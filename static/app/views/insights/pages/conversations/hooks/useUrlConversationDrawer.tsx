@@ -32,13 +32,11 @@ export function useUrlConversationDrawer() {
       options?: Parameters<typeof baseOpenDrawer>[1] & {
         conversationId?: string;
         spanId?: string;
-        traceIds?: string[];
       }
     ) => {
       const {
         conversationId: optionsConversationId,
         spanId: optionsSpanId,
-        traceIds: optionsTraceIds,
         onClose,
         ariaLabel,
         ...rest
@@ -47,7 +45,6 @@ export function useUrlConversationDrawer() {
       setConversationDrawerQueryState({
         conversationId: optionsConversationId,
         spanId: optionsSpanId,
-        traceIds: optionsTraceIds,
       });
 
       return baseOpenDrawer(renderer, {

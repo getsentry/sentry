@@ -1,8 +1,10 @@
-import {memo, useCallback, useEffect} from 'react';
+import {memo, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -22,10 +24,11 @@ import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conve
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-const CONVERSATION_PANEL_WIDTH = 350;
-const TRACE_PANEL_WIDTH = 350;
+const LEFT_PANEL_WIDTH = 400;
 const DETAILS_PANEL_WIDTH = 500;
-const DRAWER_WIDTH = CONVERSATION_PANEL_WIDTH + TRACE_PANEL_WIDTH + DETAILS_PANEL_WIDTH;
+const DRAWER_WIDTH = LEFT_PANEL_WIDTH + DETAILS_PANEL_WIDTH;
+
+type ConversationTab = 'messages' | 'trace';
 
 interface UseConversationViewDrawerProps {
   onClose?: () => void;
@@ -63,15 +66,14 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
       <StyledDrawerHeader>
         <Flex align="center" flex="1" gap="md">
           {t('Conversation')}
-          <ConversationIdLabel>
+          <Text variant="muted" size="sm" monospace>
             {conversation.conversationId.slice(0, 8)}
-          </ConversationIdLabel>
+          </Text>
         </Flex>
       </StyledDrawerHeader>
       <StyledDrawerBody>
         <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
           <ConversationView
-            conversation={conversation}
             nodes={nodes}
             nodeTraceMap={nodeTraceMap}
             selectedNode={selectedNode}
@@ -104,7 +106,6 @@ export function useConversationViewDrawer({
         drawerWidth: `${DRAWER_WIDTH}px`,
         resizable: true,
         conversationId: conversation.conversationId,
-        traceIds: conversation.traceIds,
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -112,9 +113,9 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId, traceIds} = drawerUrlState;
-    if (conversationId && traceIds?.length && !isDrawerOpen) {
-      openConversationViewDrawer({conversationId, traceIds});
+    const {conversationId} = drawerUrlState;
+    if (conversationId && !isDrawerOpen) {
+      openConversationViewDrawer({conversationId});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
@@ -126,7 +127,6 @@ export function useConversationViewDrawer({
 }
 
 function ConversationView({
-  conversation,
   nodes,
   nodeTraceMap,
   selectedNode,
@@ -134,7 +134,6 @@ function ConversationView({
   isLoading,
   error,
 }: {
-  conversation: UseConversationsOptions;
   error: boolean;
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
@@ -143,6 +142,7 @@ function ConversationView({
   selectedNode: AITraceSpanNode | undefined;
 }) {
   const organization = useOrganization();
+  const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
 
   if (isLoading) {
     return (
@@ -162,19 +162,40 @@ function ConversationView({
 
   return (
     <Flex flex="1" minHeight="0">
-      <MessagesPanel
-        nodes={nodes}
-        selectedNodeId={selectedNode?.id ?? null}
-        onSelectNode={onSelectNode}
-      />
-      <TracePanel>
-        <PanelHeader>{t('AI Trace')}</PanelHeader>
-        <AISpanList
-          nodes={nodes}
-          selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-          onSelectNode={onSelectNode}
-        />
-      </TracePanel>
+      <LeftPanel>
+        <StyledTabs
+          value={activeTab}
+          onChange={key => setActiveTab(key as ConversationTab)}
+        >
+          <Container padding="xs lg">
+            <TabList>
+              <TabList.Item key="messages">{t('Messages')}</TabList.Item>
+              <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
+            </TabList>
+          </Container>
+          <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">
+            <FullWidthTabPanels>
+              <TabPanels.Item key="messages">
+                <MessagesPanel
+                  nodes={nodes}
+                  selectedNodeId={selectedNode?.id ?? null}
+                  onSelectNode={onSelectNode}
+                />
+              </TabPanels.Item>
+              <TabPanels.Item key="trace">
+                <Container padding="md lg">
+                  <AISpanList
+                    nodes={nodes}
+                    selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
+                    onSelectNode={onSelectNode}
+                    compressGaps
+                  />
+                </Container>
+              </TabPanels.Item>
+            </FullWidthTabPanels>
+          </Flex>
+        </StyledTabs>
+      </LeftPanel>
       <DetailsPanel>
         {selectedNode?.renderDetails({
           node: selectedNode,
@@ -183,7 +204,7 @@ function ConversationView({
           onTabScrollToNode: () => {},
           organization,
           replay: null,
-          traceId: nodeTraceMap.get(selectedNode.id) ?? conversation.traceIds[0] ?? '',
+          traceId: nodeTraceMap.get(selectedNode.id) ?? '',
           hideNodeActions: true,
         })}
       </DetailsPanel>
@@ -199,16 +220,26 @@ const StyledDrawerBody = styled(DrawerBody)`
   flex-direction: column;
 `;
 
-const TracePanel = styled('div')`
-  width: ${TRACE_PANEL_WIDTH}px;
-  min-width: ${TRACE_PANEL_WIDTH}px;
+const LeftPanel = styled('div')`
+  width: ${LEFT_PANEL_WIDTH}px;
+  min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
-  padding: 0 ${p => p.theme.space.md};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  overflow-y: auto;
-  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+`;
+
+const StyledTabs = styled(Tabs)`
+  min-height: 0;
+`;
+
+const FullWidthTabPanels = styled(TabPanels)`
+  width: 100%;
+
+  > [role='tabpanel'] {
+    width: 100%;
+  }
 `;
 
 const DetailsPanel = styled('div')`
@@ -220,21 +251,7 @@ const DetailsPanel = styled('div')`
   overflow-x: hidden;
 `;
 
-const PanelHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: bold;
-  padding: ${p => p.theme.space.md} 0;
-  margin: 0;
-  flex-shrink: 0;
-`;
-
 const StyledDrawerHeader = styled(DrawerHeader)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: flex;
-`;
-
-const ConversationIdLabel = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
 `;
