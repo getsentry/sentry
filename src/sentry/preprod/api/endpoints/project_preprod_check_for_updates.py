@@ -28,7 +28,7 @@ class InstallableBuildDetails(BaseModel):
     id: str
     build_version: str
     build_number: int
-    release_notes: str | None
+    release_notes: str | None = None
     download_url: str
     app_name: str
     created_date: str

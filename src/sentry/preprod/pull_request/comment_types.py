@@ -29,7 +29,7 @@ class CommentUser(BaseModel):
     login: str
     node_id: str
     avatar_url: str
-    gravatar_id: str | None
+    gravatar_id: str | None = None
     url: str
     html_url: str
     followers_url: str
@@ -77,7 +77,7 @@ class IssueComment(BaseModel):
     url: str
     html_url: str
     body: str
-    user: CommentUser | None
+    user: CommentUser | None = None
     created_at: datetime
     updated_at: datetime
     issue_url: str
@@ -137,7 +137,7 @@ class ReviewComment(BaseModel):
     original_commit_id: str
     diff_hunk: str
     pull_request_url: str
-    pull_request_review_id: int | None
+    pull_request_review_id: int | None = None
     links: ReviewCommentLinks = Field(alias="_links")
     position: int | None = None
     original_position: int | None = None
