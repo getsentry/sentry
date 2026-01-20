@@ -75,11 +75,19 @@ class ProjectRuleEnableTestCase(APITestCase):
             }
         ]
         rule = self.create_project_rule(
-            project=self.project, action_data=actions, condition_data=conditions
+            project=self.project,
+            action_data=actions,
+            condition_data=conditions,
+            exclude_legacy_rule_id=True,
+            exclude_workflow_id=True,
         )
 
         rule2 = self.create_project_rule(
-            project=self.project, action_data=actions, condition_data=conditions
+            project=self.project,
+            action_data=actions,
+            condition_data=conditions,
+            exclude_legacy_rule_id=True,
+            exclude_workflow_id=True,
         )
         rule2.status = ObjectStatus.DISABLED
         rule2.save()
