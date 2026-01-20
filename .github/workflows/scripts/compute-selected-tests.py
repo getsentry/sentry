@@ -11,7 +11,7 @@ from pathlib import Path
 FULL_SUITE_TRIGGER_FILES = [
     "sentry/testutils/pytest/sentry.py",
     "pyproject.toml",
-    "Makefile",
+    # "Makefile",
     "sentry/conf/server.py",
     "sentry/web/urls.py",
 ]
@@ -52,6 +52,7 @@ def get_affected_test_files(coverage_db_path: str, changed_files: list[str]) -> 
     test_contexts: set[str] = set()
 
     for file_path in changed_files:
+        print(f"Processing file: {file_path}")
 
         cur.execute(
             """
