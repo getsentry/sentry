@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -42,6 +43,9 @@ class GroupNotesEndpoint(GroupEndpoint):
 
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-notes"])
     def post(self, request: Request, group: Group) -> Response:
+        if not request.user.is_authenticated:
+            raise PermissionDenied(detail="Key doesn't have permission to create Note")
+
         serializer = NoteSerializer(
             data=request.data,
             context={
