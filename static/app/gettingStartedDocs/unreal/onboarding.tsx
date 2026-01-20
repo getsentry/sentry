@@ -170,9 +170,16 @@ export const onboarding: OnboardingConfig = {
           language: 'cpp',
           code: getVerifySnippet(params),
         },
-        logsVerify(params),
       ],
     },
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [logsVerify(params)],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     {
       title: t('Crash Reporter Client'),
       content: [
