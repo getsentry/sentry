@@ -46,7 +46,7 @@ export default function PullRequestDetails() {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
-            <Flex justify="center" align="center" style={{minHeight: '200px'}}>
+            <Flex justify="center" align="center" minHeight="200px">
               <LoadingIndicator />
             </Flex>
           </Layout.Main>

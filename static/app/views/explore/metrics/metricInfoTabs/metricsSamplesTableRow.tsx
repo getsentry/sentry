@@ -278,7 +278,7 @@ export function SampleTableRow({
 
   const renderProjectCell = () => {
     return (
-      <Flex align="center" justify="center" style={{minWidth: '18px'}}>
+      <Flex align="center" justify="center" minWidth="18px">
         <ProjectBadge avatarSize={14} project={project ?? {slug: projectSlug}} hideName />
       </Flex>
     );

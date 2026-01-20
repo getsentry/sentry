@@ -212,13 +212,7 @@ function ProductBreakdownPanel({
       height={isEnabled && !setupRequired ? undefined : '100%'}
       border={isInline ? undefined : 'primary'}
       radius={isInline ? undefined : 'md'}
-      style={
-        isInline
-          ? {
-              gridColumn: '1 / -1',
-            }
-          : undefined
-      }
+      column={isInline ? '1 / -1' : undefined}
     >
       <PanelHeader
         selectedProduct={selectedProduct}

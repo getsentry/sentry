@@ -103,7 +103,7 @@ export default function TimeAndScrubberGrid({
 
   return (
     <Grid id="replay-timeline-tooltip-container" isCompact={isCompact}>
-      <Flex justify="center" padding="0 lg" style={{gridArea: 'currentTime'}}>
+      <Flex justify="center" padding="0 lg" area="currentTime">
         <ReplayCurrentTime />
       </Flex>
 
@@ -133,7 +133,7 @@ export default function TimeAndScrubberGrid({
         ) : null}
       </ScrubberWrapper>
 
-      <Flex justify="center" padding="0 lg" style={{gridArea: 'duration'}}>
+      <Flex justify="center" padding="0 lg" area="duration">
         {durationMs === undefined ? (
           '--:--'
         ) : timestampType === 'absolute' ? (
