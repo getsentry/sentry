@@ -1669,7 +1669,9 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         assert data["token_type"] == "Bearer"
 
     def test_refresh_rotation_issues_new_tokens(self) -> None:
-        """Refresh should issue new access and refresh tokens."""
+        """Refresh should issue new access and refresh tokens (in-place update)."""
+        old_token_id = self.token.id
+
         resp = self.client.post(
             self.path,
             {
@@ -1686,22 +1688,11 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         assert data["access_token"] != self.token.token
         assert data["refresh_token"] != self.original_refresh_token
 
-    def test_refresh_rotation_deletes_old_token(self) -> None:
-        """After rotation, the old token should be deleted."""
-        old_token_id = self.token.id
-
-        resp = self.client.post(
-            self.path,
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": self.original_refresh_token,
-                "client_id": self.public_application.client_id,
-            },
-        )
-        assert resp.status_code == 200
-
-        # Old token should be deleted
-        assert not ApiToken.objects.filter(id=old_token_id).exists()
+        # Same token record is updated in-place (not deleted and recreated)
+        assert ApiToken.objects.filter(id=old_token_id).exists()
+        self.token.refresh_from_db()
+        assert self.token.token == data["access_token"]
+        assert self.token.refresh_token == data["refresh_token"]
 
     def test_old_refresh_token_cannot_be_reused(self) -> None:
         """Using an already-rotated refresh token should fail."""

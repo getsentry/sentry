@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import hashlib
 import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
@@ -273,11 +272,7 @@ class OAuthTokenView(View):
         elif grant_type == GrantTypes.DEVICE_CODE:
             return self.handle_device_code_grant(request=request, application=application)
         elif grant_type == GrantTypes.REFRESH:
-            # Public clients use token rotation (RFC 9700 §4.14.2)
-            if is_public_client:
-                return self.handle_public_client_refresh(request=request, application=application)
-            else:
-                token_data = self.get_refresh_token(request=request, application=application)
+            token_data = self.get_refresh_token(request=request, application=application)
         else:
             # Should not reach here due to earlier grant_type validation
             return self.error(request=request, name="unsupported_grant_type")
@@ -657,61 +652,4 @@ class OAuthTokenView(View):
             content_type="application/json",
         )
 
-    def handle_public_client_refresh(
-        self, request: Request, application: ApiApplication
-    ) -> HttpResponse:
-        """Handle refresh token for public clients with token rotation."""
-        refresh_token_code = request.POST.get("refresh_token")
 
-        if not refresh_token_code:
-            return self.error(
-                request=request,
-                name="invalid_request",
-                reason="missing refresh_token",
-            )
-
-        # Scope changes not supported
-        if request.POST.get("scope"):
-            return self.error(
-                request=request,
-                name="invalid_request",
-                reason="scope changes not supported",
-            )
-
-        hashed_refresh = hashlib.sha256(refresh_token_code.encode()).hexdigest()
-
-        with transaction.atomic(router.db_for_write(ApiToken)):
-            try:
-                old_token = ApiToken.objects.select_for_update().get(
-                    application=application,
-                    hashed_refresh_token=hashed_refresh,
-                )
-            except ApiToken.DoesNotExist:
-                return self.error(
-                    request=request,
-                    name="invalid_grant",
-                    reason="invalid refresh_token",
-                )
-
-            new_token = ApiToken.objects.create(
-                application=application,
-                user=old_token.user,
-                scope_list=old_token.get_scopes(),
-                scoping_organization_id=old_token.scoping_organization_id,
-            )
-
-            old_token_id = old_token.id
-            old_token.delete()
-
-        metrics.incr("oauth.public_client_refresh_rotated", sample_rate=1.0)
-        logger.info(
-            "oauth.refresh-token-rotated",
-            extra={
-                "old_token_id": old_token_id,
-                "new_token_id": new_token.id,
-                "application_id": application.id,
-                "user_id": new_token.user_id,
-            },
-        )
-
-        return self.process_token_details(token=new_token)
