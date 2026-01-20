@@ -1101,7 +1101,7 @@ class OAuthTokenPublicClientAuthCodeTest(TestCase):
         self.public_application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="https://example.com",
-            is_public=True,
+            client_secret="",  # Public client
         )
         assert self.public_application.is_public is True
 
@@ -1175,7 +1175,7 @@ class OAuthTokenPublicClientAuthCodeTest(TestCase):
     def test_public_client_with_wrong_secret_fails(self) -> None:
         """Providing a wrong secret for a public client should fail.
 
-        Public clients (created with is_public=True) have no secret, so any
+        Public clients (created with client_secret="") have no secret, so any
         provided secret will not match and authentication should fail.
         """
         code_verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
@@ -1499,7 +1499,7 @@ class OAuthTokenDeviceCodeTest(TestCase):
         public_app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="http://example.com",
-            is_public=True,
+            client_secret="",  # Public client
         )
         public_device_code = ApiDeviceCode.objects.create(
             application=public_app,
@@ -1572,7 +1572,7 @@ class OAuthTokenDeviceCodeTest(TestCase):
         public_app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="http://example.com",
-            is_public=True,
+            client_secret="",  # Public client
         )
         public_device_code = ApiDeviceCode.objects.create(
             application=public_app,
@@ -1639,7 +1639,7 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         self.public_application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="https://example.com",
-            is_public=True,
+            client_secret="",  # Public client
         )
 
         # Create a token for the public client
