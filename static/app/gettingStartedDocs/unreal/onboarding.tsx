@@ -10,6 +10,8 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {t, tct} from 'sentry/locale';
 
+import {logsVerify} from './logs';
+
 const getVerifySnippet = (params: DocsParams) => {
   const logsCode = params.isLogsSelected
     ? `
@@ -168,24 +170,7 @@ export const onboarding: OnboardingConfig = {
           language: 'cpp',
           code: getVerifySnippet(params),
         },
-        {
-          type: 'conditional',
-          condition: params.isLogsSelected,
-          content: [
-            {
-              type: 'text',
-              text: tct(
-                'You can also automatically capture Unreal Engine [code:UE_LOG] calls. Check out [link:the Logs documentation] to learn more.',
-                {
-                  code: <code />,
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/unreal/logs/" />
-                  ),
-                }
-              ),
-            },
-          ],
-        },
+        logsVerify(params),
       ],
     },
     {
