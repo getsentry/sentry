@@ -67,7 +67,25 @@ def _get_old_query_info(snuba_query: SnubaQuery):
     return old_query_type, old_dataset, old_query, old_aggregate
 
 
+def _verify_event_types(snuba_query: SnubaQuery):
+    if (
+        snuba_query.dataset == Dataset.PerformanceMetrics.value
+        or snuba_query.dataset == Dataset.Transactions.value
+    ):
+        return True
+    if snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value:
+        return SnubaQueryEventType.EventType.TRACE_ITEM_SPAN in snuba_query.event_types
+    return False
+
+
 def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+    if not _verify_event_types(snuba_query):
+        logger.info(
+            "Skipping roll forward for query with invalid event types",
+            extra={"snuba_query_id": snuba_query.id},
+        )
+        return
+
     query_subscription_qs = QuerySubscription.objects.filter(
         snuba_query_id=snuba_query.id,
         status__in=[QuerySubscription.Status.ACTIVE.value, QuerySubscription.Status.UPDATING.value],

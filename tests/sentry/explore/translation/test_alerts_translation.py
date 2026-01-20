@@ -1352,6 +1352,131 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    def test_eap_query_with_valid_event_types(self, mock_create_rpc) -> None:
+        mock_create_rpc.return_value = "test-subscription-id"
+
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.EventsAnalyticsPlatform,
+            query="",
+            aggregate="p50(span.duration)",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
+            resolution=timedelta(minutes=1),
+        )
+
+        snuba_query.query_snapshot = {
+            "type": SnubaQuery.Type.PERFORMANCE.value,
+            "dataset": Dataset.Transactions.value,
+            "aggregate": "p50(transaction.duration)",
+            "query": "",
+            "time_window": 600,
+        }
+        snuba_query.save()
+
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+
+        data_source = self.create_data_source(
+            organization=self.org,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.org,
+        )
+
+        detector = self.create_detector(
+            name="Test Detector",
+            type=MetricIssue.slug,
+            project=self.project,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=detector_data_condition_group,
+        )
+
+        data_source.detectors.add(detector)
+
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.extrapolation_mode == ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.value
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert snuba_query.aggregate == "p50(span.duration)"
+        assert snuba_query.query == "is_transaction:1"
+        assert snuba_query.event_types == [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN]
+
+    @with_feature("organizations:migrate-transaction-alerts-to-spans")
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
+    def test_eap_query_invalid_event_types(self, mock_create_rpc) -> None:
+        mock_create_rpc.return_value = "test-subscription-id"
+
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.EventsAnalyticsPlatform,
+            query="",
+            aggregate="p50(span.duration)",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.DEFAULT],
+            resolution=timedelta(minutes=1),
+        )
+
+        snuba_query.query_snapshot = {
+            "type": SnubaQuery.Type.PERFORMANCE.value,
+            "dataset": Dataset.Transactions.value,
+            "aggregate": "p50(transaction.duration)",
+            "query": "",
+            "time_window": 600,
+        }
+        snuba_query.save()
+
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+
+        data_source = self.create_data_source(
+            organization=self.org,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.org,
+        )
+
+        detector = self.create_detector(
+            name="Test Detector",
+            type=MetricIssue.slug,
+            project=self.project,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=detector_data_condition_group,
+        )
+
+        data_source.detectors.add(detector)
+
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.extrapolation_mode == ExtrapolationMode.UNKNOWN.value
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert snuba_query.aggregate == "p50(span.duration)"
+        assert snuba_query.query == ""
+        # the query hasn't been updated
+        assert snuba_query.event_types == [SnubaQueryEventType.EventType.DEFAULT]
+
+    @with_feature("organizations:migrate-transaction-alerts-to-spans")
+    @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     def test_rollback_skips_user_updated_query(self, mock_create_rpc) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
