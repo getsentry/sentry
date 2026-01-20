@@ -455,24 +455,6 @@ describe('Uptime Alert Form', () => {
     // Verify the Verification section is NOT shown
     expect(screen.queryByText('Verification')).not.toBeInTheDocument();
   });
-});
-
-describe('Uptime Alert Form - Assertions', () => {
-  const organization = OrganizationFixture();
-  const project = ProjectFixture({environments: ['prod', 'dev']});
-
-  beforeEach(() => {
-    OrganizationStore.onUpdate(organization);
-    ProjectsStore.loadInitialData([project]);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [MemberFixture()],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: [TeamFixture()],
-    });
-  });
 
   it('renders and updates assertion for existing rule', async () => {
     const orgWithAssertions = OrganizationFixture({
