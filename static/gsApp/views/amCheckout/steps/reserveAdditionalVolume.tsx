@@ -142,7 +142,7 @@ function ReserveAdditionalVolume({
             onUpdate={onUpdate}
             subscription={subscription}
             onReservedChange={(newReserved, category) => {
-              setReserved({...reserved, [category]: newReserved});
+              setReserved(prev => ({...prev, [category]: newReserved}));
               debouncedReservedChange(newReserved, category);
             }}
             currentSliderValues={reserved}
