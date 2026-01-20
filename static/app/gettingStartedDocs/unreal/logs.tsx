@@ -69,9 +69,7 @@ SentrySubsystem->InitializeWithSettings(FConfigureSettingsNativeDelegate::Create
       content: [
         {
           type: 'text',
-          text: t(
-            'Once structured logging is enabled, you can send logs using the AddLog method on the Sentry subsystem.'
-          ),
+          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
         },
         {
           type: 'code',
@@ -79,18 +77,17 @@ SentrySubsystem->InitializeWithSettings(FConfigureSettingsNativeDelegate::Create
           code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
 
 // Send logs at different severity levels
-SentrySubsystem->AddLog(TEXT("A simple log message"), ESentryLevel::Info, TEXT("GameFlow"));
-SentrySubsystem->AddLog(TEXT("Failed to save game data"), ESentryLevel::Error, TEXT("SaveSystem"));`,
+SentrySubsystem->LogInfo(TEXT("Test log message"), TEXT("Test"));
+SentrySubsystem->LogWarning(TEXT("Warning message"), TEXT("Test"));
+SentrySubsystem->LogError(TEXT("Error message"), TEXT("Test"));`,
         },
         {
           type: 'text',
           text: tct(
-            'You can also automatically capture Unreal Engine [code:UE_LOG] calls. For more information, see the [link:Automatic UE_LOG Integration documentation].',
+            'You can also automatically capture Unreal Engine [code:UE_LOG] calls. For more information, see the [link:logs documentation].',
             {
               code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/unreal/logs/#automatic-ue_log-integration" />
-              ),
+              link: <ExternalLink href="https://docs.sentry.io/platforms/unreal/logs/" />,
             }
           ),
         },
