@@ -31,6 +31,7 @@ class DataSource(DefaultFieldsModel):
     # We declare all possible dependencies here to ensure proper import ordering.
     __relocation_dependencies__ = {
         "monitors.monitor",  # For DATA_SOURCE_CRON_MONITOR
+        "preprod.sizeanalysissubscription",  # For DATA_SOURCE_SIZE_ANALYSIS
         "sentry.querysubscription",  # For DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         "uptime.uptimesubscription",  # For DATA_SOURCE_UPTIME_SUBSCRIPTION
     }

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from enum import IntEnum
-from typing import ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self, override
 
 import sentry_sdk
 from django.db import models
@@ -21,7 +21,15 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.deletions.base import ModelRelation
 from sentry.models.commitcomparison import CommitComparison
+from sentry.preprod.size_analysis.types import DATA_SOURCE_SIZE_ANALYSIS
+from sentry.workflow_engine.models import DataSource
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -798,6 +806,62 @@ class PreprodComparisonApproval(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodcomparisonapproval"
+
+
+@region_silo_model
+class SizeAnalysisSubscription(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    project = FlexibleForeignKey("sentry.Project")
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_sizeanalysissubscription"
+
+
+@data_source_type_registry.register(DATA_SOURCE_SIZE_ANALYSIS)
+class SizeAnalysisDataSourceHandler(DataSourceTypeHandler["SizeAnalysisSubscription"]):
+    @override
+    @staticmethod
+    def bulk_get_query_object(
+        data_sources: list[DataSource],
+    ) -> dict[int, SizeAnalysisSubscription | None]:
+        subscription_ids: list[int] = []
+
+        for ds in data_sources:
+            try:
+                subscription_ids.append(int(ds.source_id))
+            except ValueError:
+                logger.exception(
+                    "Invalid DataSource.source_id fetching SizeAnalysisSubscription",
+                    extra={"id": ds.id, "source_id": ds.source_id},
+                )
+
+        qs_lookup = {
+            str(sub.id): sub
+            for sub in SizeAnalysisSubscription.objects.filter(id__in=subscription_ids)
+        }
+        return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
+
+    @override
+    @staticmethod
+    def related_model(instance: DataSource) -> list[ModelRelation]:
+        return [ModelRelation(SizeAnalysisSubscription, {"id": instance.source_id})]
+
+    @override
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        return None
+
+    @override
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        raise NotImplementedError
+
+    @override
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "preprod.sizeanalysissubscription"
 
 
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics

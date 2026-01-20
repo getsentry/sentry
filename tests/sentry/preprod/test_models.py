@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import (
+    PreprodArtifact,
+    SizeAnalysisDataSourceHandler,
+    SizeAnalysisSubscription,
+)
+from sentry.preprod.size_analysis.types import DATA_SOURCE_SIZE_ANALYSIS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.workflow_engine.models import DataSource
 
 
 class PreprodArtifactModelTestBase(TestCase):
@@ -1599,3 +1605,52 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
         assert len(result) == 1
         assert result[head_artifact.id] == base_artifact_with_config
+
+
+@region_silo_test
+class SizeAnalysisDataSourceHandlerTest(TestCase):
+
+    def test_bulk_get_query_object(self):
+        subscription = SizeAnalysisSubscription.objects.create(
+            project=self.project,
+        )
+
+        data_source = DataSource.objects.create(
+            organization=self.organization,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SIZE_ANALYSIS,
+        )
+
+        result = SizeAnalysisDataSourceHandler.bulk_get_query_object([data_source])
+
+        assert len(result) == 1
+        assert result[data_source.id] == subscription
+
+    def test_bulk_get_query_object_not_found(self):
+        data_source = DataSource.objects.create(
+            organization=self.organization,
+            source_id="99999",
+            type=DATA_SOURCE_SIZE_ANALYSIS,
+        )
+
+        result = SizeAnalysisDataSourceHandler.bulk_get_query_object([data_source])
+
+        assert len(result) == 1
+        assert result[data_source.id] is None
+
+    def test_related_model(self):
+        subscription = SizeAnalysisSubscription.objects.create(
+            project=self.project,
+        )
+
+        data_source = DataSource.objects.create(
+            organization=self.organization,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SIZE_ANALYSIS,
+        )
+
+        result = SizeAnalysisDataSourceHandler.related_model(data_source)
+
+        assert len(result) == 1
+        assert result[0].params["model"] == SizeAnalysisSubscription
+        assert result[0].params["query"] == {"id": str(subscription.id)}
