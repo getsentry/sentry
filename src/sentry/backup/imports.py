@@ -254,7 +254,7 @@ def _import(
     # Reorder models according to dependencies to ensure correct import order.
     # This is necessary for backward compatibility with exports created before
     # __relocation_dependencies__ was added to models like DataSource.
-    def reorder_models_by_dependencies(models: list[dict]) -> list[dict]:
+    def reorder_models_by_dependencies(models: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Reorder a list of model dictionaries to respect dependency ordering.
 
@@ -263,50 +263,48 @@ def _import(
         models that reference them.
 
         Models not present in sorted_dependencies() (e.g., deleted models from
-        old exports, plugin models) are preserved at the end to avoid data loss.
+        old exports, plugin models) are preserved at the end in their original
+        relative order to avoid data loss.
         """
-        # Group models by their model name
-        models_by_name: dict[NormalizedModelName, list[dict]] = {}
+        # Get the correct dependency order and pre-populate models_by_name
+        correct_order = [get_model_name(model) for model in sorted_dependencies()]
+        models_by_name: dict[NormalizedModelName, list[dict[str, Any]]] = {
+            model_name: [] for model_name in correct_order
+        }
+
+        # Walk through input models, preserving order of unknown models
+        unknown_models = []
+        unknown_model_names_seen: set[NormalizedModelName] = set()
         for model in models:
             model_name = NormalizedModelName(model["model"])
-            if model_name not in models_by_name:
-                models_by_name[model_name] = []
-            models_by_name[model_name].append(model)
-
-        # Get the correct dependency order
-        correct_order = sorted_dependencies()
-
-        # Track which models we've processed
-        processed_models: set[NormalizedModelName] = set()
+            if model_name in models_by_name:
+                # Known model - add to its bucket
+                models_by_name[model_name].append(model)
+            else:
+                # Unknown model - preserve in original order
+                unknown_models.append(model)
+                # Log first occurrence of each unknown model type
+                if model_name not in unknown_model_names_seen:
+                    unknown_model_names_seen.add(model_name)
+                    logger.info(
+                        "import.reorder_models.unknown_model",
+                        extra={
+                            "model_name": str(model_name),
+                        },
+                    )
 
         # Rebuild the models list in dependency order
         reordered = []
-        for model_cls in correct_order:
-            model_name = get_model_name(model_cls)
-            if model_name in models_by_name:
-                reordered.extend(models_by_name[model_name])
-                processed_models.add(model_name)
+        for model_name in correct_order:
+            reordered.extend(models_by_name[model_name])
 
-        # Append any models not in sorted_dependencies() at the end
-        # These might be deleted models, plugin models, or from newer versions
-        unordered_models = []
-        for model_name, model_list in models_by_name.items():
-            if model_name not in processed_models:
-                unordered_models.extend(model_list)
-                logger.info(
-                    "import.reorder_models.unknown_model",
-                    extra={
-                        "model_name": str(model_name),
-                        "count": len(model_list),
-                    },
-                )
-
-        if unordered_models:
-            reordered.extend(unordered_models)
+        # Append unknown models at the end, preserving their relative order
+        if unknown_models:
+            reordered.extend(unknown_models)
             logger.warning(
                 "import.reorder_models.unordered_models_appended",
                 extra={
-                    "unordered_count": len(unordered_models),
+                    "unordered_count": len(unknown_models),
                     "total_models": len(reordered),
                 },
             )
