@@ -1,7 +1,6 @@
 import logging
 import time
 from collections import defaultdict
-from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
@@ -16,11 +15,9 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry import options
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import (
     AdditionalQueries,
@@ -29,12 +26,9 @@ from sentry.search.eap.types import (
     SupportedTraceItemType,
 )
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
-from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.snuba.discover import zerofill
-from sentry.snuba.rpc_dataset_common import set_debug_meta
 from sentry.utils import json, snuba_rpc
-from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -80,102 +74,6 @@ class Spans(rpc_dataset_common.RPCBase):
                 additional_queries=additional_queries,
             ),
             params.debug,
-        )
-
-    @classmethod
-    @sentry_sdk.trace
-    def run_timeseries_query(
-        cls,
-        *,
-        params: SnubaParams,
-        query_string: str,
-        y_axes: list[str],
-        referrer: str,
-        config: SearchResolverConfig,
-        sampling_mode: SAMPLING_MODES | None,
-        comparison_delta: timedelta | None = None,
-        additional_queries: AdditionalQueries | None = None,
-    ) -> SnubaTSResult:
-        """Make the query"""
-        cls.validate_granularity(params)
-        search_resolver = cls.get_resolver(params, config)
-        rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-            search_resolver=search_resolver,
-            params=params,
-            query_string=query_string,
-            y_axes=y_axes,
-            groupby=[],
-            referrer=referrer,
-            sampling_mode=sampling_mode,
-            additional_queries=additional_queries,
-        )
-
-        """Run the query"""
-        rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
-
-        """Process the results"""
-        result = rpc_dataset_common.ProcessedTimeseries()
-        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
-        if params.debug:
-            set_debug_meta(final_meta, rpc_response.meta, rpc_request)
-        for resolved_field in aggregates + groupbys:
-            final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
-
-        for timeseries in rpc_response.result_timeseries:
-            processed = cls.process_timeseries_list([timeseries])
-            if len(result.timeseries) == 0:
-                result = processed
-            else:
-                for attr in ["timeseries", "confidence", "sample_count", "sampling_rate"]:
-                    for existing, new in zip(getattr(result, attr), getattr(processed, attr)):
-                        existing.update(new)
-        if len(result.timeseries) == 0:
-            # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
-            result.timeseries = zerofill(
-                [],
-                params.start_date,
-                params.end_date,
-                params.timeseries_granularity_secs,
-                ["time"],
-            )
-
-        if comparison_delta is not None:
-            if len(rpc_request.expressions) != 1:
-                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-
-            comp_query_params = params.copy()
-            assert comp_query_params.start is not None, "start is required"
-            assert comp_query_params.end is not None, "end is required"
-            comp_query_params.start = comp_query_params.start_date - comparison_delta
-            comp_query_params.end = comp_query_params.end_date - comparison_delta
-
-            search_resolver = cls.get_resolver(comp_query_params, config)
-            comp_rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-                search_resolver=search_resolver,
-                params=comp_query_params,
-                query_string=query_string,
-                y_axes=y_axes,
-                groupby=[],
-                referrer=referrer,
-                sampling_mode=sampling_mode,
-                additional_queries=additional_queries,
-            )
-            comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
-
-            if comp_rpc_response.result_timeseries:
-                timeseries = comp_rpc_response.result_timeseries[0]
-                processed = cls.process_timeseries_list([timeseries])
-                for existing, new in zip(result.timeseries, processed.timeseries):
-                    existing["comparisonCount"] = new[timeseries.label]
-            else:
-                for existing in result.timeseries:
-                    existing["comparisonCount"] = 0
-
-        return SnubaTSResult(
-            {"data": result.timeseries, "processed_timeseries": result, "meta": final_meta},
-            params.start,
-            params.end,
-            params.granularity_secs,
         )
 
     @classmethod
