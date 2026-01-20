@@ -40,6 +40,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         Tuple of (project_id, organization_id)
     """
     projects = Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization")
+    current_hour = django_timezone.now().hour
 
     for project in RangeQuerySetWrapper(
         projects,
@@ -52,7 +53,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         if not project.flags.has_transactions:
             continue
 
-        if project.id % 23 != django_timezone.now().hour:
+        if project.id % 23 != current_hour:
             continue
 
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
