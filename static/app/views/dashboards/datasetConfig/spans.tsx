@@ -195,18 +195,16 @@ function extractSeriesMetadata<T>({
   widgetQuery,
 }: {
   data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
-  getFieldMetaValue: (
-    meta: NonNullable<NonNullable<WidgetQuery['fieldMeta']>[number]>
-  ) => T;
-  getMetaField: (seriesMeta: NonNullable<EventsStats['meta']>, aggregate: string) => T;
+  getFieldMetaValue: (meta: NonNullable<WidgetQuery['fieldMeta']>[number] | null) => T;
+  getMetaField: (seriesMeta: EventsStats['meta'], aggregate: string) => T;
   widgetQuery: WidgetQuery;
 }): Record<string, T> {
   const result: Record<string, T> = {};
 
   // Initialize from fieldMeta if available
   widgetQuery.fieldMeta?.forEach((meta, index) => {
-    if (meta && widgetQuery.fields) {
-      result[widgetQuery.fields[index]!] = getFieldMetaValue(meta);
+    if (meta && widgetQuery.fields?.[index]) {
+      result[widgetQuery.fields[index]] = getFieldMetaValue(meta);
     }
   });
 
@@ -328,17 +326,17 @@ export const SpansConfig: DatasetConfig<
     return extractSeriesMetadata({
       data,
       widgetQuery,
-      getFieldMetaValue: meta => meta.valueUnit,
-      getMetaField: (seriesMeta, aggregate) => seriesMeta.units[aggregate] as DataUnit,
+      getFieldMetaValue: meta => meta?.valueUnit as DataUnit,
+      getMetaField: (seriesMeta, aggregate) => seriesMeta?.units?.[aggregate] as DataUnit,
     });
   },
   getSeriesResultType: (data, widgetQuery) => {
     return extractSeriesMetadata({
       data,
       widgetQuery,
-      getFieldMetaValue: meta => meta.valueType as AggregationOutputType,
+      getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
       getMetaField: (seriesMeta, aggregate) =>
-        seriesMeta.fields[aggregate] as AggregationOutputType,
+        seriesMeta?.fields?.[aggregate] as AggregationOutputType,
     });
   },
 };
