@@ -224,12 +224,12 @@ class OAuthTokenView(View):
                     status=401,
                 )
 
-        # Public clients can only use certain grant types
-        if is_public_client and grant_type == GrantTypes.AUTHORIZATION:
-            # Authorization code for public clients requires PKCE (validated in from_grant)
-            # This is allowed - PKCE provides the security
-            pass
-        elif is_public_client and grant_type not in [
+        # Public clients can only use certain grant types:
+        # - AUTHORIZATION: allowed with PKCE (validated in from_grant)
+        # - DEVICE_CODE: designed for public clients (RFC 8628)
+        # - REFRESH: allowed with token rotation (RFC 9700 §4.14.2)
+        if is_public_client and grant_type not in [
+            GrantTypes.AUTHORIZATION,
             GrantTypes.DEVICE_CODE,
             GrantTypes.REFRESH,
         ]:
