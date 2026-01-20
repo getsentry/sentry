@@ -3,7 +3,9 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 export const getInstallSnippetPackageManager = (params: DocsParams) => {
   let version = '3.34.0';
-  if (params.isLogsSelected) {
+  if (params.isMetricsSelected) {
+    version = '6.1.0';
+  } else if (params.isLogsSelected) {
     version = '6.0.0';
   } else if (params.isProfilingSelected) {
     version = '4.3.0';
@@ -15,7 +17,9 @@ Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', ver
 
 export const getInstallSnippetCoreCli = (params: DocsParams) => {
   let version = '3.34.0';
-  if (params.isLogsSelected) {
+  if (params.isMetricsSelected) {
+    version = '6.1.0';
+  } else if (params.isLogsSelected) {
     version = '6.0.0';
   } else if (params.isProfilingSelected) {
     version = '4.3.0';
