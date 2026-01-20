@@ -184,10 +184,10 @@ class ProjectRuleEnableTestCase(APITestCase):
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
             }
         ]
-        rule = Rule.objects.create(
-            project=self.project,
-            data={"conditions": conditions, "action_match": "all"},
+        rule = self.create_project_rule(
+            project=self.project, condition_data=conditions, action_data=[{}]
         )
+        rule.data["actions"] = []
         rule.status = ObjectStatus.DISABLED
         rule.save()
 
