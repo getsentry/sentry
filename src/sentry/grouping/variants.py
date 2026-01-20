@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
 
 from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.fingerprinting.rules import FingerprintRule
-from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
+from sentry.grouping.fingerprinting.types import FingerprintInfo
+from sentry.grouping.fingerprinting.utils import is_default_fingerprint_var
+from sentry.grouping.utils import hash_from_values
 
 if TYPE_CHECKING:
-    from sentry.grouping.api import FingerprintInfo
     from sentry.grouping.strategies.base import StrategyConfiguration
 
 

@@ -13,7 +13,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.grouping.utils import resolve_fingerprint_values
+from sentry.grouping.fingerprinting.utils import resolve_fingerprint_values
 from sentry.grouping.variants import BaseVariant
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all

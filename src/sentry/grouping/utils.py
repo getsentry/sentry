@@ -1,40 +1,14 @@
 from __future__ import annotations
 
-import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 from hashlib import md5
-from re import Match
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
-from sentry.db.models.fields.node import NodeData
-from sentry.stacktraces.processing import get_crash_frame_from_event_data
-from sentry.utils.safe import get_path
-
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
-
-
-_fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
-DEFAULT_FINGERPRINT_VARIABLE = "{{ default }}"
-
-
-def parse_fingerprint_entry_as_variable(entry: str) -> str | None:
-    """
-    Determine if the given fingerprint entry is a variable, and if it is, return its key (that is,
-    extract the variable name from a variable string of the form "{{ var_name }}"). If the given
-    entry isn't the correct form to be a variable, return None.
-    """
-    match = _fingerprint_var_re.match(entry)
-    if match is not None and match.end() == len(entry):
-        return match.group(1)
-    return None
-
-
-def is_default_fingerprint_var(value: str) -> bool:
-    return parse_fingerprint_entry_as_variable(value) == "default"
 
 
 def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:
@@ -47,29 +21,6 @@ def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingCompon
     for value in values:
         result.update(force_bytes(value, errors="replace"))
     return result.hexdigest()
-
-
-def get_fingerprint_type(
-    fingerprint: list[str] | None,
-) -> Literal["default", "hybrid", "custom"] | None:
-    """
-    Examine a fingerprint to determine if it's custom, hybrid, or the default fingerprint.
-
-    Accepts (and then returns) None for convenience, so the fingerprint's existence doesn't have to
-    be separately checked.
-    """
-    if not fingerprint:
-        return None
-
-    return (
-        "default"
-        if len(fingerprint) == 1 and is_default_fingerprint_var(fingerprint[0])
-        else (
-            "hybrid"
-            if any(is_default_fingerprint_var(entry) for entry in fingerprint)
-            else "custom"
-        )
-    )
 
 
 def bool_from_string(value: str) -> bool | None:
@@ -85,127 +36,3 @@ def bool_from_string(value: str) -> bool | None:
             return False
 
     return None
-
-
-def resolve_fingerprint_variable(
-    variable_key: str,
-    event_data: NodeData | Mapping[str, Any],
-    use_legacy_unknown_variable_handling: bool,
-) -> str | None:
-    if variable_key == "transaction":
-        return event_data.get("transaction") or "<no-transaction>"
-
-    elif variable_key == "message":
-        message = (
-            get_path(event_data, "logentry", "formatted")
-            or get_path(event_data, "logentry", "message")
-            or get_path(event_data, "exception", "values", -1, "value")
-        )
-        return message or "<no-message>"
-
-    elif variable_key in ("type", "error.type"):
-        exception_type = get_path(event_data, "exception", "values", -1, "type")
-        return exception_type or "<no-type>"
-
-    elif variable_key in ("value", "error.value"):
-        value = get_path(event_data, "exception", "values", -1, "value")
-        return value or "<no-value>"
-
-    elif variable_key in ("function", "stack.function"):
-        frame = get_crash_frame_from_event_data(event_data)
-        func = frame.get("function") if frame else None
-        return func or "<no-function>"
-
-    elif variable_key in ("path", "stack.abs_path"):
-        frame = get_crash_frame_from_event_data(event_data)
-        abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
-        return abs_path or "<no-abs-path>"
-
-    elif variable_key == "stack.filename":
-        frame = get_crash_frame_from_event_data(event_data)
-        filename = frame.get("filename") or frame.get("abs_path") if frame else None
-        return filename or "<no-filename>"
-
-    elif variable_key in ("module", "stack.module"):
-        frame = get_crash_frame_from_event_data(event_data)
-        module = frame.get("module") if frame else None
-        return module or "<no-module>"
-
-    elif variable_key in ("package", "stack.package"):
-        frame = get_crash_frame_from_event_data(event_data)
-        pkg = frame.get("package") if frame else None
-        if pkg:
-            # If the package is formatted as either a POSIX or Windows path, grab the last segment
-            pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
-        return pkg or "<no-package>"
-
-    elif variable_key == "level":
-        return event_data.get("level") or "<no-level>"
-
-    elif variable_key == "logger":
-        return event_data.get("logger") or "<no-logger>"
-
-    elif variable_key.startswith("tags."):
-        # Turn "tags.some_tag" into just "some_tag"
-        requested_tag = variable_key[5:]
-        for tag_name, tag_value in event_data.get("tags") or ():
-            if tag_name == requested_tag and tag_value is not None:
-                return tag_value
-        return "<no-value-for-tag-%s>" % requested_tag
-    else:
-        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove `use_legacy_unknown_variable_handling` and just return the string. (At that
-        # point we can also change the return type of this function to just be `str`.)
-        return (
-            None
-            if use_legacy_unknown_variable_handling
-            else "<unrecognized-variable-%s>" % variable_key
-        )
-
-
-def resolve_fingerprint_values(
-    fingerprint: list[str], event_data: NodeData, use_legacy_unknown_variable_handling: bool = False
-) -> list[str]:
-    def _resolve_single_entry(entry: str) -> str:
-        variable_key = parse_fingerprint_entry_as_variable(entry)
-        if variable_key == "default":  # entry is some variation of `{{ default }}`
-            return DEFAULT_FINGERPRINT_VARIABLE
-        if variable_key is None:  # entry isn't a variable
-            return entry
-
-        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
-        # `resolve_fingerprint_variable`
-        resolved_value = resolve_fingerprint_variable(
-            variable_key, event_data, use_legacy_unknown_variable_handling
-        )
-
-        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove this
-        if resolved_value is None:  # variable wasn't recognized
-            return entry
-        return resolved_value
-
-    return [_resolve_single_entry(entry) for entry in fingerprint]
-
-
-def expand_title_template(
-    template: str, event_data: Mapping[str, Any], use_legacy_unknown_variable_handling: bool = False
-) -> str:
-    def _handle_match(match: Match[str]) -> str:
-        variable_key = match.group(1)
-        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
-        # `resolve_fingerprint_variable`
-        resolved_value = resolve_fingerprint_variable(
-            variable_key, event_data, use_legacy_unknown_variable_handling
-        )
-
-        # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove this
-        if resolved_value is not None:
-            return resolved_value
-        # If the variable can't be resolved, return it as is
-        return match.group(0)
-
-    return _fingerprint_var_re.sub(_handle_match, template)
