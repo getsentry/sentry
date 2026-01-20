@@ -351,7 +351,6 @@ export function useSpansTableQuery(
         },
       ];
 
-      // Prepend STARRED_SEGMENT_TABLE_QUERY_KEY so StarredSegmentCell can find and update this query
       return [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseQueryKey];
     });
   }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
@@ -359,8 +358,11 @@ export function useSpansTableQuery(
   const createQueryFnTable = useCallback(
     () =>
       async (context: any): Promise<ApiResult<SpansTableResponse>> => {
-        // Drop the STARRED_SEGMENT_TABLE_QUERY_KEY prefix so StarredSegmentCell can find and update this query
-        const [, ...apiQueryKey] = context.queryKey as [string, ...ApiQueryKey];
+        // Query key structure: [...STARRED_SEGMENT_TABLE_QUERY_KEY, url, options]
+        // Extract [url, options] for the API call
+        const apiQueryKey = context.queryKey.slice(
+          STARRED_SEGMENT_TABLE_QUERY_KEY.length
+        ) as ApiQueryKey;
 
         const modifiedContext = {
           ...context,
