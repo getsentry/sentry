@@ -34,6 +34,7 @@ function getDefaultAutofixSettings(
   return {
     autofixAutomationTuning: organization.defaultAutofixAutomationTuning ?? 'off',
     automatedRunStoppingPoint: organization.autoOpenPrs ? 'open_pr' : 'code_changes',
+    automationHandoff: undefined,
     projectId,
     reposCount: 0,
   };

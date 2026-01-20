@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {
   fetchMutation,
@@ -17,13 +18,6 @@ type AutofixAutomationTuning =
   | 'high' // deprecated
   | 'always' // deprecated
   | null; // deprecated
-
-type AutomatedRunStoppingPoint =
-  | 'root_cause'
-  | 'solution'
-  | 'code_changes'
-  | 'open_pr'
-  | 'background_agent';
 
 // Mirrors the backend SeerRepoDefinition type
 export interface BackendRepository {
@@ -46,7 +40,8 @@ export interface BackendRepository {
 
 export type AutofixAutomationSettings = {
   autofixAutomationTuning: AutofixAutomationTuning;
-  automatedRunStoppingPoint: AutomatedRunStoppingPoint;
+  automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
+  automationHandoff: ProjectSeerPreferences['automation_handoff'];
   projectId: string;
   reposCount: number;
 };
@@ -80,18 +75,20 @@ type AutofixAutomationUpdate =
   | {
       autofixAutomationTuning: AutofixAutomationTuning;
       projectIds: string[];
-      automatedRunStoppingPoint?: never | AutomatedRunStoppingPoint;
+      automatedRunStoppingPoint?:
+        | never
+        | ProjectSeerPreferences['automated_run_stopping_point'];
       projectRepoMappings?: never | Record<string, BackendRepository[]>;
     }
   | {
-      automatedRunStoppingPoint: AutomatedRunStoppingPoint;
+      automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
       projectIds: string[];
       autofixAutomationTuning?: never | AutofixAutomationTuning;
       projectRepoMappings?: never | Record<string, BackendRepository[]>;
     }
   | {
       autofixAutomationTuning: AutofixAutomationTuning;
-      automatedRunStoppingPoint: AutomatedRunStoppingPoint;
+      automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
       projectIds: string[];
       projectRepoMappings?: never | Record<string, BackendRepository[]>;
     }
@@ -99,7 +96,9 @@ type AutofixAutomationUpdate =
       projectIds: string[];
       projectRepoMappings: Record<string, BackendRepository[]>;
       autofixAutomationTuning?: never | AutofixAutomationTuning;
-      automatedRunStoppingPoint?: never | AutomatedRunStoppingPoint;
+      automatedRunStoppingPoint?:
+        | never
+        | ProjectSeerPreferences['automated_run_stopping_point'];
     };
 
 export function useUpdateBulkAutofixAutomationSettings(
