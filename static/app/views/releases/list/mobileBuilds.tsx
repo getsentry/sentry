@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -72,7 +73,9 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     RequestError
   > = useApiQuery<ListBuildsApiResponse>(
     [
-      `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: buildsQueryParams},
     ],
     {
