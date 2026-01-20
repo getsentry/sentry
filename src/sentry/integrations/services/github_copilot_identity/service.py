@@ -5,8 +5,11 @@
 
 import abc
 
+from django.conf import settings
+
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.silo.base import SiloMode
+from sentry.utils.imports import import_string
 
 
 class GitHubCopilotIdentityService(RpcService):
@@ -15,11 +18,13 @@ class GitHubCopilotIdentityService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.integrations.services.github_copilot_identity.impl import (
-            DatabaseBackedGitHubCopilotIdentityService,
+        class_path = getattr(
+            settings,
+            "GITHUB_COPILOT_IDENTITY_SERVICE",
+            "sentry.integrations.services.github_copilot_identity.impl.DatabaseBackedGitHubCopilotIdentityService",
         )
-
-        return DatabaseBackedGitHubCopilotIdentityService()
+        impl_class = import_string(class_path)
+        return impl_class()
 
     @rpc_method
     @abc.abstractmethod
