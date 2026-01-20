@@ -2,9 +2,9 @@ import type {
   CronDetector,
   Detector,
   MetricDetector,
+  PreprodDetector,
   SnubaQuery,
   UptimeDetector,
-  PreprodDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import type {MonitorConfig} from 'sentry/views/insights/crons/types';
 
@@ -25,10 +25,7 @@ type MonitorDetectorAnalytics = {
 };
 
 type ErrorDetectorAnalytics = {
-  detector_type: Extract<
-    Detector['type'],
-    'error' | 'issue_stream'
-  >;
+  detector_type: Extract<Detector['type'], 'error' | 'issue_stream'>;
 };
 
 type PreprodDetectorAnalytics = {

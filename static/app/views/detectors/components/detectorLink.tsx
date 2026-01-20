@@ -15,10 +15,10 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
   CronDetector,
-  PreprodDetector,
   Detector,
   MetricCondition,
   MetricDetector,
+  PreprodDetector,
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
@@ -191,8 +191,12 @@ function CronDetectorDetails({detector}: {detector: CronDetector}) {
 }
 
 function PreprodDetectorDetails({detector}: {detector: PreprodDetector}) {
-  const {metric, measurement }= detector.config;
-  return <DetailItem>{metric} {measurement}</DetailItem>;
+  const {metric, measurement} = detector.config;
+  return (
+    <DetailItem>
+      {metric} {measurement}
+    </DetailItem>
+  );
 }
 
 function Details({detector}: {detector: Detector}) {
