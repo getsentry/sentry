@@ -39,6 +39,7 @@ import {
   cleanWidgetForRequest,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 
 type SpansSeriesResponse =
   | EventsStats
@@ -342,25 +343,37 @@ export function useSpansTableQuery(
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
-      return [
+      const baseQueryKey: ApiQueryKey = [
         `/organizations/${organization.slug}/events/`,
         {
           method: 'GET' as const,
           query: queryParams,
         },
-      ] satisfies ApiQueryKey;
+      ];
+
+      // Prepend STARRED_SEGMENT_TABLE_QUERY_KEY so StarredSegmentCell can find and update this query
+      return [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseQueryKey];
     });
   }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
 
   const createQueryFnTable = useCallback(
     () =>
       async (context: any): Promise<ApiResult<SpansTableResponse>> => {
+        // Drop the STARRED_SEGMENT_TABLE_QUERY_KEY prefix so StarredSegmentCell can find and update this query
+        const [, ...apiQueryKey] = context.queryKey as [string, ...ApiQueryKey];
+
+        const modifiedContext = {
+          ...context,
+          queryKey: apiQueryKey,
+        };
+
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
               current: async () => {
                 try {
-                  const result = await fetchDataQuery<SpansTableResponse>(context);
+                  const result =
+                    await fetchDataQuery<SpansTableResponse>(modifiedContext);
                   resolve(result);
                 } catch (error) {
                   reject(error);
@@ -370,7 +383,7 @@ export function useSpansTableQuery(
             queue.addItem({fetchDataRef: fetchFnRef});
           });
         }
-        return fetchDataQuery<SpansTableResponse>(context);
+        return fetchDataQuery<SpansTableResponse>(modifiedContext);
       },
     [queue]
   );

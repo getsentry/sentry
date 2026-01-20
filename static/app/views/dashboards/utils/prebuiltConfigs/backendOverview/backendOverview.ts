@@ -299,6 +299,7 @@ const TRANSACTIONS_TABLE: Widget = {
     {
       name: '',
       fields: [
+        SpanFields.IS_STARRED_TRANSACTION,
         SpanFields.REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
@@ -319,12 +320,14 @@ const TRANSACTIONS_TABLE: Widget = {
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [
+        SpanFields.IS_STARRED_TRANSACTION,
         SpanFields.REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
         SpanFields.PROJECT,
       ],
       fieldAliases: [
+        'Star',
         'Http Method',
         '',
         'Operation',
