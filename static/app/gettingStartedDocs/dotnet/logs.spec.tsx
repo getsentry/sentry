@@ -1,5 +1,5 @@
 // Only import and test functions that don't have circular dependencies
-const {logs} = jest.requireActual('sentry/gettingStartedDocs/dotnet/logs');
+const {dotnetLogs} = jest.requireActual('sentry/gettingStartedDocs/dotnet/logs');
 
 describe('logs', () => {
   const mockParams = {
@@ -12,7 +12,7 @@ describe('logs', () => {
   };
 
   it('generates logs onboarding config with default parameters', () => {
-    const result = logs();
+    const result = dotnetLogs();
 
     // Test install step
     const installSteps = result.install(mockParams);
