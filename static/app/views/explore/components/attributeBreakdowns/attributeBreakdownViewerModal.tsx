@@ -58,6 +58,7 @@ type Props = ModalRenderProps & AttributeBreakdownViewerModalOptions;
 type SingleModeData = {
   attributeName: string;
   maxSeriesValue: number;
+  mode: 'single';
   populationPercentages: {primary: number};
   seriesData: {single: Array<{label: string; value: number}>};
   tableColumns: TabularColumn[];
@@ -68,6 +69,7 @@ type SingleModeData = {
 type ComparisonModeData = {
   attributeName: string;
   maxSeriesValue: number;
+  mode: 'comparison';
   populationPercentages: {primary: number; secondary: number};
   seriesData: {
     [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
@@ -119,7 +121,7 @@ function cohortsToTableData(
       const selectedVal = cohort1Map.get(label) ?? 0;
       const baselineVal = cohort2Map.get(label) ?? 0;
 
-      const selectedPercentage = cohort1Total === 0 ? 0 : selectedVal / cohort1Total;
+      const selectedPercentage = cohort1Total > 0 ? selectedVal / cohort1Total : 0;
       const baselinePercentage = cohort2Total === 0 ? 0 : baselineVal / cohort2Total;
 
       return {
@@ -177,13 +179,13 @@ function cohortsToSeriesData(
       const baselineVal = cohort2Map.get(label) ?? 0;
 
       const selectedPercentage =
-        seriesTotals[CHART_SELECTED_SERIES_NAME] === 0
-          ? 0
-          : (selectedVal / seriesTotals[CHART_SELECTED_SERIES_NAME]) * 100;
+        seriesTotals[CHART_SELECTED_SERIES_NAME] > 0
+          ? (selectedVal / seriesTotals[CHART_SELECTED_SERIES_NAME]) * 100
+          : 0;
       const baselinePercentage =
-        seriesTotals[CHART_BASELINE_SERIES_NAME] === 0
-          ? 0
-          : (baselineVal / seriesTotals[CHART_BASELINE_SERIES_NAME]) * 100;
+        seriesTotals[CHART_BASELINE_SERIES_NAME] > 0
+          ? (baselineVal / seriesTotals[CHART_BASELINE_SERIES_NAME]) * 100
+          : 0;
 
       return {
         label,
@@ -220,7 +222,7 @@ function computeSingleModeData(
   );
 
   const singleMaxValue =
-    singleSeriesData.length === 0 ? 0 : Math.max(...singleSeriesData.map(v => v.value));
+    singleSeriesData.length > 0 ? Math.max(...singleSeriesData.map(v => v.value)) : 0;
 
   const singlePopulation = calculateAttributePopulationPercentage(
     attributeDistribution.values,
@@ -238,6 +240,7 @@ function computeSingleModeData(
   ];
 
   return {
+    mode: 'single',
     attributeName: attributeDistribution.attributeName,
     maxSeriesValue: singleMaxValue,
     populationPercentages: {primary: singlePopulation},
@@ -266,12 +269,9 @@ function computeComparisonModeData(
   const selectedSeries = comparisonSeriesData[CHART_SELECTED_SERIES_NAME];
   const baselineSeries = comparisonSeriesData[CHART_BASELINE_SERIES_NAME];
   const comparisonMaxValue =
-    selectedSeries.length === 0 && baselineSeries.length === 0
-      ? 0
-      : Math.max(
-          ...selectedSeries.map(c => c.value),
-          ...baselineSeries.map(c => c.value)
-        );
+    selectedSeries.length > 0 && baselineSeries.length > 0
+      ? Math.max(...selectedSeries.map(c => c.value), ...baselineSeries.map(c => c.value))
+      : 0;
   const comparisonPopulation = {
     primary: calculateAttributePopulationPercentage(attribute.cohort1, cohort1Total),
     secondary: calculateAttributePopulationPercentage(attribute.cohort2, cohort2Total),
@@ -291,6 +291,7 @@ function computeComparisonModeData(
   ];
 
   return {
+    mode: 'comparison',
     attributeName: attribute.attributeName,
     maxSeriesValue: comparisonMaxValue,
     populationPercentages: comparisonPopulation,
@@ -310,9 +311,7 @@ function createSingleModeChartSeries(
     {
       type: 'bar' as const,
       data: seriesData.single.map(v => v.value),
-      itemStyle: {
-        color: primaryColor,
-      },
+      itemStyle: {color: primaryColor},
       barMaxWidth: CHART_MAX_BAR_WIDTH,
       animation: false,
     },
@@ -332,9 +331,7 @@ function createComparisonModeChartSeries(
       type: 'bar' as const,
       data: seriesData[CHART_SELECTED_SERIES_NAME].map(c => c.value),
       name: CHART_SELECTED_SERIES_NAME,
-      itemStyle: {
-        color: primaryColor,
-      },
+      itemStyle: {color: primaryColor},
       barMaxWidth: CHART_MAX_BAR_WIDTH,
       animation: false,
     },
@@ -342,9 +339,7 @@ function createComparisonModeChartSeries(
       type: 'bar' as const,
       data: seriesData[CHART_BASELINE_SERIES_NAME].map(c => c.value),
       name: CHART_BASELINE_SERIES_NAME,
-      itemStyle: {
-        color: secondaryColor,
-      },
+      itemStyle: {color: secondaryColor},
       barMaxWidth: CHART_MAX_BAR_WIDTH,
       animation: false,
     },
@@ -380,14 +375,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
   const secondaryColor = COHORT_2_COLOR;
 
   // Compute data based on mode
-  const singleModeData = useMemo(() => {
-    if (mode === 'single') {
-      return computeSingleModeData(props.attributeDistribution, props.cohortCount);
-    }
-    return null;
-  }, [mode, props]);
-
-  const comparisonModeData = useMemo(() => {
+  const computedData = useMemo(() => {
     if (mode === 'comparison') {
       return computeComparisonModeData(
         props.attribute,
@@ -395,17 +383,16 @@ export default function AttributeBreakdownViewerModal(props: Props) {
         props.cohort2Total
       );
     }
-    return null;
-  }, [mode, props]);
 
-  const computedData = singleModeData ?? comparisonModeData!;
+    return computeSingleModeData(props.attributeDistribution, props.cohortCount);
+  }, [mode, props]);
 
   const tooltipFormatter = useCallback(
     (p: TooltipComponentFormatterCallbackParams) => {
-      if (mode === 'single') {
-        return formatSingleModeTooltip(p);
+      if (mode === 'comparison') {
+        return formatComparisonModeTooltip(p, primaryColor, secondaryColor);
       }
-      return formatComparisonModeTooltip(p, primaryColor, secondaryColor);
+      return formatSingleModeTooltip(p);
     },
     [mode, primaryColor, secondaryColor]
   );
@@ -421,28 +408,29 @@ export default function AttributeBreakdownViewerModal(props: Props) {
   );
 
   const chartSeries = useMemo(() => {
-    if (mode === 'single') {
-      return createSingleModeChartSeries(
-        computedData.seriesData as {single: Array<{label: string; value: number}>},
-        primaryColor
+    if (computedData.mode === 'comparison') {
+      return createComparisonModeChartSeries(
+        computedData.seriesData as {
+          [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
+          [CHART_SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
+        },
+        primaryColor,
+        secondaryColor
       );
     }
-    return createComparisonModeChartSeries(
-      computedData.seriesData as {
-        [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
-        [CHART_SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
-      },
-      primaryColor,
-      secondaryColor
+
+    return createSingleModeChartSeries(
+      computedData.seriesData as {single: Array<{label: string; value: number}>},
+      primaryColor
     );
-  }, [mode, computedData.seriesData, primaryColor, secondaryColor]);
+  }, [computedData.mode, computedData.seriesData, primaryColor, secondaryColor]);
 
   return (
     <Fragment>
       <Header closeButton>
         <Flex align="center" gap="xl">
           <h3>{computedData.attributeName}</h3>
-          {mode === 'single' ? (
+          {computedData.mode === 'single' ? (
             <PopulationIndicatorComponent
               color={primaryColor}
               percentage={computedData.populationPercentages.primary}
@@ -451,7 +439,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                 percentageFormatter(computedData.populationPercentages.primary)
               )}
             />
-          ) : (
+          ) : computedData.mode === 'comparison' ? (
             <Flex gap="sm">
               <PopulationIndicatorComponent
                 color={primaryColor}
@@ -463,14 +451,14 @@ export default function AttributeBreakdownViewerModal(props: Props) {
               />
               <PopulationIndicatorComponent
                 color={secondaryColor}
-                percentage={comparisonModeData!.populationPercentages.secondary}
+                percentage={computedData.populationPercentages.secondary}
                 tooltipTitle={t(
                   '%s of baseline cohort has this attribute populated',
-                  percentageFormatter(comparisonModeData!.populationPercentages.secondary)
+                  percentageFormatter(computedData.populationPercentages.secondary)
                 )}
               />
             </Flex>
-          )}
+          ) : null}
         </Flex>
       </Header>
       <Body>
@@ -515,7 +503,6 @@ export default function AttributeBreakdownViewerModal(props: Props) {
               series={chartSeries}
             />
           </Container>
-
           <TableWidgetVisualization
             scrollable
             tableData={computedData.tableData}
