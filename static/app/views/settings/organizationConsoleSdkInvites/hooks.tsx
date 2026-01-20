@@ -17,12 +17,12 @@ export type ConsolePlatform = 'playstation' | 'xbox' | 'nintendo-switch';
 export interface ConsoleSdkInviteUser {
   email: string;
   platforms: ConsolePlatform[];
-  user_id: string;
+  userId: string;
 }
 
 interface ConsoleSdkInviteDeleteItem {
   platform: ConsolePlatform;
-  user_id: string;
+  userId: string;
 }
 
 interface UseRevokeConsoleSdkPlatformInviteParams {

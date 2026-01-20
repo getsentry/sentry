@@ -125,7 +125,7 @@ function InvitesTableContent({
   }
 
   return invites.map(invite => (
-    <InviteRow key={invite.user_id} invite={invite} onRevoke={onRevoke} />
+    <InviteRow key={invite.userId} invite={invite} onRevoke={onRevoke} />
   ));
 }
 
@@ -144,7 +144,7 @@ function ToggleConsolePlatformsModal({
   const {enabledConsolePlatforms = [], consoleSdkInviteQuota = 0} = organization;
 
   const [pendingRevocations, setPendingRevocations] = useState<
-    Array<{platform: ConsolePlatform; user_id: string}>
+    Array<{platform: ConsolePlatform; userId: string}>
   >([]);
 
   const {
@@ -158,8 +158,7 @@ function ToggleConsolePlatformsModal({
   const displayedInvites = userInvites
     .map(invite => {
       const filteredPlatforms = invite.platforms.filter(
-        p =>
-          !pendingRevocations.some(r => r.user_id === invite.user_id && r.platform === p)
+        p => !pendingRevocations.some(r => r.userId === invite.userId && r.platform === p)
       );
       return {...invite, platforms: filteredPlatforms};
     })
@@ -197,7 +196,7 @@ function ToggleConsolePlatformsModal({
     platform: ConsolePlatform;
     userId: string;
   }) => {
-    setPendingRevocations(prev => [...prev, {user_id: userId, platform}]);
+    setPendingRevocations(prev => [...prev, {userId, platform}]);
   };
 
   const handleSubmit = async (data: Record<string, boolean | number>) => {
