@@ -6,6 +6,10 @@ from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.detector import (
+    get_detector_project_type_cache_key,
+    get_detectors_by_data_source_cache_key,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -129,7 +133,7 @@ class DetectorTest(BaseWorkflowTest):
             assert result == error_detector
 
             # Verify cache key format using the new method
-            expected_cache_key = Detector._get_detector_project_type_cache_key(
+            expected_cache_key = get_detector_project_type_cache_key(
                 self.project.id, ErrorGroupType.slug
             )
             mock_cache_get.assert_called_once_with(expected_cache_key)
@@ -151,7 +155,7 @@ class DetectorTest(BaseWorkflowTest):
             assert result == error_detector
 
             # Verify cache was checked with correct key
-            expected_cache_key = Detector._get_detector_project_type_cache_key(
+            expected_cache_key = get_detector_project_type_cache_key(
                 self.project.id, ErrorGroupType.slug
             )
             mock_cache_get.assert_called_once_with(expected_cache_key)
@@ -174,7 +178,7 @@ def test_get_detector_project_type_cache_key() -> None:
     project_id = 123
     detector_type = "error"
 
-    cache_key = Detector._get_detector_project_type_cache_key(project_id, detector_type)
+    cache_key = get_detector_project_type_cache_key(project_id, detector_type)
 
     assert cache_key == f"detector:by_proj_type:{project_id}:{detector_type}"
 
@@ -183,7 +187,7 @@ def test_get_detectors_by_data_source_cache_key() -> None:
     source_id = "12345"
     source_type = "test"
 
-    cache_key = Detector._get_detectors_by_data_source_cache_key(source_id, source_type)
+    cache_key = get_detectors_by_data_source_cache_key(source_id, source_type)
 
     assert cache_key == f"detector:detectors_by_data_source:{source_type}:{source_id}"
 
@@ -259,7 +263,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             assert len(result) == 2
             assert {d.id for d in result} == {detector1.id, detector2.id}
 
-            expected_cache_key = Detector._get_detectors_by_data_source_cache_key("12345", "test")
+            expected_cache_key = get_detectors_by_data_source_cache_key("12345", "test")
             mock_cache_get.assert_called_once_with(expected_cache_key)
             mock_cache_set.assert_called_once()
             call_args = mock_cache_set.call_args
@@ -281,7 +285,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
 
             assert result == cached_detectors
 
-            expected_cache_key = Detector._get_detectors_by_data_source_cache_key("12345", "test")
+            expected_cache_key = get_detectors_by_data_source_cache_key("12345", "test")
             mock_cache_get.assert_called_once_with(expected_cache_key)
 
     def test_get_detectors_by_data_source__eager_loading_cached(self) -> None:

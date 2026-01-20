@@ -14,7 +14,6 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.cache import cache
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
@@ -30,7 +29,10 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
-from sentry.workflow_engine.models.detector import enforce_config_schema
+from sentry.workflow_engine.models.detector import (
+    enforce_config_schema,
+    invalidate_detectors_by_data_source_cache,
+)
 from sentry.workflow_engine.types import DataConditionType
 
 
@@ -103,8 +105,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         """Invalidate detector cache for all data sources associated with the detector."""
         data_sources = detector.data_sources.values_list("source_id", "type")
         for source_id, source_type in data_sources:
-            cache_key = Detector._get_detectors_by_data_source_cache_key(source_id, source_type)
-            cache.delete(cache_key)
+            invalidate_detectors_by_data_source_cache(source_id, source_type)
 
     def enforce_quota(self, validated_data) -> None:
         """
@@ -206,10 +207,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
         # Invalidate cache for the new data source association
-        cache_key = Detector._get_detectors_by_data_source_cache_key(
+        invalidate_detectors_by_data_source_cache(
             detector_data_source.source_id, detector_data_source.type
         )
-        cache.delete(cache_key)
 
     def create(self, validated_data):
         # If quotas are exceeded, we will prevent creation of new detectors.

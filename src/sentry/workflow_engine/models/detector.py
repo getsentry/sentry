@@ -34,6 +34,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_detector_project_type_cache_key(project_id: int, detector_type: str) -> str:
+    """Generate cache key for detector lookup by project and type."""
+    return f"detector:by_proj_type:{project_id}:{detector_type}"
+
+
+def get_detectors_by_data_source_cache_key(source_id: str, source_type: str) -> str:
+    """Generate cache key for detector objects lookup by data source."""
+    return f"detector:detectors_by_data_source:{source_type}:{source_id}"
+
+
+def invalidate_detectors_by_data_source_cache(source_id: str, source_type: str) -> None:
+    """Invalidate the cache for detectors associated with a data source."""
+    cache_key = get_detectors_by_data_source_cache_key(source_id, source_type)
+    cache.delete(cache_key)
+
+
 class DetectorSnapshot(TypedDict):
     id: int
     type: str
@@ -112,18 +128,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     CACHE_TTL = 60 * 10
 
     @classmethod
-    def _get_detector_project_type_cache_key(cls, project_id: int, detector_type: str) -> str:
-        """Generate cache key for detector lookup by project and type."""
-        return f"detector:by_proj_type:{project_id}:{detector_type}"
-
-    @classmethod
-    def _get_detectors_by_data_source_cache_key(cls, source_id: str, source_type: str) -> str:
-        """Generate cache key for detector objects lookup by data source."""
-        return f"detector:detectors_by_data_source:{source_type}:{source_id}"
-
-    @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
-        cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
+        cache_key = get_detector_project_type_cache_key(project_id, detector_type)
         detector = cache.get(cache_key)
         if detector is None:
             detector = cls.objects.get(project_id=project_id, type=detector_type)
@@ -135,7 +141,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         """
         Caches the full detector objects to reduce db calls.
         """
-        cache_key = cls._get_detectors_by_data_source_cache_key(source_id, source_type)
+        cache_key = get_detectors_by_data_source_cache_key(source_id, source_type)
         detectors = cache.get(cache_key)
         if detectors is None:
             detectors = list(
