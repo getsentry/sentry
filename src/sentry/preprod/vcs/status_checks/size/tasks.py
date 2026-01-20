@@ -12,10 +12,7 @@ from sentry.api.event_search import SearchConfig, SearchFilter, parse_search_que
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.github.status_check import (
-    GitHubCheckConclusion,
-    GitHubCheckStatus,
-)
+from sentry.integrations.github.status_check import GitHubCheckConclusion, GitHubCheckStatus
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.metrics import (
