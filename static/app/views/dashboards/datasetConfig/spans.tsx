@@ -61,7 +61,10 @@ import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/u
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {isMultiSeriesEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import {
+  isGroupedMultiSeriesEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
@@ -181,6 +184,74 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   };
 }
 
+/**
+ * Generic helper to extract metadata (units or types) from events-stats series data.
+ * Handles both MultiSeriesEventsStats and GroupedMultiSeriesEventsStats responses.
+ */
+function extractSeriesMetadata<T>({
+  data,
+  getFieldMetaValue,
+  getMetaField,
+  widgetQuery,
+}: {
+  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
+  getFieldMetaValue: (
+    meta: NonNullable<NonNullable<WidgetQuery['fieldMeta']>[number]>
+  ) => T;
+  getMetaField: (seriesMeta: NonNullable<EventsStats['meta']>, aggregate: string) => T;
+  widgetQuery: WidgetQuery;
+}): Record<string, T> {
+  const result: Record<string, T> = {};
+
+  // Initialize from fieldMeta if available
+  widgetQuery.fieldMeta?.forEach((meta, index) => {
+    if (meta && widgetQuery.fields) {
+      result[widgetQuery.fields[index]!] = getFieldMetaValue(meta);
+    }
+  });
+
+  if (isMultiSeriesEventsStats(data)) {
+    // If there's only one aggregate and multiple groupings, series names are group names
+    // In this case, we can use the first meta value for all series
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
+    const isSingleAggregateMultiGroup =
+      firstMeta &&
+      widgetQuery.aggregates?.length === 1 &&
+      widgetQuery.columns?.length > 0;
+
+    if (isSingleAggregateMultiGroup) {
+      // Use hardcoded config for all series
+      Object.keys(data).forEach(seriesName => {
+        result[seriesName] = getFieldMetaValue(firstMeta);
+      });
+    } else {
+      Object.keys(data).forEach(seriesName => {
+        const seriesData = data[seriesName];
+        if (!seriesData?.meta) {
+          return;
+        }
+        widgetQuery.aggregates?.forEach(aggregate => {
+          // Multi-series can be keyed by aggregate or series name depending on aggregate count
+          const key = widgetQuery.aggregates?.length > 1 ? aggregate : seriesName;
+          result[key] = getMetaField(seriesData.meta!, aggregate);
+        });
+      });
+    }
+  } else if (isGroupedMultiSeriesEventsStats(data)) {
+    Object.keys(data).forEach(groupName => {
+      widgetQuery.aggregates?.forEach(aggregate => {
+        const seriesData = data[groupName]![aggregate] as EventsStats;
+        if (!seriesData?.meta) {
+          return;
+        }
+        result[aggregate] = getMetaField(seriesData.meta, aggregate);
+      });
+    });
+  }
+
+  return result;
+}
+
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
@@ -253,55 +324,21 @@ export const SpansConfig: DatasetConfig<
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getSeriesResultUnit: (data, widgetQuery) => {
-    const resultUnits: Record<string, DataUnit> = {};
-    widgetQuery.fieldMeta?.forEach((meta, index) => {
-      if (meta && widgetQuery.fields) {
-        resultUnits[widgetQuery.fields[index]!] = meta.valueUnit;
-      }
+    return extractSeriesMetadata({
+      data,
+      widgetQuery,
+      getFieldMetaValue: meta => meta.valueUnit,
+      getMetaField: (seriesMeta, aggregate) => seriesMeta.units[aggregate] as DataUnit,
     });
-    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
-
-    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
-    // But we can just assume the units is for all the series
-    // TODO: This doesn't work with multiple aggregates
-    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
-    if (
-      isMultiSeriesStats &&
-      firstMeta &&
-      widgetQuery.aggregates?.length === 1 &&
-      widgetQuery.columns?.length > 0
-    ) {
-      Object.keys(data).forEach(seriesName => {
-        resultUnits[seriesName] = firstMeta.valueUnit;
-      });
-    }
-    return resultUnits;
   },
   getSeriesResultType: (data, widgetQuery) => {
-    const resultTypes: Record<string, AggregationOutputType> = {};
-    widgetQuery.fieldMeta?.forEach((meta, index) => {
-      if (meta && widgetQuery.fields) {
-        resultTypes[widgetQuery.fields[index]!] = meta.valueType as AggregationOutputType;
-      }
+    return extractSeriesMetadata({
+      data,
+      widgetQuery,
+      getFieldMetaValue: meta => meta.valueType as AggregationOutputType,
+      getMetaField: (seriesMeta, aggregate) =>
+        seriesMeta.fields[aggregate] as AggregationOutputType,
     });
-
-    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
-
-    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
-    // But we can just assume the units is for all the series
-    // TODO: This doesn't work with multiple aggregates
-    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
-    if (
-      isMultiSeriesStats &&
-      firstMeta &&
-      widgetQuery.aggregates?.length === 1 &&
-      widgetQuery.columns?.length > 0
-    ) {
-      Object.keys(data).forEach(seriesName => {
-        resultTypes[seriesName] = firstMeta.valueType as AggregationOutputType;
-      });
-    }
-    return resultTypes;
   },
 };
 
