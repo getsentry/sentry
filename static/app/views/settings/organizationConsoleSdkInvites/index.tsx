@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink, Link} from 'sentry/components/core/link';
+import NotFound from 'sentry/components/errors/notFound';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -26,7 +27,6 @@ import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
   const user = useUser();
-
   const {
     data: invites,
     isPending,
@@ -35,6 +35,10 @@ export default function ConsoleSDKInvitesSettings() {
   } = useConsoleSdkInvites(organization.slug);
   const {mutate: revokePlatformInvite, isPending: isRevoking} =
     useRevokeConsoleSdkPlatformInvite();
+
+  if (!organization.features.includes('github-console-sdk-self-invite')) {
+    return <NotFound />;
+  }
 
   const userHasConsoleAccess = (organization.enabledConsolePlatforms?.length ?? 0) > 0;
   const userHasQuotaRemaining =
