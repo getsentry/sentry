@@ -15,7 +15,7 @@ T = TypeVar("T", bound=BaseModel)
 class ToolCall(BaseModel):
     """A tool call in a message."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]  # type: ignore[typeddict-item]
 
     function: str
     args: str
@@ -24,7 +24,7 @@ class ToolCall(BaseModel):
 class Message(BaseModel):
     """A message in the conversation."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     role: Literal["user", "assistant", "tool_use"]
     content: str | None = None
@@ -34,7 +34,7 @@ class Message(BaseModel):
 class Artifact(BaseModel):
     """An artifact generated during an Explorer run."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     key: str
     data: dict[str, Any] | None = None
@@ -44,7 +44,7 @@ class Artifact(BaseModel):
 class FilePatch(BaseModel):
     """A file patch from code editing."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     path: str
     type: Literal["A", "M", "D"]  # A=add, M=modify, D=delete
@@ -55,7 +55,7 @@ class FilePatch(BaseModel):
 class ExplorerFilePatch(BaseModel):
     """A file patch associated with a repository."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     repo_name: str
     patch: FilePatch
@@ -64,7 +64,7 @@ class ExplorerFilePatch(BaseModel):
 class RepoPRState(BaseModel):
     """PR state for a single repository."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     repo_name: str
     branch_name: str | None = None
@@ -81,7 +81,7 @@ class RepoPRState(BaseModel):
 class MemoryBlock(BaseModel):
     """A block in the Explorer agent's conversation/memory."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     id: str
     message: Message
@@ -100,7 +100,7 @@ class MemoryBlock(BaseModel):
 class PendingUserInput(BaseModel):
     """A pending user input request from the agent."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     id: str
     input_type: str
@@ -110,7 +110,7 @@ class PendingUserInput(BaseModel):
 class CodingAgentResult(BaseModel):
     """Result from a coding agent."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     description: str
     repo_provider: str
@@ -122,7 +122,7 @@ class CodingAgentResult(BaseModel):
 class ExplorerCodingAgentState(BaseModel):
     """State of a coding agent launched from an Explorer run."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     id: str
     status: Literal["pending", "running", "completed", "failed"]
@@ -136,7 +136,7 @@ class ExplorerCodingAgentState(BaseModel):
 class SeerRunState(BaseModel):
     """State of a Seer Explorer session."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     run_id: int
     blocks: list[MemoryBlock]
@@ -246,7 +246,7 @@ class CustomToolDefinition(BaseModel):
 class ExplorerRun(BaseModel):
     """A single Explorer run record with metadata."""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow")  # type: ignore[typeddict-item]
 
     run_id: int
     title: str
