@@ -34,6 +34,7 @@ from sentry.workflow_engine.models import Workflow
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Workflows"])
 class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
