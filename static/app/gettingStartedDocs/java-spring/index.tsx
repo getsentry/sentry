@@ -17,7 +17,7 @@ const docs: Docs<PlatformOptions> = {
   replayOnboardingJsLoader,
   feedbackOnboardingJsLoader,
   logsOnboarding: logs,
-  metricsOnboarding: metrics({docsPlatform: 'spring'}),
+  metricsOnboarding: metrics,
 };
 
 export default docs;

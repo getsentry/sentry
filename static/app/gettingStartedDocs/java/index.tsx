@@ -11,7 +11,7 @@ const docs: Docs<PlatformOptions> = {
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: feedback,
   logsOnboarding: logs,
-  metricsOnboarding: metrics({docsPlatform: 'java'}),
+  metricsOnboarding: metrics,
   onboarding,
 };
 

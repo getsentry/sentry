@@ -17,7 +17,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: feedback,
   feedbackOnboardingJsLoader,
   logsOnboarding: logs,
-  metricsOnboarding: metrics({docsPlatform: 'spring-boot'}),
+  metricsOnboarding: metrics,
 };
 
 export default docs;

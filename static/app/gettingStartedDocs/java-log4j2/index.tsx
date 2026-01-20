@@ -12,7 +12,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: feedback,
   onboarding,
   logsOnboarding: logs,
-  metricsOnboarding: metrics({docsPlatform: 'log4j2'}),
+  metricsOnboarding: metrics,
 };
 
 export default docs;
