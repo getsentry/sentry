@@ -29,6 +29,6 @@ class Migration(CheckedMigration):
         migrations.AlterField(
             model_name="apiapplication",
             name="client_secret",
-            field=models.TextField(blank=True, default=sentry.models.apiapplication.generate_token),
+            field=models.TextField(null=True, default=sentry.models.apiapplication.generate_token),
         ),
     ]
