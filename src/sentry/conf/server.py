@@ -580,7 +580,7 @@ CSP_REPORT_ONLY = True
 
 COOP_ENABLED = False
 COOP_REPORT_ONLY = True
-COOP_REPORT_TO = None
+COOP_REPORT_TO: str | None = None
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
