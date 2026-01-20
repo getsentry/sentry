@@ -182,8 +182,7 @@ function ToggleConsolePlatformsModal({
             }
             return acc;
           }, [] as string[]),
-          consoleSdkInviteQuota:
-            newConsoleSdkInviteQuota === '' ? 0 : newConsoleSdkInviteQuota,
+          consoleSdkInviteQuota: Number(newConsoleSdkInviteQuota),
         },
       });
     },
