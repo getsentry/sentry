@@ -464,8 +464,8 @@ export default function AttributeBreakdownViewerModal(props: Props) {
         </Flex>
       </Header>
       <Body>
-        <Flex direction="column" gap="2xl" height={600}>
-          <Container height={MODAL_CHART_HEIGHT}>
+        <Flex direction="column" gap="2xl" height="600px">
+          <Container height={`${MODAL_CHART_HEIGHT}px`}>
             <BaseChart
               height={MODAL_CHART_HEIGHT}
               isGroupedByDate={false}
