@@ -1,3 +1,4 @@
+import {parseAsBoolean, parseAsInteger, parseAsString} from 'nuqs';
 import {withNuqsTestingAdapter} from 'nuqs/adapters/testing';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -53,6 +54,7 @@ describe('useQueryStateWithLocalStorage', () => {
           key: 'testParam',
           namespace: 'testNamespace',
           defaultValue: 'default',
+          parser: parseAsString,
         }),
       {
         wrapper: withNuqsTestingAdapter({
@@ -71,6 +73,7 @@ describe('useQueryStateWithLocalStorage', () => {
           key: 'testParam',
           namespace: 'testNamespace',
           defaultValue: 'default',
+          parser: parseAsString,
         }),
       {
         wrapper: withNuqsTestingAdapter({
@@ -94,6 +97,7 @@ describe('useQueryStateWithLocalStorage', () => {
           key: 'testParam',
           namespace: 'testNamespace',
           defaultValue: 'default',
+          parser: parseAsString,
         }),
       {
         wrapper: withNuqsTestingAdapter({onUrlUpdate}),
@@ -166,6 +170,7 @@ describe('useQueryStateWithLocalStorage', () => {
           key: 'testParam',
           namespace: 'testNamespace',
           defaultValue: 'default',
+          parser: parseAsString,
         }),
       {
         wrapper: withNuqsTestingAdapter({
@@ -178,5 +183,104 @@ describe('useQueryStateWithLocalStorage', () => {
 
     const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
     expect(storedValue).toBe(JSON.stringify('sameValue'));
+  });
+
+  it('works with integer values using parseAsInteger', async () => {
+    localStorageWrapper.setItem('testNamespace:count', JSON.stringify(42));
+
+    const onUrlUpdate = jest.fn();
+
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'count',
+          namespace: 'testNamespace',
+          defaultValue: 0,
+          parser: parseAsInteger,
+        }),
+      {
+        wrapper: withNuqsTestingAdapter({onUrlUpdate}),
+      }
+    );
+
+    expect(result.current[0]).toBe(42);
+    expect(typeof result.current[0]).toBe('number');
+
+    act(() => {
+      result.current[1](100);
+    });
+
+    await waitFor(() => {
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringContaining('count=100'),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      const storedValue = localStorageWrapper.getItem('testNamespace:count');
+      expect(storedValue).toBe(JSON.stringify(100));
+    });
+  });
+
+  it('works with boolean values using parseAsBoolean', async () => {
+    localStorageWrapper.setItem('testNamespace:enabled', JSON.stringify(true));
+
+    const onUrlUpdate = jest.fn();
+
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'enabled',
+          namespace: 'testNamespace',
+          defaultValue: false,
+          parser: parseAsBoolean,
+        }),
+      {
+        wrapper: withNuqsTestingAdapter({onUrlUpdate}),
+      }
+    );
+
+    expect(result.current[0]).toBe(true);
+    expect(typeof result.current[0]).toBe('boolean');
+
+    act(() => {
+      result.current[1](false);
+    });
+
+    await waitFor(() => {
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringContaining('enabled=false'),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      const storedValue = localStorageWrapper.getItem('testNamespace:enabled');
+      expect(storedValue).toBe(JSON.stringify(false));
+    });
+  });
+
+  it('URL integer value overrides localStorage', () => {
+    localStorageWrapper.setItem('testNamespace:pageSize', JSON.stringify(25));
+
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage({
+          key: 'pageSize',
+          namespace: 'testNamespace',
+          defaultValue: 10,
+          parser: parseAsInteger,
+        }),
+      {
+        wrapper: withNuqsTestingAdapter({
+          searchParams: {pageSize: '50'},
+        }),
+      }
+    );
+
+    expect(result.current[0]).toBe(50);
   });
 });
