@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import logging
-import uuid
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
@@ -613,15 +612,12 @@ class OAuthTokenView(View):
                 # are atomic. This prevents duplicate tokens if delete fails after
                 # token creation succeeds.
                 with transaction.atomic(router.db_for_write(ApiToken)):
-                    # Create the access token with a token family for rotation tracking.
-                    # Public clients (device flow) use refresh token rotation (RFC 9700 §4.14.2),
-                    # so we initialize the family here to enable replay detection.
+                    # Create the access token for the device flow
                     token = ApiToken.objects.create(
                         application=application,
                         user_id=device_code.user.id,
                         scope_list=device_code.scope_list,
                         scoping_organization_id=device_code.organization_id,
-                        token_family_id=uuid.uuid4(),
                     )
 
                     # Delete the device code (one-time use)
@@ -689,16 +685,11 @@ class OAuthTokenView(View):
         self, request: Request, application: ApiApplication
     ) -> HttpResponse:
         """
-        Handle refresh token for public clients with rotation (RFC 9700 §4.14.2).
+        Handle refresh token for public clients with rotation.
 
-        Security model:
-        - Each refresh issues a new refresh token and invalidates the old one
-        - If an old (rotated) refresh token is reused, the entire token family is revoked
-        - This detects token theft: attacker and legitimate client will collide
-
-        The token family groups all tokens descended from the same original authorization.
-        When replay is detected, revoking the family ensures both the attacker's and the
-        legitimate client's tokens are invalidated, forcing re-authorization.
+        For public clients, each refresh request issues a new refresh token
+        and invalidates the old one. This provides security through rotation
+        since public clients cannot securely store a client_secret.
         """
         refresh_token_code = request.POST.get("refresh_token")
 
@@ -720,155 +711,42 @@ class OAuthTokenView(View):
         # Hash the incoming refresh token for secure lookup
         hashed_refresh = hashlib.sha256(refresh_token_code.encode()).hexdigest()
 
-        # First, do a quick check without locking to handle the common error cases
-        # (invalid token, replay detection). This avoids holding locks for error paths.
-        token_exists = ApiToken.objects.filter(
-            application=application,
-            hashed_refresh_token=hashed_refresh,
-        ).exists()
-
-        if not token_exists:
-            # Token not found - check if this is a replay of a rotated-out token
-            # (i.e., someone is using a refresh token that was already exchanged)
-            replayed_token = ApiToken.objects.filter(
-                application=application,
-                previous_refresh_token_hash=hashed_refresh,
-            ).first()
-
-            if replayed_token and replayed_token.token_family_id:
-                # REPLAY ATTACK DETECTED - revoke entire token family
-                self._revoke_token_family(
-                    replayed_token.token_family_id,
-                    reason="replay_of_rotated_token",
-                )
-                return self.error(
-                    request=request,
-                    name="invalid_grant",
-                    reason="token reuse detected",
-                )
-
-            return self.error(
-                request=request,
-                name="invalid_grant",
-                reason="invalid refresh_token",
-            )
-
         # Perform atomic rotation with row-level locking to prevent race conditions.
         # We use select_for_update() to ensure only one request can rotate at a time.
-        # This prevents two concurrent requests from both successfully rotating the same token.
-        new_token: ApiToken | None = None
-        family_to_revoke: uuid.UUID | None = None
-        is_replay_detected = False
-
         with transaction.atomic(router.db_for_write(ApiToken)):
-            # Re-fetch the token with a lock to prevent concurrent rotation
             try:
                 old_token = ApiToken.objects.select_for_update().get(
                     application=application,
                     hashed_refresh_token=hashed_refresh,
                 )
             except ApiToken.DoesNotExist:
-                # Token was deleted between our exists() check and now (rare)
                 return self.error(
                     request=request,
                     name="invalid_grant",
                     reason="invalid refresh_token",
                 )
 
-            # Check if this token's refresh capability is still active
-            # (False means it was already rotated - replay attack)
-            # This check is now inside the transaction with the lock held.
-            if old_token.is_refresh_token_active is False:
-                # Mark as replay - we'll handle this after the transaction
-                is_replay_detected = True
-                # Store family ID for revocation (may be None for legacy tokens)
-                family_to_revoke = old_token.token_family_id
-            else:
-                # Assign family ID if this is a legacy token (first rotation)
-                # This enables lazy migration of existing tokens to the rotation system
-                family_id = old_token.token_family_id or uuid.uuid4()
-
-                # Mark old token's refresh capability as used
-                old_token.is_refresh_token_active = False
-                old_token.token_family_id = family_id  # Ensure family is set
-                old_token.save(update_fields=["is_refresh_token_active", "token_family_id"])
-
-                # Create new token in the same family
-                new_token = ApiToken.objects.create(
-                    application=application,
-                    user=old_token.user,
-                    scope_list=old_token.get_scopes(),
-                    scoping_organization_id=old_token.scoping_organization_id,
-                    token_family_id=family_id,
-                    previous_refresh_token_hash=old_token.hashed_refresh_token,
-                )
-
-        # Handle replay detection (outside transaction to avoid holding lock during revocation)
-        if is_replay_detected:
-            # Revoke the token family if it exists (legacy tokens may not have a family)
-            if family_to_revoke:
-                self._revoke_token_family(
-                    family_to_revoke,
-                    reason="inactive_token_reuse",
-                )
-            return self.error(
-                request=request,
-                name="invalid_grant",
-                reason="token reuse detected",
+            # Create new token with rotated refresh token
+            new_token = ApiToken.objects.create(
+                application=application,
+                user=old_token.user,
+                scope_list=old_token.get_scopes(),
+                scoping_organization_id=old_token.scoping_organization_id,
             )
 
-        # new_token is guaranteed to be set here because:
-        # - If is_replay_detected is True, we returned above
-        # - Otherwise, we went through the else branch that creates new_token
-        assert new_token is not None
+            # Delete the old token (invalidates both access and refresh tokens)
+            old_token_id = old_token.id
+            old_token.delete()
 
         metrics.incr("oauth.public_client_refresh_rotated", sample_rate=1.0)
         logger.info(
             "oauth.refresh-token-rotated",
             extra={
-                "family_id": str(new_token.token_family_id),
-                "old_token_id": old_token.id,
+                "old_token_id": old_token_id,
                 "new_token_id": new_token.id,
                 "application_id": application.id,
-                "user_id": old_token.user_id,
+                "user_id": new_token.user_id,
             },
         )
 
         return self.process_token_details(token=new_token)
-
-    def _revoke_token_family(self, family_id: uuid.UUID, reason: str) -> int:
-        """
-        Revoke all tokens in a family due to a security event (e.g., replay attack).
-
-        Per RFC 9700 §4.14.2, when refresh token reuse is detected, the authorization
-        server cannot determine which party (attacker or legitimate client) has the
-        valid token, so it revokes the entire family to stop the attack.
-
-        Args:
-            family_id: UUID of the token family to revoke
-            reason: Why the family is being revoked (for logging/metrics)
-
-        Returns:
-            Number of tokens deleted
-        """
-
-        # Use unguarded_write because deleting tokens triggers SET_NULL on
-        # SentryAppInstallation.api_token, which is a cross-model write
-        with unguarded_write(using=router.db_for_write(ApiToken)):
-            count, _ = ApiToken.objects.filter(token_family_id=family_id).delete()
-
-        metrics.incr(
-            "oauth.token_family_revoked",
-            sample_rate=1.0,
-            tags={"reason": reason},
-        )
-        logger.warning(
-            "oauth.token-family-revoked",
-            extra={
-                "family_id": str(family_id),
-                "tokens_revoked": count,
-                "reason": reason,
-            },
-        )
-
-        return count

@@ -203,21 +203,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    # Refresh token rotation fields (RFC 9700 §4.14.2)
-    # Used to detect and prevent refresh token replay attacks for public clients.
-    #
-    # token_family_id: Groups all tokens descended from the same original authorization.
-    # When replay is detected, all tokens in the family are revoked.
-    token_family_id = models.UUIDField(null=True, db_index=True)
-    #
-    # previous_refresh_token_hash: Hash of the refresh token this one replaced.
-    # If a request comes with this hash, we know it's a replay of an old token.
-    previous_refresh_token_hash = models.CharField(max_length=128, null=True, db_index=True)
-    #
-    # is_refresh_token_active: False after this token's refresh_token has been rotated.
-    # Attempting to use an inactive refresh token triggers family revocation.
-    is_refresh_token_active = models.BooleanField(null=True, default=True, db_default=True)
-
     objects: ClassVar[ApiTokenManager] = ApiTokenManager(cache_fields=("token",))
 
     class Meta:

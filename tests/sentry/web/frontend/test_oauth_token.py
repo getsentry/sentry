@@ -1,4 +1,3 @@
-import uuid
 from functools import cached_property
 
 from django.utils import timezone
@@ -1623,39 +1622,13 @@ class OAuthTokenDeviceCodeTest(TestCase):
         assert resp.status_code == 401
         assert json.loads(resp.content) == {"error": "invalid_client"}
 
-    def test_device_flow_token_has_family_id(self) -> None:
-        """Device flow tokens should be created with a token_family_id for rotation tracking."""
-        self.device_code.status = self.DeviceCodeStatus.APPROVED
-        self.device_code.user = self.user
-        self.device_code.save()
-
-        resp = self.client.post(
-            self.path,
-            {
-                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                "device_code": self.device_code.device_code,
-                "client_id": self.application.client_id,
-                "client_secret": self.client_secret,
-            },
-        )
-        assert resp.status_code == 200
-
-        data = json.loads(resp.content)
-        token = ApiToken.objects.get(token=data["access_token"])
-
-        # Token should have a family ID for rotation tracking
-        assert token.token_family_id is not None
-        assert token.is_refresh_token_active is True
-
-
 @control_silo_test
 class OAuthTokenPublicClientRefreshTest(TestCase):
-    """Tests for public client refresh token rotation (RFC 9700 §4.14.2).
+    """Tests for public client refresh token rotation.
 
     Public clients (CLIs, native apps) cannot securely store client_secret,
     so they use refresh token rotation instead of client authentication.
-    Each refresh issues a new refresh token and invalidates the old one.
-    Replay of old tokens triggers revocation of the entire token family.
+    Each refresh issues a new refresh token and deletes the old one.
     """
 
     @cached_property
@@ -1671,13 +1644,10 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
             client_secret=None,  # Public client
         )
 
-        # Create a token with a family ID (simulating device flow token)
-        self.family_id = uuid.uuid4()
+        # Create a token for the public client
         self.token = ApiToken.objects.create(
             application=self.public_application,
             user=self.user,
-            token_family_id=self.family_id,
-            is_refresh_token_active=True,
         )
         # Store the original refresh token for tests
         self.original_refresh_token = self.token.refresh_token
@@ -1718,8 +1688,10 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         assert data["access_token"] != self.token.token
         assert data["refresh_token"] != self.original_refresh_token
 
-    def test_refresh_rotation_invalidates_old_token(self) -> None:
-        """After rotation, the old refresh token should be invalidated."""
+    def test_refresh_rotation_deletes_old_token(self) -> None:
+        """After rotation, the old token should be deleted."""
+        old_token_id = self.token.id
+
         resp = self.client.post(
             self.path,
             {
@@ -1730,30 +1702,11 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         )
         assert resp.status_code == 200
 
-        # Old token should be marked as inactive
-        self.token.refresh_from_db()
-        assert self.token.is_refresh_token_active is False
+        # Old token should be deleted
+        assert not ApiToken.objects.filter(id=old_token_id).exists()
 
-    def test_refresh_rotation_maintains_family(self) -> None:
-        """New token should be in the same family as the old token."""
-        resp = self.client.post(
-            self.path,
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": self.original_refresh_token,
-                "client_id": self.public_application.client_id,
-            },
-        )
-        assert resp.status_code == 200
-
-        data = json.loads(resp.content)
-        new_token = ApiToken.objects.get(token=data["access_token"])
-
-        # New token should have the same family ID
-        assert new_token.token_family_id == self.family_id
-
-    def test_replay_of_old_token_revokes_family(self) -> None:
-        """Using an already-rotated refresh token should revoke the entire family."""
+    def test_old_refresh_token_cannot_be_reused(self) -> None:
+        """Using an already-rotated refresh token should fail."""
         # First refresh - should succeed
         resp1 = self.client.post(
             self.path,
@@ -1765,7 +1718,7 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         )
         assert resp1.status_code == 200
 
-        # Try to use the old refresh token again - this is a replay attack
+        # Try to use the old refresh token again - should fail
         resp2 = self.client.post(
             self.path,
             {
@@ -1776,50 +1729,6 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         )
         assert resp2.status_code == 400
         assert json.loads(resp2.content) == {"error": "invalid_grant"}
-
-        # All tokens in the family should be revoked
-        assert not ApiToken.objects.filter(token_family_id=self.family_id).exists()
-
-    def test_replay_via_previous_hash_revokes_family(self) -> None:
-        """Using a token that was rotated out (tracked via previous_hash) revokes family."""
-        # First refresh
-        resp1 = self.client.post(
-            self.path,
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": self.original_refresh_token,
-                "client_id": self.public_application.client_id,
-            },
-        )
-        assert resp1.status_code == 200
-        data1 = json.loads(resp1.content)
-        new_refresh_token = data1["refresh_token"]
-
-        # Second refresh with the new token
-        resp2 = self.client.post(
-            self.path,
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": new_refresh_token,
-                "client_id": self.public_application.client_id,
-            },
-        )
-        assert resp2.status_code == 200
-
-        # Now try to use the original token again - should trigger replay detection
-        resp3 = self.client.post(
-            self.path,
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": self.original_refresh_token,
-                "client_id": self.public_application.client_id,
-            },
-        )
-        assert resp3.status_code == 400
-        assert json.loads(resp3.content) == {"error": "invalid_grant"}
-
-        # Family should be revoked
-        assert not ApiToken.objects.filter(token_family_id=self.family_id).exists()
 
     def test_confidential_client_refresh_requires_secret(self) -> None:
         """Confidential clients must still provide client_secret for refresh."""
@@ -1878,36 +1787,6 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         # Confidential client uses in-place refresh, same token object
         token.refresh_from_db()
         assert token.token == data["access_token"]
-
-    def test_legacy_token_gets_family_on_first_refresh(self) -> None:
-        """Legacy tokens (no family_id) should get a family assigned on first refresh."""
-        # Create a legacy token without family_id
-        legacy_token = ApiToken.objects.create(
-            application=self.public_application,
-            user=self.user,
-            token_family_id=None,  # Legacy token
-        )
-        original_refresh = legacy_token.refresh_token
-
-        resp = self.client.post(
-            self.path,
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": original_refresh,
-                "client_id": self.public_application.client_id,
-            },
-        )
-        assert resp.status_code == 200
-
-        data = json.loads(resp.content)
-        new_token = ApiToken.objects.get(token=data["access_token"])
-
-        # New token should have a family ID
-        assert new_token.token_family_id is not None
-
-        # Old token should also have the family ID assigned
-        legacy_token.refresh_from_db()
-        assert legacy_token.token_family_id == new_token.token_family_id
 
     def test_refresh_preserves_scopes(self) -> None:
         """Refreshed token should have the same scopes as the original."""
@@ -1989,34 +1868,3 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         )
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_request"}
-
-    def test_replay_of_inactive_token_without_family_returns_error(self) -> None:
-        """Replaying an inactive token without family_id should return invalid_grant, not 500.
-
-        This tests the edge case where a legacy token (no family_id) has
-        is_refresh_token_active=False. The code should still return a proper
-        error response rather than failing an assertion.
-        """
-        # Create a token that looks like it was already rotated but has no family
-        # (simulating a legacy token that was manually deactivated or an edge case)
-        inactive_token = ApiToken.objects.create(
-            application=self.public_application,
-            user=self.user,
-            token_family_id=None,  # Legacy token - no family
-            is_refresh_token_active=False,  # Already rotated/deactivated
-        )
-        inactive_refresh = inactive_token.refresh_token
-
-        # Attempt to use this inactive token
-        resp = self.client.post(
-            self.path,
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": inactive_refresh,
-                "client_id": self.public_application.client_id,
-            },
-        )
-
-        # Should return invalid_grant, not a 500 error
-        assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "invalid_grant"}

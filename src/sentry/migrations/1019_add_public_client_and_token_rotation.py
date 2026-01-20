@@ -1,4 +1,4 @@
-# Generated manually for OAuth 2.1 public client support and refresh token rotation
+# Generated manually for OAuth 2.1 public client support
 
 from django.db import migrations, models
 
@@ -7,25 +7,16 @@ from sentry.new_migrations.migrations import CheckedMigration
 
 
 class Migration(CheckedMigration):
-    """Add support for public OAuth clients and refresh token rotation.
+    """Add support for public OAuth clients.
 
-    This migration implements RFC 9700 §4.14.2 (OAuth 2.0 Security Best Current Practice)
-    for secure refresh token handling with public clients.
+    This migration implements RFC 6749 §2.1 to support public clients
+    (CLIs, native apps, SPAs) that cannot securely store client secrets.
 
     Changes:
-    1. ApiApplication.client_secret: Made nullable to support public clients (RFC 6749 §2.1)
-       - Public clients (CLIs, native apps, SPAs) cannot securely store secrets
-       - They use PKCE for authorization and token rotation for refresh
-
-    2. ApiToken rotation fields for replay detection:
-       - token_family_id: Groups tokens from the same original authorization
-       - previous_refresh_token_hash: Detects replay of rotated-out tokens
-       - is_refresh_token_active: Marks whether refresh_token can still be used
-
-    Security model:
-    - Each refresh for public clients issues a new refresh token
-    - Old refresh tokens are invalidated
-    - If an old token is reused (replay attack), the entire family is revoked
+    1. ApiApplication.client_secret: Made nullable to support public clients
+       - Public clients are created by explicitly passing client_secret=None
+       - They use PKCE for authorization code flow
+       - They use refresh token rotation for token refresh
     """
 
     # This flag is used to mark that a migration shouldn't be automatically run in production.
@@ -48,23 +39,5 @@ class Migration(CheckedMigration):
             ),
             # Note: default still generates a token for backward compatibility
             # Public clients are created by explicitly passing client_secret=None
-        ),
-        # Add token family ID for grouping related tokens
-        migrations.AddField(
-            model_name="apitoken",
-            name="token_family_id",
-            field=models.UUIDField(db_index=True, null=True),
-        ),
-        # Add hash of previous refresh token for replay detection
-        migrations.AddField(
-            model_name="apitoken",
-            name="previous_refresh_token_hash",
-            field=models.CharField(db_index=True, max_length=128, null=True),
-        ),
-        # Add flag to track if refresh token is still active
-        migrations.AddField(
-            model_name="apitoken",
-            name="is_refresh_token_active",
-            field=models.BooleanField(db_default=True, default=True, null=True),
         ),
     ]
