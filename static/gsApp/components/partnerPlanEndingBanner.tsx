@@ -3,7 +3,7 @@ import PartnerPlanEndingBackground from 'getsentry-images/partnership/plan-endin
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {IconClock} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -62,7 +62,7 @@ function PartnerPlanEndingBanner({
       align="center"
     >
       <div>
-        <PartnerPlanEndingText>
+        <Stack align="start" padding="xl" gap="md">
           <PartnerPlanEndingBannerTitle>
             {t('Your current promotional plan is ending')}
             <DaysLeftTag variant="danger" icon={<IconClock size="xs" />}>
@@ -85,20 +85,12 @@ function PartnerPlanEndingBanner({
           >
             {t('Upgrade to %s', planToUpgradeTo)}
           </LinkButton>
-        </PartnerPlanEndingText>
+        </Stack>
       </div>
       <IllustrationContainer src={PartnerPlanEndingBackground} />
     </Flex>
   );
 }
-
-const PartnerPlanEndingText = styled('div')`
-  padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: flex-start;
-`;
 
 const PartnerPlanEndingBannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
