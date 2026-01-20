@@ -107,8 +107,13 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
+        extra_projects_to_fetch: list[int | str] | None = None,
     ) -> RpcServiceHookProjectsResult:
-        """Returns the project IDs associated with an installation's service hook."""
+        """
+        Returns the project IDs associated with an installation's service hook.
+        Allows extra project IDs or slugs to be fetched for control endpoints to do access validation.
+        This has only been added for compatability with the legacy region API, and to combine RPC calls.
+        """
         pass
 
     @regional_rpc_method(ByOrganizationId())
