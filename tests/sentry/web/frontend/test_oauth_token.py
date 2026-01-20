@@ -1863,3 +1863,34 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         )
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_request"}
+
+    def test_replay_of_inactive_token_without_family_returns_error(self) -> None:
+        """Replaying an inactive token without family_id should return invalid_grant, not 500.
+
+        This tests the edge case where a legacy token (no family_id) has
+        is_refresh_token_active=False. The code should still return a proper
+        error response rather than failing an assertion.
+        """
+        # Create a token that looks like it was already rotated but has no family
+        # (simulating a legacy token that was manually deactivated or an edge case)
+        inactive_token = ApiToken.objects.create(
+            application=self.public_application,
+            user=self.user,
+            token_family_id=None,  # Legacy token - no family
+            is_refresh_token_active=False,  # Already rotated/deactivated
+        )
+        inactive_refresh = inactive_token.refresh_token
+
+        # Attempt to use this inactive token
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": inactive_refresh,
+                "client_id": self.public_application.client_id,
+            },
+        )
+
+        # Should return invalid_grant, not a 500 error
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}

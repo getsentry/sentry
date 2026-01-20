@@ -758,6 +758,7 @@ class OAuthTokenView(View):
         # This prevents two concurrent requests from both successfully rotating the same token.
         new_token: ApiToken | None = None
         family_to_revoke: uuid.UUID | None = None
+        is_replay_detected = False
 
         with transaction.atomic(router.db_for_write(ApiToken)):
             # Re-fetch the token with a lock to prevent concurrent rotation
@@ -778,8 +779,9 @@ class OAuthTokenView(View):
             # (False means it was already rotated - replay attack)
             # This check is now inside the transaction with the lock held.
             if old_token.is_refresh_token_active is False:
-                # Store family ID for revocation after transaction completes
-                # (to avoid holding the row lock during the revocation operation)
+                # Mark as replay - we'll handle this after the transaction
+                is_replay_detected = True
+                # Store family ID for revocation (may be None for legacy tokens)
                 family_to_revoke = old_token.token_family_id
             else:
                 # Assign family ID if this is a legacy token (first rotation)
@@ -802,11 +804,13 @@ class OAuthTokenView(View):
                 )
 
         # Handle replay detection (outside transaction to avoid holding lock during revocation)
-        if family_to_revoke:
-            self._revoke_token_family(
-                family_to_revoke,
-                reason="inactive_token_reuse",
-            )
+        if is_replay_detected:
+            # Revoke the token family if it exists (legacy tokens may not have a family)
+            if family_to_revoke:
+                self._revoke_token_family(
+                    family_to_revoke,
+                    reason="inactive_token_reuse",
+                )
             return self.error(
                 request=request,
                 name="invalid_grant",
@@ -814,7 +818,7 @@ class OAuthTokenView(View):
             )
 
         # new_token is guaranteed to be set here because:
-        # - If family_to_revoke is set, we returned above
+        # - If is_replay_detected is True, we returned above
         # - Otherwise, we went through the else branch that creates new_token
         assert new_token is not None
 
