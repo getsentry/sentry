@@ -8,6 +8,7 @@ import {
   UserAvatar,
 } from '@sentry/scraps/avatar';
 import {ActorAvatar} from '@sentry/scraps/avatar/actorAvatar';
+import {Flex} from '@sentry/scraps/layout';
 
 import {space, type ValidSize} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
@@ -55,7 +56,13 @@ export const BaseBadge = memo(
     const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
     return (
-      <Wrapper className={className} style={{gap: space(wrapperGap)}} onClick={onClick}>
+      <Flex
+        align="center"
+        flexShrink={0}
+        className={className}
+        style={{gap: space(wrapperGap)}}
+        onClick={onClick}
+      >
         {!hideAvatar && (
           <EntityAvatarType
             team={team}
@@ -75,7 +82,7 @@ export const BaseBadge = memo(
             {!!description && <Description>{description}</Description>}
           </DisplayNameAndDescription>
         )}
-      </Wrapper>
+      </Flex>
     );
   }
 );
@@ -113,12 +120,6 @@ function EntityAvatarType({
 
   return null;
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-`;
 
 const DisplayNameAndDescription = styled('div')`
   display: flex;

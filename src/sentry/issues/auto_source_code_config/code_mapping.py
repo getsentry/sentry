@@ -378,8 +378,12 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     # sure that we are still ordering by `id` because we want to make sure
     # the ordering is deterministic
     # codepath mappings must have an associated integration for stacktrace linking.
-    configs = RepositoryProjectPathConfig.objects.filter(
-        project=project, organization_integration_id__isnull=False
+    configs = (
+        RepositoryProjectPathConfig.objects.filter(
+            project=project, organization_integration_id__isnull=False
+        )
+        .select_related("repository")
+        .order_by("id")
     )
 
     sorted_configs: list[RepositoryProjectPathConfig] = []

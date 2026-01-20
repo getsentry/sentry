@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';
@@ -13,7 +14,6 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
 import {InnerWrap, LeadingItems} from 'sentry/components/core/menuListItem';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -352,16 +352,20 @@ function EditAccessSelector({
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerProps={{
-        children: listOnly
-          ? [triggerAvatars]
-          : [
-              <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
-              triggerAvatars,
-            ],
-        borderless: listOnly,
-        style: listOnly ? {padding: 2} : {},
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          borderless={listOnly}
+          style={listOnly ? {padding: 2} : {}}
+        >
+          {listOnly
+            ? [triggerAvatars]
+            : [
+                <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
+                triggerAvatars,
+              ]}
+        </OverlayTrigger.Button>
+      )}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {
@@ -406,10 +410,6 @@ const StyledCompactSelect = styled(CompactSelect)`
 
   ${LeadingItems} {
     margin-top: 0;
-  }
-
-  ${CheckWrap} {
-    padding-bottom: 0;
   }
 `;
 

@@ -3,7 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
@@ -109,14 +109,14 @@ export function TestSuiteDropdown() {
           : value.length - suitesToShow.length;
 
         return (
-          <SelectTrigger.Button {...triggerProps}>
+          <OverlayTrigger.Button {...triggerProps}>
             <TriggerLabelWrap>
               <TriggerLabel>{label}</TriggerLabel>
             </TriggerLabelWrap>
             {remainingCount > 0 && (
               <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
             )}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         );
       }}
     />
