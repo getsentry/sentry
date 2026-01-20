@@ -797,6 +797,10 @@ describe('DetectorEdit', () => {
       await userEvent.click(bodyInput);
       await userEvent.paste('{"test": "data"}');
 
+      await selectEvent.openMenu(screen.getByLabelText('Select Environment'));
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'All Environments'})
+      ).not.toBeInTheDocument();
       await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
