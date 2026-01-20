@@ -16,13 +16,12 @@ interface AnimatedOpProps
   extends MotionProps,
     Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
   children: React.ReactNode;
+  isDragging: boolean;
   op: Op;
   ref: React.Ref<HTMLDivElement>;
 }
 
-export function AnimatedOp({op, ...props}: AnimatedOpProps) {
-  const {isDragging} = useDraggable({id: op.id});
-
+export function AnimatedOp({op, isDragging, ...props}: AnimatedOpProps) {
   useEffect(() => {
     document.body.style.cursor = isDragging ? 'grabbing' : '';
     return () => {
@@ -57,15 +56,16 @@ export function OpContainer({
   inputId,
   op,
 }: OpContainerProps) {
-  const {attributes, setNodeRef, setActivatorNodeRef, listeners} = useDraggable({
-    id: op.id,
-    data: op,
-  });
+  const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
+    useDraggable({
+      id: op.id,
+      data: op,
+    });
 
   return (
     <Flex direction="column" gap="sm">
       {flexProps => (
-        <AnimatedOp op={op} ref={setNodeRef} {...flexProps}>
+        <AnimatedOp op={op} isDragging={isDragging} ref={setNodeRef} {...flexProps}>
           <Flex gap="xs" align="center">
             <Text size="sm" bold>
               <label htmlFor={inputId}>{label}</label>

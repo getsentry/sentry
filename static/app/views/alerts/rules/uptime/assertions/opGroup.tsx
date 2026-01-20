@@ -190,7 +190,7 @@ export function AssertionOpGroup({
   const isEmptyGroup = groupOp.children.length === 0;
 
   return (
-    <GroupContainer op={groupOp} role="group" ref={setNodeRef}>
+    <GroupContainer op={groupOp} isDragging={isDragging} role="group" ref={setNodeRef}>
       <GroupHeading>
         <CompositeSelect
           size="xs"
