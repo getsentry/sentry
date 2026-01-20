@@ -59,21 +59,17 @@ export function renderPerformanceHovercard() {
 }
 
 function VolumeSliders({
+  currentSliderValues,
   checkoutTier,
   activePlan,
   organization,
-  formData,
   subscription,
   onReservedChange,
 }: Pick<
   StepProps,
-  | 'activePlan'
-  | 'checkoutTier'
-  | 'organization'
-  | 'onUpdate'
-  | 'formData'
-  | 'subscription'
+  'activePlan' | 'checkoutTier' | 'organization' | 'onUpdate' | 'subscription'
 > & {
+  currentSliderValues: Partial<Record<DataCategory, number>>;
   onReservedChange: (value: number, category: DataCategory) => void;
 }) {
   const renderPerformanceUnitDecoration = () => (
@@ -102,7 +98,7 @@ function VolumeSliders({
           }
 
           const eventBucket = utils.getBucket({
-            events: formData.reserved[category],
+            events: currentSliderValues[category],
             buckets: activePlan.planCategories[category],
           });
 
@@ -170,7 +166,7 @@ function VolumeSliders({
                   <SpaceBetweenGrid>
                     <VolumeAmount>
                       {formatReservedWithUnits(
-                        formData.reserved[category] ?? null,
+                        currentSliderValues[category] ?? null,
                         category,
                         {
                           isAbbreviated: !isByteCategory(category),
@@ -201,7 +197,7 @@ function VolumeSliders({
                             getPlanCategoryName({plan: activePlan, category})
                           )
                     }
-                    value={formData.reserved[category] ?? ''}
+                    value={currentSliderValues[category] ?? ''}
                     allowedValues={allowedValues}
                     onChange={value =>
                       defined(value) && typeof value === 'number'
