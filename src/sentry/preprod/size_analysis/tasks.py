@@ -17,7 +17,10 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
-from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
+from sentry.preprod.size_analysis.utils import (
+    build_size_metrics_map,
+    can_compare_size_metrics,
+)
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -48,7 +51,7 @@ def compare_preprod_artifact_size_analysis(
     )
 
     try:
-        artifact = PreprodArtifact.objects.get(
+        artifact: PreprodArtifact = PreprodArtifact.objects.get(
             id=artifact_id,
             project__organization_id=org_id,
             project_id=project_id,
@@ -69,8 +72,8 @@ def compare_preprod_artifact_size_analysis(
         )
         return
 
-    comparisons = []
-    preprod_artifact_status_check_updates = [artifact.id]
+    comparisons: list[dict[str, PreprodArtifactSizeMetrics]] = []
+    preprod_artifact_status_check_updates: set[int] = {artifact.id}
 
     # Create all comparisons with artifact as head
     base_artifact = artifact.get_base_artifact_for_commit().first()
@@ -84,6 +87,7 @@ def compare_preprod_artifact_size_analysis(
             create_preprod_status_check_task.apply_async(
                 kwargs={
                     "preprod_artifact_id": artifact_id,
+                    "caller": "compare_build_config_mismatch",
                 }
             )
             return
@@ -188,7 +192,7 @@ def compare_preprod_artifact_size_analysis(
                 comparisons.append(
                     {"head_metric": head_metric, "base_metric": matching_base_size_metric},
                 )
-                preprod_artifact_status_check_updates.append(head_artifact.id)
+                preprod_artifact_status_check_updates.add(head_artifact.id)
             else:
                 logger.info(
                     "preprod.size_analysis.compare.no_matching_base_size_metric",
@@ -219,6 +223,7 @@ def compare_preprod_artifact_size_analysis(
             create_preprod_status_check_task.apply_async(
                 kwargs={
                     "preprod_artifact_id": artifact_id,
+                    "caller": "compare_completion",
                 }
             )
 
