@@ -148,20 +148,6 @@ class OAuthTokenView(View):
             },
         )
 
-        # Client authentication logic:
-        # - Public clients (RFC 6749 §2.1): Only provide client_id, no secret
-        # - Confidential clients: Provide client_id + client_secret
-        #
-        # Public clients are supported for:
-        # - Device flow (RFC 8628 §5.6)
-        # - Refresh token with rotation (RFC 9700 §4.14.2)
-        #
-        # SECURITY: To prevent client_id enumeration (oracle attack), we must return
-        # the same error whether the client_id doesn't exist or the secret is wrong.
-        # We use different lookup strategies based on whether a secret was provided:
-        # - With secret: combined lookup (client_id + client_secret) - no oracle
-        # - Without secret: lookup by client_id, then verify it's a public client
-
         if not client_id:
             return self.error(
                 request=request,
@@ -171,14 +157,12 @@ class OAuthTokenView(View):
             )
 
         if client_secret:
-            # Confidential client flow: validate client_id + client_secret together
-            # to prevent oracle attacks (same error for invalid id vs invalid secret)
             try:
                 application = ApiApplication.objects.get(
                     client_id=client_id,
                     client_secret=client_secret,
                 )
-                is_public_client = False  # Has a secret, so it's confidential
+                is_public_client = False
             except ApiApplication.DoesNotExist:
                 metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
                 logger.warning(
@@ -192,8 +176,6 @@ class OAuthTokenView(View):
                     status=401,
                 )
         else:
-            # No secret provided - must be a public client
-            # Look up by client_id and verify it's actually public
             try:
                 application = ApiApplication.objects.get(client_id=client_id)
             except ApiApplication.DoesNotExist:
@@ -209,8 +191,6 @@ class OAuthTokenView(View):
             is_public_client = application.is_public
 
             if not is_public_client:
-                # Confidential client tried to authenticate without a secret
-                # Return same error as invalid credentials to prevent oracle
                 metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
                 logger.warning(
                     "Confidential client missing secret",
@@ -223,10 +203,6 @@ class OAuthTokenView(View):
                     status=401,
                 )
 
-        # Public clients can only use certain grant types:
-        # - AUTHORIZATION: allowed with PKCE (validated in from_grant)
-        # - DEVICE_CODE: designed for public clients (RFC 8628)
-        # - REFRESH: allowed with token rotation (RFC 9700 §4.14.2)
         if is_public_client and grant_type not in [
             GrantTypes.AUTHORIZATION,
             GrantTypes.DEVICE_CODE,
@@ -684,13 +660,7 @@ class OAuthTokenView(View):
     def handle_public_client_refresh(
         self, request: Request, application: ApiApplication
     ) -> HttpResponse:
-        """
-        Handle refresh token for public clients with rotation.
-
-        For public clients, each refresh request issues a new refresh token
-        and invalidates the old one. This provides security through rotation
-        since public clients cannot securely store a client_secret.
-        """
+        """Handle refresh token for public clients with token rotation."""
         refresh_token_code = request.POST.get("refresh_token")
 
         if not refresh_token_code:
@@ -708,11 +678,8 @@ class OAuthTokenView(View):
                 reason="scope changes not supported",
             )
 
-        # Hash the incoming refresh token for secure lookup
         hashed_refresh = hashlib.sha256(refresh_token_code.encode()).hexdigest()
 
-        # Perform atomic rotation with row-level locking to prevent race conditions.
-        # We use select_for_update() to ensure only one request can rotate at a time.
         with transaction.atomic(router.db_for_write(ApiToken)):
             try:
                 old_token = ApiToken.objects.select_for_update().get(
@@ -726,7 +693,6 @@ class OAuthTokenView(View):
                     reason="invalid refresh_token",
                 )
 
-            # Create new token with rotated refresh token
             new_token = ApiToken.objects.create(
                 application=application,
                 user=old_token.user,
@@ -734,7 +700,6 @@ class OAuthTokenView(View):
                 scoping_organization_id=old_token.scoping_organization_id,
             )
 
-            # Delete the old token (invalidates both access and refresh tokens)
             old_token_id = old_token.id
             old_token.delete()
 
