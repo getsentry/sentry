@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -165,15 +166,19 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           }}
           menuTitle={t('Version')}
           menuWidth={548}
-          triggerProps={{
-            prefix: t('Version'),
-            'aria-label': t('Version'),
-            children: version
-              ? undefined
-              : isFetching
-                ? t('Loading\u2026')
-                : t('Select a version'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={t('Version')}
+              aria-label={t('Version')}
+            >
+              {version
+                ? triggerProps.children
+                : isFetching
+                  ? t('Loading\u2026')
+                  : t('Select a version')}
+            </OverlayTrigger.Button>
+          )}
           onClose={() => setSearchQuery('')}
         />
         {selectionError ? <ErrorText role="alert">{selectionError}</ErrorText> : null}

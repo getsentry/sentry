@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
@@ -327,18 +328,18 @@ export function MessageSpanSamplesPanel() {
                   value={query.traceStatus}
                   options={TRACE_STATUS_SELECT_OPTIONS}
                   onChange={handleTraceStatusChange}
-                  triggerProps={{
-                    prefix: t('Status'),
-                  }}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
+                  )}
                 />
                 {messageActorType === MessageActorType.CONSUMER && (
                   <CompactSelect
                     value={query.retryCount}
                     options={RETRY_COUNT_SELECT_OPTIONS}
                     onChange={handleRetryCountChange}
-                    triggerProps={{
-                      prefix: t('Retries'),
-                    }}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button {...triggerProps} prefix={t('Retries')} />
+                    )}
                   />
                 )}
               </Flex>

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -138,19 +139,23 @@ function SidebarContent() {
                   platform: newProject?.platform,
                 });
               }}
-              triggerProps={{
-                'aria-label': currentProject?.slug,
-                children: currentProject ? (
-                  <StyledIdBadge
-                    project={currentProject}
-                    avatarSize={16}
-                    hideOverflow
-                    disableLink
-                  />
-                ) : (
-                  t('Select a project')
-                ),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={currentProject?.slug}
+                >
+                  {currentProject ? (
+                    <StyledIdBadge
+                      project={currentProject}
+                      avatarSize={16}
+                      hideOverflow
+                      disableLink
+                    />
+                  ) : (
+                    t('Select a project')
+                  )}
+                </OverlayTrigger.Button>
+              )}
               options={projectSelectOptions}
               position="bottom-end"
             />
@@ -227,7 +232,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 sdkSelect: (
                   <CompactSelect
                     size="xs"
-                    triggerProps={{children: sdkProvider.label}}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button {...triggerProps}>
+                        {sdkProvider.label ?? triggerProps.children}
+                      </OverlayTrigger.Button>
+                    )}
                     value={sdkProvider.value}
                     onChange={value => {
                       setsdkProvider(value);

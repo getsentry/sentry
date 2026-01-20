@@ -2,11 +2,11 @@ import {useId} from 'react';
 
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import {SelectTrigger} from 'sentry/components/core/compactSelect/trigger';
 import {t} from 'sentry/locale';
 import type {HeaderCheckOp, HeaderOperand} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -104,7 +104,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
             <CompositeSelect
               size="xs"
               trigger={props => (
-                <SelectTrigger.Button
+                <OverlayTrigger.Button
                   {...props}
                   size="zero"
                   borderless
@@ -113,7 +113,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                   aria-label={t('key comparison %s', keyCombinedLabel)}
                 >
                   <Text monospace>{keyCombinedLabel}</Text>
-                </SelectTrigger.Button>
+                </OverlayTrigger.Button>
               )}
             >
               <CompositeSelect.Region
@@ -180,7 +180,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
             <CompositeSelect
               size="xs"
               trigger={props => (
-                <SelectTrigger.Button
+                <OverlayTrigger.Button
                   {...props}
                   size="zero"
                   borderless
@@ -189,7 +189,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                   aria-label={t('value comparison %s', valueCombinedLabel)}
                 >
                   <Text monospace>{valueCombinedLabel}</Text>
-                </SelectTrigger.Button>
+                </OverlayTrigger.Button>
               )}
             >
               <CompositeSelect.Region

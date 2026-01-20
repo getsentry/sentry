@@ -3,6 +3,8 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -273,13 +275,17 @@ function ColumnEditorRow({
         onChange={handleColumnChange}
         disabled={required}
         searchable
-        triggerProps={{
-          children: label,
-          prefix: t('Column'),
-          style: {
-            width: '100%',
-          },
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            prefix={t('Column')}
+            style={{
+              width: '100%',
+            }}
+          >
+            {label}
+          </OverlayTrigger.Button>
+        )}
       />
       <StyledButton
         aria-label={t('Remove Column')}

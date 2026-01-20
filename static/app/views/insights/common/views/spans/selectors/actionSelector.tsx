@@ -1,6 +1,8 @@
 import type {ReactNode} from 'react';
 import omit from 'lodash/omit';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -86,7 +88,12 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
   return (
     <CompactSelect
       style={{maxWidth: '200px'}}
-      triggerProps={{prefix: LABEL_FOR_MODULE_NAME[moduleName]}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={LABEL_FOR_MODULE_NAME[moduleName]}
+        />
+      )}
       options={options}
       value={value ?? ''}
       onChange={newValue => {

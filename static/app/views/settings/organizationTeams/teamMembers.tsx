@@ -2,6 +2,8 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
@@ -169,7 +171,9 @@ function AddMemberDropdown({
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
-      triggerProps={{children: t('Add Member')}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>{t('Add Member')}</OverlayTrigger.Button>
+      )}
       searchPlaceholder={t('Search Members')}
       emptyMessage={t('No members')}
       loading={isOrgMembersFetching}

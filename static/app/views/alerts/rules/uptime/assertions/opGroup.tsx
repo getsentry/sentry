@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {type SelectOption} from 'sentry/components/core/compactSelect';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import {SelectTrigger} from 'sentry/components/core/compactSelect/trigger';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
@@ -159,9 +159,9 @@ export function AssertionOpGroup({
         <CompositeSelect
           size="xs"
           trigger={props => (
-            <SelectTrigger.Button {...props} size="zero" borderless>
+            <OverlayTrigger.Button {...props} size="zero" borderless>
               {triggerLabel}
-            </SelectTrigger.Button>
+            </OverlayTrigger.Button>
           )}
         >
           <CompositeSelect.Region

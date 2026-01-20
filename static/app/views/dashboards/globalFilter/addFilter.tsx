@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Tag as TagBadge} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -190,7 +190,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       }
       menuFooter={isSelectingFilterKey && filterOptionsMenuFooter}
       trigger={triggerProps => (
-        <SelectTrigger.IconButton
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Add Global Filter')}
           icon={<IconAdd size="sm" />}

@@ -5,7 +5,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {SelectContext} from 'sentry/components/core/compactSelect/control';
+import {ControlContext} from '@sentry/scraps/compactSelect/control';
+
 import {SelectFilterContext} from 'sentry/components/core/compactSelect/list';
 import {
   ListLabel,
@@ -97,7 +98,7 @@ function GridList({
     }
   };
 
-  const {overlayIsOpen, search} = useContext(SelectContext);
+  const {overlayIsOpen, search} = useContext(ControlContext);
   const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
     () =>

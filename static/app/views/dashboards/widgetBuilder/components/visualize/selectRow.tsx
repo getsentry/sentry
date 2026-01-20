@@ -2,6 +2,8 @@ import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -403,9 +405,12 @@ export function SelectRow({
           });
           setError?.({...error, queries: []});
         }}
-        triggerProps={{
-          'aria-label': t('Aggregate Selection'),
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            aria-label={t('Aggregate Selection')}
+          />
+        )}
       />
       {hasColumnParameter && (
         <SelectWrapper ref={columnSelectRef}>
@@ -442,9 +447,12 @@ export function SelectRow({
                 organization,
               });
             }}
-            triggerProps={{
-              'aria-label': t('Column Selection'),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                aria-label={t('Column Selection')}
+              />
+            )}
             disabled={disabled || lockOptions}
           />
         </SelectWrapper>

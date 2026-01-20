@@ -1,7 +1,7 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
@@ -166,6 +166,6 @@ export function TemplateSection() {
   );
 }
 
-const StyledTriggerButton = styled(SelectTrigger.Button)`
+const StyledTriggerButton = styled(OverlayTrigger.Button)`
   min-width: 425px;
 `;

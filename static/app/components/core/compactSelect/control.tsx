@@ -18,23 +18,21 @@ import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
-import {type ButtonTriggerProps, type SelectTriggerProps} from './trigger';
 import type {SelectKey, SelectOptionOrSection} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
@@ -51,7 +49,7 @@ function nextFrameCallback(cb: () => void) {
   }
 }
 
-interface SelectContextValue {
+interface ControlContextValue {
   overlayIsOpen: boolean;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -66,7 +64,7 @@ interface SelectContextValue {
   size?: FormSize;
 }
 
-export const SelectContext = createContext<SelectContextValue>({
+export const ControlContext = createContext<ControlContextValue>({
   overlayIsOpen: false,
   search: '',
 });
@@ -185,12 +183,8 @@ export interface ControlProps
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
    * won't work correctly.
    */
-  trigger?: (props: SelectTriggerProps, isOpen: boolean) => React.ReactNode;
-
-  /**
-   * Props to be passed to the default trigger button.
-   */
-  triggerProps?: Partial<ButtonTriggerProps>;
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
+  triggerId?: string;
 }
 
 /**
@@ -200,7 +194,7 @@ export function Control({
   // Control props
   autoFocus,
   trigger,
-  triggerProps: {children: triggerLabelProp, ...triggerProps} = {},
+  triggerId,
   isOpen,
   onClose,
   isDismissable,
@@ -418,10 +412,6 @@ export function Control({
    * selected, then a count badge will appear.
    */
   const triggerLabel: React.ReactNode = useMemo(() => {
-    if (defined(triggerLabelProp)) {
-      return triggerLabelProp;
-    }
-
     const values = Array.isArray(value) ? value : [value];
     const options = items
       .flatMap(item => {
@@ -442,7 +432,7 @@ export function Control({
         )}
       </Fragment>
     );
-  }, [triggerLabelProp, value, items]);
+  }, [value, items]);
 
   const {keyboardProps: triggerKeyboardProps} = useKeyboard({
     onKeyDown: e => {
@@ -474,23 +464,19 @@ export function Control({
 
   const theme = useTheme();
 
+  const mergedTriggerProps = mergeProps(
+    {id: triggerId, children: triggerLabel},
+    triggerKeyboardProps,
+    overlayTriggerProps
+  );
+
   return (
-    <SelectContext value={contextValue}>
+    <ControlContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
-          trigger(
-            mergeProps({id: triggerProps.id}, triggerKeyboardProps, overlayTriggerProps),
-            overlayIsOpen
-          )
+          trigger(mergedTriggerProps, overlayIsOpen)
         ) : (
-          <DropdownButton
-            size={size}
-            {...mergeProps(triggerProps, triggerKeyboardProps, overlayTriggerProps)}
-            isOpen={overlayIsOpen}
-            disabled={disabled}
-          >
-            {triggerLabel}
-          </DropdownButton>
+          <OverlayTrigger.Button {...mergedTriggerProps} />
         )}
         <StyledPositionWrapper
           visible={overlayIsOpen}
@@ -568,7 +554,7 @@ export function Control({
           )}
         </StyledPositionWrapper>
       </ControlWrap>
-    </SelectContext>
+    </ControlContext>
   );
 }
 

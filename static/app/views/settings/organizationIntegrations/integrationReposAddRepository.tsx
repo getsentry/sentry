@@ -1,5 +1,7 @@
 import {useMemo, useState} from 'react';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -141,10 +143,11 @@ export function IntegrationReposAddRepository({
       loading={query.isFetching}
       searchable
       onSearch={setSearch}
-      triggerProps={{
-        busy: adding,
-        children: t('Add Repository'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} busy={adding}>
+          {t('Add Repository')}
+        </OverlayTrigger.Button>
+      )}
       disableSearchFilter
     />
   );

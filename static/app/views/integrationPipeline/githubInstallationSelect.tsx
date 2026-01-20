@@ -2,6 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
@@ -179,9 +181,11 @@ export function GithubInstallationSelect({
           onChange={handleSelect}
           options={selectOptions}
           value={installationID}
-          triggerProps={{
-            children: installationID ? undefined : 'Choose Installation',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps}>
+              {installationID ? triggerProps.children : 'Choose Installation'}
+            </OverlayTrigger.Button>
+          )}
         />
         <Stack alignSelf="flex-end" paddingTop="xl">
           {organization.features.includes('github-multi-org-upsell-modal') ? (

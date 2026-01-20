@@ -2,6 +2,8 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -70,7 +72,9 @@ function GenerateSpikeProjectionsForBatch() {
           specified batch of customers in the specified region.
         </p>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region ? region.url : undefined}
           options={regions.map((r: any) => ({
             label: r.name,

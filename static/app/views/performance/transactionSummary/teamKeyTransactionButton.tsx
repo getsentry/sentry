@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -56,7 +56,7 @@ function TeamKeyTransactionButton({
               : null
           }
         >
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             {...triggerProps}
             disabled={disabled}
             showChevron={false}
@@ -71,7 +71,7 @@ function TeamKeyTransactionButton({
             {keyedTeamsCount
               ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
               : t('Star for Team')}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         </Tooltip>
       )}
       {...props}

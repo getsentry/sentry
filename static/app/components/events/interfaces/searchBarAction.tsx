@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {
   SelectOption,
@@ -94,6 +94,6 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     `}
 `;
 
-const StyledTrigger = styled(SelectTrigger.Button)`
+const StyledTrigger = styled(OverlayTrigger.Button)`
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
 `;

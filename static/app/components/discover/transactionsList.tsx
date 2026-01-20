@@ -2,6 +2,8 @@ import {Component, Fragment, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -294,7 +296,9 @@ class _TransactionsList extends Component<Props> {
       <Fragment>
         <div>
           <CompactSelect
-            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
+            )}
             value={selected.value}
             options={options}
             onChange={opt => handleDropdownChange(opt.value)}

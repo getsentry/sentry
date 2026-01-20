@@ -209,7 +209,9 @@ function TeamStatsControls({
         trigger={triggerProps => (
           <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
             {period
-              ? relativeOptions[period] || getArbitraryRelativePeriod(period)[period]
+              ? relativeOptions[period] ||
+                getArbitraryRelativePeriod(period)[period] ||
+                triggerProps.children
               : triggerProps.children}
           </TimeRangeSelectTrigger>
         )}

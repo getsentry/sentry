@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
@@ -54,7 +55,7 @@ interface NumericFilterState {
   isValidValue: boolean;
   operatorOptions: Array<SelectOption<Operator>>;
   renderInputField: () => React.ReactNode;
-  renderSelectorTrigger: () => React.ReactNode;
+  renderSelectorTrigger: () => React.JSX.Element;
   resetValues: () => void;
   setStagedOperator: (operator: TermOperator) => void;
   setStagedValue: (value: string) => void;
@@ -321,9 +322,11 @@ function NumericFilterSelector({
           </Flex>
         </MenuBodyWrap>
       }
-      triggerProps={{
-        children: filter.renderSelectorTrigger(),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {filter.renderSelectorTrigger()}
+        </OverlayTrigger.Button>
+      )}
       menuFooter={
         hasStagedChanges
           ? ({closeOverlay}: any) => (
