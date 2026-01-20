@@ -30,11 +30,10 @@ from sentry.monitors.validators import ConfigValidator
 
 MAX_UNIX_TIMESTAMP_SECONDS = 253402300799
 
-SUB_THRESHOLD_STATUSES = {
-    ScheduleSampleStatus.SUB_FAILURE_ERROR,
-    ScheduleSampleStatus.SUB_RECOVERY_OK,
+SUB_THRESHOLD_STATUS_VALUES = {
+    ScheduleSampleStatus.SUB_FAILURE_ERROR.value,
+    ScheduleSampleStatus.SUB_RECOVERY_OK.value,
 }
-SUB_THRESHOLD_STATUS_VALUES = {status.value for status in SUB_THRESHOLD_STATUSES}
 
 
 class SampleScheduleBucketsConfigValidator(ConfigValidator):
@@ -167,7 +166,7 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
             # when bucket intervals are larger than the frequency in the schedule.
             # Sub-threshold statuses dominate the bucket in this case, it should be the only
             # status present in the bucket.
-            is_sub_threshold_status = status in SUB_THRESHOLD_STATUSES
+            is_sub_threshold_status = status.value in SUB_THRESHOLD_STATUS_VALUES
             bucket_has_sub_threshold_status = any(
                 existing_status in SUB_THRESHOLD_STATUS_VALUES for existing_status in stats.keys()
             )
