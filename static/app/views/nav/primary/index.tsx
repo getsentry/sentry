@@ -34,7 +34,6 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-import {makePreventPathname} from 'sentry/views/prevent/pathnames';
 import {
   PREVENT_AI_BASE_URL,
   PREVENT_BASE_URL,
@@ -166,7 +165,7 @@ export function PrimaryNavigationItems() {
             <Container position="relative" height="100%">
               {showNewSeer(organization) ? (
                 <SidebarLink
-                  to={makePreventPathname({organization, path: `/${TESTS_BASE_URL}/`})}
+                  to={`/${prefix}/${PREVENT_BASE_URL}/${TESTS_BASE_URL}/`}
                   activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
                   analyticsKey="prevent"
                   group={PrimaryNavGroup.PREVENT}
