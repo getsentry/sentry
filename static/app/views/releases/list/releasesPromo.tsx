@@ -25,6 +25,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -93,7 +94,12 @@ type Props = {
 
 function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useApiQuery<SentryApp[]>(
-    [`/organizations/${organization.slug}/sentry-apps/`, {query: {status: 'internal'}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {status: 'internal'}},
+    ],
     {
       staleTime: 0,
     }

@@ -29,6 +29,7 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
@@ -97,7 +98,12 @@ function makeReleaseListQueryKey({
         : ReleaseStatus.ACTIVE,
   };
 
-  return [`/organizations/${organizationSlug}/releases/`, {query}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+      path: {organizationIdOrSlug: organizationSlug},
+    }),
+    {query},
+  ];
 }
 
 export default function ReleasesList() {

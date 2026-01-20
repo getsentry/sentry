@@ -11,6 +11,7 @@ import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -100,7 +101,9 @@ export default function PreprodBuilds() {
     RequestError
   > = useApiQuery<ListBuildsApiResponse>(
     [
-      `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: queryParams},
     ],
     {
