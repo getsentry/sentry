@@ -351,3 +351,84 @@ class WorkflowEngineExamples:
             response_only=True,
         )
     ]
+    CREATE_WORKFLOW = [
+        OpenApiExample(
+            "Workflow successfully created",
+            value={
+                "id": "1234567",
+                "name": "Notify Jane Doe",
+                "organizationId": "1",
+                "createdBy": "2345",
+                "dateCreated": "2026-01-13T21:21:15.975384Z",
+                "dateUpdated": "2026-01-13T21:21:15.975376Z",
+                "triggers": {
+                    "id": "456789",
+                    "organizationId": "1",
+                    "logicType": "any-short",
+                    "conditions": [
+                        {
+                            "id": "234567",
+                            "type": "first_seen_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "1234567",
+                            "type": "issue_resolved_trigger",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "678912",
+                            "type": "reappeared_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                        {
+                            "id": "7891234",
+                            "type": "regression_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        },
+                    ],
+                    "actions": [],
+                },
+                "actionFilters": [
+                    {
+                        "id": "45678",
+                        "organizationId": "1",
+                        "logicType": "any-short",
+                        "conditions": [
+                            {
+                                "id": "23456789",
+                                "type": "issue_occurrences",
+                                "comparison": {"value": 10},
+                                "conditionResult": True,
+                            }
+                        ],
+                        "actions": [
+                            {
+                                "id": "1234789",
+                                "type": "email",
+                                "integrationId": None,
+                                "data": {},
+                                "config": {
+                                    "targetType": "user",
+                                    "targetDisplay": None,
+                                    "targetIdentifier": "6789",
+                                },
+                                "status": "active",
+                            }
+                        ],
+                    }
+                ],
+                "environment": None,
+                "config": {"frequency": 1440},
+                "detectorIds": ["1000"],
+                "enabled": True,
+                "lastTriggered": None,
+            },
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
