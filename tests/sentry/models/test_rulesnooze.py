@@ -3,16 +3,13 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from django.db import IntegrityError, router, transaction
 
-from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils.cases import APITestCase
 
 
 class RuleSnoozeTest(APITestCase):
     def setUp(self) -> None:
-        self.issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner_team=self.team
-        )
+        self.issue_alert_rule = self.create_project_rule(name="test rule", owner_team=self.team)
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]
         )
@@ -43,11 +40,7 @@ class RuleSnoozeTest(APITestCase):
         )
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_user_until.id).exists()
 
-        issue_alert_rule2 = Rule.objects.create(
-            label="test rule",
-            project=self.project,
-            owner_team=self.team,
-        )
+        issue_alert_rule2 = self.create_project_rule(name="test rule", owner_team=self.team)
         issue_alert_rule_snooze_user_forever = self.snooze_rule(
             user_id=self.user.id, owner_id=self.user.id, rule=issue_alert_rule2
         )

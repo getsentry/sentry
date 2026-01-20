@@ -203,8 +203,9 @@ class SlackTasksTest(TestCase):
     def test_task_existing_rule(self, mock_set_value: MagicMock) -> None:
         action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
-        rule = Rule.objects.create(
-            project=self.project, data={"actions": [action_data], "conditions": [condition_data]}
+        rule = self.create_project_rule(
+            action_data=[action_data],
+            condition_data=[condition_data],
         )
 
         data = {
@@ -250,8 +251,9 @@ class SlackTasksTest(TestCase):
         """Test that owner identifier string is deserialized to Actor correctly during update."""
         action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
-        rule = Rule.objects.create(
-            project=self.project, data={"actions": [action_data], "conditions": [condition_data]}
+        rule = self.create_project_rule(
+            action_data=[action_data],
+            condition_data=[condition_data],
         )
 
         owner_identifier = f"user:{self.user.id}"

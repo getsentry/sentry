@@ -96,16 +96,13 @@ class SortDigestTestCase(TestCase):
         return self.create_project(fire_project_created=True)
 
     def test_success(self) -> None:
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.project,
-            label="Send a notification for regressions",
-            data={
-                "match": "all",
-                "conditions": [
-                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-                ],
-                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-            },
+            name="Send a notification for regressions",
+            condition_data=[
+                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+            ],
+            action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
         )
 
         rules = list(self.project.rule_set.all())

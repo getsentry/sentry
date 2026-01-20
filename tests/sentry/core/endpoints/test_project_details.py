@@ -1407,9 +1407,9 @@ class CopyProjectSettingsTest(APITestCase):
             project=self.other_project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
 
-        Rule.objects.create(project=self.other_project, label="rule1")
-        Rule.objects.create(project=self.other_project, label="rule2")
-        Rule.objects.create(project=self.other_project, label="rule3")
+        self.create_project_rule(project=self.other_project, name="rule1")
+        self.create_project_rule(project=self.other_project, name="rule2")
+        self.create_project_rule(project=self.other_project, name="rule3")
         # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 

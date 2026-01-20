@@ -6,7 +6,6 @@ import responses
 
 from sentry.integrations.opsgenie.client import OpsgenieClient
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.testutils.asserts import (
     assert_count_of_metric,
@@ -79,7 +78,7 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
@@ -278,7 +277,7 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
 
         with self.options({"system.url-prefix": "http://example.com"}):

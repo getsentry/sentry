@@ -55,13 +55,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        self.rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        self.rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
     def test_issue_alert_user_block(self) -> None:
@@ -350,13 +346,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
         ProjectOwnership.objects.create(project_id=self.project.id)
 
@@ -521,13 +513,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
         notification = AlertRuleNotification(
@@ -600,13 +588,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
         notification = AlertRuleNotification(
@@ -690,13 +674,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
         key = f"mail:p:{self.project.id}"
@@ -770,13 +750,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
         notification = Notification(event=event, rule=rule)
 
@@ -856,13 +832,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
-        rule = Rule.objects.create(
+        rule = self.create_project_rule(
             project=project2,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+            name="ja rule",
+            action_data=[action_data],
         )
         notification = Notification(event=event, rule=rule)
 
@@ -918,13 +891,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
-        rule = Rule.objects.create(
+        rule = self.create_project_rule(
             project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+            name="ja rule",
+            action_data=[action_data],
         )
         notification = Notification(event=event, rule=rule)
 
@@ -955,13 +925,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
         notification = Notification(event=event, rule=rule)
 
