@@ -21,13 +21,15 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
-import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
+import {
+  CONSOLE_PLATFORM_METADATA,
+  type ConsolePlatform,
+} from 'sentry/constants/consolePlatforms';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {
   useConsoleSdkInvites,
   useRevokeConsoleSdkPlatformInvite,
-  type ConsolePlatform,
   type ConsoleSdkInviteUser,
 } from 'sentry/views/settings/organizationConsoleSdkInvites/hooks';
 
