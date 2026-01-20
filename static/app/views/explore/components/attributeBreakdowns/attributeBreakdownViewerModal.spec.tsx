@@ -1,10 +1,6 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ProjectsStore from 'sentry/stores/projectsStore';
 
 import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
 
@@ -16,18 +12,15 @@ jest.mock('echarts-for-react/lib/core', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
+const stubProps = {
+  Header: stubEl,
+  Footer: stubEl as ModalRenderProps['Footer'],
+  Body: stubEl as ModalRenderProps['Body'],
+  CloseButton: stubEl,
+  closeModal: () => undefined,
+};
+
 describe('AttributeBreakdownViewerModal', () => {
-  const organization = OrganizationFixture();
-  const project = ProjectFixture();
-
-  beforeEach(() => {
-    ProjectsStore.loadInitialData([project]);
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   describe('single mode', () => {
     const mockAttributeDistribution = {
       attributeName: 'browser.name',
@@ -43,16 +36,11 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders the modal with attribute name as title', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'browser.name'})).toBeInTheDocument();
@@ -61,16 +49,11 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders the population percentage indicator', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       // Total values: 500 + 300 + 200 = 1000, cohortCount = 1000 => 100%
@@ -80,16 +63,11 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders the chart', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByText('echarts mock')).toBeInTheDocument();
@@ -98,16 +76,11 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders the table with attribute values', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       // Table should have column headers
@@ -130,16 +103,11 @@ describe('AttributeBreakdownViewerModal', () => {
 
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="single"
           attributeDistribution={attributeDistribution}
           cohortCount={cohortCount}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByRole('cell', {name: '25%'})).toBeInTheDocument();
@@ -149,16 +117,11 @@ describe('AttributeBreakdownViewerModal', () => {
       const cohortCount = 0;
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={cohortCount}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'browser.name'})).toBeInTheDocument();
@@ -171,16 +134,11 @@ describe('AttributeBreakdownViewerModal', () => {
       };
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="single"
           attributeDistribution={attributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
@@ -211,17 +169,12 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders the modal with attribute name as title', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="comparison"
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'browser.name'})).toBeInTheDocument();
@@ -230,17 +183,12 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders population percentage indicators for both cohorts', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="comparison"
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {organization}
+        />
       );
 
       // Cohort 1: (500 + 300) / 800 = 100%
@@ -251,17 +199,12 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders the chart', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="comparison"
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByText('echarts mock')).toBeInTheDocument();
@@ -270,17 +213,12 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders the table with cohort comparison columns', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="comparison"
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {organization}
+        />
       );
 
       // Table should have column headers
@@ -298,17 +236,12 @@ describe('AttributeBreakdownViewerModal', () => {
     it('renders attribute values in the table', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="comparison"
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {organization}
+        />
       );
 
       // Table should have attribute values
@@ -320,17 +253,12 @@ describe('AttributeBreakdownViewerModal', () => {
     it('handles zero cohort totals without crashing', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="comparison"
           attribute={mockAttribute}
           cohort1Total={0}
           cohort2Total={0}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'browser.name'})).toBeInTheDocument();
@@ -339,11 +267,7 @@ describe('AttributeBreakdownViewerModal', () => {
     it('handles empty cohorts', () => {
       render(
         <AttributeBreakdownViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
+          {...stubProps}
           mode="comparison"
           attribute={{
             attributeName: 'empty.attribute',
@@ -353,8 +277,7 @@ describe('AttributeBreakdownViewerModal', () => {
           }}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {organization}
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
