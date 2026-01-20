@@ -12,9 +12,11 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams, WorkflowParams
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
@@ -32,6 +34,7 @@ from sentry.workflow_engine.models import Workflow
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Workflows"])
 class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -41,22 +44,23 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     owner = ApiOwner.ALERTS_NOTIFICATIONS
 
     @extend_schema(
-        operation_id="Fetch a Workflow",
+        operation_id="Fetch an Alert",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,
         ],
         responses={
-            201: WorkflowSerializer,
+            200: WorkflowSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.GET_WORKFLOW,
     )
     def get(self, request: Request, organization: Organization, workflow: Workflow):
         """
-        Returns a workflow
+        Returns an alert.
         """
         serialized_workflow = serialize(
             workflow,
@@ -66,22 +70,24 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         return Response(serialized_workflow)
 
     @extend_schema(
-        operation_id="Update a Workflow",
+        operation_id="Update an Alert",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,
         ],
+        request=WorkflowValidator,
         responses={
-            201: WorkflowSerializer,
+            200: WorkflowSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.UPDATE_WORKFLOW,
     )
     def put(self, request: Request, organization: Organization, workflow: Workflow):
         """
-        Updates a workflow
+        Updates an alert.
         """
         validator = WorkflowValidator(
             data=request.data,
@@ -129,9 +135,23 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
             status=200,
         )
 
+    @extend_schema(
+        operation_id="Delete an Alert",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            WorkflowParams.WORKFLOW_ID,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(self, request: Request, organization: Organization, workflow: Workflow):
         """
-        Delete a workflow
+        Deletes an alert.
         """
         RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
         workflow.update(status=ObjectStatus.PENDING_DELETION)
