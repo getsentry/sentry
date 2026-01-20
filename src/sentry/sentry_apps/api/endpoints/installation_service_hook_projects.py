@@ -5,9 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
-from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
-from sentry.projects.services.project.service import project_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.servicehookproject import ServiceHookProjectSerializer
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
@@ -70,13 +68,13 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
                     data={"error": "Some projects are not accessible"},
                 )
 
-        return self.paginate(
-            request=request,
-            queryset=result.service_hook_projects,
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(
-                x, request.user, access=request.access, serializer=ServiceHookProjectSerializer()
-            ),
+        return Response(
+            serialize(
+                result.service_hook_projects,
+                request.user,
+                access=request.access,
+                serializer=ServiceHookProjectSerializer(),
+            )
         )
 
     """
@@ -90,30 +88,28 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             return Response(serializer.errors, status=400)
 
         projects = serializer.validated_data["projects"]
-
-        # Convert slugs to ids if needed and check access
-        org_id = installation.organization_id
-        project_ids = []
-        for project in set(projects):
-            if isinstance(project, int):
-                project_obj = project_service.get_by_id(organization_id=org_id, id=project)
-            else:
-                project_obj = project_service.get_by_slug(organization_id=org_id, slug=project)
-            if project_obj and request.access.has_project_access(project_obj):
-                project_ids.append(project_obj.id)
-            else:
-                return Response(
-                    status=400,
-                    data={"error": f"Project '{project}' does not exist or is not accessible"},
-                )
-
         current_result = sentry_app_region_service.get_service_hook_projects(
             organization_id=installation.organization_id,
             installation=installation,
+            extra_projects_to_fetch=projects,
         )
         if current_result.error:
             return self.respond_rpc_sentry_app_error(current_result.error)
 
+        project_set = set(projects)
+        for project in current_result.extra_projects:
+            if project.id not in project_set and project.slug not in project_set:
+                return Response(
+                    status=400,
+                    data={"error": f"Project '{project.slug}' does not exist"},
+                )
+            if not request.access.has_project_access(project):
+                return Response(
+                    status=400,
+                    data={"error": "Some projects are not accessible"},
+                )
+
+        project_ids = [project.id for project in current_result.extra_projects]
         current_project_ids = {hp.project_id for hp in current_result.service_hook_projects}
         project_ids_to_remove = current_project_ids - set(project_ids)
         projects_to_remove = [
@@ -130,18 +126,19 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             organization_id=installation.organization_id,
             installation=installation,
             project_ids=project_ids,
+            existing_project_ids=list(current_project_ids),
         )
 
         if result.error:
             return self.respond_rpc_sentry_app_error(result.error)
 
-        return self.paginate(
-            request=request,
-            queryset=result.service_hook_projects,
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(
-                x, request.user, access=request.access, serializer=ServiceHookProjectSerializer()
-            ),
+        return Response(
+            serialize(
+                result.service_hook_projects,
+                request.user,
+                access=request.access,
+                serializer=ServiceHookProjectSerializer(),
+            )
         )
 
     def delete(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
@@ -163,6 +160,7 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         result = sentry_app_region_service.delete_service_hook_projects(
             organization_id=installation.organization_id,
             installation=installation,
+            existing_project_ids=[project.id for project in current_result.projects],
         )
 
         if result.error:
