@@ -20,7 +20,7 @@ import {
   COHORT_2_COLOR,
 } from './constants';
 import {AttributeBreakdownsComponent} from './styles';
-import {formatComparisonModeTooltip} from './tooltips';
+import {useFormatComparisonModeTooltip} from './tooltips';
 import {
   calculateAttributePopulationPercentage,
   percentageFormatter,
@@ -138,10 +138,14 @@ export function Chart({
     [attribute.cohort1, attribute.cohort2, cohort1Total, cohort2Total]
   );
 
+  const formatComparisonModeTooltip = useFormatComparisonModeTooltip(
+    cohort1Color,
+    cohort2Color
+  );
   const toolTipFormatter = useCallback(
     (p: Parameters<typeof formatComparisonModeTooltip>[0]) =>
-      formatComparisonModeTooltip(p, cohort1Color, cohort2Color),
-    [cohort1Color, cohort2Color]
+      formatComparisonModeTooltip(p),
+    [formatComparisonModeTooltip]
   );
 
   const actionsHtmlRenderer = useCallback(

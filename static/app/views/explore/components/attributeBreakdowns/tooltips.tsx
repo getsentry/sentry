@@ -1,4 +1,9 @@
+import {useCallback} from 'react';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
+
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Text} from '@sentry/scraps/text';
 
 import {escape} from 'sentry/utils';
 
@@ -9,94 +14,142 @@ import {
 } from './constants';
 import {percentageFormatter} from './utils';
 
-export function formatSingleModeTooltip(
-  p: TooltipComponentFormatterCallbackParams
-): string {
-  const data = Array.isArray(p) ? p[0]?.data : p.data;
-  const pct = percentageFormatter(Number(data));
+export function useFormatSingleModeTooltip() {
+  const renderToString = useRenderToString();
 
-  const value = Array.isArray(p) ? p[0]?.name : p.name;
-  const truncatedValue = value
-    ? value.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
-      ? `${value.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
-      : value
-    : '\u2014';
-  const escapedTruncatedValue = escape(truncatedValue);
-  return `
-    <div class="tooltip-series" style="padding: 0;">
-      <div
-        class="tooltip-label"
-        style="
-          display: flex;
-          justify-content: space-between;
-          gap: 20px;
-          margin: 0 auto;
-          padding: 8px 15px;
-          min-width: 100px;
-          cursor: default;
-          max-width: 300px;
-        "
-      >
-        <strong
-          style="
-            word-break: break-word;
-            white-space: normal;
-            overflow-wrap: anywhere;
-          "
-        >${escapedTruncatedValue}</strong>
-        <span>${pct}</span>
-      </div>
-    </div>
-  `.trim();
+  return useCallback(
+    (p: TooltipComponentFormatterCallbackParams) => {
+      const data = Array.isArray(p) ? p[0]?.data : p.data;
+      const pct = percentageFormatter(Number(data));
+
+      const value = Array.isArray(p) ? p[0]?.name : p.name;
+      const truncatedValue = value
+        ? value.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
+          ? `${value.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
+          : value
+        : '\u2014';
+      const escapedTruncatedValue = escape(truncatedValue);
+
+      return renderToString(
+        // need to set padding on the `style` prop directly because the `padding` props
+        // is being overridden by the `className` prop
+        <Container className="tooltip-series" style={{padding: 0}}>
+          <Flex
+            className="tooltip-label"
+            justify="between"
+            gap="2xl"
+            padding="md xl"
+            minWidth="100px"
+            maxWidth="300px"
+            style={{margin: '0 auto', cursor: 'default'}}
+          >
+            <strong
+              style={{
+                wordBreak: 'break-word',
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
+                textAlign: 'center',
+              }}
+            >
+              {escapedTruncatedValue}
+            </strong>
+            <Text size="sm" variant="muted">
+              {pct}
+            </Text>
+          </Flex>
+        </Container>
+      );
+    },
+    [renderToString]
+  );
 }
 
-export function formatComparisonModeTooltip(
-  p: TooltipComponentFormatterCallbackParams,
+export function useFormatComparisonModeTooltip(
   primaryColor: string,
   secondaryColor: string
-): string {
-  if (!Array.isArray(p)) {
-    return '\u2014';
-  }
+) {
+  const renderToString = useRenderToString();
 
-  const selectedParam = p.find(s => s.seriesName === CHART_SELECTED_SERIES_NAME);
-  const baselineParam = p.find(s => s.seriesName === CHART_BASELINE_SERIES_NAME);
+  return useCallback(
+    (p: TooltipComponentFormatterCallbackParams) => {
+      if (!Array.isArray(p)) {
+        return '\u2014';
+      }
 
-  if (!selectedParam || !baselineParam) {
-    return '\u2014';
-  }
+      const selectedParam = p.find(s => s.seriesName === CHART_SELECTED_SERIES_NAME);
+      const baselineParam = p.find(s => s.seriesName === CHART_BASELINE_SERIES_NAME);
 
-  const selectedValue = selectedParam.value;
-  const baselineValue = baselineParam.value;
-  const selectedPct = percentageFormatter(Number(selectedValue));
-  const baselinePct = percentageFormatter(Number(baselineValue));
+      if (!selectedParam || !baselineParam) {
+        return '\u2014';
+      }
 
-  const name = selectedParam.name ?? baselineParam.name ?? '';
-  const truncatedName =
-    name.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
-      ? `${name.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
-      : name;
-  const escapedTruncatedName = escape(truncatedName);
+      const selectedValue = selectedParam.value;
+      const baselineValue = baselineParam.value;
+      const selectedPct = percentageFormatter(Number(selectedValue));
+      const baselinePct = percentageFormatter(Number(baselineValue));
 
-  return `
-    <div class="tooltip-series" style="padding: 0;">
-      <div class="tooltip-label" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 0 auto; padding: 8px 15px; min-width: 100px; max-width: 300px; cursor: default;">
-        <strong style="word-break: break-word; white-space: normal; overflow-wrap: anywhere; text-align: center;">${escapedTruncatedName}</strong>
-        <span style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
-          <span style="display: flex; align-items: center; gap: 6px;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${primaryColor}; display: inline-block;"></span>
-            selected
-          </span>
-          <span>${selectedPct}</span>
-        </span>
-        <span style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
-          <span style="display: flex; align-items: center; gap: 6px;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${secondaryColor}; display: inline-block;"></span>
-            baseline
-          </span>
-          <span>${baselinePct}</span>
-        </span>
-      </div>
-    </div>
-  `.trim();
+      const name = selectedParam.name ?? baselineParam.name ?? '';
+      const truncatedName =
+        name.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
+          ? `${name.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
+          : name;
+      const escapedTruncatedName = escape(truncatedName);
+
+      return renderToString(
+        <Container className="tooltip-series" style={{padding: 0}}>
+          <Stack
+            className="tooltip-label"
+            align="stretch"
+            gap="md"
+            padding="md xl"
+            minWidth="100px"
+            maxWidth="300px"
+            style={{margin: '0 auto', cursor: 'default'}}
+          >
+            <strong
+              style={{
+                wordBreak: 'break-word',
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
+                textAlign: 'center',
+              }}
+            >
+              {escapedTruncatedName}
+            </strong>
+            <Flex as="span" align="center" justify="between" gap="2xl">
+              <Flex align="center" gap="sm">
+                <Container
+                  width="8px"
+                  height="8px"
+                  radius="md"
+                  display="inline-block"
+                  style={{backgroundColor: primaryColor}}
+                />
+                <Text>selected</Text>
+              </Flex>
+              <Text size="sm" variant="muted">
+                {selectedPct}
+              </Text>
+            </Flex>
+            <Flex as="span" align="center" justify="between" gap="2xl">
+              <Flex align="center" gap="sm">
+                <Container
+                  width="8px"
+                  height="8px"
+                  radius="md"
+                  display="inline-block"
+                  style={{backgroundColor: secondaryColor}}
+                />
+                <Text>baseline</Text>
+              </Flex>
+              <Text size="sm" variant="muted">
+                {baselinePct}
+              </Text>
+            </Flex>
+          </Stack>
+        </Container>
+      );
+    },
+    [primaryColor, secondaryColor, renderToString]
+  );
 }

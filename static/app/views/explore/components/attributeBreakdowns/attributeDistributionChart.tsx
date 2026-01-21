@@ -14,7 +14,7 @@ import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttri
 import type {AttributeDistribution} from './attributeDistributionContent';
 import {CHART_MAX_BAR_WIDTH} from './constants';
 import {AttributeBreakdownsComponent} from './styles';
-import {formatSingleModeTooltip} from './tooltips';
+import {useFormatSingleModeTooltip} from './tooltips';
 import {
   calculateAttributePopulationPercentage,
   distributionToSeriesData,
@@ -33,6 +33,7 @@ export function Chart({
 }) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
+  const formatSingleModeTooltip = useFormatSingleModeTooltip();
 
   const color = theme.chart.getColorPalette(0)?.[0];
 

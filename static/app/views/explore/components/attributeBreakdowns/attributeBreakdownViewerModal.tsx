@@ -26,7 +26,7 @@ import {
   COHORT_2_COLOR,
   MODAL_CHART_HEIGHT,
 } from './constants';
-import {formatComparisonModeTooltip, formatSingleModeTooltip} from './tooltips';
+import {useFormatComparisonModeTooltip, useFormatSingleModeTooltip} from './tooltips';
 import {
   calculateAttributePopulationPercentage,
   distributionToSeriesData,
@@ -372,6 +372,7 @@ function PopulationIndicatorComponent({
 export default function AttributeBreakdownViewerModal(props: Props) {
   const {Header, Body, mode} = props;
   const theme = useTheme();
+  const formatSingleModeTooltip = useFormatSingleModeTooltip();
 
   const primaryColor = theme.chart.getColorPalette(0)?.[0];
   const secondaryColor = COHORT_2_COLOR;
@@ -389,14 +390,19 @@ export default function AttributeBreakdownViewerModal(props: Props) {
     return computeSingleModeData(props.attributeDistribution, props.cohortCount);
   }, [mode, props]);
 
+  const formatComparisonModeTooltip = useFormatComparisonModeTooltip(
+    primaryColor,
+    secondaryColor
+  );
+
   const tooltipFormatter = useCallback(
     (p: TooltipComponentFormatterCallbackParams) => {
       if (mode === 'comparison') {
-        return formatComparisonModeTooltip(p, primaryColor, secondaryColor);
+        return formatComparisonModeTooltip(p);
       }
       return formatSingleModeTooltip(p);
     },
-    [mode, primaryColor, secondaryColor]
+    [mode, formatComparisonModeTooltip, formatSingleModeTooltip]
   );
 
   const tooltipConfig: TooltipOption = useMemo(
