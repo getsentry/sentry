@@ -36,10 +36,10 @@ const ColoredLine = styled('span')<Props>`
       case 'info':
         return p.theme.tokens.dataviz.semantic.accent;
       case 'warning':
-        return p.theme.colors.yellow400;
+        return p.theme.tokens.dataviz.semantic.meh;
       case 'error':
       case 'fatal':
-        return p.theme.colors.red400;
+        return p.theme.tokens.dataviz.semantic.bad;
       case 'unknown':
         return p.theme.tokens.dataviz.semantic.other;
       default:
