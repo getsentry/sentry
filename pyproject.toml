@@ -129,10 +129,15 @@ dependencies = [
 environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
 
 [[tool.uv.index]]
-# We don't allow using public pypi - submit a PR to
-# https://github.com/getsentry/pypi to add a dependency.
+# Primary index: Sentry internal PyPI
 url = "https://pypi.devinfra.sentry.io/simple"
 default = true
+
+[[tool.uv.index]]
+# Fallback index: Public PyPI (temporary for Pydantic v2 upgrade)
+# TODO: Remove once pydantic>=2.0.0 is uploaded to internal PyPI
+# Submit a PR to https://github.com/getsentry/pypi to add it permanently
+url = "https://pypi.org/simple"
 
 # Note: instead of using a build system, we use tools/fast_editable.py
 # to install sentry editably as well as console scripts.

@@ -23,15 +23,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                     continue
 
                 # non-specifier requirements won't have registry as a source
-                if (
-                    package["source"].get("registry", "")
-                    != "https://pypi.devinfra.sentry.io/simple"
-                ):
+                registry = package["source"].get("registry", "")
+                allowed_registries = {
+                    "https://pypi.devinfra.sentry.io/simple",
+                    "https://pypi.org/simple",  # Temporary: Allow public PyPI
+                }
+                if registry not in allowed_registries:
                     raise SystemExit(
                         f"""
 The specifier for package {package['name']} in {filename} isn't allowed:
 
-You cannot use dependencies that are not on internal pypi.
+You cannot use dependencies that are not on internal pypi or public pypi.
 
 You also cannot use non-specifier requirements.
 See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references"""
