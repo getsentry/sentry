@@ -723,11 +723,10 @@ ENABLE_SEER_CODING_DEFAULT = True
 AUTO_OPEN_PRS_DEFAULT = False
 # Seer Org level setting to automatically enable code review for all new GitHub repo's that become connected
 AUTO_ENABLE_CODE_REVIEW = False
-# Seer Org level default for code review triggers
-DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
-    "on_ready_for_review",
-    "on_new_commit",
-]
+# Seer Org level default for code review triggers, users need to set defaults themselves.
+# The `@sentry review` command will always be a valid trigger.
+DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = []
+
 # Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
 ALLOW_BACKGROUND_AGENT_DELEGATION = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
