@@ -61,6 +61,13 @@ function ExplorerPanel() {
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
 
+  // Default to max size when Seer drawer is open
+  useEffect(() => {
+    if (isSeerDrawerOpen) {
+      handleMaxSize();
+    }
+  }, [isSeerDrawerOpen, handleMaxSize]);
+
   // Panel opened analytic
   useEffect(() => {
     if (isVisible && !isMinimized) {
@@ -182,9 +189,9 @@ function ExplorerPanel() {
     }
   }, [isVisible]);
 
-  // Detect clicks outside the panel to minimize it
+  // Detect clicks outside the panel to minimize it (but not when seer drawer is open)
   useEffect(() => {
-    if (!isVisible) {
+    if (!isVisible || isSeerDrawerOpen) {
       return undefined;
     }
 
@@ -198,7 +205,7 @@ function ExplorerPanel() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isVisible, focusedBlockIndex]);
+  }, [isVisible, focusedBlockIndex, isSeerDrawerOpen]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -577,6 +584,7 @@ function ExplorerPanel() {
       panelSize={panelSize}
       blocks={blocks}
       isPolling={isPolling}
+      isSeerDrawerOpen={isSeerDrawerOpen}
       onUnminimize={handleUnminimize}
     >
       <TopBar
