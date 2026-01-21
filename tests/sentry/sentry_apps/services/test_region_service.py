@@ -5,6 +5,7 @@ import responses
 from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
+from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import app_service
@@ -31,6 +32,7 @@ class TestSentryAppRegionService(TestCase):
             organization=self.org, slug=self.sentry_app.slug, user=self.user
         )
         self.rpc_installation = app_service.get_many(filter=dict(uuids=[self.install.uuid]))[0]
+        self.auth_context = AuthenticationContext(user=serialize_rpc_user(self.user))
 
     def create_service_hook_project(self, project_id: int) -> ServiceHookProject:
         with assume_test_silo_mode_of(ServiceHook):
@@ -227,6 +229,7 @@ class TestSentryAppRegionService(TestCase):
         result = sentry_app_region_service.get_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
+            auth_context=self.auth_context,
         )
 
         assert result.error is None
@@ -253,8 +256,8 @@ class TestSentryAppRegionService(TestCase):
         result = sentry_app_region_service.set_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
-            project_ids=[project2.id, project3.id],
-            existing_project_ids=[self.project.id, project2.id],
+            project_identifiers=[project2.id, project3.id],
+            auth_context=self.auth_context,
         )
 
         assert result.error is None
@@ -282,7 +285,7 @@ class TestSentryAppRegionService(TestCase):
         result = sentry_app_region_service.delete_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
-            existing_project_ids=[self.project.id, project2.id],
+            auth_context=self.auth_context,
         )
 
         assert result.success is True
@@ -291,37 +294,26 @@ class TestSentryAppRegionService(TestCase):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert not ServiceHookProject.objects.filter(service_hook_id=hook.id).exists()
 
-    def test_update_service_hook_projects_error(self) -> None:
-        project2 = self.create_project(organization=self.org)
-        project3 = self.create_project(organization=self.org)
-
+    def test_set_service_hook_projects_invalid_project(self) -> None:
         self.create_service_hook_project(project_id=self.project.id)
-        self.create_service_hook_project(project_id=project2.id)
 
-        set_result = sentry_app_region_service.set_service_hook_projects(
+        result = sentry_app_region_service.set_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
-            project_ids=[project2.id, project3.id],
-            # Assume a parallel request has added Project 2, but it was after the initial fetch.
-            existing_project_ids=[self.project.id],
-        )
-        delete_result = sentry_app_region_service.delete_service_hook_projects(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            # Assume a parallel request has added Project 2, but it was after the initial fetch.
-            existing_project_ids=[self.project.id],
+            project_identifiers=[self.project.id, 99999999],  # Invalid project ID
+            auth_context=self.auth_context,
         )
 
-        for error in [set_result.error, delete_result.error]:
-            assert error is not None
-            assert error.status_code == 409
-            assert (
-                error.message
-                == "The service hooks have changed during your request. Please try again after a moment."
-            )
+        assert result.error is not None
+        assert result.error.status_code == 400
+        assert "not accessible" in result.error.message or "does not exist" in result.error.message
+
+        # Original project should still be there
         with assume_test_silo_mode_of(ServiceHook):
-            assert ServiceHookProject.objects.filter(project_id=self.project.id).exists()
-            assert ServiceHookProject.objects.filter(project_id=project2.id).exists()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            assert ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id=self.project.id
+            ).exists()
 
     def test_get_interaction_stats(self) -> None:
         now = before_now(days=1)

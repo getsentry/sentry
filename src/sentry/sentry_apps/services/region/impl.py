@@ -4,9 +4,11 @@ from typing import Any
 from django.db import router, transaction
 
 from sentry import deletions, tsdb
+from sentry.auth.access import Access, OrganizationGlobalMembership, from_user
+from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.projects.services.project.serial import serialize_project
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
@@ -185,18 +187,46 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
 
         return RpcEmptyResult()
 
+    def _determine_access(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        auth_context: AuthenticationContext,
+    ) -> Access:
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            raise SentryAppSentryError(message="Organization not found")
+        if not (user := auth_context.user):
+            raise SentryAppSentryError(message="User not found")
+        if user.is_sentry_app:
+            return OrganizationGlobalMembership(
+                organization=organization,
+                scopes=installation.sentry_app.scope_list,
+                sso_is_valid=True,
+            )
+        return from_user(user=user, organization=organization)
+
     def get_service_hook_projects(
         self,
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        extra_projects_to_fetch: list[int | str] | None = None,
+        auth_context: AuthenticationContext,
     ) -> RpcServiceHookProjectsResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ GET
-        Allows extra project IDs or slugs to be fetched for control endpoints to do access validation.
-        This has only been added for compatability with the legacy region API, and to combine RPC calls.
         """
+        try:
+            access = self._determine_access(
+                organization_id=organization_id,
+                installation=installation,
+                auth_context=auth_context,
+            )
+        except SentryAppSentryError as e:
+            return RpcServiceHookProjectsResult(error=RpcSentryAppError.from_exc(e))
+
         try:
             hook = ServiceHook.objects.get(
                 installation_id=installation.id, organization_id=organization_id
@@ -213,23 +243,16 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             "project_id"
         )
         projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
-        extra_projects: list[Project] = []
-        if extra_projects_to_fetch:
-            extra_project_ids = [p for p in extra_projects_to_fetch if isinstance(p, int)]
-            extra_project_slugs = [p for p in extra_projects_to_fetch if isinstance(p, str)]
-            extra_projects = list(
-                Project.objects.filter(
-                    id__in=extra_project_ids, organization_id=organization_id
-                ).union(
-                    Project.objects.filter(
-                        slug__in=extra_project_slugs, organization_id=organization_id
+        for project in projects:
+            if not access.has_project_access(project):
+                return RpcServiceHookProjectsResult(
+                    error=RpcSentryAppError(
+                        message="Some projects are not accessible",
+                        status_code=403,
                     )
                 )
-            )
         return RpcServiceHookProjectsResult(
-            projects=[serialize_project(p) for p in projects],
             service_hook_projects=[serialize_service_hook_project(hp) for hp in hook_projects],
-            extra_projects=[serialize_project(p) for p in extra_projects],
         )
 
     def set_service_hook_projects(
@@ -237,31 +260,20 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        project_ids: list[int],
-        existing_project_ids: list[int],
+        project_identifiers: list[int | str],
+        auth_context: AuthenticationContext,
     ) -> RpcServiceHookProjectsResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ POST
         """
-        if not project_ids:
-            return RpcServiceHookProjectsResult(
-                error=RpcSentryAppError(
-                    message="Projects list cannot be empty",
-                    status_code=400,
-                )
+        try:
+            access = self._determine_access(
+                organization_id=organization_id,
+                installation=installation,
+                auth_context=auth_context,
             )
-
-        unique_project_ids = set(project_ids)
-        valid_project_count = Project.objects.filter(
-            organization_id=organization_id, id__in=unique_project_ids
-        ).count()
-        if valid_project_count != len(unique_project_ids):
-            return RpcServiceHookProjectsResult(
-                error=RpcSentryAppError(
-                    message="One or more project IDs do not belong to the organization",
-                    status_code=400,
-                )
-            )
+        except SentryAppSentryError as e:
+            return RpcServiceHookProjectsResult(error=RpcSentryAppError.from_exc(e))
 
         try:
             hook = ServiceHook.objects.get(
@@ -275,25 +287,69 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 )
             )
 
-        new_project_ids = set(project_ids)
+        if not project_identifiers:
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Projects list cannot be empty",
+                    status_code=400,
+                )
+            )
+
+        incoming_project_ids = []
+        incoming_project_slugs = []
+        for project_identifier in project_identifiers:
+            if isinstance(project_identifier, int):
+                incoming_project_ids.append(project_identifier)
+            else:
+                incoming_project_slugs.append(project_identifier)
+
         with transaction.atomic(router.db_for_write(ServiceHookProject)):
+            new_projects = Project.objects.filter(
+                id__in=incoming_project_ids, organization_id=organization_id
+            ).union(
+                Project.objects.filter(
+                    slug__in=incoming_project_slugs, organization_id=organization_id
+                )
+            )
+            new_project_ids = {p.id for p in new_projects}
+
+            if len(new_project_ids) != len(project_identifiers):
+                return RpcServiceHookProjectsResult(
+                    error=RpcSentryAppError(
+                        message="One or more project identifier is duplicate, not accessible, or does not exist.",
+                        status_code=400,
+                    )
+                )
+
             current_project_ids = set(
                 ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
                     "project_id", flat=True
                 )
             )
+            current_projects = Project.objects.filter(id__in=current_project_ids)
 
-            # Validate that the service hooks the caller is attempting to modify match
-            # the database. Prevents a TOCTOU race condition.
-            if set(current_project_ids) != set(existing_project_ids):
-                return RpcServiceHookProjectsResult(
-                    error=RpcSentryAppError(
-                        message="The service hooks have changed during your request. Please try again after a moment.",
-                        status_code=409,
-                    ),
-                )
             projects_to_add = new_project_ids - current_project_ids
             projects_to_remove = current_project_ids - new_project_ids
+
+            # Validate the requestor has access to the incoming projects
+            for project in new_projects:
+                if not access.has_project_access(project):
+                    return RpcServiceHookProjectsResult(
+                        error=RpcSentryAppError(
+                            message="Some projects affected by this request are not accessible",
+                            status_code=403,
+                        )
+                    )
+
+            projects_to_remove_objs = current_projects.filter(id__in=projects_to_remove)
+            for project in projects_to_remove_objs:
+                if not access.has_project_access(project):
+                    return RpcServiceHookProjectsResult(
+                        error=RpcSentryAppError(
+                            message="Cannot remove projects that are not accessible",
+                            status_code=403,
+                        )
+                    )
 
             ServiceHookProject.objects.filter(
                 service_hook_id=hook.id, project_id__in=projects_to_remove
@@ -308,9 +364,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by(
             "project_id"
         )
-        projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
         return RpcServiceHookProjectsResult(
-            projects=[serialize_project(p) for p in projects],
             service_hook_projects=[serialize_service_hook_project(hp) for hp in hook_projects],
         )
 
@@ -319,11 +373,19 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        existing_project_ids: list[int],
+        auth_context: AuthenticationContext,
     ) -> RpcEmptyResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_service_hook_projects.py @ DELETE
         """
+        try:
+            access = self._determine_access(
+                organization_id=organization_id,
+                installation=installation,
+                auth_context=auth_context,
+            )
+        except SentryAppSentryError as e:
+            return RpcServiceHookProjectsResult(error=RpcSentryAppError.from_exc(e))
         try:
             hook = ServiceHook.objects.get(
                 installation_id=installation.id, organization_id=organization_id
@@ -339,17 +401,16 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         with transaction.atomic(router.db_for_write(ServiceHookProject)):
             # Materialize the queryset once to avoid TOCTOU between validation and deletion
             hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
-            # Validate that the service hooks the caller is attempting to modify match
-            # the database. Prevents a TOCTOU race condition.
-            current_project_ids = {hp.project_id for hp in hook_projects}
-            if current_project_ids != set(existing_project_ids):
-                return RpcEmptyResult(
-                    success=False,
-                    error=RpcSentryAppError(
-                        message="The service hooks have changed during your request. Please try again after a moment.",
-                        status_code=409,
-                    ),
-                )
+
+            projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
+            for project in projects:
+                if not access.has_project_access(project):
+                    return RpcServiceHookProjectsResult(
+                        error=RpcSentryAppError(
+                            message="Some projects are not accessible",
+                            status_code=403,
+                        )
+                    )
             deletions.exec_sync_many(list(hook_projects))
 
         return RpcEmptyResult()

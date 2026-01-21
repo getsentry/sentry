@@ -6,6 +6,7 @@
 import abc
 from typing import Any
 
+from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationIdAttribute
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation
@@ -107,12 +108,11 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        extra_projects_to_fetch: list[int | str] | None = None,
+        auth_context: AuthenticationContext,
     ) -> RpcServiceHookProjectsResult:
         """
-        Returns the project IDs associated with an installation's service hook.
-        Allows extra project IDs or slugs to be fetched for control endpoints to do access validation.
-        This has only been added for compatability with the legacy region API, and to combine RPC calls.
+        Returns the service hook projects associated with an installation.
+        Validates that the caller has access to all required projects.
         """
         pass
 
@@ -123,12 +123,13 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        project_ids: list[int],
-        existing_project_ids: list[int],
+        project_identifiers: list[int | str],
+        auth_context: AuthenticationContext,
     ) -> RpcServiceHookProjectsResult:
         """
-        Replaces all service hook projects with the given project IDs. Requires the existing project IDs to
-        prevent a race condition, confirming the caller is modifying what they intended.
+        Replaces all service hook projects with the given project identifiers (either ID or slug).
+        Accepts both due to a compatibility requirement with an active endpoint.
+        Validates that the caller has access to all required projects.
         """
         pass
 
@@ -139,11 +140,11 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        existing_project_ids: list[int],
+        auth_context: AuthenticationContext,
     ) -> RpcEmptyResult:
         """
-        Deletes service hook projects for an installation. Requires the existing project IDs to
-        prevent a race condition, confirming the caller is modifying what they intended.
+        Deletes service hook projects for an installation.
+        Validates that the caller has access to all required projects.
         """
         pass
 
