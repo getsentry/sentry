@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import NamedTuple
 
 import sentry_sdk
 from django.db import router, transaction
@@ -12,7 +10,6 @@ from rest_framework import status
 
 from sentry import options
 from sentry.api.exceptions import SentryAPIException
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -387,55 +384,6 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
             },
         )
         raise
-
-
-class _SplitEvents(NamedTuple):
-    events_with_occurrences: list[tuple[GroupEvent, int]]
-    error_events: list[GroupEvent]
-    events_missing_detectors: list[GroupEvent]
-
-
-def _split_events_by_occurrence(
-    event_list: list[GroupEvent],
-) -> _SplitEvents:
-    events_with_occurrences: list[tuple[GroupEvent, int]] = []
-    error_events: list[GroupEvent] = []  # only error events don't have occurrences
-    events_missing_detectors: list[GroupEvent] = []
-
-    for event in event_list:
-        issue_occurrence = event.occurrence
-        if issue_occurrence is None:
-            assert event.group.issue_type.slug == ErrorGroupType.slug
-            error_events.append(event)
-        elif detector_id := issue_occurrence.evidence_data.get("detector_id"):
-            events_with_occurrences.append((event, detector_id))
-        else:
-            events_missing_detectors.append(event)
-
-    return _SplitEvents(
-        events_with_occurrences,
-        error_events,
-        events_missing_detectors,
-    )
-
-
-def _create_event_detector_map(
-    detectors: BaseQuerySet[Detector],
-    key_event_map: dict[int, list[GroupEvent]],
-    detector_key_extractor: Callable[[Detector], int],
-) -> tuple[dict[str, Detector], set[int]]:
-    result: dict[str, Detector] = {}
-
-    # used to track existing keys (detector_id or project_id) to log missing keys
-    keys = set()
-
-    for detector in detectors:
-        key = detector_key_extractor(detector)
-        keys.add(key)
-        detector_events = key_event_map[key]
-        result.update({event.event_id: detector for event in detector_events})
-
-    return result, keys
 
 
 def create_issue_platform_payload(result: DetectorEvaluationResult, detector_type: str) -> None:
