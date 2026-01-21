@@ -83,7 +83,7 @@ class AIAgentMiddleware:
     and returns helpful markdown guidance instead of HTML.
 
     Detection criteria:
-    1. Request path does NOT start with /api/ (frontend routes only)
+    1. Request path does NOT start with /api/ or /oauth/ (frontend routes only)
     2. Accept header contains text/markdown or text/x-markdown
     3. Request is anonymous (no authenticated user, no auth token)
     """
@@ -94,6 +94,10 @@ class AIAgentMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         # Skip API routes - only intercept frontend UI routes
         if request.path.startswith("/api/"):
+            return self.get_response(request)
+
+        # Skip OAuth routes - legitimate machine-to-machine endpoints
+        if request.path.startswith("/oauth/"):
             return self.get_response(request)
 
         if not _accepts_markdown(request):
