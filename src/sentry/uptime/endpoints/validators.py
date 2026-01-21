@@ -529,6 +529,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
                 method=validated_data.get("method", "GET"),
                 headers=validated_data.get("headers", None),
                 body=validated_data.get("body", None),
+                assertion=validated_data.get("assertion", None),
             )
         return uptime_subscription
 
@@ -724,6 +725,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
             headers=data_source.get("headers", NOT_SET),
             body=data_source.get("body", NOT_SET),
             trace_sampling=data_source.get("trace_sampling", NOT_SET),
+            assertion=data_source.get("assertion", NOT_SET),
         )
 
         create_audit_entry(
