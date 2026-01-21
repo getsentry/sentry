@@ -159,13 +159,6 @@ class PreprodArtifact(DefaultFieldsModel):
     error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
     error_message = models.TextField(null=True)
 
-    # E.g. 1.2.300
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    build_version = models.CharField(max_length=255, null=True)
-    # E.g. 9999
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    build_number = BoundedBigIntegerField(null=True)
-
     # Version of tooling used to upload/build the artifact, extracted from metadata files
     cli_version = models.CharField(max_length=255, null=True)
     fastlane_plugin_version = models.CharField(max_length=255, null=True)
@@ -186,19 +179,11 @@ class PreprodArtifact(DefaultFieldsModel):
     # Installable file like IPA or APK
     installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
-    # The name of the app, e.g. "My App"
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    app_name = models.CharField(max_length=255, null=True)
-
     # The identifier of the app, e.g. "com.myapp.MyApp"
     app_id = models.CharField(max_length=255, null=True)
 
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
-
-    # The objectstore id of the app icon
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    app_icon_id = models.CharField(max_length=255, null=True)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
