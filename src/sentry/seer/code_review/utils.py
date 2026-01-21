@@ -239,8 +239,11 @@ def transform_webhook_to_codegen_request(
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
         "organization_id": organization.id,
-        "integration_id": repo.integration_id,
     }
+
+    # add integration_id which is used in pr_closed_step for product metrics dashboarding only
+    if repo.integration_id is not None:
+        repo_definition["integration_id"] = str(repo.integration_id)
 
     trigger_metadata = _get_trigger_metadata(github_event, event_payload)
 
