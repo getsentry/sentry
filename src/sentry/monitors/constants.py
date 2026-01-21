@@ -55,3 +55,10 @@ class PermitCheckInStatus(Enum):
     This status is used when an unknown monitor slug is seen and has yet to
     have been assigned a seat.
     """
+
+
+class ScheduleSampleStatus(Enum):
+    OK = "ok"
+    ERROR = "error"
+    SUB_FAILURE_ERROR = "sub_failure_error"
+    SUB_RECOVERY_OK = "sub_recovery_ok"

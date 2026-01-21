@@ -21,6 +21,7 @@ from sentry.monitors.constants import (
     SAMPLE_OPEN_PERIOD_RATIO,
     SAMPLE_PADDING_RATIO_OF_THRESHOLD,
     SAMPLE_PADDING_TICKS_MIN_COUNT,
+    ScheduleSampleStatus,
 )
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
@@ -28,6 +29,11 @@ from sentry.monitors.types import IntervalUnit
 from sentry.monitors.validators import ConfigValidator
 
 MAX_UNIX_TIMESTAMP_SECONDS = 253402300799
+
+SUB_THRESHOLD_STATUS_VALUES = {
+    ScheduleSampleStatus.SUB_FAILURE_ERROR.value,
+    ScheduleSampleStatus.SUB_RECOVERY_OK.value,
+}
 
 
 class SampleScheduleBucketsConfigValidator(ConfigValidator):
@@ -48,7 +54,9 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
     interval = serializers.IntegerField(min_value=1, max_value=MAX_UNIX_TIMESTAMP_SECONDS)
 
 
-def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshold: int):
+def _get_tick_statuses(
+    num_ticks: int, failure_threshold: int, recovery_threshold: int
+) -> list[ScheduleSampleStatus]:
     if num_ticks <= 0:
         return []
 
@@ -73,11 +81,11 @@ def _get_tick_statuses(num_ticks: int, failure_threshold: int, recovery_threshol
     middle_errors = open_period + remaining
 
     return (
-        ["ok"] * padding
-        + ["sub_failure_error"] * sub_failure_threshold
-        + ["error"] * middle_errors
-        + ["sub_recovery_ok"] * sub_recovery_threshold
-        + ["ok"] * padding
+        [ScheduleSampleStatus.OK] * padding
+        + [ScheduleSampleStatus.SUB_FAILURE_ERROR] * sub_failure_threshold
+        + [ScheduleSampleStatus.ERROR] * middle_errors
+        + [ScheduleSampleStatus.SUB_RECOVERY_OK] * sub_recovery_threshold
+        + [ScheduleSampleStatus.OK] * padding
     )
 
 
@@ -153,7 +161,26 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
             bucket_index = (tick_ts - window_start_ts) // bucket_interval
             bucket_start = window_start_ts + bucket_index * bucket_interval
             stats = bucket_stats.setdefault(bucket_start, {})
-            stats[status] = stats.get(status, 0) + 1
+
+            # Prevent status smearing when multiple ticks are grouped into a bucket
+            # when bucket intervals are larger than the frequency in the schedule.
+            # Sub-threshold statuses dominate the bucket in this case, it should be the only
+            # status present in the bucket.
+            is_sub_threshold_status = status.value in SUB_THRESHOLD_STATUS_VALUES
+            bucket_has_sub_threshold_status = any(
+                existing_status in SUB_THRESHOLD_STATUS_VALUES for existing_status in stats.keys()
+            )
+
+            if is_sub_threshold_status:
+                if stats and not bucket_has_sub_threshold_status:
+                    stats.clear()
+                stats[status.value] = stats.get(status.value, 0) + 1
+                continue
+
+            if bucket_has_sub_threshold_status:
+                continue
+
+            stats[status.value] = stats.get(status.value, 0) + 1
 
         duration = window_end_ts - window_start_ts
         num_buckets = (duration // bucket_interval) + 1
