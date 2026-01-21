@@ -27,14 +27,9 @@ describe('SaveReplayQueryButton', () => {
     expect(screen.getByRole('button', {name: 'Save as'})).toBeInTheDocument();
   });
 
-  it('disables the button when query is empty', () => {
+  it('does not disables the button when query is empty', () => {
     render(<SaveReplayQueryButton query="" />, {organization});
-    expect(screen.getByRole('button', {name: 'Save as'})).toBeDisabled();
-  });
-
-  it('disables the button when query is whitespace only', () => {
-    render(<SaveReplayQueryButton query="   " />, {organization});
-    expect(screen.getByRole('button', {name: 'Save as'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled();
   });
 
   it('enables the button when query is not empty', () => {
