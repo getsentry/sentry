@@ -18,13 +18,7 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-import type {
-  AlertVariant,
-  FormSize,
-  LevelVariant,
-  MotionDuration,
-  MotionEasing,
-} from './types';
+import type {FormSize, LevelVariant, MotionDuration, MotionEasing} from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
 
@@ -152,19 +146,6 @@ function generateMotion() {
   };
 }
 
-type AlertColors = Record<
-  AlertVariant,
-  {
-    background: string;
-    backgroundLight: string;
-    border: string;
-    borderHover: string;
-    color: string;
-    // @TODO(jonasbadalic): Why is textLight optional and only set on error?
-    textLight?: string;
-  }
->;
-
 const generateThemeUtils = () => ({
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
@@ -176,45 +157,6 @@ const generateThemeUtils = () => ({
     white-space: nowrap;
     width: 1px;
   `,
-});
-
-const generateAlertTheme = (colors: Colors, tokens: Tokens): AlertColors => ({
-  info: {
-    border: colors.blue200,
-    background: colors.blue400,
-    color: colors.blue500,
-    backgroundLight: colors.blue100,
-    borderHover: colors.blue400,
-  },
-  success: {
-    background: colors.green400,
-    backgroundLight: colors.green100,
-    border: colors.green200,
-    borderHover: colors.green400,
-    color: colors.green500,
-  },
-  muted: {
-    background: colors.gray200,
-    backgroundLight: tokens.background.secondary,
-    border: tokens.border.primary,
-    borderHover: tokens.border.primary,
-    color: 'inherit',
-  },
-  warning: {
-    background: colors.yellow400,
-    backgroundLight: colors.yellow100,
-    border: colors.yellow200,
-    borderHover: colors.yellow400,
-    color: colors.yellow500,
-  },
-  danger: {
-    background: colors.red400,
-    backgroundLight: colors.red100,
-    border: colors.red200,
-    borderHover: colors.red400,
-    color: colors.red500,
-    textLight: colors.red200,
-  },
 });
 
 const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
@@ -953,7 +895,6 @@ const lightThemeDefinition = {
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(),
-  alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
   level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
@@ -986,7 +927,6 @@ export const darkTheme: SentryTheme = {
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(),
-  alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
   level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
