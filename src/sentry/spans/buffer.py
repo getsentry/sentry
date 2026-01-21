@@ -209,14 +209,23 @@ class SpansBuffer:
 
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
             trees = self._group_by_parent(spans)
+            pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
 
-            with self.client.pipeline(transaction=False) as p:
-                for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = self._get_span_key(project_and_trace, parent_span_id)
-                    prepared = self._prepare_payloads(subsegment)
-                    p.zadd(set_key, prepared)
+            tree_items = list(trees.items())
+            tree_batches: Sequence[Sequence[tuple[tuple[str, str], list[Span]]]]
+            if pipeline_batch_size > 0:
+                tree_batches = list(itertools.batched(tree_items, pipeline_batch_size))
+            else:
+                tree_batches = [tree_items]
 
-                p.execute()
+            for batch in tree_batches:
+                with self.client.pipeline(transaction=False) as p:
+                    for (project_and_trace, parent_span_id), subsegment in batch:
+                        set_key = self._get_span_key(project_and_trace, parent_span_id)
+                        prepared = self._prepare_payloads(subsegment)
+                        p.zadd(set_key, prepared)
+
+                    p.execute()
 
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
             # Workaround to make `evalsha` work in pipelines. We load ensure the
@@ -224,39 +233,41 @@ class SpansBuffer:
             # EXISTS` once per batch.
             add_buffer_sha = self._ensure_script()
 
-            with self.client.pipeline(transaction=False) as p:
-                for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    byte_count = sum(len(span.payload) for span in subsegment)
+            results: list[Any] = []
+            for batch in tree_batches:
+                with self.client.pipeline(transaction=False) as p:
+                    for (project_and_trace, parent_span_id), subsegment in batch:
+                        byte_count = sum(len(span.payload) for span in subsegment)
 
-                    _, _, trace_id = project_and_trace.partition(":")
-                    if trace_id in debug_traces:
-                        try:
-                            if self._debug_trace_logger is None:
-                                self._debug_trace_logger = DebugTraceLogger(self.client)
-                            self._debug_trace_logger.log_subsegment_info(
-                                project_and_trace, parent_span_id, subsegment
-                            )
-                        except Exception:
-                            logger.exception("Failed to log debug trace info")
+                        _, _, trace_id = project_and_trace.partition(":")
+                        if trace_id in debug_traces:
+                            try:
+                                if self._debug_trace_logger is None:
+                                    self._debug_trace_logger = DebugTraceLogger(self.client)
+                                self._debug_trace_logger.log_subsegment_info(
+                                    project_and_trace, parent_span_id, subsegment
+                                )
+                            except Exception:
+                                logger.exception("Failed to log debug trace info")
 
-                    p.execute_command(
-                        "EVALSHA",
-                        add_buffer_sha,
-                        1,
-                        project_and_trace,
-                        len(subsegment),
-                        parent_span_id,
-                        "true" if any(span.is_segment_span for span in subsegment) else "false",
-                        redis_ttl,
-                        max_segment_bytes,
-                        byte_count,
-                        *[span.span_id for span in subsegment],
-                    )
+                        p.execute_command(
+                            "EVALSHA",
+                            add_buffer_sha,
+                            1,
+                            project_and_trace,
+                            len(subsegment),
+                            parent_span_id,
+                            "true" if any(span.is_segment_span for span in subsegment) else "false",
+                            redis_ttl,
+                            max_segment_bytes,
+                            byte_count,
+                            *[span.span_id for span in subsegment],
+                        )
 
-                    is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                    result_meta.append((project_and_trace, parent_span_id))
+                        is_root_span_count += sum(span.is_segment_span for span in subsegment)
+                        result_meta.append((project_and_trace, parent_span_id))
 
-                results = p.execute()
+                    results.extend(p.execute())
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
