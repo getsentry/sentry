@@ -5,7 +5,6 @@ from enum import StrEnum
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
-from django.forms import model_to_dict
 
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
@@ -63,7 +62,11 @@ class RepositorySettings(Model):
     ) -> tuple[int, ImportKind] | None:
         # Avoid duplicate key violations when RepositorySettings already exists (e.g., created by Repository.save() during import).
         (settings, created) = self.__class__.objects.get_or_create(
-            repository_id=self.repository_id, defaults=model_to_dict(self)
+            repository=self.repository,
+            defaults={
+                "enabled_code_review": self.enabled_code_review,
+                "code_review_triggers": self.code_review_triggers,
+            },
         )
         if settings:
             self.pk = settings.pk

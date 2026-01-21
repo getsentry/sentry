@@ -1,6 +1,9 @@
 import pytest
 from django.db import IntegrityError
 
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope
 from sentry.models.repositorysettings import (
     CodeReviewSettings,
     CodeReviewTrigger,
@@ -76,3 +79,39 @@ class TestRepositorySettings(TestCase):
         self.repo.delete()
 
         assert not RepositorySettings.objects.filter(id=settings_id).exists()
+
+    def test_write_relocation_import_inserts_new_settings(self) -> None:
+        RepositorySettings.objects.filter(repository=self.repo).delete()
+        new_settings = RepositorySettings(
+            repository=self.repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
+        )
+
+        pk, import_kind = new_settings.write_relocation_import(ImportScope.Global, ImportFlags())
+
+        assert import_kind == ImportKind.Inserted
+        assert pk == new_settings.pk
+        saved_settings = RepositorySettings.objects.get(pk=pk)
+        assert saved_settings.enabled_code_review is True
+        assert saved_settings.code_review_triggers == [CodeReviewTrigger.ON_NEW_COMMIT.value]
+
+    def test_write_relocation_import_overwrites_with_defaults(self) -> None:
+        existing_settings = self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
+        )
+        imported_settings = RepositorySettings(
+            repository=self.repo, enabled_code_review=False, code_review_triggers=[]
+        )
+
+        pk, import_kind = imported_settings.write_relocation_import(
+            ImportScope.Global, ImportFlags()
+        )
+
+        assert import_kind == ImportKind.Overwrite
+        assert pk == existing_settings.pk
+        saved_settings = RepositorySettings.objects.get(pk=pk)
+        assert saved_settings.enabled_code_review is False
+        assert saved_settings.code_review_triggers == []
