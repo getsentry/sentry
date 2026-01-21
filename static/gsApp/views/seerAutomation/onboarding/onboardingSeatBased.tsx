@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Placeholder from 'sentry/components/placeholder';
@@ -71,6 +72,18 @@ export default function SeerOnboardingSeatBased() {
         subtitle={t(
           'Follow these steps to configure Seer for your organization. Seer helps automatically analyze, fix, and prevent issues in your codebase.'
         )}
+        action={
+          <FeedbackButton
+            size="md"
+            feedbackOptions={{
+              messagePlaceholder: t('How can we make Seer better for you?'),
+              tags: {
+                ['feedback.source']: 'seer-settings-wizard',
+                ['feedback.owner']: 'coding-workflows',
+              },
+            }}
+          />
+        }
       />
 
       <NoProjectMessage organization={organization}>
