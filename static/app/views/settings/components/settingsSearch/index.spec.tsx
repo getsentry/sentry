@@ -12,6 +12,33 @@ import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
 jest.mock('sentry/actionCreators/navigation');
 
+// Mock the formSource module to avoid require.context which isn't available in Jest
+jest.mock('sentry/components/search/sources/formSource', () => {
+  const actual = jest.requireActual('sentry/components/search/sources/formSource');
+  return {
+    ...actual,
+    __esModule: true,
+    default: function FormSource({children}: any) {
+      return children({
+        isLoading: false,
+        results: [
+          {
+            item: {
+              title: 'test-1',
+              description: 'Test field 1',
+              sourceType: 'field',
+              resultType: 'field',
+              to: '/test-1/',
+            },
+            refIndex: 0,
+            score: 1,
+          },
+        ],
+      });
+    },
+  };
+});
+
 describe('SettingsSearch', () => {
   beforeEach(() => {
     // Use a different name and slug for organization to avoid conflicts with form search results
