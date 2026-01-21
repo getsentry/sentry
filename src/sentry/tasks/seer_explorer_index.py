@@ -13,6 +13,7 @@ from django.utils import timezone as django_timezone
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.options.rollout import in_rollout_group
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
@@ -29,7 +30,12 @@ EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
 # Use a larger prime number to prevent thundering
 EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=37)
 
-FEATURE_NAMES = ["organizations:gen-ai-features", "organizations:seer-explorer-index"]
+FEATURE_NAMES = [
+    "organizations:gen-ai-features",
+    "organizations:seer-explorer-index",
+    "organizations:seat-based-seer-enabled",
+    "organizations:seer-added",
+]
 
 
 def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
@@ -50,40 +56,70 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return
 
-        if not project.flags.has_transactions:
-            continue
-
         if project.id % 23 != current_hour:
             continue
 
+        # Indexer only runs when there are traces
+        if not project.flags.has_transactions:
+            continue
+
+        # Check open team membership (Explorer requires this for context)
+        if not project.organization.flags.allow_joinleave:
+            continue
+
+        if bool(project.organization.get_option("sentry:hide_ai_features")):
+            continue
+
+        is_eligible = False
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
             batch_result = features.batch_has(FEATURE_NAMES, organization=project.organization)
 
             if batch_result:
                 org_key = f"organization:{project.organization.id}"
-                has_all_features = all(
-                    batch_result.get(org_key, {}).get(feature_name, False)
-                    for feature_name in FEATURE_NAMES
-                )
+                org_features = batch_result.get(org_key, {})
+                has_gen_ai = org_features.get("organizations:gen-ai-features", False)
+                has_explorer_index = org_features.get("organizations:seer-explorer-index", False)
+
+                if has_explorer_index and has_gen_ai:
+                    is_eligible = True
+
+                has_seer_plan = org_features.get(
+                    "organizations:seat-based-seer-enabled", False
+                ) or org_features.get("organizations:seer-added", False)
+
+                if has_seer_plan and has_gen_ai:
+                    if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
+                        is_eligible = True
+
             else:
-                has_all_features = all(
-                    features.has(name, project.organization) for name in FEATURE_NAMES
+                has_gen_ai = features.has("organizations:gen-ai-features", project.organization)
+                has_explorer_index = features.has(
+                    "organizations:seer-explorer-index", project.organization
                 )
 
-            has_feature = (
-                has_all_features
-                and not bool(project.organization.get_option("sentry:hide_ai_features"))
-                and get_seer_org_acknowledgement(project.organization)
-            )
+                if has_explorer_index and has_gen_ai:
+                    is_eligible = True
 
-        if has_feature:
-            yield project.id, project.organization_id
+                has_seer_plan = features.has(
+                    "organizations:seat-based-seer-enabled", project.organization
+                ) or features.has("organizations:seer-added", project.organization)
+
+                if has_seer_plan and has_gen_ai:
+                    if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
+                        is_eligible = True
+
+            has_feature = is_eligible and get_seer_org_acknowledgement(project.organization)
+
+        if not has_feature:
+            continue
+
+        yield project.id, project.organization_id
 
 
 @instrumented_task(
     name="sentry.tasks.seer_explorer_index.schedule_explorer_index",
     namespace=seer_tasks,
-    processing_deadline_duration=10 * 60,
+    processing_deadline_duration=15 * 60,
 )
 def schedule_explorer_index() -> None:
     """
