@@ -209,7 +209,7 @@ Sentry.instrumentLangGraph(agent, {
 
 ### Python (Most Libraries are auto-enabled, except LiteLLM)
 
-### Auto-enabled Libraries (see table above)
+#### Auto-enabled Libraries (see table above):
 
 For most Python AI libraries, integrations are **automatically enabled**. Just initialize Sentry:
 
@@ -228,9 +228,7 @@ sentry_sdk.init(
 
 **Done.** The SDK automatically instruments supported AI libraries.
 
-### LiteLLM
-
-For LiteLLM, you must explicitly add the integration:
+#### LiteLLM:
 
 \`\`\`python
 import sentry_sdk
