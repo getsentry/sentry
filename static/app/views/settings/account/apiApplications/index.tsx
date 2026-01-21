@@ -73,14 +73,14 @@ export default function ApiApplications() {
   const handleCreateApplication = () => {
     openModal(({Body, Header, Footer, closeModal}) => (
       <CreateApplicationModal
+        Body={Body}
+        Header={Header}
+        Footer={Footer}
+        closeModal={closeModal}
         onSubmit={(isPublic: boolean) => {
           closeModal();
           createApplication(isPublic);
         }}
-        Header={Header}
-        Body={Body}
-        Footer={Footer}
-        closeModal={closeModal}
       />
     ));
   };
@@ -127,7 +127,11 @@ export default function ApiApplications() {
   );
 }
 
-interface CreateApplicationModalProps extends ModalRenderProps {
+interface CreateApplicationModalProps {
+  Body: ModalRenderProps['Body'];
+  Footer: ModalRenderProps['Footer'];
+  Header: ModalRenderProps['Header'];
+  closeModal: ModalRenderProps['closeModal'];
   onSubmit: (isPublic: boolean) => void;
 }
 

@@ -104,7 +104,7 @@ function ApiApplicationsDetails() {
         title={
           <TitleWithTag>
             {PAGE_TITLE}
-            <Tag type={app.isPublic ? 'info' : 'default'}>
+            <Tag variant={app.isPublic ? 'info' : 'muted'}>
               {app.isPublic ? t('Public Client') : t('Confidential Client')}
             </Tag>
           </TitleWithTag>
@@ -113,7 +113,7 @@ function ApiApplicationsDetails() {
 
       {app.isPublic && (
         <Alert.Container>
-          <Alert type="info" showIcon>
+          <Alert variant="info" showIcon>
             {t(
               'This is a public client, designed for CLIs, native apps, or SPAs. It uses PKCE for authorization and refresh token rotation for security instead of a client secret.'
             )}
