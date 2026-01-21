@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 
 import UpsellButton from 'getsentry/components/upsellButton';
@@ -24,7 +23,7 @@ function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
       : 'grace-period';
   const provider = integration.provider.key;
   return (
-    <ButtonWrapper>
+    <Flex justify="center" align="center" marginLeft="2xl">
       <UpsellButton
         source={`integration-additional-cta-alert-hook-${alertType}-${provider}`}
         size="sm"
@@ -34,14 +33,7 @@ function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
           integration_type: 'first-party',
         }}
       />
-    </ButtonWrapper>
+    </Flex>
   );
 }
 export default FirstPartyIntegrationAdditionalCTA;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  margin-left: ${space(3)};
-  align-items: center;
-  justify-content: center;
-`;

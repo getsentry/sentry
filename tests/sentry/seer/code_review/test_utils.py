@@ -286,6 +286,36 @@ class TestTransformWebhookToCodegenRequest:
                 "sha123",
             )
 
+    def test_integration_id_not_included_when_none(
+        self, setup_entities: tuple[User, Organization, Project, Repository]
+    ) -> None:
+        _, organization, project, _ = setup_entities
+        repo_without_integration = Factories.create_repo(
+            project,
+            name="test-owner/test-repo-no-integration",
+            provider="integrations:github",
+            external_id="222222",
+        )
+        # Ensure integration_id is None
+        repo_without_integration.integration_id = None
+        repo_without_integration.save()
+
+        event_payload = {
+            "pull_request": {"number": 1},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo_without_integration,
+            "sha123",
+        )
+
+        assert result is not None
+        assert "integration_id" not in result["data"]["repo"]
+
 
 class TestExtractGithubInfo:
     def test_extract_from_pull_request_event(self) -> None:
