@@ -457,11 +457,11 @@ const RepoChangesHeader = styled('div')`
 `;
 
 const MarkdownAlert = styled(MarkedText)`
-  border: 1px solid ${p => p.theme.alert.warning.border};
-  background-color: ${p => p.theme.alert.warning.backgroundLight};
+  border: 1px solid ${p => p.theme.colors.yellow200};
+  background-color: ${p => p.theme.colors.yellow100};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.alert.warning.color};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const NoChangesPadding = styled('div')`
