@@ -37,13 +37,13 @@ const [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
   }),
   ReplayRequestFrameFixture({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -55,7 +55,7 @@ const [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -73,7 +73,7 @@ const [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -91,7 +91,7 @@ const [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
