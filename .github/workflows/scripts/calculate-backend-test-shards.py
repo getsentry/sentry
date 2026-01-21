@@ -12,16 +12,6 @@ MIN_SHARDS = 1
 MAX_SHARDS = 22
 DEFAULT_SHARDS = 22
 
-PYTEST_BASE_ARGS = [
-    "pytest",
-    "--collect-only",
-    "--quiet",
-    "--ignore=tests/acceptance",
-    "--ignore=tests/apidocs",
-    "--ignore=tests/js",
-    "--ignore=tests/tools",
-]
-
 
 def collect_test_count() -> int | None:
     """Collect the number of tests to run, either from selected files or full suite."""
@@ -41,9 +31,19 @@ def collect_test_count() -> int | None:
             return 0
 
         print(f"Counting tests in {len(selected_files)} selected files", file=sys.stderr)
-        pytest_args = PYTEST_BASE_ARGS + selected_files
-    else:
-        pytest_args = PYTEST_BASE_ARGS + ["tests"]
+
+    pytest_args = [
+        "pytest",
+        # Always pass tests/ directory to ensure proper conftest loading order.
+        # SELECTED_TESTS_FILE env var triggers filtering in pytest_collection_modifyitems.
+        "tests",
+        "--collect-only",
+        "--quiet",
+        "--ignore=tests/acceptance",
+        "--ignore=tests/apidocs",
+        "--ignore=tests/js",
+        "--ignore=tests/tools",
+    ]
 
     try:
         result = subprocess.run(
@@ -53,9 +53,20 @@ def collect_test_count() -> int | None:
             check=False,
         )
 
-        # Parse output for "N tests collected"
-        # Format: "27000 tests collected in 18.53s"
-        match = re.search(r"(\d+) tests? collected", result.stdout + result.stderr)
+        # Parse output for test count
+        # Format without deselection: "27000 tests collected in 18.53s"
+        # Format with deselection: "29/31510 tests collected (31481 deselected) in 18.13s"
+        output = result.stdout + result.stderr
+
+        # Try format with deselection first (selected/total)
+        match = re.search(r"(\d+)/\d+ tests? collected", output)
+        if match:
+            count = int(match.group(1))
+            print(f"Collected {count} tests", file=sys.stderr)
+            return count
+
+        # Fall back to format without deselection
+        match = re.search(r"(\d+) tests? collected", output)
         if match:
             count = int(match.group(1))
             print(f"Collected {count} tests", file=sys.stderr)

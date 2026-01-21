@@ -235,12 +235,9 @@ jobs:
 
       - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
-        run: |
-          if [[ "${{ needs.prepare-selective-tests.outputs.has-selected-tests }}" == "true" ]]; then
-            make test-backend-ci-selective SELECTED_TESTS_FILE=.artifacts/selected-tests.txt
-          else
-            make test-python-ci
-          fi
+        env:
+          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+        run: make test-python-ci
 
       - name: Inspect failure
         if: failure()
