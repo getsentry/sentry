@@ -298,4 +298,50 @@ describe('useQueryStateWithLocalStorage', () => {
       'useQueryStateWithLocalStorage: parser should not have .withDefault() configured'
     );
   });
+
+  it('handles empty string values correctly', () => {
+    // Set empty string in localStorage
+    localStorageWrapper.setItem('testNamespace:testParam', '');
+
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage(
+          'testParam',
+          'testNamespace:testParam',
+          parseAsString,
+          'defaultValue'
+        ),
+      {
+        wrapper: withNuqsTestingAdapter(),
+      }
+    );
+
+    // Empty string from localStorage should be returned, not the default
+    expect(result.current[0]).toBe('');
+  });
+
+  it('syncs empty string URL values to localStorage', async () => {
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage(
+          'testParam',
+          'testNamespace:testParam',
+          parseAsString,
+          'defaultValue'
+        ),
+      {
+        wrapper: withNuqsTestingAdapter({
+          searchParams: {testParam: ''},
+        }),
+      }
+    );
+
+    expect(result.current[0]).toBe('');
+
+    // Empty string from URL should be synced to localStorage
+    await waitFor(() => {
+      const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
+      expect(storedValue).toBe('');
+    });
+  });
 });

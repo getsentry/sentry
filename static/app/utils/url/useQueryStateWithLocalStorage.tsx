@@ -61,7 +61,7 @@ export function useQueryStateWithLocalStorage<T>(
   // `useLocalStorageState` because we want to do the deserialization ourselves
   // according to Nuqs configuration.
   const stored = localStorageWrapper.getItem(localStorageKey);
-  const localStorageValue = stored ? parser.parse(stored) : null;
+  const localStorageValue = defined(stored) ? parser.parse(stored) : null;
 
   const effectiveValue = urlValue ?? localStorageValue ?? defaultValue;
 
