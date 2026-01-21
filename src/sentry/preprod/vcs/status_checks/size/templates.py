@@ -119,22 +119,21 @@ def _format_artifact_summary(
     for artifact, size_metrics in artifact_metric_rows:
         qualifiers = []
 
+        platform_label = artifact.get_platform_label()
+        if platform_label:
+            qualifiers.append(platform_label)
+
         # App name
         metric_type_display = _get_size_metric_type_display_name(
             size_metrics.metrics_artifact_type if size_metrics else None
         )
         if metric_type_display:
             qualifiers.append(metric_type_display)
-        else:
-            # Only show platform label for main artifacts
-            platform_label = artifact.get_platform_label()
-            if platform_label:
-                qualifiers.append(platform_label)
 
         mobile_app_info = getattr(artifact, "mobile_app_info", None)
-        display_name = mobile_app_info.app_name if mobile_app_info else None
+        artifact_app_name = mobile_app_info.app_name if mobile_app_info else None
         app_name = (
-            f"{display_name or '--'}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
+            f"{artifact_app_name or '--'}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
         )
 
         # App ID
@@ -289,12 +288,14 @@ def _get_size_metric_display_data(
 
 def _format_version_string(artifact: PreprodArtifact, default: str = "-") -> str:
     """Format version string from build_version and build_number."""
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
     version_parts = []
-    if mobile_app_info and mobile_app_info.build_version:
-        version_parts.append(mobile_app_info.build_version)
-    if mobile_app_info and mobile_app_info.build_number:
-        version_parts.append(f"({mobile_app_info.build_number})")
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    build_version = mobile_app_info.build_version if mobile_app_info else None
+    build_number = mobile_app_info.build_number if mobile_app_info else None
+    if build_version:
+        version_parts.append(build_version)
+    if build_number:
+        version_parts.append(f"({build_number})")
     return " ".join(version_parts) if version_parts else default
 
 
