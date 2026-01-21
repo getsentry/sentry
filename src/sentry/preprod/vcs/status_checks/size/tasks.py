@@ -79,7 +79,9 @@ preprod_artifact_search_config = SearchConfig.create_from(
     retry=Retry(times=3, delay=60, on=(ApiRateLimitedError,)),
     silo_mode=SiloMode.REGION,
 )
-def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) -> None:
+def create_preprod_status_check_task(
+    preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
+) -> None:
     try:
         preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.get(
             id=preprod_artifact_id
@@ -87,20 +89,20 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id},
+            extra={"artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     if not preprod_artifact or not isinstance(preprod_artifact, PreprodArtifact):
         logger.error(
             "preprod.status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id},
+            extra={"artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     logger.info(
         "preprod.status_checks.create.start",
-        extra={"artifact_id": preprod_artifact.id},
+        extra={"artifact_id": preprod_artifact.id, "caller": caller},
     )
 
     if not preprod_artifact.commit_comparison:
@@ -576,23 +578,23 @@ def _compute_overall_status(
     states = {artifact.state for artifact in artifacts}
 
     if PreprodArtifact.ArtifactState.FAILED in states:
-        return StatusCheckStatus.FAILURE, triggered_rules
+        return StatusCheckStatus.FAILURE, []
     elif (
         PreprodArtifact.ArtifactState.UPLOADING in states
         or PreprodArtifact.ArtifactState.UPLOADED in states
     ):
-        return StatusCheckStatus.IN_PROGRESS, triggered_rules
+        return StatusCheckStatus.IN_PROGRESS, []
     elif all(state == PreprodArtifact.ArtifactState.PROCESSED for state in states):
         for artifact in artifacts:
             size_metrics_list = size_metrics_map.get(artifact.id, [])
             if size_metrics_list:
                 for size_metrics in size_metrics_list:
                     if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-                        return StatusCheckStatus.FAILURE, triggered_rules
+                        return StatusCheckStatus.FAILURE, []
                     elif (
                         size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                     ):
-                        return StatusCheckStatus.IN_PROGRESS, triggered_rules
+                        return StatusCheckStatus.IN_PROGRESS, []
 
         if rules:
             for artifact in artifacts:

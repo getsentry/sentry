@@ -35,6 +35,7 @@ from sentry.apidocs.parameters import DetectorParams, GlobalParams, Organization
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
 from sentry.issues.issue_search import convert_actor_or_none_value
@@ -142,13 +143,13 @@ def get_detector_validator(
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Workflows"])
+@extend_schema(tags=["Monitors"])
 class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
 
@@ -188,7 +189,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
         if raw_query := request.GET.get("query"):
-            for filter in parse_detector_query(raw_query):
+            try:
+                parsed_filters = parse_detector_query(raw_query)
+            except InvalidSearchQuery as e:
+                raise ValidationError({"query": [str(e)]})
+            for filter in parsed_filters:
                 assert isinstance(filter, SearchFilter)
                 match filter:
                     case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
@@ -239,7 +244,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.ID,
         ],
         responses={
-            201: inline_sentry_response_serializer(
+            200: inline_sentry_response_serializer(
                 "ListDetectorSerializerResponse", list[DetectorSerializerResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
@@ -442,7 +447,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Delete an Organization's Detectors",
+        operation_id="Bulk Delete Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -461,7 +466,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization) -> Response:
         """
-        Delete an Organization's Detectors
+        Bulk delete Monitors for a given organization
         """
         if not request.user.is_authenticated:
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)

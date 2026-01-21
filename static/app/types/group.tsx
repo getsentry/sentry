@@ -63,6 +63,7 @@ export enum SavedSearchType {
   TRANSACTION = 7,
   LOG = 8,
   TRACEMETRIC = 9,
+  PREPROD_APP_SIZE = 10,
 }
 
 export enum IssueCategory {

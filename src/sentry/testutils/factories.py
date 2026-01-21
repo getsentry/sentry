@@ -929,11 +929,18 @@ class Factories:
         enabled_code_review: bool = False,
         code_review_triggers: list[str] | None = None,
     ) -> RepositorySettings:
-        return RepositorySettings.objects.create(
+        settings, created = RepositorySettings.objects.get_or_create(
             repository=repository,
-            enabled_code_review=enabled_code_review,
-            code_review_triggers=code_review_triggers or [],
+            defaults={
+                "enabled_code_review": enabled_code_review,
+                "code_review_triggers": code_review_triggers or [],
+            },
         )
+        if not created:
+            settings.enabled_code_review = enabled_code_review
+            settings.code_review_triggers = code_review_triggers or []
+            settings.save(update_fields=["enabled_code_review", "code_review_triggers"])
+        return settings
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2665,6 +2672,13 @@ class Factories:
         create_mobile_app_info: bool = True,
         **kwargs,
     ) -> PreprodArtifact:
+        # Extract deprecated fields that were moved to PreprodArtifactMobileAppInfo
+        # Remove them from kwargs before passing to PreprodArtifact.objects.create()
+        build_version = kwargs.pop("build_version", None)
+        build_number = kwargs.pop("build_number", None)
+        app_name = kwargs.pop("app_name", None)
+        app_icon_id = kwargs.pop("app_icon_id", None)
+
         artifact = PreprodArtifact.objects.create(
             project=project,
             state=state,
@@ -2680,10 +2694,6 @@ class Factories:
         if date_added is not None:
             artifact.update(date_added=date_added)
 
-        build_version = kwargs.get("build_version", None)
-        build_number = kwargs.get("build_number", None)
-        app_name = kwargs.get("app_name", None)
-        app_icon_id = kwargs.get("app_icon_id", None)
         if create_mobile_app_info and (build_version or build_number or app_name or app_icon_id):
             Factories.create_preprod_artifact_mobile_app_info(
                 preprod_artifact=artifact,
