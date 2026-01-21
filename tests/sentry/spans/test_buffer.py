@@ -203,6 +203,76 @@ def test_basic(buffer: SpansBuffer, spans) -> None:
     assert_clean(buffer.client)
 
 
+@mock.patch("sentry.spans.buffer.emit_observability_metrics")
+def test_observability_metrics(
+    emit_observability_metrics: mock.MagicMock, buffer: SpansBuffer
+) -> None:
+    spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+        Span(
+            payload=_payload("d" * 16),
+            trace_id="a" * 32,
+            span_id="d" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
+    ]
+    process_spans(spans, buffer, now=0)
+
+    assert_ttls(buffer.client)
+
+    assert buffer.flush_segments(now=5) == {}
+    rv = buffer.flush_segments(now=11)
+    _normalize_output(rv)
+    assert rv == {
+        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            spans=[
+                _output_segment(b"a" * 16, b"b" * 16, False),
+                _output_segment(b"b" * 16, b"b" * 16, True),
+                _output_segment(b"c" * 16, b"b" * 16, False),
+                _output_segment(b"d" * 16, b"b" * 16, False),
+            ],
+        )
+    }
+    buffer.done_flush_segments(rv)
+    assert buffer.flush_segments(now=30) == {}
+
+    assert list(buffer.get_memory_info())
+
+    assert_clean(buffer.client)
+    emit_observability_metrics.assert_called_once()
+
+
 @pytest.mark.parametrize(
     "spans",
     list(
