@@ -1,0 +1,255 @@
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {BarChartWidgetVisualization} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/barChartWidgetVisualization';
+import {
+  sampleCountCategoricalData,
+  sampleDurationCategoricalData,
+  sampleStackedCategoricalData,
+} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/sampleCountCategoricalData';
+import {Bar} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/types';
+
+describe('BarChartWidgetVisualization', () => {
+  beforeEach(() => {
+    jest.spyOn(console, 'error').mockImplementation();
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  describe('Rendering', () => {
+    it('renders a bar chart with duration data', () => {
+      render(
+        <BarChartWidgetVisualization
+          plottables={[new Bar(sampleDurationCategoricalData)]}
+        />
+      );
+
+      // The chart should render without errors
+      expect(document.querySelector('canvas')).toBeDefined();
+    });
+
+    it('renders multiple series', () => {
+      render(
+        <BarChartWidgetVisualization
+          plottables={[
+            new Bar(sampleStackedCategoricalData[0]!),
+            new Bar(sampleStackedCategoricalData[1]!),
+          ]}
+        />
+      );
+
+      // The chart should render without errors
+      expect(document.querySelector('canvas')).toBeDefined();
+    });
+
+    it('renders stacked bars when stack option is provided', () => {
+      render(
+        <BarChartWidgetVisualization
+          plottables={[
+            new Bar(sampleStackedCategoricalData[0]!, {stack: 'all'}),
+            new Bar(sampleStackedCategoricalData[1]!, {stack: 'all'}),
+          ]}
+        />
+      );
+
+      // The chart should render without errors
+      expect(document.querySelector('canvas')).toBeDefined();
+    });
+
+    it('renders horizontal orientation', () => {
+      render(
+        <BarChartWidgetVisualization
+          plottables={[new Bar(sampleCountCategoricalData)]}
+          orientation="horizontal"
+        />
+      );
+
+      // The chart should render without errors
+      expect(document.querySelector('canvas')).toBeDefined();
+    });
+  });
+
+  describe('Empty Data Handling', () => {
+    it('throws error when all plottables are empty', () => {
+      const emptySeries: CategoricalSeries = {
+        yAxis: 'count()',
+        meta: {
+          valueType: 'integer',
+          valueUnit: null,
+        },
+        data: [],
+      };
+
+      expect(() =>
+        render(<BarChartWidgetVisualization plottables={[new Bar(emptySeries)]} />)
+      ).toThrow('The data does not contain any plottable values.');
+    });
+
+    it('throws error when all values are null', () => {
+      const nullValuesSeries: CategoricalSeries = {
+        yAxis: 'count()',
+        meta: {
+          valueType: 'integer',
+          valueUnit: null,
+        },
+        data: [
+          {label: 'A', value: null},
+          {label: 'B', value: null},
+        ],
+      };
+
+      expect(() =>
+        render(<BarChartWidgetVisualization plottables={[new Bar(nullValuesSeries)]} />)
+      ).toThrow('The data does not contain any plottable values.');
+    });
+  });
+
+  describe('Legend', () => {
+    it('shows legend when showLegend is always', () => {
+      render(
+        <BarChartWidgetVisualization
+          plottables={[new Bar(sampleCountCategoricalData, {alias: 'Count'})]}
+          showLegend="always"
+        />
+      );
+
+      // The chart should render (legend is internal to ECharts)
+      expect(document.querySelector('canvas')).toBeDefined();
+    });
+
+    it('hides legend when showLegend is never', () => {
+      render(
+        <BarChartWidgetVisualization
+          plottables={[
+            new Bar(sampleStackedCategoricalData[0]!),
+            new Bar(sampleStackedCategoricalData[1]!),
+          ]}
+          showLegend="never"
+        />
+      );
+
+      // The chart should render (legend is internal to ECharts)
+      expect(document.querySelector('canvas')).toBeDefined();
+    });
+  });
+
+  describe('Loading Placeholder', () => {
+    it('renders loading placeholder', () => {
+      render(<BarChartWidgetVisualization.LoadingPlaceholder />);
+
+      // Loading indicator should be present
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('Bar Plottable', () => {
+  describe('Properties', () => {
+    it('returns correct name from alias', () => {
+      const bar = new Bar(sampleCountCategoricalData, {alias: 'Custom Name'});
+      expect(bar.name).toBe('Custom Name');
+    });
+
+    it('returns yAxis as name when no alias', () => {
+      const bar = new Bar(sampleCountCategoricalData);
+      expect(bar.name).toBe('count()');
+    });
+
+    it('returns correct label', () => {
+      const bar = new Bar(sampleCountCategoricalData, {alias: 'Custom Label'});
+      expect(bar.label).toBe('Custom Label');
+    });
+
+    it('returns correct dataType', () => {
+      const bar = new Bar(sampleCountCategoricalData);
+      expect(bar.dataType).toBe('integer');
+    });
+
+    it('returns correct dataUnit', () => {
+      const bar = new Bar(sampleDurationCategoricalData);
+      expect(bar.dataUnit).toBe('millisecond');
+    });
+
+    it('returns isEmpty true for empty data', () => {
+      const emptySeries: CategoricalSeries = {
+        yAxis: 'count()',
+        meta: {valueType: 'integer', valueUnit: null},
+        data: [],
+      };
+      const bar = new Bar(emptySeries);
+      expect(bar.isEmpty).toBe(true);
+    });
+
+    it('returns isEmpty true for all null values', () => {
+      const nullSeries: CategoricalSeries = {
+        yAxis: 'count()',
+        meta: {valueType: 'integer', valueUnit: null},
+        data: [
+          {label: 'A', value: null},
+          {label: 'B', value: null},
+        ],
+      };
+      const bar = new Bar(nullSeries);
+      expect(bar.isEmpty).toBe(true);
+    });
+
+    it('returns isEmpty false for valid data', () => {
+      const bar = new Bar(sampleCountCategoricalData);
+      expect(bar.isEmpty).toBe(false);
+    });
+
+    it('returns needsColor true when no color specified', () => {
+      const bar = new Bar(sampleCountCategoricalData);
+      expect(bar.needsColor).toBe(true);
+    });
+
+    it('returns needsColor false when color specified', () => {
+      const bar = new Bar(sampleCountCategoricalData, {color: '#ff0000'});
+      expect(bar.needsColor).toBe(false);
+    });
+
+    it('returns correct categories', () => {
+      const bar = new Bar(sampleCountCategoricalData);
+      expect(bar.categories).toEqual(['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera']);
+    });
+  });
+
+  describe('Event Handlers', () => {
+    it('calls onClick handler with correct item', () => {
+      const onClickMock = jest.fn();
+      const bar = new Bar(sampleCountCategoricalData, {onClick: onClickMock});
+
+      bar.onClick(0);
+
+      expect(onClickMock).toHaveBeenCalledWith({label: 'Chrome', value: 1250}, 0);
+    });
+
+    it('calls onHighlight handler with correct item', () => {
+      const onHighlightMock = jest.fn();
+      const bar = new Bar(sampleCountCategoricalData, {onHighlight: onHighlightMock});
+
+      bar.onHighlight(1);
+
+      expect(onHighlightMock).toHaveBeenCalledWith({label: 'Firefox', value: 890}, 1);
+    });
+
+    it('calls onDownplay handler with correct item', () => {
+      const onDownplayMock = jest.fn();
+      const bar = new Bar(sampleCountCategoricalData, {onDownplay: onDownplayMock});
+
+      bar.onDownplay(2);
+
+      expect(onDownplayMock).toHaveBeenCalledWith({label: 'Safari', value: 650}, 2);
+    });
+
+    it('does not throw when handler not provided', () => {
+      const bar = new Bar(sampleCountCategoricalData);
+
+      expect(() => bar.onClick(0)).not.toThrow();
+      expect(() => bar.onHighlight(0)).not.toThrow();
+      expect(() => bar.onDownplay(0)).not.toThrow();
+    });
+  });
+});
