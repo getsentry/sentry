@@ -216,6 +216,8 @@ jobs:
     env:
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
+      _SENTRY_SKIP_CONFIGURATION: 1
+      DJANGO_SETTINGS_MODULE: sentry.conf.server
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
