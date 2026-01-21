@@ -10,7 +10,12 @@ import {
 import {zodResolver} from '@hookform/resolvers/zod';
 import {TanStackDevtools} from '@tanstack/react-devtools';
 import {formDevtoolsPlugin} from '@tanstack/react-form-devtools';
-import {mutationOptions, queryOptions, useQuery} from '@tanstack/react-query';
+import {
+  mutationOptions,
+  queryOptions,
+  useMutation,
+  useQuery,
+} from '@tanstack/react-query';
 import * as v from 'valibot';
 import {z} from 'zod';
 
@@ -20,7 +25,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
-import {AutoSaveField} from './autoSaveField';
+import {autoSaveOptions} from './autoSaveField';
 import {
   FormischField,
   InputField as FormischInputField,
@@ -115,7 +120,6 @@ const userSchemaValibot = v.pipe(
 type User = z.infer<typeof baseUserSchema>;
 
 const userMutationOptions = mutationOptions({
-  mutationKey: ['foo'],
   mutationFn: async (variables: Partial<User>) => {
     // eslint-disable-next-line no-console
     console.log('saving lastName', variables);
@@ -137,65 +141,83 @@ const userMutationOptions = mutationOptions({
 function TanStackAutoSave() {
   const user = useQuery(userQuery);
 
+  const updateFirstName = useMutation(userMutationOptions);
+  const updateLastName = useMutation(userMutationOptions);
+  const updateAge = useMutation(userMutationOptions);
+
+  const firstNameForm = useScrapsForm({
+    ...autoSaveOptions({
+      schema: baseUserSchema,
+      name: 'firstName',
+      initialValue: user.data?.firstName ?? '',
+    }),
+    onSubmit: ({value}) => updateFirstName.mutateAsync(value),
+  });
+
+  const lastNameForm = useScrapsForm({
+    ...autoSaveOptions({
+      schema: baseUserSchema,
+      name: 'lastName',
+      initialValue: user.data?.lastName ?? '',
+    }),
+    onSubmit: ({value}) => updateLastName.mutateAsync(value),
+  });
+
+  const ageForm = useScrapsForm({
+    ...autoSaveOptions({
+      schema: baseUserSchema,
+      name: 'age',
+      initialValue: user.data?.age ?? 0,
+    }),
+    onSubmit: ({value}) => updateAge.mutateAsync(value),
+  });
+
   if (user.isPending) {
     return <div>Loading...</div>;
   }
 
   return (
     <Stack gap="lg">
-      <AutoSaveField
-        name="lastName"
-        schema={baseUserSchema}
-        initialValue={user.data?.lastName ?? ''}
-        mutationOptions={userMutationOptions}
-      >
-        {(field, fieldProps) => (
+      <firstNameForm.AppField name="firstName">
+        {field => (
           <field.Input
-            {...fieldProps}
+            autoComplete="off"
+            data-1p-disabled="true"
+            label="First Name:"
+            disabled={updateFirstName.isPending}
+            value={field.state.value}
+            onChange={field.handleChange}
+          />
+        )}
+      </firstNameForm.AppField>
+
+      <lastNameForm.AppField name="lastName">
+        {field => (
+          <field.Input
             autoComplete="off"
             data-1p-disabled="true"
             label="Last Name:"
+            disabled={updateLastName.isPending}
             required
             value={field.state.value}
             onChange={field.handleChange}
           />
         )}
-      </AutoSaveField>
+      </lastNameForm.AppField>
 
-      <AutoSaveField
-        name="age"
-        schema={baseUserSchema}
-        initialValue={user.data?.age ?? 0}
-        mutationOptions={userMutationOptions}
-      >
-        {(field, fieldProps) => (
+      <ageForm.AppField name="age">
+        {field => (
           <field.Number
-            {...fieldProps}
             autoComplete="off"
+            data-1p-disabled="true"
             label="Age:"
+            disabled={updateAge.isPending}
             required
             value={field.state.value}
             onChange={field.handleChange}
           />
         )}
-      </AutoSaveField>
-
-      <AutoSaveField
-        name="firstName"
-        schema={baseUserSchema}
-        initialValue={user.data?.firstName ?? ''}
-        mutationOptions={userMutationOptions}
-      >
-        {(field, fieldProps) => (
-          <field.Input
-            {...fieldProps}
-            autoComplete="off"
-            label="First Name:"
-            value={field.state.value}
-            onChange={field.handleChange}
-          />
-        )}
-      </AutoSaveField>
+      </ageForm.AppField>
     </Stack>
   );
 }
