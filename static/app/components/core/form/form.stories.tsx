@@ -34,7 +34,7 @@ import {
   SubmitButton as FormischSubmitButton,
 } from './index.formisch';
 import {InputField, NumberField, RHFField, SelectField, SubmitButton} from './index.rhf';
-import {defaultFormOptions, useScrapsForm} from './index.tanstack';
+import {useScrapsForm} from './index.tanstack';
 
 const COUNTRY_OPTIONS = [
   {value: 'US', label: 'United States'},
@@ -226,17 +226,16 @@ function TanStack() {
   const user = useQuery(userQuery);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     formId: 'user-form-example',
     defaultValues: user.data,
     validators: {
-      onDynamic: baseUserSchema,
-    },
-    onSubmit: ({value}) => {
-      // eslint-disable-next-line no-alert
-      alert(JSON.stringify(value));
+      onChange: baseUserSchema,
     },
   });
+
+  const updateFirstName = useMutation(userMutationOptions);
+  const updateLastName = useMutation(userMutationOptions);
+  const updateAge = useMutation(userMutationOptions);
 
   if (user.isPending) {
     return <div>Loading...</div>;
@@ -244,105 +243,127 @@ function TanStack() {
 
   return (
     <form.AppForm>
-      <form
-        autoComplete="off"
-        onSubmit={e => {
-          e.preventDefault();
-          form.handleSubmit();
-        }}
-      >
-        <Stack gap="lg">
-          <form.AppField name="firstName">
-            {field => (
-              <field.Input
-                label="First Name:"
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-            )}
-          </form.AppField>
-          <form.AppField name="lastName">
-            {field => (
-              <field.Input
-                label="Last Name:"
-                required
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-            )}
-          </form.AppField>
-          <form.AppField name="age">
-            {field => (
-              <field.Number
-                label="Age:"
-                required
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-            )}
-          </form.AppField>
-          <form.Subscribe selector={state => state.values.age === 42}>
-            {showSecret =>
-              showSecret ? (
-                <form.AppField
-                  name="secret"
-                  validators={{
-                    onDynamic: z.string('Secret is required when age is 42'),
-                  }}
-                >
-                  {field => (
-                    <field.Input
-                      label="Secret:"
-                      required
-                      value={field.state.value ?? ''}
-                      onChange={field.handleChange}
-                    />
-                  )}
-                </form.AppField>
-              ) : null
-            }
-          </form.Subscribe>
-          <div style={{marginTop: '20px', marginBottom: '10px'}}>
-            <strong>Address</strong>
-          </div>
-          <form.AppField name="address.street">
-            {field => (
-              <field.Input
-                label="Street:"
-                required
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-            )}
-          </form.AppField>
-          <form.AppField name="address.city">
-            {field => (
-              <field.Input
-                required
-                label="City:"
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-            )}
-          </form.AppField>
-          <form.AppField name="address.country">
-            {field => (
-              <field.Select
-                required
-                label="Country:"
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={COUNTRY_OPTIONS}
-              />
-            )}
-          </form.AppField>
+      <Stack gap="lg">
+        <form.AppField
+          name="firstName"
+          listeners={{
+            onBlur: ({fieldApi}) => {
+              if (!fieldApi.state.meta.isDefaultValue && fieldApi.state.meta.isValid) {
+                updateFirstName.mutate({firstName: fieldApi.state.value});
+              }
+            },
+          }}
+        >
+          {field => (
+            <field.Input
+              disabled={updateFirstName.isPending}
+              label="First Name:"
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.AppField>
+        <form.AppField
+          name="lastName"
+          listeners={{
+            onBlur: ({fieldApi}) => {
+              if (!fieldApi.state.meta.isDefaultValue && fieldApi.state.meta.isValid) {
+                updateLastName.mutate({lastName: fieldApi.state.value});
+              }
+            },
+          }}
+        >
+          {field => (
+            <field.Input
+              label="Last Name:"
+              required
+              disabled={updateLastName.isPending}
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.AppField>
+        <form.AppField
+          name="age"
+          listeners={{
+            onBlur: ({fieldApi}) => {
+              if (!fieldApi.state.meta.isDefaultValue && fieldApi.state.meta.isValid) {
+                updateAge.mutate({age: fieldApi.state.value});
+              }
+            },
+          }}
+        >
+          {field => (
+            <field.Number
+              label="Age:"
+              disabled={updateAge.isPending}
+              required
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.AppField>
+        <form.Subscribe selector={state => state.values.age === 42}>
+          {showSecret =>
+            showSecret ? (
+              <form.AppField
+                name="secret"
+                validators={{
+                  onDynamic: z.string('Secret is required when age is 42'),
+                }}
+              >
+                {field => (
+                  <field.Input
+                    label="Secret:"
+                    required
+                    value={field.state.value ?? ''}
+                    onChange={field.handleChange}
+                  />
+                )}
+              </form.AppField>
+            ) : null
+          }
+        </form.Subscribe>
+        <div style={{marginTop: '20px', marginBottom: '10px'}}>
+          <strong>Address</strong>
+        </div>
+        <form.AppField name="address.street">
+          {field => (
+            <field.Input
+              label="Street:"
+              required
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.AppField>
+        <form.AppField name="address.city">
+          {field => (
+            <field.Input
+              required
+              label="City:"
+              value={field.state.value}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.AppField>
+        <form.AppField name="address.country">
+          {field => (
+            <field.Select
+              required
+              label="Country:"
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={COUNTRY_OPTIONS}
+            />
+          )}
+        </form.AppField>
 
-          <Flex gap="md">
-            <form.SubmitButton>Submit</form.SubmitButton>
-            <Button onClick={() => form.reset()}>Reset</Button>
-          </Flex>
-        </Stack>
-      </form>
+        <Flex gap="md">
+          <form.SubmitButton>Submit</form.SubmitButton>
+          <Button onClick={() => form.reset()}>Reset</Button>
+        </Flex>
+      </Stack>
     </form.AppForm>
   );
 }
