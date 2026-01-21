@@ -31,7 +31,6 @@ def build_sdk_configs() -> Sequence[SDKCrashDetectionConfig]:
     return build_sdk_crash_detection_configs()
 
 
-# Placeholder to test
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def create_event(self, data, project_id, assert_no_errors=True):
