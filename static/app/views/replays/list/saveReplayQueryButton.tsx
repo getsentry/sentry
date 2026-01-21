@@ -23,11 +23,5 @@ export function SaveReplayQueryButton({query}: SaveReplayQueryButtonProps) {
     });
   }, [organization, saveQuery]);
 
-  const isDisabled = !query.trim();
-
-  return (
-    <Button onClick={handleClick} disabled={isDisabled}>
-      {t('Save as')}
-    </Button>
-  );
+  return <Button onClick={handleClick}>{t('Save as')}</Button>;
 }
