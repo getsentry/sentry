@@ -253,7 +253,6 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         with self.feature(
             {
                 "organizations:gen-ai-features": [org.slug],
-                "organizations:seer-explorer-index": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
