@@ -5,7 +5,7 @@ from typing import assert_never
 from django.db import router, transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.query import QuerySet
-from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
@@ -35,6 +35,7 @@ from sentry.apidocs.parameters import DetectorParams, GlobalParams, Organization
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
 from sentry.issues.issue_search import convert_actor_or_none_value
@@ -188,7 +189,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
         if raw_query := request.GET.get("query"):
-            for filter in parse_detector_query(raw_query):
+            try:
+                parsed_filters = parse_detector_query(raw_query)
+            except InvalidSearchQuery as e:
+                raise ValidationError({"query": [str(e)]})
+            for filter in parsed_filters:
                 assert isinstance(filter, SearchFilter)
                 match filter:
                     case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
@@ -294,19 +299,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Detector",
+        operation_id="Create a Monitor for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
-        request=PolymorphicProxySerializer(
-            "GenericDetectorSerializer",
-            serializers=[
-                gt.detector_settings.validator
-                for gt in grouptype.registry.all()
-                if gt.detector_settings and gt.detector_settings.validator
-            ],
-            resource_type_field_name=None,
-        ),
+        request=BaseDetectorTypeValidator,
         responses={
             201: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -314,19 +311,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_DETECTOR,
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Create a Detector
-        ````````````````
-        Create a new detector for a project.
-
-        :param string name: The name of the detector
-        :param string type: The type of detector to create
-        :param string projectId: The detector project
-        :param object dataSource: Configuration for the data source
-        :param array dataConditions: List of conditions to trigger the detector
-        :param array workflowIds: List of workflow IDs to connect to the detector
+        Create a Monitor for a project
         """
         detector_type = request.data.get("type")
         if not detector_type:

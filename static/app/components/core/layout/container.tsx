@@ -135,19 +135,39 @@ type ContainerPropsWithChildren<T extends ContainerElement = 'div'> =
   ContainerLayoutProps & {
     as?: T;
     children?: React.ReactNode;
+    htmlFor?: T extends 'label' ? string : never;
     ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
-  } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
+    /**
+     * Deprecated in favor of the Container component API.
+     * If you have an is an unsupported use-case, please contact design engineering for support.
+     * @deprecated
+     */
+    style?: React.CSSProperties;
+  } & Omit<
+      React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+        HTMLElementTagNameMap[T]
+      >,
+      'style'
+    >;
 
 type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
   ContainerLayoutProps & {
     children: (props: {className: string}) => React.ReactNode | undefined;
     as?: never;
+    htmlFor?: never;
     ref?: never;
   } & Partial<
       Record<
         // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
         // Therefore, we need to exclude it from the map, or the children will produce a never type.
-        Exclude<keyof React.HTMLAttributes<HTMLElementTagNameMap[T]>, 'children'>,
+        Exclude<
+          keyof React.DetailedHTMLProps<
+            React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+            HTMLElementTagNameMap[T]
+          >,
+          'children'
+        >,
         never
       >
     >;

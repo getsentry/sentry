@@ -101,7 +101,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   box-shadow: ${p => p.theme.dropShadowMedium};
   border-radius: ${p => p.theme.radius.md};
   height: 180px;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     height: 220px;
@@ -143,7 +143,7 @@ const CloseButton = styled(Button)`
   display: block;
   top: ${space(2)};
   right: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;

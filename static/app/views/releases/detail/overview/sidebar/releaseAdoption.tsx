@@ -143,7 +143,7 @@ function ReleaseAdoption({
     max: 100,
     axisLabel: {
       formatter: (value: number) => `${value}%`,
-      color: theme.tokens.content.muted,
+      color: theme.tokens.content.secondary,
     },
   };
 

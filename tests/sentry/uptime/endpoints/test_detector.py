@@ -6,6 +6,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 def _get_valid_data(project_id, environment_name, **overrides):
@@ -24,8 +25,8 @@ def _get_valid_data(project_id, environment_name, **overrides):
         "conditionGroup": {
             "logicType": "any",
             "conditions": [
-                {"comparison": 1, "type": "eq", "condition_result": "high"},
-                {"comparison": 0, "type": "eq", "condition_result": "ok"},
+                {"comparison": 1, "type": "eq", "condition_result": DetectorPriorityLevel.HIGH},
+                {"comparison": 0, "type": "eq", "condition_result": DetectorPriorityLevel.OK},
             ],
         },
         "config": {
@@ -442,8 +443,8 @@ class OrganizationDetectorIndexGetFilterTest(UptimeDetectorBaseTest):
         assert str(active_detector.id) in returned_ids
         assert str(onboarding_detector.id) not in returned_ids
 
-        # Verify the count is correct (3 = base detector + manual + active)
-        assert len(response.data) == 3
+        # Verify the count is correct (5 = base detector + manual + active + default [issue stream + error])
+        assert len(response.data) == 5
 
     def test_filters_onboarding_detectors_with_query(self):
         """Test that AUTO_DETECTED_ONBOARDING detectors are filtered even when using query filters."""

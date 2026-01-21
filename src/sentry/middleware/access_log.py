@@ -106,6 +106,11 @@ def _create_api_access_log(
             # if its an internal request, no need to log
             return
 
+        impersonator_user_id = None
+        actual_user = getattr(request, "actual_user", None)
+        if actual_user is not None:
+            impersonator_user_id = getattr(actual_user, "id", None)
+
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
@@ -131,6 +136,7 @@ def _create_api_access_log(
             rate_limit_category=getattr(request, "rate_limit_category", None),
             request_duration_seconds=access_log_metadata.get_request_duration(),
             gateway_proxy=request.headers.get(PROXY_APIGATEWAY_HEADER, None),
+            impersonator_user_id=impersonator_user_id,
             **_get_rate_limit_stats_dict(request),
         )
         auth = get_authorization_header(request).split()

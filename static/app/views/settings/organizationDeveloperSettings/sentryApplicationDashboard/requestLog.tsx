@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button, StyledButton} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -192,7 +194,9 @@ export default function RequestLog({app}: RequestLogProps) {
 
         <RequestLogFilters>
           <CompactSelect
-            triggerProps={{children: eventType}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps}>{eventType}</OverlayTrigger.Button>
+            )}
             value={eventType}
             options={getEventTypes(app).map(type => ({
               value: type,

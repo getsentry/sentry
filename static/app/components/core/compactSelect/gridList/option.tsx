@@ -8,7 +8,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
+import {LeadWrap} from 'sentry/components/core/compactSelect/styles';
 import {InnerWrap, MenuListItem} from 'sentry/components/core/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -84,14 +84,19 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
-    if (hideCheck && !leadingItems) {
+    const leading =
+      typeof leadingItems === 'function'
+        ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+        : leadingItems;
+
+    if (hideCheck && !leading) {
       return null;
     }
 
     return (
       <Fragment>
         {!hideCheck && (
-          <CheckWrap multiple={multiple} isSelected={isSelected} role="presentation">
+          <LeadWrap role="presentation">
             {multiple ? (
               <Checkbox
                 {...checkboxProps}
@@ -103,15 +108,13 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
             ) : (
               isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
             )}
-          </CheckWrap>
+          </LeadWrap>
         )}
-        {typeof leadingItems === 'function'
-          ? leadingItems({disabled: isDisabled, isFocused, isSelected})
-          : leadingItems}
+        {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [multiple, isSelected, isDisabled, size, leadingItems, hideCheck]);
+  }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
   return (
     <StyledMenuListItem
