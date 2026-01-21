@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
@@ -101,6 +101,94 @@ describe('UptimeAssertionsField', () => {
     const fieldValue = model.fields.get('assertion') as unknown as Assertion;
     expect(fieldValue).toEqual({
       root: {id: expect.any(String), op: 'and', children: []},
+    });
+  });
+
+  it('normalizes NaN values to 200 via getValue on form submission', async () => {
+    // Set up assertion with NaN value (simulating cleared input submitted without blur)
+    const assertionWithNaN: Assertion = {
+      root: {
+        id: 'root-1',
+        op: 'and',
+        children: [
+          {
+            id: 'status-1',
+            op: 'status_code_check',
+            operator: {cmp: 'equals'},
+            value: NaN,
+          },
+        ],
+      },
+    };
+
+    render(
+      <Form
+        onSubmit={mockSubmit}
+        model={model}
+        initialData={{assertion: assertionWithNaN}}
+      >
+        <UptimeAssertionsField name="assertion" />
+      </Form>
+    );
+
+    // Wait for component to settle (react-popper causes async updates)
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    // Raw field value should still have NaN
+    const rawValue = model.fields.get('assertion') as unknown as Assertion;
+    expect(rawValue.root.children[0]).toMatchObject({
+      op: 'status_code_check',
+      value: NaN,
+    });
+
+    // getTransformedData (used by saveForm) should normalize via getValue
+    const transformedData = model.getTransformedData();
+    const transformedAssertion = transformedData.assertion as Assertion;
+    expect(transformedAssertion.root.children[0]).toMatchObject({
+      op: 'status_code_check',
+      value: 200, // NaN normalized to 200
+    });
+  });
+
+  it('clamps out-of-range values via getValue on form submission', async () => {
+    const assertionWithInvalidValues: Assertion = {
+      root: {
+        id: 'root-1',
+        op: 'and',
+        children: [
+          {
+            id: 'status-1',
+            op: 'status_code_check',
+            operator: {cmp: 'equals'},
+            value: 50, // Below valid range (100-599)
+          },
+        ],
+      },
+    };
+
+    render(
+      <Form
+        onSubmit={mockSubmit}
+        model={model}
+        initialData={{assertion: assertionWithInvalidValues}}
+      >
+        <UptimeAssertionsField name="assertion" />
+      </Form>
+    );
+
+    // Wait for component to settle (react-popper causes async updates)
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    // getTransformedData should clamp to valid range
+    const transformedData = model.getTransformedData();
+    const transformedAssertion = transformedData.assertion as Assertion;
+    expect(transformedAssertion.root.children[0]).toMatchObject({
+      op: 'status_code_check',
+      value: 100, // Clamped to minimum
     });
   });
 });
