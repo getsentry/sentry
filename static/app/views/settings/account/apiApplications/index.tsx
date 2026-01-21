@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
 import {
   addErrorMessage,
@@ -8,6 +7,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingError from 'sentry/components/loadingError';
@@ -18,7 +18,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types/user';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -183,7 +182,7 @@ function CreateApplicationModal({
         />
       </Body>
       <Footer>
-        <ButtonBar>
+        <ButtonBar gap="sm">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" type="submit">
             {t('Create Application')}
@@ -193,9 +192,3 @@ function CreateApplicationModal({
     </form>
   );
 }
-
-const ButtonBar = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-end;
-`;
