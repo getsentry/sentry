@@ -143,6 +143,11 @@ const restrictedImportPaths = [
     message:
       'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
+  {
+    name: 'color',
+    message:
+      'Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -849,6 +854,19 @@ export default typescript.config([
                 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
               ].includes(name)
           ),
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/components-core',
+    files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow color package only in the components/core directory
+          paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
         },
       ],
     },
