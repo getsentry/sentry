@@ -226,8 +226,6 @@ sentry_sdk.init(
 )
 \`\`\`
 
-**Done.** The SDK automatically instruments supported AI libraries.
-
 #### LiteLLM:
 
 \`\`\`python
