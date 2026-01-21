@@ -9,9 +9,9 @@ from pathlib import Path
 
 # Files that, if changed, should trigger the full test suite (can't determine affected tests)
 FULL_SUITE_TRIGGER_FILES = [
-    # "sentry/testutils/pytest/sentry.py",
+    "sentry/testutils/pytest/sentry.py",
     "pyproject.toml",
-    # "Makefile",
+    "Makefile",
     "sentry/conf/server.py",
     "sentry/web/urls.py",
 ]
@@ -95,8 +95,6 @@ def main() -> int:
         return 1
 
     changed_files = [f.strip() for f in args.changed_files.split() if f.strip()]
-    # Remove sentry/testutils/pytest/sentry.py from changed_files if present
-    changed_files = [f for f in changed_files if f != "src/sentry/testutils/pytest/sentry.py"]
     if not changed_files:
         print("No changed files provided, running full test suite")
         affected_test_files: set[str] = set()

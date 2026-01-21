@@ -12,16 +12,6 @@ MIN_SHARDS = 1
 MAX_SHARDS = 22
 DEFAULT_SHARDS = 22
 
-PYTEST_BASE_ARGS = [
-    "pytest",
-    "--collect-only",
-    "--quiet",
-    "--ignore=tests/acceptance",
-    "--ignore=tests/apidocs",
-    "--ignore=tests/js",
-    "--ignore=tests/tools",
-]
-
 
 def collect_test_count() -> int | None:
     """Collect the number of tests to run, either from selected files or full suite."""
@@ -42,9 +32,18 @@ def collect_test_count() -> int | None:
 
         print(f"Counting tests in {len(selected_files)} selected files", file=sys.stderr)
 
-    # Always pass tests/ directory to ensure proper conftest loading order.
-    # SELECTED_TESTS_FILE env var triggers filtering in pytest_collection_modifyitems.
-    pytest_args = PYTEST_BASE_ARGS + ["tests"]
+    pytest_args = [
+        "pytest",
+        # Always pass tests/ directory to ensure proper conftest loading order.
+        # SELECTED_TESTS_FILE env var triggers filtering in pytest_collection_modifyitems.
+        "tests",
+        "--collect-only",
+        "--quiet",
+        "--ignore=tests/acceptance",
+        "--ignore=tests/apidocs",
+        "--ignore=tests/js",
+        "--ignore=tests/tools",
+    ]
 
     try:
         result = subprocess.run(
@@ -52,7 +51,6 @@ def collect_test_count() -> int | None:
             capture_output=True,
             text=True,
             check=False,
-            env={**os.environ, "SELECTED_TESTS_FILE": selected_tests_file or ""},
         )
 
         # Parse output for test count
