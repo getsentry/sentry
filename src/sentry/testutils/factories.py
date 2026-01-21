@@ -929,11 +929,18 @@ class Factories:
         enabled_code_review: bool = False,
         code_review_triggers: list[str] | None = None,
     ) -> RepositorySettings:
-        return RepositorySettings.objects.create(
+        settings, created = RepositorySettings.objects.get_or_create(
             repository=repository,
-            enabled_code_review=enabled_code_review,
-            code_review_triggers=code_review_triggers or [],
+            defaults={
+                "enabled_code_review": enabled_code_review,
+                "code_review_triggers": code_review_triggers or [],
+            },
         )
+        if not created:
+            settings.enabled_code_review = enabled_code_review
+            settings.code_review_triggers = code_review_triggers or []
+            settings.save(update_fields=["enabled_code_review", "code_review_triggers"])
+        return settings
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
