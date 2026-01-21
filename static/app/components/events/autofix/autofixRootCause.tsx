@@ -286,11 +286,13 @@ function SolutionActionButton({
 
   const isSeerPreferred = effectivePreference === 'seer_solution';
 
+  // Check if there are duplicate names among integrations (need to show ID to distinguish)
   const hasDuplicateNames =
     codingAgentIntegrations.length > 1 &&
     new Set(codingAgentIntegrations.map(i => i.name)).size <
       codingAgentIntegrations.length;
 
+  // If no integrations, show simple Seer button
   if (codingAgentIntegrations.length === 0) {
     return (
       <Button
@@ -316,6 +318,7 @@ function SolutionActionButton({
             disabled: isSelectingRootCause,
           },
         ]),
+    // Show all integrations except the currently preferred one
     ...codingAgentIntegrations
       .filter(integration => {
         // Compare by key to handle both 'agent:' and legacy 'cursor:' prefixes
@@ -434,6 +437,7 @@ function AutofixRootCauseDisplay({
     'seer_solution'
   );
 
+  // Simulate a click on the description to trigger the text selection
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
       const clickEvent = new MouseEvent('click', {
@@ -451,6 +455,7 @@ function AutofixRootCauseDisplay({
       return;
     }
 
+    // Save user preference
     setPreferredAction('seer_solution');
 
     const instruction = solutionText.trim();
@@ -476,6 +481,7 @@ function AutofixRootCauseDisplay({
   };
 
   const handleLaunchCodingAgent = (integration: CodingAgentIntegration) => {
+    // Save user preference with specific integration ID
     setPreferredAction(`agent:${integration.id ?? integration.provider}`);
 
     addLoadingMessage(t('Launching %s...', integration.name), {

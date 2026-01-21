@@ -112,6 +112,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   </Stack>
 
                   <Stack gap="sm">
+                    {/* Show results for completed or failed agents */}
                     {codingAgentState.results && codingAgentState.results.length > 0 && (
                       <ResultsSection>
                         {codingAgentState.status === CodingAgentStatus.FAILED && (
