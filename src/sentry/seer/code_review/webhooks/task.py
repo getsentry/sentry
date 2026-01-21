@@ -38,7 +38,6 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    organization_integration_id: int | None = None,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -50,7 +49,6 @@ def schedule_task(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
-        organization_integration_id=organization_integration_id,
     )
 
     if transformed_event is None:

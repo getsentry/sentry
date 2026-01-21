@@ -184,6 +184,8 @@ class TestTransformWebhookToCodegenRequest:
             "name": "test-repo",
             "external_id": "123456",
             "base_commit_sha": "abc123sha",
+            "organization_id": organization.id,
+            "integration_id": repo.integration_id,
         }
 
         assert isinstance(result, dict)
@@ -232,6 +234,8 @@ class TestTransformWebhookToCodegenRequest:
         data = result["data"]
         config = data["config"]
         assert data["pr_id"] == 42
+        assert data["repo"]["organization_id"] == organization.id
+        assert data["repo"]["integration_id"] == repo.integration_id
         assert config["trigger"] == SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"

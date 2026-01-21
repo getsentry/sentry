@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -77,15 +76,6 @@ def handle_webhook_event(
             )
         return
 
-    organization_integration_id = None
-    if integration:
-        org_integration = OrganizationIntegration.objects.filter(
-            organization_id=organization.id,
-            integration_id=integration.id,
-        ).first()
-        if org_integration:
-            organization_integration_id = org_integration.id
-
     handler(
         github_event=github_event,
         event=event,
@@ -93,5 +83,4 @@ def handle_webhook_event(
         repo=repo,
         integration=integration,
         org_code_review_settings=preflight.settings,
-        organization_integration_id=organization_integration_id,
     )

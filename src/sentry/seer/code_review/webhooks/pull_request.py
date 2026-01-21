@@ -87,7 +87,6 @@ def handle_pull_request_event(
     repo: Repository,
     integration: RpcIntegration | None = None,
     org_code_review_settings: CodeReviewSettings | None = None,
-    organization_integration_id: int | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -150,5 +149,4 @@ def handle_pull_request_event(
         organization=organization,
         repo=repo,
         target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
-        organization_integration_id=organization_integration_id,
     )

@@ -95,7 +95,6 @@ def handle_issue_comment_event(
     organization: Organization,
     repo: Repository,
     integration: RpcIntegration | None = None,
-    organization_integration_id: int | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -149,5 +148,4 @@ def handle_issue_comment_event(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
-        organization_integration_id=organization_integration_id,
     )
