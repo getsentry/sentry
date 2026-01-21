@@ -336,7 +336,7 @@ const mockGroupApis = (
     }),
   });
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/autofix/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
     body: {
       steps: [],
     },
