@@ -5,8 +5,11 @@ from enum import StrEnum
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
+from django.forms import model_to_dict
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 
 
@@ -54,3 +57,15 @@ class RepositorySettings(Model):
         """Return code review settings for this repository."""
         triggers = [CodeReviewTrigger(t) for t in self.code_review_triggers]
         return CodeReviewSettings(enabled=self.enabled_code_review, triggers=triggers)
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        (settings, created) = self.__class__.objects.get_or_create(
+            repository_id=self.repository_id, defaults=model_to_dict(self)
+        )
+        if settings:
+            self.pk = settings.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
