@@ -139,6 +139,9 @@ export const useSeerExplorer = () => {
     }
   }, [location, navigate, openExplorerPanel, setRunId]);
 
+  // Check if Seer drawer is open - if so, always poll
+  const isSeerDrawerOpen = !!location.query?.seerDrawer;
+
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
@@ -165,6 +168,10 @@ export const useSeerExplorer = () => {
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
+        // Always poll when Seer drawer is open (actions triggered from drawer need updates)
+        if (isSeerDrawerOpen) {
+          return POLL_INTERVAL;
+        }
         if (isPolling(query.state.data?.[0]?.session || null, waitingForResponse)) {
           return POLL_INTERVAL;
         }

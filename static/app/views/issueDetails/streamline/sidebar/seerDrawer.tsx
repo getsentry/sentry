@@ -520,6 +520,10 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
+    const isExplorerVersion =
+      organization.features.includes('seer-explorer') &&
+      organization.features.includes('autofix-on-explorer');
+
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
@@ -527,6 +531,7 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
+      resizable: !isExplorerVersion,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
