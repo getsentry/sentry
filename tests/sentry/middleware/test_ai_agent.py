@@ -28,6 +28,10 @@ class AcceptsMarkdownTest(TestCase):
         request = self.factory.get("/", HTTP_ACCEPT="TEXT/MARKDOWN")
         assert _accepts_markdown(request) is True
 
+    def test_case_insensitive_mixed(self):
+        request = self.factory.get("/", HTTP_ACCEPT="Text/Markdown")
+        assert _accepts_markdown(request) is True
+
 
 class AIAgentMiddlewareTest(TestCase):
     def setUp(self):
