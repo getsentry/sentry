@@ -90,7 +90,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         assert settings.enabled_code_review is False
         assert settings.code_review_triggers == DEFAULT_CODE_REVIEW_TRIGGERS
 
-    def test_settings_created_when_auto_enable_explicitly_disabled(self):
+    def test_settings_created_when_auto_enable_disabled(self):
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
