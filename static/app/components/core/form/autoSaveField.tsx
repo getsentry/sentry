@@ -104,20 +104,21 @@ export function AutoSaveField<
 
   return (
     <form.AppField name={name}>
-      {field => {
-        type X = (typeof field)['handleChange'];
-        return children(
+      {field =>
+        children(
           {
-            handleChange: field.handleChange,
+            handleChange: field.handleChange as (
+              value: z.infer<TSchema>[TFieldName]
+            ) => void,
             state: {
-              value: field.state.value,
+              value: field.state.value as z.infer<TSchema>[TFieldName],
             },
           },
           {
             disabled: mutation.isPending,
           }
-        );
-      }}
+        )
+      }
     </form.AppField>
   );
 }
