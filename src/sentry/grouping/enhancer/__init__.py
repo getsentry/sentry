@@ -45,6 +45,8 @@ DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2023-01-11"
 # base64 strings never contain '#')
 BASE64_ENHANCEMENTS_DELIMITER = b"#"
 
+# This has a space between "stack" and "trace" to match the way the hints come back from the rust
+# enhancer, even though that's not how it eventually gets rendered in grouping info
 HINT_STACKTRACE_RULE_REGEX = re.compile(r"stack trace rule \((.+)\)$")
 
 VALID_PROFILING_MATCHER_PREFIXES = (
