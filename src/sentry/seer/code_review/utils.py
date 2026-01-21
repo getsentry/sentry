@@ -304,6 +304,7 @@ def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str
 
     return repo_definition
 
+
 def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     """
     Extract the PR author's GitHub user ID from the webhook payload.
