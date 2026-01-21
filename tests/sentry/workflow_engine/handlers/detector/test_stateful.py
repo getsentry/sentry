@@ -1,4 +1,5 @@
 import unittest.mock as mock
+from typing import Any
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -189,7 +190,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             },
         )
 
-    def packet(self, key: int, result: DataConditionResult | str) -> DataPacket:
+    def packet(self, key: int, result: DataConditionResult | str) -> DataPacket[Any]:
         """
         Constructs a test data packet that will evaluate to the
         DetectorPriorityLevel specified for the result parameter.
@@ -423,7 +424,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         result = self.handler.evaluate(self.packet(5, Level.MEDIUM))
         assert result[self.group_key].priority == Level.MEDIUM
 
-    def test_evaluate__condition_hole(self):
+    def test_evaluate__condition_hole(self) -> None:
         detector = self.create_detector(
             name="Stateful Detector",
             project=self.project,
