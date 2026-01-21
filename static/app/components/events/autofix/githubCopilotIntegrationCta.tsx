@@ -1,6 +1,4 @@
-import styled from '@emotion/styled';
-
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -32,15 +30,27 @@ export function GithubCopilotIntegrationCta() {
 
   if (isLoadingIntegrations) {
     return (
-      <Card>
+      <Container
+        padding="xl"
+        border="primary"
+        borderRadius="md"
+        marginTop="2xl"
+        marginBottom="2xl"
+      >
         <Placeholder height="120px" />
-      </Card>
+      </Container>
     );
   }
 
   if (!hasGithubCopilotIntegration) {
     return (
-      <Card>
+      <Container
+        padding="xl"
+        border="primary"
+        borderRadius="md"
+        marginTop="2xl"
+        marginBottom="2xl"
+      >
         <Flex direction="column" gap="lg">
           <Heading as="h3">
             <Flex direction="row" gap="sm" align="center">
@@ -67,12 +77,18 @@ export function GithubCopilotIntegrationCta() {
             </LinkButton>
           </div>
         </Flex>
-      </Card>
+      </Container>
     );
   }
 
   return (
-    <Card>
+    <Container
+      padding="xl"
+      border="primary"
+      borderRadius="md"
+      marginTop="2xl"
+      marginBottom="2xl"
+    >
       <Flex direction="column" gap="lg">
         <Heading as="h3">
           <Flex direction="row" gap="sm" align="center">
@@ -90,15 +106,6 @@ export function GithubCopilotIntegrationCta() {
           )}
         </Text>
       </Flex>
-    </Card>
+    </Container>
   );
 }
-
-const Card = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.radius.md};
-  margin-top: ${p => p.theme.space['2xl']};
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
