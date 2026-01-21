@@ -72,6 +72,44 @@ function findOpById(op: Op, id: string): {op: Op; parent: GroupOp | null} | null
 }
 
 /**
+ * Checks if an op is an ancestor of another op in the tree.
+ *
+ * @param op - The op tree to search in
+ * @param ancestorId - The ID of the potential ancestor
+ * @param descendantId - The ID of the potential descendant
+ * @returns true if ancestorId is an ancestor of descendantId
+ */
+function isAncestorOf(op: Op, ancestorId: string, descendantId: string): boolean {
+  // Find the potential ancestor node
+  if (op.id === ancestorId) {
+    // Check if descendantId exists within this subtree
+    const hasDescendant = (node: Op): boolean => {
+      if (node.id === descendantId) {
+        return true;
+      }
+      if (node.op === 'and' || node.op === 'or') {
+        return node.children.some(child => hasDescendant(child));
+      }
+      if (node.op === 'not') {
+        return hasDescendant(node.operand);
+      }
+      return false;
+    };
+    return hasDescendant(op);
+  }
+
+  // Continue searching for the ancestor in the tree
+  if (op.op === 'and' || op.op === 'or') {
+    return op.children.some(child => isAncestorOf(child, ancestorId, descendantId));
+  }
+  if (op.op === 'not') {
+    return isAncestorOf(op.operand, ancestorId, descendantId);
+  }
+
+  return false;
+}
+
+/**
  * Moves an op from its current position to before, after, or inside a target op.
  *
  * @param rootOp - The root logical op tree
@@ -97,6 +135,11 @@ export function moveTo(
   // Find the target to determine where to insert
   const targetResult = findOpById(rootOp, targetId);
   if (!targetResult) {
+    return rootOp;
+  }
+
+  // Prevent moving a parent into one of its descendants
+  if (isAncestorOf(rootOp, sourceId, targetId)) {
     return rootOp;
   }
 

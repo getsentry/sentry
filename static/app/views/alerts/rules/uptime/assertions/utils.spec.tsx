@@ -625,6 +625,50 @@ describe('moveTo', () => {
     expect(result).toBe(rootOp);
   });
 
+  it('returns unchanged tree when moving parent into its own descendant', () => {
+    const rootOp: AndOp = {
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'or-1',
+          op: 'or',
+          children: [
+            {
+              id: 'status-1',
+              op: 'status_code_check',
+              operator: {cmp: 'equals'},
+              value: 200,
+            },
+            {
+              id: 'and-2',
+              op: 'and',
+              children: [
+                {
+                  id: 'status-2',
+                  op: 'status_code_check',
+                  operator: {cmp: 'equals'},
+                  value: 201,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    // Try to move or-1 inside its descendant and-2 (should do nothing)
+    const result = moveTo(rootOp, 'or-1', 'and-2', 'inside');
+    expect(result).toBe(rootOp);
+
+    // Also test before/after positions
+    const resultBefore = moveTo(rootOp, 'or-1', 'status-2', 'before');
+    expect(resultBefore).toBe(rootOp);
+
+    const resultAfter = moveTo(rootOp, 'or-1', 'status-2', 'after');
+    expect(resultAfter).toBe(rootOp);
+  });
+
   it('moves op from nested group inside another group', () => {
     const rootOp: AndOp = {
       id: 'and-1',
