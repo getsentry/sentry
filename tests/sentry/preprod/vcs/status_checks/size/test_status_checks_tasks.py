@@ -22,7 +22,6 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-# Placeholder to test
 @region_silo_test
 class CreatePreprodStatusCheckTaskTest(TestCase):
     def setUp(self):
