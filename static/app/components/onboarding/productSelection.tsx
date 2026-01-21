@@ -115,6 +115,7 @@ export const platformProductAvailability = {
   'go-http': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'go-iris': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'go-negroni': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  godot: [ProductSolution.LOGS],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   java: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'java-log4j2': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
