@@ -1,4 +1,5 @@
 import type {Release} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,7 +20,9 @@ export function useReleases(searchTerm?: string) {
   const {environments, projects} = selection;
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/releases/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         project: projects,
