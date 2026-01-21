@@ -679,7 +679,7 @@ def update_coding_agent_state(
         updates=updates,
     )
 
-    body = orjson.dumps(update_data.dict(exclude_none=True))
+    body = orjson.dumps(update_data.model_dump(exclude_none=True))
 
     response = make_signed_seer_api_request(
         autofix_connection_pool,
