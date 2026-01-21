@@ -101,13 +101,11 @@ function ApiApplicationsDetails() {
   return (
     <SentryDocumentTitle title={PAGE_TITLE}>
       <SettingsPageHeader
-        title={
-          <TitleWithTag>
-            {PAGE_TITLE}
-            <Tag variant={app.isPublic ? 'info' : 'muted'}>
-              {app.isPublic ? t('Public Client') : t('Confidential Client')}
-            </Tag>
-          </TitleWithTag>
+        title={PAGE_TITLE}
+        subtitle={
+          <Tag variant={app.isPublic ? 'info' : 'muted'}>
+            {app.isPublic ? t('Public Client') : t('Confidential Client')}
+          </Tag>
         }
       />
 
@@ -182,12 +180,6 @@ function ApiApplicationsDetails() {
     </SentryDocumentTitle>
   );
 }
-
-const TitleWithTag = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 const HiddenSecret = styled('span')`
   width: 100px;
