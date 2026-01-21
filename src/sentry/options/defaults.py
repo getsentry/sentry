@@ -3088,6 +3088,14 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Maximum number of subsegments to process in each Redis pipeline. Each
+# subsegment triggers an EVALSHA call which can be slow. Set to 0 for unlimited.
+register(
+    "spans.buffer.pipeline-batch-size",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
 register(
     "spans.buffer.evalsha-latency-threshold",
