@@ -64,12 +64,6 @@ sentry_sdk.init(
     send_default_pii=True,
 )`,
         },
-        {
-          type: 'text',
-          text: t(
-            'The OpenAI Agents integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
-        },
       ],
     };
 
@@ -96,12 +90,6 @@ sentry_sdk.init(
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The OpenAI integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
@@ -130,12 +118,6 @@ sentry_sdk.init(
     send_default_pii=True,
 )`,
         },
-        {
-          type: 'text',
-          text: t(
-            'The Anthropic integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
-        },
       ],
     };
 
@@ -162,12 +144,6 @@ sentry_sdk.init(
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The Google Gen AI integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
@@ -197,12 +173,6 @@ sentry_sdk.init(
     send_default_pii=True,
 )`,
         },
-        {
-          type: 'text',
-          text: t(
-            'The LangChain integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
-        },
       ],
     };
 
@@ -230,12 +200,6 @@ sentry_sdk.init(
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The LangGraph integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
@@ -272,12 +236,6 @@ sentry_sdk.init(
         LiteLLMIntegration(),
     ],
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The LiteLLM integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
@@ -341,12 +299,6 @@ sentry_sdk.init(
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The PydanticAI integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
