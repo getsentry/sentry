@@ -6,14 +6,16 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import type FormModel from 'sentry/components/forms/model';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';
 import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
-import {UPTIME_DEFAULT_DOWNTIME_THRESHOLD} from 'sentry/views/detectors/components/forms/uptime/fields';
+import {
+  UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+  useUptimeDetectorFormField,
+} from 'sentry/views/detectors/components/forms/uptime/fields';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
@@ -33,11 +35,11 @@ function methodHasBody(model: FormModel) {
 }
 
 function ConnectedHttpSnippet() {
-  const url = useFormField<string>('url');
-  const method = useFormField<string>('method');
-  const headers = useFormField<Array<[string, string]>>('headers');
-  const body = useFormField<string>('body');
-  const traceSampling = useFormField<boolean>('traceSampling');
+  const url = useUptimeDetectorFormField('url');
+  const method = useUptimeDetectorFormField('method');
+  const headers = useUptimeDetectorFormField('headers');
+  const body = useUptimeDetectorFormField('body');
+  const traceSampling = useUptimeDetectorFormField('traceSampling');
 
   if (!url || !method) {
     return null;
