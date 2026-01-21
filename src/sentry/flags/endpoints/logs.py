@@ -99,7 +99,7 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
 
         validator = FlagLogIndexRequestSerializer(
             data={
-                **request.GET.model_dump(),
+                **request.GET.dict(),
                 "flag": request.GET.getlist("flag"),
                 "provider": request.GET.getlist("provider"),
             }

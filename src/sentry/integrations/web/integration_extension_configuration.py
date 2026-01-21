@@ -52,7 +52,7 @@ class IntegrationExtensionConfigurationView(BaseView):
         if not request.user.is_authenticated:
             configure_uri = "/extensions/{}/configure/?{}".format(
                 self.provider,
-                urlencode(request.GET.model_dump()),
+                urlencode(request.GET.dict()),
             )
 
             redirect_uri = "{}?{}".format(
@@ -92,9 +92,7 @@ class IntegrationExtensionConfigurationView(BaseView):
                 )
                 if org_member and "org:integrations" in org_member.scopes:
                     try:
-                        pipeline = self.init_pipeline(
-                            request, organization, request.GET.model_dump()
-                        )
+                        pipeline = self.init_pipeline(request, organization, request.GET.dict())
                         return pipeline.current_step()
                     except ValueError as e:
                         return self.respond(
@@ -119,9 +117,7 @@ class IntegrationExtensionConfigurationView(BaseView):
 
         logger.info("integration-extension-config.redirect", extra=log_params)
         # if anything before fails, we give up and send them to the link page where we can display errors
-        return self.redirect(
-            f"/extensions/{self.provider}/link/?{urlencode(request.GET.model_dump())}"
-        )
+        return self.redirect(f"/extensions/{self.provider}/link/?{urlencode(request.GET.dict())}")
 
     def init_pipeline(self, request: HttpRequest, organization, params):
         pipeline = ExternalIntegrationPipeline(
