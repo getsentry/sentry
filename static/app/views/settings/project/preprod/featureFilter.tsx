@@ -1,0 +1,128 @@
+import {useCallback, useState} from 'react';
+
+import {Stack} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {useFeatureFilter} from './useFeatureFilter';
+
+const FILTER_KEYS: TagCollection = {
+  platform: {key: 'platform', name: 'Platform'},
+  app_id: {key: 'app_id', name: 'App ID'},
+  build_configuration: {
+    key: 'build_configuration',
+    name: 'Build Configuration',
+  },
+  git_head_ref: {key: 'git_head_ref', name: 'Branch'},
+};
+
+const getTagValues = (
+  tag: {key: string; name: string},
+  _searchQuery: string
+): Promise<string[]> => {
+  if (tag.key === 'platform') {
+    return Promise.resolve(['android', 'ios']);
+  }
+  return Promise.resolve([]);
+};
+
+const EXAMPLE_BUILDS_COUNT = 5;
+
+interface FeatureFilterProps {
+  settingsKey: string;
+  successMessage: string;
+  title: string;
+  children?: React.ReactNode;
+}
+
+export function FeatureFilter({
+  title,
+  successMessage,
+  settingsKey,
+  children,
+}: FeatureFilterProps) {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const [query, setQuery] = useFeatureFilter(project, settingsKey, successMessage);
+  const [localQuery, setLocalQuery] = useState(query);
+
+  const handleQueryChange = useCallback((newQuery: string) => {
+    setLocalQuery(newQuery);
+  }, []);
+
+  const handleSearch = useCallback(
+    (newQuery: string) => {
+      setQuery(newQuery);
+    },
+    [setQuery]
+  );
+
+  const queryParams: Record<string, string | number> = {
+    per_page: EXAMPLE_BUILDS_COUNT,
+    project: project.id,
+  };
+
+  if (localQuery) {
+    queryParams.query = localQuery;
+  }
+
+  const buildsQuery = useApiQuery<BuildDetailsApiResponse[]>(
+    [`/organizations/${organization.slug}/builds/`, {query: queryParams}],
+    {
+      staleTime: 0,
+    }
+  );
+
+  const builds = buildsQuery.data ?? [];
+
+  return (
+    <Panel>
+      <PanelHeader>{title}</PanelHeader>
+      <PanelBody>
+        <Stack gap="lg" style={{padding: '16px'}}>
+          {children}
+          <Text size="sm" variant="muted">
+            {t(
+              'Configure a filter to match specific builds. This feature will only apply to new builds that match the filter.'
+            )}
+          </Text>
+
+          <SearchQueryBuilder
+            filterKeys={FILTER_KEYS}
+            getTagValues={getTagValues}
+            initialQuery={localQuery}
+            onChange={handleQueryChange}
+            onSearch={handleSearch}
+            searchSource="preprod_feature_filter"
+            disallowFreeText
+            disallowLogicalOperators
+            placeholder={t('Add build filters...')}
+            portalTarget={document.body}
+          />
+
+          <Text size="sm" variant="muted">
+            {t('These recent builds match your current filter criteria.')}
+          </Text>
+
+          <PreprodBuildsTable
+            builds={builds}
+            isLoading={buildsQuery.isLoading}
+            error={!!buildsQuery.error}
+            organizationSlug={organization.slug}
+            hasSearchQuery={!!localQuery}
+          />
+        </Stack>
+      </PanelBody>
+    </Panel>
+  );
+}
