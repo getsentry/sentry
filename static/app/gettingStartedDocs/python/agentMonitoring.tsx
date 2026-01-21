@@ -45,7 +45,6 @@ export const agentMonitoring: OnboardingConfig = {
       content: [
         {
           type: 'text',
-
           text: tct(
             'Import and initialize the Sentry SDK - the OpenAI Agents integration will be enabled automatically:',
             {code: <code />}
