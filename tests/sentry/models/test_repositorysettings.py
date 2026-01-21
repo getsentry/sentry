@@ -88,7 +88,9 @@ class TestRepositorySettings(TestCase):
             code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
         )
 
-        pk, import_kind = new_settings.write_relocation_import(ImportScope.Global, ImportFlags())
+        result = new_settings.write_relocation_import(ImportScope.Global, ImportFlags())
+        assert result is not None
+        pk, import_kind = result
 
         assert import_kind == ImportKind.Inserted
         assert pk == new_settings.pk
@@ -106,9 +108,9 @@ class TestRepositorySettings(TestCase):
             repository=self.repo, enabled_code_review=False, code_review_triggers=[]
         )
 
-        pk, import_kind = imported_settings.write_relocation_import(
-            ImportScope.Global, ImportFlags()
-        )
+        result = imported_settings.write_relocation_import(ImportScope.Global, ImportFlags())
+        assert result is not None
+        pk, import_kind = result
 
         assert import_kind == ImportKind.Overwrite
         assert pk == existing_settings.pk
