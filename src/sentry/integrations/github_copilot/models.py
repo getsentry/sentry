@@ -23,3 +23,29 @@ class GithubCopilotTask(BaseModel):
 
 class GithubCopilotTaskCreateResponse(BaseModel):
     task: GithubCopilotTask
+
+
+class GithubCopilotArtifactData(BaseModel):
+    id: int
+    type: str
+    global_id: str
+
+
+class GithubCopilotArtifact(BaseModel):
+    provider: str
+    type: str
+    data: GithubCopilotArtifactData
+
+
+class GithubCopilotTaskStatusResponse(BaseModel):
+    id: str
+    status: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    artifacts: list[GithubCopilotArtifact] | None = None
+
+
+class GithubPRFromGraphQL(BaseModel):
+    number: int
+    title: str
+    url: str
