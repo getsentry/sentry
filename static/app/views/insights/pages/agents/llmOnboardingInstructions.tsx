@@ -261,7 +261,6 @@ with sentry_sdk.start_span(op="gen_ai.request", name=f"chat {model}") as span:
     span.set_data("gen_ai.usage.input_tokens", result.input_tokens)
     span.set_data("gen_ai.usage.output_tokens", result.output_tokens)
     span.set_data("gen_ai.usage.input_tokens.cached", result.cached_tokens)
-
 \`\`\`
 
 ### Invoke Agent
