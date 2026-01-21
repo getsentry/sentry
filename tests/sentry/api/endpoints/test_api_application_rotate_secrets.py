@@ -50,9 +50,7 @@ class ApiApplicationRotateSecretTest(APITestCase):
         public_app = ApiApplication.objects.create(
             owner=self.user, name="public-app", client_secret=None
         )
-        path = reverse(
-            "sentry-api-0-api-application-rotate-secret", args=[public_app.client_id]
-        )
+        path = reverse("sentry-api-0-api-application-rotate-secret", args=[public_app.client_id])
         response = self.client.post(path)
         assert response.status_code == 400
         assert response.data["detail"] == "Cannot rotate secret for public clients"
