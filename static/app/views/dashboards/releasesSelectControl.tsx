@@ -153,7 +153,7 @@ type LabelDetailsProps = {
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
-    <Flex justify="space-between" gap="sm" style={{minWidth: 200}}>
+    <Flex justify="between" gap="sm" style={{minWidth: 200}}>
       <div>
         {defined(props.eventCount)
           ? tn('%s event', '%s events', props.eventCount)
