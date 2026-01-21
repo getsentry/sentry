@@ -73,8 +73,8 @@ export const onboarding: OnboardingConfig = {
             {
               type: 'text',
               text: tct(
-                'Structured logs are enabled by default starting from version [code:1.2.0]. You can adjust this in [strong:Project Settings > Sentry > Options > Enable Logs].',
-                {code: <code />, strong: <strong />}
+                'To enable structured logs, go to [strong:Project Settings > Sentry > Options > Enable Logs].',
+                {strong: <strong />}
               ),
             },
           ],
