@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import loadingGif from 'sentry-images/spot/ai-loader.gif';
@@ -54,11 +54,13 @@ export default function Ai() {
     startSummaryRequest,
   } = useReplaySummaryContext();
 
-  const onlyInitFrames = useMemo(() => {
-    replay
-      ?.getChapterFrames()
-      ?.every(frame => 'category' in frame && frame.category === 'replay.init');
-  }, [replay]);
+  const onlyInitFrames = useMemo(
+    () =>
+      replay
+        ?.getChapterFrames()
+        ?.every(frame => 'category' in frame && frame.category === 'replay.init'),
+    [replay]
+  );
 
   if (replayRecord?.project_id && !project) {
     return (
@@ -296,9 +298,9 @@ function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
  * Due to the random message generation, the component can show a new message on each render. This is not ideal because we
  * cause a lot of re-renders when the replay is played.
  *
- * The `useRef` is also an additional guard to ensure that the message is not changed after the initial render.
+ * Use `useRef` to store the message so that it is not changed after the initial render. (Alternatively, React.memo or React Compiler would also work)
  */
-const NoReplaySummary = memo(function NoReplaySummary() {
+function NoReplaySummary() {
   const noSummaryMessageRef = useRef(
     NO_REPLAY_SUMMARY_MESSAGES[
       Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
@@ -313,7 +315,7 @@ const NoReplaySummary = memo(function NoReplaySummary() {
       </EndStateContainer>
     </Wrapper>
   );
-});
+}
 
 const Wrapper = styled('div')`
   display: flex;
