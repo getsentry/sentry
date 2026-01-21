@@ -20,14 +20,14 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
-import {makeDetectorListQueryKey, useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 const PROJECT_GROUPS = [
@@ -46,24 +46,15 @@ interface ContentProps extends Props {
   initialMode: MonitorMode;
 }
 
-function useIssueStreamDetectors() {
-  return useDetectorsQuery({
-    query: 'type:issue_stream',
-    includeIssueStreamDetectors: true,
-  });
-}
-
-function getInitialMonitorMode(
-  issueStreamDetectors: Detector[] | undefined,
-  connectedIds: Automation['detectorIds']
-): MonitorMode {
-  if (!connectedIds.length || !issueStreamDetectors) {
+function getInitialMonitorMode(connectedDetectors: Detector[]): MonitorMode {
+  if (
+    !connectedDetectors.length ||
+    connectedDetectors.every(d => d.type === 'issue_stream')
+  ) {
     return 'project';
   }
 
-  return connectedIds.every(id => issueStreamDetectors.find(d => d.id === id))
-    ? 'project'
-    : 'specific';
+  return 'specific';
 }
 
 function ConnectedMonitors({
@@ -194,25 +185,10 @@ function ConnectMonitorsDrawer({
 
 function AllProjectIssuesSection({
   onProjectChange,
-  connectedIds,
 }: {
-  connectedIds: Automation['detectorIds'];
   onProjectChange: (projectIds: string[]) => void;
 }) {
-  const issueStreamDetectorsQuery = useIssueStreamDetectors();
   const {projects} = useProjects();
-  const {form} = useContext(FormContext);
-
-  // Sync the derived selectedProjectIds to the form model so the field can read from it
-  useEffect(() => {
-    const selectedProjectIds =
-      issueStreamDetectorsQuery.data
-        ?.filter(detector => connectedIds.includes(detector.id))
-        .map(d => d.projectId) ?? [];
-    if (form && selectedProjectIds.length > 0) {
-      form.setValue('projectIds', selectedProjectIds);
-    }
-  }, [connectedIds, form, issueStreamDetectorsQuery.data]);
 
   return (
     <Stack gap="md">
@@ -229,7 +205,6 @@ function AllProjectIssuesSection({
           flexibleControlStateSize
           stacked
           multiple
-          disabled={issueStreamDetectorsQuery.isPending}
         />
       </Container>
       <Alert variant="muted">
@@ -326,7 +301,6 @@ function EditConnectedMonitorsContent({
   setConnectedIds,
 }: ContentProps) {
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
-  const issueStreamDetectorsQuery = useIssueStreamDetectors();
   const {form} = useContext(FormContext);
 
   const handleModeChange = useCallback(
@@ -337,19 +311,13 @@ function EditConnectedMonitorsContent({
     },
     [form, setConnectedIds]
   );
-
   const handleProjectChange = useCallback(
     (projectIds: string[]) => {
-      setConnectedIds(
-        projectIds
-          .map(
-            projectId =>
-              issueStreamDetectorsQuery?.data?.find(d => d.projectId === projectId)?.id
-          )
-          .filter(defined)
-      );
+      if (!projectIds.length) {
+        setConnectedIds([]);
+      }
     },
-    [issueStreamDetectorsQuery?.data, setConnectedIds]
+    [setConnectedIds]
   );
 
   return (
@@ -366,10 +334,7 @@ function EditConnectedMonitorsContent({
             onChange={handleModeChange}
           />
           {monitorMode === 'project' ? (
-            <AllProjectIssuesSection
-              connectedIds={connectedIds}
-              onProjectChange={handleProjectChange}
-            />
+            <AllProjectIssuesSection onProjectChange={handleProjectChange} />
           ) : (
             <SpecificMonitorsSection
               connectedIds={connectedIds}
@@ -383,10 +348,32 @@ function EditConnectedMonitorsContent({
 }
 
 export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
-  const {data: issueStreamDetectors, isPending} = useIssueStreamDetectors();
-  const initialMode = getInitialMonitorMode(issueStreamDetectors, connectedIds);
+  const {form} = useContext(FormContext);
+  const [firstLoad, setFirstLoad] = useState(true);
+  const {connectedDetectors, isLoading} = useConnectedDetectors();
+  const initialMode = getInitialMonitorMode(connectedDetectors);
 
-  if (isPending && connectedIds.length > 0) {
+  useEffect(() => {
+    if (isLoading || !firstLoad) {
+      return;
+    }
+    setFirstLoad(false);
+
+    if (initialMode !== 'project') {
+      return;
+    }
+
+    // Sync the derived selectedProjectIds to the form model so the field can read from it
+    const selectedProjectIds =
+      connectedDetectors
+        ?.filter(detector => connectedIds.includes(detector.id))
+        .map(d => d.projectId) ?? [];
+    if (form && selectedProjectIds.length > 0) {
+      form.setValue('projectIds', selectedProjectIds);
+    }
+  }, [connectedIds, connectedDetectors, form, firstLoad, isLoading, initialMode]);
+
+  if (isLoading && firstLoad) {
     return (
       <WorkflowEngineContainer>
         <Section title={t('Source')}>
