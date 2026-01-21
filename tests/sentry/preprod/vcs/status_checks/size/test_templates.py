@@ -6,7 +6,6 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
     PreprodArtifact,
-    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
@@ -38,13 +37,10 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             PreprodArtifact.ArtifactState.UPLOADED,
         ]:
             with self.subTest(state=state):
-                artifact = PreprodArtifact.objects.create(
+                artifact = self.create_preprod_artifact(
                     project=self.project,
                     state=state,
                     app_id="com.example.app",
-                )
-                PreprodArtifactMobileAppInfo.objects.create(
-                    preprod_artifact=artifact,
                     build_version="1.0.0",
                     build_number=1,
                 )
@@ -61,13 +57,10 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 
     def test_processed_state_without_metrics(self):
         """Test that processed state without size metrics raises an error."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
@@ -77,20 +70,17 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 
     def test_processed_state_with_metrics_no_previous(self):
         """Test formatting for processed state with metrics but no previous build."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
 
-        size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,  # 1 MB
             max_download_size=1024 * 1024,
@@ -122,17 +112,13 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 
         for version, build_number, expected in test_cases:
             with self.subTest(version=version, build_number=build_number):
-                artifact = PreprodArtifact.objects.create(
+                artifact = self.create_preprod_artifact(
                     project=self.project,
                     state=PreprodArtifact.ArtifactState.UPLOADING,
                     app_id="com.example.app",
+                    build_version=version,
+                    build_number=build_number,
                 )
-                if version is not None or build_number is not None:
-                    PreprodArtifactMobileAppInfo.objects.create(
-                        preprod_artifact=artifact,
-                        build_version=version,
-                        build_number=build_number,
-                    )
 
                 title, subtitle, summary = format_status_check_messages(
                     [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project
@@ -149,17 +135,15 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 PreprodArtifact.ArtifactState.UPLOADED,
             ]
         ):
-            artifact = PreprodArtifact.objects.create(
-                project=self.project,
-                state=state,
-                app_id=f"com.example.app{i}",
+            artifacts.append(
+                self.create_preprod_artifact(
+                    project=self.project,
+                    state=state,
+                    app_id=f"com.example.app{i}",
+                    build_version="1.0.0",
+                    build_number=i + 1,
+                )
             )
-            PreprodArtifactMobileAppInfo.objects.create(
-                preprod_artifact=artifact,
-                build_version="1.0.0",
-                build_number=i + 1,
-            )
-            artifacts.append(artifact)
 
         title, subtitle, summary = format_status_check_messages(
             artifacts, {}, StatusCheckStatus.IN_PROGRESS, self.project
@@ -173,21 +157,18 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 
     def test_mixed_processing_and_completed_metric_states_per_artifact(self):
         """Test formatting when one metric is completed and another is processing."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
 
         # Main artifact metric completed
-        main_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        main_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,
             max_download_size=1024 * 1024,
@@ -196,9 +177,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         # Watch artifact metric still processing
-        watch_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+        watch_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
             min_download_size=None,
             max_download_size=None,
@@ -216,26 +197,23 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "1 app analyzed, 1 app processing"
         # Should have two rows - main app shows sizes, watch shows processing
         assert "`com.example.app`" in summary
-        assert "-- (Watch)" in summary
+        assert "(Android, Watch)" in summary or "(iOS, Watch)" in summary
         assert "1.0 MB" in summary  # Main app completed
         assert "Processing..." in summary  # Watch app processing
 
     def test_size_metrics_still_processing(self):
         """Test formatting when size metrics are in processing states (PENDING/RUNNING)."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.processing",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
             build_version="2.1.0",
             build_number=15,
         )
 
-        pending_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        pending_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
             min_download_size=None,
             max_download_size=None,
@@ -270,16 +248,13 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
 
     def test_failed_state_formatting(self):
         """Test formatting for failed state."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,
             app_id="com.example.app",
-            error_message="Build timeout",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
+            error_message="Build timeout",
         )
 
         title, subtitle, summary = format_status_check_messages(
@@ -303,7 +278,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
 
         for input_error, expected_error in test_cases:
             with self.subTest(input_error=input_error):
-                artifact = PreprodArtifact.objects.create(
+                artifact = self.create_preprod_artifact(
                     project=self.project,
                     state=PreprodArtifact.ArtifactState.FAILED,
                     app_id="com.example.app",
@@ -321,21 +296,18 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         artifacts = []
         size_metrics_map = {}
 
-        processed_artifact = PreprodArtifact.objects.create(
+        processed_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.processed",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=processed_artifact,
             build_version="1.0.0",
             build_number=1,
         )
         artifacts.append(processed_artifact)
 
-        size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=processed_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metrics = self.create_preprod_artifact_size_metrics(
+            processed_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,
             max_download_size=1024 * 1024,
@@ -344,28 +316,22 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
         size_metrics_map[processed_artifact.id] = [size_metrics]
 
-        uploading_artifact = PreprodArtifact.objects.create(
+        uploading_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,
             app_id="com.example.uploading",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=uploading_artifact,
             build_version="1.0.0",
             build_number=2,
         )
         artifacts.append(uploading_artifact)
 
-        failed_artifact = PreprodArtifact.objects.create(
+        failed_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,
             app_id="com.example.failed",
-            error_message="Upload timeout",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=failed_artifact,
             build_version="1.0.0",
             build_number=3,
+            error_message="Upload timeout",
         )
         artifacts.append(failed_artifact)
 
@@ -392,21 +358,18 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {}
 
         for i in range(2):
-            artifact = PreprodArtifact.objects.create(
+            artifact = self.create_preprod_artifact(
                 project=self.project,
                 state=PreprodArtifact.ArtifactState.PROCESSED,
                 app_id=f"com.example.app{i}",
-            )
-            PreprodArtifactMobileAppInfo.objects.create(
-                preprod_artifact=artifact,
                 build_version="1.0.0",
                 build_number=i + 1,
             )
             artifacts.append(artifact)
 
-            size_metrics = PreprodArtifactSizeMetrics.objects.create(
-                preprod_artifact=artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            size_metrics = self.create_preprod_artifact_size_metrics(
+                artifact,
+                metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 min_download_size=(i + 1) * 1024 * 1024,  # Different sizes
                 max_download_size=(i + 1) * 1024 * 1024,
@@ -428,20 +391,17 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
     def test_multiple_metric_types_per_artifact(self):
         """Test formatting with multiple metric types per artifact (main app + watch)."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
 
-        main_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        main_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,  # 1 MB
             max_download_size=1024 * 1024,
@@ -449,9 +409,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        watch_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+        watch_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=512 * 1024,  # 0.5 MB
             max_download_size=512 * 1024,
@@ -469,7 +429,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and watch app
         assert "`com.example.app`" in summary  # Both main and watch show app_id
-        assert "-- (Watch)" in summary  # Watch app label
+        assert ", Watch)" in summary  # Watch app label (with platform prefix)
         assert "1.0 MB" in summary  # Main app download
         assert "524.3 KB" in summary  # Watch app download
         assert "2.1 MB" in summary  # Main app install
@@ -478,9 +438,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         main_row_idx = None
         watch_row_idx = None
         for i, line in enumerate(lines):
-            if "`com.example.app`" in line and "(Watch)" not in line:
+            if "`com.example.app`" in line and ", Watch)" not in line:
                 main_row_idx = i
-            elif "-- (Watch)" in line:
+            elif ", Watch)" in line:
                 watch_row_idx = i
         assert main_row_idx is not None
         assert watch_row_idx is not None
@@ -488,20 +448,17 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
     def test_android_dynamic_feature_metrics(self):
         """Test formatting with Android dynamic features."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
 
-        main_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        main_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=4 * 1024 * 1024,  # 4 MB
             max_download_size=4 * 1024 * 1024,
@@ -509,9 +466,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             max_install_size=8 * 1024 * 1024,
         )
 
-        feature_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+        feature_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,  # 1 MB
             max_download_size=1024 * 1024,
@@ -530,7 +487,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and dynamic feature
         assert "`com.example.android`" in summary  # Main app and dynamic feature both show app_id
-        assert "-- (Dynamic Feature)" in summary  # Dynamic feature label
+        assert ", Dynamic Feature)" in summary  # Dynamic feature label (with platform prefix)
         assert "4.2 MB" in summary  # Main app download (note: rounds to 4.2 not 4.0)
         assert "1.0 MB" in summary  # Dynamic feature download
         assert "8.4 MB" in summary  # Main app install
@@ -552,21 +509,18 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             organization_id=self.organization.id,
         )
 
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=base_artifact,
             build_version="1.0.2",
             build_number=41,
         )
 
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(3.8 * 1024 * 1024),  # 3.8 MB
             max_download_size=int(3.8 * 1024 * 1024),
@@ -574,21 +528,18 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             max_install_size=int(7.9 * 1024 * 1024),
         )
 
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=head_artifact,
             build_version="1.0.3",
             build_number=42,
         )
 
-        head_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=head_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        head_size_metrics = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=4 * 1024 * 1024,  # 4.0 MB
             max_download_size=4 * 1024 * 1024,
@@ -615,20 +566,17 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
     def test_size_changes_no_base_artifacts(self):
         """Test that N/A is shown when no base artifacts exist for comparison."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.app",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=artifact,
             build_version="1.0.0",
             build_number=1,
         )
 
-        size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,  # 1 MB
             max_download_size=1024 * 1024,
@@ -670,21 +618,18 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         # Create base artifact with only MAIN_ARTIFACT metrics
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=base_artifact,
             build_version="1.0.1",
             build_number=10,
         )
 
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(2.8 * 1024 * 1024),  # 2.8 MB
             max_download_size=int(2.8 * 1024 * 1024),
@@ -693,21 +638,18 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         # Create head artifact with MAIN_ARTIFACT and WATCH_ARTIFACT
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=head_artifact,
             build_version="1.0.2",
             build_number=11,
         )
 
-        head_main_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=head_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        head_main_metrics = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=3 * 1024 * 1024,  # 3.0 MB
             max_download_size=3 * 1024 * 1024,
@@ -715,9 +657,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             max_install_size=int(6.8 * 1024 * 1024),
         )
 
-        head_watch_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=head_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+        head_watch_metrics = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=512 * 1024,  # 512 KB
             max_download_size=512 * 1024,
@@ -737,7 +679,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         # Watch artifact should show N/A (no matching base watch metrics)
         lines = summary.split("\n")
-        watch_line = next(line for line in lines if "(Watch)" in line)
+        watch_line = next(line for line in lines if ", Watch)" in line)
         # Count N/A occurrences in the watch line - should be 3 (change columns + approval)
         na_count = watch_line.count("N/A")
         assert na_count >= 2  # At least 2 N/A for the change columns
@@ -745,21 +687,18 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
     def test_android_app_shows_uncompressed_label(self):
         """Test that Android apps show 'Uncompressed' instead of 'Install' in column header."""
         # Test Android app
-        android_artifact = PreprodArtifact.objects.create(
+        android_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=android_artifact,
             build_version="1.0.0",
             build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
         )
 
-        android_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=android_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        android_size_metrics = self.create_preprod_artifact_size_metrics(
+            android_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,  # 1 MB
             max_download_size=1024 * 1024,
@@ -778,21 +717,18 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "Install" not in android_summary or android_summary.count("Install") == 0
 
         # Test iOS app for comparison
-        ios_artifact = PreprodArtifact.objects.create(
+        ios_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=ios_artifact,
             build_version="1.0.0",
             build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
         )
 
-        ios_size_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=ios_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        ios_size_metrics = self.create_preprod_artifact_size_metrics(
+            ios_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,  # 1 MB
             max_download_size=1024 * 1024,
@@ -812,41 +748,35 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
     def test_mixed_platforms_render_separate_tables(self):
         """Mixed Android/iOS artifacts should render separate tables with platform-specific labels."""
-        android_artifact = PreprodArtifact.objects.create(
+        android_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.android",
-            artifact_type=PreprodArtifact.ArtifactType.AAB,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=android_artifact,
             build_version="1.0.0",
             build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
         )
-        ios_artifact = PreprodArtifact.objects.create(
+        ios_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.ios",
-            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=ios_artifact,
             build_version="2.0.0",
             build_number=2,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
         )
 
-        android_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=android_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        android_metrics = self.create_preprod_artifact_size_metrics(
+            android_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=1024 * 1024,
             max_download_size=1024 * 1024,
             min_install_size=2 * 1024 * 1024,
             max_install_size=2 * 1024 * 1024,
         )
-        ios_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=ios_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        ios_metrics = self.create_preprod_artifact_size_metrics(
+            ios_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=2048 * 1024,
             max_download_size=2048 * 1024,
@@ -866,9 +796,8 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             self.project,
         )
 
-        # Build expected URLs
-        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/{self.project.slug}/{android_artifact.id}"
-        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/{self.project.slug}/{ios_artifact.id}"
+        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.slug}"
+        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}?project={self.project.slug}"
 
         expected = f"""\
 ### Android Builds
@@ -912,22 +841,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             organization_id=self.organization.id,
         )
 
-        base_release_artifact = PreprodArtifact.objects.create(
+        base_release_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
-            build_configuration=release_config,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=base_release_artifact,
             build_version="1.0.0",
             build_number=100,
+            build_configuration=release_config,
         )
 
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_release_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            base_release_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(2.0 * 1024 * 1024),  # 2.0 MB (Release - optimized)
             max_download_size=int(2.0 * 1024 * 1024),
@@ -935,22 +861,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             max_install_size=int(4.0 * 1024 * 1024),
         )
 
-        base_debug_artifact = PreprodArtifact.objects.create(
+        base_debug_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
-            build_configuration=debug_config,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=base_debug_artifact,
             build_version="1.0.0",
             build_number=100,
+            build_configuration=debug_config,
         )
 
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_debug_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            base_debug_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(5.0 * 1024 * 1024),  # 5.0 MB (Debug - larger)
             max_download_size=int(5.0 * 1024 * 1024),
@@ -958,22 +881,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             max_install_size=int(10.0 * 1024 * 1024),
         )
 
-        head_debug_artifact = PreprodArtifact.objects.create(
+        head_debug_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.mixed",
-            build_configuration=debug_config,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=head_debug_artifact,
             build_version="1.0.1",
             build_number=101,
+            build_configuration=debug_config,
         )
 
-        head_debug_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=head_debug_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        head_debug_metrics = self.create_preprod_artifact_size_metrics(
+            head_debug_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(5.2 * 1024 * 1024),  # 5.2 MB (Debug - slight increase)
             max_download_size=int(5.2 * 1024 * 1024),
@@ -1022,22 +942,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             organization_id=self.organization.id,
         )
 
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.release",
-            build_configuration=release_config,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=base_artifact,
             build_version="1.0.0",
             build_number=50,
+            build_configuration=release_config,
         )
 
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(3.0 * 1024 * 1024),  # 3.0 MB
             max_download_size=int(3.0 * 1024 * 1024),
@@ -1045,22 +962,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             max_install_size=int(6.0 * 1024 * 1024),
         )
 
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.release",
-            build_configuration=release_config,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=head_artifact,
             build_version="1.0.1",
             build_number=51,
+            build_configuration=release_config,
         )
 
-        head_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=head_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        head_metrics = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(3.1 * 1024 * 1024),  # 3.1 MB
             max_download_size=int(3.1 * 1024 * 1024),
@@ -1101,22 +1015,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             organization_id=self.organization.id,
         )
 
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.nomatch",
-            build_configuration=release_config,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=base_artifact,
             build_version="1.0.0",
             build_number=25,
+            build_configuration=release_config,
         )
 
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=base_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(2.5 * 1024 * 1024),  # 2.5 MB
             max_download_size=int(2.5 * 1024 * 1024),
@@ -1124,22 +1035,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
             max_install_size=int(5.0 * 1024 * 1024),
         )
 
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             app_id="com.example.nomatch",
-            build_configuration=debug_config,
-        )
-        PreprodArtifactMobileAppInfo.objects.create(
-            preprod_artifact=head_artifact,
             build_version="1.0.1",
             build_number=26,
+            build_configuration=debug_config,
         )
 
-        head_metrics = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=head_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        head_metrics = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             min_download_size=int(6.0 * 1024 * 1024),  # 6.0 MB (Debug is larger)
             max_download_size=int(6.0 * 1024 * 1024),
