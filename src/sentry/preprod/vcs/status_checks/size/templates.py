@@ -87,11 +87,21 @@ def format_status_check_messages(
 
     subtitle = ", ".join(parts)
 
-    match overall_status:
-        case StatusCheckStatus.IN_PROGRESS | StatusCheckStatus.SUCCESS:
-            summary = _format_artifact_summary(artifacts, size_metrics_map)
-        case StatusCheckStatus.FAILURE:
-            summary = _format_failure_summary(artifacts, project, triggered_rules)
+    if triggered_rules:
+        summary = _format_artifact_summary(artifacts, size_metrics_map)
+        base_url = f"/settings/projects/{project.slug}/preprod/"
+        expanded_params = "&".join(f"expanded={rule.id}" for rule in triggered_rules)
+        settings_url = project.organization.absolute_url(base_url, query=expanded_params)
+        summary += str(
+            _(
+                "\n\n**Status check failed due to size threshold rules.** "
+                "[View triggered rules]({settings_url})"
+            ).format(settings_url=settings_url)
+        )
+    elif overall_status == StatusCheckStatus.FAILURE:
+        summary = _format_failure_summary(artifacts)
+    else:
+        summary = _format_artifact_summary(artifacts, size_metrics_map)
 
     return str(title), str(subtitle), str(summary)
 
@@ -152,9 +162,11 @@ def _format_artifact_summary(
 
         # Comparison URL
         if base_artifact and base_metrics:
-            artifact_url = get_preprod_artifact_comparison_url(artifact, base_artifact)
+            artifact_url = get_preprod_artifact_comparison_url(
+                artifact, base_artifact, comparison_type="size"
+            )
         else:
-            artifact_url = get_preprod_artifact_url(artifact)
+            artifact_url = get_preprod_artifact_url(artifact, view_type="size")
 
         name_text = f"[{app_name}<br>`{app_id}`]({artifact_url})"
 
@@ -200,17 +212,13 @@ def _format_artifact_summary(
 
 def _format_failure_summary(
     artifacts: list[PreprodArtifact],
-    project: Project,
-    triggered_rules: list[StatusCheckRule] | None = None,
 ) -> str:
-    """Format summary for multiple artifacts with failures."""
-    parts = []
-
+    """Format summary for artifacts with processing failures."""
     table_rows = []
     for artifact in artifacts:
         version_string = _format_version_string(artifact, default="-")
 
-        artifact_url = get_preprod_artifact_url(artifact)
+        artifact_url = get_preprod_artifact_url(artifact, view_type="size")
         unknown_app_text = str(_("Unknown App"))
         app_id_link = f"[`{artifact.app_id or unknown_app_text}`]({artifact_url})"
 
@@ -225,20 +233,7 @@ def _format_failure_summary(
     table = _("| Name | Version | Error |\n" "|------|---------|-------|\n" "{table_rows}").format(
         table_rows="\n".join(table_rows)
     )
-    parts.append(table)
-
-    if triggered_rules:
-        base_url = f"/settings/projects/{project.slug}/preprod/"
-        expanded_params = "&".join(f"expanded={rule.id}" for rule in triggered_rules)
-        settings_url = project.organization.absolute_url(f"{base_url}?{expanded_params}")
-        parts.append(
-            _(
-                "\n\n**Status check failed due to size threshold rules.** "
-                "[View triggered rules]({settings_url})"
-            ).format(settings_url=settings_url)
-        )
-
-    return "".join(parts)
+    return table
 
 
 def _get_size_metric_display_data(

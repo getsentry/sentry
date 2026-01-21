@@ -59,7 +59,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  telemetry_live_search: (args, isLoading) => {
+  telemetry_live_search: (args, isLoading, linkParams) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
     const projectSlugs = args.project_slugs;
@@ -85,10 +85,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Queried logs${projectInfo}: '${question}'`;
     }
 
-    // Default to spans
+    // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
-      : `Queried spans${projectInfo}: '${question}'`;
+      : linkParams?.mode === 'traces'
+        ? `Queried traces${projectInfo}: '${question}'...`
+        : `Queried spans${projectInfo}: '${question}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
@@ -587,6 +589,9 @@ export function buildToolLinkUrl(
       }
       if (mode) {
         queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
+      }
+      if (mode === 'traces') {
+        queryParams.table = 'trace';
       }
 
       if (aggregateFields.length > 0) {

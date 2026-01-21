@@ -10,7 +10,7 @@ class RemoveOnCommandPhraseTriggerTest(TestMigrations):
         org = self.create_organization()
         self.project1 = self.create_project(organization=org)
         self.repo1 = self.create_repo(project=self.project1, name="org/repo1")
-        self.repo_settings1 = RepositorySettings.objects.create(
+        self.repo_settings1 = self.create_repository_settings(
             repository=self.repo1,
             enabled_code_review=True,
             code_review_triggers=["on_command_phrase", "on_ready_for_review", "on_new_commit"],
@@ -18,7 +18,7 @@ class RemoveOnCommandPhraseTriggerTest(TestMigrations):
 
         self.project2 = self.create_project(organization=org)
         self.repo2 = self.create_repo(project=self.project2, name="org/repo2")
-        self.repo_settings2 = RepositorySettings.objects.create(
+        self.repo_settings2 = self.create_repository_settings(
             repository=self.repo2,
             enabled_code_review=True,
             code_review_triggers=["on_ready_for_review", "on_new_commit"],
@@ -26,7 +26,7 @@ class RemoveOnCommandPhraseTriggerTest(TestMigrations):
 
         self.project3 = self.create_project(organization=org)
         self.repo3 = self.create_repo(project=self.project3, name="org/repo3")
-        self.repo_settings3 = RepositorySettings.objects.create(
+        self.repo_settings3 = self.create_repository_settings(
             repository=self.repo3, enabled_code_review=True
         )
 
