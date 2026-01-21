@@ -1,109 +1,87 @@
 import React, {createRef} from 'react';
-import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Container, type ContainerProps} from 'sentry/components/core/layout/container';
+import {Surface} from 'sentry/components/core/layout/surface';
 
-describe('Container', () => {
+describe('Surface', () => {
   it('renders children', () => {
-    render(<Container>Hello</Container>);
-    expect(screen.getByText('Hello')).toBeInTheDocument();
-  });
-
-  it('implements render prop', () => {
-    render(
-      <section>
-        <Container border="primary">{props => <p {...props}>Hello</p>}</Container>
-      </section>
-    );
-
-    expect(screen.getByText('Hello')?.tagName).toBe('P');
-    expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
-
-    expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
-  });
-
-  it('render prop guards against invalid attributes', () => {
-    render(
-      // @ts-expect-error - aria-activedescendant should be set on the child element
-      <Container border="primary" aria-activedescendant="what">
-        {/* @ts-expect-error - this should be a React.ElementType */}
-        {props => <p {...props}>Hello</p>}
-      </Container>
-    );
-
-    expect(screen.getByText('Hello')).not.toHaveAttribute('aria-activedescendant');
-  });
-
-  it('render prop type is correctly inferred', () => {
-    // Incompatible className type - should be string
-    function Child({className}: {className: 'invalid'}) {
-      return <p className={className}>Hello</p>;
-    }
-
-    render(
-      <Container border="primary">
-        {/* @ts-expect-error - className is incompatible */}
-        {props => <Child {...props} />}
-      </Container>
-    );
-  });
-
-  it('as=label props are correctly inferred', () => {
-    render(
-      <Container as="label" htmlFor="test-id">
-        Hello World
-      </Container>
-    );
-    expectTypeOf<ContainerProps<'label'>>().toHaveProperty('htmlFor');
+    render(<Surface>Hello Surface</Surface>);
+    expect(screen.getByText('Hello Surface')).toBeInTheDocument();
   });
 
   it('passes attributes to the underlying element', () => {
-    render(<Container data-test-id="container">Hello</Container>);
-    expect(screen.getByTestId('container')).toBeInTheDocument();
+    render(<Surface data-test-id="surface">Hello</Surface>);
+    expect(screen.getByTestId('surface')).toBeInTheDocument();
   });
 
-  it('renders as a different element if specified', () => {
-    render(<Container as="section">Hello</Container>);
-    expect(screen.getByText('Hello').tagName).toBe('SECTION');
-  });
-
-  it('does not bleed attributes to the underlying element', () => {
-    render(<Container radius="sm">Hello</Container>);
+  it('does not bleed props to the DOM', () => {
+    render(
+      <Surface variant="overlay" elevation="high" radius="xl">
+        Hello
+      </Surface>
+    );
+    expect(screen.getByText('Hello')).not.toHaveAttribute('variant');
+    expect(screen.getByText('Hello')).not.toHaveAttribute('elevation');
     expect(screen.getByText('Hello')).not.toHaveAttribute('radius');
   });
 
-  it('allows settings native html attributes', () => {
-    render(<Container style={{color: 'red'}}>Hello</Container>);
-    expect(screen.getByText('Hello')).toHaveStyle({color: 'red'});
-  });
-
   it('attaches ref to the underlying element', () => {
-    const ref = createRef<HTMLOListElement>();
-    render(
-      <Container ref={ref} as="ol">
-        Hello
-      </Container>
-    );
+    const ref = createRef<HTMLDivElement>();
+    render(<Surface ref={ref}>Hello</Surface>);
     expect(ref.current).toBeInTheDocument();
-    expect(ref.current?.tagName).toBe('OL');
+    expect(ref.current?.tagName).toBe('DIV');
   });
 
   it('reuses class names for the same props', () => {
     render(
       <React.Fragment>
-        <Container radius="sm" padding="md">
-          Padding First
-        </Container>
-        <Container radius="sm" padding="md">
-          PaddingBottom First
-        </Container>
+        <Surface variant="primary" radius="md">
+          First
+        </Surface>
+        <Surface variant="primary" radius="md">
+          Second
+        </Surface>
       </React.Fragment>
     );
 
-    const paddingFirst = screen.getByText('Padding First').className;
-    const paddingBottomFirst = screen.getByText('PaddingBottom First').className;
-    expect(paddingFirst).toEqual(paddingBottomFirst);
+    const first = screen.getByText('First').className;
+    const second = screen.getByText('Second').className;
+    expect(first).toEqual(second);
+  });
+
+  it('applies different class names for different variants', () => {
+    render(
+      <React.Fragment>
+        <Surface variant="primary">Primary</Surface>
+        <Surface variant="secondary">Secondary</Surface>
+        <Surface variant="overlay">Overlay</Surface>
+      </React.Fragment>
+    );
+
+    const primary = screen.getByText('Primary').className;
+    const secondary = screen.getByText('Secondary').className;
+    const overlay = screen.getByText('Overlay').className;
+
+    expect(primary).not.toEqual(secondary);
+    expect(primary).not.toEqual(overlay);
+    expect(secondary).not.toEqual(overlay);
+  });
+
+  it('applies different class names for different elevations', () => {
+    render(
+      <React.Fragment>
+        <Surface variant="overlay" elevation="low">
+          Low
+        </Surface>
+        <Surface variant="overlay" elevation="high">
+          High
+        </Surface>
+      </React.Fragment>
+    );
+
+    const low = screen.getByText('Low').className;
+    const high = screen.getByText('High').className;
+    expect(low).not.toEqual(high);
   });
 });
