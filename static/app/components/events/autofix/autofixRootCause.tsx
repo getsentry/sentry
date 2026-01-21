@@ -248,13 +248,6 @@ function CopyRootCauseButton({
   );
 }
 
-function getPluginIdForProvider(provider: string): string {
-  if (provider === 'github_copilot') {
-    return 'github';
-  }
-  return provider;
-}
-
 function SolutionActionButton({
   codingAgentIntegrations,
   preferredAction,
@@ -334,10 +327,7 @@ function SolutionActionButton({
         key: `agent:${integration.id ?? integration.provider}`,
         label: (
           <Flex gap="md" align="center">
-            <PluginIcon
-              pluginId={getPluginIdForProvider(integration.provider)}
-              size={20}
-            />
+            <PluginIcon pluginId={integration.provider} size={20} />
             <div>{t('Send to %s', integration.name)}</div>
             {hasDuplicateNames && (
               <SmallIntegrationIdText>
@@ -371,12 +361,7 @@ function SolutionActionButton({
     : {
         onClick: () => handleLaunchCodingAgent(preferredIntegration!),
         busy: isLaunchingAgent,
-        icon: (
-          <PluginIcon
-            pluginId={getPluginIdForProvider(preferredIntegration!.provider)}
-            size={16}
-          />
-        ),
+        icon: <PluginIcon pluginId={preferredIntegration!.provider} size={16} />,
         children: primaryButtonLabel,
       };
 
