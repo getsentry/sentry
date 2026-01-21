@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import type {
-  AndOp,
   HeaderCheckOp,
   JsonPathOp,
   LogicalOp,
@@ -13,7 +12,6 @@ import type {
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AddOpButton} from './addOpButton';
-import {AssertionsDndContext, DropHandler} from './dragDrop';
 import {AssertionOpGroup} from './opGroup';
 import {AssertionOpHeader} from './opHeader';
 import {AssertionOpJsonPath} from './opJsonPath';
@@ -501,7 +499,7 @@ export default Storybook.story('Uptime Assertions', story => {
   });
 
   story('Drag and Drop - Reordering', () => {
-    const [rootGroup, setRootGroup] = useState<AndOp>({
+    const [rootGroup, setRootGroup] = useState<LogicalOp>({
       id: 'story-dnd-1',
       op: 'and',
       children: [
@@ -534,17 +532,14 @@ export default Storybook.story('Uptime Assertions', story => {
           <strong>grip handle</strong> (⠿) next to each assertion label to reorder them.
           The tree structure updates in real-time as items are dragged.
         </p>
-        <AssertionsDndContext>
-          <DropHandler rootOp={rootGroup} onChange={setRootGroup} />
-          <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
-        </AssertionsDndContext>
+        <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
         <CodeBlock language="javascript">{JSON.stringify(rootGroup, null, 2)}</CodeBlock>
       </Fragment>
     );
   });
 
   story('Drag and Drop - Between Groups', () => {
-    const [rootGroup, setRootGroup] = useState<AndOp>({
+    const [rootGroup, setRootGroup] = useState<LogicalOp>({
       id: 'story-dnd-2',
       op: 'and',
       children: [
@@ -588,10 +583,7 @@ export default Storybook.story('Uptime Assertions', story => {
           into the nested "Assert Any" group, or drag items out of the group to the root
           level. You can also drag items into empty groups.
         </p>
-        <AssertionsDndContext>
-          <DropHandler rootOp={rootGroup} onChange={setRootGroup} />
-          <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
-        </AssertionsDndContext>
+        <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
         <CodeBlock language="javascript">{JSON.stringify(rootGroup, null, 2)}</CodeBlock>
       </Fragment>
     );

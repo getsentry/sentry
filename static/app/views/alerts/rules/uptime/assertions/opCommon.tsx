@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {useDraggable} from '@dnd-kit/core';
 import {motion, type MotionProps} from 'framer-motion';
 
@@ -22,10 +22,20 @@ interface AnimatedOpProps
 }
 
 export function AnimatedOp({op, isDragging, ...props}: AnimatedOpProps) {
+  const wasDraggingRef = useRef(false);
+
   useEffect(() => {
-    document.body.style.cursor = isDragging ? 'grabbing' : '';
-    return () => {
+    if (isDragging) {
+      document.body.style.cursor = 'grabbing';
+      wasDraggingRef.current = true;
+    } else if (wasDraggingRef.current) {
       document.body.style.cursor = '';
+      wasDraggingRef.current = false;
+    }
+    return () => {
+      if (wasDraggingRef.current) {
+        document.body.style.cursor = '';
+      }
     };
   }, [isDragging]);
 
