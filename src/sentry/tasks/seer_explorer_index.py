@@ -13,6 +13,7 @@ from django.utils import timezone as django_timezone
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.options.rollout import in_rollout_group
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
@@ -69,6 +70,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         if bool(project.organization.get_option("sentry:hide_ai_features")):
             continue
 
+        is_eligible = False
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
             batch_result = features.batch_has(FEATURE_NAMES, organization=project.organization)
 
@@ -76,27 +78,39 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
                 org_key = f"organization:{project.organization.id}"
                 org_features = batch_result.get(org_key, {})
 
-                has_required_features = org_features.get(
-                    "organizations:gen-ai-features", False
-                ) and org_features.get("organizations:seer-explorer-index", False)
+                has_gen_ai = org_features.get("organizations:gen-ai-features", False)
+
+                has_explorer_index = org_features.get("organizations:seer-explorer-index", False)
+
+                if has_explorer_index and has_gen_ai:
+                    is_eligible = True
 
                 has_seer_plan = org_features.get(
                     "organizations:seat-based-seer-enabled", False
                 ) or org_features.get("organizations:seer-added", False)
 
-                has_all_features = has_required_features and has_seer_plan
+                if has_seer_plan and has_gen_ai:
+                    if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
+                        is_eligible = True
+
             else:
-                has_required_features = features.has(
-                    "organizations:gen-ai-features", project.organization
-                ) and features.has("organizations:seer-explorer-index", project.organization)
+                has_gen_ai = features.has("organizations:gen-ai-features", project.organization)
+                has_explorer_index = features.has(
+                    "organizations:seer-explorer-index", project.organization
+                )
+
+                if has_explorer_index and has_gen_ai:
+                    is_eligible = True
 
                 has_seer_plan = features.has(
                     "organizations:seat-based-seer-enabled", project.organization
                 ) or features.has("organizations:seer-added", project.organization)
 
-                has_all_features = has_required_features and has_seer_plan
+                if has_seer_plan and has_gen_ai:
+                    if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
+                        is_eligible = True
 
-            has_feature = has_all_features and get_seer_org_acknowledgement(project.organization)
+            has_feature = is_eligible and get_seer_org_acknowledgement(project.organization)
 
         if not has_feature:
             continue

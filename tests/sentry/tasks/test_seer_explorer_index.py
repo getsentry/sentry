@@ -58,7 +58,6 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org1.slug, org2.slug],
                 "organizations:seer-explorer-index": [org1.slug, org2.slug],
-                "organizations:seat-based-seer-enabled": [org1.slug, org2.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -97,7 +96,6 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
-                "organizations:seer-added": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -121,8 +119,16 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             feature="seer_autofix_setup_acknowledged",
         )
 
-        with self.feature({"organizations:seat-based-seer-enabled": [org.slug]}):
-            result = list(get_seer_explorer_enabled_projects())
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
+            }
+        ):
+            with mock.patch(
+                "sentry.tasks.seer_explorer_index.in_rollout_group", return_value=False
+            ):
+                result = list(get_seer_explorer_enabled_projects())
 
         assert len(result) == 0
 
@@ -143,7 +149,6 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
-                "organizations:seer-added": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -163,7 +168,6 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
-                "organizations:seat-based-seer-enabled": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -187,7 +191,6 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
-                "organizations:seer-added": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -219,7 +222,6 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
-                "organizations:seat-based-seer-enabled": [org.slug],
             }
         ):
             with freeze_time(f"2024-01-15 {target_hour:02d}:00:00"):
@@ -260,7 +262,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert project.id not in [p[0] for p in result]
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_includes_projects_with_legacy_seer_plan(self):
+    def test_includes_projects_with_legacy_seer_plan_via_rollout(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -277,15 +279,72 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         with self.feature(
             {
                 "organizations:gen-ai-features": [org.slug],
-                "organizations:seer-explorer-index": [org.slug],
                 "organizations:seer-added": [org.slug],
             }
         ):
-            result = list(get_seer_explorer_enabled_projects())
+            with mock.patch("sentry.tasks.seer_explorer_index.in_rollout_group", return_value=True):
+                result = list(get_seer_explorer_enabled_projects())
 
         project_ids = [p[0] for p in result]
         if project.id % 23 == 12:
             assert project.id in project_ids
+
+    @freeze_time("2024-01-15 12:00:00")
+    def test_includes_projects_with_seat_based_plan_via_rollout(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
+            }
+        ):
+            with mock.patch("sentry.tasks.seer_explorer_index.in_rollout_group", return_value=True):
+                result = list(get_seer_explorer_enabled_projects())
+
+        project_ids = [p[0] for p in result]
+        if project.id % 23 == 12:
+            assert project.id in project_ids
+
+    @freeze_time("2024-01-15 12:00:00")
+    def test_excludes_projects_with_billing_plan_not_in_rollout(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
+            }
+        ):
+            with mock.patch(
+                "sentry.tasks.seer_explorer_index.in_rollout_group", return_value=False
+            ):
+                result = list(get_seer_explorer_enabled_projects())
+
+        assert len(result) == 0
+        assert project.id not in [p[0] for p in result]
 
 
 @django_db_all
@@ -318,7 +377,6 @@ class TestScheduleExplorerIndex(TestCase):
                 {
                     "organizations:gen-ai-features": [org.slug],
                     "organizations:seer-explorer-index": [org.slug],
-                    "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ):
                 with mock.patch(
