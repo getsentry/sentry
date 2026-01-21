@@ -9,6 +9,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,7 +57,7 @@ export default function SeerOnboardingSeatBased() {
     }
   }, [organization, initialStep, isPending, canWrite]);
 
-  if (!canWrite) {
+  if (!canWrite && !isActiveSuperuser()) {
     return (
       <Alert variant="warning">
         {t('Only organization administrators can access the Seer Setup Wizard')}
