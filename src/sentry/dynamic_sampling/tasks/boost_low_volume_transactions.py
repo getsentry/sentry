@@ -86,7 +86,7 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     namespace=telemetry_experience_tasks,
-    processing_deadline_duration=6 * 60 + 5,
+    processing_deadline_duration=10 * 60 + 5,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -390,6 +390,7 @@ class FetchProjectTransactionTotals:
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",
                 tags={"query_type": "totals", "metric_type": metric_type},
+                sample_rate=1,
             )
 
             count = len(data)
