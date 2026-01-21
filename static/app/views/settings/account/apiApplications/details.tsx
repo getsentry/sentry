@@ -21,7 +21,6 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types/user';
 import {
   useApiQuery,
