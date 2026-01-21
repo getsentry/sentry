@@ -1,0 +1,122 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because system stacktrace takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because it contains no in-app frames",
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "non app frame",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": "removed codegen marker",
+                    "id": "module",
+                    "name": null,
+                    "values": [
+                      "sentry_clojure_example.core$_main$fn__<auto>"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "invoke"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": false,
+      "description": "event-level stacktrace — in-app frames",
+      "hash": null,
+      "hint": "ignored because system stacktrace takes precedence",
+      "key": "app_stacktrace",
+      "type": "component"
+    },
+    "system_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": "removed codegen marker",
+                    "id": "module",
+                    "name": null,
+                    "values": [
+                      "sentry_clojure_example.core$_main$fn__<auto>"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "invoke"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "event-level stacktrace — all frames",
+      "hash": "526b64456c48836a46ec1a89544fd412",
+      "hint": null,
+      "key": "system_stacktrace",
+      "type": "component"
+    }
+  }
+}
