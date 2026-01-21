@@ -42,7 +42,7 @@ export default function Legend(
         fontFamily: theme.text.family,
         lineHeight: 14,
       },
-      inactiveColor: theme.subText,
+      inactiveColor: theme.tokens.content.secondary,
       pageTextStyle: {
         color: theme.tokens.content.primary,
       },

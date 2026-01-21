@@ -54,18 +54,19 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
     <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
-      <AiPrivacyTooltip
-        linkProps={{
-          onMouseOver: () => setOptionDisableOverride(true),
-          onMouseOut: () => setOptionDisableOverride(false),
-        }}
-        showUnderline={hasAskSeerConsentFlowChanges}
-        disabled={!hasAskSeerConsentFlowChanges}
-      >
-        <AskSeerLabel {...labelProps}>
-          {t('Ask AI to build your query')} <FeatureBadge type={aiSearchBadgeType} />
-        </AskSeerLabel>
-      </AiPrivacyTooltip>
+      <AskSeerLabel {...labelProps}>
+        <AiPrivacyTooltip
+          linkProps={{
+            onMouseOver: () => setOptionDisableOverride(true),
+            onMouseOut: () => setOptionDisableOverride(false),
+          }}
+          showUnderline={hasAskSeerConsentFlowChanges}
+          disabled={!hasAskSeerConsentFlowChanges}
+        >
+          {t('Ask AI to build your query')}
+        </AiPrivacyTooltip>
+        <FeatureBadge type={aiSearchBadgeType} />
+      </AskSeerLabel>
     </AskSeerListItem>
   );
 }

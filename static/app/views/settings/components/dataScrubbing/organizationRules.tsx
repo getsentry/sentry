@@ -121,8 +121,8 @@ const Header = styled('div')`
 `;
 
 const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
-  color: ${p => p.theme.subText};
-  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.tokens.content.secondary};
+  background: ${p => p.theme.tokens.background.secondary};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
   ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.tokens.border.primary}`};
   ${p =>

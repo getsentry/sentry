@@ -2,6 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import type {InsightSources} from 'sentry/components/events/autofix/types';
 import {
@@ -167,7 +169,9 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
 
   return (
     <SourcesContainer>
-      <CardsContainer aria-label="Autofix Insight Sources">{sourceCards}</CardsContainer>
+      <Flex wrap="wrap" gap="xs" width="100%" aria-label="Autofix Insight Sources">
+        {sourceCards}
+      </Flex>
       {showThoughtsPopup &&
         sources?.thoughts &&
         document.body &&
@@ -202,19 +206,13 @@ const SourcesContainer = styled('div')`
   width: 100%;
 `;
 
-const CardsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-  width: 100%;
-`;
-
 export const SourceCard = styled(Button)<{isHighlighted?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => (p.isHighlighted ? p.theme.button.primary.colorActive : p.theme.subText)};
+  color: ${p =>
+    p.isHighlighted ? p.theme.colors.white : p.theme.tokens.content.secondary};
   white-space: nowrap;
   flex-shrink: 0;
 `;
@@ -268,7 +266,7 @@ const OverlayTitle = styled('div')`
 
 const InsightTitle = styled('div')`
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.text.family};
 `;
 

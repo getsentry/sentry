@@ -7,7 +7,7 @@ from typing import ClassVar, Self
 
 import sentry_sdk
 from django.db import models
-from django.db.models import IntegerField, OuterRef, Subquery, Sum
+from django.db.models import BooleanField, Case, IntegerField, OuterRef, Subquery, Sum, Value, When
 from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
@@ -26,6 +26,15 @@ logger = logging.getLogger(__name__)
 
 
 class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
+    def annotate_installable(self) -> Self:
+        return self.annotate(
+            installable=Case(
+                When(installable_app_file_id__isnull=False, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
     def annotate_download_count(self) -> Self:
         return self.annotate(
             download_count=Coalesce(
@@ -213,10 +222,14 @@ class PreprodArtifact(DefaultFieldsModel):
         if not self.commit_comparison:
             return []
 
-        all_artifacts = PreprodArtifact.objects.filter(
-            commit_comparison=self.commit_comparison,
-            project__organization_id=self.project.organization_id,
-        ).order_by("app_id", "artifact_type", "date_added")
+        all_artifacts = (
+            PreprodArtifact.objects.filter(
+                commit_comparison=self.commit_comparison,
+                project__organization_id=self.project.organization_id,
+            )
+            .select_related("mobile_app_info")
+            .order_by("app_id", "artifact_type", "date_added")
+        )
 
         artifacts_by_key = defaultdict(list)
         for artifact in all_artifacts:

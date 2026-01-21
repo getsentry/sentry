@@ -361,7 +361,7 @@ const StoryTypesTable = styled('table')`
   table-layout: fixed;
 
   th {
-    background-color: ${p => p.theme.colors.surface300};
+    background-color: ${p => p.theme.tokens.background.tertiary};
   }
 
   tr:not(:last-child) {
@@ -380,13 +380,13 @@ const StoryTypesTable = styled('table')`
 
 const StoryTypesTableHeader = styled('thead')`
   tr {
-    background-color: ${p => p.theme.colors.surface300};
+    background-color: ${p => p.theme.tokens.background.tertiary};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StoryTypesTableHeaderCell = styled('th')`
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   padding: ${p => p.theme.space.md};
 `;
 
@@ -398,7 +398,7 @@ const StoryTypesTableCell = styled('td')`
 const StoryTypesTableDefinitionCell = styled('td')`
   padding: ${p => p.theme.space.md};
   padding-left: 0;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
 
   button {
     margin-left: ${p => p.theme.space['2xs']};
@@ -422,5 +422,5 @@ const StoryPropDescription = styled('div')`
 `;
 
 const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;

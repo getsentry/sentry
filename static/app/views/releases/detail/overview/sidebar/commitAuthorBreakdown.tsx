@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -26,9 +27,12 @@ type Props = {
 };
 
 function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
-  const commitsEndpoint = `/projects/${orgId}/${projectSlug}/releases/${encodeURIComponent(
-    version
-  )}/commits/`;
+  const commitsEndpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
+    {
+      path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectSlug, version},
+    }
+  );
 
   const {
     data: commits,
@@ -116,11 +120,15 @@ const AuthorLine = styled('div')`
 
 const AuthorName = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Commits = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: right;
 `;
 

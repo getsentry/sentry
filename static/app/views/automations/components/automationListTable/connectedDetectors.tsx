@@ -113,7 +113,7 @@ const HovercardRow = styled('div')`
 `;
 
 const MoreText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   margin: 0;
   padding: ${space(1)} ${space(2)};

@@ -27,6 +27,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_autofix
@@ -34,6 +35,7 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     get_autofix_explorer_state,
     trigger_autofix_explorer,
+    trigger_coding_agent_handoff,
 )
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
@@ -70,13 +72,24 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 
     step = serializers.ChoiceField(
         required=False,
-        choices=["root_cause", "solution", "code_changes", "impact_assessment", "triage"],
+        choices=[
+            "root_cause",
+            "solution",
+            "code_changes",
+            "impact_assessment",
+            "triage",
+            "coding_agent_handoff",
+        ],
         default="root_cause",
         help_text="Which autofix step to run.",
     )
     run_id = serializers.IntegerField(
         required=False,
         help_text="Existing run ID to continue. If not provided, starts a new run.",
+    )
+    integration_id = serializers.IntegerField(
+        required=False,
+        help_text="Coding agent integration ID. Required for coding_agent_handoff step.",
     )
 
 
@@ -103,6 +116,16 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             },
         }
     )
+
+    def _should_use_explorer(self, request: Request, organization: Organization) -> bool:
+        """Check if explorer mode should be used based on query params and feature flags."""
+        if request.GET.get("mode") != "explorer":
+            return False
+
+        if not features.has("organizations:seer-explorer", organization, actor=request.user):
+            return False
+
+        return True
 
     @extend_schema(
         operation_id="Start Seer Issue Fix",
@@ -133,12 +156,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
-        # Route based on feature flags - requires both seer-explorer and autofix-on-explorer
-        if features.has(
-            "organizations:seer-explorer", group.organization, actor=request.user
-        ) and features.has(
-            "organizations:autofix-on-explorer", group.organization, actor=request.user
-        ):
+        if self._should_use_explorer(request, group.organization):
             return self._post_explorer(request, group)
         return self._post_legacy(request, group)
 
@@ -149,11 +167,30 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
+        step = data.get("step", "root_cause")
 
+        # Handle third-party coding agent handoff separately
+        if step == "coding_agent_handoff":
+            run_id = data.get("run_id")
+            integration_id = data.get("integration_id")
+            if not run_id or not integration_id:
+                return Response(
+                    {"error": "run_id and integration_id are required for coding_agent_handoff"},
+                    status=400,
+                )
+
+            result = trigger_coding_agent_handoff(
+                group=group,
+                run_id=run_id,
+                integration_id=integration_id,
+            )
+            return Response(result, status=202)
+
+        # Handle all built-in Seer steps
         try:
             run_id = trigger_autofix_explorer(
                 group=group,
-                step=AutofixStep(data.get("step", "root_cause")),
+                step=AutofixStep(step),
                 run_id=data.get("run_id"),
             )
             return Response({"run_id": run_id}, status=202)
@@ -209,12 +246,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         This endpoint although documented is still experimental and the payload may change in the future.
         """
-        # Route based on feature flags - requires both seer-explorer and autofix-on-explorer
-        if features.has(
-            "organizations:seer-explorer", group.organization, actor=request.user
-        ) and features.has(
-            "organizations:autofix-on-explorer", group.organization, actor=request.user
-        ):
+        if self._should_use_explorer(request, group.organization):
             return self._get_explorer(request, group)
         return self._get_legacy(request, group)
 
@@ -241,6 +273,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     ),
                     "repo_pr_states": {
                         repo: pr_state.dict() for repo, pr_state in state.repo_pr_states.items()
+                    },
+                    "coding_agents": {
+                        agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
                 }
             }

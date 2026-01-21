@@ -182,7 +182,7 @@ function SearchQueryBuilderBooleanSelect({
 
 const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})`
   padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -198,7 +198,7 @@ const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})`
 const DeleteButton = styled(UnstyledButton)`
   padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 1px solid transparent;
 
   :focus {

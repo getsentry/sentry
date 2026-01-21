@@ -84,12 +84,12 @@ const ChartWrapper = styled('div')`
 const ChartTitle = styled('h5')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   flex: 0 1 auto;
   margin: 0;
 `;
 
 const Description = styled('p')`
   font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

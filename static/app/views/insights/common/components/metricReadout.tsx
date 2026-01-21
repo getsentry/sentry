@@ -181,7 +181,7 @@ const ReadoutWrapper = styled('div')`
 `;
 
 const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   white-space: nowrap;

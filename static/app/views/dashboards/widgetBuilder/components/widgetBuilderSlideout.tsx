@@ -487,7 +487,7 @@ function DisableTransactionWidget({children}: DisableModeProps) {
 }
 
 const CloseButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: fit-content;
   &:hover {
     color: ${p => p.theme.colors.gray500};

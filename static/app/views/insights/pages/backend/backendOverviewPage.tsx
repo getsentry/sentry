@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
@@ -249,10 +251,10 @@ function EAPBackendOverviewPage({datePageFilterProps}: EAPBackendOverviewPagePro
             ) : (
               <Fragment>
                 <ModuleLayout.Third>
-                  <StackedWidgetWrapper>
+                  <Stack gap="xl" height="100%" minHeight="502px">
                     <OverviewRequestsChartWidget />
                     <OverviewApiLatencyChartWidget />
-                  </StackedWidgetWrapper>
+                  </Stack>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
                   <IssuesWidget />
@@ -300,14 +302,6 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
 `;
 
 export default BackendOverviewPageWithProviders;
-
-const StackedWidgetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  height: 100%;
-  min-height: 502px;
-`;
 
 export const TripleRowWidgetWrapper = styled('div')`
   display: grid;

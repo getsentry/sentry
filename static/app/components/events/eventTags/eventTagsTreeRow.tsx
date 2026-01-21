@@ -427,7 +427,9 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.danger.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors
+        ? p.theme.alert.danger.backgroundLight
+        : p.theme.tokens.background.secondary};
   }
   .invisible {
     visibility: hidden;
@@ -438,7 +440,8 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
       visibility: visible;
     }
   }
-  color: ${p => (p.hasErrors ? p.theme.alert.danger.color : p.theme.subText)};
+  color: ${p =>
+    p.hasErrors ? p.theme.alert.danger.color : p.theme.tokens.content.secondary};
   background-color: ${p =>
     p.hasErrors
       ? p.theme.alert.danger.backgroundLight
@@ -497,7 +500,7 @@ const TreeValue = styled('div')<{hasErrors?: boolean}>`
 `;
 
 const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
 `;
 
 /**

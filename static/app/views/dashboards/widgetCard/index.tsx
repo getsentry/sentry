@@ -489,7 +489,7 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
   ) {
     return tct(
-      `You've selected a time range longer than the retention period for this dataset. Data older than [numDays] days may be unavailable.`,
+      `You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.`,
       {
         numDays: retentionLimitDays,
       }
@@ -550,6 +550,10 @@ const ErrorCard = styled(Placeholder)`
 `;
 
 export const WidgetDescription = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.subText};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
 `;

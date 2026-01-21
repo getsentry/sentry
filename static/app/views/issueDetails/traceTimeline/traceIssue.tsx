@@ -134,7 +134,7 @@ const TraceIssueLinkContainer = styled(Link)`
   font-size: ${p => p.theme.fontSize.md};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundTertiary};
+    background-color: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -153,11 +153,19 @@ const TraceIssueProjectBadge = styled('div')`
 `;
 
 const TraceIssueDetailsContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const NoOverflowDiv = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TraceIssueEventTitle = styled('span')`
@@ -166,5 +174,5 @@ const TraceIssueEventTitle = styled('span')`
 `;
 
 const TraceIssueEventSubtitle = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

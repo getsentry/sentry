@@ -163,7 +163,7 @@ type FieldFormatters = {
 };
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 export const emptyStringValue = (
@@ -1350,7 +1350,11 @@ const StyledProjectBadge = styled(ProjectBadge)`
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export function getFieldRenderer(

@@ -2,6 +2,7 @@ import type {
   UptimeDetector,
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
+import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
@@ -9,6 +10,7 @@ export const UPTIME_DEFAULT_RECOVERY_THRESHOLD = 1;
 export const UPTIME_DEFAULT_DOWNTIME_THRESHOLD = 3;
 
 interface UptimeDetectorFormData {
+  assertion: Assertion | null;
   body: string;
   description: string | null;
   downtimeThreshold: number;
@@ -45,6 +47,7 @@ export function uptimeFormDataToEndpointPayload(
         url: data.url,
         headers: data.headers,
         body: data.body || null,
+        assertion: data.assertion,
       },
     ],
     config: {
@@ -86,6 +89,7 @@ export function uptimeSavedDetectorToFormData(
       url: dataSource.queryObj.url,
       headers: dataSource.queryObj.headers,
       body: dataSource.queryObj.body ?? '',
+      assertion: dataSource.queryObj.assertion ?? null,
       workflowIds: detector.workflowIds,
     };
   }
@@ -99,6 +103,7 @@ export function uptimeSavedDetectorToFormData(
     url: 'https://example.com',
     headers: [],
     body: '',
+    assertion: null,
     workflowIds: detector.workflowIds,
   };
 }

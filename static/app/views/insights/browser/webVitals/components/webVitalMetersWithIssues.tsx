@@ -340,7 +340,7 @@ const MeterValueText = styled('div')`
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xl};
 `;
 

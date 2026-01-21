@@ -183,6 +183,7 @@ function Thresholds() {
         <NumberField
           name="failureIssueThreshold"
           min={1}
+          max={720}
           placeholder="1"
           defaultValue={CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD}
           help={t(
@@ -254,7 +255,7 @@ const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
 
 const LabelText = styled(Text)`
   font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MultiColumnInput = styled('div')<{columns?: string}>`

@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {
   type AggregationKeyWithAlias,
@@ -74,9 +76,9 @@ export function AggregateSelector({
           });
         }
       }}
-      triggerProps={{
-        'aria-label': t('Aggregate Selection'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} aria-label={t('Aggregate Selection')} />
+      )}
     />
   );
 }
