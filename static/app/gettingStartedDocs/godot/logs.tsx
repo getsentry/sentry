@@ -47,7 +47,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Logs for Godot Engine are supported in Sentry SDK version [code:1.1.0] and above. Starting with version [code:1.2.0], the feature is generally available and enabled by default.',
+            'Logs for Godot Engine are supported in Sentry SDK version [code:1.1.0] and above.',
             {
               code: <code />,
             }
@@ -63,7 +63,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: t(
-            'Structured logs are enabled by default. If you want to modify this setting, navigate to Project Settings in Godot, then go to Sentry > Options and adjust the Enable Logs option as needed.'
+            'To enable structured logs, navigate to Project Settings in Godot, then go to Sentry > Options and enable the Enable Logs option.'
           ),
         },
         {
@@ -78,8 +78,8 @@ export const logs: OnboardingConfig = {
           code: `SentrySDK.init(func(options: SentryOptions) -> void:
     options.dsn = "${params.dsn.public}"
 
-    # Logs are enabled by default, but you can disable them if needed
-    # options.enable_logs = false
+    # Enable logs
+    options.enable_logs = true
 )`,
         },
       ],
