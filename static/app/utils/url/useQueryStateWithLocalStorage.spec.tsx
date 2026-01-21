@@ -1,4 +1,10 @@
-import {parseAsBoolean, parseAsInteger, parseAsString} from 'nuqs';
+import {
+  createMultiParser,
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsInteger,
+  parseAsString,
+} from 'nuqs';
 import {withNuqsTestingAdapter} from 'nuqs/adapters/testing';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -342,6 +348,195 @@ describe('useQueryStateWithLocalStorage', () => {
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
       expect(storedValue).toBe('');
+    });
+  });
+
+  it('works with array values using parseAsArrayOf (SingleParser)', async () => {
+    localStorageWrapper.setItem('testNamespace:tags', 'foo,bar,baz');
+
+    const onUrlUpdate = jest.fn();
+
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage(
+          'tags',
+          'testNamespace:tags',
+          parseAsArrayOf(parseAsString),
+          []
+        ),
+      {
+        wrapper: withNuqsTestingAdapter({onUrlUpdate}),
+      }
+    );
+
+    // Should populate URL from localStorage on mount
+    await waitFor(() => {
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringContaining('tags=foo,bar,baz'),
+        })
+      );
+    });
+
+    // Value should be parsed as array
+    expect(result.current[0]).toEqual(['foo', 'bar', 'baz']);
+
+    act(() => {
+      result.current[1](['new', 'tags']);
+    });
+
+    await waitFor(() => {
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringContaining('tags=new,tags'),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      const storedValue = localStorageWrapper.getItem('testNamespace:tags');
+      expect(storedValue).toBe('new,tags');
+    });
+  });
+
+  it('works with native array values using MultiParser', async () => {
+    // Create a custom MultiParser without .withDefault()
+    // This mimics parseAsNativeArrayOf but without the automatic default
+    const parseAsStringArray = createMultiParser<string[]>({
+      parse: values => {
+        const filtered = values.filter(v => v !== null);
+        return filtered.length > 0 ? filtered : null;
+      },
+      serialize: values => values,
+    });
+
+    // Multi parser stores as JSON array in localStorage
+    localStorageWrapper.setItem('testNamespace:tags', '["foo","bar","baz"]');
+
+    const onUrlUpdate = jest.fn();
+
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage(
+          'tags',
+          'testNamespace:tags',
+          parseAsStringArray,
+          []
+        ),
+      {
+        wrapper: withNuqsTestingAdapter({onUrlUpdate}),
+      }
+    );
+
+    // Should populate URL from localStorage on mount
+    await waitFor(() => {
+      // Native array format uses repeated keys: ?tags=foo&tags=bar&tags=baz
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringMatching(/tags=foo.*tags=bar.*tags=baz/),
+        })
+      );
+    });
+
+    // Value should be parsed as array
+    expect(result.current[0]).toEqual(['foo', 'bar', 'baz']);
+
+    act(() => {
+      result.current[1](['new', 'tags']);
+    });
+
+    await waitFor(() => {
+      // Native array format: ?tags=new&tags=tags
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringMatching(/tags=new.*tags=tags/),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      const storedValue = localStorageWrapper.getItem('testNamespace:tags');
+      // Should be stored as JSON array
+      expect(JSON.parse(storedValue!)).toEqual(['new', 'tags']);
+    });
+  });
+
+  it('setting value to null clears both URL and localStorage', async () => {
+    localStorageWrapper.setItem('testNamespace:param', 'fromStorage');
+
+    const onUrlUpdate = jest.fn();
+
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage(
+          'param',
+          'testNamespace:param',
+          parseAsString,
+          'defaultValue'
+        ),
+      {
+        wrapper: withNuqsTestingAdapter({
+          searchParams: {param: 'fromURL'},
+          onUrlUpdate,
+        }),
+      }
+    );
+
+    expect(result.current[0]).toBe('fromURL');
+
+    // Set to null
+    act(() => {
+      result.current[1](null);
+    });
+
+    await waitFor(() => {
+      // Should fall back to default
+      expect(result.current[0]).toBe('defaultValue');
+    });
+
+    // localStorage should be cleared
+    expect(localStorageWrapper.getItem('testNamespace:param')).toBeNull();
+
+    // URL should be cleared
+    await waitFor(() => {
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: '',
+        })
+      );
+    });
+  });
+
+  it('populates URL from localStorage on mount when URL is empty', async () => {
+    localStorageWrapper.setItem('testNamespace:param', 'fromStorage');
+
+    const onUrlUpdate = jest.fn();
+
+    const {result} = renderHook(
+      () =>
+        useQueryStateWithLocalStorage(
+          'param',
+          'testNamespace:param',
+          parseAsString,
+          'defaultValue'
+        ),
+      {
+        wrapper: withNuqsTestingAdapter({onUrlUpdate}),
+      }
+    );
+
+    // Initially shows localStorage value (as it gets written to URL)
+    await waitFor(() => {
+      expect(result.current[0]).toBe('fromStorage');
+    });
+
+    // URL should be populated
+    await waitFor(() => {
+      expect(onUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringContaining('param=fromStorage'),
+        })
+      );
     });
   });
 });
