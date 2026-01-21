@@ -360,9 +360,10 @@ Extract the list of libraries and frameworks the project uses.
 
 ## Step 3: Review Available Sentry Integrations
 
-Reference the SDK integrations documentation to identify which integrations:
-- Are available for the detected libraries/frameworks
-- Require manual configuration (not auto-enabled by default)
+1. Read the **SDK Integrations Documentation** URL: {integration_docs_url}
+2. Locate the integrations table on that page
+3. Note the exact integration name as listed in the table (e.g., "zodErrorIntegration")
+5. Check the "Auto Enabled" column to identify integrations that require manual configuration
 
 ## Step 4: Check Current Sentry Configuration
 
@@ -374,14 +375,16 @@ Note which integrations are already explicitly configured.
 Compare the available integrations (Step 3) against the configured integrations (Step 4).
 An integration is "missing" if:
 - A library/framework in the project has a corresponding Sentry integration
-- The integration requires manual setup
+- The integration is NOT auto-enabled
 - The integration is NOT already configured
+- The integration is NOT explicitly disabled
 
 # Output
 
 Return a JSON array of strings containing the missing SDK integration names.
+**Important**: Use the exact integration names from the documentation table.
 
-Example: `["celery", "redis", "sqlalchemy"]`
+Example: `["zodErrorIntegration"]`
 
 If no missing integrations are found, return an empty array: `[]`"""
 
