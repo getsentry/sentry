@@ -40,6 +40,7 @@ import {
   cleanWidgetForRequest,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 
 type SpansSeriesResponse =
   | EventsStats
@@ -350,25 +351,33 @@ export function useSpansTableQuery(
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
-      return [
+      const baseQueryKey: ApiQueryKey = [
         `/organizations/${organization.slug}/events/`,
         {
           method: 'GET' as const,
           query: queryParams,
         },
-      ] satisfies ApiQueryKey;
+      ];
+
+      return [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseQueryKey];
     });
   }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
 
   const createQueryFnTable = useCallback(
     () =>
       async (context: any): Promise<ApiResult<SpansTableResponse>> => {
+        const modifiedContext = {
+          ...context,
+          queryKey: context.queryKey.slice(STARRED_SEGMENT_TABLE_QUERY_KEY.length), // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call,
+        };
+
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
               current: async () => {
                 try {
-                  const result = await fetchDataQuery<SpansTableResponse>(context);
+                  const result =
+                    await fetchDataQuery<SpansTableResponse>(modifiedContext);
                   resolve(result);
                 } catch (error) {
                   reject(error);
@@ -378,7 +387,7 @@ export function useSpansTableQuery(
             queue.addItem({fetchDataRef: fetchFnRef});
           });
         }
-        return fetchDataQuery<SpansTableResponse>(context);
+        return fetchDataQuery<SpansTableResponse>(modifiedContext);
       },
     [queue]
   );
