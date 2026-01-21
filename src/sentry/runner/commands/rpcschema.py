@@ -91,7 +91,7 @@ def rpcschema(diagnose: bool, partial: bool) -> None:
             )
         )
         spec = construct_open_api_with_schema_class(spec)
-        return spec.dict(by_alias=True, exclude_none=True)
+        return spec.model_dump(by_alias=True, exclude_none=True)
 
     def create_partial_spec(
         signatures: Iterable[RpcMethodSignature],

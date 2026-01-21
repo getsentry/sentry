@@ -82,7 +82,7 @@ class CursorAgentClient(CodingAgentClient):
                 "content-type": "application/json;charset=utf-8",
                 **self._get_auth_headers(),
             },
-            data=payload.dict(exclude_none=True),
+            data=payload.model_dump(exclude_none=True),
             json=True,
             timeout=60,
         )
