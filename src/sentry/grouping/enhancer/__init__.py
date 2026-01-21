@@ -191,7 +191,7 @@ def _add_rule_source_to_hint(hint: str | None, custom_rules: set[str]) -> str | 
     def _add_type_to_rule(rule_regex_match: re.Match) -> str:
         rule_str = rule_regex_match.group(1)
         rule_type = "custom" if rule_str in custom_rules else "built-in"
-        return f"{rule_type} stack trace rule ({rule_str})"
+        return f"{rule_type} stacktrace rule ({rule_str})"
 
     return HINT_STACKTRACE_RULE_REGEX.sub(_add_type_to_rule, hint)
 
@@ -252,7 +252,7 @@ def _get_hint_for_stacktrace(
         return None
 
     # Add 'custom' or 'built-in' to any stacktrace rule description as appropriate
-    return _add_rule_source_to_hint(raw_hint, custom_rules)
+    return _add_rule_source_to_hint(raw_hint, custom_rules).replace("stack trace", "stacktrace")
 
 
 def _split_rules(
