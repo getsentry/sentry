@@ -151,17 +151,6 @@ test-backend-ci-with-coverage:
 		-o junit_suite_name=pytest
 	@echo ""
 
-test-backend-ci-selective:
-	@echo "--> Running CI Python tests (selective)"
-	python3 -b -m pytest \
-		$$(cat $(SELECTED_TESTS_FILE)) \
-		--json-report \
-		--json-report-file=".artifacts/pytest.json" \
-		--json-report-omit=log \
-		--junit-xml=.artifacts/pytest.junit.xml \
-		-o junit_suite_name=pytest
-	@echo ""
-
 compute-selected-tests:
 	@echo "--> Computing selected tests from coverage data"
 	python3 .github/workflows/scripts/compute-selected-tests.py \
