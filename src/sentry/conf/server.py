@@ -383,6 +383,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
