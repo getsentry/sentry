@@ -77,9 +77,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             if batch_result:
                 org_key = f"organization:{project.organization.id}"
                 org_features = batch_result.get(org_key, {})
-
                 has_gen_ai = org_features.get("organizations:gen-ai-features", False)
-
                 has_explorer_index = org_features.get("organizations:seer-explorer-index", False)
 
                 if has_explorer_index and has_gen_ai:
