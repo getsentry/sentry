@@ -98,6 +98,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
+        assert detector.detector_handler is not None
         detector_occurrence, event_data = build_mock_occurrence_and_event(
             detector.detector_handler, None, PriorityLevel.HIGH
         )
@@ -137,6 +138,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
 
+        assert detector.detector_handler is not None
         detector_occurrence_1, _ = build_mock_occurrence_and_event(
             detector.detector_handler, "group_1", PriorityLevel.HIGH
         )
@@ -158,6 +160,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             event_data_1,
         )
 
+        assert detector.detector_handler is not None
         detector_occurrence_2, _ = build_mock_occurrence_and_event(
             detector.detector_handler, "group_2", PriorityLevel.HIGH
         )
@@ -245,6 +248,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
+        assert detector.detector_handler is not None
         detector_occurrence, event_data = build_mock_occurrence_and_event(
             detector.detector_handler, None, PriorityLevel.HIGH
         )
@@ -301,6 +305,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         process_detectors(data_packet, [detector])
 
+        assert detector.detector_handler is not None
         build_mock_occurrence_and_event(detector.detector_handler, None, PriorityLevel.HIGH)
 
         data_packet = DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}})

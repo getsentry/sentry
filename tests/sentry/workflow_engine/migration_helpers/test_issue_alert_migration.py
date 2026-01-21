@@ -122,7 +122,7 @@ class IssueAlertMigratorTest(TestCase):
         ]
 
     @cached_property
-    def issue_alert(self):
+    def issue_alert(self) -> Rule:
         # create_project_rule runs the IssueAlertMigrator
         return self.create_project_rule(
             name="test",
@@ -133,7 +133,7 @@ class IssueAlertMigratorTest(TestCase):
             frequency=5,
         )
 
-    def assert_nothing_migrated(self, issue_alert):
+    def assert_nothing_migrated(self, issue_alert: Rule) -> None:
         assert not AlertRuleWorkflow.objects.filter(rule_id=issue_alert.id).exists()
         assert not AlertRuleDetector.objects.filter(rule_id=issue_alert.id).exists()
 
@@ -179,8 +179,11 @@ class IssueAlertMigratorTest(TestCase):
         return issue_stream_detector
 
     def assert_issue_alert_migrated(
-        self, issue_alert, is_enabled=True, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
-    ):
+        self,
+        issue_alert: Rule,
+        is_enabled: bool = True,
+        logic_type: DataConditionGroup.Type = DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+    ) -> None:
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
