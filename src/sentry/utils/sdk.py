@@ -88,6 +88,8 @@ SAMPLED_TASKS = {
 SAMPLED_ROUTES = {
     "/_warmup/": 0.0,
     "/api/0/auth/validate/": 0.0,
+    # Temporary: 100% sampling for ai-conversations endpoint debugging (sentry org)
+    "/api/0/organizations/sentry/ai-conversations/": 1.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
