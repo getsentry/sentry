@@ -20,7 +20,7 @@ export function GithubCopilotIntegrationCta() {
   );
 
   const hasGithubCopilotFeatureFlag = organization.features.includes(
-    'integrations-github-copilot'
+    'integrations-github-copilot-agent'
   );
   const hasGithubCopilotIntegration = Boolean(githubCopilotIntegration);
 
