@@ -510,7 +510,7 @@ describe('normalizeAssertion', () => {
   // Import the function directly for unit testing
   const {
     normalizeAssertion,
-  } = require('sentry/views/alerts/rules/uptime/uptimeAlertForm');
+  } = require('sentry/views/alerts/rules/uptime/assertions/field');
 
   it('handles NaN status code value by defaulting to 200', () => {
     const op = {

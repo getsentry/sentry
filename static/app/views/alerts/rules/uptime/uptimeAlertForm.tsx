@@ -34,7 +34,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {Op, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {UptimeAssertionsField} from './assertions/field';
 import {HTTPSnippet} from './httpSnippet';
@@ -65,34 +65,6 @@ const VALID_INTERVALS_SEC = [
 
 function methodHasBody(model: FormModel) {
   return !HTTP_METHODS_NO_BODY.includes(model.getValue('method'));
-}
-
-/**
- * Recursively normalizes assertion values to ensure they are valid before submission.
- * Handles NaN values (from cleared inputs) and clamps to valid HTTP status code range.
- */
-export function normalizeAssertion(op: Op): Op {
-  switch (op.op) {
-    case 'status_code_check':
-      return {
-        ...op,
-        // Default to 200 if NaN (e.g., user cleared input and submitted without blur)
-        value: isNaN(op.value) ? 200 : Math.max(100, Math.min(599, op.value)),
-      };
-    case 'and':
-    case 'or':
-      return {
-        ...op,
-        children: op.children.map(normalizeAssertion),
-      };
-    case 'not':
-      return {
-        ...op,
-        operand: normalizeAssertion(op.operand),
-      };
-    default:
-      return op;
-  }
 }
 
 function getFormDataFromRule(rule: UptimeRule) {
@@ -226,13 +198,6 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
-        }
-        // Normalize assertion values to handle NaN and clamp to valid ranges
-        const assertion = formModel.getValue<{root: Op} | undefined>('assertion');
-        if (assertion?.root) {
-          formModel.setValue('assertion', {
-            root: normalizeAssertion(assertion.root),
-          });
         }
       }}
       extraButton={
