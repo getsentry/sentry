@@ -2,7 +2,7 @@ import {parseAsInteger, parseAsString} from 'nuqs';
 
 import Storage from 'sentry/utils/localStorage';
 
-import {withLocalStorage, withStorage} from './withLocalStorage';
+import {withLocalStorage, withSessionStorage, withStorage} from './withLocalStorage';
 
 describe('withLocalStorage', () => {
   beforeEach(() => {
@@ -395,5 +395,106 @@ describe('withLocalStorage as specialized withStorage', () => {
     const result2 = parser2.parse(null as any);
     expect(result1).toBe(result2);
     expect(result1).toBe('value2');
+  });
+});
+
+describe('withSessionStorage', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
+  it('should use sessionStorage for storage', () => {
+    const parser = withSessionStorage('test:key', parseAsString);
+
+    // Write to URL should sync to sessionStorage
+    parser.serialize('session-value');
+    expect(sessionStorage.getItem('test:key')).toBe(JSON.stringify('session-value'));
+
+    // Should NOT write to localStorage
+    expect(localStorage.getItem('test:key')).toBeNull();
+  });
+
+  it('should fall back to sessionStorage when URL is empty', () => {
+    sessionStorage.setItem('test:key', JSON.stringify('stored-session-value'));
+
+    const parser = withSessionStorage('test:key', parseAsString);
+    const result = parser.parse(null as any);
+
+    expect(result).toBe('stored-session-value');
+  });
+
+  it('should return null when both URL and sessionStorage are empty', () => {
+    const parser = withSessionStorage('test:key', parseAsString);
+    const result = parser.parse(null as any);
+
+    expect(result).toBeNull();
+  });
+
+  it('should sync URL value to sessionStorage', () => {
+    const parser = withSessionStorage('test:key', parseAsString);
+    const result = parser.parse('url-value');
+
+    expect(result).toBe('url-value');
+    expect(sessionStorage.getItem('test:key')).toBe(JSON.stringify('url-value'));
+  });
+
+  it('should work with .withDefault()', () => {
+    const parser = withSessionStorage('test:key', parseAsInteger).withDefault(1);
+
+    // When both URL and sessionStorage are empty, should have default
+    expect(parser).toHaveProperty('defaultValue', 1);
+  });
+
+  it('should be equivalent to withStorage(sessionStorage, ...)', () => {
+    const parser1 = withSessionStorage('test:key', parseAsString);
+    const parser2 = withStorage(sessionStorage, 'test:key', parseAsString);
+
+    // Both should sync to sessionStorage
+    parser1.serialize('value1');
+    expect(sessionStorage.getItem('test:key')).toBe(JSON.stringify('value1'));
+
+    parser2.serialize('value2');
+    expect(sessionStorage.getItem('test:key')).toBe(JSON.stringify('value2'));
+
+    // Both should read from sessionStorage
+    const result1 = parser1.parse(null as any);
+    const result2 = parser2.parse(null as any);
+    expect(result1).toBe(result2);
+    expect(result1).toBe('value2');
+  });
+
+  it('should isolate sessionStorage from localStorage', () => {
+    localStorage.clear();
+
+    const localParser = withLocalStorage('test:key', parseAsString);
+    const sessionParser = withSessionStorage('test:key', parseAsString);
+
+    localParser.serialize('local-value');
+    sessionParser.serialize('session-value');
+
+    expect(localStorage.getItem('test:key')).toBe(JSON.stringify('local-value'));
+    expect(sessionStorage.getItem('test:key')).toBe(JSON.stringify('session-value'));
+
+    // Each parser reads from its own storage
+    const localResult = localParser.parse(null as any);
+    const sessionResult = sessionParser.parse(null as any);
+
+    expect(localResult).toBe('local-value');
+    expect(sessionResult).toBe('session-value');
+  });
+
+  it('should handle complex types with sessionStorage', () => {
+    const parser = withSessionStorage('test:key', parseAsInteger);
+
+    parser.serialize(42);
+    expect(sessionStorage.getItem('test:key')).toBe(JSON.stringify(42));
+
+    const result = parser.parse(null as any);
+    expect(result).toBe(42);
   });
 });

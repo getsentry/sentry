@@ -8,7 +8,7 @@ A generic utility that wraps Nuqs parsers to add storage fallback support with t
 
 ```typescript
 import {parseAsString, useQueryState} from 'nuqs';
-import {withStorage, withLocalStorage} from 'sentry/utils/url/withLocalStorage';
+import {withStorage, withLocalStorage, withSessionStorage} from 'sentry/utils/url/withLocalStorage';
 
 // Using localStorage (via convenience wrapper)
 const [query, setQuery] = useQueryState(
@@ -16,13 +16,13 @@ const [query, setQuery] = useQueryState(
   withLocalStorage('search:query', parseAsString).withDefault('')
 );
 
-// Using sessionStorage
+// Using sessionStorage (via convenience wrapper)
 const [temp, setTemp] = useQueryState(
   'temp',
-  withStorage(sessionStorage, 'temp:data', parseAsString)
+  withSessionStorage('temp:data', parseAsString)
 );
 
-// Using custom storage
+// Using custom storage (generic approach)
 const [custom, setCustom] = useQueryState(
   'custom',
   withStorage(myCustomStorage, 'custom:key', parseAsString)
@@ -31,7 +31,11 @@ const [custom, setCustom] = useQueryState(
 
 ## withLocalStorage
 
-Convenience wrapper around `withStorage` that uses localStorage. This is the most common use case.
+Convenience wrapper around `withStorage` that uses localStorage. Persists across browser sessions. This is the most common use case for user preferences.
+
+## withSessionStorage
+
+Convenience wrapper around `withStorage` that uses sessionStorage. Clears when the browser tab closes. Ideal for temporary state like wizard steps or draft content.
 
 ### How It Works
 
@@ -90,7 +94,7 @@ See `withLocalStorage.example.tsx` for detailed examples including:
 
 ### Best Practices
 
-1. Use descriptive localStorage keys with namespace prefixes:
+1. Use descriptive storage keys with namespace prefixes:
    - ✅ `'search:query'`, `'filters:status'`, `'table:sort'`
    - ❌ `'query'`, `'status'`, `'sort'`
 
@@ -98,7 +102,12 @@ See `withLocalStorage.example.tsx` for detailed examples including:
 
 3. Consider using `.withDefault()` for better UX with non-nullable state
 
-4. Remember that localStorage persists across sessions, acting as user preferences
+4. Choose the right storage type:
+   - Use `withLocalStorage` for user preferences that persist across sessions
+   - Use `withSessionStorage` for temporary state that clears when tab closes
+   - Use `withStorage` with custom implementation for special requirements
+
+5. Remember that storage persists even when URL is cleared (intentional behavior)
 
 ### Testing
 

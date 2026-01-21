@@ -11,7 +11,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {parseAsSort} from 'sentry/utils/queryString';
 
 import {parseAsBooleanLiteral} from './parseAsBooleanLiteral';
-import {withLocalStorage, withStorage} from './withLocalStorage';
+import {withLocalStorage, withSessionStorage} from './withLocalStorage';
 
 /**
  * Example 1: Simple string with localStorage fallback
@@ -175,7 +175,7 @@ export function MultipleFiltersExample() {
 export function TemporaryFilterExample() {
   const [draftMode, setDraftMode] = useQueryState(
     'draft',
-    withStorage(sessionStorage, 'editor:draft', parseAsBooleanLiteral)
+    withSessionStorage('editor:draft', parseAsBooleanLiteral)
   );
 
   return (
@@ -199,7 +199,7 @@ export function TemporaryFilterExample() {
 export function WizardExample() {
   const [step, setStep] = useQueryState(
     'step',
-    withStorage(sessionStorage, 'wizard:step', parseAsInteger).withDefault(1)
+    withSessionStorage('wizard:step', parseAsInteger).withDefault(1)
   );
 
   return (

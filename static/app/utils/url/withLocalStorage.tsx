@@ -1,6 +1,7 @@
 import {createParser, type ParserBuilder} from 'nuqs';
 
 import localStorage from 'sentry/utils/localStorage';
+import sessionStorage from 'sentry/utils/sessionStorage';
 
 /**
  * Wraps a Nuqs parser to add storage fallback support with two-way sync.
@@ -103,6 +104,7 @@ export function withStorage<T>(
  * Wraps a Nuqs parser to add localStorage fallback support with two-way sync.
  *
  * Convenience wrapper around withStorage that uses localStorage.
+ * localStorage persists across browser sessions.
  *
  * @param storageKey - The localStorage key to use (e.g., 'insights:sort', 'agents:cursor')
  * @param parser - Any Nuqs parser (parseAsString, parseAsInteger, custom parsers, etc.)
@@ -130,4 +132,36 @@ export function withLocalStorage<T>(
   parser: ParserBuilder<T>
 ): ParserBuilder<T> {
   return withStorage(localStorage, storageKey, parser);
+}
+
+/**
+ * Wraps a Nuqs parser to add sessionStorage fallback support with two-way sync.
+ *
+ * Convenience wrapper around withStorage that uses sessionStorage.
+ * sessionStorage clears when the browser tab closes, making it ideal for
+ * temporary state that shouldn't persist across sessions.
+ *
+ * @param storageKey - The sessionStorage key to use (e.g., 'wizard:step', 'draft:content')
+ * @param parser - Any Nuqs parser (parseAsString, parseAsInteger, custom parsers, etc.)
+ * @returns A new parser with sessionStorage support
+ *
+ * @example
+ * // Wizard step that clears when tab closes
+ * const [step, setStep] = useQueryState(
+ *   'step',
+ *   withSessionStorage('wizard:step', parseAsInteger).withDefault(1)
+ * );
+ *
+ * @example
+ * // Temporary filter that doesn't persist across sessions
+ * const [draftMode, setDraftMode] = useQueryState(
+ *   'draft',
+ *   withSessionStorage('editor:draft', parseAsBooleanLiteral)
+ * );
+ */
+export function withSessionStorage<T>(
+  storageKey: string,
+  parser: ParserBuilder<T>
+): ParserBuilder<T> {
+  return withStorage(sessionStorage, storageKey, parser);
 }
