@@ -85,7 +85,7 @@ interface DropHandlerProps {
 }
 
 /**
- * Drop hangler for the root assertion container (should only be rendered
+ * Drop handler for the root assertion container (should only be rendered
  * once). Monitors the drag-and-drop context as ops are dragged and updates the
  * tree.
  */
