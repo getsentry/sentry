@@ -307,6 +307,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
             raise PermissionDenied("You are not authorized to access this autofix state")
 
+        # TODO: poll GitHub Copilot agents for status updates
+
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
 

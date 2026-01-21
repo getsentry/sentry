@@ -11,9 +11,12 @@ from rest_framework.exceptions import APIException, NotFound, PermissionDenied, 
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
+from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
@@ -189,12 +192,14 @@ def _extract_repos_from_solution(autofix_state: AutofixState) -> list[str]:
 
 
 def _launch_agents_for_repos(
-    installation: CodingAgentIntegration,
     autofix_state: AutofixState,
     run_id: int,
     organization,
     trigger_source: AutofixTriggerSource,
     instruction: str | None = None,
+    client: CodingAgentClient | None = None,
+    webhook_url: str = "",
+    installation: CodingAgentIntegration | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for all repositories in the solution.
@@ -295,7 +300,12 @@ def _launch_agents_for_repos(
         )
 
         try:
-            coding_agent_state = installation.launch(launch_request)
+            if client:
+                coding_agent_state = client.launch(webhook_url=webhook_url, request=launch_request)
+            elif installation:
+                coding_agent_state = installation.launch(launch_request)
+            else:
+                raise ValidationError("Either client or installation must be provided")
         except (HTTPError, ApiError) as e:
             logger.exception(
                 "coding_agent.repo_launch_error",
@@ -347,20 +357,24 @@ def _launch_agents_for_repos(
 
 def launch_coding_agents_for_run(
     organization_id: int,
-    integration_id: int,
     run_id: int,
+    integration_id: int | None = None,
+    provider: str | None = None,
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
     instruction: str | None = None,
+    user_id: int | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an autofix run.
 
     Args:
         organization_id: The organization ID
-        integration_id: The coding agent integration ID
         run_id: The autofix run ID
+        integration_id: The coding agent integration ID (for integration-based agents like Cursor)
+        provider: The coding agent provider key (for provider-based agents like GitHub Copilot)
         trigger_source: The trigger source (ROOT_CAUSE or SOLUTION)
         instruction: Optional custom instruction to append to the prompt
+        user_id: The user ID (required for per-user token integrations like GitHub Copilot)
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -379,7 +393,29 @@ def launch_coding_agents_for_run(
     if not features.has("organizations:seer-coding-agent-integrations", organization):
         raise PermissionDenied("Feature not available")
 
-    integration, installation = _validate_and_get_integration(organization, integration_id)
+    integration = None
+    installation: CodingAgentIntegration | None = None
+    client: CodingAgentClient | None = None
+    webhook_url = ""
+    is_github_copilot = provider == "github_copilot"
+
+    if is_github_copilot:
+        if not features.has("organizations:integrations-github-copilot-agent", organization):
+            raise PermissionDenied("GitHub Copilot is not enabled for this organization")
+        user_access_token: str | None = None
+        if user_id is not None:
+            user_access_token = github_copilot_identity_service.get_access_token_for_user(
+                user_id=user_id
+            )
+        if not user_access_token:
+            raise PermissionDenied(
+                "GitHub Copilot requires user authorization. Please connect your GitHub account."
+            )
+        client = GithubCopilotAgentClient(user_access_token)
+    elif integration_id is not None:
+        integration, installation = _validate_and_get_integration(organization, integration_id)
+    else:
+        raise ValidationError("Either integration_id or provider must be provided")
 
     autofix_state = _get_autofix_state(run_id, organization)
     if autofix_state is None:
@@ -389,13 +425,21 @@ def launch_coding_agents_for_run(
         "coding_agent.launch_request",
         extra={
             "organization_id": organization.id,
-            "integration_id": integration.id,
+            "integration_id": integration.id if integration else None,
+            "provider": provider or (integration.provider if integration else None),
             "run_id": run_id,
         },
     )
 
     results = _launch_agents_for_repos(
-        installation, autofix_state, run_id, organization, trigger_source, instruction
+        autofix_state,
+        run_id,
+        organization,
+        trigger_source,
+        instruction,
+        client=client,
+        webhook_url=webhook_url,
+        installation=installation,
     )
 
     if not results["successes"] and not results["failures"]:
@@ -405,8 +449,8 @@ def launch_coding_agents_for_run(
         "coding_agent.launch_result",
         extra={
             "organization_id": organization.id,
-            "integration_id": integration.id,
-            "provider": integration.provider,
+            "integration_id": integration.id if integration else None,
+            "provider": provider or (integration.provider if integration else None),
             "run_id": run_id,
             "repos_succeeded": len(results["successes"]),
             "repos_failed": len(results["failures"]),
