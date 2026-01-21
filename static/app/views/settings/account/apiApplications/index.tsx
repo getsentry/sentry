@@ -8,8 +8,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -159,7 +159,7 @@ function CreateApplicationModal({
         <RadioGroup
           label={t('Client Type')}
           value={clientType}
-          onChange={value => setClientType(value as 'confidential' | 'public')}
+          onChange={value => setClientType(value)}
           choices={[
             [
               'confidential',

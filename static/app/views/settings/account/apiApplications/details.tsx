@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Tag} from 'sentry/components/core/badge/tag';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form from 'sentry/components/forms/form';
@@ -20,8 +20,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types/user';
 import {
   useApiQuery,

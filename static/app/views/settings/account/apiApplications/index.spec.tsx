@@ -85,7 +85,9 @@ describe('ApiApplications', () => {
     await userEvent.click(screen.getByLabelText('Create New Application'));
 
     // Modal should appear with client type selection
-    expect(await screen.findByRole('heading', {name: 'Create New Application'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Create New Application'})
+    ).toBeInTheDocument();
     expect(screen.getByText('Confidential')).toBeInTheDocument();
     expect(screen.getByText('Public')).toBeInTheDocument();
 
@@ -132,7 +134,9 @@ describe('ApiApplications', () => {
     await userEvent.click(screen.getByLabelText('Create New Application'));
 
     // Modal should appear with client type selection
-    expect(await screen.findByRole('heading', {name: 'Create New Application'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Create New Application'})
+    ).toBeInTheDocument();
 
     // Click public option and create
     await userEvent.click(screen.getByText('Public'));
