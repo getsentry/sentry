@@ -59,6 +59,8 @@ const config: KnipConfig = {
     '!static/**/{fixtures,__fixtures__}/**!',
     // helper files for tests - it's fine that they are only used in tests
     '!static/**/*{t,T}estUtils*.{js,mjs,ts,tsx}!',
+    // utility hook only used in tests (intentionally)
+    '!static/app/utils/url/useQueryStateWithLocalStorage.tsx!',
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',

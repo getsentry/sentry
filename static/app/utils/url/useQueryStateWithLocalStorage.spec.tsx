@@ -14,29 +14,31 @@ describe('useQueryStateWithLocalStorage', () => {
   it('returns default value when neither URL nor localStorage has value', () => {
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'testParam',
-          namespace: 'testNamespace',
-          defaultValue: 'default',
-        }),
+        useQueryStateWithLocalStorage(
+          'testParam',
+          'testNamespace:testParam',
+          parseAsString,
+          'fallback'
+        ),
       {
         wrapper: withNuqsTestingAdapter(),
       }
     );
 
-    expect(result.current[0]).toBe('default');
+    expect(result.current[0]).toBe('fallback');
   });
 
   it('returns localStorage value when URL is empty', () => {
-    localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('fromStorage'));
+    localStorageWrapper.setItem('testNamespace:testParam', 'fromStorage');
 
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'testParam',
-          namespace: 'testNamespace',
-          defaultValue: 'default',
-        }),
+        useQueryStateWithLocalStorage(
+          'testParam',
+          'testNamespace:testParam',
+          parseAsString,
+          'notUsed'
+        ),
       {
         wrapper: withNuqsTestingAdapter(),
       }
@@ -46,16 +48,16 @@ describe('useQueryStateWithLocalStorage', () => {
   });
 
   it('returns URL value when URL has value (URL takes precedence)', () => {
-    localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('fromStorage'));
+    localStorageWrapper.setItem('testNamespace:testParam', 'fromStorage');
 
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'testParam',
-          namespace: 'testNamespace',
-          defaultValue: 'default',
-          parser: parseAsString,
-        }),
+        useQueryStateWithLocalStorage(
+          'testParam',
+          'testNamespace:testParam',
+          parseAsString,
+          'unused'
+        ),
       {
         wrapper: withNuqsTestingAdapter({
           searchParams: {testParam: 'fromURL'},
@@ -69,12 +71,12 @@ describe('useQueryStateWithLocalStorage', () => {
   it('syncs localStorage when URL changes', async () => {
     renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'testParam',
-          namespace: 'testNamespace',
-          defaultValue: 'default',
-          parser: parseAsString,
-        }),
+        useQueryStateWithLocalStorage(
+          'testParam',
+          'testNamespace:testParam',
+          parseAsString,
+          'initial'
+        ),
       {
         wrapper: withNuqsTestingAdapter({
           searchParams: {testParam: 'newURLValue'},
@@ -84,7 +86,7 @@ describe('useQueryStateWithLocalStorage', () => {
 
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
-      expect(storedValue).toBe(JSON.stringify('newURLValue'));
+      expect(storedValue).toBe('newURLValue');
     });
   });
 
@@ -93,12 +95,12 @@ describe('useQueryStateWithLocalStorage', () => {
 
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'testParam',
-          namespace: 'testNamespace',
-          defaultValue: 'default',
-          parser: parseAsString,
-        }),
+        useQueryStateWithLocalStorage(
+          'testParam',
+          'testNamespace:testParam',
+          parseAsString,
+          'starting'
+        ),
       {
         wrapper: withNuqsTestingAdapter({onUrlUpdate}),
       }
@@ -118,24 +120,18 @@ describe('useQueryStateWithLocalStorage', () => {
 
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
-      expect(storedValue).toBe(JSON.stringify('newValue'));
+      expect(storedValue).toBe('newValue');
     });
   });
 
   it('works with enum-like string types', async () => {
-    type SortOption = 'date' | 'name' | 'size';
-
-    localStorageWrapper.setItem('myNamespace:sort', JSON.stringify('name'));
+    localStorageWrapper.setItem('myNamespace:sort', 'name');
 
     const onUrlUpdate = jest.fn();
 
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage<SortOption>({
-          key: 'sort',
-          namespace: 'myNamespace',
-          defaultValue: 'date',
-        }),
+        useQueryStateWithLocalStorage('sort', 'myNamespace:sort', parseAsString, 'date'),
       {
         wrapper: withNuqsTestingAdapter({onUrlUpdate}),
       }
@@ -157,21 +153,21 @@ describe('useQueryStateWithLocalStorage', () => {
 
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('myNamespace:sort');
-      expect(storedValue).toBe(JSON.stringify('size'));
+      expect(storedValue).toBe('size');
     });
   });
 
   it('does not sync localStorage if URL value matches localStorage', () => {
-    localStorageWrapper.setItem('testNamespace:testParam', JSON.stringify('sameValue'));
+    localStorageWrapper.setItem('testNamespace:testParam', 'sameValue');
 
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'testParam',
-          namespace: 'testNamespace',
-          defaultValue: 'default',
-          parser: parseAsString,
-        }),
+        useQueryStateWithLocalStorage(
+          'testParam',
+          'testNamespace:testParam',
+          parseAsString,
+          'baseline'
+        ),
       {
         wrapper: withNuqsTestingAdapter({
           searchParams: {testParam: 'sameValue'},
@@ -182,22 +178,22 @@ describe('useQueryStateWithLocalStorage', () => {
     expect(result.current[0]).toBe('sameValue');
 
     const storedValue = localStorageWrapper.getItem('testNamespace:testParam');
-    expect(storedValue).toBe(JSON.stringify('sameValue'));
+    expect(storedValue).toBe('sameValue');
   });
 
   it('works with integer values using parseAsInteger', async () => {
-    localStorageWrapper.setItem('testNamespace:count', JSON.stringify(42));
+    localStorageWrapper.setItem('testNamespace:count', '42');
 
     const onUrlUpdate = jest.fn();
 
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'count',
-          namespace: 'testNamespace',
-          defaultValue: 0,
-          parser: parseAsInteger,
-        }),
+        useQueryStateWithLocalStorage(
+          'count',
+          'testNamespace:count',
+          parseAsInteger,
+          999
+        ),
       {
         wrapper: withNuqsTestingAdapter({onUrlUpdate}),
       }
@@ -220,23 +216,23 @@ describe('useQueryStateWithLocalStorage', () => {
 
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('testNamespace:count');
-      expect(storedValue).toBe(JSON.stringify(100));
+      expect(storedValue).toBe('100');
     });
   });
 
   it('works with boolean values using parseAsBoolean', async () => {
-    localStorageWrapper.setItem('testNamespace:enabled', JSON.stringify(true));
+    localStorageWrapper.setItem('testNamespace:enabled', 'true');
 
     const onUrlUpdate = jest.fn();
 
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'enabled',
-          namespace: 'testNamespace',
-          defaultValue: false,
-          parser: parseAsBoolean,
-        }),
+        useQueryStateWithLocalStorage(
+          'enabled',
+          'testNamespace:enabled',
+          parseAsBoolean,
+          false
+        ),
       {
         wrapper: withNuqsTestingAdapter({onUrlUpdate}),
       }
@@ -259,21 +255,21 @@ describe('useQueryStateWithLocalStorage', () => {
 
     await waitFor(() => {
       const storedValue = localStorageWrapper.getItem('testNamespace:enabled');
-      expect(storedValue).toBe(JSON.stringify(false));
+      expect(storedValue).toBe('false');
     });
   });
 
   it('URL integer value overrides localStorage', () => {
-    localStorageWrapper.setItem('testNamespace:pageSize', JSON.stringify(25));
+    localStorageWrapper.setItem('testNamespace:pageSize', '25');
 
     const {result} = renderHook(
       () =>
-        useQueryStateWithLocalStorage({
-          key: 'pageSize',
-          namespace: 'testNamespace',
-          defaultValue: 10,
-          parser: parseAsInteger,
-        }),
+        useQueryStateWithLocalStorage(
+          'pageSize',
+          'testNamespace:pageSize',
+          parseAsInteger,
+          5
+        ),
       {
         wrapper: withNuqsTestingAdapter({
           searchParams: {pageSize: '50'},
@@ -282,5 +278,24 @@ describe('useQueryStateWithLocalStorage', () => {
     );
 
     expect(result.current[0]).toBe(50);
+  });
+
+  it('throws error when parser has .withDefault() configured', () => {
+    expect(() => {
+      renderHook(
+        () =>
+          useQueryStateWithLocalStorage(
+            'testParam',
+            'testNamespace:testParam',
+            parseAsString.withDefault('shouldThrow'),
+            'ignored'
+          ),
+        {
+          wrapper: withNuqsTestingAdapter(),
+        }
+      );
+    }).toThrow(
+      'useQueryStateWithLocalStorage: parser should not have .withDefault() configured'
+    );
   });
 });

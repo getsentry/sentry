@@ -1,7 +1,8 @@
-import {useEffect} from 'react';
-import {parseAsString, useQueryState, type Parser} from 'nuqs';
+import {useCallback, useEffect} from 'react';
+import {useQueryState, type SingleParserBuilder} from 'nuqs';
 
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {defined} from 'sentry/utils';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 /**
  * Hook that syncs state between URL query parameters and localStorage.
@@ -9,74 +10,93 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
  * maintaining user preferences across sessions.
  *
  * Supports any data type via Nuqs parsers (parseAsString, parseAsInteger,
- * parseAsBoolean, parseAsArrayOf, etc.). The parser handles URL serialization
- * while localStorage uses JSON for storage.
+ * parseAsBoolean, parseAsArrayOf, etc.). The parser handles both URL and
+ * localStorage serialization/deserialization.
  *
- * @param props - Configuration object
- * @param props.key - The URL query parameter name
- * @param props.namespace - The localStorage namespace (key will be `namespace:key`)
- * @param props.defaultValue - The default value if neither source has a value
- * @param props.parser - Nuqs parser for the value type (defaults to parseAsString)
+ * **Important**: Pass the parser WITHOUT `.withDefault()` - use the separate
+ * `defaultValue` parameter instead. This ensures localStorage values are
+ * properly prioritized over defaults.
+ *
+ * @param queryKey - The URL query parameter name
+ * @param localStorageKey - The localStorage key
+ * @param parser - Nuqs parser WITHOUT .withDefault(). Pass the base parser (parseAsString, parseAsInteger, etc.)
+ * @param defaultValue - The default value when neither URL nor localStorage has a value
  * @returns Tuple of [effectiveValue, setValue]
  *
  * @example
- * // String values (parser optional, defaults to parseAsString)
- * const [sortBy, setSortBy] = useQueryStateWithLocalStorage({
- *   key: 'sortBy',
- *   namespace: 'dashboards',
- *   defaultValue: 'date',
- * });
- *
- * @example
- * // Integer values
- * const [pageSize, setPageSize] = useQueryStateWithLocalStorage({
- *   key: 'pageSize',
- *   namespace: 'dashboards',
- *   defaultValue: 50,
- *   parser: parseAsInteger,
- * });
- *
- * @example
- * // Boolean values
- * const [enabled, setEnabled] = useQueryStateWithLocalStorage({
- *   key: 'enabled',
- *   namespace: 'dashboards',
- *   defaultValue: false,
- *   parser: parseAsBoolean,
- * });
+ * // String values with default
+ * const [sortBy, setSortBy] = useQueryStateWithLocalStorage(
+ *   'sortBy',
+ *   'dashboards:sortBy',
+ *   parseAsString,
+ *   'date'
+ * );
  */
-export function useQueryStateWithLocalStorage<T>({
-  key,
-  namespace,
-  defaultValue,
-  parser = parseAsString as Parser<T>,
-}: {
-  defaultValue: T;
-  key: string;
-  namespace: string;
-  parser?: Parser<T>;
-}): [T, (value: T) => void] {
-  const [urlValue, setUrlValue] = useQueryState(key, parser);
+export function useQueryStateWithLocalStorage<T>(
+  queryKey: string,
+  localStorageKey: string,
+  parser: SingleParserBuilder<T & {}>,
+  defaultValue: T
+): [T, (value: T & {}) => void] {
+  // Detect if parser has a default value configured (runtime check)
+  // Parsers with .withDefault() have a 'defaultValue' property
+  //
+  // If the parser has `.withDefault()`, it will _always_ return that default
+  // instead of `null` when there's no URL param. This breaks our priority order
+  // (URL > localStorage > default) because we can't distinguish between:
+  //   1. No URL param exists (should fall back to localStorage)
+  //   2. URL param explicitly set to the default value (should use that)
+  // Both would return the same value, making localStorage never take effect.
+  if ('defaultValue' in parser && defined(parser.defaultValue)) {
+    throw new Error(
+      `useQueryStateWithLocalStorage: parser should not have .withDefault() configured. ` +
+        `Pass the base parser and use the separate defaultValue parameter instead.`
+    );
+  }
 
-  const localStorageKey = `${namespace}:${key}`;
+  // The authoritative state is from the URL parameter
+  const [urlValue, setUrlValue] = useQueryState(queryKey, parser);
 
-  const [localStorageValue, setLocalStorageValue] = useLocalStorageState<T>(
-    localStorageKey,
-    defaultValue
-  );
+  // The fallback state is read from `localStorage` directly. We are not using
+  // `useLocalStorageState` because we want to do the deserialization ourselves
+  // according to Nuqs configuration.
+  const stored = localStorageWrapper.getItem(localStorageKey);
+  const localStorageValue = stored ? parser.parse(stored) : null;
 
   const effectiveValue = urlValue ?? localStorageValue ?? defaultValue;
 
+  // Synchronize the URL state and the `localStorage` state by writing the URL
+  // state into `localStorage`. This can happen on hook initialization, if the
+  // URL query state has been updated by the user by some means other than
+  // `setValue`.
   useEffect(() => {
-    if (urlValue !== null && urlValue !== undefined && urlValue !== localStorageValue) {
-      setLocalStorageValue(urlValue);
-    }
-  }, [urlValue, localStorageValue, setLocalStorageValue]);
+    if (defined(urlValue)) {
+      // Use parser's equality check if available (for arrays, objects, etc.)
+      // Otherwise fall back to strict equality
+      const areEqual =
+        defined(localStorageValue) && 'eq' in parser && typeof parser.eq === 'function'
+          ? parser.eq(urlValue, localStorageValue)
+          : urlValue === localStorageValue;
 
-  const setValue = (value: T) => {
-    setUrlValue(value);
-    setLocalStorageValue(value);
-  };
+      if (!areEqual) {
+        const serializedUrlValue = parser.serialize(urlValue);
+        localStorageWrapper.setItem(localStorageKey, serializedUrlValue);
+      }
+    }
+  }, [parser, urlValue, localStorageValue, localStorageKey]);
+
+  const setValue = useCallback(
+    (value: T & {}) => {
+      // `setURLValue` is async in Nuqs. Maybe it's because of throttling.
+      // Normally we might want to `await` the Promise from `setUrlValue` but it'd
+      // be bad for us to have the Nuqs state and the `localStorage` state be out
+      // of sync because the `useEffect` above might re-run.
+      setUrlValue(value);
+      const serializedValue = parser.serialize(value);
+      localStorageWrapper.setItem(localStorageKey, serializedValue);
+    },
+    [setUrlValue, parser, localStorageKey]
+  );
 
   return [effectiveValue, setValue];
 }
