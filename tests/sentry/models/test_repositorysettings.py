@@ -26,7 +26,7 @@ class TestRepositorySettings(TestCase):
         self.repo = self.create_repo(project=self.project)
 
     def test_get_code_review_settings_with_defaults(self) -> None:
-        repo_settings = RepositorySettings.objects.create(repository=self.repo)
+        repo_settings = self.create_repository_settings(repository=self.repo)
 
         settings = repo_settings.get_code_review_settings()
 
@@ -34,7 +34,7 @@ class TestRepositorySettings(TestCase):
         assert settings.triggers == []
 
     def test_get_code_review_settings_with_enabled_and_triggers(self) -> None:
-        repo_settings = RepositorySettings.objects.create(
+        repo_settings = self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
             code_review_triggers=[
@@ -51,7 +51,7 @@ class TestRepositorySettings(TestCase):
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW in settings.triggers
 
     def test_get_code_review_settings_converts_string_triggers_to_enum(self) -> None:
-        repo_settings = RepositorySettings.objects.create(
+        repo_settings = self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
             code_review_triggers=["on_new_commit"],
@@ -63,14 +63,14 @@ class TestRepositorySettings(TestCase):
         assert isinstance(settings.triggers[0], CodeReviewTrigger)
 
     def test_repository_settings_unique_per_repository(self) -> None:
-        RepositorySettings.objects.create(repository=self.repo)
+        self.create_repository_settings(repository=self.repo)
 
         # Creating another settings for the same repo should fail
         with pytest.raises(IntegrityError):
             RepositorySettings.objects.create(repository=self.repo)
 
     def test_repository_settings_deleted_with_repository(self) -> None:
-        repo_settings = RepositorySettings.objects.create(repository=self.repo)
+        repo_settings = self.create_repository_settings(repository=self.repo)
         settings_id = repo_settings.id
 
         self.repo.delete()
