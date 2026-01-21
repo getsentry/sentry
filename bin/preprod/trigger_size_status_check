@@ -618,14 +618,6 @@ def main() -> None:
                 head_build_config.name if head_build_config else "None",
             )
 
-            # Create mobile app info with version details
-            PreprodArtifactMobileAppInfo.objects.create(
-                preprod_artifact=preprod_artifact,
-                app_name=build_config["app_name"],
-                build_version=build_config["build_version"],
-                build_number=build_config["build_number"],
-            )
-
             # Simulate processing time by backdating the creation timestamp
             # This ensures completed_at != started_at in the status check
             preprod_artifact.date_added = preprod_artifact.date_added - timedelta(minutes=7)
