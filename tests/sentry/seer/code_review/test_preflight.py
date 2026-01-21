@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.models.organizationcontributors import OrganizationContributors
-from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.preflight import CodeReviewPreflightService, PreflightDenialReason
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -151,7 +151,7 @@ class TestCodeReviewPreflightService(TestCase):
         self.organization.update_option("sentry:enable_pr_review_test_generation", True)
 
         # Explicitly disable repo code review
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=False,
         )
@@ -183,7 +183,7 @@ class TestCodeReviewPreflightService(TestCase):
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_seat_based_org_has_repo_settings_disabled(self) -> None:
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=False,
         )
@@ -200,7 +200,7 @@ class TestCodeReviewPreflightService(TestCase):
     ) -> None:
         mock_check_quota.return_value = True
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
         )
@@ -228,7 +228,7 @@ class TestCodeReviewPreflightService(TestCase):
     def test_returns_repo_settings_when_allowed(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = True
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
             code_review_triggers=[
@@ -289,7 +289,7 @@ class TestCodeReviewPreflightService(TestCase):
     ) -> None:
         mock_check_quota.return_value = True
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
             code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
@@ -317,7 +317,7 @@ class TestCodeReviewPreflightService(TestCase):
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_integration_id(self) -> None:
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
         )
@@ -335,7 +335,7 @@ class TestCodeReviewPreflightService(TestCase):
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_external_identifier(self) -> None:
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
         )
@@ -353,7 +353,7 @@ class TestCodeReviewPreflightService(TestCase):
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_contributor_does_not_exist(self) -> None:
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
         )
@@ -369,7 +369,7 @@ class TestCodeReviewPreflightService(TestCase):
     def test_denied_when_quota_check_fails(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = False
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
         )
@@ -399,7 +399,7 @@ class TestCodeReviewPreflightService(TestCase):
     ) -> None:
         mock_check_quota.return_value = True
 
-        RepositorySettings.objects.create(
+        self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
             code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
