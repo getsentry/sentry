@@ -322,7 +322,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/autofix/setup/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
     method: 'GET',
     body: AutofixSetupFixture({
       integration: {
