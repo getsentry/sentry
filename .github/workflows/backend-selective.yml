@@ -172,6 +172,9 @@ jobs:
     outputs:
       shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
       shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
+    env:
+      _SENTRY_SKIP_CONFIGURATION: 1
+      DJANGO_SETTINGS_MODULE: sentry.conf.server
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
