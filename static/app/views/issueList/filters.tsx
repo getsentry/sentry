@@ -32,7 +32,7 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
 
       <Search {...{query, onSearch}} />
 
-      <Flex justifySelf="end" gap="md" area="sort-save">
+      <Flex justifySelf="end" gap="md" area="sort-save" align="start">
         <IssueListSortOptions
           query={query}
           sort={sort}
