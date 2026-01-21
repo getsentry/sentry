@@ -27,7 +27,7 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   }
 `;
 
-export const ExploreContentSection = styled('section')<{expanded: boolean}>`
+export const ExploreContentSection = styled('section')`
   background-color: ${p => p.theme.tokens.background.secondary};
   flex: 1 1 auto;
   min-width: 0;
