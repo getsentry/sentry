@@ -896,9 +896,9 @@ const CodingAgentStatusTag = styled('span')<{
   background-color: ${p => {
     switch (p.$status) {
       case 'completed':
-        return p.theme.alert.success.backgroundLight;
+        return p.theme.colors.green100;
       case 'failed':
-        return p.theme.alert.danger.backgroundLight;
+        return p.theme.colors.red100;
       default:
         return p.theme.colors.blue100;
     }

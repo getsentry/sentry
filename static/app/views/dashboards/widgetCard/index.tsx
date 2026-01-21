@@ -542,9 +542,9 @@ const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: ${p => p.theme.alert.danger.backgroundLight};
-  border: 1px solid ${p => p.theme.alert.danger.border};
-  color: ${p => p.theme.alert.danger.textLight};
+  background-color: ${p => p.theme.colors.red100};
+  border: 1px solid ${p => p.theme.colors.red200};
+  color: ${p => p.theme.colors.red200};
   border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;
