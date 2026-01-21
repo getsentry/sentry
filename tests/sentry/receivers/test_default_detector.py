@@ -17,14 +17,14 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.processors.detector import _ensure_metric_detector
+from sentry.workflow_engine.processors.detector import ensure_default_anomaly_detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class TestEnsureMetricDetector(TestCase):
     def test_creates_detector_with_all_components(self):
-        """Test that _ensure_metric_detector creates detector with all required components."""
+        """Test that ensure_default_anomaly_detector creates detector with all required components."""
         project = self.create_project()
         team = self.create_team(organization=project.organization)
         project.add_team(team)
@@ -32,7 +32,9 @@ class TestEnsureMetricDetector(TestCase):
         with mock.patch(
             "sentry.workflow_engine.processors.detector.send_new_detector_data"
         ) as mock_send:
-            detector = _ensure_metric_detector(project, owner_team_id=team.id, enabled=False)
+            detector = ensure_default_anomaly_detector(
+                project, owner_team_id=team.id, enabled=False
+            )
             assert detector is not None
             mock_send.assert_called_once_with(detector)
 
@@ -72,7 +74,7 @@ class TestEnsureMetricDetector(TestCase):
         project = self.create_project()
 
         with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
-            detector = _ensure_metric_detector(project, owner_team_id=None, enabled=True)
+            detector = ensure_default_anomaly_detector(project, owner_team_id=None, enabled=True)
 
         assert detector is not None
         assert detector.owner_team_id is None
@@ -87,18 +89,18 @@ class TestEnsureMetricDetector(TestCase):
             side_effect=Exception("Seer unavailable"),
         ):
             with pytest.raises(Exception, match="Seer unavailable"):
-                _ensure_metric_detector(project)
+                ensure_default_anomaly_detector(project)
 
         # Transaction was rolled back, so no detector should exist
         assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
 
     def test_returns_existing_detector_without_creating_duplicates(self):
-        """Test that calling _ensure_metric_detector twice returns the same detector."""
+        """Test that calling ensure_default_anomaly_detector twice returns the same detector."""
         project = self.create_project()
 
         with mock.patch("sentry.workflow_engine.processors.detector.send_new_detector_data"):
-            detector1 = _ensure_metric_detector(project)
-            detector2 = _ensure_metric_detector(project)
+            detector1 = ensure_default_anomaly_detector(project)
+            detector2 = ensure_default_anomaly_detector(project)
 
         assert detector1 is not None
         assert detector2 is not None
