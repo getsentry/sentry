@@ -14,6 +14,8 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.email.message_builder import MessageBuilder
 
 logger = logging.getLogger("sentry.sentry_apps.sentry_app_publish_request")
@@ -69,7 +71,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 status=400,
             )
 
-        # Permission is enforced by SentryAppPermission which equires org:admin for POST on
+        # Permission is enforced by SentryAppPermission which requires org:admin for POST on
         # unpublished apps (see unpublished_scope_map).
         sentry_app.status = SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
         sentry_app.save()
@@ -112,7 +114,10 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
 
         # Must send to user & partners so that the reply-to email will be each other
         # User is guaranteed to be authenticated since this endpoint requires org:admin
-        recipients = ["integrations-platform@sentry.io", request.user.email]  # type: ignore[union-attr]
+        assert isinstance(
+            request.user, (User, RpcUser)
+        ), "User must be authenticated for this endpoint"
+        recipients = ["integrations-platform@sentry.io", request.user.email]
         sent_messages = new_message.send(
             to=recipients,
         )
