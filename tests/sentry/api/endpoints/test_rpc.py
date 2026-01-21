@@ -122,7 +122,7 @@ class RpcServiceEndpointTest(APITestCase):
         assert response.data
         assert "meta" in response.data
 
-        response_obj = RpcUserOrganizationContext.parse_obj(response.data["value"])
+        response_obj = RpcUserOrganizationContext.model_validate(response.data["value"])
         assert response_obj.organization.id == organization.id
         assert response_obj.organization.slug == organization.slug
         assert response_obj.organization.name == organization.name

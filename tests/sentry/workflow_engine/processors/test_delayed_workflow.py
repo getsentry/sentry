@@ -1170,14 +1170,14 @@ class TestEventKeyAndInstance:
 
         for json_data, expected_error in invalid_cases:
             with pytest.raises(ValueError, match=expected_error):
-                EventInstance.parse_raw(json_data)
+                EventInstance.model_validate_json(json_data)
 
         # Test that extra fields are ignored
-        instance = EventInstance.parse_raw('{"event_id": "test", "extra": "field"}')
+        instance = EventInstance.model_validate_json('{"event_id": "test", "extra": "field"}')
         assert instance.event_id == "test"
         assert instance.occurrence_id is None
 
-        instance = EventInstance.parse_raw(
+        instance = EventInstance.model_validate_json(
             '{"event_id": "test", "occurrence_id": "test", "extra": "field"}'
         )
         assert instance.event_id == "test"

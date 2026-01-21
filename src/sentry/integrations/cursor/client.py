@@ -47,7 +47,7 @@ class CursorAgentClient(CodingAgentClient):
             timeout=30,
         )
 
-        return CursorApiKeyMetadata.validate(api_response.json)
+        return CursorApiKeyMetadata.model_validate(api_response.json)
 
     def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback."""
@@ -87,7 +87,7 @@ class CursorAgentClient(CodingAgentClient):
             timeout=60,
         )
 
-        launch_response = CursorAgentLaunchResponse.validate(api_response.json)
+        launch_response = CursorAgentLaunchResponse.model_validate(api_response.json)
 
         return CodingAgentState(
             id=launch_response.id,
