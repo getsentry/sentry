@@ -1,35 +1,7 @@
-import {formOptions} from '@tanstack/react-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import type {z} from 'zod';
 
 import {useScrapsForm} from './index.tanstack';
-
-export const autoSaveOptions = <
-  TSchema extends z.ZodObject<z.ZodRawShape>,
-  TFieldName extends Extract<keyof z.infer<TSchema>, string>,
->({
-  initialValue,
-  name,
-  schema,
-}: {
-  initialValue: z.infer<TSchema>[TFieldName];
-  name: TFieldName;
-  schema: TSchema;
-}) =>
-  formOptions({
-    formId: `auto-save-${name}`,
-    defaultValues: {[name]: initialValue},
-    validators: {
-      onChange: schema.pick({[name]: true}) as never,
-    },
-    listeners: {
-      onBlur: ({formApi, fieldApi}) => {
-        if (!fieldApi.state.meta.isDefaultValue) {
-          void formApi.handleSubmit();
-        }
-      },
-    },
-  });
 
 /**
  * AutoSaveField Component
@@ -111,7 +83,18 @@ export function AutoSaveField<
   const mutation = useMutation(mutationOptions);
 
   const form = useScrapsForm({
-    ...autoSaveOptions({schema, name, initialValue}),
+    formId: `auto-save-${name}`,
+    defaultValues: {[name]: initialValue},
+    validators: {
+      onChange: schema.pick({[name]: true}) as never,
+    },
+    listeners: {
+      onBlur: ({formApi, fieldApi}) => {
+        if (!fieldApi.state.meta.isDefaultValue) {
+          void formApi.handleSubmit();
+        }
+      },
+    },
     onSubmit: ({value}) => {
       return mutation.mutateAsync(
         value as Record<TFieldName, z.infer<TSchema>[TFieldName]>
@@ -122,7 +105,7 @@ export function AutoSaveField<
   return (
     <form.AppField name={name}>
       {field => {
-        // type X = typeof field;
+        type X = (typeof field)['handleChange'];
         return children(
           {
             handleChange: field.handleChange,
