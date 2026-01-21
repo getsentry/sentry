@@ -76,19 +76,16 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
                 org_key = f"organization:{project.organization.id}"
                 org_features = batch_result.get(org_key, {})
 
-                # Check required flags (AND logic)
                 has_required_features = org_features.get(
                     "organizations:gen-ai-features", False
                 ) and org_features.get("organizations:seer-explorer-index", False)
 
-                # Check billing plan flags (OR logic)
                 has_seer_plan = org_features.get(
                     "organizations:seat-based-seer-enabled", False
                 ) or org_features.get("organizations:seer-added", False)
 
                 has_all_features = has_required_features and has_seer_plan
             else:
-                # Fallback to individual checks
                 has_required_features = features.has(
                     "organizations:gen-ai-features", project.organization
                 ) and features.has("organizations:seer-explorer-index", project.organization)
