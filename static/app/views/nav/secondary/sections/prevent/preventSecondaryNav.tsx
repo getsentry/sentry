@@ -14,7 +14,7 @@ import {
   TOKENS_BASE_URL,
 } from 'sentry/views/prevent/settings';
 
-function PreventSecondaryNav() {
+export default function PreventSecondaryNav() {
   const organization = useOrganization();
   const testsPathname = makePreventPathname({
     organization,
@@ -61,5 +61,3 @@ function PreventSecondaryNav() {
     </Fragment>
   );
 }
-
-export default PreventSecondaryNav;

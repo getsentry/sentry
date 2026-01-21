@@ -503,9 +503,7 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors
-        ? p.theme.alert.danger.backgroundLight
-        : p.theme.tokens.background.secondary};
+      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
   }
   .invisible {
     visibility: hidden;
@@ -516,14 +514,11 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
       visibility: visible;
     }
   }
-  color: ${p =>
-    p.hasErrors ? p.theme.alert.danger.color : p.theme.tokens.content.secondary};
+  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
   background-color: ${p =>
-    p.hasErrors
-      ? p.theme.alert.danger.backgroundLight
-      : p.theme.tokens.background.primary};
+    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.danger.border : 'transparent')};
+    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
 `;
 
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
@@ -538,7 +533,7 @@ const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
   border: 1px solid
-    ${p => (p.hasErrors ? p.theme.alert.danger.border : p.theme.tokens.border.primary)};
+    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;

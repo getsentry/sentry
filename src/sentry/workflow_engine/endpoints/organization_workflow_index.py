@@ -111,13 +111,13 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Workflows"])
+@extend_schema(tags=["Monitors"])
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationWorkflowPermission,)
@@ -190,7 +190,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             OrganizationParams.PROJECT,
         ],
         responses={
-            201: inline_sentry_response_serializer(
+            200: inline_sentry_response_serializer(
                 "ListWorkflowSerializer", list[WorkflowSerializerResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
@@ -270,10 +270,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Workflow",
+        operation_id="Create an Alert for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
+        request=WorkflowValidator,
         responses={
             201: WorkflowSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -281,16 +282,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
     def post(self, request, organization):
         """
-        Creates a workflow for an organization
-        `````````````````````````````````````
-        :param string name: The name of the workflow
-        :param bool enabled: Whether the workflow is enabled or not
-        :param object config: The configuration of the workflow
-        :param object triggers: The Data Condition and DataConditionGroup for the when condition of a workflow
-        :param object action_filters: The Data Conditions, Data Condition Group, and Actions to invoke when a workflow is triggered
+        Creates an alert for an organization
         """
         validator = WorkflowValidator(
             data=request.data,
@@ -374,7 +370,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Delete an Organization's Alerts",
+        operation_id="Bulk Delete Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.QUERY,

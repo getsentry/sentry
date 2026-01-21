@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
@@ -33,9 +34,16 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
     isError,
   } = useApiQuery<ReleaseStatsType>(
     [
-      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
-        version
-      )}/stats/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/stats/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            version,
+          },
+        }
+      ),
       {
         query: {
           ...normalizeDateTimeParams(

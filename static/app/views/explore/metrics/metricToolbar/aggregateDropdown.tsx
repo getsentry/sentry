@@ -1,3 +1,5 @@
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -14,9 +16,9 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
 
   return (
     <CompactSelect
-      triggerProps={{
-        prefix: t('Agg'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Agg')} />
+      )}
       options={OPTIONS_BY_TYPE[traceMetric.type] ?? []}
       value={visualize.parsedFunction?.name ?? ''}
       onChange={option => {

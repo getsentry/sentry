@@ -896,11 +896,11 @@ const CodingAgentStatusTag = styled('span')<{
   background-color: ${p => {
     switch (p.$status) {
       case 'completed':
-        return p.theme.alert.success.backgroundLight;
+        return p.theme.colors.green100;
       case 'failed':
-        return p.theme.alert.danger.backgroundLight;
+        return p.theme.colors.red100;
       default:
-        return p.theme.blue100;
+        return p.theme.colors.blue100;
     }
   }};
   color: ${p => {
@@ -910,7 +910,7 @@ const CodingAgentStatusTag = styled('span')<{
       case 'failed':
         return p.theme.tokens.content.danger;
       default:
-        return p.theme.blue400;
+        return p.theme.tokens.content.accent;
     }
   }};
 `;
