@@ -42,7 +42,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     workflowIds: list[str]
     dateCreated: datetime
     dateUpdated: datetime
-    dataSources: list[dict]
+    dataSources: list[dict] | None
     conditionGroup: dict | None
     config: dict
     enabled: bool

@@ -34,8 +34,8 @@ class TriggerSerializerResponse(TypedDict):
     id: str
     organizationId: str
     logicType: str
-    conditions: list[ConditionSerializerResponse] | None
-    actions: list[ActionSerializerResponse] | None
+    conditions: list[ConditionSerializerResponse] | list[Any]
+    actions: list[ActionSerializerResponse] | list[Any]
 
 
 class WorkflowSerializerResponse(TypedDict):
