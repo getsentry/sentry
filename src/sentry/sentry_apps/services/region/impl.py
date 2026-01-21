@@ -385,7 +385,7 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 auth_context=auth_context,
             )
         except SentryAppSentryError as e:
-            return RpcServiceHookProjectsResult(error=RpcSentryAppError.from_exc(e))
+            return RpcEmptyResult(error=RpcSentryAppError.from_exc(e))
         try:
             hook = ServiceHook.objects.get(
                 installation_id=installation.id, organization_id=organization_id
