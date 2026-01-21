@@ -196,7 +196,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     def get_conditions(self) -> BaseQuerySet[DataCondition]:
         has_cached_condition_group = is_model_attr_cached(self, "workflow_condition_group")
-        conditions = None
+        conditions: BaseQuerySet[DataCondition] | None = None
 
         if has_cached_condition_group:
             if self.workflow_condition_group is not None:
@@ -204,7 +204,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                     self.workflow_condition_group, "conditions"
                 )
                 if has_cached_conditions:
-                    conditions = self.workflow_condition_group.conditions.all()
+                    conditions = self.workflow_condition_group.conditions.all()  # type: ignore[assignment]
 
         if conditions is None:
             # if we don't have the information cached execute a single query to return them

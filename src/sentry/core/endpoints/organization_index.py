@@ -29,6 +29,7 @@ from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import in_iexact
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.models.organization import Organization, OrganizationStatus
@@ -102,7 +103,7 @@ class OrganizationIndexEndpoint(Endpoint):
         """
         owner_only = request.GET.get("owner") in ("1", "true")
 
-        queryset = Organization.objects.distinct()
+        queryset: BaseQuerySet[Organization] = Organization.objects.distinct()
 
         if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):

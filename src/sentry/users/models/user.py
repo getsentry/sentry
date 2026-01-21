@@ -60,7 +60,10 @@ RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
 
-class UserManager(BaseManager["User"], DjangoUserManager["User"]):
+# Both BaseManager and DjangoUserManager define __class_getitem__, causing a conflict.
+# This is safe because both implementations are compatible
+class UserManager(BaseManager["User"], DjangoUserManager["User"]):  # type: ignore[misc]
+
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
     ) -> QuerySet[User]:

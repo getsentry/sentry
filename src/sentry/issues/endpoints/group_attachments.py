@@ -14,6 +14,7 @@ from sentry.api.helpers.events import get_query_builder_for_group
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
@@ -94,7 +95,9 @@ class GroupAttachmentsEndpoint(GroupEndpoint):
         ):
             return self.respond(status=404)
 
-        attachments = EventAttachment.objects.filter(group_id=group.id)
+        attachments: BaseQuerySet[EventAttachment] = EventAttachment.objects.filter(
+            group_id=group.id
+        )
 
         types = request.GET.getlist("types") or ()
         event_ids = request.GET.getlist("event_id") or None

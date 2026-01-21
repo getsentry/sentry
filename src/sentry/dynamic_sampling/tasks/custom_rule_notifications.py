@@ -72,11 +72,17 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
     """
     Returns the number of samples accumulated for the given rule.
     """
-    projects = rule.projects.all()
+    # rule.projects is a ManyToManyField relation. The type checker doesn't know what type .all()
+    # returns (Unknown), but we're assigning it to a BaseQuerySet variable. This is safe because at
+    # runtime, Project uses Project.objects which is a BaseManager (defined with from_queryset(BaseQuerySet)).
+    projects = rule.projects.all()  # type: ignore[assignment]
 
     if not projects:
         # org rule get all projects for org
-        projects = rule.organization.project_set.filter(status=ObjectStatus.ACTIVE)
+        # organization.project_set is a reverse ForeignKey relation. The type checker doesn't know
+        # what type .filter() returns (Unknown), but we're assigning it to a BaseQuerySet variable. This is safe
+        # because at runtime, Project.objects is a BaseManager (defined with from_queryset(BaseQuerySet)).
+        projects = rule.organization.project_set.filter(status=ObjectStatus.ACTIVE)  # type: ignore[assignment]
 
     project_id = []
     project_objects = []

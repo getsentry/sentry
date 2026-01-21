@@ -6,7 +6,7 @@ import weakref
 from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import models, router
@@ -68,10 +68,19 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -
     return f"{prefix}:{model.__name__}:{md5_text(kwargs_bits_str).hexdigest()}"
 
 
-_base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet, "_base_manager_base")
+# from_queryset() dynamically creates a class combining DjangoBaseManager with BaseQuerySet methods.
+# We define _BaseManagerBase to represent this combined type for the type checker. At runtime,
+# we use the actual from_queryset() result.
+if TYPE_CHECKING:
+
+    class _BaseManagerBase(BaseQuerySet[M], DjangoBaseManager[M]):  # type: ignore[misc]
+        pass
+
+else:
+    _BaseManagerBase = DjangoBaseManager.from_queryset(BaseQuerySet, "_BaseManagerBase")
 
 
-class BaseManager(_base_manager_base[M]):
+class BaseManager(_BaseManagerBase[M]):
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
@@ -146,7 +155,7 @@ class BaseManager(_base_manager_base[M]):
 
     __cache = property(_get_cache, _set_cache)
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         d = self.__dict__.copy()
         # we can't serialize weakrefs
         d.pop("_BaseManager__cache", None)

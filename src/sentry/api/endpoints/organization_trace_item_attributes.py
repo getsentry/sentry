@@ -28,7 +28,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseQuerySet
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
@@ -486,7 +486,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         ]
 
     def semver_autocomplete_function(self):
-        versions = Release.objects.filter(version__contains="@" + self.query)
+        versions: ReleaseQuerySet = Release.objects.filter(version__contains="@" + self.query)
 
         project_ids = self.snuba_params.project_ids
         if project_ids:
@@ -503,7 +503,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             )
 
         order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
-        versions = versions.filter_to_semver()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        versions = versions.filter_to_semver()
         versions = versions.annotate_prerelease_column()
         versions = versions.order_by(*order_by)
 
@@ -583,13 +583,13 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             .distinct()
         )
 
-        versions = Release.objects.filter(
+        versions: ReleaseQuerySet = Release.objects.filter(
             organization_id=self.snuba_params.organization_id,
             package__in=packages,
             id__in=ReleaseProject.objects.filter(
                 project_id__in=self.snuba_params.project_ids
             ).values_list("release_id", flat=True),
-        ).annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        ).annotate_prerelease_column()
 
         environment_ids = self.snuba_params.environment_ids
         if environment_ids:
