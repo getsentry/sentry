@@ -1,8 +1,8 @@
 /**
- * Example usage of withLocalStorage utility
+ * Example usage of withStorage and withLocalStorage utilities
  *
- * This file demonstrates various ways to use withLocalStorage with Nuqs parsers
- * to add localStorage fallback support to URL query parameters.
+ * This file demonstrates various ways to use withStorage and withLocalStorage
+ * with Nuqs parsers to add storage fallback support to URL query parameters.
  */
 
 import {parseAsInteger, parseAsString, useQueryState} from 'nuqs';
@@ -11,7 +11,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {parseAsSort} from 'sentry/utils/queryString';
 
 import {parseAsBooleanLiteral} from './parseAsBooleanLiteral';
-import {withLocalStorage} from './withLocalStorage';
+import {withLocalStorage, withStorage} from './withLocalStorage';
 
 /**
  * Example 1: Simple string with localStorage fallback
@@ -167,19 +167,73 @@ export function MultipleFiltersExample() {
 }
 
 /**
+ * Example 6: Using sessionStorage for temporary state
+ *
+ * Session storage clears when the browser tab closes, making it perfect for
+ * temporary filters or draft state that shouldn't persist across sessions.
+ */
+export function TemporaryFilterExample() {
+  const [draftMode, setDraftMode] = useQueryState(
+    'draft',
+    withStorage(sessionStorage, 'editor:draft', parseAsBooleanLiteral)
+  );
+
+  return (
+    <label>
+      <input
+        type="checkbox"
+        checked={draftMode || false}
+        onChange={e => setDraftMode(e.target.checked ? true : null)}
+      />
+      Show drafts (cleared when tab closes)
+    </label>
+  );
+}
+
+/**
+ * Example 7: Using sessionStorage for wizard state
+ *
+ * Multi-step wizards can use sessionStorage to maintain state within a tab
+ * without persisting it across sessions.
+ */
+export function WizardExample() {
+  const [step, setStep] = useQueryState(
+    'step',
+    withStorage(sessionStorage, 'wizard:step', parseAsInteger).withDefault(1)
+  );
+
+  return (
+    <div>
+      <div>Step {step} of 3</div>
+      <button onClick={() => setStep(step - 1)} disabled={step <= 1}>
+        Previous
+      </button>
+      <button onClick={() => setStep(step + 1)} disabled={step >= 3}>
+        Next
+      </button>
+    </div>
+  );
+}
+
+/**
  * Key behaviors to understand:
  *
  * 1. URL is the source of truth - if a URL has a parameter, it takes precedence
- * 2. localStorage is a fallback - used only when URL parameter is missing
- * 3. On mount: If URL is empty but localStorage has a value, URL is updated
- * 4. On change: Both URL and localStorage are updated simultaneously
- * 5. Setting to null: Removes from URL, but localStorage persists (intentional)
- * 6. localStorage persists across sessions, acting as user preferences
+ * 2. Storage is a fallback - used only when URL parameter is missing
+ * 3. On mount: If URL is empty but storage has a value, URL is updated
+ * 4. On change: Both URL and storage are updated simultaneously
+ * 5. Setting to null: Removes from URL, but storage persists (intentional)
+ *
+ * Storage types:
+ * - localStorage: Persists across browser sessions (user preferences)
+ * - sessionStorage: Clears when tab closes (temporary state)
  *
  * Best practices:
  *
- * - Use descriptive localStorage keys with namespace prefixes (e.g., 'search:query')
+ * - Use descriptive storage keys with namespace prefixes (e.g., 'search:query')
  * - Different features should use different key prefixes to avoid conflicts
  * - Consider using .withDefault() for better UX with non-nullable state
- * - Remember that localStorage persists even when URL is cleared
+ * - Choose storage type based on desired persistence:
+ *   - localStorage for user preferences that should persist
+ *   - sessionStorage for temporary state within a tab
  */

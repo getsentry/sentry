@@ -2,7 +2,7 @@ import {parseAsInteger, parseAsString} from 'nuqs';
 
 import Storage from 'sentry/utils/localStorage';
 
-import {withLocalStorage} from './withLocalStorage';
+import {withLocalStorage, withStorage} from './withLocalStorage';
 
 describe('withLocalStorage', () => {
   beforeEach(() => {
@@ -268,5 +268,132 @@ describe('withLocalStorage', () => {
       const result = parser.parse(null as any);
       expect(result).toBe('');
     });
+  });
+});
+
+describe('withStorage', () => {
+  // Create a custom in-memory storage implementation for testing
+  let memoryStorage: Storage;
+
+  beforeEach(() => {
+    const store = new Map<string, string>();
+    memoryStorage = {
+      length: 0,
+      key: (_index: number) => null,
+      clear: () => store.clear(),
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+    };
+  });
+
+  it('should work with custom storage implementation', () => {
+    const parser = withStorage(memoryStorage, 'test:key', parseAsString);
+
+    // Write to URL should sync to custom storage
+    parser.serialize('custom-value');
+    expect(memoryStorage.getItem('test:key')).toBe(JSON.stringify('custom-value'));
+
+    // Read from storage when URL is empty
+    const result = parser.parse(null as any);
+    expect(result).toBe('custom-value');
+  });
+
+  it('should work with sessionStorage', () => {
+    sessionStorage.clear();
+
+    const parser = withStorage(sessionStorage, 'test:key', parseAsString);
+
+    // Write to URL should sync to sessionStorage
+    parser.serialize('session-value');
+    expect(sessionStorage.getItem('test:key')).toBe(JSON.stringify('session-value'));
+
+    // Read from sessionStorage when URL is empty
+    const result = parser.parse(null as any);
+    expect(result).toBe('session-value');
+
+    sessionStorage.clear();
+  });
+
+  it('should isolate different storage instances', () => {
+    const store1 = new Map<string, string>();
+    const storage1: Storage = {
+      length: 0,
+      key: () => null,
+      clear: () => store1.clear(),
+      getItem: (key: string) => store1.get(key) ?? null,
+      setItem: (key: string, value: string) => store1.set(key, value),
+      removeItem: (key: string) => store1.delete(key),
+    };
+
+    const store2 = new Map<string, string>();
+    const storage2: Storage = {
+      length: 0,
+      key: () => null,
+      clear: () => store2.clear(),
+      getItem: (key: string) => store2.get(key) ?? null,
+      setItem: (key: string, value: string) => store2.set(key, value),
+      removeItem: (key: string) => store2.delete(key),
+    };
+
+    const parser1 = withStorage(storage1, 'key', parseAsString);
+    const parser2 = withStorage(storage2, 'key', parseAsString);
+
+    parser1.serialize('value1');
+    parser2.serialize('value2');
+
+    expect(storage1.getItem('key')).toBe(JSON.stringify('value1'));
+    expect(storage2.getItem('key')).toBe(JSON.stringify('value2'));
+  });
+
+  it('should handle storage that throws errors', () => {
+    const errorStorage: Storage = {
+      length: 0,
+      key: () => null,
+      clear: () => {},
+      getItem: () => {
+        throw new Error('Storage unavailable');
+      },
+      setItem: () => {
+        throw new Error('Storage unavailable');
+      },
+      removeItem: () => {
+        throw new Error('Storage unavailable');
+      },
+    };
+
+    const parser = withStorage(errorStorage, 'test:key', parseAsString);
+
+    // Should not throw when storage errors occur
+    expect(() => parser.serialize('value')).not.toThrow();
+    expect(() => parser.parse(null as any)).not.toThrow();
+
+    // Should return null when storage is unavailable
+    const result = parser.parse(null as any);
+    expect(result).toBeNull();
+  });
+});
+
+describe('withLocalStorage as specialized withStorage', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('should be equivalent to withStorage(localStorage, ...)', () => {
+    const parser1 = withLocalStorage('test:key', parseAsString);
+    const parser2 = withStorage(localStorage, 'test:key', parseAsString);
+
+    // Both should sync to localStorage
+    parser1.serialize('value1');
+    expect(localStorage.getItem('test:key')).toBe(JSON.stringify('value1'));
+
+    parser2.serialize('value2');
+    expect(localStorage.getItem('test:key')).toBe(JSON.stringify('value2'));
+
+    // Both should read from localStorage
+    const result1 = parser1.parse(null as any);
+    const result2 = parser2.parse(null as any);
+    expect(result1).toBe(result2);
+    expect(result1).toBe('value2');
   });
 });

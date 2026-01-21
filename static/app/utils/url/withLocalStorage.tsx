@@ -1,22 +1,108 @@
 import {createParser, type ParserBuilder} from 'nuqs';
 
-import Storage from 'sentry/utils/localStorage';
+import localStorage from 'sentry/utils/localStorage';
+
+/**
+ * Wraps a Nuqs parser to add storage fallback support with two-way sync.
+ *
+ * Storage Hierarchy: URL params (primary) ↔ storage (fallback/default)
+ *
+ * Sync Strategy:
+ * - On mount: If URL is empty but storage has a value → update URL
+ * - On read: Always read from URL first, fall back to storage if URL is empty
+ * - On write: Write to both URL and storage simultaneously
+ *
+ * Edge Cases Handled:
+ * - Storage unavailable → continues without storage
+ * - Storage quota exceeded → silently fails writes
+ * - Corrupted JSON in storage → cleans up and returns null
+ * - Both URL and storage empty → returns null (allows .withDefault() to work)
+ *
+ * @param storage - Storage implementation (e.g., localStorage, sessionStorage)
+ * @param storageKey - The storage key to use (e.g., 'insights:sort', 'agents:cursor')
+ * @param parser - Any Nuqs parser (parseAsString, parseAsInteger, custom parsers, etc.)
+ * @returns A new parser with storage support
+ *
+ * @example
+ * // Using localStorage
+ * const [query, setQuery] = useQueryState(
+ *   'query',
+ *   withStorage(localStorage, 'search:query', parseAsString).withDefault('')
+ * );
+ *
+ * @example
+ * // Using sessionStorage
+ * const [temp, setTemp] = useQueryState(
+ *   'temp',
+ *   withStorage(sessionStorage, 'temp:data', parseAsString)
+ * );
+ */
+export function withStorage<T>(
+  storage: Storage,
+  storageKey: string,
+  parser: ParserBuilder<T>
+): ParserBuilder<T> {
+  return createParser<T>({
+    parse: (urlValue: string | null) => {
+      // URL is empty - try storage fallback
+      if (urlValue === null) {
+        let storedValue: string | null = null;
+        try {
+          storedValue = storage.getItem(storageKey);
+        } catch {
+          // Storage unavailable - return null
+          return null;
+        }
+
+        if (storedValue === null) {
+          // Both URL and storage are empty
+          // Return null to allow .withDefault() to work
+          return null;
+        }
+
+        // Parse the stored value
+        try {
+          return JSON.parse(storedValue) as T;
+        } catch {
+          // Corrupted storage data - clean up and return null
+          try {
+            storage.removeItem(storageKey);
+          } catch {
+            // Do nothing
+          }
+          return null;
+        }
+      }
+
+      // URL has a value - use it as source of truth and sync it to storage
+      const parsed = parser.parse(urlValue);
+      if (parsed !== null) {
+        try {
+          storage.setItem(storageKey, JSON.stringify(parsed));
+        } catch {
+          // Storage quota exceeded or unavailable - continue without storage
+        }
+      }
+
+      return parsed;
+    },
+
+    serialize: (value: T) => {
+      try {
+        storage.setItem(storageKey, JSON.stringify(value));
+      } catch {
+        // Do nothing
+      }
+
+      return parser.serialize(value);
+    },
+  });
+}
 
 /**
  * Wraps a Nuqs parser to add localStorage fallback support with two-way sync.
  *
- * Storage Hierarchy: URL params (primary) ↔ localStorage (fallback/default)
- *
- * Sync Strategy:
- * - On mount: If URL is empty but localStorage has a value → update URL
- * - On read: Always read from URL first, fall back to localStorage if URL is empty
- * - On write: Write to both URL and localStorage simultaneously
- *
- * Edge Cases Handled:
- * - localStorage unavailable → continues without storage
- * - localStorage quota exceeded → silently fails writes
- * - Corrupted JSON in localStorage → cleans up and returns null
- * - Both URL and localStorage empty → returns null (allows .withDefault() to work)
+ * Convenience wrapper around withStorage that uses localStorage.
  *
  * @param storageKey - The localStorage key to use (e.g., 'insights:sort', 'agents:cursor')
  * @param parser - Any Nuqs parser (parseAsString, parseAsInteger, custom parsers, etc.)
@@ -43,52 +129,5 @@ export function withLocalStorage<T>(
   storageKey: string,
   parser: ParserBuilder<T>
 ): ParserBuilder<T> {
-  return createParser<T>({
-    parse: (urlValue: string | null) => {
-      // URL is empty - try localStorage fallback
-      if (urlValue === null) {
-        const storedValue = Storage.getItem(storageKey);
-        if (storedValue === null) {
-          // Both URL and localStorage are empty
-          // Return null to allow .withDefault() to work
-          return null;
-        }
-
-        // Parse the stored value
-        try {
-          return JSON.parse(storedValue) as T;
-        } catch {
-          // Corrupted localStorage data - clean up and return null
-          try {
-            Storage.removeItem(storageKey);
-          } catch {
-            // Do nothing
-          }
-          return null;
-        }
-      }
-
-      // URL has a value - use it as source of truth and sync it to localStorage
-      const parsed = parser.parse(urlValue);
-      if (parsed !== null) {
-        try {
-          Storage.setItem(storageKey, JSON.stringify(parsed));
-        } catch {
-          // localStorage quota exceeded or unavailable - continue without storage
-        }
-      }
-
-      return parsed;
-    },
-
-    serialize: (value: T) => {
-      try {
-        Storage.setItem(storageKey, JSON.stringify(value));
-      } catch {
-        // Do nothing
-      }
-
-      return parser.serialize(value);
-    },
-  });
+  return withStorage(localStorage, storageKey, parser);
 }
