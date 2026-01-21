@@ -14,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response, get_query_builder_for_group
 from sentry.api.paginator import GenericOffsetPaginator
@@ -29,6 +30,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.search.events.types import SnubaParams
@@ -82,6 +84,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         },
         examples=EventExamples.GROUP_EVENTS_SIMPLE,
     )
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-events"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Return a list of error events bound to an issue
