@@ -12,7 +12,6 @@ import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export function StackedOrientation({
   timeseriesResult,
-  queryIndex,
   traceMetric,
   orientation,
   setOrientation,
@@ -25,7 +24,6 @@ export function StackedOrientation({
   infoContentHidden: boolean;
   isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
-  queryIndex: number;
   setInfoContentHidden: (hidden: boolean) => void;
   setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
@@ -50,7 +48,6 @@ export function StackedOrientation({
       <StackedGraphWrapper>
         <MetricsGraph
           timeseriesResult={timeseriesResult}
-          queryIndex={queryIndex}
           orientation={orientation}
           isMetricOptionsEmpty={isMetricOptionsEmpty}
         />

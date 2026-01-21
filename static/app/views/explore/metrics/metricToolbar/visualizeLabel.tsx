@@ -20,7 +20,7 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
   const icon = visualize.visible ? <IconShow /> : <IconHide />;
 
   return (
-    <Flex align="center" justify="center" gap="sm">
+    <Flex align="center" justify="start" gap="md">
       <IconLabel onClick={onClick}>{icon}</IconLabel>
       <Text bold size="md">
         {label}
@@ -33,7 +33,6 @@ const IconLabel = styled('div')`
   cursor: pointer;
   color: ${p => p.theme.tokens.content.accent};
   font-weight: ${p => p.theme.fontWeight.bold};
-  width: 24px;
   height: 36px;
   display: flex;
   justify-content: center;
