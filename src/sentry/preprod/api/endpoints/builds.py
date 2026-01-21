@@ -19,13 +19,12 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.api.paginator import OffsetPaginator
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactQuerySet
 
 ERR_FEATURE_REQUIRED = "Feature {} is not enabled for the organization."
 ERR_BAD_KEY = "Key {} is unknown."
@@ -79,14 +78,13 @@ search_config = SearchConfig.create_from(
 )
 
 
+BYTE_FIELD_KEYS = frozenset({"download_size", "install_size"})
+
+
 def get_field_type(key: str) -> str | None:
-    match key:
-        case "download_size":
-            return "byte"
-        case "install_size":
-            return "byte"
-        case _:
-            return None
+    if key in BYTE_FIELD_KEYS:
+        return "byte"
+    return None
 
 
 FIELD_MAPPINGS: dict[str, str] = {
@@ -109,11 +107,83 @@ PLATFORM_TO_ARTIFACT_TYPES: dict[str, list[int]] = {
 }
 
 
+def queryset_for_query(
+    query: str,
+    organization: Organization,
+) -> PreprodArtifactQuerySet:
+    """
+    Create a queryset filtered by the given query string.
+
+    This parses the query string and applies all search filters to a base
+    PreprodArtifact queryset with the necessary annotations for filtering.
+
+    Args:
+        query: The search query string (e.g., "app_id:foo platform:ios")
+        organization: The organization to scope commit_comparison filters to
+
+    Returns:
+        A filtered queryset of PreprodArtifact objects
+
+    Raises:
+        InvalidSearchQuery: If the query string is invalid
+    """
+    queryset = PreprodArtifact.objects.get_queryset()
+    queryset = queryset.annotate_download_count()
+    queryset = queryset.annotate_installable()
+    queryset = queryset.annotate_main_size_metrics()
+
+    search_filters = parse_search_query(query, config=search_config, get_field_type=get_field_type)
+    return apply_filters(queryset, search_filters, organization)
+
+
+def artifact_in_queryset(
+    artifact: PreprodArtifact,
+    queryset: PreprodArtifactQuerySet,
+) -> bool:
+    """
+    Check if a given PreprodArtifact instance is in the queryset.
+
+    Args:
+        artifact: The PreprodArtifact instance to check
+        queryset: The queryset to check against
+
+    Returns:
+        True if the artifact is in the queryset, False otherwise
+    """
+    return queryset.filter(pk=artifact.pk).exists()
+
+
+def artifact_matches_query(
+    artifact: PreprodArtifact,
+    query: str,
+    organization: Organization,
+) -> bool:
+    """
+    Check if a given PreprodArtifact instance matches the query string.
+
+    This combines queryset_for_query() and artifact_in_queryset() to provide
+    a convenient way to check if an artifact matches a search query.
+
+    Args:
+        artifact: The PreprodArtifact instance to check
+        query: The search query string (e.g., "app_id:foo platform:ios")
+        organization: The organization to scope commit_comparison filters to
+
+    Returns:
+        True if the artifact matches the query, False otherwise
+
+    Raises:
+        InvalidSearchQuery: If the query string is invalid
+    """
+    queryset = queryset_for_query(query, organization)
+    return artifact_in_queryset(artifact, queryset)
+
+
 def apply_filters(
-    queryset: BaseQuerySet[PreprodArtifact],
+    queryset: PreprodArtifactQuerySet,
     filters: Sequence[QueryToken],
     organization: Organization,
-) -> BaseQuerySet[PreprodArtifact]:
+) -> PreprodArtifactQuerySet:
     for token in filters:
         # Skip operators and other non-filter types
         if isinstance(token, str):  # Handles "AND", "OR" literals
@@ -263,23 +333,14 @@ class BuildsEndpoint(OrganizationEndpoint):
         # Builds don't have environments so we ignore environments from
         # params on purpose.
 
-        queryset = PreprodArtifact.objects.filter(project_id__in=params["project_id"])
-
-        if start:
-            queryset = queryset.filter(date_added__gte=start)
-        if end:
-            queryset = queryset.filter(date_added__lte=end)
-
-        queryset = queryset.annotate_download_count()  # type: ignore[attr-defined]
-        queryset = queryset.annotate_installable()
-        queryset = queryset.annotate_main_size_metrics()
-
         query = request.GET.get("query", "").strip()
         try:
-            search_filters = parse_search_query(
-                query, config=search_config, get_field_type=get_field_type
-            )
-            queryset = apply_filters(queryset, search_filters, organization)
+            queryset = queryset_for_query(query, organization)
+            if start:
+                queryset = queryset.filter(date_added__gte=start)
+            if end:
+                queryset = queryset.filter(date_added__lte=end)
+            queryset = queryset.filter(project_id__in=params["project_id"])
         except InvalidSearchQuery as e:
             # CodeQL complains about str(e) below but ~all handlers
             # of InvalidSearchQuery do the same as this.
