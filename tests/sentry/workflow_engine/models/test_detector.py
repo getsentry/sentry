@@ -4,11 +4,13 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector import (
     get_detector_project_type_cache_key,
     get_detectors_by_data_source_cache_key,
 )
+from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -115,8 +117,8 @@ class DetectorTest(BaseWorkflowTest):
 
         # First call - cache miss
         with (
-            patch("sentry.utils.cache.cache.get") as mock_cache_get,
-            patch("sentry.utils.cache.cache.set") as mock_cache_set,
+            patch("sentry.workflow_engine.processors.data_source.cache.get") as mock_cache_get,
+            patch("sentry.workflow_engine.processors.data_source.cache.set") as mock_cache_set,
         ):
             mock_cache_get.return_value = None
 
@@ -139,7 +141,7 @@ class DetectorTest(BaseWorkflowTest):
         )
 
         # Mock cache hit
-        with patch("sentry.utils.cache.cache.get") as mock_cache_get:
+        with patch("sentry.workflow_engine.processors.data_source.cache.get") as mock_cache_get:
             mock_cache_get.return_value = error_detector
 
             result = Detector.get_error_detector_for_project(self.project.id)
@@ -191,7 +193,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source.detectors.set([detector])
 
         with self.assertNumQueries(1):
-            result = Detector.objects.get_by_data_source_attributes("12345", "test")
+            result = bulk_fetch_enabled_detectors("12345", "test")
 
             assert len(result) == 1
             assert result[0].id == detector.id
@@ -210,13 +212,13 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector1, detector2, detector3])
 
-        result = Detector.objects.get_by_data_source_attributes("12345", "test")
+        result = bulk_fetch_enabled_detectors("12345", "test")
 
         assert len(result) == 3
         assert {d.id for d in result} == {detector1.id, detector2.id, detector3.id}
 
     def test_get_detectors_by_data_source__not_found(self) -> None:
-        result = Detector.objects.get_by_data_source_attributes("nonexistent", "test")
+        result = bulk_fetch_enabled_detectors("nonexistent", "test")
         assert result == []
 
     def test_get_detectors_by_data_source__filters_disabled(self) -> None:
@@ -229,7 +231,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector1, detector2])
 
-        result = Detector.objects.get_by_data_source_attributes("12345", "test")
+        result = bulk_fetch_enabled_detectors("12345", "test")
 
         assert len(result) == 1
         assert result[0].id == detector1.id
@@ -245,12 +247,12 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source.detectors.set([detector1, detector2])
 
         with (
-            patch("sentry.utils.cache.cache.get") as mock_cache_get,
-            patch("sentry.utils.cache.cache.set") as mock_cache_set,
+            patch("sentry.workflow_engine.processors.data_source.cache.get") as mock_cache_get,
+            patch("sentry.workflow_engine.processors.data_source.cache.set") as mock_cache_set,
         ):
             mock_cache_get.return_value = None
 
-            result = Detector.objects.get_by_data_source_attributes("12345", "test")
+            result = bulk_fetch_enabled_detectors("12345", "test")
 
             assert len(result) == 2
             assert {d.id for d in result} == {detector1.id, detector2.id}
@@ -270,10 +272,10 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         detector2 = self.create_detector(project=self.project, name="Detector 2")
         cached_detectors = [detector1, detector2]
 
-        with patch("sentry.utils.cache.cache.get") as mock_cache_get:
+        with patch("sentry.workflow_engine.processors.data_source.cache.get") as mock_cache_get:
             mock_cache_get.return_value = cached_detectors
 
-            result = Detector.objects.get_by_data_source_attributes("12345", "test")
+            result = bulk_fetch_enabled_detectors("12345", "test")
 
             assert result == cached_detectors
 
@@ -293,11 +295,11 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source = self.create_data_source(source_id="12345", type="test")
         data_source.detectors.set([detector])
 
-        result = Detector.objects.get_by_data_source_attributes("12345", "test")
+        result = bulk_fetch_enabled_detectors("12345", "test")
         assert len(result) == 1
 
         with self.assertNumQueries(0):
-            cached_result = Detector.objects.get_by_data_source_attributes("12345", "test")
+            cached_result = bulk_fetch_enabled_detectors("12345", "test")
             assert len(cached_result) == 1
             assert cached_result[0].workflow_condition_group is not None
             assert list(cached_result[0].workflow_condition_group.conditions.all())
