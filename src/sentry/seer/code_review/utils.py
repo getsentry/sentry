@@ -176,6 +176,7 @@ def transform_webhook_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    organization_integration_id: int | None = None,
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
@@ -187,7 +188,7 @@ def transform_webhook_to_codegen_request(
         organization: The Sentry organization
         repo: The repository model
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
-        trigger: The trigger type for the PR review
+        organization_integration_id: The OrganizationIntegration ID linking the org to the GitHub integration
 
     Returns:
         Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
@@ -239,6 +240,8 @@ def transform_webhook_to_codegen_request(
         "name": repo_name,
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
+        "organization_id": organization.id,
+        "integration_id": organization_integration_id,
     }
 
     trigger_metadata = _get_trigger_metadata(github_event, event_payload)
