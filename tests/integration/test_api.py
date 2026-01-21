@@ -37,7 +37,7 @@ class AuthenticationTest(AuthProviderTestCase):
             f"/api/0/organizations/{self.organization.slug}/",
             f"/api/0/projects/{self.organization.slug}/{self.project.slug}/",
             f"/api/0/teams/{self.organization.slug}/{self.team.slug}/",
-            f"/api/0/issues/{group_id}/",
+            f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/",
             # this uses the internal API, which once upon a time was broken
             f"/api/0/issues/{group_id}/events/latest/",
         )

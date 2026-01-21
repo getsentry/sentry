@@ -12,6 +12,7 @@ from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
     delete_group_list,
@@ -22,6 +23,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -132,6 +134,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         return hourly_stats, daily_stats
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve an Issue
@@ -310,6 +313,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
             raise
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
     def put(self, request: Request, group: Group) -> Response:
         """
         Update an Issue
@@ -390,6 +394,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
             return Response(e.body, status=e.status_code)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
     def delete(self, request: Request, group: Group) -> Response:
         """
         Remove an Issue

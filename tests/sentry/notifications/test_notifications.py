@@ -168,7 +168,7 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue is unassigned.
         """
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with assume_test_silo_mode(SiloMode.REGION):
             GroupAssignee.objects.create(
                 group=self.group,
@@ -237,7 +237,7 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved.
         """
-        url = f"/api/0/issues/{self.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         with assume_test_silo_mode(SiloMode.REGION):
             with self.tasks():
                 response = self.client.put(url, format="json", data={"status": "resolved"})
@@ -457,7 +457,7 @@ class ActivityNotificationTest(APITestCase):
         """
         release = self.create_release()
         with assume_test_silo_mode(SiloMode.REGION):
-            url = f"/api/0/issues/{self.group.id}/"
+            url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
             with self.tasks():
                 response = self.client.put(
                     url,

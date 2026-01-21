@@ -43,8 +43,8 @@ class IssueDetailsPage(BasePage):
     def go_back_to_issues(self):
         self.global_selection.go_back_to_issues()
 
-    def api_issue_get(self, groupid):
-        return self.client.get(f"/api/0/issues/{groupid}/")
+    def api_issue_get(self, group):
+        return self.client.get(f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/")
 
     def go_to_subtab(self, key):
         tabs = self.browser.find_element(by=By.CSS_SELECTOR, value='[role="tablist"]')
