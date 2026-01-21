@@ -96,7 +96,7 @@ def main() -> int:
 
     changed_files = [f.strip() for f in args.changed_files.split() if f.strip()]
     # Remove sentry/testutils/pytest/sentry.py from changed_files if present
-    changed_files = [f for f in changed_files if f != "sentry/testutils/pytest/sentry.py"]
+    changed_files = [f for f in changed_files if f != "src/sentry/testutils/pytest/sentry.py"]
     if not changed_files:
         print("No changed files provided, running full test suite")
         affected_test_files: set[str] = set()
