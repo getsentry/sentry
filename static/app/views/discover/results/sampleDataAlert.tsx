@@ -61,7 +61,7 @@ export function SampleDataAlert({query}: {query?: string}) {
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.color};
+  color: ${p => p.theme.colors.yellow500};
   pointer-events: all;
   &:hover {
     opacity: 0.5;

@@ -362,7 +362,7 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background: ${p => p.theme.alert.info.backgroundLight};
+  background: ${p => p.theme.colors.blue100};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   position: relative;

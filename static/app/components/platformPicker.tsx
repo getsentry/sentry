@@ -371,13 +371,10 @@ const PlatformCard = styled(
   border-radius: 4px;
   cursor: ${p => (p.loading ? 'default' : 'pointer')};
 
-  ${p =>
-    p.selected &&
-    p.visibleSelection &&
-    `background: ${p.theme.alert.info.backgroundLight};`}
+  ${p => p.selected && p.visibleSelection && `background: ${p.theme.colors.blue100};`}
 
   &:hover {
-    background: ${p => p.theme.alert.muted.backgroundLight};
+    background: ${p => p.theme.tokens.background.secondary};
   }
 
   h3 {

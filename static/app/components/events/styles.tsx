@@ -27,12 +27,12 @@ function getColors({priority, theme}: BannerProps & {theme: Theme}) {
       border: theme.tokens.border.primary,
     },
     danger: {
-      background: theme.alert.danger.backgroundLight,
-      border: theme.alert.danger.border,
+      background: theme.colors.red100,
+      border: theme.colors.red200,
     },
     success: {
-      background: theme.alert.success.backgroundLight,
-      border: theme.alert.success.border,
+      background: theme.colors.green100,
+      border: theme.colors.green200,
     },
   } as const;
 
