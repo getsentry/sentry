@@ -105,8 +105,8 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
 
 - Use [core components](./app/components/core/) whenever possible. Use Emotion (styled components) only in edge cases.
 - Use Text, Heading, Flex, Grid, Stack, Container and other core typography/layout components whenever possible.
-- Add stories whenever possible (\*.stories.tsx).
-- Icons should be part of our icon set at static/app/icons and never inlined
+- Add stories whenever possible (\*.stories.mdx).
+- Icons should be part of our icon set at static/app/icons and should never be inlined anywhere in the app.
 - Images should be placed inside static/app/images and imported via loader
 
 ### Core components
@@ -167,6 +167,16 @@ const Component = styled('div')`
 ```
 
 ##### General Guidelines
+
+Favor props over style attribute
+
+```tsx
+// ❌ Do not use style attribute for supported props
+<Flex style={{width: "100%", padding: `${space(1)} ${space(1.5)}`}>
+
+// ✅ Use the supported prop
+<Flex width="100%" padding="md lg">
+```
 
 Use responsive props instead of styled media queries for Flex, Grid and Container.
 
