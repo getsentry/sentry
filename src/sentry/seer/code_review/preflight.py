@@ -8,7 +8,11 @@ from sentry import features
 from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewSettings, RepositorySettings
+from sentry.models.repositorysettings import (
+    CodeReviewSettings,
+    CodeReviewTrigger,
+    RepositorySettings,
+)
 from sentry.seer.code_review.billing import passes_code_review_billing_check
 
 
@@ -59,7 +63,21 @@ class CodeReviewPreflightService:
             if denial_reason is not None:
                 return CodeReviewPreflightResult(allowed=False, denial_reason=denial_reason)
 
-        return CodeReviewPreflightResult(allowed=True, settings=self._repo_settings)
+        settings: CodeReviewSettings | None = self._repo_settings
+        if not self._is_seat_based_seer_plan_org() and (
+            self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org()
+        ):
+            # For beta and legacy usage-based plan orgs, all repos are considered enabled for these default triggers
+            # Seat-based orgs should use their actual repo settings, so they're excluded here
+            settings = CodeReviewSettings(
+                enabled=True,
+                triggers=[
+                    CodeReviewTrigger.ON_NEW_COMMIT,
+                    CodeReviewTrigger.ON_READY_FOR_REVIEW,
+                ],
+            )
+
+        return CodeReviewPreflightResult(allowed=True, settings=settings)
 
     # -------------------------------------------------------------------------
     # Checks - each returns denial reason or None if valid
@@ -100,7 +118,11 @@ class CodeReviewPreflightService:
             return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     def _check_billing(self) -> PreflightDenialReason | None:
-        if self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org():
+        # Code review beta and legacy usage-based plan orgs are exempt from billing checks
+        # as long as they haven't purchased the new seat-based plan
+        if not self._is_seat_based_seer_plan_org() and (
+            self._is_code_review_beta_org() or self._is_legacy_usage_based_seer_plan_org()
+        ):
             return None
 
         if self.integration_id is None or self.pr_author_external_id is None:
@@ -124,12 +146,7 @@ class CodeReviewPreflightService:
         return features.has("organizations:seat-based-seer-enabled", self.organization)
 
     def _is_code_review_beta_org(self) -> bool:
-        # TODO: Remove the has_legacy_opt_in check once the beta list is frozen
-        has_beta_flag = features.has("organizations:code-review-beta", self.organization)
-        has_legacy_opt_in = self.organization.get_option(
-            "sentry:enable_pr_review_test_generation", False
-        )
-        return has_beta_flag or bool(has_legacy_opt_in)
+        return features.has("organizations:code-review-beta", self.organization)
 
     def _is_legacy_usage_based_seer_plan_org(self) -> bool:
         return features.has("organizations:seer-added", self.organization)
