@@ -19,19 +19,14 @@ import LoadingError from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
-import {useMonitorsScheduleSamples} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
-import type {ScheduleType} from 'sentry/views/insights/crons/types';
+import {
+  useMonitorsScheduleSamples,
+  type UseMonitorsScheduleSamplesOptions,
+} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
 
-type SchedulePreviewProps = {
-  failureIssueThreshold: number;
-  recoveryThreshold: number;
-  scheduleCrontab: string;
-  scheduleIntervalUnit: string;
-  scheduleIntervalValue: number;
-  scheduleType: ScheduleType;
+interface SchedulePreviewProps extends UseMonitorsScheduleSamplesOptions {
   statusToText: Record<SchedulePreviewStatus, string>;
-  timezone: string;
-};
+}
 
 const statusPrecedent: SchedulePreviewStatus[] = [
   SchedulePreviewStatus.SUB_FAILURE_ERROR,
@@ -252,7 +247,7 @@ const OpenPeriodCountLabel = styled('div')`
 
 const StyledContainer = styled(Container)`
   top: 8px;
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: ${p => p.theme.zIndex.dropdown};
   /*
     * Prevent seeing content beneath in the uncovered strip above the sticky element.
     * Use a solid, zero-blur shadow so we don't paint over the border.

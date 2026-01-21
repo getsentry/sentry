@@ -1,7 +1,9 @@
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import type {
   UptimeDetector,
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
@@ -26,6 +28,44 @@ interface UptimeDetectorFormData {
   traceSampling: boolean;
   url: string;
   workflowIds: string[];
+}
+
+type UptimeDetectorFormFieldName = keyof UptimeDetectorFormData;
+
+const DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP: {
+  [K in UptimeDetectorFormFieldName]: UptimeDetectorFormData[K];
+} = {
+  assertion: null,
+  body: '',
+  description: null,
+  downtimeThreshold: UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+  environment: '',
+  headers: [],
+  intervalSeconds: 60,
+  method: 'GET',
+  name: '',
+  owner: '',
+  projectId: '',
+  recoveryThreshold: UPTIME_DEFAULT_RECOVERY_THRESHOLD,
+  timeoutMs: 5000,
+  traceSampling: false,
+  url: '',
+  workflowIds: [],
+};
+
+/**
+ * Small helper to automatically get the type of the form field.
+ */
+export function useUptimeDetectorFormField<T extends UptimeDetectorFormFieldName>(
+  name: T
+): UptimeDetectorFormData[T] {
+  const value = useFormField(name);
+
+  if (value === '' || !defined(value)) {
+    return DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP[name];
+  }
+
+  return value;
 }
 
 export function uptimeFormDataToEndpointPayload(
@@ -96,14 +136,14 @@ export function uptimeSavedDetectorToFormData(
 
   return {
     ...common,
-    intervalSeconds: 60,
-    method: 'GET',
-    timeoutMs: 10000,
-    traceSampling: false,
+    intervalSeconds: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.intervalSeconds,
+    method: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.method,
+    timeoutMs: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.timeoutMs,
+    traceSampling: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.traceSampling,
     url: 'https://example.com',
-    headers: [],
-    body: '',
-    assertion: null,
+    headers: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
+    body: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.body,
+    assertion: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.assertion,
     workflowIds: detector.workflowIds,
   };
 }

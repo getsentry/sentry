@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {SchedulePreview} from 'sentry/views/detectors/components/forms/common/schedulePreview';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
+import type {Schedule} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import {useCronDetectorFormField} from './fields';
@@ -32,13 +33,22 @@ export function PreviewSection() {
   );
   const debouncedRecoveryThreshold = useDebouncedValue(recoveryThreshold, DEBOUNCE_DELAY);
 
+  const schedule: Schedule =
+    scheduleType === ScheduleType.CRONTAB
+      ? {
+          type: ScheduleType.CRONTAB,
+          value: debouncedScheduleCrontab,
+        }
+      : {
+          type: ScheduleType.INTERVAL,
+          value: scheduleIntervalValue,
+          unit: scheduleIntervalUnit,
+        };
+
   return (
     <SchedulePreview
       statusToText={statusToText}
-      scheduleType={scheduleType as ScheduleType}
-      scheduleCrontab={debouncedScheduleCrontab}
-      scheduleIntervalValue={scheduleIntervalValue}
-      scheduleIntervalUnit={scheduleIntervalUnit}
+      schedule={schedule}
       timezone={timezone}
       failureIssueThreshold={debouncedFailureIssueThreshold}
       recoveryThreshold={debouncedRecoveryThreshold}
