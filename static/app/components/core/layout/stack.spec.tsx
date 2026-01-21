@@ -3,7 +3,11 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Stack, type StackProps} from 'sentry/components/core/layout';
+import {
+  Stack,
+  type StackProps,
+  type StackPropsWithRenderFunction,
+} from 'sentry/components/core/layout';
 import type {Responsive} from 'sentry/components/core/layout/styles';
 
 describe('Stack', () => {
@@ -149,6 +153,19 @@ describe('Stack', () => {
       const props: StackProps<any> = {};
       expectTypeOf(props.display).toEqualTypeOf<
         Responsive<'flex' | 'inline-flex' | 'none'> | undefined
+      >();
+    });
+
+    it('default signature limits children to React.ReactNode', () => {
+      const props: StackProps<any> = {};
+      expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
+    });
+    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+      const props: StackPropsWithRenderFunction<any> = {
+        children: () => undefined,
+      };
+      expectTypeOf(props.children).toEqualTypeOf<
+        (props: {className: string}) => React.ReactNode | undefined
       >();
     });
   });
