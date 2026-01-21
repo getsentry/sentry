@@ -52,6 +52,7 @@ from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models.detector import invalidate_detectors_by_data_source_cache
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
@@ -547,6 +548,10 @@ def remove_uptime_seat(detector: Detector):
 
 def delete_uptime_detector(detector: Detector):
     uptime_subscription = get_uptime_subscription(detector)
+
+    # Invalidate cache for all data sources before deletion
+    for source_id, source_type in detector.data_sources.values_list("source_id", "type"):
+        invalidate_detectors_by_data_source_cache(source_id, source_type)
 
     remove_uptime_seat(detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
