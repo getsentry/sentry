@@ -18,7 +18,7 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-import type {FormSize, LevelVariant, MotionDuration, MotionEasing} from './types';
+import type {FormSize, MotionDuration, MotionEasing} from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
 
@@ -159,28 +159,11 @@ const generateThemeUtils = () => ({
   `,
 });
 
-const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
-  sample: tokens.dataviz.semantic.accent,
-  info: tokens.dataviz.semantic.accent,
-  // BAD: accessing named colors is forbidden
-  // but necessary to differente from orange
-  warning: color.categorical[mode].yellow,
-  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
-  // but do have it in the chart palette. This needs to be harcoded
-  // because existing users still associate orange with the "error" level.
-  error: color.categorical[mode].orange,
-  fatal: tokens.dataviz.semantic.bad,
-  default: tokens.dataviz.semantic.neutral,
-  unknown: tokens.dataviz.semantic.other,
-});
-
 /**
  * Theme definition
  */
 
 type Colors = typeof lightColors;
-
-type LevelColors = Record<LevelVariant, string>;
 
 const legacyTypography = {
   fontSize: typography.font.size,
@@ -893,9 +876,7 @@ const lightThemeDefinition = {
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
-  // @TODO: these colors need to be ported
   ...generateThemeUtils(),
-  level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
     neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
@@ -925,9 +906,7 @@ export const darkTheme: SentryTheme = {
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
-  // @TODO: these colors need to be ported
   ...generateThemeUtils(),
-  level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
     neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
