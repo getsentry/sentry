@@ -29,7 +29,7 @@ export default function PromotionPriceDisplay({
 const PriceHeader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.fontSize.md};
 `;
 

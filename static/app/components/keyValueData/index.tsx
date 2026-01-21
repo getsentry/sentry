@@ -268,7 +268,7 @@ const ContentWrapper = styled('div')<{
         ? p.theme.alert.danger.backgroundLight
         : p.isSuspectFlag
           ? p.theme.colors.yellow100
-          : p.theme.backgroundSecondary};
+          : p.theme.tokens.background.secondary};
   }
 
   .invisible {

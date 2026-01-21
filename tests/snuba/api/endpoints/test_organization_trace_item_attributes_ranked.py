@@ -160,9 +160,8 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert "rankedAttributes" in response.data
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
     def test_baseline_distribution_includes_baseline_only_buckets(
-        self, mock_keyed_rrf_score, mock_compare_distributions
+        self, mock_compare_distributions
     ) -> None:
         """Test that buckets existing only in baseline (not in suspect) are included in scoring.
 
@@ -170,19 +169,14 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         in all spans but NOT in the suspect cohort were missing from the baseline
         distribution passed to scoring algorithms.
         """
-        # Capture what's passed to the scoring functions
+        # Capture what's passed to compare_distributions
         captured_baseline = None
 
-        def capture_baseline(*args, **kwargs):
+        def capture_compare(*args, **kwargs):
             nonlocal captured_baseline
             captured_baseline = kwargs.get("baseline")
-            # Return results matching the actual internal attribute names
-            return [("sentry.browser", 1.0), ("sentry.device", 0.8)]
-
-        def capture_compare(*args, **kwargs):
             return {"results": [("sentry.browser", 0.9), ("sentry.device", 0.7)]}
 
-        mock_keyed_rrf_score.side_effect = capture_baseline
         mock_compare_distributions.side_effect = capture_compare
 
         tags = [
@@ -292,12 +286,11 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             ), f"Attribute '{attr_name}' should be filtered (meta attribute)"
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.keyed_rrf_score")
     @patch(
         "sentry.api.endpoints.organization_trace_item_attributes_ranked.translate_internal_to_public_alias"
     )
     def test_includes_user_defined_attributes_when_translate_returns_none(
-        self, mock_translate, mock_keyed_rrf_score, mock_compare_distributions
+        self, mock_translate, mock_compare_distributions
     ) -> None:
         """Test that user-defined attributes are included when translate_internal_to_public_alias returns None.
 
@@ -316,14 +309,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         mock_translate.side_effect = mock_translate_func
 
-        # Mock primary scoring (keyed_rrf_score) to include our test attributes
-        mock_keyed_rrf_score.return_value = [
-            ("custom_user_attr", 0.9),
-            ("tags[filtered_tag]", 0.8),
-            ("regular_attr", 0.7),
-        ]
-
-        # Mock secondary scoring for RRR ordering
+        # Mock compare_distributions to return our test attributes (now the primary scoring)
         mock_compare_distributions.return_value = {
             "results": [
                 ("custom_user_attr", 0.9),
@@ -355,6 +341,43 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Regular attribute should be included
         assert "regular_attr" in returned_attrs, "Regular attributes should be included"
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_empty_baseline_returns_empty_response(self, mock_compare_distributions) -> None:
+        """Test that when total_baseline <= 0, the endpoint returns empty rankedAttributes without calling Seer.
+
+        This happens when the outlier cohort (query_1) matches all or more spans than the baseline (query_2),
+        resulting in total_baseline = total_spans - total_outliers <= 0.
+        """
+        # Store spans where ALL spans match both queries
+        tags = [
+            ({"browser": "chrome"}, 100),
+            ({"browser": "firefox"}, 50),
+            ({"browser": "safari"}, 75),
+        ]
+
+        for tag, duration in tags:
+            self._store_span(tags=tag, duration=duration)
+
+        # query_1 and query_2 match the same spans, so total_baseline = 0
+        response = self.do_request(
+            query={
+                "query_1": "span.duration:<=100",  # Matches all spans
+                "query_2": "",  # Also matches all spans
+            }
+        )
+
+        assert response.status_code == 200, response.data
+
+        # Should return full response structure with empty rankedAttributes
+        assert response.data["rankedAttributes"] == []
+        assert "rankingInfo" in response.data
+        assert response.data["rankingInfo"]["function"] == "count(span.duration)"
+        assert response.data["cohort1Total"] == 3  # All spans are in cohort1
+        assert response.data["cohort2Total"] == 0  # No baseline spans
+
+        # compare_distributions should NOT be called when baseline is empty
+        mock_compare_distributions.assert_not_called()
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_failure_rate_filters_to_failed_spans_only(self, mock_compare_distributions) -> None:

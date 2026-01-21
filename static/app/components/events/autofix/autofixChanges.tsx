@@ -155,7 +155,7 @@ const CopyContainer = styled('div')`
   align-items: stretch;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   max-width: 25rem;
   min-width: 0;
   flex: 1;
@@ -277,7 +277,7 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconCodeRef}>
                 <IconCode size="md" variant="accent" />
@@ -294,7 +294,7 @@ export function AutofixChanges({
                 <IconChat />
               </Button>
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <AnimatePresence>
             {agentCommentThread && iconCodeRef.current && (
               <AutofixHighlightPopup
@@ -441,7 +441,7 @@ const Title = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   text-decoration: underline dashed;
-  text-decoration-color: ${p => p.theme.colors.blue400};
+  text-decoration-color: ${p => p.theme.tokens.border.accent.vibrant};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 `;
@@ -481,14 +481,6 @@ const HeaderText = styled('div')`
   align-items: center;
   gap: ${space(1)};
   margin-right: ${space(2)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const BottomDivider = styled('div')`

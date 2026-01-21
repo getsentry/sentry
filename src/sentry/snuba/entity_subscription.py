@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -35,6 +36,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to
@@ -296,6 +298,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             params = {}
 
         params["project_id"] = project_ids
+        is_trace_metric = (
+            self.event_types
+            and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC
+        )
 
         query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
         if environment:
@@ -304,6 +310,8 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         dataset_module: type[RPCBase]
         if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
             dataset_module = OurLogs
+        elif is_trace_metric:
+            dataset_module = TraceMetrics
         else:
             dataset_module = Spans
         now = datetime.now(tz=timezone.utc)
@@ -322,12 +330,24 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             model_mode = ExtrapolationMode(self.extrapolation_mode)
             proto_extrapolation_mode = MODEL_TO_PROTO_EXTRAPOLATION_MODE.get(model_mode)
 
-        search_resolver = dataset_module.get_resolver(
-            snuba_params,
-            SearchResolverConfig(
+        if is_trace_metric:
+            search_config: SearchResolverConfig = TraceMetricsSearchResolverConfig(
+                metric=None,
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=False,
+                extrapolation_mode=proto_extrapolation_mode,
+                stable_timestamp_quantization=False,
+            )
+        else:
+            search_config = SearchResolverConfig(
                 stable_timestamp_quantization=False,
                 extrapolation_mode=proto_extrapolation_mode,
-            ),
+            )
+
+        search_resolver = dataset_module.get_resolver(
+            snuba_params,
+            search_config,
         )
 
         rpc_request, _, _ = dataset_module.get_timeseries_query(

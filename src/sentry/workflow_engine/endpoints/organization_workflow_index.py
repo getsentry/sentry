@@ -40,13 +40,18 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
-from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
+    WorkflowSerializer,
+    WorkflowSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
@@ -106,12 +111,13 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Monitors"])
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationWorkflowPermission,)
@@ -175,7 +181,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     @extend_schema(
-        operation_id="Fetch Workflows",
+        operation_id="Fetch Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
@@ -184,16 +190,19 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             OrganizationParams.PROJECT,
         ],
         responses={
-            201: WorkflowSerializer,
+            200: inline_sentry_response_serializer(
+                "ListWorkflowSerializer", list[WorkflowSerializerResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
     def get(self, request, organization):
         """
-        Returns a list of workflows for a given org
+        Returns a list of alerts for a given organization
         """
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
@@ -261,10 +270,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Workflow",
+        operation_id="Create an Alert for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
+        request=WorkflowValidator,
         responses={
             201: WorkflowSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -272,16 +282,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
     def post(self, request, organization):
         """
-        Creates a workflow for an organization
-        `````````````````````````````````````
-        :param string name: The name of the workflow
-        :param bool enabled: Whether the workflow is enabled or not
-        :param object config: The configuration of the workflow
-        :param object triggers: The Data Condition and DataConditionGroup for the when condition of a workflow
-        :param object action_filters: The Data Conditions, Data Condition Group, and Actions to invoke when a workflow is triggered
+        Creates an alert for an organization
         """
         validator = WorkflowValidator(
             data=request.data,
@@ -365,9 +370,12 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Delete an Organization's Workflows",
+        operation_id="Bulk Delete Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            WorkflowParams.QUERY,
+            WorkflowParams.ID,
+            OrganizationParams.PROJECT,
         ],
         responses={
             200: RESPONSE_SUCCESS,
@@ -380,7 +388,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     )
     def delete(self, request, organization):
         """
-        Deletes workflows for a given org
+        Bulk delete alerts for a given organization
         """
         if not (
             request.GET.getlist("id")

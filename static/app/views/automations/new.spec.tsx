@@ -167,7 +167,7 @@ describe('AutomationNewSettings', () => {
             environment: null,
             actionFilters: [
               {
-                logicType: 'any-short',
+                logicType: 'all',
                 conditions: [
                   {
                     type: 'tagged_event',
@@ -180,7 +180,7 @@ describe('AutomationNewSettings', () => {
                     type: 'slack',
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: null,
+                      targetIdentifier: '',
                       targetDisplay: '#alerts',
                     },
                     integrationId: '1',

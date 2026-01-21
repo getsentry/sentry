@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {space} from 'sentry/styles/space';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -21,7 +23,9 @@ export default function ChartSelectionTitle({title}: Props) {
   }
   return (
     <StyledCompactSelect
-      triggerProps={{borderless: true, size: 'zero'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+      )}
       offset={4}
       options={chartOptions}
       value={chartName}

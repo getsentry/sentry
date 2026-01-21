@@ -104,6 +104,8 @@ class OAuthTokenView(View):
         Client authentication
         - Either Authorization header (Basic) or form fields `client_id`/`client_secret`
           (RFC 6749 §2.3.1). Only one method may be used per request.
+        - For device_code grant: supports public clients per RFC 8628 §5.6, which only
+          require `client_id`. If `client_secret` is provided, it will be validated.
 
         Request format
         - Requests are `application/x-www-form-urlencoded` as defined in RFC 6749 §3.2.
@@ -120,6 +122,16 @@ class OAuthTokenView(View):
         """
         grant_type = request.POST.get("grant_type")
 
+        # Validate grant_type first (needed to determine auth requirements)
+        if not grant_type:
+            return self.error(request=request, name="invalid_request", reason="missing grant_type")
+        if grant_type not in [
+            GrantTypes.AUTHORIZATION,
+            GrantTypes.REFRESH,
+            GrantTypes.DEVICE_CODE,
+        ]:
+            return self.error(request=request, name="unsupported_grant_type")
+
         # Determine client credentials from header or body (mutually exclusive).
         (client_id, client_secret), cred_error = self._extract_basic_auth_credentials(request)
         if cred_error is not None:
@@ -131,41 +143,74 @@ class OAuthTokenView(View):
             tags={
                 "client_id_exists": bool(client_id),
                 "client_secret_exists": bool(client_secret),
+                "grant_type": grant_type,
             },
         )
 
-        if not client_id or not client_secret:
+        if not client_id:
             return self.error(
                 request=request,
                 name="invalid_client",
-                reason="missing client credentials",
+                reason="missing client_id",
                 status=401,
             )
 
-        if not grant_type:
-            return self.error(request=request, name="invalid_request", reason="missing grant_type")
-        if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH, GrantTypes.DEVICE_CODE]:
-            return self.error(request=request, name="unsupported_grant_type")
+        if client_secret:
+            try:
+                application = ApiApplication.objects.get(
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
+                is_public_client = False
+            except ApiApplication.DoesNotExist:
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                logger.warning(
+                    "Invalid client_id / secret pair",
+                    extra={"client_id": client_id},
+                )
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="invalid client_id or client_secret",
+                    status=401,
+                )
+        else:
+            try:
+                application = ApiApplication.objects.get(client_id=client_id)
+            except ApiApplication.DoesNotExist:
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                logger.warning("Invalid client_id", extra={"client_id": client_id})
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="invalid client_id or client_secret",
+                    status=401,
+                )
 
-        try:
-            # Note: We don't filter by status here to distinguish between invalid
-            # credentials (unknown client) and inactive applications. This allows
-            # proper grant cleanup per RFC 6749 §10.5 and clearer metrics.
-            application = ApiApplication.objects.get(
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        except ApiApplication.DoesNotExist:
-            metrics.incr(
-                "oauth_token.post.invalid",
-                sample_rate=1.0,
-            )
-            logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
+            is_public_client = application.is_public
+
+            if not is_public_client:
+                metrics.incr("oauth_token.post.invalid", sample_rate=1.0)
+                logger.warning(
+                    "Confidential client missing secret",
+                    extra={"client_id": client_id},
+                )
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="invalid client_id or client_secret",
+                    status=401,
+                )
+
+        if is_public_client and grant_type not in [
+            GrantTypes.AUTHORIZATION,
+            GrantTypes.DEVICE_CODE,
+            GrantTypes.REFRESH,
+        ]:
             return self.error(
                 request=request,
-                name="invalid_client",
-                reason="invalid client_id or client_secret",
-                status=401,
+                name="unauthorized_client",
+                reason="public clients cannot use this grant type",
             )
 
         # Check application status separately from credential validation.
@@ -226,8 +271,11 @@ class OAuthTokenView(View):
             token_data = self.get_access_tokens(request=request, application=application)
         elif grant_type == GrantTypes.DEVICE_CODE:
             return self.handle_device_code_grant(request=request, application=application)
-        else:
+        elif grant_type == GrantTypes.REFRESH:
             token_data = self.get_refresh_token(request=request, application=application)
+        else:
+            # Should not reach here due to earlier grant_type validation
+            return self.error(request=request, name="unsupported_grant_type")
         if "error" in token_data:
             return self.error(
                 request=request,
@@ -340,9 +388,15 @@ class OAuthTokenView(View):
                 code_verifier=request.POST.get("code_verifier"),
             )
         except InvalidGrantError as e:
-            return {"error": "invalid_grant", "reason": str(e) if str(e) else "invalid grant"}
+            return {
+                "error": "invalid_grant",
+                "reason": str(e) if str(e) else "invalid grant",
+            }
         except ExpiredGrantError as e:
-            return {"error": "invalid_grant", "reason": str(e) if str(e) else "grant expired"}
+            return {
+                "error": "invalid_grant",
+                "reason": str(e) if str(e) else "grant expired",
+            }
 
         token_data = {"token": api_token}
 
@@ -529,7 +583,7 @@ class OAuthTokenView(View):
                 # are atomic. This prevents duplicate tokens if delete fails after
                 # token creation succeeds.
                 with transaction.atomic(router.db_for_write(ApiToken)):
-                    # Create the access token
+                    # Create the access token for the device flow
                     token = ApiToken.objects.create(
                         application=application,
                         user_id=device_code.user.id,

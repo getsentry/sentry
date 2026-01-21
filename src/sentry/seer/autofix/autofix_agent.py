@@ -236,6 +236,7 @@ def get_autofix_explorer_state(organization: Organization, group_id: int):
 def generate_autofix_handoff_prompt(
     state: SeerRunState,
     instruction: str | None = None,
+    short_id: str | None = None,
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -244,6 +245,9 @@ def generate_autofix_handoff_prompt(
     prompt for the coding agent.
     """
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
+
+    if short_id:
+        parts.append(f"Include 'Fixes {short_id}' in the pull request description.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -298,29 +302,15 @@ def trigger_coding_agent_handoff(
     Returns:
         Dictionary with 'successes' and 'failures' lists
     """
-    client = SeerExplorerClient(
-        organization=group.organization,
-        user=None,
-        category_key="autofix",
-        category_value=str(group.id),
-    )
-    state = client.get_run(run_id)
-
-    repos = list(state.get_diffs_by_repo().keys())
-    repos.extend(r for r in state.repo_pr_states.keys() if r not in repos)
-    if not repos:
-        return {
-            "successes": [],
-            "failures": [{"error_message": "No repositories found in run state"}],
-        }
-
-    prompt = generate_autofix_handoff_prompt(state)
-
-    # Fetch project preferences for auto_create_pr setting
+    # Fetch project preferences for repos and auto_create_pr setting
     auto_create_pr = False
+    repos: list[str] = []
     try:
         preference_response = get_project_seer_preferences(group.project_id)
         if preference_response and preference_response.preference:
+            repos = [
+                f"{repo.owner}/{repo.name}" for repo in preference_response.preference.repositories
+            ]
             if preference_response.preference.automation_handoff:
                 auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
     except Exception:
@@ -332,6 +322,24 @@ def trigger_coding_agent_handoff(
                 "project_id": group.project_id,
             },
         )
+
+    if not repos:
+        return {
+            "successes": [],
+            "failures": [{"error_message": "No repositories configured in project preferences"}],
+        }
+
+    client = SeerExplorerClient(
+        organization=group.organization,
+        user=None,
+        category_key="autofix",
+        category_value=str(group.id),
+    )
+    state = client.get_run(run_id)
+
+    short_id = group.qualified_short_id
+
+    prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
 
     return client.launch_coding_agents(
         run_id=run_id,

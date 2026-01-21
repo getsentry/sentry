@@ -486,6 +486,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
     API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
+    API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -944,6 +945,7 @@ class Referrer(StrEnum):
 
     # Getsentry scripts
     DELETE_EVENTS_FROM_FILE = "delete-events-from-file"
+    DELETE_EVENTS_BY_TAG_VALUE = "delete-events-by-tag-value"
 
     # Referrers in tests
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"

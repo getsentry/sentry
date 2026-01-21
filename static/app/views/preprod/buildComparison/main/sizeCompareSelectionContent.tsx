@@ -35,7 +35,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
   isSizeInfoCompleted,
@@ -64,21 +63,18 @@ export function SizeCompareSelectionContent({
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {projectId} = useParams<{
-    projectId: string;
-  }>();
+  const {project: projectId, cursor} = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      cursor: decodeScalar,
+    },
+  });
   const project = ProjectsStore.getBySlug(projectId);
   const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const {cursor} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-    },
-  });
 
   const queryParams: Record<string, any> = {
     per_page: 25,
@@ -351,7 +347,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.colors.surface300};
+      background-color: ${p.theme.tokens.background.tertiary};
     `}
 `;
 
@@ -359,7 +355,7 @@ const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
 `;

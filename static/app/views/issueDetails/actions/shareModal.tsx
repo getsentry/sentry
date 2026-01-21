@@ -268,7 +268,11 @@ const UrlContainer = styled('div')`
 
 const StyledAutoSelectText = styled(AutoSelectText)`
   padding: ${space(1)} ${space(1)};
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TextContainer = styled('div')`

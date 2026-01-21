@@ -109,7 +109,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
       );
     case ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED:
       return tct(
-        'A sent [checkinTooltip:check-in] was dropped due to being rate limited. Reivew our rate limits for more information.',
+        'A sent [checkinTooltip:check-in] was dropped due to being rate limited. Review our rate limits for more information.',
         {checkinTooltip}
       );
     case ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED:

@@ -54,6 +54,24 @@ import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
+export interface GetExploreUrlArgs {
+  organization: Organization;
+  aggregateField?: Array<GroupBy | BaseVisualize>;
+  caseInsensitive?: CaseInsensitive;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sort?: string;
+  table?: 'trace' | 'attribute_breakdowns';
+  title?: string;
+  visualize?: BaseVisualize[];
+}
+
 export function getExploreUrl({
   organization,
   selection,
@@ -70,23 +88,7 @@ export function getExploreUrl({
   title,
   referrer,
   caseInsensitive,
-}: {
-  organization: Organization;
-  aggregateField?: Array<GroupBy | BaseVisualize>;
-  caseInsensitive?: CaseInsensitive;
-  field?: string[];
-  groupBy?: string[];
-  id?: number;
-  interval?: string;
-  mode?: Mode;
-  query?: string;
-  referrer?: string;
-  selection?: PageFilters;
-  sort?: string;
-  table?: string;
-  title?: string;
-  visualize?: BaseVisualize[];
-}) {
+}: GetExploreUrlArgs) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
@@ -666,6 +668,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
   [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
+  [TraceItemDataset.PREPROD]: undefined,
 };
 
 /**

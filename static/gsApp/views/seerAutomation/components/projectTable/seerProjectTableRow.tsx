@@ -47,18 +47,17 @@ export default function SeerProjectTableRow({
 
   // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
   // If any other value is set, we treat it as 'medium'.
-  const hasAutoFixEnabled =
-    autofixSettings.autofixAutomationTuning !== undefined &&
-    autofixSettings.autofixAutomationTuning !== 'off';
+  const isAutoFixEnabled = Boolean(
+    autofixSettings.autofixAutomationTuning &&
+      autofixSettings.autofixAutomationTuning !== 'off'
+  );
 
   // We used to have multiple stopping points for PR Creation.
   // `code_changes` means seer will output code changes, and you can copy and paste them into a new branch.
   // `open_pr` means seer will take those changes and push a PR for you.
-  // `background_agent` is a special value that indicates that the PR creation is delegated to a background agent.
   // All other values are treated as `code_changes`. Which means both checkboxes will be unchecked.
-  const hasCreatePREnabled = autofixSettings.automatedRunStoppingPoint === 'open_pr';
-  const hasDelegationEnabled =
-    autofixSettings.automatedRunStoppingPoint === 'background_agent';
+  const isCreatePrEnabled = autofixSettings.automatedRunStoppingPoint !== 'code_changes';
+  const isBackgroundAgentEnabled = Boolean(autofixSettings.automationHandoff);
 
   return (
     <SimpleTable.Row key={project.id}>
@@ -83,12 +82,14 @@ export default function SeerProjectTableRow({
         ) : (
           <Switch
             disabled={!canWrite}
-            checked={hasAutoFixEnabled}
+            checked={isAutoFixEnabled}
             onChange={e => {
-              const autofixAutomationTuning = e.target.checked ? 'medium' : 'off';
               addLoadingMessage(t('Updating Auto-Fix for %s', project.name));
               updateBulkAutofixAutomationSettings(
-                {projectIds: [project.id], autofixAutomationTuning},
+                {
+                  projectIds: [project.id],
+                  autofixAutomationTuning: e.target.checked ? 'medium' : 'off',
+                },
                 {
                   onError: () =>
                     addErrorMessage(t('Problem updating Auto-Fix for %s', project.name)),
@@ -101,7 +102,7 @@ export default function SeerProjectTableRow({
         )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        {hasDelegationEnabled ? (
+        {isBackgroundAgentEnabled ? (
           <Flex align="center" gap="sm">
             {'n/a'}
             <QuestionTooltip
@@ -113,8 +114,8 @@ export default function SeerProjectTableRow({
           <Placeholder height="20px" width="36px" />
         ) : (
           <Switch
-            disabled={!canWrite}
-            checked={hasCreatePREnabled}
+            disabled={!canWrite || !isAutoFixEnabled}
+            checked={isCreatePrEnabled}
             onChange={e => {
               const automatedRunStoppingPoint = e.target.checked
                 ? 'open_pr'
@@ -141,28 +142,11 @@ export default function SeerProjectTableRow({
         ) : (
           <Flex align="center" gap="sm">
             <Switch
-              disabled={!canWrite || !hasDelegationEnabled}
-              checked={hasDelegationEnabled}
+              disabled
+              checked={isBackgroundAgentEnabled}
               onChange={() => {
-                // This preference can only be turned off, not on, from here.
-                // You need to go to the project settings page to turn it on.
-                addLoadingMessage(t('Updating background agent for %s', project.name));
-                updateBulkAutofixAutomationSettings(
-                  {
-                    projectIds: [project.id],
-                    automatedRunStoppingPoint: 'background_agent',
-                  },
-                  {
-                    onError: () =>
-                      addErrorMessage(
-                        t('Failed to update background agent for %s', project.name)
-                      ),
-                    onSuccess: () =>
-                      addSuccessMessage(
-                        t('Updated background agent for %s', project.name)
-                      ),
-                  }
-                );
+                // This preference has complicated configuration, and thus cannot be
+                // turned off or on from here.
               }}
             />
           </Flex>

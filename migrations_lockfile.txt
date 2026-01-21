@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0022_backfill_preprod_artifact_mobile_app_info
+preprod: 0023_remove_deprecated_preprod_artifact_fields
 
 prevent: 0002_alter_integration_id_not_null
 
@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1017_add_apidevicecode
+sentry: 1020_alter_apiapplication_client_secret_nullable
 
 social_auth: 0003_social_auth_json_field
 

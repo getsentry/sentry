@@ -520,6 +520,10 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
+    const isExplorerVersion =
+      organization.features.includes('seer-explorer') &&
+      organization.features.includes('autofix-on-explorer');
+
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
@@ -527,6 +531,7 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
+      resizable: !isExplorerVersion,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
@@ -570,7 +575,7 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`

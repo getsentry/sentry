@@ -131,7 +131,10 @@ const TagValueRow = styled('li')`
 `;
 
 const StyledLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 
   &:hover [data-underline-on-hover='true'] {

@@ -1,6 +1,8 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
@@ -112,7 +114,9 @@ function RelocationForm() {
           <li>Files must be tar archives (.tar) </li>
         </ul>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region.url}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -173,7 +177,7 @@ const UploadWell = styled('div')`
   margin-top: ${space(2)};
   margin-bottom: ${space(3)};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${space(2)} ${space(3)};
   border-radius: 3px;
   text-align: center;

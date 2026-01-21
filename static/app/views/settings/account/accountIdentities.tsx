@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
@@ -56,15 +58,15 @@ interface IdentityItemProps {
 function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
   return (
     <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
-      <InternalContainer>
+      <Flex justify="center">
         <IdentityIcon providerId={identity.provider.key} />
         <IdentityText isSingleLine={!identity.dateAdded}>
           <IdentityName>{identity.provider.name}</IdentityName>
           {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}
         </IdentityText>
-      </InternalContainer>
-      <InternalContainer>
-        <TagWrapper>
+      </Flex>
+      <Flex justify="center">
+        <Flex justify="start" align="center" flexGrow={1} marginRight="md" gap="sm">
           {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
             <Tag variant="muted">{t('Legacy')}</Tag>
           )}
@@ -76,7 +78,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
           {identity.organization && (
             <Tag variant="info">{identity.organization.slug}</Tag>
           )}
-        </TagWrapper>
+        </Flex>
 
         {identity.status === UserIdentityStatus.CAN_DISCONNECT ? (
           <Confirm
@@ -121,7 +123,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             {t('Disconnect')}
           </Button>
         )}
-      </InternalContainer>
+      </Flex>
     </IdentityPanelItem>
   );
 }
@@ -235,12 +237,6 @@ const IdentityPanelItem = styled(PanelItem)`
   justify-content: space-between;
 `;
 
-const InternalContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-`;
-
 const IdentityText = styled('div')<{isSingleLine?: boolean}>`
   height: 36px;
   display: flex;
@@ -254,15 +250,6 @@ const IdentityName = styled('div')`
 const IdentityDateTime = styled(DateTime)`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const TagWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-grow: 1;
-  margin-right: ${space(1)};
-  gap: ${space(0.75)};
 `;
 
 export default AccountIdentities;

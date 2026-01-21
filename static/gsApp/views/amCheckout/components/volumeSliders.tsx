@@ -14,6 +14,7 @@ import {defined} from 'sentry/utils';
 import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getPlanCategoryName,
   getSingularCategoryName,
   isByteCategory,
@@ -21,8 +22,6 @@ import {
 import UnitTypeItem from 'getsentry/views/amCheckout/components/unitTypeItem';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-
-const ATTACHMENT_DIGITS = 2;
 
 function renderHovercardBody() {
   return (
@@ -60,21 +59,17 @@ export function renderPerformanceHovercard() {
 }
 
 function VolumeSliders({
+  currentSliderValues,
   checkoutTier,
   activePlan,
   organization,
-  formData,
   subscription,
   onReservedChange,
 }: Pick<
   StepProps,
-  | 'activePlan'
-  | 'checkoutTier'
-  | 'organization'
-  | 'onUpdate'
-  | 'formData'
-  | 'subscription'
+  'activePlan' | 'checkoutTier' | 'organization' | 'onUpdate' | 'subscription'
 > & {
+  currentSliderValues: Partial<Record<DataCategory, number>>;
   onReservedChange: (value: number, category: DataCategory) => void;
 }) {
   const renderPerformanceUnitDecoration = () => (
@@ -103,9 +98,11 @@ function VolumeSliders({
           }
 
           const eventBucket = utils.getBucket({
-            events: formData.reserved[category],
+            events: currentSliderValues[category],
             buckets: activePlan.planCategories[category],
           });
+
+          const categoryInfo = getCategoryInfoFromPlural(category);
 
           const min = allowedValues[0];
           const max = allowedValues.slice(-1)[0];
@@ -114,12 +111,8 @@ function VolumeSliders({
           const price = utils.displayPrice({cents: eventBucket.price});
           const unitPrice = utils.displayUnitPrice({
             cents: eventBucket.unitPrice || 0,
-            ...(category === DataCategory.ATTACHMENTS
-              ? {
-                  minDigits: ATTACHMENT_DIGITS,
-                  maxDigits: ATTACHMENT_DIGITS,
-                }
-              : {}),
+            minDigits: categoryInfo?.formatting.priceFormatting.minFractionDigits,
+            maxDigits: categoryInfo?.formatting.priceFormatting.maxFractionDigits,
           });
 
           const sliderId = `slider-${category}`;
@@ -173,7 +166,7 @@ function VolumeSliders({
                   <SpaceBetweenGrid>
                     <VolumeAmount>
                       {formatReservedWithUnits(
-                        formData.reserved[category] ?? null,
+                        currentSliderValues[category] ?? null,
                         category,
                         {
                           isAbbreviated: !isByteCategory(category),
@@ -204,7 +197,7 @@ function VolumeSliders({
                             getPlanCategoryName({plan: activePlan, category})
                           )
                     }
-                    value={formData.reserved[category] ?? ''}
+                    value={currentSliderValues[category] ?? ''}
                     allowedValues={allowedValues}
                     onChange={value =>
                       defined(value) && typeof value === 'number'
@@ -329,7 +322,7 @@ const PerformanceUnits = styled(BaseRow)`
 
 const PerformanceTag = styled(BaseRow)`
   gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 const VolumeAmount = styled('div')`

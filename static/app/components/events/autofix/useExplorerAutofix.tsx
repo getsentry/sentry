@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
   setApiQueryData,
   useApiQuery,
@@ -111,6 +111,7 @@ const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
 
 const makeExplorerAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  {query: {mode: 'explorer'}},
 ];
 
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
@@ -329,6 +330,7 @@ export function useExplorerAutofix(
           `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
           {
             method: 'POST',
+            query: {mode: 'explorer'},
             data: {
               step,
               ...(runId !== undefined && {run_id: runId}),
@@ -408,12 +410,15 @@ export function useExplorerAutofix(
     async (runId: number, integrationId: number) => {
       setWaitingForResponse(true);
 
+      addLoadingMessage('Launching coding agent...');
+
       try {
         const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
           await api.requestPromise(
             `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
             {
               method: 'POST',
+              query: {mode: 'explorer'},
               data: {
                 step: 'coding_agent_handoff',
                 run_id: runId,

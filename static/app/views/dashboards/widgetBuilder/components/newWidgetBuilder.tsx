@@ -94,6 +94,11 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
     query = createTraceMetricFilter(state.traceMetric);
   }
 
+  if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
+    enabled = organization.features.includes('preprod-app-size-dashboard');
+    traceItemType = TraceItemDataset.PREPROD;
+  }
+
   return (
     <TraceItemAttributeProvider
       traceItemType={traceItemType}
@@ -441,7 +446,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
-  background: ${p => p.theme.black};
+  background: ${p => p.theme.colors.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;

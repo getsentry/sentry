@@ -23,7 +23,7 @@ type BannerProps = {
 function getColors({priority, theme}: BannerProps & {theme: Theme}) {
   const COLORS = {
     default: {
-      background: theme.backgroundSecondary,
+      background: theme.tokens.background.secondary,
       border: theme.tokens.border.primary,
     },
     danger: {
