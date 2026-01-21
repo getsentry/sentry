@@ -858,6 +858,13 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                         extra={"target_url": target_url},
                     )
 
+            # GitHub rejects completed_at=null when status is "completed" with a 422
+            if "completed_at" in check_data and check_data["completed_at"] is None:
+                raise ValueError(
+                    "GitHub API rejects completed_at=null when status is 'completed'. "
+                    "Omit completed_at entirely instead of setting it to None."
+                )
+
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)
                 check_id = response.get("id")
