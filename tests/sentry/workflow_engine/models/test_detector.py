@@ -117,8 +117,8 @@ class DetectorTest(BaseWorkflowTest):
 
         # First call - cache miss
         with (
-            patch("sentry.workflow_engine.processors.data_source.cache.get") as mock_cache_get,
-            patch("sentry.workflow_engine.processors.data_source.cache.set") as mock_cache_set,
+            patch("sentry.workflow_engine.models.detector.cache.get") as mock_cache_get,
+            patch("sentry.workflow_engine.models.detector.cache.set") as mock_cache_set,
         ):
             mock_cache_get.return_value = None
 
@@ -141,7 +141,7 @@ class DetectorTest(BaseWorkflowTest):
         )
 
         # Mock cache hit
-        with patch("sentry.workflow_engine.processors.data_source.cache.get") as mock_cache_get:
+        with patch("sentry.workflow_engine.models.detector.cache.get") as mock_cache_get:
             mock_cache_get.return_value = error_detector
 
             result = Detector.get_error_detector_for_project(self.project.id)
