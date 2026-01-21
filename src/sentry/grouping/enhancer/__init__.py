@@ -589,7 +589,7 @@ class EnhancementsConfig:
             rust_enhancements = _get_rust_enhancements("config_structure", pickled)
 
         except (LookupError, AttributeError, TypeError, ValueError) as e:
-            raise ValueError("invalid stack trace rule config: %s" % e)
+            raise ValueError("invalid stacktrace rule config: %s" % e)
 
         return EnhancementsConfigData(
             rules, [rule.text for rule in rules], rust_enhancements, version, bases
