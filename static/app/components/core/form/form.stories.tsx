@@ -26,6 +26,7 @@ import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
 import {autoSaveOptions} from './autoSaveField';
+import {RHFAutoSaveField} from './autoSaveField.rhf';
 import {
   FormischField,
   InputField as FormischInputField,
@@ -244,6 +245,22 @@ function TanStack() {
   return (
     <form.AppForm>
       <Stack gap="lg">
+        {/* <AutoSaveField */}
+        {/*  form={form} */}
+        {/*  name="firstName" */}
+        {/*  mutation={userMutationOptions} */}
+        {/*  label="First Name:" */}
+        {/* > */}
+        {/*  {(field, fieldProps) => ( */}
+        {/*    <field.Input */}
+        {/*      {...fieldProps} */}
+        {/*      disabled={updateFirstName.isPending} */}
+        {/*      label="First Name:" */}
+        {/*      value={field.state.value} */}
+        {/*      onChange={field.handleChange} */}
+        {/*    /> */}
+        {/*  )} */}
+        {/* </AutoSaveField> */}
         <form.AppField
           name="firstName"
           listeners={{
@@ -493,6 +510,78 @@ function Rhf() {
   );
 }
 
+/**
+ * RHF Auto-Save with Render Props
+ */
+function RhfAutoSave() {
+  const user = useQuery(userQuery);
+  const form = useForm<User>({
+    resolver: zodResolver(baseUserSchema),
+    values: user.data,
+  });
+
+  if (user.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <Stack gap="lg">
+      <RHFAutoSaveField
+        name="firstName"
+        control={form.control}
+        trigger={form.trigger}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <InputField
+            label="First Name:"
+            {...fieldProps}
+            value={field.value}
+            onChange={field.onChange}
+            ref={field.ref}
+          />
+        )}
+      </RHFAutoSaveField>
+
+      <RHFAutoSaveField
+        name="lastName"
+        control={form.control}
+        trigger={form.trigger}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <InputField
+            label="Last Name:"
+            required
+            {...fieldProps}
+            value={field.value}
+            onChange={field.onChange}
+            ref={field.ref}
+          />
+        )}
+      </RHFAutoSaveField>
+
+      <RHFAutoSaveField
+        name="age"
+        control={form.control}
+        trigger={form.trigger}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <NumberField
+            label="Age:"
+            required
+            {...fieldProps}
+            value={field.value}
+            onChange={field.onChange}
+            ref={field.ref}
+          />
+        )}
+      </RHFAutoSaveField>
+    </Stack>
+  );
+}
+
 function FormischSecretField({form}: {form: FormStore<typeof userSchemaValibot>}) {
   // Subscribe to just the age field reactively - only this component re-renders when age changes
   const ageField = useFormischField(form, {path: ['age']});
@@ -647,6 +736,14 @@ export default Storybook.story('Form', story => {
     return (
       <Fragment>
         <Rhf />
+      </Fragment>
+    );
+  });
+
+  story('RhfAutoSave', () => {
+    return (
+      <Fragment>
+        <RhfAutoSave />
       </Fragment>
     );
   });
