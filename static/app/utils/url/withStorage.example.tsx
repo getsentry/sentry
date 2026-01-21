@@ -11,7 +11,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {parseAsSort} from 'sentry/utils/queryString';
 
 import {parseAsBooleanLiteral} from './parseAsBooleanLiteral';
-import {withLocalStorage, withSessionStorage} from './withLocalStorage';
+import {withLocalStorage, withSessionStorage} from './withStorage';
 
 /**
  * Example 1: Simple string with localStorage fallback

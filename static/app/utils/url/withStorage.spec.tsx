@@ -2,7 +2,7 @@ import {parseAsInteger, parseAsString} from 'nuqs';
 
 import Storage from 'sentry/utils/localStorage';
 
-import {withLocalStorage, withSessionStorage, withStorage} from './withLocalStorage';
+import {withLocalStorage, withSessionStorage, withStorage} from './withStorage';
 
 describe('withLocalStorage', () => {
   beforeEach(() => {

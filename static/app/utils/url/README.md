@@ -8,7 +8,7 @@ A generic utility that wraps Nuqs parsers to add storage fallback support with t
 
 ```typescript
 import {parseAsString, useQueryState} from 'nuqs';
-import {withStorage, withLocalStorage, withSessionStorage} from 'sentry/utils/url/withLocalStorage';
+import {withStorage, withLocalStorage, withSessionStorage} from 'sentry/utils/url/withStorage';
 
 // Using localStorage (via convenience wrapper)
 const [query, setQuery] = useQueryState(
@@ -75,7 +75,7 @@ Built-in implementations:
 
 ### Examples
 
-See `withLocalStorage.example.tsx` for detailed examples including:
+See `withStorage.example.tsx` for detailed examples including:
 
 **Using localStorage:**
 - Simple string with localStorage fallback
@@ -113,11 +113,11 @@ See `withLocalStorage.example.tsx` for detailed examples including:
 
 Run tests with:
 ```bash
-CI=true pnpm test static/app/utils/url/withLocalStorage.spec.tsx
+CI=true pnpm test static/app/utils/url/withStorage.spec.tsx
 ```
 
 ### Files
 
-- `withLocalStorage.tsx` - Main implementation
-- `withLocalStorage.spec.tsx` - Comprehensive test suite
-- `withLocalStorage.example.tsx` - Usage examples
+- `withStorage.tsx` - Main implementation
+- `withStorage.spec.tsx` - Comprehensive test suite
+- `withStorage.example.tsx` - Usage examples
