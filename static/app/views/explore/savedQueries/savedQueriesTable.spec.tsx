@@ -253,6 +253,7 @@ describe('SavedQueriesTable', () => {
           query: [
             {
               query: 'user.email:*@example.com',
+              mode: 'samples',
             },
           ],
           start: '2024-01-01T00:00:00Z',
@@ -283,6 +284,7 @@ describe('SavedQueriesTable', () => {
           query: [
             {
               query: 'browser.name:Chrome',
+              mode: 'samples',
             },
           ],
           range: '24h',
