@@ -100,18 +100,6 @@ export type TagVariant =
  */
 export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
 
-/**
- * Error/event severity level.
- */
-export type LevelVariant =
-  | 'sample'
-  | 'info'
-  | 'warning'
-  | 'error'
-  | 'fatal'
-  | 'default'
-  | 'unknown';
-
 // -----------------------------------------------------------------------------
 // Internal types
 // -----------------------------------------------------------------------------
