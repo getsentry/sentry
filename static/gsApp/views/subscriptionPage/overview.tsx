@@ -17,12 +17,7 @@ import {
   openOnDemandBudgetEditModal,
 } from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
-import type {
-  CustomerUsage,
-  PromotionData,
-  ReservedBudgetForCategory,
-  Subscription,
-} from 'getsentry/types';
+import type {CustomerUsage, PromotionData, Subscription} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
@@ -60,20 +55,6 @@ function Overview({subscription, promotionData}: Props) {
     isError,
   } = useApiQuery<CustomerUsage>([`/customers/${organization.slug}/usage/`], {
     staleTime: 60_000,
-  });
-
-  const reservedBudgetCategoryInfo: Record<string, ReservedBudgetForCategory> = {};
-  subscription.reservedBudgets?.forEach(rb => {
-    Object.entries(rb.categories).forEach(([category, rbmh]) => {
-      reservedBudgetCategoryInfo[category] = {
-        freeBudget: rb.freeBudget,
-        totalReservedBudget: rb.reservedBudget,
-        reservedSpend: rbmh.reservedSpend,
-        reservedCpe: rbmh.reservedCpe,
-        prepaidBudget: rb.reservedBudget + rb.freeBudget,
-        apiName: rb.apiName,
-      };
-    });
   });
 
   useEffect(() => {
