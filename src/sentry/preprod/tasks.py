@@ -194,6 +194,7 @@ def create_preprod_artifact(
     checksum: str,
     build_configuration_name: str | None = None,
     release_notes: str | None = None,
+    install_groups: list[str] | None = None,
     head_sha: str | None = None,
     base_sha: str | None = None,
     provider: str | None = None,
@@ -265,10 +266,14 @@ def create_preprod_artifact(
                     name=build_configuration_name,
                 )
 
-            # Prepare extras data if release_notes is provided
+            # Prepare extras data if release_notes, install_groups is provided
             extras = None
-            if release_notes:
-                extras = {"release_notes": release_notes}
+            if release_notes or install_groups:
+                extras = {}
+                if release_notes:
+                    extras["release_notes"] = release_notes
+                if install_groups:
+                    extras["install_groups"] = install_groups
 
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
