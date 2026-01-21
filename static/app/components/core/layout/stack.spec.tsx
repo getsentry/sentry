@@ -3,7 +3,8 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Stack, type StackProps} from 'sentry/components/core/layout/stack';
+import {Stack, type StackProps} from 'sentry/components/core/layout';
+import type {Responsive} from 'sentry/components/core/layout/styles';
 
 describe('Stack', () => {
   it('renders children', () => {
@@ -141,5 +142,14 @@ describe('Stack', () => {
       'aria-orientation',
       'horizontal'
     );
+  });
+
+  describe('types', () => {
+    it('has a limited display prop', () => {
+      const props: StackProps<any> = {};
+      expectTypeOf(props.display).toEqualTypeOf<
+        Responsive<'flex' | 'inline-flex' | 'none'> | undefined
+      >();
+    });
   });
 });

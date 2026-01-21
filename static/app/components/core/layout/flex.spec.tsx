@@ -121,7 +121,7 @@ describe('Flex', () => {
 
   describe('types', () => {
     it('has a limited display prop', () => {
-      const props: FlexProps = {};
+      const props: FlexProps<any> = {};
       expectTypeOf(props.display).toEqualTypeOf<
         Responsive<'flex' | 'inline-flex' | 'none'> | undefined
       >();
