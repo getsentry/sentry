@@ -96,6 +96,8 @@ FIELD_MAPPINGS: dict[str, str] = {
     "sha": "commit_comparison__head_sha",
     "base_sha": "commit_comparison__base_sha",
     "build_configuration": "build_configuration__name",
+    "build_version": "mobile_app_info__build_version",
+    "build_number": "mobile_app_info__build_number",
     "bundle_id": "app_id",
     "package_name": "app_id",
 }
