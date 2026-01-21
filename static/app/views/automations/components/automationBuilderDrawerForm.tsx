@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Observer} from 'mobx-react-lite';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -34,6 +35,7 @@ import {
 import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
 import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
+import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 const DEFAULT_INITIAL_DATA = {
   name: '',
@@ -120,32 +122,48 @@ export function AutomationBuilderDrawerForm({
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
-      const formData = data as AutomationFormData;
 
       if (Object.keys(errors).length > 0) {
         trackAnalytics('automation.created', {
           organization,
-          ...getAutomationAnalyticsPayload(newAutomationData),
+          ...getAutomationAnalyticsPayload(
+            getNewAutomationData({
+              data: data as AutomationFormData,
+              state,
+            })
+          ),
           source: 'drawer',
           success: false,
         });
         return;
       }
 
+      const formData = await resolveDetectorIdsForProjects({
+        formData: data as AutomationFormData,
+        onSubmitError,
+        orgSlug: organization.slug,
+        projectIds: data.projectIds,
+        queryClient,
+      });
+      const analyticsPayload = getAutomationAnalyticsPayload(
+        getNewAutomationData({
+          data: formData,
+          state,
+        })
+      );
+
       try {
         formModel.setFormSaving();
         addLoadingMessage(t('Creating Alert...'));
-        const newAutomationData = await getNewAutomationData({
+        const newAutomationData = getNewAutomationData({
           data: formData,
           state,
-          queryClient,
-          orgSlug: organization.slug,
         });
         const automation = await createAutomation(newAutomationData);
         onSubmitSuccess(formModel.getData());
         trackAnalytics('automation.created', {
           organization,
-          ...getAutomationAnalyticsPayload(newAutomationData),
+          ...analyticsPayload,
           source: 'drawer',
           success: true,
         });
@@ -153,9 +171,13 @@ export function AutomationBuilderDrawerForm({
         addSuccessMessage(t('Alert created'));
       } catch (err) {
         onSubmitError(err);
+        Sentry.logger.warn('Create alert request failure (drawer)', {
+          error: err,
+          details: analyticsPayload,
+        });
         trackAnalytics('automation.created', {
           organization,
-          ...getAutomationAnalyticsPayload(newAutomationData),
+          ...analyticsPayload,
           source: 'drawer',
           success: false,
         });

@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/core/layout';
 import type {FieldValue} from 'sentry/components/forms/model';
@@ -49,7 +48,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
-import {fetchIssueStreamDetectorIdsForProjects} from 'sentry/views/automations/utils/fetchIssueStreamDetectorIdsForProjects';
+import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -144,12 +143,10 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
-      const formData = {...data} as AutomationFormData;
-
       if (Object.keys(errors).length > 0) {
         const analyticsPayload = getAutomationAnalyticsPayload(
           getNewAutomationData({
-            data: formData,
+            data: data as AutomationFormData,
             state,
           })
         );
@@ -167,22 +164,13 @@ function AutomationEditForm({automation}: {automation: Automation}) {
 
       formModel.setFormSaving();
 
-      try {
-        // If the user selected by project, we need to convert to detector IDs
-        if (data.projectIds && data.projectIds.length > 0) {
-          const detectorIds = await fetchIssueStreamDetectorIdsForProjects({
-            queryClient,
-            orgSlug: organization.slug,
-            projectIds: data.projectIds,
-          });
-          formData.detectorIds = detectorIds;
-        }
-      } catch (err) {
-        Sentry.captureException(err);
-        onSubmitError(err);
-        addErrorMessage(t('Something went wrong while saving selected projects'));
-      }
-
+      const formData = await resolveDetectorIdsForProjects({
+        formData: data as AutomationFormData,
+        onSubmitError,
+        orgSlug: organization.slug,
+        projectIds: data.projectIds,
+        queryClient,
+      });
       const newAutomationData = getNewAutomationData({
         data: formData,
         state,
