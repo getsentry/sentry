@@ -13,8 +13,11 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {FeatureFilter} from './featureFilter';
 import {StatusCheckRules} from './statusCheckRules';
 
-const SIZE_ENABLED_QUERY_KEY = 'sentry:preprod_size_enabled_query';
-const DISTRIBUTION_ENABLED_QUERY_KEY = 'sentry:preprod_distribution_enabled_query';
+const SIZE_ENABLED_QUERY_READ_KEY = 'sentry:preprod_size_enabled_query';
+const SIZE_ENABLED_QUERY_WRITE_KEY = 'preprodSizeEnabledQuery';
+
+const DISTRIBUTION_ENABLED_QUERY_READ_KEY = 'sentry:preprod_distribution_enabled_query';
+const DISTRIBUTION_ENABLED_QUERY_WRITE_KEY = 'preprodDistributionEnabledQuery';
 
 export default function PreprodSettings() {
   return (
@@ -37,7 +40,8 @@ export default function PreprodSettings() {
         <Stack gap="lg">
           <StatusCheckRules />
           <FeatureFilter
-            settingsKey={SIZE_ENABLED_QUERY_KEY}
+            settingsWriteKey={SIZE_ENABLED_QUERY_WRITE_KEY}
+            settingsReadKey={SIZE_ENABLED_QUERY_READ_KEY}
             title={t('Size Analysis')}
             successMessage={t('Size filter updated')}
           >
@@ -48,7 +52,8 @@ export default function PreprodSettings() {
             </Text>
           </FeatureFilter>
           <FeatureFilter
-            settingsKey={DISTRIBUTION_ENABLED_QUERY_KEY}
+            settingsWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
+            settingsReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
             title={t('Build Distribution')}
             successMessage={t('Distribution filter updated')}
           >
