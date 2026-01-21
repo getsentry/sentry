@@ -138,7 +138,7 @@ export function uptimeSavedDetectorToFormData(
     ...common,
     intervalSeconds: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.intervalSeconds,
     method: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.method,
-    timeoutMs: 10000,
+    timeoutMs: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.timeoutMs,
     traceSampling: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.traceSampling,
     url: 'https://example.com',
     headers: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
