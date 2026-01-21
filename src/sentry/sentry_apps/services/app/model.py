@@ -141,10 +141,10 @@ class RpcSentryAppComponentContext(RpcModel):
 class RpcAlertRuleActionResult(RpcModel):
     success: bool
     message: str
-    error_type: SentryAppErrorType | None
-    webhook_context: dict[str, Any] | None
-    public_context: dict[str, Any] | None
-    status_code: int | None
+    error_type: SentryAppErrorType | None = None
+    webhook_context: dict[str, Any] | None = None
+    public_context: dict[str, Any] | None = None
+    status_code: int | None = None
 
 
 class SentryAppEventDataInterface(Protocol):

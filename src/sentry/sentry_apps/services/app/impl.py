@@ -308,7 +308,7 @@ class DatabaseBackedAppService(AppService):
                 success=False,
                 message="Installation does not exist",
                 error_type=SentryAppErrorType.SENTRY,
-                webhook_type={"installation_uuid": install_uuid},
+                webhook_context={"installation_uuid": install_uuid},
             )
         result = SentryAppAlertRuleActionCreator(install=install, fields=fields).run()
         return RpcAlertRuleActionResult(
