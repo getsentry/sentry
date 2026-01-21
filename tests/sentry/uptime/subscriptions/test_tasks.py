@@ -327,6 +327,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "trace_sampling": False,
             "capture_response_on_failure": True,
             "active_regions": ["default"],
+            "assertion": None,
             "region_schedule_mode": "round_robin",
         }
 
@@ -357,6 +358,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "trace_sampling": True,
             "capture_response_on_failure": True,
             "active_regions": ["default"],
+            "assertion": None,
             "region_schedule_mode": "round_robin",
         }
 
@@ -375,6 +377,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "trace_sampling": False,
             "capture_response_on_failure": True,
             "active_regions": [],
+            "assertion": None,
             "region_schedule_mode": "round_robin",
         }
 
