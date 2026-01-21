@@ -41,8 +41,8 @@ import {
   cleanWidgetForRequest,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {SpanFields} from 'sentry/views/insights/types';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type SpansSeriesResponse =
   | EventsStats
