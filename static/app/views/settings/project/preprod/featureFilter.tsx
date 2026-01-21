@@ -39,7 +39,8 @@ const getTagValues = (
 const EXAMPLE_BUILDS_COUNT = 5;
 
 interface FeatureFilterProps {
-  settingsKey: string;
+  settingsReadKey: string;
+  settingsWriteKey: string;
   successMessage: string;
   title: string;
   children?: React.ReactNode;
@@ -48,12 +49,18 @@ interface FeatureFilterProps {
 export function FeatureFilter({
   title,
   successMessage,
-  settingsKey,
+  settingsReadKey,
+  settingsWriteKey,
   children,
 }: FeatureFilterProps) {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const [query, setQuery] = useFeatureFilter(project, settingsKey, successMessage);
+  const [query, setQuery] = useFeatureFilter(
+    project,
+    settingsReadKey,
+    settingsWriteKey,
+    successMessage
+  );
   const [localQuery, setLocalQuery] = useState(query);
 
   const handleQueryChange = useCallback((newQuery: string) => {
