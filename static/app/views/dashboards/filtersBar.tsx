@@ -15,10 +15,8 @@ import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
-import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
@@ -118,7 +116,6 @@ export default function FiltersBar({
   shouldBusySaveButton,
   prebuiltDashboardId,
 }: FiltersBarProps) {
-  const {selection} = usePageFilters();
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
@@ -207,22 +204,20 @@ export default function FiltersBar({
           }}
         />
       </PageFilterBar>
-      <ReleasesProvider organization={organization} selection={selection}>
-        <ReleasesSelectControl
-          handleChangeFilter={activeFilters => {
-            onDashboardFilterChange({
-              ...activeFilters,
-              [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
-            });
-            trackAnalytics('dashboards2.filter.change', {
-              organization,
-              filter_type: 'release',
-            });
-          }}
-          selectedReleases={selectedReleases}
-          isDisabled={isEditingDashboard}
-        />
-      </ReleasesProvider>
+      <ReleasesSelectControl
+        handleChangeFilter={activeFilters => {
+          onDashboardFilterChange({
+            ...activeFilters,
+            [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+          });
+          trackAnalytics('dashboards2.filter.change', {
+            organization,
+            filter_type: 'release',
+          });
+        }}
+        selectedReleases={selectedReleases}
+        isDisabled={isEditingDashboard}
+      />
       {organization.features.includes('dashboards-global-filters') && (
         <Fragment>
           {activeGlobalFilters.map(filter => (
