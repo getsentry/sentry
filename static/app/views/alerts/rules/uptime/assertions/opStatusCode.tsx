@@ -47,7 +47,7 @@ export function AssertionOpStatusCode({
     const newValue = parseInt(e.target.value, 10);
     // Clamp status code to valid HTTP range (100-599) on blur
     if (isNaN(newValue)) {
-      onChange({...value, value: 100});
+      onChange({...value, value: 200});
     } else {
       const clampedValue = Math.max(100, Math.min(599, newValue));
       if (clampedValue !== value.value) {
@@ -83,6 +83,8 @@ export function AssertionOpStatusCode({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
+          // Display empty string while user is clearing the field (value is NaN during editing).
+          // The actual default (200) is applied in handleInputBlur when the field loses focus.
           value={isNaN(value.value) ? '' : value.value}
           onChange={handleInputChange}
           onBlur={handleInputBlur}

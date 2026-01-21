@@ -234,7 +234,7 @@ describe('AssertionOpStatusCode', () => {
     });
   });
 
-  it('resets to min when input is cleared and blurred', async () => {
+  it('resets to default when input is cleared and blurred', async () => {
     await renderStatefulOp({id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200});
 
     const input = screen.getByRole('textbox');
@@ -247,7 +247,7 @@ describe('AssertionOpStatusCode', () => {
       id: 'test-id-1',
       op,
       operator: {cmp: 'equals'},
-      value: 100,
+      value: 200,
     });
   });
 
