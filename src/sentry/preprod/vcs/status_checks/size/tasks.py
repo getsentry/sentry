@@ -578,23 +578,23 @@ def _compute_overall_status(
     states = {artifact.state for artifact in artifacts}
 
     if PreprodArtifact.ArtifactState.FAILED in states:
-        return StatusCheckStatus.FAILURE, triggered_rules
+        return StatusCheckStatus.FAILURE, []
     elif (
         PreprodArtifact.ArtifactState.UPLOADING in states
         or PreprodArtifact.ArtifactState.UPLOADED in states
     ):
-        return StatusCheckStatus.IN_PROGRESS, triggered_rules
+        return StatusCheckStatus.IN_PROGRESS, []
     elif all(state == PreprodArtifact.ArtifactState.PROCESSED for state in states):
         for artifact in artifacts:
             size_metrics_list = size_metrics_map.get(artifact.id, [])
             if size_metrics_list:
                 for size_metrics in size_metrics_list:
                     if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-                        return StatusCheckStatus.FAILURE, triggered_rules
+                        return StatusCheckStatus.FAILURE, []
                     elif (
                         size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                     ):
-                        return StatusCheckStatus.IN_PROGRESS, triggered_rules
+                        return StatusCheckStatus.IN_PROGRESS, []
 
         if rules:
             for artifact in artifacts:

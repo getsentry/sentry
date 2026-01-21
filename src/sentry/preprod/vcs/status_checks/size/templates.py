@@ -87,11 +87,21 @@ def format_status_check_messages(
 
     subtitle = ", ".join(parts)
 
-    match overall_status:
-        case StatusCheckStatus.IN_PROGRESS | StatusCheckStatus.SUCCESS:
-            summary = _format_artifact_summary(artifacts, size_metrics_map)
-        case StatusCheckStatus.FAILURE:
-            summary = _format_failure_summary(artifacts, project, triggered_rules)
+    if triggered_rules:
+        summary = _format_artifact_summary(artifacts, size_metrics_map)
+        base_url = f"/settings/projects/{project.slug}/preprod/"
+        expanded_params = "&".join(f"expanded={rule.id}" for rule in triggered_rules)
+        settings_url = project.organization.absolute_url(f"{base_url}?{expanded_params}")
+        summary += str(
+            _(
+                "\n\n**Status check failed due to size threshold rules.** "
+                "[View triggered rules]({settings_url})"
+            ).format(settings_url=settings_url)
+        )
+    elif overall_status == StatusCheckStatus.FAILURE:
+        summary = _format_failure_summary(artifacts)
+    else:
+        summary = _format_artifact_summary(artifacts, size_metrics_map)
 
     return str(title), str(subtitle), str(summary)
 
@@ -200,12 +210,8 @@ def _format_artifact_summary(
 
 def _format_failure_summary(
     artifacts: list[PreprodArtifact],
-    project: Project,
-    triggered_rules: list[StatusCheckRule] | None = None,
 ) -> str:
-    """Format summary for multiple artifacts with failures."""
-    parts = []
-
+    """Format summary for artifacts with processing failures."""
     table_rows = []
     for artifact in artifacts:
         version_string = _format_version_string(artifact, default="-")
@@ -225,20 +231,7 @@ def _format_failure_summary(
     table = _("| Name | Version | Error |\n" "|------|---------|-------|\n" "{table_rows}").format(
         table_rows="\n".join(table_rows)
     )
-    parts.append(table)
-
-    if triggered_rules:
-        base_url = f"/settings/projects/{project.slug}/preprod/"
-        expanded_params = "&".join(f"expanded={rule.id}" for rule in triggered_rules)
-        settings_url = project.organization.absolute_url(f"{base_url}?{expanded_params}")
-        parts.append(
-            _(
-                "\n\n**Status check failed due to size threshold rules.** "
-                "[View triggered rules]({settings_url})"
-            ).format(settings_url=settings_url)
-        )
-
-    return "".join(parts)
+    return table
 
 
 def _get_size_metric_display_data(
