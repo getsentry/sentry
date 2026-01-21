@@ -1,6 +1,5 @@
-import {Fragment} from 'react';
-
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout/stack';
 
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -20,7 +19,7 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
   const canWrite = useCanWriteSettings();
 
   return (
-    <Fragment>
+    <Stack gap="lg">
       {canWrite ? null : (
         <Alert data-test-id="org-permission-alert" variant="warning">
           {t(
@@ -81,6 +80,6 @@ export default function RepoDetailsForm({organization, repoWithSettings}: Props)
           ]}
         />
       </Form>
-    </Fragment>
+    </Stack>
   );
 }
