@@ -326,6 +326,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'go-iris',
   'go-martini',
   'go-negroni',
+  'godot',
   'java',
   'java-log4j2',
   'java-logback',

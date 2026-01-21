@@ -4,17 +4,26 @@ import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStart
 import type {
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-const getVerifySnippet = () => `
-extends Node
+import {logsVerify} from './logs';
+
+const getVerifySnippet = (params: DocsParams) => {
+  const logsCode = params.isLogsSelected
+    ? `
+	# Send a log message
+	SentrySDK.logger.info("Level loaded successfully")`
+    : '';
+
+  return `extends Node
 
 func _ready():
 	SentrySDK.add_breadcrumb(SentryBreadcrumb.create("Just about to welcome the World."))
-	SentrySDK.capture_message("Hello, World!")
-`;
+	SentrySDK.capture_message("Hello, World!")${logsCode}`;
+};
 
 export const onboarding: OnboardingConfig = {
   install: () => [
@@ -43,7 +52,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Sentry can be configured in the Project Settings window or [link: programmatically]. To access project settings in Godot Engine, navigate to [code:Project > Project Settings > Sentry] section, and enter the DSN for the [code:Dsn] option.',
+            'Sentry can be configured in the Project Settings window or [link:programmatically]. To access project settings in Godot Engine, navigate to [code:Project > Project Settings > Sentry] section, and enter the DSN for the [code:Dsn] option.',
             {
               code: <code />,
               link: (
@@ -56,6 +65,19 @@ export const onboarding: OnboardingConfig = {
           type: 'code',
           language: 'url',
           code: params.dsn.public,
+        },
+        {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'Structured logs are enabled by default starting from version [code:1.2.0]. You can adjust this in [strong:Project Settings > Sentry > Options > Enable Logs].',
+                {code: <code />, strong: <strong />}
+              ),
+            },
+          ],
         },
       ],
     },
@@ -76,7 +98,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'gdscript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
         {
           type: 'text',
@@ -91,6 +113,14 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [logsVerify(params)],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     {
       title: t('Further Settings'),
       content: [
