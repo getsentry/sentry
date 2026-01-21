@@ -58,6 +58,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org1.slug, org2.slug],
                 "organizations:seer-explorer-index": [org1.slug, org2.slug],
+                "organizations:seat-based-seer-enabled": [org1.slug, org2.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -96,6 +97,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
+                "organizations:seer-added": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -107,7 +109,10 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
 
     def test_returns_empty_without_feature_flag(self):
         org = self.create_organization()
-        self.create_project(organization=org)
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
 
         PromptsActivity.objects.create(
             organization_id=org.id,
@@ -116,7 +121,9 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             feature="seer_autofix_setup_acknowledged",
         )
 
-        result = list(get_seer_explorer_enabled_projects())
+        with self.feature({"organizations:seat-based-seer-enabled": [org.slug]}):
+            result = list(get_seer_explorer_enabled_projects())
+
         assert len(result) == 0
 
     def test_excludes_projects_with_hide_ai_features(self):
@@ -136,6 +143,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
+                "organizations:seer-added": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -155,6 +163,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -178,6 +187,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
+                "organizations:seer-added": [org.slug],
             }
         ):
             result = list(get_seer_explorer_enabled_projects())
@@ -209,6 +219,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             {
                 "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
             }
         ):
             with freeze_time(f"2024-01-15 {target_hour:02d}:00:00"):
@@ -221,6 +232,60 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             assert project2.id in project_ids
         else:
             assert project2.id not in project_ids
+
+    @freeze_time("2024-01-15 12:00:00")
+    def test_excludes_projects_without_seer_billing_plan(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seer-explorer-index": [org.slug],
+            }
+        ):
+            result = list(get_seer_explorer_enabled_projects())
+
+        assert len(result) == 0
+        assert project.id not in [p[0] for p in result]
+
+    @freeze_time("2024-01-15 12:00:00")
+    def test_includes_projects_with_legacy_seer_plan(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seer-explorer-index": [org.slug],
+                "organizations:seer-added": [org.slug],
+            }
+        ):
+            result = list(get_seer_explorer_enabled_projects())
+
+        project_ids = [p[0] for p in result]
+        if project.id % 23 == 12:
+            assert project.id in project_ids
 
 
 @django_db_all
@@ -253,6 +318,7 @@ class TestScheduleExplorerIndex(TestCase):
                 {
                     "organizations:gen-ai-features": [org.slug],
                     "organizations:seer-explorer-index": [org.slug],
+                    "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ):
                 with mock.patch(

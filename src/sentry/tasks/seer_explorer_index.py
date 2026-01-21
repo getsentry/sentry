@@ -29,7 +29,12 @@ EXPLORER_INDEX_PROJECTS_PER_BATCH = 100
 # Use a larger prime number to prevent thundering
 EXPLORER_INDEX_DISPATCH_STEP = timedelta(seconds=37)
 
-FEATURE_NAMES = ["organizations:gen-ai-features", "organizations:seer-explorer-index"]
+FEATURE_NAMES = [
+    "organizations:gen-ai-features",
+    "organizations:seer-explorer-index",
+    "organizations:seat-based-seer-enabled",
+    "organizations:seer-added",
+]
 
 
 def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
@@ -50,10 +55,18 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return
 
+        if project.id % 23 != current_hour:
+            continue
+
+        # Indexer only runs when there are traces
         if not project.flags.has_transactions:
             continue
 
-        if project.id % 23 != current_hour:
+        # Check open team membership (Explorer requires this for context)
+        if not project.organization.flags.allow_joinleave:
+            continue
+
+        if bool(project.organization.get_option("sentry:hide_ai_features")):
             continue
 
         with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
@@ -61,23 +74,37 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
 
             if batch_result:
                 org_key = f"organization:{project.organization.id}"
-                has_all_features = all(
-                    batch_result.get(org_key, {}).get(feature_name, False)
-                    for feature_name in FEATURE_NAMES
-                )
+                org_features = batch_result.get(org_key, {})
+
+                # Check required flags (AND logic)
+                has_required_features = org_features.get(
+                    "organizations:gen-ai-features", False
+                ) and org_features.get("organizations:seer-explorer-index", False)
+
+                # Check billing plan flags (OR logic)
+                has_seer_plan = org_features.get(
+                    "organizations:seat-based-seer-enabled", False
+                ) or org_features.get("organizations:seer-added", False)
+
+                has_all_features = has_required_features and has_seer_plan
             else:
-                has_all_features = all(
-                    features.has(name, project.organization) for name in FEATURE_NAMES
-                )
+                # Fallback to individual checks
+                has_required_features = features.has(
+                    "organizations:gen-ai-features", project.organization
+                ) and features.has("organizations:seer-explorer-index", project.organization)
 
-            has_feature = (
-                has_all_features
-                and not bool(project.organization.get_option("sentry:hide_ai_features"))
-                and get_seer_org_acknowledgement(project.organization)
-            )
+                has_seer_plan = features.has(
+                    "organizations:seat-based-seer-enabled", project.organization
+                ) or features.has("organizations:seer-added", project.organization)
 
-        if has_feature:
-            yield project.id, project.organization_id
+                has_all_features = has_required_features and has_seer_plan
+
+            has_feature = has_all_features and get_seer_org_acknowledgement(project.organization)
+
+        if not has_feature:
+            continue
+
+        yield project.id, project.organization_id
 
 
 @instrumented_task(
