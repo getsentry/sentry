@@ -45,7 +45,6 @@ const STACKED_GRAPH_HEIGHT = 362;
 
 interface MetricsGraphProps {
   orientation: TableOrientation;
-  queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   additionalActions?: React.ReactNode;
   infoContentHidden?: boolean;
@@ -54,7 +53,6 @@ interface MetricsGraphProps {
 
 export function MetricsGraph({
   timeseriesResult,
-  queryIndex,
   orientation,
   additionalActions,
   infoContentHidden,
@@ -79,7 +77,6 @@ export function MetricsGraph({
       visualize={visualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
-      queryIndex={queryIndex}
       orientation={orientation}
       additionalActions={additionalActions}
       infoContentHidden={infoContentHidden}
