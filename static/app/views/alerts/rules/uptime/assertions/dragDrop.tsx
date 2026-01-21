@@ -128,10 +128,16 @@ export function DropHandler({rootOp, onChange}: DropHandlerProps) {
         return;
       }
 
-      // Do not move to something it's already immediately after
+      // Do not move if already in the target position
       if (
-        isAfterOp(rootOp, activeData.id, overData.op.id) &&
-        overData.position === 'after'
+        overData.position === 'after' &&
+        isAfterOp(rootOp, activeData.id, overData.op.id)
+      ) {
+        return;
+      }
+      if (
+        overData.position === 'before' &&
+        isAfterOp(rootOp, overData.op.id, activeData.id)
       ) {
         return;
       }
