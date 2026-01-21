@@ -44,7 +44,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
   const isConfigured = Boolean(preference?.automation_handoff) && isAutomationEnabled;
 
   const handleSetupClick = useCallback(async () => {
-    if (!cursorIntegration) {
+    if (!cursorIntegration?.id) {
       throw new Error('Cursor integration not found');
     }
 

@@ -121,7 +121,8 @@ function StepButton({
   isBusy: boolean;
   onStepClick: () => void;
   step: AutofixExplorerStep;
-  codingAgentIntegrations?: Array<{id: string; name: string; provider: string}>;
+  // TODO(autofix): Handle GitHub Copilot in explore autofix
+  codingAgentIntegrations?: Array<{id: string | null; name: string; provider: string}>;
   isLoading?: boolean;
   onCodingAgentHandoff?: (integrationId: number) => void;
 }) {
@@ -141,17 +142,19 @@ function StepButton({
     );
   }
 
-  // Build dropdown items for coding agent integrations
-  const dropdownItems = codingAgentIntegrations.map(integration => ({
-    key: `agent:${integration.id}`,
-    label: (
-      <Flex gap="md" align="center">
-        <PluginIcon pluginId="cursor" size={16} />
-        <span>{t('Send to %s', integration.name)}</span>
-      </Flex>
-    ),
-    onAction: () => onCodingAgentHandoff?.(parseInt(integration.id, 10)),
-  }));
+  // Build dropdown items for coding agent integrations (filter out those without IDs for now)
+  const dropdownItems = codingAgentIntegrations
+    .filter(integration => integration.id !== null)
+    .map(integration => ({
+      key: `agent:${integration.id}`,
+      label: (
+        <Flex gap="md" align="center">
+          <PluginIcon pluginId="cursor" size={16} />
+          <span>{t('Send to %s', integration.name)}</span>
+        </Flex>
+      ),
+      onAction: () => onCodingAgentHandoff?.(parseInt(integration.id!, 10)),
+    }));
 
   return (
     <ButtonBar merged gap="0">

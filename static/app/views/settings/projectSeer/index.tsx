@@ -10,6 +10,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
+import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {
   makeProjectSeerPreferencesQueryKey,
   useProjectSeerPreferences,
@@ -232,7 +233,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'cursor_handoff'
     ) => {
       if (value === 'cursor_handoff') {
-        if (!cursorIntegration) {
+        if (!cursorIntegration?.id) {
           throw new Error('Cursor integration not found');
         }
         updateProjectSeerPreferences({
@@ -333,7 +334,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const handleCursorHandoffChange = useCallback(
     (value: boolean) => {
       if (value) {
-        if (!cursorIntegration) {
+        if (!cursorIntegration?.id) {
           addErrorMessage(
             t('Cursor integration not found. Please refresh the page and try again.')
           );
@@ -656,6 +657,7 @@ function ProjectSeer({
       />
       <ProjectSeerGeneralForm project={project} />
       <CursorIntegrationCta project={project} />
+      <GithubCopilotIntegrationCta />
       <AutofixRepositories project={project} />
       <Flex justify="center" marginTop="lg">
         <LinkButton

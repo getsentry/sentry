@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
@@ -71,6 +71,8 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     switch (provider) {
       case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
         return t('Cursor Cloud Agent');
+      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
+        return t('GitHub Copilot');
       default:
         return t('Coding Agent');
     }
@@ -165,7 +167,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
                             >
-                              {t('Open in Cursor')}
+                              {codingAgentState.provider ===
+                              CodingAgentProvider.CURSOR_BACKGROUND_AGENT
+                                ? t('Open in Cursor')
+                                : t('View Agent')}
                             </Button>
                           </ExternalLink>
                         )}
