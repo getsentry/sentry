@@ -16,7 +16,7 @@ interface Props {
 export default function AutoTriggeredFixesToggle({canWrite, project}: Props) {
   const {mutate: updateProject} = useUpdateProject(project);
 
-  const hasAutoFixEnabled = Boolean(
+  const isAutoFixEnabled = Boolean(
     project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
   );
 
@@ -28,7 +28,7 @@ export default function AutoTriggeredFixesToggle({canWrite, project}: Props) {
       help={t(
         'Automatically analyze highly actionable issues, and create a root cause analysis without a user needing to prompt it.'
       )}
-      value={hasAutoFixEnabled}
+      value={isAutoFixEnabled}
       onChange={value => {
         updateProject(
           {autofixAutomationTuning: value ? 'medium' : 'off'},
