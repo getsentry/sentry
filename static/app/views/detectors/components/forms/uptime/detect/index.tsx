@@ -147,7 +147,7 @@ export function UptimeDetectorFormDetectSection() {
           />
           {org.features.includes('uptime-runtime-assertions') && (
             <UptimeAssertionsField
-              name="assertions"
+              name="assertion"
               label={t('Assertions')}
               help={t(
                 'Define conditions that must be met for the check to be considered successful.'
