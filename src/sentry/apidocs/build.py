@@ -156,7 +156,7 @@ OPENAPI_TAGS = [
     },
     {
         "name": "Monitors",
-        "x-sidebar-name": "Monitors and Alerts",
+        "x-sidebar-name": "Monitors & Alerts",
         "description": "Endpoints for Monitors and Alerts",
         "x-display-description": False,
         "externalDocs": {
