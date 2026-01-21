@@ -107,4 +107,33 @@ describe('FilterSelector', () => {
 
     expect(mockOnRemoveFilter).toHaveBeenCalledWith(mockGlobalFilter);
   });
+
+  it('allows multi-select with modifier key + row click', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FilterSelector
+        globalFilter={mockGlobalFilter}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    await user.click(button);
+
+    // Ctrl/Cmd-click on rows should add to selection (multiple selection mode)
+    await user.keyboard('{Control>}');
+    await user.click(screen.getByRole('row', {name: 'firefox'}));
+    await user.click(screen.getByRole('row', {name: 'chrome'}));
+    await user.keyboard('{/Control}');
+
+    await user.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+      ...mockGlobalFilter,
+      value: 'browser:[firefox,chrome]',
+    });
+  });
 });
