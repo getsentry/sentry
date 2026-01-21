@@ -1,3 +1,4 @@
+import {memo, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import loadingGif from 'sentry-images/spot/ai-loader.gif';
@@ -52,6 +53,12 @@ export default function Ai() {
     isTimedOut,
     startSummaryRequest,
   } = useReplaySummaryContext();
+
+  const onlyInitFrames = useMemo(() => {
+    replay
+      ?.getChapterFrames()
+      ?.every(frame => 'category' in frame && frame.category === 'replay.init');
+  }, [replay]);
 
   if (replayRecord?.project_id && !project) {
     return (
@@ -170,26 +177,8 @@ export default function Ai() {
     );
   }
 
-  if (
-    summaryData.data.time_ranges.length <= 1 &&
-    replay
-      ?.getChapterFrames()
-      ?.every(frame => 'category' in frame && frame.category === 'replay.init')
-  ) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>
-            {
-              NO_REPLAY_SUMMARY_MESSAGES[
-                Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-              ]
-            }
-          </div>
-        </EndStateContainer>
-      </Wrapper>
-    );
+  if (summaryData.data.time_ranges.length <= 1 && onlyInitFrames) {
+    return <NoReplaySummary />;
   }
 
   return (
@@ -302,6 +291,29 @@ function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
     </FeedbackButton>
   );
 }
+
+/**
+ * Due to the random message generation, the component can show a new message on each render. This is not ideal because we
+ * cause a lot of re-renders when the replay is played.
+ *
+ * The `useRef` is also an additional guard to ensure that the message is not changed after the initial render.
+ */
+const NoReplaySummary = memo(function NoReplaySummary() {
+  const noSummaryMessageRef = useRef(
+    NO_REPLAY_SUMMARY_MESSAGES[
+      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+    ]
+  );
+
+  return (
+    <Wrapper data-test-id="replay-details-ai-summary-tab">
+      <EndStateContainer>
+        <img src={aiBanner} alt="" />
+        <div>{noSummaryMessageRef.current}</div>
+      </EndStateContainer>
+    </Wrapper>
+  );
+});
 
 const Wrapper = styled('div')`
   display: flex;
