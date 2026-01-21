@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {SchedulePreview} from 'sentry/views/detectors/components/forms/common/schedulePreview';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import type {Schedule} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
@@ -13,9 +14,15 @@ const statusToText: Record<SchedulePreviewStatus, string> = {
   [SchedulePreviewStatus.SUB_RECOVERY_OK]: t('Uptime (Sub-Threshold)'),
 };
 
+const DEBOUNCE_DELAY = 300;
+
 export function PreviewSection() {
   const downtimeThreshold = useUptimeDetectorFormField('downtimeThreshold');
   const recoveryThreshold = useUptimeDetectorFormField('recoveryThreshold');
+
+  // Debouncing typed fields
+  const debouncedDowntimeThreshold = useDebouncedValue(downtimeThreshold, DEBOUNCE_DELAY);
+  const debouncedRecoveryThreshold = useDebouncedValue(recoveryThreshold, DEBOUNCE_DELAY);
 
   const intervalSeconds = useUptimeDetectorFormField('intervalSeconds');
   const intervalMinutes = Math.floor(intervalSeconds / 60);
@@ -31,8 +38,8 @@ export function PreviewSection() {
       statusToText={statusToText}
       schedule={schedule}
       timezone="UTC"
-      failureIssueThreshold={downtimeThreshold}
-      recoveryThreshold={recoveryThreshold}
+      failureIssueThreshold={debouncedDowntimeThreshold}
+      recoveryThreshold={debouncedRecoveryThreshold}
     />
   );
 }
