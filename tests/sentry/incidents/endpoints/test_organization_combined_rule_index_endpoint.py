@@ -5,7 +5,7 @@ import requests
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
-from sentry.models.rule import Rule, RuleSource
+from sentry.models.rule import RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.monitors.models import MonitorStatus
 from sentry.snuba.dataset import Dataset
@@ -89,9 +89,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         the list of alert rules.
         """
         self.create_alert_rule()
-        cron_rule = Rule.objects.create(
-            project=self.project,
-            label="Cron Rule",
+        cron_rule = self.create_project_rule(
+            name="Cron Rule",
             source=RuleSource.CRON_MONITOR,
         )
 

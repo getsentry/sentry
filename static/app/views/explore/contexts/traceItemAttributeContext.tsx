@@ -7,6 +7,8 @@ import {FieldKind} from 'sentry/utils/fields';
 import {
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
+  SENTRY_PREPROD_NUMBER_TAGS,
+  SENTRY_PREPROD_STRING_TAGS,
   SENTRY_SPAN_NUMBER_TAGS,
   SENTRY_SPAN_STRING_TAGS,
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
@@ -207,6 +209,9 @@ function getDefaultStringAttributes(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SENTRY_SPAN_STRING_TAGS;
   }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SENTRY_PREPROD_STRING_TAGS;
+  }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
     return SENTRY_TRACEMETRIC_STRING_TAGS;
   }
@@ -216,6 +221,9 @@ function getDefaultStringAttributes(itemType: TraceItemDataset) {
 function getDefaultNumberAttributes(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SENTRY_SPAN_NUMBER_TAGS;
+  }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SENTRY_PREPROD_NUMBER_TAGS;
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
     return SENTRY_TRACEMETRIC_NUMBER_TAGS;

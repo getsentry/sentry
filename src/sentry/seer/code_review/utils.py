@@ -177,7 +177,6 @@ def transform_webhook_to_codegen_request(
         organization: The Sentry organization
         repo: The repository model
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
-        trigger: The trigger type for the PR review
 
     Returns:
         Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
@@ -290,14 +289,20 @@ def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str
     if len(repo_name_sections) < 2:
         raise ValueError(f"Invalid repository name format: {repo.name}")
 
-    return {
+    repo_definition = {
         "provider": "github",  # All GitHub webhooks use "github" provider
         "owner": repo_name_sections[0],
         "name": "/".join(repo_name_sections[1:]),
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
+        "organization_id": repo.organization_id,
     }
 
+    # add integration_id which is used in pr_closed_step for product metrics dashboarding only
+    if repo.integration_id is not None:
+        repo_definition["integration_id"] = str(repo.integration_id)
+
+    return repo_definition
 
 def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     """
