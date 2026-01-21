@@ -69,4 +69,4 @@ class RepositorySettings(Model):
             self.pk = settings.pk
             self.save()
 
-        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Overwrite)
