@@ -26,10 +26,10 @@ interface ConsoleSdkInviteDeleteItem {
 }
 
 interface UseRevokeConsoleSdkPlatformInviteParams {
-  email: string;
   items: ConsoleSdkInviteDeleteItem[];
   orgSlug: string;
-  platform: ConsolePlatform;
+  email?: string;
+  platform?: ConsolePlatform;
 }
 
 export function useConsoleSdkInvites(orgSlug: string) {
@@ -53,24 +53,32 @@ export function useRevokeConsoleSdkPlatformInvite() {
       });
     },
     onMutate: ({email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
-      addLoadingMessage(tct('Removing [platform] access for [email]', {platform, email}));
+      if (email && platform) {
+        addLoadingMessage(
+          tct('Removing [platform] access for [email]', {platform, email})
+        );
+      }
     },
     onSuccess: (_data, {email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
-      addSuccessMessage(
-        tct('Successfully removed [platform] access for [email]', {platform, email})
-      );
+      if (email && platform) {
+        addSuccessMessage(
+          tct('Successfully removed [platform] access for [email]', {platform, email})
+        );
+      }
     },
     onError: (
       error: RequestError,
       {email, platform}: UseRevokeConsoleSdkPlatformInviteParams
     ) => {
-      const rawDetail = error.responseJSON?.detail;
-      const detail =
-        typeof rawDetail === 'string'
-          ? rawDetail
-          : (rawDetail?.message ??
-            tct('Failed to remove [platform] access for [email]', {platform, email}));
-      addErrorMessage(detail);
+      if (email && platform) {
+        const rawDetail = error.responseJSON?.detail;
+        const detail =
+          typeof rawDetail === 'string'
+            ? rawDetail
+            : (rawDetail?.message ??
+              tct('Failed to remove [platform] access for [email]', {platform, email}));
+        addErrorMessage(detail);
+      }
     },
     onSettled: (_data, _error, {orgSlug}: UseRevokeConsoleSdkPlatformInviteParams) => {
       queryClient.invalidateQueries({
