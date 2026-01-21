@@ -25,7 +25,7 @@ export function PreviewSection() {
   const debouncedRecoveryThreshold = useDebouncedValue(recoveryThreshold, DEBOUNCE_DELAY);
 
   const intervalSeconds = useUptimeDetectorFormField('intervalSeconds');
-  const intervalMinutes = Math.floor(intervalSeconds / 60);
+  const intervalMinutes = intervalSeconds / 60;
 
   const schedule: Schedule = {
     type: ScheduleType.INTERVAL,
