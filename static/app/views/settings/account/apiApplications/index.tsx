@@ -175,7 +175,7 @@ function CreateApplicationModal({
               'public',
               t('Public'),
               t(
-                'For CLIs, native apps, or SPAs that cannot securely store secrets. Uses PKCE and refresh token rotation for security.'
+                'For CLIs, native apps, or SPAs that cannot securely store secrets. Uses PKCE, device authorization, and refresh token rotation for security.'
               ),
             ],
           ]}

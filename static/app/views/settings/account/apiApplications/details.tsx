@@ -112,7 +112,7 @@ function ApiApplicationsDetails() {
         <Alert.Container>
           <Alert variant="info" showIcon>
             {t(
-              'This is a public client, designed for CLIs, native apps, or SPAs. It uses PKCE for authorization and refresh token rotation for security instead of a client secret.'
+              'This is a public client, designed for CLIs, native apps, or SPAs. It uses PKCE, device authorization, and refresh token rotation for security instead of a client secret.'
             )}
           </Alert>
         </Alert.Container>
