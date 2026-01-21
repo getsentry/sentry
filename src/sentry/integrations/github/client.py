@@ -574,11 +574,11 @@ class GitHubBaseClient(
         endpoint = f"/repos/{repo}/issues/{issue_number}"
         return self.patch(endpoint, data={"state": status})
 
-    def get_issue_reactions(self, repo: str, issue_number: str) -> Any:
+    def get_issue_reactions(self, repo: str, issue_number: str) -> list[Any]:
         """
         https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue
         """
-        return self.get(f"/repos/{repo}/issues/{issue_number}/reactions")
+        return self._get_with_pagination(f"/repos/{repo}/issues/{issue_number}/reactions")
 
     def create_issue_reaction(self, repo: str, issue_number: str, reaction: GitHubReaction) -> Any:
         """

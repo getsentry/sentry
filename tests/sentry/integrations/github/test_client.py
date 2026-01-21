@@ -436,19 +436,66 @@ class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_issue_reactions(self, get_jwt) -> None:
-        response_data = [
-            {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"},
-            {"id": 2, "user": {"login": "other-user"}, "content": "heart"},
-        ]
         responses.add(
-            responses.GET,
-            f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions",
-            json=response_data,
-            status=200,
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions?per_page={self.github_client.page_size}",
+            json=[
+                {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+                {"id": 2, "user": {"login": "other-user"}, "content": "heart"},
+            ],
+            headers={},
         )
-
         result = self.github_client.get_issue_reactions(repo=self.repo.name, issue_number="42")
-        assert result == response_data
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == 200
+        assert len(result) == 2
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_issue_reactions_multiple_pages(self, get_jwt) -> None:
+        url = f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions?per_page={self.github_client.page_size}"
+
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[
+                {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+                {"id": 2, "user": {"login": "other-user"}, "content": "heart"},
+            ],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=4>; rel="last"'},
+        )
+        # For simplicity, we're skipping the `first` and `prev` links from the following responses
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=2",
+            json=[
+                {"id": 3, "user": {"login": "user3"}, "content": "heart"},
+                {"id": 4, "user": {"login": "user4"}, "content": "hooray"},
+            ],
+            headers={"link": f'<{url}&page=3>; rel="next", <{url}&page=4>; rel="last"'},
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=3",
+            json=[
+                {"id": 5, "user": {"login": "user5"}, "content": "rocket"},
+                {"id": 6, "user": {"login": "user6"}, "content": "laugh"},
+            ],
+            headers={"link": f'<{url}&page=4>; rel="next", <{url}&page=4>; rel="last"'},
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=4",
+            json=[
+                {"id": 7, "user": {"login": "user7"}, "content": "confused"},
+            ],
+            headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=3>; rel="prev"'},
+        )
+        result = self.github_client.get_issue_reactions(repo=self.repo.name, issue_number="42")
+        assert len(responses.calls) == 4
+        assert responses.calls[0].response.status_code == 200
+        assert len(result) == 7
+        assert result[0] == {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"}
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
