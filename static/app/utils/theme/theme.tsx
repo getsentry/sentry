@@ -18,13 +18,7 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-import type {
-  AlertVariant,
-  FormSize,
-  LevelVariant,
-  MotionDuration,
-  MotionEasing,
-} from './types';
+import type {AlertVariant, FormSize, MotionDuration, MotionEasing} from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
 
@@ -217,28 +211,11 @@ const generateAlertTheme = (colors: Colors, tokens: Tokens): AlertColors => ({
   },
 });
 
-const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
-  sample: tokens.dataviz.semantic.accent,
-  info: tokens.dataviz.semantic.accent,
-  // BAD: accessing named colors is forbidden
-  // but necessary to differente from orange
-  warning: color.categorical[mode].yellow,
-  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
-  // but do have it in the chart palette. This needs to be harcoded
-  // because existing users still associate orange with the "error" level.
-  error: color.categorical[mode].orange,
-  fatal: tokens.dataviz.semantic.bad,
-  default: tokens.dataviz.semantic.neutral,
-  unknown: tokens.dataviz.semantic.other,
-});
-
 /**
  * Theme definition
  */
 
 type Colors = typeof lightColors;
-
-type LevelColors = Record<LevelVariant, string>;
 
 const legacyTypography = {
   fontSize: typography.font.size,
@@ -954,7 +931,7 @@ const lightThemeDefinition = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(),
   alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
-  level: generateLevelTheme(baseLightTheme.tokens, 'light'),
+  // level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
     neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
@@ -987,7 +964,7 @@ export const darkTheme: SentryTheme = {
   // @TODO: these colors need to be ported
   ...generateThemeUtils(),
   alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
-  level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
+  // level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
     neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
