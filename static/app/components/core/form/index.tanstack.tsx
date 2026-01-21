@@ -87,7 +87,7 @@ export function Field(
   );
 }
 
-function InputField({
+export function InputField({
   label,
   hintText,
   onChange,
@@ -107,7 +107,7 @@ function InputField({
   );
 }
 
-function NumberField({
+export function NumberField({
   label,
   hintText,
   onChange,
@@ -141,7 +141,7 @@ function SelectInput({
   return <components.Input {...props} aria-invalid={selectProps['aria-invalid']} />;
 }
 
-function SelectField({
+export function SelectField({
   label,
   hintText,
   onChange,

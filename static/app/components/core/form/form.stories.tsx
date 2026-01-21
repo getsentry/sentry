@@ -25,7 +25,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
-import {autoSaveOptions} from './autoSaveField';
+import {AutoSaveField} from './autoSaveField';
 import {RHFAutoSaveField} from './autoSaveField.rhf';
 import {
   FormischField,
@@ -34,8 +34,18 @@ import {
   SelectField as FormischSelectField,
   SubmitButton as FormischSubmitButton,
 } from './index.formisch';
-import {InputField, NumberField, RHFField, SelectField, SubmitButton} from './index.rhf';
-import {useScrapsForm} from './index.tanstack';
+import {
+  RHFField,
+  InputField as RHFInputField,
+  NumberField as RHFNumberField,
+  SelectField as RHFSelectField,
+  SubmitButton,
+} from './index.rhf';
+import {
+  InputField as TanStackInputField,
+  NumberField as TanStackNumberField,
+  useScrapsForm,
+} from './index.tanstack';
 
 const COUNTRY_OPTIONS = [
   {value: 'US', label: 'United States'},
@@ -142,83 +152,61 @@ const userMutationOptions = mutationOptions({
 function TanStackAutoSave() {
   const user = useQuery(userQuery);
 
-  const updateFirstName = useMutation(userMutationOptions);
-  const updateLastName = useMutation(userMutationOptions);
-  const updateAge = useMutation(userMutationOptions);
-
-  const firstNameForm = useScrapsForm({
-    ...autoSaveOptions({
-      schema: baseUserSchema,
-      name: 'firstName',
-      initialValue: user.data?.firstName ?? '',
-    }),
-    onSubmit: ({value}) => updateFirstName.mutateAsync(value),
-  });
-
-  const lastNameForm = useScrapsForm({
-    ...autoSaveOptions({
-      schema: baseUserSchema,
-      name: 'lastName',
-      initialValue: user.data?.lastName ?? '',
-    }),
-    onSubmit: ({value}) => updateLastName.mutateAsync(value),
-  });
-
-  const ageForm = useScrapsForm({
-    ...autoSaveOptions({
-      schema: baseUserSchema,
-      name: 'age',
-      initialValue: user.data?.age ?? 0,
-    }),
-    onSubmit: ({value}) => updateAge.mutateAsync(value),
-  });
-
   if (user.isPending) {
     return <div>Loading...</div>;
   }
 
   return (
     <Stack gap="lg">
-      <firstNameForm.AppField name="firstName">
-        {field => (
-          <field.Input
-            autoComplete="off"
-            data-1p-disabled="true"
+      <AutoSaveField
+        name="firstName"
+        schema={baseUserSchema}
+        initialValue={user.data?.firstName ?? ''}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <TanStackInputField
             label="First Name:"
-            disabled={updateFirstName.isPending}
+            {...fieldProps}
             value={field.state.value}
             onChange={field.handleChange}
           />
         )}
-      </firstNameForm.AppField>
+      </AutoSaveField>
 
-      <lastNameForm.AppField name="lastName">
-        {field => (
-          <field.Input
-            autoComplete="off"
-            data-1p-disabled="true"
+      <AutoSaveField
+        name="lastName"
+        schema={baseUserSchema}
+        initialValue={user.data?.lastName ?? ''}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <TanStackInputField
             label="Last Name:"
-            disabled={updateLastName.isPending}
             required
+            {...fieldProps}
             value={field.state.value}
             onChange={field.handleChange}
           />
         )}
-      </lastNameForm.AppField>
+      </AutoSaveField>
 
-      <ageForm.AppField name="age">
-        {field => (
-          <field.Number
-            autoComplete="off"
-            data-1p-disabled="true"
+      <AutoSaveField
+        name="age"
+        schema={baseUserSchema}
+        initialValue={user.data?.age ?? 0}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <TanStackNumberField
             label="Age:"
-            disabled={updateAge.isPending}
             required
+            {...fieldProps}
             value={field.state.value}
             onChange={field.handleChange}
           />
         )}
-      </ageForm.AppField>
+      </AutoSaveField>
     </Stack>
   );
 }
@@ -399,7 +387,7 @@ function RHFSecretField({control}: {control: Control<UserFormValues>}) {
   return (
     <RHFField name="secret" control={control}>
       {field => (
-        <InputField
+        <RHFInputField
           required
           label="Secret:"
           value={field.value ?? ''}
@@ -433,7 +421,7 @@ function Rhf() {
       <Stack gap="lg">
         <RHFField name="firstName" control={form.control}>
           {field => (
-            <InputField
+            <RHFInputField
               label="First Name:"
               value={field.value}
               onChange={field.onChange}
@@ -443,7 +431,7 @@ function Rhf() {
         </RHFField>
         <RHFField name="lastName" control={form.control}>
           {field => (
-            <InputField
+            <RHFInputField
               label="Last Name:"
               required
               value={field.value}
@@ -454,7 +442,7 @@ function Rhf() {
         </RHFField>
         <RHFField name="age" control={form.control}>
           {field => (
-            <NumberField
+            <RHFNumberField
               label="Age:"
               required
               value={field.value}
@@ -469,7 +457,7 @@ function Rhf() {
         </div>
         <RHFField name="address.street" control={form.control}>
           {field => (
-            <InputField
+            <RHFInputField
               label="Street:"
               required
               value={field.value}
@@ -480,7 +468,7 @@ function Rhf() {
         </RHFField>
         <RHFField name="address.city" control={form.control}>
           {field => (
-            <InputField
+            <RHFInputField
               label="City:"
               required
               value={field.value}
@@ -491,7 +479,7 @@ function Rhf() {
         </RHFField>
         <RHFField name="address.country" control={form.control}>
           {field => (
-            <SelectField
+            <RHFSelectField
               label="Country:"
               required
               value={field.value}
@@ -533,7 +521,7 @@ function RhfAutoSave() {
         mutationOptions={userMutationOptions}
       >
         {(field, fieldProps) => (
-          <InputField
+          <RHFInputField
             label="First Name:"
             {...fieldProps}
             value={field.value}
@@ -550,7 +538,7 @@ function RhfAutoSave() {
         mutationOptions={userMutationOptions}
       >
         {(field, fieldProps) => (
-          <InputField
+          <RHFInputField
             label="Last Name:"
             required
             {...fieldProps}
@@ -568,7 +556,7 @@ function RhfAutoSave() {
         mutationOptions={userMutationOptions}
       >
         {(field, fieldProps) => (
-          <NumberField
+          <RHFNumberField
             label="Age:"
             required
             {...fieldProps}

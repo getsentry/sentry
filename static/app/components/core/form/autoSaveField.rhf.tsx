@@ -7,6 +7,7 @@ import {
   type UseFormTrigger,
 } from 'react-hook-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
+import type {z} from 'zod/index';
 
 import {RHFField, SelectField} from './index.rhf';
 
@@ -102,7 +103,10 @@ export function RHFAutoSaveField<
     if (isValid) {
       const fieldValue = controller.field.value;
       // Construct single-field object for mutation
-      await mutation.mutateAsync({[name]: fieldValue});
+      await mutation.mutateAsync({[name]: fieldValue} as Record<
+        TName,
+        FieldPathValue<TFieldValues, TName>
+      >);
     }
   };
 
