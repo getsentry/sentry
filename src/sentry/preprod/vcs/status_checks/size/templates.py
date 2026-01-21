@@ -91,7 +91,7 @@ def format_status_check_messages(
         summary = _format_artifact_summary(artifacts, size_metrics_map)
         base_url = f"/settings/projects/{project.slug}/preprod/"
         expanded_params = "&".join(f"expanded={rule.id}" for rule in triggered_rules)
-        settings_url = project.organization.absolute_url(f"{base_url}?{expanded_params}")
+        settings_url = project.organization.absolute_url(base_url, query=expanded_params)
         summary += str(
             _(
                 "\n\n**Status check failed due to size threshold rules.** "
@@ -162,9 +162,11 @@ def _format_artifact_summary(
 
         # Comparison URL
         if base_artifact and base_metrics:
-            artifact_url = get_preprod_artifact_comparison_url(artifact, base_artifact)
+            artifact_url = get_preprod_artifact_comparison_url(
+                artifact, base_artifact, comparison_type="size"
+            )
         else:
-            artifact_url = get_preprod_artifact_url(artifact)
+            artifact_url = get_preprod_artifact_url(artifact, view_type="size")
 
         name_text = f"[{app_name}<br>`{app_id}`]({artifact_url})"
 
@@ -216,7 +218,7 @@ def _format_failure_summary(
     for artifact in artifacts:
         version_string = _format_version_string(artifact, default="-")
 
-        artifact_url = get_preprod_artifact_url(artifact)
+        artifact_url = get_preprod_artifact_url(artifact, view_type="size")
         unknown_app_text = str(_("Unknown App"))
         app_id_link = f"[`{artifact.app_id or unknown_app_text}`]({artifact_url})"
 
