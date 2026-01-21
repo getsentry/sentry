@@ -8,7 +8,7 @@ import zlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Literal
+from typing import Any, Literal, overload
 
 import msgpack
 import sentry_sdk
@@ -173,6 +173,14 @@ def _can_use_hint(
         return False
 
     return True
+
+
+@overload
+def _add_rule_source_to_hint(hint: str, custom_rules: set[str]) -> str: ...
+
+
+@overload
+def _add_rule_source_to_hint(hint: None, custom_rules: set[str]) -> None: ...
 
 
 def _add_rule_source_to_hint(hint: str | None, custom_rules: set[str]) -> str | None:
