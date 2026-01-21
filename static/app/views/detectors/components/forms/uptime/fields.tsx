@@ -47,9 +47,9 @@ const DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP: {
   owner: '',
   projectId: '',
   recoveryThreshold: UPTIME_DEFAULT_RECOVERY_THRESHOLD,
-  timeoutMs: 10000,
+  timeoutMs: 5000,
   traceSampling: false,
-  url: 'https://example.com',
+  url: '',
   workflowIds: [],
 };
 
