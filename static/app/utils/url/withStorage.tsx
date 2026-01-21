@@ -38,10 +38,14 @@ import sessionStorage from 'sentry/utils/sessionStorage';
  *   withStorage(sessionStorage, 'temp:data', parseAsString)
  * );
  */
-export function withStorage<T>(storage: Storage, storageKey: string, parser: {
-  parse: (value: string) => T | null;
-  serialize: (value: T) => string;
-}) {
+export function withStorage<T>(
+  storage: Storage,
+  storageKey: string,
+  parser: {
+    parse: (value: string) => T | null;
+    serialize: (value: T) => string;
+  }
+) {
   return createParser<T>({
     parse: (urlValue: string | null) => {
       // URL is empty - try storage fallback
@@ -126,10 +130,13 @@ export function withStorage<T>(storage: Storage, storageKey: string, parser: {
  *   })
  * );
  */
-export function withLocalStorage<T>(storageKey: string, parser: {
-  parse: (value: string) => T | null;
-  serialize: (value: T) => string;
-}) {
+export function withLocalStorage<T>(
+  storageKey: string,
+  parser: {
+    parse: (value: string) => T | null;
+    serialize: (value: T) => string;
+  }
+) {
   return withStorage(localStorage, storageKey, parser);
 }
 
@@ -158,9 +165,12 @@ export function withLocalStorage<T>(storageKey: string, parser: {
  *   withSessionStorage('editor:draft', parseAsBooleanLiteral)
  * );
  */
-export function withSessionStorage<T>(storageKey: string, parser: {
-  parse: (value: string) => T | null;
-  serialize: (value: T) => string;
-}) {
+export function withSessionStorage<T>(
+  storageKey: string,
+  parser: {
+    parse: (value: string) => T | null;
+    serialize: (value: T) => string;
+  }
+) {
   return withStorage(sessionStorage, storageKey, parser);
 }
