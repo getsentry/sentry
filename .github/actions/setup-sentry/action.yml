@@ -50,6 +50,8 @@ runs:
         # TODO: Remove once pydantic v2 is uploaded to internal PyPI
         # Allow uv to access public PyPI as fallback (uv respects pyproject.toml indices)
         echo "UV_INDEX_STRATEGY=unsafe-best-match" >> $GITHUB_ENV
+        # Explicitly allow both internal and public PyPI indices for uv
+        echo "UV_INDEX=https://pypi.devinfra.sentry.io/simple https://pypi.org/simple" >> $GITHUB_ENV
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
