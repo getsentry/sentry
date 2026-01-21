@@ -155,6 +155,8 @@ class TestTransformWebhookToCodegenRequest:
             provider="integrations:github",
             external_id="123456",
         )
+        repo.integration_id = 99999
+        repo.save()
         return owner, organization, project, repo
 
     def test_pull_request_event(
@@ -184,7 +186,9 @@ class TestTransformWebhookToCodegenRequest:
             "name": "test-repo",
             "external_id": "123456",
             "base_commit_sha": "abc123sha",
+            "organization_id": organization.id,
         }
+        expected_repo["integration_id"] = str(repo.integration_id)
 
         assert isinstance(result, dict)
         assert result["request_type"] == "pr-review"
@@ -232,6 +236,8 @@ class TestTransformWebhookToCodegenRequest:
         data = result["data"]
         config = data["config"]
         assert data["pr_id"] == 42
+        assert data["repo"]["organization_id"] == organization.id
+        assert data["repo"]["integration_id"] == str(repo.integration_id)
         assert config["trigger"] == SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
@@ -278,3 +284,33 @@ class TestTransformWebhookToCodegenRequest:
                 bad_repo,
                 "sha123",
             )
+
+    def test_integration_id_not_included_when_none(
+        self, setup_entities: tuple[User, Organization, Project, Repository]
+    ) -> None:
+        _, organization, project, _ = setup_entities
+        repo_without_integration = Factories.create_repo(
+            project,
+            name="test-owner/test-repo-no-integration",
+            provider="integrations:github",
+            external_id="222222",
+        )
+        # Ensure integration_id is None
+        repo_without_integration.integration_id = None
+        repo_without_integration.save()
+
+        event_payload = {
+            "pull_request": {"number": 1},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo_without_integration,
+            "sha123",
+        )
+
+        assert result is not None
+        assert "integration_id" not in result["data"]["repo"]
