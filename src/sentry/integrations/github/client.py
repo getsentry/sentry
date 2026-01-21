@@ -587,6 +587,13 @@ class GitHubBaseClient(
         endpoint = f"/repos/{repo}/issues/{issue_number}/reactions"
         return self.post(endpoint, data={"content": reaction.value})
 
+    def delete_issue_reaction(self, repo: str, issue_number: str, reaction_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-reaction
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}/reactions/{reaction_id}"
+        return self.delete(endpoint)
+
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
