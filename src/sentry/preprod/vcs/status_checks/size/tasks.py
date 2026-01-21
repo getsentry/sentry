@@ -181,6 +181,10 @@ def create_preprod_status_check_task(
         all_artifacts, size_metrics_map, status, preprod_artifact.project, triggered_rules
     )
 
+    # Temporarily hardcode neutral status to avoid GitHub rate limiting issues
+    # leaving checks stuck in "in progress" state
+    status = StatusCheckStatus.NEUTRAL
+
     target_url = get_preprod_artifact_url(preprod_artifact)
 
     completed_at: datetime | None = None
