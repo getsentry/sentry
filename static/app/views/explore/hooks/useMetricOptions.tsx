@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -14,9 +13,9 @@ import {
 } from 'sentry/views/explore/metrics/types';
 
 interface UseMetricOptionsProps {
-  orgSlug: string;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
+  orgSlug?: string;
   projectIds?: PageFilters['projects'];
   search?: string;
 }
@@ -26,7 +25,7 @@ function metricOptionsQueryKey({
   projectIds,
   datetime,
   search,
-}: UseMetricOptionsProps): ApiQueryKey {
+}: UseMetricOptionsProps = {}): ApiQueryKey {
   const searchValue = new MutableSearch('');
   if (search) {
     searchValue.addStringContainsFilter(
@@ -56,12 +55,7 @@ function metricOptionsQueryKey({
     });
   }
 
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-    {query},
-  ];
+  return [`/organizations/${orgSlug}/events/`, {query}];
 }
 
 /**
@@ -73,7 +67,7 @@ export function useMetricOptions({
   projectIds,
   datetime,
   enabled = true,
-}: Omit<UseMetricOptionsProps, 'orgSlug'>) {
+}: UseMetricOptionsProps = {}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
