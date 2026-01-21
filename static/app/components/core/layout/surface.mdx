@@ -7,7 +7,8 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/surface.tsx
 ---
 
-import {Stack, Surface} from '@sentry/scraps/layout';
+import {Flex, Stack, Surface} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
@@ -19,80 +20,53 @@ The `Surface` component is a simplified layout component built on top of the `Co
 
 To change the layout of `Surface` children, wrap children with a specific layout component (such as [`Flex`](/stories/core/flex), [`Stack`](/stories/core/stack), [`Grid`](/stories/core/grid)).
 
-## Variants
+## Flat Variants
 
-### Primary
-
-Use `variant="primary"` for primary content areas.
+Use basic variants for content areas: `primary` for main content, `secondary` for supporting content, and `tertiary` for nested or de-emphasized areas.
 
 <Storybook.Demo>
-  <Stack minWidth="0" flexGrow={1}>
-    <Surface variant="primary">Primary surface</Surface>
+  <Stack minWidth="0" flexGrow={1} gap="md">
+    <Surface variant="primary">
+      <Flex padding="xl lg">Primary surface</Flex>
+    </Surface>
+    <Surface variant="secondary">
+      <Flex padding="xl lg">Secondary surface</Flex>
+    </Surface>
+    <Surface variant="tertiary">
+      <Flex padding="xl lg">Tertiary surface</Flex>
+    </Surface>
   </Stack>
 </Storybook.Demo>
 ```jsx
 <Surface variant="primary">Primary surface</Surface>
-```
-
-### Secondary
-
-Use `variant="secondary"` for secondary content areas.
-
-<Storybook.Demo>
-  <Stack minWidth="0" flexGrow={1}>
-    <Surface variant="secondary">Secondary surface</Surface>
-  </Stack>
-</Storybook.Demo>
-```jsx
 <Surface variant="secondary">Secondary surface</Surface>
-```
-
-### Tertiary
-
-Use `variant="tertiary"` for tertiary content areas.
-
-<Storybook.Demo>
-  <Stack minWidth="0" flexGrow={1}>
-    <Surface variant="tertiary">Tertiary surface</Surface>
-  </Stack>
-</Storybook.Demo>
-```jsx
 <Surface variant="tertiary">Tertiary surface</Surface>
 ```
 
-### Overlay
+## Overlay Variant & Elevation
 
-Use `variant="overlay"` for floating surfaces like dropdowns, modals, and popovers. Overlay surfaces include a border and box-shadow.
-
-<Storybook.Demo>
-  <Stack minWidth="0" flexGrow={1}>
-    <Surface variant="overlay">Overlay surface (default high elevation)</Surface>
-  </Stack>
-</Storybook.Demo>
-```jsx
-<Surface variant="overlay">Overlay surface</Surface>
-```
-
-## Elevation
-
-The `elevation` prop is only available for `variant="overlay"`. It controls the shadow intensity.
+Use `variant="overlay"` for floating surfaces like dropdowns, modals, and popovers. Overlay surfaces include a border and box-shadow. The `elevation` prop controls shadow intensity and is only available for overlay surfaces.
 
 <Storybook.Demo>
   <Stack minWidth="0" flexGrow={1} gap="md">
     <Surface variant="overlay" elevation="low">
-      Low elevation
+      <Flex padding="xl lg">
+        <Text variant="primary">
+          Overlay: Low elevation <Text variant="muted">(default)</Text>
+        </Text>
+      </Flex>
     </Surface>
     <Surface variant="overlay" elevation="high">
-      High elevation (default)
+      <Flex padding="xl lg">Overlay: High elevation</Flex>
     </Surface>
   </Stack>
 </Storybook.Demo>
 ```jsx
 <Surface variant="overlay" elevation="low">
-  Low elevation
+  Overlay: Low elevation (default)
 </Surface>
 <Surface variant="overlay" elevation="high">
-  High elevation (default)
+  Overlay: High elevation
 </Surface>
 ```
 
@@ -102,52 +76,25 @@ The `radius` prop controls the border radius. Overlay surfaces default to `md` r
 
 <Storybook.Demo>
   <Stack minWidth="0" flexGrow={1} gap="md">
-    <Surface variant="primary" radius="sm">
-      Small radius
+    <Surface variant="overlay" elevation="low" radius="sm">
+      <Flex padding="xl lg">Small radius</Flex>
     </Surface>
-    <Surface variant="primary" radius="md">
-      Medium radius
+    <Surface variant="overlay" elevation="low" radius="md">
+      <Flex padding="xl lg">Medium radius</Flex>
     </Surface>
-    <Surface variant="primary" radius="lg">
-      Large radius
+    <Surface variant="overlay" elevation="low" radius="lg">
+      <Flex padding="xl lg">Large radius</Flex>
     </Surface>
   </Stack>
 </Storybook.Demo>
 ```jsx
-<Surface variant="primary" radius="sm">
+<Surface variant="overlay" elevation="low" radius="sm">
   Small radius
 </Surface>
-<Surface variant="primary" radius="md">
+<Surface variant="overlay" elevation="low" radius="md">
   Medium radius
 </Surface>
-<Surface variant="primary" radius="lg">
+<Surface variant="overlay" elevation="low" radius="lg">
   Large radius
-</Surface>
-```
-
-## All Variants
-
-<Storybook.Demo>
-  <Stack minWidth="0" flexGrow={1} gap="md">
-    <Surface variant="primary">Primary</Surface>
-    <Surface variant="secondary">Secondary</Surface>
-    <Surface variant="tertiary">Tertiary</Surface>
-    <Surface variant="overlay" elevation="low">
-      Overlay: Low
-    </Surface>
-    <Surface variant="overlay" elevation="high">
-      Overlay: High
-    </Surface>
-  </Stack>
-</Storybook.Demo>
-```jsx
-<Surface variant="primary">Primary</Surface>
-<Surface variant="secondary">Secondary</Surface>
-<Surface variant="tertiary">Tertiary</Surface>
-<Surface variant="overlay" elevation="low">
-  Overlay: Low
-</Surface>
-<Surface variant="overlay" elevation="high">
-  Overlay: High
 </Surface>
 ```
