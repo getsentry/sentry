@@ -1,6 +1,7 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -16,7 +17,7 @@ import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
-import {useSyncedQueryParamState} from 'sentry/utils/url/useSyncedQueryParamState';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -155,15 +156,37 @@ export default function FiltersBar({
   // Calculate maxPickableDays based on the data categories
   const maxPickableDaysOptions = useMaxPickableDays({dataCategories});
 
-  // Release sort state management with synced URL and localStorage
-  const [releaseFilterSortBy, setReleaseFilterSortBy] = useSyncedQueryParamState(
-    'releaseFilterSort',
-    'dashboards',
-    ReleasesSortOption.DATE
+  // Inline URL+localStorage sync for release sort
+  const [localStorageReleaseSort, setLocalStorageReleaseSort] =
+    useLocalStorageState<ReleasesSortByOption>(
+      'dashboardsReleasesSortBy',
+      ReleasesSortOption.DATE
+    );
+
+  const [urlReleaseSort, setUrlReleaseSort] = useQueryState(
+    'sortReleasesBy',
+    parseAsString.withDefault(ReleasesSortOption.DATE)
   );
 
+  // URL takes precedence for sharing
+  const effectiveReleaseSort =
+    (urlReleaseSort as ReleasesSortByOption) || localStorageReleaseSort;
+
+  // Sync localStorage when URL changes
+  useEffect(() => {
+    if (urlReleaseSort && urlReleaseSort !== localStorageReleaseSort) {
+      setLocalStorageReleaseSort(urlReleaseSort as ReleasesSortByOption);
+    }
+  }, [urlReleaseSort, localStorageReleaseSort, setLocalStorageReleaseSort]);
+
+  // Single setter that updates both
+  const setReleaseSort = (value: ReleasesSortByOption) => {
+    setUrlReleaseSort(value);
+    setLocalStorageReleaseSort(value);
+  };
+
   const validatedReleaseFilterSortBy = getReleasesSortBy(
-    releaseFilterSortBy as ReleasesSortByOption,
+    effectiveReleaseSort,
     selection.environments
   );
 
@@ -244,7 +267,7 @@ export default function FiltersBar({
           });
         }}
         onSortChange={value => {
-          setReleaseFilterSortBy(value as ReleasesSortByOption);
+          setReleaseSort(value as ReleasesSortByOption);
         }}
       />
       {organization.features.includes('dashboards-global-filters') && (

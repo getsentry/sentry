@@ -130,7 +130,7 @@ describe('Dashboards > Detail', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         method: 'GET',
-        body: {data: []},
+        body: [],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -405,7 +405,7 @@ describe('Dashboards > Detail', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         method: 'GET',
-        body: {data: []},
+        body: [],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/',
@@ -1520,6 +1520,15 @@ describe('Dashboards > Detail', () => {
             version: 'sentry-android-shop@1.2.0',
           }),
         ],
+        match: [
+          MockApiClient.matchQuery({
+            project: [],
+            per_page: 50,
+            environment: [],
+            query: undefined,
+            sort: 'date',
+          }),
+        ],
       });
       // Mocked search results
       const searchMock = MockApiClient.addMockResponse({
@@ -1532,10 +1541,13 @@ describe('Dashboards > Detail', () => {
           }),
         ],
         match: [
-          (_url, options) => {
-            // Match when query parameter is 's' (in query field for useApiQuery)
-            return options.query?.query === 's';
-          },
+          MockApiClient.matchQuery({
+            project: [],
+            per_page: 50,
+            environment: [],
+            query: 's',
+            sort: 'date',
+          }),
         ],
       });
       const testData = initializeOrg({
