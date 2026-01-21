@@ -11,6 +11,7 @@ from sentry.testutils.helpers.response import close_streaming_response
 class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.login_as(self.user)
 
         # Create a test file
         self.file = self.create_file(
