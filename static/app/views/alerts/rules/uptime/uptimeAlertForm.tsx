@@ -232,7 +232,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         if (assertion?.root) {
           formModel.setValue('assertion', {
             root: normalizeAssertion(assertion.root),
-          } as unknown as Record<PropertyKey, unknown>);
+          });
         }
       }}
       extraButton={
