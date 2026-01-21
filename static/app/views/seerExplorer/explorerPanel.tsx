@@ -78,6 +78,8 @@ function ExplorerPanel() {
     isError,
     interruptRun,
     interruptRequested,
+    wasJustInterrupted,
+    clearWasJustInterrupted,
     switchToRun,
     respondToUserInput,
     createPR,
@@ -104,6 +106,13 @@ function ExplorerPanel() {
     sessionBlocks: sessionData?.blocks,
     onUnminimize: useCallback(() => setIsMinimized(false), []),
   });
+
+  // Clear wasJustInterrupted when user starts typing
+  useEffect(() => {
+    if (inputValue.length > 0 && wasJustInterrupted) {
+      clearWasJustInterrupted();
+    }
+  }, [inputValue, wasJustInterrupted, clearWasJustInterrupted]);
 
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
@@ -684,6 +693,7 @@ function ExplorerPanel() {
         isMinimized={isMinimized}
         isPolling={isPolling}
         isVisible={isVisible}
+        wasJustInterrupted={wasJustInterrupted}
         onClear={() => setInputValue('')}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
