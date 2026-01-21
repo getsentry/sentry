@@ -77,7 +77,7 @@ class RepositoryDeleteEmailTest(TestCase):
 class RepositoryCodeReviewSettingsTest(TestCase):
     """Tests for auto-enabling code review settings on repository creation."""
 
-    def test_settings_created_when_auto_enable_disabled(self):
+    def test_settings_created_when_no_auto_enable(self):
         org = self.create_organization()
 
         repo = Repository.objects.create(

@@ -165,7 +165,7 @@ class Repository(Model):
         if self.provider not in SUPPORTED_PROVIDERS:
             return
 
-        enable_code_review = OrganizationOption.objects.get_value(
+        enabled_code_review = OrganizationOption.objects.get_value(
             organization=self.organization_id,
             key="sentry:auto_enable_code_review",
             default=False,
@@ -180,7 +180,7 @@ class Repository(Model):
 
         RepositorySettings.objects.get_or_create(
             repository_id=self.id,
-            defaults={"enabled_code_review": enable_code_review, "code_review_triggers": triggers},
+            defaults={"enabled_code_review": enabled_code_review, "code_review_triggers": triggers},
         )
 
 
