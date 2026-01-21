@@ -5,7 +5,6 @@ import connectGithubImg from 'sentry-images/spot/seer-config-connect-1.svg';
 
 import {Text} from '@sentry/scraps/text';
 
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 
@@ -33,9 +32,6 @@ export function ConnectGithubStep() {
                 analyticsView="seer_onboarding_github"
               />
             </ActionSection>
-            <GuidedSteps.ButtonWrapper>
-              <GuidedSteps.NextButton size="md" />
-            </GuidedSteps.ButtonWrapper>
           </PanelBody>
         </MaxWidthPanel>
       </StepContentWithBackground>
