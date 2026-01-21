@@ -46,7 +46,7 @@ class WorkflowSerializerResponse(TypedDict):
     dateCreated: datetime
     dateUpdated: datetime
     triggers: TriggerSerializerResponse | None
-    actionFilters: list[TriggerSerializerResponse]
+    actionFilters: list[TriggerSerializerResponse] | None
     environment: str | None
     config: dict[str, Any]
     detectorIds: list[str] | None
@@ -102,7 +102,9 @@ class WorkflowSerializer(Serializer):
             attrs[item]["lastTriggered"] = last_triggered_map.get(item.id)
         return attrs
 
-    def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs
+    ) -> WorkflowSerializerResponse:
         return {
             "id": str(obj.id),
             "name": str(obj.name),
