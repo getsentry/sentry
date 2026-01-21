@@ -243,14 +243,13 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by("project_id")
         )
         projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
-        for project in projects:
-            if not access.has_project_access(project):
-                return RpcServiceHookProjectsResult(
-                    error=RpcSentryAppError(
-                        message="Some projects are not accessible",
-                        status_code=403,
-                    )
+        if any(not access.has_project_access(project) for project in projects):
+            return RpcServiceHookProjectsResult(
+                error=RpcSentryAppError(
+                    message="Some projects are not accessible",
+                    status_code=403,
                 )
+            )
         return RpcServiceHookProjectsResult(
             service_hook_projects=[serialize_service_hook_project(hp) for hp in hook_projects],
         )
@@ -331,25 +330,22 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             projects_to_add = new_project_ids - current_project_ids
             projects_to_remove = current_project_ids - new_project_ids
 
-            # Validate the requestor has access to the incoming projects
-            for project in new_projects:
-                if not access.has_project_access(project):
-                    return RpcServiceHookProjectsResult(
-                        error=RpcSentryAppError(
-                            message="Some projects affected by this request are not accessible",
-                            status_code=403,
-                        )
+            if any(not access.has_project_access(project) for project in new_projects):
+                return RpcServiceHookProjectsResult(
+                    error=RpcSentryAppError(
+                        message="Some projects affected by this request are not accessible",
+                        status_code=403,
                     )
+                )
 
             projects_to_remove_objs = current_projects.filter(id__in=projects_to_remove)
-            for project in projects_to_remove_objs:
-                if not access.has_project_access(project):
-                    return RpcServiceHookProjectsResult(
-                        error=RpcSentryAppError(
-                            message="Cannot remove projects that are not accessible",
-                            status_code=403,
-                        )
+            if any(not access.has_project_access(project) for project in projects_to_remove_objs):
+                return RpcServiceHookProjectsResult(
+                    error=RpcSentryAppError(
+                        message="Cannot remove projects that are not accessible",
+                        status_code=403,
                     )
+                )
 
             ServiceHookProject.objects.filter(
                 service_hook_id=hook.id, project_id__in=projects_to_remove
@@ -402,19 +398,17 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 ),
             )
         with transaction.atomic(router.db_for_write(ServiceHookProject)):
-            # Materialize the queryset once to avoid TOCTOU between validation and deletion
             hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
 
             projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
-            for project in projects:
-                if not access.has_project_access(project):
-                    return RpcEmptyResult(
-                        success=False,
-                        error=RpcSentryAppError(
-                            message="Some projects are not accessible",
-                            status_code=403,
-                        ),
-                    )
+            if any(not access.has_project_access(project) for project in projects):
+                return RpcEmptyResult(
+                    success=False,
+                    error=RpcSentryAppError(
+                        message="Some projects are not accessible",
+                        status_code=403,
+                    ),
+                )
             deletions.exec_sync_many(list(hook_projects))
 
         return RpcEmptyResult()
