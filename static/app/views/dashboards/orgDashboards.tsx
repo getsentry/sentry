@@ -69,7 +69,7 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   } = useApiQuery<DashboardDetails>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-        path: {organizationIdOrSlug: organization.slug, dashboardId: dashboardId!},
+        path: {organizationIdOrSlug: organization.slug, dashboardId},
       }),
     ],
     {
