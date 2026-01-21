@@ -28,7 +28,7 @@ Debug.Warning("This warning will be sent to Sentry");
 
 // Or use the SDK directly
 SentrySdk.Logger.LogInfo("A simple log message");
-SentrySdk.Logger.LogError("An error log message");`,
+SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
     },
     {
       type: 'text',
