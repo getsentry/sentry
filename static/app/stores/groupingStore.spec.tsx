@@ -301,7 +301,9 @@ describe('Grouping Store', () => {
       GroupingStore.init();
       mergeList = [];
       mergeState = new Map();
-      GroupingStore.onFetch([{dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'}]);
+      GroupingStore.onFetch([
+        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
+      ]);
     });
 
     describe('onToggleMerge (checkbox state)', () => {
