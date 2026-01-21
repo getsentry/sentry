@@ -9,7 +9,7 @@ from sentry.models.project import Project
 from sentry.signals import project_created
 from sentry.workflow_engine.processors.detector import (
     UnableToAcquireLockApiError,
-    _ensure_metric_detector,
+    ensure_default_anomaly_detector,
     ensure_default_detectors,
 )
 
@@ -75,7 +75,7 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
         enabled = features.has(
             "organizations:anomaly-detection-alerts", project.organization, actor=user
         )
-        detector = _ensure_metric_detector(
+        detector = ensure_default_anomaly_detector(
             project, owner_team_id=owner_team.id if owner_team else None, enabled=enabled
         )
         if detector:
@@ -86,7 +86,7 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
     except UnableToAcquireLockApiError as e:
         sentry_sdk.capture_exception(e)
     except Exception:
-        # Seer data send failed - detector was not created, already logged in _ensure_metric_detector
+        # Seer data send failed - detector was not created, already logged in ensure_default_anomaly_detector
         pass
 
 
