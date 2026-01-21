@@ -16,7 +16,6 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_do
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
 
-from .organization_preprod_app_size_stats import OrganizationPreprodAppSizeStatsEndpoint
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
 from .organization_preprod_list_builds import OrganizationPreprodListBuildsEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
@@ -128,11 +127,6 @@ preprod_project_urlpatterns = [
 ]
 
 preprod_organization_urlpatterns = [
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/preprod/app-size-stats/$",
-        OrganizationPreprodAppSizeStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-preprod-app-size-stats",
-    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/list-builds/$",
         OrganizationPreprodListBuildsEndpoint.as_view(),
