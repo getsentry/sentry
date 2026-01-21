@@ -290,6 +290,30 @@ const Value = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
+const ResultsSection = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const ResultItem = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.md} 0;
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+`;
+
+const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
+  color: ${p =>
+    p.status === CodingAgentStatus.FAILED
+      ? p.theme.tokens.content.danger
+      : p.theme.tokens.content.primary};
+`;
+
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
@@ -306,23 +330,4 @@ const BottomButtonContainer = styled('div')`
   justify-content: flex-end;
   padding-top: ${p => p.theme.space.xl};
   padding-bottom: ${p => p.theme.space.xl};
-`;
-
-const ResultsSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const ResultItem = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const ResultDescription = styled('span')<{status: CodingAgentStatus}>`
-  color: ${p =>
-    p.status === CodingAgentStatus.FAILED
-      ? p.theme.tokens.content.danger
-      : p.theme.tokens.content.primary};
 `;
