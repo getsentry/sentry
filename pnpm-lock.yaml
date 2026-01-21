@@ -346,8 +346,8 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
       echarts-for-react:
-        specifier: 3.0.5
-        version: 3.0.5(echarts@6.0.0)(react@19.2.3)
+        specifier: 3.0.6
+        version: 3.0.6(echarts@6.0.0)(react@19.2.3)
       esbuild:
         specifier: 0.25.10
         version: 0.25.10
@@ -4889,8 +4889,8 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  echarts-for-react@3.0.5:
-    resolution: {integrity: sha512-YpEI5Ty7O/2nvCfQ7ybNa+S90DwE8KYZWacGvJW4luUqywP7qStQ+pxDlYOmr4jGDu10mhEkiAuMKcUlT4W5vg==}
+  echarts-for-react@3.0.6:
+    resolution: {integrity: sha512-4zqLgTGWS3JvkQDXjzkR1k1CHRdpd6by0988TWMJgnvDytegWLbeP/VNZmMa+0VJx2eD7Y632bi2JquXDgiGJg==}
     peerDependencies:
       echarts: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0
       react: ^15.0.0 || >=16.0.0
@@ -7937,8 +7937,8 @@ packages:
     resolution: {integrity: sha512-94Bdh3cC2PKrbgSOUqTiGPWVZeSiXfKOVZNJniWoqrWrRkB1CJzBU3NEbiTsPcYy1lDsANA/THzS+9WBiy5nfQ==}
     engines: {node: '>= 10'}
 
-  size-sensor@1.0.1:
-    resolution: {integrity: sha512-QTy7MnuugCFXIedXRpUSk9gUnyNiaxIdxGfUjr8xxXOqIB3QvBUYP9+b51oCg2C4dnhaeNk/h57TxjbvoJrJUA==}
+  size-sensor@1.0.3:
+    resolution: {integrity: sha512-+k9mJ2/rQMiRmQUcjn+qznch260leIXY8r4FyYKKyRBO/s5UoeMAHGkCJyE1R/4wrIhTJONfyloY55SkE7ve3A==}
 
   slash@3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
@@ -14026,12 +14026,12 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  echarts-for-react@3.0.5(echarts@6.0.0)(react@19.2.3):
+  echarts-for-react@3.0.6(echarts@6.0.0)(react@19.2.3):
     dependencies:
       echarts: 6.0.0
       fast-deep-equal: 3.1.3
       react: 19.2.3
-      size-sensor: 1.0.1
+      size-sensor: 1.0.3
 
   echarts@6.0.0:
     dependencies:
@@ -18102,7 +18102,7 @@ snapshots:
       mrmime: 2.0.1
       totalist: 3.0.1
 
-  size-sensor@1.0.1: {}
+  size-sensor@1.0.3: {}
 
   slash@3.0.0: {}
 
