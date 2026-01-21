@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import orjson
 import pytest
@@ -23,28 +23,29 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         Prevents real HTTP requests to GitHub API across all tests.
         Uses autouse fixture to apply mocking automatically without @patch decorators on each test.
         """
-        mock_client_instance = MagicMock()
-        mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
-        mock_client_instance.get_issue_reactions.return_value = [
-            {"id": 2, "user": {"login": "other-user"}, "content": "heart"}
-        ]
-
         with (
             patch(
-                "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
-                mock_client_instance.get_pull_request,
+                "sentry.integrations.github.client.GitHubApiClient.get_pull_request"
             ) as mock_get_pull_request,
             patch(
                 "sentry.integrations.github.client.GitHubApiClient.create_issue_reaction"
             ) as mock_reaction,
             patch(
-                "sentry.integrations.github.client.GitHubApiClient.get_issue_reactions",
-                mock_client_instance.get_issue_reactions,
+                "sentry.integrations.github.client.GitHubApiClient.get_issue_reactions"
             ) as mock_get_reactions,
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.delete_issue_reaction"
+            ) as mock_delete_reaction,
         ):
+            mock_get_pull_request.return_value = {"head": {"sha": "abc123"}}
+            mock_get_reactions.return_value = [
+                {"id": 2, "user": {"login": "other-user"}, "content": "heart"}
+            ]
+
             self.mock_get_pull_request = mock_get_pull_request
             self.mock_reaction = mock_reaction
             self.mock_get_reactions = mock_get_reactions
+            self.mock_delete_reaction = mock_delete_reaction
             yield
 
     @pytest.fixture(autouse=True)
