@@ -47,7 +47,9 @@ class WorkflowValidator(CamelSnakeSerializer):
         help_text=WORKFLOW_CONFIG_HELP_TEXT,
     )
     environment = EnvironmentField(
-        required=False, help_text="The name of the environment for the alert to evaluate in"
+        required=False,
+        allow_null=True,
+        help_text="The name of the environment for the alert to evaluate in",
     )
 
     triggers = BaseDataConditionGroupValidator(
