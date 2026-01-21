@@ -1209,7 +1209,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["tags_overview"] == mock_get_tags.return_value
             _validate_event_timeseries(result["event_timeseries"], expected_total=3)
             assert isinstance(result["issue"], dict)
-            _IssueMetadata.parse_obj(result["issue"])
+            _IssueMetadata.model_validate(result["issue"])
 
             # Check any event is returned with right structure.
             assert "event_id" in result
@@ -1267,7 +1267,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["tags_overview"] == mock_get_tags.return_value
             _validate_event_timeseries(result["event_timeseries"], expected_total=1)
             assert isinstance(result["issue"], dict)
-            _IssueMetadata.parse_obj(result["issue"])
+            _IssueMetadata.model_validate(result["issue"])
 
             # Check any event is returned with right structure.
             assert "event_id" in result
@@ -1315,7 +1315,7 @@ class TestGetIssueAndEventDetailsV2(
             assert result["tags_overview"] == mock_get_tags.return_value
             _validate_event_timeseries(result["event_timeseries"], expected_total=3)
             assert isinstance(result["issue"], dict)
-            _IssueMetadata.parse_obj(result["issue"])
+            _IssueMetadata.model_validate(result["issue"])
         else:
             assert result.get("issue") is None
             assert result.get("event_timeseries") is None
@@ -1328,7 +1328,7 @@ class TestGetIssueAndEventDetailsV2(
         # Validate fields of the selected event.
         event_dict = result["event"]
         assert isinstance(event_dict, dict)
-        _SentryEventData.parse_obj(event_dict)
+        _SentryEventData.model_validate(event_dict)
         assert result["event_id"] == event_dict["id"]
 
     def test_get_ie_details_from_event_id_with_issue(self):
