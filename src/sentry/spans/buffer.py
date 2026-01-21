@@ -81,7 +81,9 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
+from sentry.spans.buffer_logger import BufferLogger, EvalshaData, emit_observability_metrics
 from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.utils import metrics, redis
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -166,6 +168,8 @@ class SpansBuffer:
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
+        self._buffer_logger = BufferLogger()
+        self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -198,11 +202,10 @@ class SpansBuffer:
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        debug_traces = set(options.get("spans.buffer.debug-traces"))
 
         result_meta = []
         is_root_span_count = 0
-        min_redirect_depth = float("inf")
-        max_redirect_depth = float("-inf")
 
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
             trees = self._group_by_parent(spans)
@@ -224,6 +227,18 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     byte_count = sum(len(span.payload) for span in subsegment)
+
+                    _, _, trace_id = project_and_trace.partition(":")
+                    if trace_id in debug_traces:
+                        try:
+                            if self._debug_trace_logger is None:
+                                self._debug_trace_logger = DebugTraceLogger(self.client)
+                            self._debug_trace_logger.log_subsegment_info(
+                                project_and_trace, parent_span_id, subsegment
+                            )
+                        except Exception:
+                            logger.exception("Failed to log debug trace info")
+
                     p.execute_command(
                         "EVALSHA",
                         add_buffer_sha,
@@ -246,19 +261,40 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
+            latency_metrics = []
+            gauge_metrics = []
+            longest_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+                -1.0,
+                [],
+                [],
+            )  # (latency_ms, latency_metrics, gauge_metrics)
 
             assert len(result_meta) == len(results)
 
             for (project_and_trace, parent_span_id), result in zip(result_meta, results):
-                redirect_depth, set_key, has_root_span = result
+                (
+                    set_key,
+                    has_root_span,
+                    evalsha_latency_ms,
+                    evalsha_latency_metrics,
+                    evalsha_gauge_metrics,
+                ) = result
+                latency_metrics.append(evalsha_latency_metrics)
+                gauge_metrics.append(evalsha_gauge_metrics)
+                if evalsha_latency_ms > longest_evalsha_data[0]:
+                    longest_evalsha_data = (
+                        evalsha_latency_ms,
+                        evalsha_latency_metrics,
+                        evalsha_gauge_metrics,
+                    )
+
+                # Log individual EVALSHA latency for this trace
+                self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
 
                 shard = self.assigned_shards[
                     int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
                 ]
                 queue_key = self._get_queue_key(shard)
-
-                min_redirect_depth = min(min_redirect_depth, redirect_depth)
-                max_redirect_depth = max(max_redirect_depth, redirect_depth)
 
                 # if the currently processed span is a root span, OR the buffer
                 # already had a root span inside, use a different timeout than
@@ -295,8 +331,11 @@ class SpansBuffer:
         metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
-        metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
-        metrics.gauge("spans.buffer.max_redirect_depth", max_redirect_depth)
+
+        try:
+            emit_observability_metrics(latency_metrics, gauge_metrics, longest_evalsha_data)
+        except Exception as e:
+            logger.exception("Error emitting observability metrics: %s", e)
 
     def _ensure_script(self):
         if self.add_buffer_sha is not None:

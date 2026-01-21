@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import orjson
 import pydantic
@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 class AutofixIssue(TypedDict):
     id: int
     title: str
+    short_id: NotRequired[str | None]
 
 
 class AutofixStoppingPoint(StrEnum):
@@ -629,7 +630,10 @@ def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: 
 
 
 def get_coding_agent_prompt(
-    run_id: int, trigger_source: AutofixTriggerSource, instruction: str | None = None
+    run_id: int,
+    trigger_source: AutofixTriggerSource,
+    instruction: str | None = None,
+    short_id: str | None = None,
 ) -> str:
     """Get the coding agent prompt with prefix from Seer API."""
     include_root_cause = trigger_source in [
@@ -641,6 +645,11 @@ def get_coding_agent_prompt(
     autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
 
     base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
+
+    if short_id:
+        base_prompt = (
+            f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the pull request description."
+        )
 
     if instruction and instruction.strip():
         base_prompt = f"{base_prompt}\n\n{instruction.strip()}"

@@ -54,6 +54,8 @@ class Integration(DefaultFieldsModelExisting):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
+    # A place to store non-senstive data for debugging or querying
+    debug_data = models.JSONField(default=dict, null=True)
 
     class Meta:
         app_label = "sentry"

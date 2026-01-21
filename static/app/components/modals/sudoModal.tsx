@@ -2,6 +2,8 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {logout} from 'sentry/actionCreators/account';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {
@@ -293,7 +295,7 @@ function SudoModal({
               onSubmitError={handleError}
               initialData={{isSuperuserModal: isSuperuser}}
               extraButton={
-                <BackWrapper>
+                <Flex align="center" margin="0 3xl">
                   {showAccessForms ? (
                     <Button type="submit" onClick={handleSubmitCOPS}>
                       {t('COPS/CSM')}
@@ -303,7 +305,7 @@ function SudoModal({
                       {t('Change reason')}
                     </Button>
                   )}
-                </BackWrapper>
+                </Flex>
               }
               resetOnError
             >
@@ -384,10 +386,4 @@ export default SudoModal;
 
 const StyledTextBlock = styled(TextBlock)`
   margin-bottom: ${space(1)};
-`;
-
-const BackWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(4)};
 `;

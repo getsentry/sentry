@@ -11,7 +11,6 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
-import {withLegacyTokens, type LegacyTokens} from 'sentry/utils/theme/compat';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
@@ -28,7 +27,6 @@ import type {
 } from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
-type TokensWithLegacy = Tokens & LegacyTokens;
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -400,7 +398,7 @@ export interface SentryTheme
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
     neutral: string;
   };
-  tokens: TokensWithLegacy;
+  tokens: Tokens;
 }
 
 const ccl = color.categorical.light;
@@ -942,68 +940,12 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const deprecatedColorMappings = (colors: Colors) => ({
-  /** @deprecated */
-  get purple400() {
-    return colors.blue500;
-  },
-  /** @deprecated */
-  get purple300() {
-    return colors.blue400;
-  },
-  /** @deprecated */
-  get purple200() {
-    return colors.blue200;
-  },
-  /** @deprecated */
-  get purple100() {
-    return colors.blue100;
-  },
-
-  /** @deprecated */
-  get blue400() {
-    return colors.blue500;
-  },
-  /** @deprecated */
-  get blue300() {
-    return colors.blue400;
-  },
-  /** @deprecated */
-  get blue200() {
-    return colors.blue200;
-  },
-  /** @deprecated */
-  get blue100() {
-    return colors.blue100;
-  },
-
-  /** @deprecated */
-  get green400() {
-    return colors.green500;
-  },
-  /** @deprecated */
-  get green300() {
-    return colors.green400;
-  },
-  /** @deprecated */
-  get green200() {
-    return colors.green200;
-  },
-  /** @deprecated */
-  get green100() {
-    return colors.green100;
-  },
-});
-
 const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
   ...lightShadows,
-  // @TODO: remove backwards-compatability shim
-  tokens: withLegacyTokens(baseLightTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
@@ -1035,12 +977,8 @@ export const darkTheme: SentryTheme = {
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-
-  ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
   ...darkShadows,
-  // @TODO: remove backwards-compatability shim
-  tokens: withLegacyTokens(baseDarkTheme.tokens),
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,

@@ -730,8 +730,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         env3 = self.create_environment(project=project_three)
         rule_1 = self.create_project_rule(
             project=project_three,
-            condition_data=[self.event_frequency_condition],
-            filter_match=[self.tag_filter],
+            condition_data=[self.event_frequency_condition, self.tag_filter],
             environment_id=env3.id,
         )
         rule_2 = self.create_project_rule(
@@ -1204,8 +1203,7 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_three.id)
         rule_1 = self.create_project_rule(
             project=project_three,
-            condition_data=[self.event_frequency_condition],
-            filter_match=[self.tag_filter],
+            condition_data=[self.event_frequency_condition, self.tag_filter],
             environment_id=env3.id,
         )
         rule_2 = self.create_project_rule(
