@@ -474,6 +474,11 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         allow_null=True,
         help_text="The body to send with the check request.",
     )
+    assertion = serializers.JSONField(
+        required=False,
+        allow_null=True,
+        help_text="The assertion to send with the check request.",
+    )
 
     class Meta:
         model = UptimeSubscription
