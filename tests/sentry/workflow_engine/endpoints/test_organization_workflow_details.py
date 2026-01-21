@@ -96,6 +96,36 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_add_environment(self) -> None:
+        assert self.workflow.environment_id is None
+
+        self.valid_workflow["environment"] = self.environment.name
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+
+        assert response.status_code == 200
+        assert response.data["environment"] == self.environment.name
+        assert updated_workflow.environment_id == self.environment.id
+
+    def test_update_environment(self) -> None:
+        self.workflow.environment_id = self.environment.id
+        self.workflow.save()
+        self.workflow.refresh_from_db()
+        assert self.workflow.environment_id == self.environment.id
+
+        test_environment = self.create_environment(name="test", project=self.project)
+        self.valid_workflow["environment"] = test_environment.name
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+
+        assert response.status_code == 200
+        assert response.data["environment"] == test_environment.name
+        assert updated_workflow.environment_id == test_environment.id
+
     @responses.activate
     def test_update_add_sentry_app_action(self) -> None:
         """
