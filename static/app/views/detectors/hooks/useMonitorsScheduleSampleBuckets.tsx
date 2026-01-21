@@ -1,6 +1,7 @@
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import type {UseMonitorsScheduleSamplesOptions} from './useMonitorsScheduleSamples';
 
@@ -39,7 +40,10 @@ export function useMonitorsScheduleSampleBuckets({
   const organization = useOrganization();
 
   const scheduleType = schedule.type;
-  const scheduleValue = schedule.unit ? [schedule.value, schedule.unit] : schedule.value;
+  const scheduleValue =
+    scheduleType === ScheduleType.INTERVAL
+      ? [schedule.value, schedule.unit]
+      : schedule.value;
 
   const query = {
     failure_issue_threshold: failureIssueThreshold,

@@ -7,11 +7,16 @@ import type {MonitorIntervalUnit, ScheduleType} from 'sentry/views/insights/cron
 import {useMonitorsScheduleSampleBuckets} from './useMonitorsScheduleSampleBuckets';
 import {useMonitorsScheduleSampleWindow} from './useMonitorsScheduleSampleWindow';
 
-export interface Schedule {
-  type: ScheduleType;
-  value: string | number;
-  unit?: MonitorIntervalUnit;
-}
+export type Schedule =
+  | {
+      type: ScheduleType.CRONTAB;
+      value: string;
+    }
+  | {
+      type: ScheduleType.INTERVAL;
+      unit: MonitorIntervalUnit;
+      value: number;
+    };
 
 export interface UseMonitorsScheduleSamplesOptions {
   failureIssueThreshold: number;

@@ -33,14 +33,17 @@ export function PreviewSection() {
   );
   const debouncedRecoveryThreshold = useDebouncedValue(recoveryThreshold, DEBOUNCE_DELAY);
 
-  const schedule: Schedule = {
-    type: scheduleType,
-    value:
-      scheduleType === ScheduleType.CRONTAB
-        ? debouncedScheduleCrontab
-        : scheduleIntervalValue,
-    unit: scheduleIntervalUnit,
-  };
+  const schedule: Schedule =
+    scheduleType === ScheduleType.CRONTAB
+      ? {
+          type: ScheduleType.CRONTAB,
+          value: debouncedScheduleCrontab,
+        }
+      : {
+          type: ScheduleType.INTERVAL,
+          value: scheduleIntervalValue,
+          unit: scheduleIntervalUnit,
+        };
 
   return (
     <SchedulePreview
