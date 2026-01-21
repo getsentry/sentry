@@ -508,21 +508,20 @@ export const useSeerExplorer = () => {
 
   // Detect when interrupt succeeds and set wasJustInterrupted
   useEffect(() => {
-    const wasRequested = prevInterruptRequestedRef.current;
-    const isNowRequested = interruptRequested;
+    const prevInterruptRequested = prevInterruptRequestedRef.current;
     const currentlyPolling = isPolling(filteredSessionData, waitingForResponse);
 
     // Reset interruptRequested when polling stops after an interrupt was requested
-    if (isNowRequested && !currentlyPolling) {
+    if (interruptRequested && !currentlyPolling) {
       setInterruptRequested(false);
     }
 
     // Detect successful interrupt: was requested, now not requested, and not polling
-    if (wasRequested && !isNowRequested && !currentlyPolling) {
+    if (prevInterruptRequested && !interruptRequested && !currentlyPolling) {
       setWasJustInterrupted(true);
     }
 
-    prevInterruptRequestedRef.current = isNowRequested;
+    prevInterruptRequestedRef.current = interruptRequested;
   }, [interruptRequested, filteredSessionData, waitingForResponse]);
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
