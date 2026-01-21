@@ -9,7 +9,6 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -42,21 +41,13 @@ function SetupMessagingIntegrationButton({
   };
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {integrationType: 'messaging'}},
-    ],
+    [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
     {staleTime: Infinity}
   );
 
   const integrationProvidersQuery = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {provider_key: providerKey}},
+      `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
     ]),
     {staleTime: Infinity}
   );
