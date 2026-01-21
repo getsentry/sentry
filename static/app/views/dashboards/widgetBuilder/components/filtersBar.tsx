@@ -9,7 +9,7 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
 
-export function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
+export default function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
   return (
     <Tooltip
       title={t('Changes to these filters can only be made at the dashboard level')}
