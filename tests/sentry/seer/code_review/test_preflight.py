@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from sentry import features
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.preflight import CodeReviewPreflightService, PreflightDenialReason
@@ -422,3 +423,13 @@ class TestCodeReviewPreflightService(TestCase):
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW not in result.settings.triggers
 
         mock_check_quota.assert_called_once()
+
+    def test_feature_flag_checks_are_cached(self) -> None:
+        service = self._create_service()
+
+        with patch.object(features, "has", return_value=True) as mock_features_has:
+            _ = service._is_seat_based_seer_plan_org
+            _ = service._is_seat_based_seer_plan_org
+            _ = service._is_seat_based_seer_plan_org
+
+            assert mock_features_has.call_count == 1
