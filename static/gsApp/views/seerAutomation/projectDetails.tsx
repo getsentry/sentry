@@ -61,7 +61,7 @@ function SeerProjectDetails() {
       <SettingsPageHeader
         title={tct('Seer Settings for [projectName]', {
           projectName: (
-            <Text as="code" monospace>
+            <Text as="span" monospace>
               {project.slug}
             </Text>
           ),
