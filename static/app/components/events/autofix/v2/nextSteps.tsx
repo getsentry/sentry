@@ -1,10 +1,11 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Container} from '@sentry/scraps/layout/container';
 import {Flex} from '@sentry/scraps/layout/flex';
 
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Text} from 'sentry/components/core/text';
@@ -42,6 +43,10 @@ interface ExplorerNextStepsProps {
    * Whether there are coding agents already launched.
    */
   hasCodingAgents?: boolean;
+  /**
+   * Whether the chat panel is already open with this run.
+   */
+  isChatAlreadyOpen?: boolean;
   /**
    * Whether an action is currently loading.
    */
@@ -184,6 +189,7 @@ export function ExplorerNextSteps({
   artifacts,
   hasCodeChanges,
   hasCodingAgents = false,
+  isChatAlreadyOpen = false,
   onStartStep,
   onCodingAgentHandoff,
   onOpenChat,
@@ -198,23 +204,29 @@ export function ExplorerNextSteps({
     hasCodingAgents
   );
   const [busyStep, setBusyStep] = useState<AutofixExplorerStep | null>(null);
+  const loadingIndicatorRef = useRef<ReturnType<typeof addLoadingMessage> | null>(null);
 
-  // Clear busy state when loading starts (step is triggered)
+  // Clear busy state and loading indicator when loading starts (step is triggered)
   useEffect(() => {
     if (isLoading && busyStep) {
       setBusyStep(null);
+      clearIndicators();
+      loadingIndicatorRef.current = null;
     }
   }, [isLoading, busyStep]);
 
-  // Clear busy state when the specific artifact for the busy step appears
+  // Clear busy state and loading indicator when the specific artifact for the busy step appears
   useEffect(() => {
     if (busyStep && busyStep in artifacts) {
       setBusyStep(null);
+      clearIndicators();
+      loadingIndicatorRef.current = null;
     }
   }, [artifacts, busyStep]);
 
   const handleStepClick = (step: AutofixExplorerStep) => {
     setBusyStep(step);
+    loadingIndicatorRef.current = addLoadingMessage(t('Starting...'));
     onStartStep(step);
   };
 
@@ -252,6 +264,7 @@ export function ExplorerNextSteps({
                   onClick={onOpenChat}
                   priority="primary"
                   icon={<IconChat />}
+                  disabled={isChatAlreadyOpen}
                 >
                   {t('Open Chat')}
                 </Button>
@@ -268,6 +281,7 @@ export function ExplorerNextSteps({
                   onClick={onOpenChat}
                   priority="primary"
                   icon={<IconChat />}
+                  disabled={isChatAlreadyOpen}
                 >
                   {t('Open Chat')}
                 </Button>

@@ -42,10 +42,12 @@ import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import {readStorageValue} from 'sentry/utils/useSessionStorage';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 interface ExplorerSeerDrawerProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -153,6 +155,12 @@ export function ExplorerSeerDrawer({
     reset,
     triggerCodingAgentHandoff,
   } = useExplorerAutofix(group.id);
+
+  // Check if the explorer panel is already open with this run
+  const {isOpen: isExplorerPanelOpen} = useExplorerPanel();
+  const explorerRunId = readStorageValue<number | null>('seer-explorer-run-id', null);
+  const isChatAlreadyOpen =
+    isExplorerPanelOpen && !!runState?.run_id && explorerRunId === runState.run_id;
 
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
@@ -386,7 +394,7 @@ export function ExplorerSeerDrawer({
 
           {/* Status card when processing */}
           <AnimatePresence initial={false}>
-            {runState.status === 'processing' && (
+            {runState.status === 'processing' && !isChatAlreadyOpen && (
               <ExplorerStatusCard
                 key="status_card"
                 status={runState.status}
@@ -405,6 +413,7 @@ export function ExplorerSeerDrawer({
               hasCodingAgents={
                 codingAgents !== undefined && Object.keys(codingAgents).length > 0
               }
+              isChatAlreadyOpen={isChatAlreadyOpen}
               onStartStep={handleStartStep}
               onCodingAgentHandoff={handleCodingAgentHandoff}
               onOpenChat={handleOpenChat}
