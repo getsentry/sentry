@@ -1116,7 +1116,8 @@ function ViewerTableV2({
             field,
             meta as MetaType,
             widget,
-            organization
+            organization,
+            dashboardFilters
           )!;
 
           // For SPANS widgets, the customRenderer already returns a link, so we shouldn't wrap it
