@@ -33,11 +33,11 @@ const COLUMNS = [
   {title: t('PR Creation'), key: 'pr_creation'},
   {
     title: (
-      <Flex gap="sm">
+      <Flex gap="sm" align="center">
         {t('Background Agent')}
         <QuestionTooltip
           title={t(
-            'Background agent delegation can only be enabled on the individual project settings page. Background agents can have their own settings that are not shown here.'
+            'Background agent delegation can only be changed on the individual project settings page. Background agents have more settings that are not shown here.'
           )}
           size="xs"
         />

@@ -320,12 +320,7 @@ interface SeerAutomationHandoffConfiguration {
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
-  automated_run_stopping_point?:
-    | 'root_cause'
-    | 'solution'
-    | 'code_changes'
-    | 'open_pr'
-    | 'background_agent';
+  automated_run_stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
   automation_handoff?: SeerAutomationHandoffConfiguration;
 }
 
