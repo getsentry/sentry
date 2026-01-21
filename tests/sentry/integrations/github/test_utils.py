@@ -70,6 +70,18 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
             assert result is True
             mock_quota.assert_called_once()
 
+    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=True)
+    def test_returns_true_when_autofix_enabled_and_quota_available(self, mock_quota):
+        self.create_code_mapping(project=self.project, repo=self.repo)
+        self.project.update_option("sentry:autofix_automation_tuning", "medium")
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            result = should_create_or_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
+            )
+            assert result is True
+            mock_quota.assert_called_once()
+
     @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=False)
     def test_returns_false_when_quota_not_available(self, mock_quota):
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
@@ -79,17 +91,6 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
                 self.organization, self.repo, self.contributor
             )
             assert result is False
-
-    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=True)
-    def test_returns_true_when_autofix_enabled(self, mock_quota):
-        self.create_code_mapping(project=self.project, repo=self.repo)
-        self.project.update_option("sentry:autofix_automation_tuning", "medium")
-
-        with self.feature("organizations:seat-based-seer-enabled"):
-            result = should_create_or_increment_contributor_seat(
-                self.organization, self.repo, self.contributor
-            )
-            assert result is True
 
 
 @pytest.mark.parametrize(
