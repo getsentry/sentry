@@ -7,7 +7,6 @@ from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpoint
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
@@ -81,15 +80,6 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
         tenant_ids = {"organization_id": group.project.organization_id}
-        try:
-            tagstore.backend.get_group_tag_key(
-                group,
-                None,
-                lookup_key,
-                tenant_ids=tenant_ids,
-            )
-        except tagstore.GroupTagKeyNotFound:
-            raise ResourceDoesNotExist
         sort = request.GET.get("sort")
         if sort == "date":
             order_by = "-last_seen"
