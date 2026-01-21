@@ -41,7 +41,9 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
             assert response.data["success"] is True
             assert response.data["check_types"] == ["size"]
-            mock_task.delay.assert_called_once_with(preprod_artifact_id=artifact.id)
+            mock_task.delay.assert_called_once_with(
+                preprod_artifact_id=artifact.id, caller="rerun_endpoint"
+            )
 
     def test_invalid_check_types(self):
         commit_comparison = self.create_commit_comparison(
