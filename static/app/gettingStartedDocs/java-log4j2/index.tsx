@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedback} from 'sentry/gettingStartedDocs/java/feedback';
+import {metrics} from 'sentry/gettingStartedDocs/java/metrics';
 
 import {logs} from './logs';
 import {onboarding} from './onboarding';
@@ -11,6 +12,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: feedback,
   onboarding,
   logsOnboarding: logs,
+  metricsOnboarding: metrics,
 };
 
 export default docs;

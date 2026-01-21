@@ -110,7 +110,10 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
             </Fragment>
           }
         >
-          <IncidentIndicator css={position}>
+          <IncidentIndicator
+            css={position}
+            data-test-id="cron-service-incident-indicator"
+          >
             <StyledIconExclamation />
           </IncidentIndicator>
         </IncidentHovercard>
@@ -154,6 +157,7 @@ const IncidentIndicator = styled('div')`
   align-items: center;
   z-index: 2;
   height: 20px;
+  pointer-events: auto;
 
   > svg,
   &:before {

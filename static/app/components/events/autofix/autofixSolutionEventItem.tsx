@@ -4,6 +4,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
@@ -52,12 +54,12 @@ function getEventColor(
       ? isActive
         ? theme.colors.green500
         : theme.tokens.content.primary
-      : theme.tokens.content.muted,
+      : theme.tokens.content.secondary,
     iconBorder: isSelected
       ? isActive
         ? theme.colors.green500
         : theme.tokens.content.primary
-      : theme.tokens.content.muted,
+      : theme.tokens.content.secondary,
   };
 }
 
@@ -137,7 +139,7 @@ export function SolutionEventItem({
           >
             <StyledSpan text={event.title} inline />
           </AutofixHighlightWrapper>
-          <IconWrapper>
+          <Flex justify="center" align="center" flexShrink={0} gap="md">
             {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
               <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
             )}
@@ -161,7 +163,7 @@ export function SolutionEventItem({
                 </SelectionButton>
               </Tooltip>
             </SelectionButtonWrapper>
-          </IconWrapper>
+          </Flex>
         </StyledTimelineHeader>
       }
       isActive={isActive}
@@ -207,14 +209,6 @@ const SourcesWrapper = styled('div')`
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  gap: ${space(1)};
 `;
 
 const SelectionButtonWrapper = styled('div')`

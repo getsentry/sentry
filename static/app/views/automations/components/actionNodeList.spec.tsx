@@ -1,10 +1,13 @@
 import {ActionFixture} from 'sentry-fixture/automations';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ActionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import {
   ActionGroup,
   ActionType,
@@ -146,5 +149,31 @@ describe('ActionNodeList', () => {
     await screen.findByText(textWithMarkupMatcher('Slack message'));
     await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
     expect(mockOnDeleteRow).toHaveBeenCalledWith(slackAction.id);
+  });
+
+  it('shows a warning message for an incompatible action', async () => {
+    const model = new FormModel();
+    model.setInitialData({
+      detectorIds: ['123'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [MetricDetectorFixture({id: '123'})],
+    });
+    const jiraAction = ActionFixture({type: ActionType.JIRA});
+    render(
+      <Form model={model}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <ActionNodeList {...defaultProps} actions={[jiraAction]} />
+        </AutomationBuilderErrorContext.Provider>
+      </Form>,
+      {
+        organization,
+      }
+    );
+
+    expect(
+      await screen.findByText('This action will not fire for metric issues.')
+    ).toBeInTheDocument();
   });
 });

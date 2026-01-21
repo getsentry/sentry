@@ -759,7 +759,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             # In case of disabled Open Membership, we have to check for project-level
             # permissions on the existing release.
-            release_projects = ReleaseProject.objects.filter(release=release)
+            release_projects = ReleaseProject.objects.filter(release=release).select_related(
+                "project"
+            )
             existing_projects = [rp.project for rp in release_projects]
 
             if not request.access.has_projects_access(existing_projects):

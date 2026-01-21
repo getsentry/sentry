@@ -230,7 +230,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   min-width: 30px;
 
   svg {
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
     width: 14px;
     height: 14px;
   }
@@ -786,7 +786,7 @@ const TableValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   margin: 2px;
 `;
 
@@ -1203,10 +1203,7 @@ function MultilineText({children}: {children: string}) {
     <Fragment>
       <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
-          <Container
-            position="absolute"
-            style={{top: theme.space.xs, right: theme.space.xs}}
-          >
+          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (
               <SegmentedControl
                 size="xs"
@@ -1329,9 +1326,9 @@ function MultilineJSON({
       {isHovered && (
         <Container
           position="absolute"
+          top={theme.space.xs}
+          right={theme.space.xs}
           style={{
-            top: theme.space.xs,
-            right: theme.space.xs,
             // Ensure the segmented control is on top of the text StructuredData
             zIndex: 1,
           }}
@@ -1369,6 +1366,8 @@ function MultilineJSON({
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSize.sm};
+  /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
+  min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
   pre {
     margin: 0;
     padding: 0;

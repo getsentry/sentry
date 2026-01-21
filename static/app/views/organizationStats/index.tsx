@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -283,6 +284,12 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       if (opt.value === DataCategory.PROFILES) {
         return !hasProfilingStats;
       }
+      if (opt.value === DataCategory.SIZE_ANALYSIS) {
+        return organization.features.includes('size-analysis-billing');
+      }
+      if (opt.value === DataCategory.INSTALLABLE_BUILD) {
+        return organization.features.includes('installable-build-billing');
+      }
       return true;
     }).map(opt => {
       if ((hasProfiling || hasProfilingStats) && opt.value === DataCategory.PROFILES) {
@@ -296,7 +303,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         <PageFilterBar>
           <ProjectPageFilter />
           <DropdownDataCategory
-            triggerProps={{prefix: t('Category')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
+            )}
             value={this.dataCategory}
             options={options}
             onChange={opt =>

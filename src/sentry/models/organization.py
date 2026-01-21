@@ -5,6 +5,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models, router, transaction
 from django.db.models.functions.text import Upper
 from django.urls import NoReverseMatch, reverse
@@ -12,7 +13,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from bitfield import TypedClassBitField
-from sentry import roles
+from sentry import options, roles
 from sentry.app import env
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
@@ -51,6 +52,7 @@ if TYPE_CHECKING:
 
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
 ORGANIZATION_NAME_MAX_LENGTH = 64
+ORGANIZATION_DEFAULT_OWNER_CACHE_KEY = "org.default_owner_id:{org_id}"
 
 
 class OrganizationStatus(IntEnum):
@@ -210,6 +212,8 @@ class Organization(ReplicatedRegionModel):
 
     # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
     customer_id: str | None = None
+    # Cached value for default_owner_id property
+    _default_owner_id: int | None
 
     class Meta:
         app_label = "sentry"
@@ -334,13 +338,30 @@ class Organization(ReplicatedRegionModel):
         Similar to get_default_owner but won't raise a key error
         if there is no owner. Used for analytics primarily.
         """
-        if not hasattr(self, "_default_owner_id"):
-            owner_ids = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
-                "user_id", flat=True
-            )
-            if len(owner_ids) == 0:
-                return None
+        if hasattr(self, "_default_owner_id"):
+            return self._default_owner_id
+
+        cache_key = ORGANIZATION_DEFAULT_OWNER_CACHE_KEY.format(org_id=self.id)
+        cached_value = cache.get(cache_key)
+
+        if cached_value is not None:
+            # Use sentinel (-1) for "no owner" case
+            self._default_owner_id = None if cached_value == -1 else cached_value
+            return self._default_owner_id
+
+        owner_ids = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
+            "user_id", flat=True
+        )
+
+        cache_ttl = options.get("organization.default-owner-id-cache-ttl")
+
+        if len(owner_ids) == 0:
+            self._default_owner_id = None
+            cache.set(cache_key, -1, timeout=cache_ttl)
+        else:
             self._default_owner_id = owner_ids[0]
+            cache.set(cache_key, self._default_owner_id, timeout=cache_ttl)
+
         return self._default_owner_id
 
     @classmethod
