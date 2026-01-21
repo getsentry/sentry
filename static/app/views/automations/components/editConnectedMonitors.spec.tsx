@@ -22,6 +22,11 @@ import EditConnectedMonitors from './editConnectedMonitors';
 
 describe('EditConnectedMonitors', () => {
   const project = ProjectFixture({id: '1', slug: 'test-project'});
+  const otherProject = ProjectFixture({
+    id: '2',
+    slug: 'other-project',
+    isMember: false,
+  });
   const detector1 = MetricDetectorFixture({
     id: '1',
     name: 'Metric Monitor 1',
@@ -37,7 +42,7 @@ describe('EditConnectedMonitors', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData([project]);
+    ProjectsStore.loadInitialData([project, otherProject]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
@@ -114,28 +119,26 @@ describe('EditConnectedMonitors', () => {
       url: '/organizations/org-slug/detectors/',
       method: 'GET',
       body: [detector1],
-      match: [MockApiClient.matchQuery({id: [detector1.id]})],
-    });
-    // Mock for issue stream detectors (detector1 is not an issue stream detector)
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({query: 'type:issue_stream'})],
+      match: [
+        MockApiClient.matchQuery({id: [detector1.id], includeIssueStreamDetectors: true}),
+      ],
     });
 
     const setConnectedIds = jest.fn();
+    const model = new FormModel();
+    model.setInitialData({detectorIds: [detector1.id]});
     render(
-      <EditConnectedMonitors
-        connectedIds={[detector1.id]}
-        setConnectedIds={setConnectedIds}
-      />
+      <Form model={model}>
+        <EditConnectedMonitors
+          connectedIds={[detector1.id]}
+          setConnectedIds={setConnectedIds}
+        />
+      </Form>
     );
 
     // Wait for the initial mode to be determined (should be specific monitors since detector1 is not issue_stream)
     await screen.findByRole('radio', {name: 'Alert on specific monitors'});
 
-    // Should display automation as connected
     expect(await screen.findByText(detector1.name)).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit Monitors'));
@@ -167,14 +170,11 @@ describe('EditConnectedMonitors', () => {
       url: '/organizations/org-slug/detectors/',
       method: 'GET',
       body: [issueStreamDetector],
-      match: [MockApiClient.matchQuery({id: [issueStreamDetector.id]})],
-    });
-    // Mock for getting all issue stream detectors (used to determine initial mode)
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      method: 'GET',
-      body: [issueStreamDetector],
-      match: [MockApiClient.matchQuery({query: 'type:issue_stream'})],
+      match: [
+        MockApiClient.matchQuery({
+          id: [issueStreamDetector.id],
+        }),
+      ],
     });
 
     const setConnectedIds = jest.fn();
@@ -220,14 +220,7 @@ describe('EditConnectedMonitors', () => {
     ).toBeChecked();
   });
 
-  it('updates connected detector ids when project is selected', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      method: 'GET',
-      body: [issueStreamDetector],
-      match: [MockApiClient.matchQuery({query: 'type:issue_stream'})],
-    });
-
+  it('updates selected project ids in the form when a project is selected', async () => {
     const model = new FormModel();
     model.setInitialData({projectIds: [], detectorIds: []});
 
@@ -245,11 +238,11 @@ describe('EditConnectedMonitors', () => {
     await userEvent.click(screen.getByText('Select projects'));
 
     // Select a project
-    await userEvent.click(await screen.findByText(project.slug));
+    await userEvent.click(await screen.findByText(otherProject.slug));
 
-    // The onChange should be called with the selected project ID
+    // Form model should receive the selected project ID
     await waitFor(() => {
-      expect(setConnectedIds).toHaveBeenCalledWith([issueStreamDetector.id]);
+      expect(model.getValue('projectIds')).toEqual([otherProject.id]);
     });
   });
 });

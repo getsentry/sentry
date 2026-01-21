@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Observer} from 'mobx-react-lite';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -15,6 +16,7 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,6 +41,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -74,6 +77,7 @@ const initialData = {
 export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
@@ -106,39 +110,77 @@ export default function AutomationNewSettings() {
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
-      const newAutomationData = getNewAutomationData(data as AutomationFormData, state);
 
-      if (Object.keys(errors).length === 0) {
-        try {
-          formModel.setFormSaving();
-          const automation = await createAutomation(newAutomationData);
-          onSubmitSuccess(formModel.getData());
-          trackAnalytics('automation.created', {
-            organization,
-            ...getAutomationAnalyticsPayload(newAutomationData),
-            source: 'full',
-            success: true,
-          });
-          navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
-        } catch (err) {
-          onSubmitError(err);
-          trackAnalytics('automation.created', {
-            organization,
-            ...getAutomationAnalyticsPayload(newAutomationData),
-            source: 'full',
-            success: false,
-          });
-        }
-      } else {
+      if (Object.keys(errors).length > 0) {
+        const analyticsPayload = getAutomationAnalyticsPayload(
+          getNewAutomationData({
+            data: data as AutomationFormData,
+            state,
+          })
+        );
+        Sentry.logger.warn('Create alert form validation failed', {
+          errors,
+          details: analyticsPayload,
+        });
         trackAnalytics('automation.created', {
           organization,
-          ...getAutomationAnalyticsPayload(newAutomationData),
+          ...analyticsPayload,
+          source: 'full',
+          success: false,
+        });
+        return;
+      }
+
+      formModel.setFormSaving();
+
+      const formData = await resolveDetectorIdsForProjects({
+        formData: data as AutomationFormData,
+        onSubmitError,
+        orgSlug: organization.slug,
+        projectIds: data.projectIds,
+        queryClient,
+      });
+      if (!formData) {
+        return;
+      }
+      const newAutomationData = getNewAutomationData({
+        data: formData,
+        state,
+      });
+      const analyticsPayload = getAutomationAnalyticsPayload(newAutomationData);
+
+      try {
+        const automation = await createAutomation(newAutomationData);
+        onSubmitSuccess(formModel.getData());
+        trackAnalytics('automation.created', {
+          organization,
+          ...analyticsPayload,
+          source: 'full',
+          success: true,
+        });
+        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+      } catch (err) {
+        onSubmitError(err);
+        Sentry.logger.warn('Create alert request failure', {
+          error: err,
+          details: analyticsPayload,
+        });
+        trackAnalytics('automation.created', {
+          organization,
+          ...analyticsPayload,
           source: 'full',
           success: false,
         });
       }
     },
-    [createAutomation, state, navigate, organization, setAutomationBuilderErrors]
+    [
+      state,
+      setAutomationBuilderErrors,
+      organization,
+      queryClient,
+      createAutomation,
+      navigate,
+    ]
   );
 
   return (

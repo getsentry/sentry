@@ -20,6 +20,7 @@ export type MonitorsEventParameters = {
   };
   'automation.updated': AutomationAnalyticsEventPayload & {
     organization: Organization;
+    success: boolean;
   };
   'landing_page.platform_guide.viewed': {
     guide: string;

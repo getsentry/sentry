@@ -214,6 +214,7 @@ describe('EditAutomation', () => {
       detectors_count: 1,
       trigger_conditions_count: 0,
       actions_count: 1,
+      success: true,
     });
 
     await waitFor(() =>
