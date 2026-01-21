@@ -37,6 +37,7 @@ import {
   TableRowContainer,
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
 import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {
@@ -224,7 +225,7 @@ export function SampleTableRow({
 
   const renderTimestampCell = (field: string) => {
     return (
-      <div style={{whiteSpace: 'nowrap'}}>
+      <StyledTimestampWrapper>
         {TimestampRenderer({
           item: {
             fieldKey: field,
@@ -240,7 +241,7 @@ export function SampleTableRow({
             theme,
           },
         })}
-      </div>
+      </StyledTimestampWrapper>
     );
   };
 

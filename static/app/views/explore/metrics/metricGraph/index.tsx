@@ -27,7 +27,6 @@ import {
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -91,14 +90,12 @@ export function MetricsGraph({
 
 interface GraphProps extends MetricsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
-  queryIndex: number;
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
 function Graph({
   onChartTypeChange,
   timeseriesResult,
-  queryIndex,
   orientation,
   visualize,
   infoContentHidden,
@@ -131,7 +128,7 @@ function Graph({
 
   const Title = (
     <Widget.WidgetTitle
-      title={`${getVisualizeLabel(queryIndex)}: ${metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}`}
+      title={metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}
     />
   );
 

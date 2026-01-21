@@ -114,7 +114,7 @@ function MetricsTabBodySection() {
   return (
     <ExploreBodyContent>
       <ExploreContentSection expanded={false}>
-        <Flex direction="column" gap="lg">
+        <Flex direction="column">
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
               return (

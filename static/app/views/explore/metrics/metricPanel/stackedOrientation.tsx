@@ -46,7 +46,7 @@ export function StackedOrientation({
     </Flex>
   );
   return (
-    <Stack>
+    <Stack gap="sm">
       <StackedGraphWrapper>
         <MetricsGraph
           timeseriesResult={timeseriesResult}
@@ -55,13 +55,15 @@ export function StackedOrientation({
           isMetricOptionsEmpty={isMetricOptionsEmpty}
         />
       </StackedGraphWrapper>
-      <MetricInfoTabs
-        traceMetric={traceMetric}
-        additionalActions={additionalInfoTabActions}
-        contentsHidden={infoContentHidden}
-        orientation={orientation}
-        isMetricOptionsEmpty={isMetricOptionsEmpty}
-      />
+      <div>
+        <MetricInfoTabs
+          traceMetric={traceMetric}
+          additionalActions={additionalInfoTabActions}
+          contentsHidden={infoContentHidden}
+          orientation={orientation}
+          isMetricOptionsEmpty={isMetricOptionsEmpty}
+        />
+      </div>
     </Stack>
   );
 }
