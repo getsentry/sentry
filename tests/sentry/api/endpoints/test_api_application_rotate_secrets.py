@@ -36,6 +36,7 @@ class ApiApplicationRotateSecretTest(APITestCase):
     def test_valid_call(self) -> None:
         self.login_as(self.user)
         old_secret = self.app.client_secret
+        assert old_secret is not None
         response = self.client.post(self.path, data={})
         new_secret = response.data["clientSecret"]
         assert len(new_secret) == len(old_secret)
