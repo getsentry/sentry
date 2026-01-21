@@ -8,9 +8,13 @@ from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry import audit_log, quotas
-from sentry.api.fields import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -48,6 +52,8 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 """
 The bounding upper limit on how many uptime Detectors's can exist for a single
@@ -225,7 +231,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         default="active",
         help_text="Status of the uptime monitor. Disabled uptime monitors will not perform checks and do not count against the uptime monitor quota.",
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False,
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
@@ -646,7 +652,31 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return value
 
-    def create(self, validated_data):
+    @override
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        attrs = super().validate(attrs)
+
+        # Always enforce the correct uptime conditions - these are fixed for all
+        # uptime monitors and cannot be overridden by the frontend
+        attrs["condition_group"] = {
+            "conditions": [
+                {
+                    "comparison": CHECKSTATUS_FAILURE,
+                    "type": Condition.EQUAL,
+                    "condition_result": DetectorPriorityLevel.HIGH,
+                },
+                {
+                    "comparison": CHECKSTATUS_SUCCESS,
+                    "type": Condition.EQUAL,
+                    "condition_result": DetectorPriorityLevel.OK,
+                },
+            ]
+        }
+
+        return attrs
+
+    @override
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         detector = super().create(validated_data)
 
         try:
@@ -658,7 +688,11 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return detector
 
+    @override
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        # Prevent condition_group updates. These are set on creation and can't be modified by users
+        validated_data.pop("condition_group", None)
+
         # Handle seat management when enabling/disabling
         was_enabled = instance.enabled
         enabled = validated_data.get("enabled", was_enabled)

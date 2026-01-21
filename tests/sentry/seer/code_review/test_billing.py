@@ -30,7 +30,7 @@ class TestPassesCodeReviewBillingCheck(TestCase):
 
         assert result is False
         mock_incr.assert_called_once_with(
-            "overwatch.code_review.contributor_not_found",
+            "seer.code_review.error.contributor_not_found",
             tags={"organization_id": self.organization.id},
         )
 

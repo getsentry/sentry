@@ -69,6 +69,7 @@ from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndp
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
+from sentry.api.endpoints.synapse.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
@@ -447,12 +448,6 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
 )
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
-from sentry.overwatch.endpoints.overwatch_rpc import (
-    CodeReviewRepoSettingsEndpoint,
-    PreventPrReviewEligibilityEndpoint,
-    PreventPrReviewResolvedConfigsEndpoint,
-    PreventPrReviewSentryOrgEndpoint,
-)
 from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.prevent.endpoints.organization_github_repos import (
     OrganizationPreventGitHubReposEndpoint,
@@ -3577,27 +3572,6 @@ INTERNAL_URLS = [
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
     ),
-    # Prevent AI (Overwatch) endpoints
-    re_path(
-        r"^prevent/pr-review/configs/resolved/$",
-        PreventPrReviewResolvedConfigsEndpoint.as_view(),
-        name="sentry-api-0-prevent-pr-review-configs-resolved",
-    ),
-    re_path(
-        r"^prevent/pr-review/eligibility/$",
-        PreventPrReviewEligibilityEndpoint.as_view(),
-        name="sentry-api-0-prevent-pr-review-eligibility",
-    ),
-    re_path(
-        r"^prevent/pr-review/github/sentry-org/$",
-        PreventPrReviewSentryOrgEndpoint.as_view(),
-        name="sentry-api-0-prevent-pr-review-github-sentry-org",
-    ),
-    re_path(
-        r"^code-review/repo-settings/$",
-        CodeReviewRepoSettingsEndpoint.as_view(),
-        name="sentry-api-0-code-review-repo-settings",
-    ),
     re_path(
         r"^feature-flags/$",
         InternalFeatureFlagsEndpoint.as_view(),
@@ -3612,6 +3586,12 @@ INTERNAL_URLS = [
         r"^demo/email-capture/$",
         EmailCaptureEndpoint.as_view(),
         name="sentry-demo-mode-email-capture",
+    ),
+    # Cell routing endpoints
+    re_path(
+        r"^org-cell-mappings/$",
+        OrgCellMappingsEndpoint.as_view(),
+        name="sentry-api-0-org-cell-mappings",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,

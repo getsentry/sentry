@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Reorder, useDragControls} from 'framer-motion';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
@@ -102,7 +104,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
           >
             <StyledSecondaryNavItem
               leadingItems={
-                <LeadingItemsWrapper>
+                <Flex justify="center" align="center" position="relative">
                   <GrabHandleWrapper
                     data-test-id={`grab-handle-${dashboard.id}`}
                     data-drag-icon
@@ -127,7 +129,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
                       dashboard.projects.length === 1 && dashboard.projects[0] === -1
                     }
                   />
-                </LeadingItemsWrapper>
+                </Flex>
               }
               key={dashboard.id}
               to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
@@ -193,13 +195,6 @@ const GrabHandleWrapper = styled('div')`
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   height: 120%;
   border-radius: 4px;
-`;
-
-const LeadingItemsWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const TruncatedTitle = styled('div')`

@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const scoreComponents = {
   'exception:message:character-shingles': t('Exception Message'),
@@ -50,28 +51,22 @@ function SimilarScoreCard({scoreList = []}: Props) {
         }
 
         return (
-          <Wrapper key={key}>
+          <Flex justify="between" margin="2xs 0" key={key}>
             <div>{title}</div>
             <Score score={score === null ? score : Math.round(score * 4)} />
-          </Wrapper>
+          </Flex>
         );
       })}
 
       {numOtherScores > 0 && sumOtherScores > 0 && (
-        <Wrapper>
+        <Flex justify="between" margin="2xs 0">
           <div>{t('Other')}</div>
           <Score score={Math.round((sumOtherScores * 4) / numOtherScores)} />
-        </Wrapper>
+        </Flex>
       )}
     </Fragment>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin: ${space(0.25)} 0;
-`;
 
 const Score = styled('div')<{score: ScoreValue}>`
   height: 16px;
