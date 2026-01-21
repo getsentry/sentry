@@ -40,6 +40,7 @@ export enum WidgetType {
   SPANS = 'spans',
   LOGS = 'logs',
   TRACEMETRICS = 'tracemetrics',
+  PREPROD_APP_SIZE = 'preprod-app-size',
 }
 
 // These only pertain to on-demand warnings at this point in time
