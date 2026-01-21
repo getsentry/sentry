@@ -1,0 +1,323 @@
+#!/usr/bin/env python
+"""
+Script to reproduce the duplicate GitHub status checks bug.
+
+This script creates 3 sibling artifacts (simulating a monorepo with iOS, Android, Web)
+and triggers the status check task for each one.
+
+KEY FEATURE: The script reuses existing artifacts if they exist for the commit,
+simulating the behavior of retriggering a CI pipeline. This ensures consistent
+artifact IDs across multiple runs, so the external_id stays the same.
+
+WITH THE BUG (current code):
+- Each artifact uses its own ID as external_id
+- Results in 3 separate check runs on GitHub
+
+WITH THE FIX:
+- All artifacts use the first sibling's ID as external_id
+- Results in 1 check run that updates 3 times
+- Running the script multiple times (simulating retrigger) still updates the SAME check run
+
+USAGE:
+1. First run: Creates artifacts and posts check run
+2. Second run: Reuses same artifacts (same IDs) and updates the same check run
+
+To see the behavior, run this script, then check:
+https://github.com/runningcode/Test-github-sentry/commit/746a4f8b311bb179a2057272cae04855404b4137
+"""
+
+from sentry.runner import configure
+
+configure()
+
+import logging
+import sys
+import time
+from datetime import timedelta
+
+logger = logging.getLogger(__name__)
+
+from sentry.models.commitcomparison import CommitComparison
+from sentry.models.project import Project
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+
+#################
+# Configuration #
+#################
+ORG_SLUG = "sentry"
+PROJECT_SLUG = "internal"
+REPO_NAME = "runningcode/Test-github-sentry"
+COMMIT_SHA = "746a4f8b311bb179a2057272cae04855404b4137"
+
+# Create 3 sibling artifacts to simulate monorepo
+# IMPORTANT: app_ids are ordered alphabetically to ensure deterministic sibling ordering
+SIBLING_ARTIFACTS = [
+    {
+        "app_id": "com.example.android",  # First alphabetically
+        "app_name": "Android App",
+        "platform": "Android",
+        "artifact_type": PreprodArtifact.ArtifactType.AAB,
+    },
+    {
+        "app_id": "com.example.ios",  # Second alphabetically
+        "app_name": "iOS App",
+        "platform": "iOS",
+        "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
+    },
+    {
+        "app_id": "com.example.web",  # Third alphabetically
+        "app_name": "Web App",
+        "platform": "Web",
+        "artifact_type": PreprodArtifact.ArtifactType.APK,
+    },
+]
+
+
+def get_or_create_artifacts(project, commit_comparison):
+    """Get existing artifacts or create new ones if they don't exist.
+
+    This ensures consistent artifact IDs across multiple runs, simulating
+    the behavior of retriggering a CI pipeline where the same artifacts
+    are reprocessed rather than creating new ones.
+    """
+    logger.info("🔍 Checking for existing artifacts for commit %s...", COMMIT_SHA[:8])
+
+    existing_artifacts = PreprodArtifact.objects.filter(
+        commit_comparison=commit_comparison,
+        project__organization_id=project.organization_id,
+    ).order_by("app_id")
+
+    if existing_artifacts.exists():
+        logger.info("  ✓ Found %s existing artifacts - will reuse them", existing_artifacts.count())
+
+        # Create a mapping by app_id to match with SIBLING_ARTIFACTS config
+        artifacts_by_app_id = {art.app_id: art for art in existing_artifacts}
+
+        # Return artifacts in the order of SIBLING_ARTIFACTS config
+        result = []
+        for config in SIBLING_ARTIFACTS:
+            if config["app_id"] in artifacts_by_app_id:
+                result.append(artifacts_by_app_id[config["app_id"]])
+
+        if len(result) == len(SIBLING_ARTIFACTS):
+            logger.info("  ✓ All %s sibling artifacts already exist", len(result))
+            return result, True  # True = artifacts already existed
+        else:
+            logger.info(
+                "  ⚠️  Only found %s of %s expected artifacts", len(result), len(SIBLING_ARTIFACTS)
+            )
+            logger.info("  ✓ Will create missing artifacts")
+            return result, False  # False = need to create some
+    else:
+        logger.info("  ✓ No existing artifacts found - will create new ones")
+        return [], False
+
+
+def create_sibling_artifact(project, commit_comparison, config, build_number):
+    """Create a single artifact with size metrics."""
+    logger.info(
+        "📦 Creating %s artifact (%s)...",
+        config["platform"],
+        config["app_id"],
+    )
+
+    # Create the artifact
+    artifact = PreprodArtifact.objects.create(
+        project=project,
+        artifact_type=config["artifact_type"],
+        app_id=config["app_id"],
+        app_name=config["app_name"],
+        commit_comparison=commit_comparison,
+        state=PreprodArtifact.ArtifactState.PROCESSED,
+        build_version="1.0.0",
+        build_number=build_number,
+    )
+
+    # Backdate to simulate processing time
+    artifact.date_added = artifact.date_added - timedelta(minutes=2)
+    artifact.save(update_fields=["date_added"])
+
+    logger.info("  ✓ Created artifact: ID=%s", artifact.id)
+
+    # Create size metrics
+    PreprodArtifactSizeMetrics.objects.create(
+        preprod_artifact=artifact,
+        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        min_download_size=5 * 1024 * 1024,  # 5 MB
+        max_download_size=5 * 1024 * 1024,
+        min_install_size=10 * 1024 * 1024,  # 10 MB
+        max_install_size=10 * 1024 * 1024,
+        processing_version="1.0",
+    )
+
+    logger.info("  ✓ Created size metrics")
+
+    return artifact
+
+
+def main():
+    """Main function to reproduce the duplicate check runs bug."""
+    try:
+        logger.info("=" * 80)
+        logger.info("REPRODUCING DUPLICATE GITHUB STATUS CHECKS BUG")
+        logger.info("=" * 80)
+        logger.info("")
+
+        # Get project
+        project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
+        logger.info("✓ Found project: %s (ID: %s)", project.name, project.id)
+
+        # Get or create commit comparison
+        commit_comparison, created = CommitComparison.objects.get_or_create(
+            head_repo_name=REPO_NAME,
+            head_sha=COMMIT_SHA,
+            provider="github",
+            organization_id=project.organization.id,
+        )
+        logger.info(
+            "✓ %s commit comparison: %s",
+            "Created" if created else "Found",
+            commit_comparison.id,
+        )
+        logger.info("")
+
+        # Get or create artifacts (reuse if they exist to simulate CI retrigger)
+        existing_artifacts, all_exist = get_or_create_artifacts(project, commit_comparison)
+        logger.info("")
+
+        if all_exist:
+            # Artifacts already exist - just retrigger the status checks
+            logger.info("🔄 RETRIGGER MODE: Reusing existing artifacts")
+            logger.info("   This simulates retriggering a failed CI pipeline")
+            logger.info("   Same artifact IDs = Same external_id = Updates same check run")
+            logger.info("")
+            created_artifacts = existing_artifacts
+        else:
+            # Create new artifacts
+            logger.info("📦 Creating sibling artifacts (monorepo scenario)...")
+            logger.info("   All artifacts will have the same commit SHA: %s", COMMIT_SHA[:8])
+            logger.info("")
+
+            created_artifacts = []
+            for config in SIBLING_ARTIFACTS:
+                # Check if this artifact already exists
+                existing = next(
+                    (a for a in existing_artifacts if a.app_id == config["app_id"]), None
+                )
+                if existing:
+                    logger.info(
+                        "✓ Reusing existing %s artifact (ID=%s)", config["platform"], existing.id
+                    )
+                    created_artifacts.append(existing)
+                else:
+                    artifact = create_sibling_artifact(
+                        project, commit_comparison, config, build_number=100
+                    )
+                    created_artifacts.append(artifact)
+                logger.info("")
+
+        # Show the sibling ordering
+        all_siblings = list(created_artifacts[0].get_sibling_artifacts_for_commit())
+        logger.info("✓ Siblings ordered by app_id:")
+        for i, sibling in enumerate(all_siblings):
+            logger.info("  [%s] %s → ID=%s", i, sibling.app_id, sibling.id)
+        logger.info("")
+
+        first_sibling_id = all_siblings[0].id
+        logger.info("📌 First sibling ID (should be used as external_id): %s", first_sibling_id)
+        logger.info("")
+
+        # Show what will happen
+        logger.info("=" * 80)
+        logger.info("TRIGGERING STATUS CHECK FOR EACH ARTIFACT")
+        logger.info("=" * 80)
+        logger.info("")
+        logger.info("🐛 WITH BUG: Each artifact will use its own ID as external_id")
+        logger.info("   → GitHub will create 3 SEPARATE check runs")
+        logger.info("")
+        logger.info("✅ WITH FIX: Each artifact will use first sibling's ID as external_id")
+        logger.info("   → GitHub will UPDATE the same check run 3 times")
+        logger.info("")
+
+        # Trigger status check for each artifact sequentially
+        for i, artifact in enumerate(created_artifacts, 1):
+            logger.info("-" * 80)
+            logger.info("Step %s: Triggering for %s (ID=%s)", i, artifact.app_id, artifact.id)
+            logger.info("-" * 80)
+
+            # Call the status check task
+            result = create_preprod_status_check_task(preprod_artifact_id=artifact.id)
+
+            logger.info("✓ Task completed: %s", result)
+            logger.info("")
+
+            # Add a small delay between calls to make GitHub API calls more visible
+            if i < len(created_artifacts):
+                logger.info("⏳ Waiting 2 seconds before next trigger...")
+                time.sleep(2)
+                logger.info("")
+
+        # Show results
+        logger.info("=" * 80)
+        logger.info("RESULTS")
+        logger.info("=" * 80)
+        logger.info("")
+        logger.info("✅ Successfully triggered status checks for all 3 artifacts!")
+        logger.info("")
+        logger.info("🔍 Check your GitHub status checks at:")
+        logger.info("   https://github.com/%s/commit/%s", REPO_NAME, COMMIT_SHA)
+        logger.info("")
+        logger.info("Expected results:")
+        logger.info("")
+        logger.info("🐛 WITH BUG (current code):")
+        logger.info("   You should see 3 SEPARATE 'Size Analysis' check runs")
+        logger.info("   Each with external_id = artifact's own ID")
+        logger.info("     - Check run 1: external_id='%s'", created_artifacts[0].id)
+        logger.info("     - Check run 2: external_id='%s'", created_artifacts[1].id)
+        logger.info("     - Check run 3: external_id='%s'", created_artifacts[2].id)
+        logger.info("")
+        logger.info("✅ WITH FIX:")
+        logger.info("   You should see 1 'Size Analysis' check run")
+        logger.info("   With external_id = first sibling's ID = '%s'", first_sibling_id)
+        logger.info("   Updated 3 times as each artifact completes")
+        logger.info("")
+        logger.info("🔄 RETRIGGER BEHAVIOR:")
+        logger.info("   Run this script again (same commit) to simulate CI retrigger")
+        logger.info(
+            "   Artifacts IDs stay the same: %s, %s, %s",
+            created_artifacts[0].id,
+            created_artifacts[1].id,
+            created_artifacts[2].id,
+        )
+        logger.info(
+            "   external_id stays '%s' → UPDATES same check run (not duplicate)", first_sibling_id
+        )
+        logger.info("")
+        logger.info("=" * 80)
+
+        # Show artifact details
+        logger.info("")
+        logger.info("📊 Created artifacts:")
+        for artifact in created_artifacts:
+            logger.info(
+                "  - %s: ID=%s, State=%s",
+                artifact.app_id,
+                artifact.id,
+                artifact.get_state_display(),
+            )
+
+    except Project.DoesNotExist:
+        logger.exception("❌ Project not found: %s/%s", ORG_SLUG, PROJECT_SLUG)
+        logger.info("Available projects:")
+        for p in Project.objects.select_related("organization").all()[:10]:
+            logger.info("  - %s/%s", p.organization.slug, p.slug)
+        sys.exit(1)
+    except Exception as e:
+        logger.exception("❌ Error: %s", e)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

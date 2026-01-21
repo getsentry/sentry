@@ -197,7 +197,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "1 app analyzed, 1 app processing"
         # Should have two rows - main app shows sizes, watch shows processing
         assert "`com.example.app`" in summary
-        assert "(Android, Watch)" in summary or "(iOS, Watch)" in summary
+        assert "(Watch)" in summary
         assert "1.0 MB" in summary  # Main app completed
         assert "Processing..." in summary  # Watch app processing
 
@@ -429,7 +429,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and watch app
         assert "`com.example.app`" in summary  # Both main and watch show app_id
-        assert ", Watch)" in summary  # Watch app label (with platform prefix)
+        assert "(Watch)" in summary  # Watch app label
         assert "1.0 MB" in summary  # Main app download
         assert "524.3 KB" in summary  # Watch app download
         assert "2.1 MB" in summary  # Main app install
@@ -438,9 +438,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         main_row_idx = None
         watch_row_idx = None
         for i, line in enumerate(lines):
-            if "`com.example.app`" in line and "Watch)" not in line:
+            if "`com.example.app`" in line and "(Watch)" not in line:
                 main_row_idx = i
-            elif ", Watch)" in line:
+            elif "(Watch)" in line:
                 watch_row_idx = i
         assert main_row_idx is not None
         assert watch_row_idx is not None
@@ -487,7 +487,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and dynamic feature
         assert "`com.example.android`" in summary  # Main app and dynamic feature both show app_id
-        assert ", Dynamic Feature)" in summary  # Dynamic feature label (with platform prefix)
+        assert "(Dynamic Feature)" in summary  # Dynamic feature label
         assert "4.2 MB" in summary  # Main app download (note: rounds to 4.2 not 4.0)
         assert "1.0 MB" in summary  # Dynamic feature download
         assert "8.4 MB" in summary  # Main app install
@@ -679,7 +679,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         # Watch artifact should show N/A (no matching base watch metrics)
         lines = summary.split("\n")
-        watch_line = next(line for line in lines if ", Watch)" in line)
+        watch_line = next(line for line in lines if "(Watch)" in line)
         # Count N/A occurrences in the watch line - should be 3 (change columns + approval)
         na_count = watch_line.count("N/A")
         assert na_count >= 2  # At least 2 N/A for the change columns

@@ -119,16 +119,17 @@ def _format_artifact_summary(
     for artifact, size_metrics in artifact_metric_rows:
         qualifiers = []
 
-        platform_label = artifact.get_platform_label()
-        if platform_label:
-            qualifiers.append(platform_label)
-
         # App name
         metric_type_display = _get_size_metric_type_display_name(
             size_metrics.metrics_artifact_type if size_metrics else None
         )
         if metric_type_display:
             qualifiers.append(metric_type_display)
+        else:
+            # Only show platform label for main artifacts
+            platform_label = artifact.get_platform_label()
+            if platform_label:
+                qualifiers.append(platform_label)
 
         mobile_app_info = getattr(artifact, "mobile_app_info", None)
         display_name = mobile_app_info.app_name if mobile_app_info else None
