@@ -142,6 +142,8 @@ export const useSeerExplorer = () => {
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
+  const [wasJustInterrupted, setWasJustInterrupted] = useState<boolean>(false);
+  const prevInterruptRequestedRef = useRef<boolean>(false);
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
@@ -184,6 +186,7 @@ export const useSeerExplorer = () => {
       const screenshot = captureAsciiSnapshot?.();
 
       setWaitingForResponse(true);
+      setWasJustInterrupted(false);
 
       trackAnalytics('seer.explorer.message_sent', {
         referrer: getPageReferrer(),
@@ -503,11 +506,22 @@ export const useSeerExplorer = () => {
     }
   }
 
-  // Reset interruptRequested when polling stops after an interrupt was requested
+  // Detect when interrupt succeeds and set wasJustInterrupted
   useEffect(() => {
-    if (interruptRequested && !isPolling(filteredSessionData, waitingForResponse)) {
+    const prevInterruptRequested = prevInterruptRequestedRef.current;
+    const currentlyPolling = isPolling(filteredSessionData, waitingForResponse);
+
+    // Reset interruptRequested when polling stops after an interrupt was requested
+    if (interruptRequested && !currentlyPolling) {
       setInterruptRequested(false);
     }
+
+    // Detect successful interrupt: was requested, now not requested, and not polling
+    if (prevInterruptRequested && !interruptRequested && !currentlyPolling) {
+      setWasJustInterrupted(true);
+    }
+
+    prevInterruptRequestedRef.current = interruptRequested;
   }, [interruptRequested, filteredSessionData, waitingForResponse]);
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
@@ -518,6 +532,7 @@ export const useSeerExplorer = () => {
     setDeletedFromIndex(null);
     setOptimistic(null);
     setInterruptRequested(false);
+    setWasJustInterrupted(false);
     if (orgSlug) {
       setApiQueryData<SeerExplorerResponse>(
         queryClient,
@@ -535,6 +550,7 @@ export const useSeerExplorer = () => {
       setDeletedFromIndex(null);
       setWaitingForResponse(false);
       setInterruptRequested(false);
+      setWasJustInterrupted(false);
 
       // Set the new run ID
       setRunId(newRunId);
@@ -564,6 +580,9 @@ export const useSeerExplorer = () => {
     deletedFromIndex,
     interruptRun,
     interruptRequested,
+    /** True after an interrupt succeeds, until the user sends a new message or switches sessions. */
+    wasJustInterrupted,
+    clearWasJustInterrupted: useCallback(() => setWasJustInterrupted(false), []),
     respondToUserInput,
     createPR,
   };

@@ -45,6 +45,7 @@ interface InputSectionProps {
   isMinimized?: boolean;
   isVisible?: boolean;
   questionActions?: QuestionActions;
+  wasJustInterrupted?: boolean;
 }
 
 function InputSection({
@@ -62,10 +63,14 @@ function InputSection({
   textAreaRef,
   fileApprovalActions,
   questionActions,
+  wasJustInterrupted = false,
 }: InputSectionProps) {
   const getPlaceholder = () => {
     if (!enabled) {
       return 'This conversation is owned by another user and is read-only';
+    }
+    if (wasJustInterrupted) {
+      return 'Interrupted. What should Seer do instead?';
     }
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';
@@ -255,7 +260,7 @@ function InputSection({
   const renderActionButton = () => {
     if (interruptRequested) {
       return (
-        <ActionButtonWrapper title={t('Winding down...')}>
+        <ActionButtonWrapper title={t('Winding down...')} isDanger>
           <LoadingIndicator size={16} />
         </ActionButtonWrapper>
       );
@@ -279,7 +284,7 @@ function InputSection({
 
   return (
     <InputBlock>
-      <StyledInputGroup>
+      <StyledInputGroup interrupted={wasJustInterrupted}>
         <InputGroup.TextArea
           ref={textAreaRef}
           value={inputValue}
@@ -306,11 +311,15 @@ const InputBlock = styled('div')`
   bottom: 0;
 `;
 
-const StyledInputGroup = styled(InputGroup)`
+const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
   margin: ${p => p.theme.space.sm};
 
   textarea {
     resize: none;
+
+    &::placeholder {
+      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
+    }
   }
 
   [data-test-id='input-trailing-items'] {
@@ -326,7 +335,7 @@ const ActionBar = styled(motion.div)`
   bottom: 0;
 `;
 
-const ActionButtonWrapper = styled('div')`
+const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -336,6 +345,12 @@ const ActionButtonWrapper = styled('div')`
   .loading-indicator {
     margin: 0;
     padding: 0;
+    ${p =>
+      p.isDanger &&
+      `
+      border-color: ${p.theme.tokens.content.warning};
+      border-left-color: transparent;
+    `}
   }
 `;
 
