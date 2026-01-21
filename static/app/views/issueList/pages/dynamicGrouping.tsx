@@ -44,6 +44,7 @@ import {t, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import type {ClusterSummary, TopIssuesResponse} from 'sentry/types/cluster';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeInteger} from 'sentry/utils/queryString';
@@ -59,7 +60,6 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {
   ClusterDetailDrawer,
   useClusterStats,
-  type ClusterSummary,
 } from 'sentry/views/issueList/pages/topIssuesDrawer';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
@@ -86,11 +86,6 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
-}
-
-interface TopIssuesResponse {
-  data: ClusterSummary[];
-  last_updated?: string;
 }
 
 interface ClusterCardProps {
@@ -251,14 +246,7 @@ function ClusterCard({
             }}
           >
             {cluster.impact}
-            <Text
-              as="span"
-              size="md"
-              variant="muted"
-              style={{fontWeight: 'normal', marginLeft: space(1)}}
-            >
-              [CLUSTER-{cluster.cluster_id}]
-            </Text>
+            <ClusterId>[CLUSTER-{cluster.cluster_id}]</ClusterId>
           </ClusterTitleLink>
         )}
         {!clusterStats.isPending &&
@@ -1044,6 +1032,13 @@ const ClusterTitleLink = styled(Link)`
     position: absolute;
     inset: 0;
   }
+`;
+
+const ClusterId = styled('span')`
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: normal;
+  margin-left: ${space(1)};
 `;
 
 const StatsRow = styled('div')`

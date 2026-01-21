@@ -38,6 +38,7 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import type {ClusterSummary} from 'sentry/types/cluster';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -55,36 +56,6 @@ import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
-
-interface AssignedEntity {
-  email: string | null;
-  id: string;
-  name: string;
-  type: string;
-}
-
-export interface ClusterSummary {
-  assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null;
-  cluster_id: number;
-  cluster_min_similarity: number | null;
-  cluster_size: number | null;
-  description: string;
-  fixability_score: number | null;
-  group_ids: number[];
-  issue_titles: string[];
-  project_ids: number[];
-  summary: string | null;
-  tags: string[];
-  title: string;
-  code_area_tags?: string[];
-  error_type?: string;
-  error_type_tags?: string[];
-  explorer_run_id?: number;
-  impact?: string;
-  location?: string;
-  service_tags?: string[];
-}
 
 interface ClusterStats {
   firstSeen: string | null;
