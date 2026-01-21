@@ -110,13 +110,13 @@ class MockActionValidatorTranslator(BaseActionValidatorHandler):
 
 
 class DataConditionHandlerMixin:
-    patches: list = []
+    patches: list[Any] = []
 
     def setup_condition_mocks(
         self,
         evaluate_value: Callable[[int, Any], DataConditionResult],
         module_paths: list[str],
-    ):
+    ) -> Any:
         """
         Sets up a mock handler for a DataCondition. This method mocks out the registry of the class, and will
         always return the `MockDataConditionHandler` class.
@@ -144,7 +144,7 @@ class DataConditionHandlerMixin:
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-    def teardown_condition_mocks(self):
+    def teardown_condition_mocks(self) -> None:
         """
         Removes the mocks / patches for the DataConditionHandler.
         """
@@ -154,7 +154,7 @@ class DataConditionHandlerMixin:
 
 
 class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
-    def create_snuba_query(self, **kwargs):
+    def create_snuba_query(self, **kwargs: Any) -> SnubaQuery:
         return SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
             dataset="events",
@@ -165,8 +165,8 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         )
 
     def create_snuba_query_subscription(
-        self, project_id: int | None = None, snuba_query_id: int | None = None, **kwargs
-    ):
+        self, project_id: int | None = None, snuba_query_id: int | None = None, **kwargs: Any
+    ) -> QuerySubscription:
         if snuba_query_id is None:
             snuba_query_id = self.create_snuba_query().id
         if project_id is None:
@@ -182,11 +182,11 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         project_id: int,
         timestamp: datetime,
         fingerprint: str,
-        environment=None,
-        level="error",
+        environment: str | None = None,
+        level: str = "error",
         tags: list[list[str]] | None = None,
     ) -> Event:
-        data = {
+        data: dict[str, Any] = {
             "timestamp": timestamp.isoformat(),
             "environment": environment,
             "fingerprint": [fingerprint],
@@ -217,7 +217,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         workflow_triggers: DataConditionGroup | None = None,
         detector_type: str = MetricIssue.slug,
         project: Project | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
         Create a Workflow, Detector, DetectorWorkflow, and DataConditionGroup for testing.
@@ -255,7 +255,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
     def create_test_query_data_source(
         self, detector: Detector
-    ) -> tuple[SnubaQuery, QuerySubscription, DataSource, DataPacket]:
+    ) -> tuple[SnubaQuery, QuerySubscription, DataSource, DataPacket[ProcessedSubscriptionUpdate]]:
         """
         Create a DataSource and DataPacket for testing; this will create a QuerySubscriptionUpdate and link it to a data_source.
 
@@ -316,7 +316,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         self,
         workflow: Workflow,
         action: Action | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[DataConditionGroup, Action]:
         action_group = self.create_data_condition_group(logic_type="any-short")
 
@@ -338,7 +338,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         event: Event | None = None,
         occurrence: IssueOccurrence | None = None,
         environment: str | None = None,
-        fingerprint="test_fingerprint",
+        fingerprint: str = "test_fingerprint",
         group_type_id: int | None = None,
     ) -> tuple[Group, Event, GroupEvent]:
         project = project or self.project

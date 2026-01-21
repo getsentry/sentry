@@ -1,6 +1,7 @@
 import copy
 import time
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -39,7 +40,9 @@ class TestRedisHashSortedSetBuffer:
         return MockTimeProvider()
 
     @pytest.fixture(params=["cluster", "standalone", "blaster"])
-    def buffer(self, set_sentry_option, request, mock_time_provider):
+    def buffer(
+        self, set_sentry_option: Any, request: Any, mock_time_provider: MockTimeProvider
+    ) -> Generator[RedisHashSortedSetBuffer]:
         value = copy.deepcopy(options.get("redis.clusters"))
         value["default"]["is_redis_cluster"] = request.param in ["cluster", "standalone"]
         with set_sentry_option("redis.clusters", value):
@@ -64,11 +67,13 @@ class TestRedisHashSortedSetBuffer:
                     yield buf
 
     @pytest.fixture(autouse=True)
-    def setup_buffer(self, buffer, mock_time_provider):
+    def setup_buffer(
+        self, buffer: RedisHashSortedSetBuffer, mock_time_provider: MockTimeProvider
+    ) -> None:
         self.buf: RedisHashSortedSetBuffer = buffer
         self.mock_time = mock_time_provider
 
-    def test_push_to_hash(self):
+    def test_push_to_hash(self) -> None:
         filters: Mapping[str, BufferField] = {"project_id": 1}
 
         self.buf.push_to_hash(Project, filters, "test_field", "test_value")
@@ -76,7 +81,7 @@ class TestRedisHashSortedSetBuffer:
 
         assert result["test_field"] == "test_value"
 
-    def test_push_to_hash_bulk(self):
+    def test_push_to_hash_bulk(self) -> None:
         filters: Mapping[str, BufferField] = {"project_id": 1}
         data = {"field1": "value1", "field2": "value2"}
 
@@ -86,7 +91,7 @@ class TestRedisHashSortedSetBuffer:
         assert result["field1"] == "value1"
         assert result["field2"] == "value2"
 
-    def test_get_hash_length(self):
+    def test_get_hash_length(self) -> None:
         """Test getting hash length."""
         filters: Mapping[str, BufferField] = {"project_id": 1}
         data = {"field1": "value1", "field2": "value2", "field3": "value3"}
@@ -96,7 +101,7 @@ class TestRedisHashSortedSetBuffer:
 
         assert length == 3
 
-    def test_delete_hash(self):
+    def test_delete_hash(self) -> None:
         """Test deleting hash fields."""
         filters: Mapping[str, BufferField] = {"project_id": 1}
         data = {"field1": "value1", "field2": "value2", "field3": "value3"}
@@ -109,7 +114,7 @@ class TestRedisHashSortedSetBuffer:
         assert "field1" not in result
         assert "field3" not in result
 
-    def test_push_to_sorted_set(self):
+    def test_push_to_sorted_set(self) -> None:
         self.buf.push_to_sorted_set("test_key", 123)
 
         later = time.time() + 10
@@ -119,7 +124,7 @@ class TestRedisHashSortedSetBuffer:
         assert result[0][0] == 123
         assert isinstance(result[0][1], float)  # timestamp
 
-    def test_push_to_sorted_set_bulk(self):
+    def test_push_to_sorted_set_bulk(self) -> None:
         values = [123, 456, 789]
         self.buf.push_to_sorted_set("test_key", values)
 
@@ -130,7 +135,7 @@ class TestRedisHashSortedSetBuffer:
         result_values = [item[0] for item in result]
         assert set(result_values) == set(values)
 
-    def test_bulk_get_sorted_set(self):
+    def test_bulk_get_sorted_set(self) -> None:
         keys = [f"test_key_{i}" for i in range(0, 10)]
         for i, key in enumerate(keys):
             self.buf.push_to_sorted_set(key, i)
@@ -142,7 +147,7 @@ class TestRedisHashSortedSetBuffer:
         for i, key in enumerate(keys):
             assert i in result
 
-    def test_delete_key(self):
+    def test_delete_key(self) -> None:
         self.buf.push_to_sorted_set("test_key", [111, 222, 333])
 
         now = self.mock_time.current_time
@@ -152,7 +157,7 @@ class TestRedisHashSortedSetBuffer:
         # Should still have values since we deleted older ones
         assert len(result) == 3
 
-    def test_delete_keys_bulk(self):
+    def test_delete_keys_bulk(self) -> None:
         keys = [f"test_key_{i}" for i in range(0, 10)]
         for i, key in enumerate(keys):
             self.buf.push_to_sorted_set(key, i)
@@ -166,13 +171,13 @@ class TestRedisHashSortedSetBuffer:
         assert len(result1) == 0
         assert len(result2) == 0
 
-    def test_conditional_delete_from_sorted_sets_works_with_all_backends(self):
+    def test_conditional_delete_from_sorted_sets_works_with_all_backends(self) -> None:
         """Test that conditional_delete_from_sorted_sets works with all Redis backends."""
         # Should work with all backends (cluster, standalone, and rb.Cluster)
         result = self.buf.conditional_delete_from_sorted_sets(["key1"], [(123, 1.0)])
         assert result == {"key1": []}  # Empty result since key doesn't exist
 
-    def test_conditional_delete_from_sorted_sets_empty_inputs(self):
+    def test_conditional_delete_from_sorted_sets_empty_inputs(self) -> None:
         """Test conditional delete with empty inputs."""
 
         # Empty keys should raise ValueError
@@ -183,7 +188,7 @@ class TestRedisHashSortedSetBuffer:
         result = self.buf.conditional_delete_from_sorted_sets(["key1"], [])
         assert result == {"key1": []}
 
-    def test_conditional_delete_from_sorted_sets_removes_when_score_matches(self):
+    def test_conditional_delete_from_sorted_sets_removes_when_score_matches(self) -> None:
         """Test that members are removed when their score is <= provided score."""
 
         # Add members with controlled timestamps
@@ -215,7 +220,7 @@ class TestRedisHashSortedSetBuffer:
         remaining_values = {item[0] for item in remaining}
         assert remaining_values == {333, 444}
 
-    def test_conditional_delete_from_sorted_sets_keeps_newer_members(self):
+    def test_conditional_delete_from_sorted_sets_keeps_newer_members(self) -> None:
         """Test that members with scores > provided score are kept."""
 
         key = "test_conditional_key2"
@@ -235,7 +240,7 @@ class TestRedisHashSortedSetBuffer:
         assert len(remaining) == 1
         assert remaining[0][0] == 555
 
-    def test_conditional_delete_from_sorted_sets_multiple_keys(self):
+    def test_conditional_delete_from_sorted_sets_multiple_keys(self) -> None:
         """Test conditional delete across multiple keys."""
 
         keys = ["conditional_key1", "conditional_key2", "conditional_key3"]
@@ -261,7 +266,7 @@ class TestRedisHashSortedSetBuffer:
             remaining_values = {item[0] for item in remaining}
             assert remaining_values == {300}
 
-    def test_conditional_delete_from_sorted_sets_nonexistent_members(self):
+    def test_conditional_delete_from_sorted_sets_nonexistent_members(self) -> None:
         """Test conditional delete with members that don't exist."""
 
         key = "test_conditional_nonexistent"
@@ -285,7 +290,7 @@ class TestRedisHashSortedSetBuffer:
         remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
         assert len(remaining) == 0
 
-    def test_conditional_delete_from_sorted_sets_rb_fallback(self):
+    def test_conditional_delete_from_sorted_sets_rb_fallback(self) -> None:
         """Test that rb.Cluster fallback works atomically using Lua scripts."""
         if self.buf.is_redis_cluster:
             pytest.skip("This test is specifically for rb.Cluster fallback")
@@ -308,7 +313,7 @@ class TestRedisHashSortedSetBuffer:
         remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
         assert len(remaining) == 0
 
-    def test_conditional_delete_pipelined_performance(self):
+    def test_conditional_delete_pipelined_performance(self) -> None:
         """Test that multiple key operations are properly pipelined for performance."""
         if not self.buf.is_redis_cluster:
             pytest.skip("Pipelining test is for RedisCluster only")
@@ -334,7 +339,7 @@ class TestRedisHashSortedSetBuffer:
             remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
             assert len(remaining) == 0
 
-    def test_conditional_delete_atomicity(self):
+    def test_conditional_delete_atomicity(self) -> None:
         """Test that conditional delete is atomic - no race conditions between check and delete."""
         key = "atomicity_test"
 
@@ -357,7 +362,7 @@ class TestRedisHashSortedSetBuffer:
         remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
         assert len(remaining) == 0
 
-    def test_conditional_delete_script_loading_failure_propagates(self):
+    def test_conditional_delete_script_loading_failure_propagates(self) -> None:
         """Test that script loading failures are properly propagated."""
         # Only test script loading failure for cluster/standalone since that's where it's called
         if not self.buf.is_redis_cluster:
@@ -370,7 +375,7 @@ class TestRedisHashSortedSetBuffer:
             with pytest.raises(RedisConnectionError):
                 self.buf.conditional_delete_from_sorted_sets(["key1", "key2"], [(123, 1.0)])
 
-    def test_conditional_delete_slot_based_batching(self):
+    def test_conditional_delete_slot_based_batching(self) -> None:
         """Test that keys are grouped by slot for efficient batch execution."""
         if not self.buf.is_redis_cluster:
             pytest.skip("Slot-based batching is for RedisCluster only")
@@ -396,7 +401,7 @@ class TestRedisHashSortedSetBuffer:
         # All should be in the same slot due to hash tag
         assert len(same_slot_groups) == 1
 
-    def test_conditional_delete_functional_slot_batching(self):
+    def test_conditional_delete_functional_slot_batching(self) -> None:
         """Test that slot-based batching works functionally with real data."""
         if not self.buf.is_redis_cluster:
             pytest.skip("Slot-based batching is for RedisCluster only")
@@ -423,7 +428,7 @@ class TestRedisHashSortedSetBuffer:
             remaining_values = {item[0] for item in remaining}
             assert remaining_values == {300}
 
-    def test_conditional_delete_multi_slot_pipelining(self):
+    def test_conditional_delete_multi_slot_pipelining(self) -> None:
         """Test that multiple slot groups are pipelined for optimal performance."""
         if not self.buf.is_redis_cluster:
             pytest.skip("Multi-slot pipelining is for RedisCluster only")
@@ -449,7 +454,7 @@ class TestRedisHashSortedSetBuffer:
             remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
             assert len(remaining) == 0
 
-    def test_conditional_delete_rb_host_batching(self):
+    def test_conditional_delete_rb_host_batching(self) -> None:
         """Test that rb.Cluster groups keys by host for efficient batching."""
         if self.buf.is_redis_cluster:
             pytest.skip("This test is specifically for rb.Cluster host batching")
@@ -475,7 +480,7 @@ class TestRedisHashSortedSetBuffer:
             remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
             assert len(remaining) == 0
 
-    def test_get_parsed_key_put_parsed_key(self):
+    def test_get_parsed_key_put_parsed_key(self) -> None:
         """Test storing and retrieving pydantic models using get_parsed_key/put_parsed_key."""
         from pydantic import BaseModel
 
@@ -496,7 +501,7 @@ class TestRedisHashSortedSetBuffer:
         assert retrieved_data.enabled is True
         assert isinstance(retrieved_data, TestModel)
 
-    def test_get_parsed_key_put_parsed_key_complex_model(self):
+    def test_get_parsed_key_put_parsed_key_complex_model(self) -> None:
         """Test with more complex pydantic model containing nested data."""
         from pydantic import BaseModel
 
@@ -516,7 +521,7 @@ class TestRedisHashSortedSetBuffer:
         assert retrieved_data.metadata == {"source": "test", "version": "1.0"}
         assert isinstance(retrieved_data, NestedModel)
 
-    def test_get_parsed_key_missing_key(self):
+    def test_get_parsed_key_missing_key(self) -> None:
         """Test get_parsed_key returns None for missing key."""
         from pydantic import BaseModel
 

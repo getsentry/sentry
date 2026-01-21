@@ -18,7 +18,7 @@ class TestFixEmailNotificationNames(TestMigrations):
     migrate_to = "0091_fix_email_notification_names"
     app = "workflow_engine"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.test_org = self.create_organization(
             name="test-email-fix-org", slug="test-email-fix-org"
         )
@@ -199,7 +199,7 @@ class TestFixEmailNotificationNames(TestMigrations):
             config={},
         )
 
-    def test_email_notification_names_fixed(self):
+    def test_email_notification_names_fixed(self) -> None:
         workflow = Workflow.objects.get(id=self.workflow_email_team.id)
         assert workflow.name == "Notify: Email Backend Team"
         workflow = Workflow.objects.get(id=self.workflow_email_member.id)

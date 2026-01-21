@@ -34,8 +34,8 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
     def assert_ticketing_action_data_blob(
-        self, action: Action, compare_dict: dict, exclude_keys: list[str]
-    ):
+        self, action: Action, compare_dict: dict[str, Any], exclude_keys: list[str]
+    ) -> None:
 
         # Check dynamic_form_fields
         assert action.data.get(
@@ -53,8 +53,8 @@ class TestNotificationActionMigrationUtils(TestCase):
                 assert additional_fields.get(key) == value
 
     def assert_sentry_app_form_config_data_blob(
-        self, action: Action, compare_dict: dict, exclude_keys: list[str]
-    ):
+        self, action: Action, compare_dict: dict[str, Any], exclude_keys: list[str]
+    ) -> None:
         settings = action.data.get("settings", None)
         settings_dict = compare_dict.get("settings", None)
         if not settings or not settings_dict:
@@ -73,12 +73,12 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_action_data_blob(
         self,
         action: Action,
-        compare_dict: dict,
+        compare_dict: dict[str, Any],
         integration_id_key: str | None = None,
         target_identifier_key: str | None = None,
         target_display_key: str | None = None,
         target_type_key: str | None = None,
-    ):
+    ) -> None:
         """
         Asserts that the action data is equivalent to the compare_dict.
         Uses the translator to determine which keys should be excluded from the data blob.
@@ -150,7 +150,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         integration_id_key: str | None = None,
         target_identifier_key: str | None = None,
         target_display_key: str | None = None,
-    ):
+    ) -> None:
         """
         Asserts that the action attributes are equivalent to the compare_dict using the translator.
         """
@@ -186,12 +186,12 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_actions_migrated_correctly(
         self,
         actions: list[Action],
-        rule_data_actions: list[dict],
+        rule_data_actions: list[dict[str, Any]],
         integration_id_key: str | None = None,
         target_identifier_key: str | None = None,
         target_display_key: str | None = None,
         target_type_key: str | None = None,
-    ):
+    ) -> None:
         """
         Asserts that the actions are equivalent to the Rule.
         """
