@@ -575,4 +575,139 @@ describe('useSpansTableQuery', () => {
     });
     expect(result.current.loading).toBe(false);
   });
+
+  it('automatically sorts by is_starred_transaction when field is present', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: 'test',
+          fields: ['transaction', 'is_starred_transaction', 'count()'],
+          aggregates: ['count()'],
+          columns: ['transaction', 'is_starred_transaction'],
+          conditions: '',
+          orderby: '-count()',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {transaction: '/api/starred', is_starred_transaction: true, 'count()': 100},
+          {transaction: '/api/normal', is_starred_transaction: false, 'count()': 200},
+        ],
+      },
+    });
+
+    renderHook(
+      () =>
+        useSpansTableQuery({
+          widget,
+          organization,
+          pageFilters,
+          enabled: true,
+        }),
+      {wrapper: createWrapper()}
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-is_starred_transaction', '-count()'],
+          }),
+        })
+      );
+    });
+  });
+
+  it('does not add starred sort when already sorted by starred', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: 'test',
+          fields: ['transaction', 'is_starred_transaction', 'count()'],
+          aggregates: ['count()'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '-is_starred_transaction',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{transaction: '/api/test', 'count()': 100}],
+      },
+    });
+    renderHook(
+      () =>
+        useSpansTableQuery({
+          widget,
+          organization,
+          pageFilters,
+          enabled: true,
+        }),
+      {wrapper: createWrapper()}
+    );
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-is_starred_transaction'],
+          }),
+        })
+      );
+    });
+  });
+
+  it('does not add starred sort when field is not present', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: 'test',
+          fields: ['transaction', 'count()'],
+          aggregates: ['count()'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '-count()',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{transaction: '/api/test', 'count()': 100}],
+      },
+    });
+
+    renderHook(
+      () =>
+        useSpansTableQuery({
+          widget,
+          organization,
+          pageFilters,
+          enabled: true,
+        }),
+      {wrapper: createWrapper()}
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count()'],
+          }),
+        })
+      );
+    });
+  });
 });
