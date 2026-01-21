@@ -16,6 +16,27 @@ import type {LogicalOp, Op} from 'sentry/views/alerts/rules/uptime/types';
 
 import {isAfterOp, moveTo} from './utils';
 
+function isOp(data: unknown): data is Op {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    typeof data.id === 'string' &&
+    'op' in data
+  );
+}
+
+function isDroppableProps(data: unknown): data is DroppableProps {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'op' in data &&
+    isOp(data.op) &&
+    'position' in data &&
+    typeof data.position === 'string'
+  );
+}
+
 export function AssertionsDndContext({children}: {children: React.ReactNode}) {
   const dndSensors = useSensors(useSensor(PointerSensor));
 
@@ -41,7 +62,8 @@ export function DroppableHitbox(props: DroppableProps) {
   const {idIndex, op, groupId, position, disabled, ...rest} = props;
 
   const {active} = useDndContext();
-  const activeOp = active?.data.current as Op | null;
+  const activeData = active?.data.current;
+  const activeOp = isOp(activeData) ? activeData : null;
 
   const dropzoneDisabled =
     disabled ||
@@ -99,22 +121,22 @@ export function DropHandler({rootOp, onChange}: DropHandlerProps) {
         return;
       }
 
-      if (!active?.data.current || !over?.data.current) {
+      const activeData = active?.data.current;
+      const overData = over?.data.current;
+
+      if (!isOp(activeData) || !isDroppableProps(overData)) {
         return;
       }
 
-      const activeOp = active.data.current as Op;
-      const overProps = over.data.current as DroppableProps;
-
       // Do not move to something it's already immediately after
       if (
-        isAfterOp(rootOp, activeOp.id, overProps.op.id) &&
-        overProps.position === 'after'
+        isAfterOp(rootOp, activeData.id, overData.op.id) &&
+        overData.position === 'after'
       ) {
         return;
       }
 
-      onChange(moveTo(rootOp, activeOp.id, overProps.op.id, overProps.position));
+      onChange(moveTo(rootOp, activeData.id, overData.op.id, overData.position));
     },
   });
 
