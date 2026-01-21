@@ -505,3 +505,81 @@ describe('Uptime Alert Form', () => {
     );
   });
 });
+
+describe('normalizeAssertion', () => {
+  // Import the function directly for unit testing
+  const {
+    normalizeAssertion,
+  } = require('sentry/views/alerts/rules/uptime/assertions/field');
+
+  it('handles NaN status code value by defaulting to 200', () => {
+    const op = {
+      id: 'test-1',
+      op: 'status_code_check' as const,
+      operator: {cmp: 'equals' as const},
+      value: NaN,
+    };
+
+    expect(normalizeAssertion(op)).toEqual({
+      id: 'test-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 200,
+    });
+  });
+
+  it('clamps status code values to valid HTTP range', () => {
+    const tooLow = {
+      id: 'test-1',
+      op: 'status_code_check' as const,
+      operator: {cmp: 'equals' as const},
+      value: 50,
+    };
+
+    const tooHigh = {
+      id: 'test-2',
+      op: 'status_code_check' as const,
+      operator: {cmp: 'equals' as const},
+      value: 700,
+    };
+
+    expect(normalizeAssertion(tooLow).value).toBe(100);
+    expect(normalizeAssertion(tooHigh).value).toBe(599);
+  });
+
+  it('preserves valid status code values', () => {
+    const valid = {
+      id: 'test-1',
+      op: 'status_code_check' as const,
+      operator: {cmp: 'equals' as const},
+      value: 404,
+    };
+
+    expect(normalizeAssertion(valid).value).toBe(404);
+  });
+
+  it('recursively normalizes nested assertions in and/or groups', () => {
+    const nested = {
+      id: 'group-1',
+      op: 'and' as const,
+      children: [
+        {
+          id: 'test-1',
+          op: 'status_code_check' as const,
+          operator: {cmp: 'equals' as const},
+          value: NaN,
+        },
+        {
+          id: 'test-2',
+          op: 'status_code_check' as const,
+          operator: {cmp: 'equals' as const},
+          value: 800,
+        },
+      ],
+    };
+
+    const result = normalizeAssertion(nested);
+    expect(result.children[0].value).toBe(200);
+    expect(result.children[1].value).toBe(599);
+  });
+});

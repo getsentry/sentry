@@ -91,7 +91,7 @@ describe('AssertionOpGroup', () => {
 
       await renderRootGroup(value);
 
-      expect(screen.getByRole('spinbutton')).toHaveValue(200);
+      expect(screen.getByRole('textbox')).toHaveValue('200');
     });
 
     it('adds operation in root mode', async () => {
@@ -229,7 +229,7 @@ describe('AssertionOpGroup', () => {
       );
 
       // Verify status code child rendered
-      expect(await screen.findByRole('spinbutton')).toHaveValue(200);
+      expect(await screen.findByRole('textbox')).toHaveValue('200');
 
       // Remove status code
       await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
@@ -287,8 +287,8 @@ describe('AssertionOpGroup', () => {
       await renderGroup(value);
 
       // Verify status code input renders with correct value
-      const input = screen.getByRole('spinbutton');
-      expect(input).toHaveValue(200);
+      const input = screen.getByRole('textbox');
+      expect(input).toHaveValue('200');
     });
 
     it('updates json path child', async () => {
@@ -405,8 +405,8 @@ describe('AssertionOpGroup', () => {
         <AssertionOpGroup value={value} onChange={mockOnChange} onRemove={mockOnRemove} />
       );
 
-      await screen.findByRole('spinbutton');
-      expect(screen.getByRole('spinbutton')).toHaveValue(200);
+      await screen.findByDisplayValue('200');
+      expect(screen.getByDisplayValue('200')).toBeInTheDocument();
       expect(screen.getByDisplayValue('$.status')).toBeInTheDocument();
       expect(screen.getByDisplayValue('X-Custom')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Assert Any'})).toBeInTheDocument();
@@ -440,7 +440,7 @@ describe('AssertionOpGroup', () => {
       );
 
       // Wait for nested group to render
-      await screen.findByRole('spinbutton');
+      await screen.findByDisplayValue('200');
 
       // Change the nested group type to "or"
       const assertAllButtons = screen.getAllByRole('button', {name: 'Assert All'});
