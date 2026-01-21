@@ -5,7 +5,7 @@ import type {
   StatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
-import {moveTo} from './utils';
+import {isAfterOp, moveTo} from './utils';
 
 describe('moveTo', () => {
   it('moves op to after another op in the same parent', () => {
@@ -665,5 +665,174 @@ describe('moveTo', () => {
     // or-2 should now contain status-1
     const or2 = result.children.find(c => c.id === 'or-2') as OrOp;
     expect(or2.children.map(c => c.id)).toEqual(['status-1']);
+  });
+});
+
+describe('isAfterOp', () => {
+  it('returns true when op is directly after another op', () => {
+    const rootOp: AndOp = {
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'status-1',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 200,
+        },
+        {
+          id: 'status-2',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 201,
+        },
+      ],
+    };
+
+    expect(isAfterOp(rootOp, 'status-2', 'status-1')).toBe(true);
+  });
+
+  it('returns false when op is not directly after another op', () => {
+    const rootOp: AndOp = {
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'status-1',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 200,
+        },
+        {
+          id: 'status-2',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 201,
+        },
+        {
+          id: 'status-3',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 202,
+        },
+      ],
+    };
+
+    // status-3 is after status-2, not status-1
+    expect(isAfterOp(rootOp, 'status-3', 'status-1')).toBe(false);
+  });
+
+  it('returns false when op is before another op', () => {
+    const rootOp: AndOp = {
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'status-1',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 200,
+        },
+        {
+          id: 'status-2',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 201,
+        },
+      ],
+    };
+
+    expect(isAfterOp(rootOp, 'status-1', 'status-2')).toBe(false);
+  });
+
+  it('returns true when op is after another op in nested group', () => {
+    const rootOp: AndOp = {
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'or-1',
+          op: 'or',
+          children: [
+            {
+              id: 'status-1',
+              op: 'status_code_check',
+              operator: {cmp: 'equals'},
+              value: 200,
+            },
+            {
+              id: 'status-2',
+              op: 'status_code_check',
+              operator: {cmp: 'equals'},
+              value: 201,
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(isAfterOp(rootOp, 'status-2', 'status-1')).toBe(true);
+  });
+
+  it('returns true when op is after another op inside not group', () => {
+    const rootOp: AndOp = {
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'not-1',
+          op: 'not',
+          operand: {
+            id: 'or-1',
+            op: 'or',
+            children: [
+              {
+                id: 'status-1',
+                op: 'status_code_check',
+                operator: {cmp: 'equals'},
+                value: 200,
+              },
+              {
+                id: 'status-2',
+                op: 'status_code_check',
+                operator: {cmp: 'equals'},
+                value: 201,
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(isAfterOp(rootOp, 'status-2', 'status-1')).toBe(true);
+  });
+
+  it('returns false for non-existent ops', () => {
+    const rootOp: AndOp = {
+      id: 'and-1',
+      op: 'and',
+      children: [
+        {
+          id: 'status-1',
+          op: 'status_code_check',
+          operator: {cmp: 'equals'},
+          value: 200,
+        },
+      ],
+    };
+
+    expect(isAfterOp(rootOp, 'nonexistent', 'status-1')).toBe(false);
+    expect(isAfterOp(rootOp, 'status-1', 'nonexistent')).toBe(false);
+  });
+
+  it('returns false for leaf ops (non-group containers)', () => {
+    const statusOp: StatusCodeOp = {
+      id: 'status-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 200,
+    };
+
+    expect(isAfterOp(statusOp, 'any', 'other')).toBe(false);
   });
 });
