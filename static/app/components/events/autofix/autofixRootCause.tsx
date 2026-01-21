@@ -276,9 +276,12 @@ function SolutionActionButton({
   primaryButtonPriority: React.ComponentProps<typeof Button>['priority'];
   submitFindSolution: () => void;
 }) {
-  const preferredIntegration = preferredAction.startsWith('agent:')
+  // Support both 'agent:' (new) and 'cursor:' (legacy) prefixes for backwards compatibility
+  const isAgentPreference =
+    preferredAction.startsWith('agent:') || preferredAction.startsWith('cursor:');
+  const preferredIntegration = isAgentPreference
     ? codingAgentIntegrations.find(i => {
-        const key = preferredAction.replace('agent:', '');
+        const key = preferredAction.replace(/^(agent|cursor):/, '');
         return i.id === key || (i.id === null && i.provider === key);
       })
     : null;
@@ -321,10 +324,12 @@ function SolutionActionButton({
           },
         ]),
     ...codingAgentIntegrations
-      .filter(
-        integration =>
-          `agent:${integration.id ?? integration.provider}` !== effectivePreference
-      )
+      .filter(integration => {
+        // Compare by key to handle both 'agent:' and legacy 'cursor:' prefixes
+        const integrationKey = integration.id ?? integration.provider;
+        const effectiveKey = effectivePreference.replace(/^(agent|cursor):/, '');
+        return integrationKey !== effectiveKey;
+      })
       .map(integration => ({
         key: `agent:${integration.id ?? integration.provider}`,
         label: (

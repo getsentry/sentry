@@ -222,6 +222,33 @@ describe('AutofixRootCause', () => {
     expect(await screen.findByText('Find Solution with Seer')).toBeInTheDocument();
   });
 
+  it('shows Cursor as primary when using legacy cursor: prefix (backwards compatibility)', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {
+        integrations: [
+          {
+            id: 'cursor-integration-id',
+            name: 'Cursor',
+            provider: 'cursor',
+          },
+        ],
+      },
+    });
+
+    // Use the legacy 'cursor:' prefix that existing users may have stored
+    localStorage.setItem(
+      'autofix:rootCauseActionPreference',
+      JSON.stringify('cursor:cursor-integration-id')
+    );
+
+    render(<AutofixRootCause {...defaultProps} />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Send to Cursor'})
+    ).toBeInTheDocument();
+  });
+
   it('both options accessible in dropdown', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
