@@ -1,5 +1,6 @@
-import pytest
 import uuid
+
+import pytest
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
