@@ -10,7 +10,7 @@ import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import features, quotas
+from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -27,6 +27,7 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
+from sentry.preprod.quota import has_installable_quota, has_size_quota
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -131,21 +132,17 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_bundle_error",
             }
         )
 
         return
 
     try:
-        has_size_quota = quotas.backend.has_usage_quota(org_id, DataCategory.SIZE_ANALYSIS)
-        has_installable_quota = quotas.backend.has_usage_quota(
-            org_id, DataCategory.INSTALLABLE_BUILD
-        )
-
         requested_features: list[PreprodFeature] = []
-        if has_size_quota:
+        if has_size_quota(organization):
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-        if has_installable_quota:
+        if has_installable_quota(organization):
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         produce_preprod_artifact_to_kafka(
@@ -174,6 +171,7 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
             }
         )
         return
@@ -211,19 +209,17 @@ def create_preprod_artifact(
         bind_organization_context(organization)
 
         # Check if organization has quota for either SIZE_ANALYSIS or INSTALLABLE_BUILD
-        has_size_quota = quotas.backend.has_usage_quota(org_id, DataCategory.SIZE_ANALYSIS)
-        has_installable_quota = quotas.backend.has_usage_quota(
-            org_id, DataCategory.INSTALLABLE_BUILD
-        )
-        if not has_size_quota and not has_installable_quota:
+        org_has_size_quota = has_size_quota(organization)
+        org_has_installable_quota = has_installable_quota(organization)
+        if not org_has_size_quota and not org_has_installable_quota:
             logger.info(
                 "No quota available for preprod artifact creation",
                 extra={
                     "project_id": project_id,
                     "organization_id": org_id,
                     "checksum": checksum,
-                    "has_size_quota": has_size_quota,
-                    "has_installable_quota": has_installable_quota,
+                    "has_size_quota": org_has_size_quota,
+                    "has_installable_quota": org_has_installable_quota,
                 },
             )
             raise NoPreprodQuota(
@@ -637,6 +633,7 @@ def _assemble_preprod_artifact_size_analysis(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_completion",
             }
         )
 
@@ -879,7 +876,7 @@ def detect_expired_preprod_artifacts() -> None:
             )
             try:
                 create_preprod_status_check_task.apply_async(
-                    kwargs={"preprod_artifact_id": artifact_id}
+                    kwargs={"preprod_artifact_id": artifact_id, "caller": "expired_artifact"}
                 )
             except Exception:
                 logger.exception(

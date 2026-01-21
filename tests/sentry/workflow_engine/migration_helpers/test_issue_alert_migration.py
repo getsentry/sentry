@@ -138,7 +138,7 @@ class IssueAlertMigratorTest(TestCase):
         assert not AlertRuleDetector.objects.filter(rule_id=issue_alert.id).exists()
 
         assert Workflow.objects.all().count() == 0
-        assert Detector.objects.all().count() == 0
+        assert Detector.objects.all().count() == 2
         assert DataConditionGroup.objects.all().count() == 0
         assert DataCondition.objects.all().count() == 0
         assert Action.objects.all().count() == 0
@@ -643,11 +643,12 @@ class TestEnsureDefaultDetectors(TestCase):
 
     def test_ensure_default_detector__already_exists(self) -> None:
         project = self.create_project()
-        detectors = ensure_default_detectors(project)
+        detectors = Detector.objects.filter(project=project)
         with patch("sentry.workflow_engine.processors.detector.locks.get") as mock_lock:
             default_detectors = ensure_default_detectors(project)
-            assert default_detectors[0].id == detectors[0].id
-            assert default_detectors[1].id == detectors[1].id
+            assert {default_detectors[0].id, default_detectors[1].id} == {
+                detectors.id for detectors in detectors
+            }
             # No lock if it already exists.
             mock_lock.assert_not_called()
 
