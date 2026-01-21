@@ -15,32 +15,27 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/queryString';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import ProjectTableHeader from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
 import SeerProjectTableRow from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
 
-function getDefaultAutofixSettings(
-  organization: Organization,
-  projectId: string
-): AutofixAutomationSettings {
+function getDefaultAutofixSettings(projectId: string): AutofixAutomationSettings {
   return {
-    autofixAutomationTuning: organization.defaultAutofixAutomationTuning ?? 'off',
-    automatedRunStoppingPoint: organization.autoOpenPrs ? 'open_pr' : 'code_changes',
+    autofixAutomationTuning: 'off',
+    automatedRunStoppingPoint: 'code_changes',
+    automationHandoff: undefined,
     projectId,
     reposCount: 0,
   };
 }
 
 export default function SeerProjectTable() {
-  const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
   const {pages: autofixAutomationSettings, isFetching: isFetchingSettings} =
@@ -184,7 +179,7 @@ export default function SeerProjectTable() {
               project={project}
               isFetchingSettings={isFetchingSettings}
               autofixSettings={{
-                ...getDefaultAutofixSettings(organization, project.id),
+                ...getDefaultAutofixSettings(project.id),
                 ...autofixSettingsByProjectId.get(project.id),
                 ...mutationData[project.id],
               }}
