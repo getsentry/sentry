@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
@@ -9,6 +9,7 @@ import {
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 type AutofixAutomationTuning =
   | 'off'
@@ -110,6 +111,12 @@ export function useUpdateBulkAutofixAutomationSettings(
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
+  const {projects} = useProjects();
+  const projectsById = useMemo(
+    () => new Map(projects.map(project => [project.id, project])),
+    [projects]
+  );
+
   return useMutation<unknown, Error, AutofixAutomationUpdate, unknown>({
     mutationFn: (data: AutofixAutomationUpdate) => {
       return fetchMutation({
@@ -123,6 +130,22 @@ export function useUpdateBulkAutofixAutomationSettings(
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organization.slug}/autofix/automation-settings/`],
       });
+      const [, , data] = args;
+      data.projectIds.forEach(projectId => {
+        const project = projectsById.get(projectId);
+        if (!project) {
+          return;
+        }
+        // Invalidate the query for ProjectOptions to Settings>Project>Seer details page
+        queryClient.invalidateQueries({
+          queryKey: [`/projects/${organization.slug}/${project.slug}/`],
+        });
+        // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
+        queryClient.invalidateQueries({
+          queryKey: [`/projects/${organization.slug}/${project.slug}/seer/preferences/`],
+        });
+      });
+
       options?.onSettled?.(...args);
     },
   });
