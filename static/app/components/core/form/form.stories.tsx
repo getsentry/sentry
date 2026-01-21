@@ -10,7 +10,7 @@ import {
 import {zodResolver} from '@hookform/resolvers/zod';
 import {TanStackDevtools} from '@tanstack/react-devtools';
 import {formDevtoolsPlugin} from '@tanstack/react-form-devtools';
-import {queryOptions, useQuery} from '@tanstack/react-query';
+import {mutationOptions, queryOptions, useQuery} from '@tanstack/react-query';
 import * as v from 'valibot';
 import {z} from 'zod';
 
@@ -20,6 +20,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
+import {AutoSaveField} from './autoSaveField';
 import {
   FormischField,
   InputField as FormischInputField,
@@ -103,6 +104,101 @@ const userSchemaValibot = v.pipe(
     return true;
   }, 'Secret is required when age is 42')
 );
+
+// type SubmitMeta = {
+//   name: keyof z.infer<typeof baseUserSchema> | undefined;
+// };
+// const submitMeta: SubmitMeta = {
+//   name: undefined,
+// };
+
+type User = z.infer<typeof baseUserSchema>;
+
+const userMutationOptions = mutationOptions({
+  mutationKey: ['foo'],
+  mutationFn: async (variables: Partial<User>) => {
+    // eslint-disable-next-line no-console
+    console.log('saving lastName', variables);
+    await sleep(1000);
+    return {
+      firstName: 'John',
+      lastName: 'Doe',
+      age: 23,
+      address: {
+        street: '123 Main St',
+        city: 'Anytown',
+        country: 'US',
+      },
+      ...variables,
+    };
+  },
+});
+
+function TanStackAutoSave() {
+  const user = useQuery(userQuery);
+
+  if (user.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <Stack gap="lg">
+      <AutoSaveField
+        name="lastName"
+        schema={baseUserSchema}
+        initialValue={user.data?.lastName ?? ''}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <field.Input
+            {...fieldProps}
+            autoComplete="off"
+            data-1p-disabled="true"
+            label="Last Name:"
+            required
+            value={field.state.value}
+            onChange={field.handleChange}
+          />
+        )}
+      </AutoSaveField>
+
+      <AutoSaveField
+        name="age"
+        schema={baseUserSchema}
+        initialValue={user.data?.age ?? 0}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <field.Number
+            {...fieldProps}
+            autoComplete="off"
+            label="Age:"
+            required
+            value={field.state.value}
+            onChange={field.handleChange}
+          />
+        )}
+      </AutoSaveField>
+
+      <AutoSaveField
+        name="firstName"
+        schema={baseUserSchema}
+        initialValue={user.data?.firstName ?? ''}
+        mutationOptions={userMutationOptions}
+      >
+        {(field, fieldProps) => (
+          <field.Input
+            {...fieldProps}
+            autoComplete="off"
+            label="First Name:"
+            value={field.state.value}
+            onChange={field.handleChange}
+          />
+        )}
+      </AutoSaveField>
+    </Stack>
+  );
+}
 
 function TanStack() {
   const user = useQuery(userQuery);
@@ -489,6 +585,13 @@ function Formisch() {
 }
 
 export default Storybook.story('Form', story => {
+  story('TanStackAutoSave', () => {
+    return (
+      <Fragment>
+        <TanStackAutoSave />
+      </Fragment>
+    );
+  });
   story('TanStack', () => {
     return (
       <Fragment>
