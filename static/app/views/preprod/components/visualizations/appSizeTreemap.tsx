@@ -77,7 +77,7 @@ function FullscreenModalContent({
           </InputGroup.TrailingItems>
         )}
       </InputGroup>
-      <Container height="100%" width="100%" style={{flex: 1, minHeight: 0}}>
+      <Container height="100%" width="100%" flex={1} minHeight={0}>
         <AppSizeTreemap
           root={filteredRoot}
           searchQuery={localSearch}
@@ -148,7 +148,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       label: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: theme.white,
+        color: theme.colors.white,
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
@@ -157,7 +157,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       },
       upperLabel: {
         show: true,
-        color: theme.white,
+        color: theme.colors.white,
         backgroundColor: 'transparent',
         height: 24,
         fontSize: 12,
@@ -230,7 +230,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               fontSize: 12,
               fontWeight: 'bold',
               fontFamily: 'Rubik',
-              color: theme.activeText,
+              color: theme.tokens.interactive.link.accent.rest,
             },
           },
         },
@@ -239,7 +239,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
             fontSize: 12,
             fontWeight: 'bold',
             fontFamily: 'Rubik',
-            color: theme.white,
+            color: theme.colors.white,
           },
         },
       },
@@ -394,7 +394,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         width="100%"
         position="relative"
         onMouseDown={handleContainerMouseDown}
-        style={{flex: 1, minHeight: 0}}
+        flex={1}
+        minHeight={0}
       >
         <BaseChart
           autoHeightResize

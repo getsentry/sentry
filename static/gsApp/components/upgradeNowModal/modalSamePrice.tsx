@@ -128,7 +128,7 @@ const UpsellContent = styled('div')`
 `;
 
 const Subheader = styled('h2')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: bold;
   margin-bottom: ${space(1.5)};
@@ -142,7 +142,7 @@ const Header = styled('h1')`
 `;
 
 const CTAPanel = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   justify-content: space-between;
@@ -160,7 +160,7 @@ const CTASecondary = styled('div')`
 
 const Note = styled('p')`
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.xs};
   margin-block: ${space(4)};
 `;

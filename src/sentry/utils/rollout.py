@@ -113,6 +113,27 @@ class SafeRolloutComparator:
         return callsite not in options.get(cls._callsite_blocklist_option_name())
 
     @classmethod
+    def should_use_experiment(cls, callsite: str) -> bool:
+        """
+        This function should control whether you use the result of your experimental
+        data. Useful for allowlisting known-safe callsites.
+        If you are transitioning from an existing, intended-to-be equivalent dataset,
+        you should instead use check_and_choose (which standardizes the choice logic
+        and has better logging).
+        """
+        use_experimental = callsite in options.get(cls._callsite_allowlist_option_name())
+        tags: dict[str, str] = {
+            "rollout_name": cls.ROLLOUT_NAME,
+            "callsite": callsite,
+            "use_experimental": ("true" if use_experimental else "false"),
+        }
+        metrics.incr(
+            "SafeRolloutComparator.should_use_experiment",
+            tags=tags,
+        )
+        return use_experimental
+
+    @classmethod
     def check_and_choose(
         cls,
         control_data: TData,
@@ -139,7 +160,7 @@ class SafeRolloutComparator:
             in case of migrating something where you don't yet have full retention in the
             experimental branch).
         """
-        use_experimental = callsite in options.get(cls._callsite_allowlist_option_name())
+        use_experimental = cls.should_use_experiment(callsite)
 
         # Part 1: Compare & log
         tags: dict[str, str] = {

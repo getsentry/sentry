@@ -6,6 +6,8 @@ import type {AriaSliderProps, AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 
@@ -208,7 +210,7 @@ export function Slider({
     >
       <SliderGroup {...groupProps} className={className}>
         {label && (
-          <SliderLabelWrapper className="label-container">
+          <Flex justify="between" marginBottom="lg" className="label-container">
             <SliderLabel {...labelProps}>{label}</SliderLabel>
             <SliderLabelOutput {...outputProps}>
               {nThumbs > 1 ? (
@@ -221,7 +223,7 @@ export function Slider({
                 getFormattedValue(selectedRange[1]!)
               )}
             </SliderLabelOutput>
-          </SliderLabelWrapper>
+          </Flex>
         )}
 
         <SliderTrack
@@ -307,12 +309,6 @@ const SliderGroup = styled('div')`
   white-space: nowrap;
 `;
 
-const SliderLabelWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1.5)};
-`;
-
 const SliderLabel = styled('label')`
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.tokens.content.primary};
@@ -322,7 +318,7 @@ const SliderLabelOutput = styled('output')`
   margin: 0;
   padding: 0;
   font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SliderTrack = styled('div', {
@@ -363,11 +359,11 @@ const SliderLowerTrack = styled('div')<{disabled: boolean; error: boolean}>`
   position: absolute;
   height: inherit;
   border-radius: inherit;
-  background: ${p => p.theme.active};
+  background: ${p => p.theme.tokens.interactive.link.accent.active};
   pointer-events: none;
 
-  ${p => p.error && `background: ${p.theme.error};`}
-  ${p => p.disabled && `background: ${p.theme.subText};`}
+  ${p => p.error && `background: ${p.theme.tokens.content.danger};`}
+  ${p => p.disabled && `background: ${p.theme.tokens.content.disabled};`}
 `;
 
 const SliderTick = styled('div')<{
@@ -389,7 +385,11 @@ const SliderTick = styled('div')<{
   ${p =>
     p.inSelection &&
     `background: ${
-      p.disabled ? p.theme.subText : p.error ? p.theme.error : p.theme.active
+      p.disabled
+        ? p.theme.tokens.content.disabled
+        : p.error
+          ? p.theme.tokens.content.danger
+          : p.theme.tokens.interactive.link.accent.active
     };`}
 `;
 
@@ -399,6 +399,6 @@ const SliderTickLabel = styled('small')`
   top: calc(100% + ${space(1)});
   margin: 0 -1px;
 
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
 `;

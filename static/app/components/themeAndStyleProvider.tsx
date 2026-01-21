@@ -70,7 +70,7 @@ export function ThemeAndStyleProvider({children}: Props) {
 
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
+      <GlobalStyles theme={theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>

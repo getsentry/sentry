@@ -4,7 +4,7 @@ import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -111,7 +111,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
         {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
-        {t('samples, ') + formattedChange}{' '}
+        {tn('sample, ', 'samples, ', props.frame.node.totalWeight) + formattedChange}{' '}
         {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
@@ -144,7 +144,7 @@ function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
         {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
-        {t('samples') + ' '}
+        {tn('sample', 'samples', props.frame.node.totalWeight) + ' '}
         {`(${formatWeightToProfileDuration(
           props.frame.node,
           props.flamegraphRenderer.flamegraph
@@ -226,7 +226,7 @@ const FlamegraphInlineIndicator = styled('span')`
 `;
 
 export const FlamegraphTooltipTimelineInfo = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export const FlamegraphTooltipFrameMainInfo = styled('div')`

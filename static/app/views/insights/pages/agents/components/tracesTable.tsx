@@ -87,6 +87,7 @@ const rightAlignColumns = new Set([
 ]);
 
 export function TracesTable() {
+  const {openTraceViewDrawer} = useTraceViewDrawer();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
@@ -148,7 +149,7 @@ export function TracesTable() {
 
   const traceErrorRequest = useSpans(
     {
-      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -233,9 +234,16 @@ export function TracesTable() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} query={combinedQuery} />;
+      return (
+        <BodyCell
+          column={column}
+          dataRow={dataRow}
+          query={combinedQuery}
+          openTraceViewDrawer={openTraceViewDrawer}
+        />
+      );
     },
-    [combinedQuery]
+    [combinedQuery, openTraceViewDrawer]
   );
 
   return (
@@ -265,14 +273,15 @@ const BodyCell = memo(function BodyCell({
   column,
   dataRow,
   query,
+  openTraceViewDrawer,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
+  openTraceViewDrawer: (traceSlug: string, spanId?: string, timestamp?: number) => void;
   query: string;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {openTraceViewDrawer} = useTraceViewDrawer();
 
   switch (column.key) {
     case 'traceId':

@@ -1,21 +1,14 @@
 from __future__ import annotations
 
-import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-import requests
-from django.conf import settings
 from django.urls import reverse
-from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.test import APIClient
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
-from sentry.preprod.eap.constants import PREPROD_NAMESPACE
-from sentry.search.eap.rpc_utils import anyvalue
+from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
 
 
 class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
@@ -28,74 +21,13 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug}
         )
 
-    def store_preprod_size_metric(
-        self,
-        project_id: int,
-        organization_id: int,
-        timestamp: datetime,
-        preprod_artifact_id: int = 1,
-        size_metric_id: int = 1,
-        app_id: str = "com.example.app",
-        artifact_type: int = 0,
-        max_install_size: int = 100000,
-        max_download_size: int = 80000,
-        min_install_size: int = 95000,
-        min_download_size: int = 75000,
-        git_head_ref: str | None = None,
-        build_configuration_name: str | None = None,
-    ) -> None:
-        """Write a preprod size metric to EAP for testing."""
-        proto_timestamp = Timestamp()
-        proto_timestamp.FromDatetime(timestamp)
-
-        trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(preprod_artifact_id)).hex
-        item_id_str = f"size_metric_{size_metric_id}"
-        item_id = int(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex, 16).to_bytes(16, "little")
-
-        attributes = {
-            "preprod_artifact_id": anyvalue(preprod_artifact_id),
-            "size_metric_id": anyvalue(size_metric_id),
-            "sub_item_type": anyvalue("size_metric"),
-            "metrics_artifact_type": anyvalue(0),
-            "identifier": anyvalue(""),
-            "min_install_size": anyvalue(min_install_size),
-            "max_install_size": anyvalue(max_install_size),
-            "min_download_size": anyvalue(min_download_size),
-            "max_download_size": anyvalue(max_download_size),
-            "artifact_type": anyvalue(artifact_type),
-            "app_id": anyvalue(app_id),
-        }
-
-        if git_head_ref:
-            attributes["git_head_ref"] = anyvalue(git_head_ref)
-        if build_configuration_name:
-            attributes["build_configuration_name"] = anyvalue(build_configuration_name)
-
-        trace_item = TraceItem(
-            organization_id=organization_id,
-            project_id=project_id,
-            item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
-            timestamp=proto_timestamp,
-            trace_id=trace_id,
-            item_id=item_id,
-            received=proto_timestamp,
-            retention_days=90,
-            attributes=attributes,
-        )
-
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files={"item_0": trace_item.SerializeToString()},
-        )
-        assert response.status_code == 200
-
     def test_get_with_include_filters(self) -> None:
         """Test that response includes available filter values."""
         project = self.create_project(organization=self.organization)
         now = before_now(minutes=5)
         start = now - timedelta(minutes=10)
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project.id,
             organization_id=self.organization.id,
             timestamp=now,
@@ -160,7 +92,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         project1 = self.create_project(organization=self.organization, name="Project 1")
         project2 = self.create_project(organization=self.organization, name="Project 2")
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project1.id,
             organization_id=self.organization.id,
             timestamp=now - timedelta(minutes=30),
@@ -170,7 +102,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             max_install_size=100000,
         )
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project2.id,
             organization_id=self.organization.id,
             timestamp=now - timedelta(minutes=30),
@@ -212,7 +144,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         now = before_now(minutes=5)
         start = now - timedelta(hours=2)
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project.id,
             organization_id=self.organization.id,
             timestamp=now - timedelta(hours=1),
@@ -223,7 +155,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             min_install_size=95000,
         )
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project.id,
             organization_id=self.organization.id,
             timestamp=now - timedelta(minutes=30),
@@ -261,7 +193,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         start = now - timedelta(hours=1)
 
         for i, size in enumerate([100000, 150000, 125000]):
-            self.store_preprod_size_metric(
+            Factories.store_preprod_size_metric(
                 project_id=project.id,
                 organization_id=self.organization.id,
                 timestamp=now - timedelta(minutes=30),
@@ -306,7 +238,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         now = before_now(minutes=5)
         start = now - timedelta(hours=1)
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project.id,
             organization_id=self.organization.id,
             timestamp=now - timedelta(minutes=30),
@@ -316,7 +248,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             max_install_size=100000,
         )
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project.id,
             organization_id=self.organization.id,
             timestamp=now - timedelta(minutes=30),
@@ -350,7 +282,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         now = before_now(minutes=5)
         start = now - timedelta(hours=1)
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project.id,
             organization_id=self.organization.id,
             timestamp=now - timedelta(minutes=30),
@@ -359,11 +291,11 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             app_id="com.example.app",
             git_head_ref="main",
             build_configuration_name="Release",
-            artifact_type=0,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             max_install_size=100000,
         )
 
-        self.store_preprod_size_metric(
+        Factories.store_preprod_size_metric(
             project_id=project.id,
             organization_id=self.organization.id,
             timestamp=now - timedelta(minutes=30),
@@ -372,7 +304,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
             app_id="com.example.app",
             git_head_ref="develop",
             build_configuration_name="Debug",
-            artifact_type=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
             max_install_size=200000,
         )
 
@@ -403,7 +335,7 @@ class OrganizationPreprodAppSizeStatsEndpointTest(APITestCase):
         start = now - timedelta(minutes=10)
 
         for idx, branch in enumerate(["feature/test", "main", "develop", "master", "release/1.0"]):
-            self.store_preprod_size_metric(
+            Factories.store_preprod_size_metric(
                 project_id=project.id,
                 organization_id=self.organization.id,
                 timestamp=now,

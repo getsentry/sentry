@@ -75,6 +75,7 @@ function ExplorerPanel() {
     deleteFromIndex,
     startNewSession,
     isPolling,
+    isError,
     interruptRun,
     interruptRequested,
     switchToRun,
@@ -101,6 +102,7 @@ function ExplorerPanel() {
     switchToRun,
     sessionRunId: runId ?? undefined,
     sessionBlocks: sessionData?.blocks,
+    onUnminimize: useCallback(() => setIsMinimized(false), []),
   });
 
   // Extract repo_pr_states from session
@@ -560,6 +562,8 @@ function ExplorerPanel() {
       isOpen={isVisible}
       isMinimized={isMinimized}
       panelSize={panelSize}
+      blocks={blocks}
+      isPolling={isPolling}
       onUnminimize={handleUnminimize}
     >
       <TopBar
@@ -589,7 +593,11 @@ function ExplorerPanel() {
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {isEmptyState ? (
-          <EmptyState isLoading={isWaitingForSessionData} />
+          <EmptyState
+            isLoading={isWaitingForSessionData}
+            isError={isError}
+            runId={runId}
+          />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (

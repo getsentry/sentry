@@ -2,6 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {Monitor} from 'sentry/views/insights/crons/types';
@@ -46,7 +48,9 @@ export function TimezoneOverride({
       value={mode}
       position="bottom-end"
       onChange={option => handleChange(option.value)}
-      triggerProps={{prefix: t('Date Display')}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Date Display')} />
+      )}
       options={[
         {
           value: 'user',
@@ -73,7 +77,7 @@ function TimezoneLabel({timezone}: {timezone: string}) {
 }
 
 const TimezoneName = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.fontWeight.bold};
   display: flex;
   align-items: center;

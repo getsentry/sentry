@@ -297,7 +297,6 @@ class OrganizationExamples:
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
                 "autoEnableCodeReview": True,
                 "defaultCodeReviewTriggers": [
-                    "on_command_phrase",
                     "on_ready_for_review",
                     "on_new_commit",
                 ],

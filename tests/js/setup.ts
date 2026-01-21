@@ -107,15 +107,32 @@ jest.mock('@stripe/react-stripe-js', () => {
   const {useEffect} = jest.requireActual('react');
   return {
     Elements: jest.fn(({children}: {children: any}) => children),
-    AddressElement: jest.fn(() => null),
-    CardElement: jest.fn(() => null),
-    PaymentElement: jest.fn(({onChange}: any) => {
-      // Simulate a completed Stripe form by calling onChange after mount
+    AddressElement: jest.fn(({onReady}: any) => {
+      // Simulate AddressElement loading by calling onReady after mount
       useEffect(() => {
-        if (onChange) {
-          onChange({complete: true});
+        if (onReady) {
+          // Use setTimeout to allow initial render assertions to run
+          setTimeout(() => onReady(), 0);
         }
-      }, [onChange]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }),
+    CardElement: jest.fn(() => null),
+    PaymentElement: jest.fn(({onChange, onReady}: any) => {
+      // Simulate a completed Stripe form by calling onChange and onReady after mount
+      useEffect(() => {
+        // Use setTimeout to allow initial render assertions to run
+        setTimeout(() => {
+          if (onReady) {
+            onReady();
+          }
+          if (onChange) {
+            onChange({complete: true});
+          }
+        }, 0);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
       return null;
     }),
     useStripe: jest.fn(() => ({

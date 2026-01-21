@@ -9,7 +9,7 @@ import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -333,8 +333,8 @@ const TabListWrap = StyledTabListWrap;
 
 const TabListOverflowWrap = StyledTabListOverflowWrap;
 
-const OverflowMenuTrigger = styled(SelectTrigger.IconButton)`
+const OverflowMenuTrigger = styled(OverlayTrigger.IconButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
-  color: ${p => p.theme.tokens.component.link.muted.default};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 `;

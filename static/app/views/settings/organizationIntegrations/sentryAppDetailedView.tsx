@@ -440,7 +440,7 @@ const InstallButton = styled(Button)`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.primary};
 
   border: ${p => `1px solid ${p.theme.colors.gray400}`};

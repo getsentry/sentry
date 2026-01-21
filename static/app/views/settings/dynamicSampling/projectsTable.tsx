@@ -387,7 +387,7 @@ const SizingWrapper = styled('div')`
 
 const SmallPrint = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
   text-align: right;
 `;
@@ -400,7 +400,7 @@ const Ellipsis = styled('span')`
 `;
 
 const ErrorMessage = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: ${p => p.theme.fontSize.xs};
   line-height: 1.5;
   text-align: right;
@@ -458,7 +458,7 @@ const FirstCellLine = styled('div')`
 `;
 
 const SubContent = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   text-align: right;
   white-space: nowrap;
@@ -473,7 +473,7 @@ const SubContent = styled('div')`
     overflow: hidden;
 
     &:nth-child(odd) {
-      background: ${p => p.theme.backgroundSecondary};
+      background: ${p => p.theme.tokens.background.secondary};
     }
   }
 
@@ -515,12 +515,12 @@ const StyledIconChevron = styled(IconChevron)`
   height: 12px;
   width: 12px;
   margin-right: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SettingsButton = styled(LinkButton)`
   margin-left: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   visibility: hidden;
 
   &:focus {
@@ -532,12 +532,12 @@ const SettingsButton = styled(LinkButton)`
 `;
 
 const TableHeader = styled(TableRowWrapper)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   white-space: nowrap;
   line-height: 1;
   height: 45px;

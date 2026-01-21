@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
@@ -73,8 +73,8 @@ export function SamplesTables({
 
   return (
     <div>
-      <Controls>
-        <FiltersContainer>
+      <Flex justify="between" align="center" marginBottom="md">
+        <Flex align="center" gap="md">
           {sampleType === SPANS && (
             <SpanOpSelector
               primaryRelease={primaryRelease}
@@ -83,7 +83,7 @@ export function SamplesTables({
           )}
           <DeviceClassSelector size="md" clearSpansTableCursor />
           <SubregionSelector />
-        </FiltersContainer>
+        </Flex>
         {EventSamples && (
           <SegmentedControl
             onChange={value => setSampleType(value)}
@@ -98,21 +98,8 @@ export function SamplesTables({
             </SegmentedControl.Item>
           </SegmentedControl>
         )}
-      </Controls>
+      </Flex>
       {content}
     </div>
   );
 }
-
-const Controls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(1)};
-`;
-
-const FiltersContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;

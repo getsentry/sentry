@@ -7339,3 +7339,50 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert meta["fields"]["transaction.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
         assert meta["units"]["transaction.duration"] == "millisecond"
+
+    def test_error_received_filter(self) -> None:
+        """Test that error.received filter works correctly with datetime comparison."""
+        # Store an event 10 minutes ago
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+                "message": "older event",
+            },
+            project_id=self.project.id,
+        )
+
+        # Store an event 9 minutes ago
+        nine_mins_ago_iso = self.nine_mins_ago.replace(microsecond=0).isoformat()
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": nine_mins_ago_iso,
+                "fingerprint": ["group2"],
+                "message": "newer event",
+            },
+            project_id=self.project.id,
+        )
+
+        # Query for events received after 10 mins ago (should only get the newer one)
+        query = {
+            "field": ["count()", "message"],
+            "statsPeriod": "1h",
+            "query": f"error.received:>{self.ten_mins_ago_iso}",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+        # Query for events received after 11 mins ago (should get both)
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"error.received:>{self.eleven_mins_ago_iso}",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 2

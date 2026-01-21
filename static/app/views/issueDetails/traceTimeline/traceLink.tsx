@@ -87,7 +87,7 @@ const NoTraceAvailable = styled('span')`
   align-items: center;
   gap: ${space(0.25)};
   line-height: 1.2;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.md};
 
   svg {

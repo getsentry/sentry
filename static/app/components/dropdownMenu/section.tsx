@@ -39,7 +39,7 @@ const Heading = styled('span')`
   display: inline-block;
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   white-space: nowrap;
   margin: ${space(1)} ${space(1.5)} ${space(0.5)};

@@ -21,7 +21,7 @@ function SectionToggleButton({
 }
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   :hover,
   :focus {
     color: ${p => p.theme.tokens.content.primary};

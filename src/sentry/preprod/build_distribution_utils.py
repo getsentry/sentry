@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
     # TODO: Adjust this logic when we have a better way to determine if an artifact is installable
-    return artifact.installable_app_file_id is not None and artifact.build_number is not None
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    build_number = mobile_app_info.build_number if mobile_app_info else None
+    return artifact.installable_app_file_id is not None and build_number is not None
 
 
 def get_download_count_for_artifact(artifact: PreprodArtifact) -> int:

@@ -99,11 +99,12 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
 }
 
 const FileName = styled('span')<{hasFile: boolean}>`
-  color: ${p => (p.hasFile ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.hasFile ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 `;
 
 const BrowseIndicator = styled('span')`
-  color: ${p => p.theme.activeText};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FileInput = styled(InputGroup.Input)`

@@ -284,7 +284,7 @@ def query_project_counts_by_org(
 
     Yields chunks of result rows, to allow timeouts to be handled in the caller.
     """
-    if not org_ids and options.get("dynamic-sampling.skip_snuba_query_for_empty_orgs"):
+    if not org_ids:
         return
 
     if query_interval is None:

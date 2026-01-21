@@ -2,6 +2,8 @@ import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -49,10 +51,10 @@ function CodecovPromotionModal(props: Props) {
             'Find untested code causing errors and avoid similar errors in the future with Sentry and Codecov.*'
           )}
         </p>
-        <PromotionPriceComparison>
+        <Flex gap="xl">
           <PromotionPriceDisplay price={60} title="Current Price" showDecimals={false} />
           <OffsetIconArrow direction="right" size="lg" />
-          <PriceWrapper>
+          <Stack>
             <PromotionPriceDisplay
               price={29}
               title="Starts At*"
@@ -60,8 +62,8 @@ function CodecovPromotionModal(props: Props) {
               showDecimals={false}
             />
             <SeatText>{t('Includes 5 seats')}</SeatText>
-          </PriceWrapper>
-        </PromotionPriceComparison>
+          </Stack>
+        </Flex>
 
         <StyledButtonBar>
           <Button
@@ -110,7 +112,7 @@ export default withSubscription(CodecovPromotionModal);
 const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.fontSize.md};
   gap: ${space(0.5)};
   display: flex;
@@ -120,14 +122,10 @@ const Subheader = styled('div')`
 
 const DisclaimerText = styled('div')`
   font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 
-const PromotionPriceComparison = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-`;
 const StyledButtonBar = styled(ButtonBar)`
   max-width: 150px;
   margin-top: ${space(2)};
@@ -138,14 +136,9 @@ const InnerContent = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
-const PriceWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const SeatText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const OffsetIconArrow = styled(IconArrow)`

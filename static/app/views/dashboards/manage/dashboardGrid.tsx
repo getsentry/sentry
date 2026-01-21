@@ -90,11 +90,22 @@ function DashboardGrid({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
+    const shouldDisablePrebuiltControls =
+      defined(dashboard.prebuiltId) &&
+      !organization.features.includes('dashboards-prebuilt-controls');
     const {
       hasReachedDashboardLimit,
       isLoading: isLoadingDashboardsLimit,
       limitMessage,
     } = dashboardLimitData;
+
+    const disableDuplicate =
+      hasReachedDashboardLimit ||
+      isLoadingDashboardsLimit ||
+      shouldDisablePrebuiltControls;
+
+    const disableDelete = defined(dashboard.prebuiltId);
+
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
@@ -106,16 +117,10 @@ function DashboardGrid({
             onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
         },
-        disabled:
-          hasReachedDashboardLimit ||
-          isLoadingDashboardsLimit ||
-          (defined(dashboard.prebuiltId) &&
-            !organization.features.includes('dashboards-prebuilt-controls')),
-        tooltip:
-          defined(dashboard.prebuiltId) &&
-          !organization.features.includes('dashboards-prebuilt-controls')
-            ? t('Prebuilt dashboards cannot be duplicated')
-            : limitMessage,
+        disabled: disableDuplicate,
+        tooltip: shouldDisablePrebuiltControls
+          ? t('Prebuilt dashboards cannot be duplicated')
+          : limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
@@ -131,12 +136,19 @@ function DashboardGrid({
             onConfirm: () => handleDeleteDashboard(dashboard, 'grid'),
           });
         },
-        disabled: defined(dashboard.prebuiltId),
-        tooltip: defined(dashboard.prebuiltId)
+        disabled: disableDelete,
+        tooltip: shouldDisablePrebuiltControls
           ? t('Prebuilt dashboards cannot be deleted')
           : undefined,
       },
     ];
+
+    const disabledKeys = [];
+    if ((dashboards && dashboards.length <= 1) || disableDelete)
+      disabledKeys.push('dashboard-delete');
+    if (disableDuplicate) {
+      disabledKeys.push('dashboard-duplicate');
+    }
 
     return (
       <DropdownMenu
@@ -157,7 +169,7 @@ function DashboardGrid({
           />
         )}
         position="bottom-end"
-        disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
+        disabledKeys={disabledKeys}
         offset={4}
       />
     );

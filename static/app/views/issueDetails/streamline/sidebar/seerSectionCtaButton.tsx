@@ -260,8 +260,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin-left: ${space(1)};
 
   .loading-indicator {
-    border-color: ${p => color(p.theme.button.primary.color).alpha(0.35).string()};
-    border-left-color: ${p => p.theme.button.primary.color};
+    border-color: ${p => color(p.theme.colors.white).alpha(0.35).string()};
+    border-left-color: ${p => p.theme.colors.white};
   }
 `;
 

@@ -1,6 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
 import {
   GridLineLabels,
@@ -39,14 +41,14 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
     <MonitorListPanel role="region">
       <TimelineWidthTracker ref={elementRef} />
       <Header>
-        <HeaderControlsLeft>
+        <Flex justify="end" padding="lg xl" column="1">
           <DateNavigator
             dateNavigation={dateNavigation}
             direction="back"
             size="xs"
             borderless
           />
-        </HeaderControlsLeft>
+        </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
         <HeaderControlsRight>
           <DateNavigator
@@ -130,13 +132,6 @@ const UptimeAlertRow = styled('ul')`
   list-style: none;
   padding: 0;
   margin: 0;
-`;
-
-const HeaderControlsLeft = styled('div')`
-  grid-column: 1;
-  display: flex;
-  justify-content: flex-end;
-  padding: ${space(1.5)} ${space(2)};
 `;
 
 const HeaderControlsRight = styled('div')`
