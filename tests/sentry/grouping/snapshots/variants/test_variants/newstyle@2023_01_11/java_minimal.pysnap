@@ -416,28 +416,28 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             module*
               "java.lang.Thread"
             filename (ignored because module takes precedence)
               "thread.java"
             function*
               "run"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (ignored because module takes precedence)
               "taskthread.java"
             function*
               "run"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (ignored because module takes precedence)
               "threadpoolexecutor.java"
             function*
               "run"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (ignored because module takes precedence)
@@ -766,7 +766,7 @@ system:
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             module*
               "java.lang.reflect.Method"
             filename (ignored because module takes precedence)
@@ -794,7 +794,7 @@ system:
               "nativemethodaccessorimpl.java"
             function*
               "invoke0"
-          frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
+          frame (ignored by built-in stacktrace rule (module:io.sentry.* -group))
             module*
               "io.sentry.example.Application"
             filename (ignored because module takes precedence)
