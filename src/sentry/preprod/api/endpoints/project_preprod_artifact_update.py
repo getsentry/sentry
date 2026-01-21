@@ -378,6 +378,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             create_preprod_status_check_task.apply_async(
                 kwargs={
                     "preprod_artifact_id": artifact_id_int,
+                    "caller": "artifact_update_endpoint",
                 }
             )
 

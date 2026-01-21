@@ -132,6 +132,7 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_bundle_error",
             }
         )
 
@@ -170,6 +171,7 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
             }
         )
         return
@@ -631,6 +633,7 @@ def _assemble_preprod_artifact_size_analysis(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_completion",
             }
         )
 
@@ -873,7 +876,7 @@ def detect_expired_preprod_artifacts() -> None:
             )
             try:
                 create_preprod_status_check_task.apply_async(
-                    kwargs={"preprod_artifact_id": artifact_id}
+                    kwargs={"preprod_artifact_id": artifact_id, "caller": "expired_artifact"}
                 )
             except Exception:
                 logger.exception(
