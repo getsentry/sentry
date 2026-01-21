@@ -4,6 +4,7 @@ import hashlib
 import logging
 import random
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 import sentry_sdk
@@ -48,6 +49,72 @@ INTEGRATIONS_OF_INTEREST = [
 SDKS_OF_INTEREST = [
     "sentry.javascript.node",
 ]
+
+
+@dataclass(frozen=True)
+class ConfigFieldMapping:
+    """Maps a config field between WFE Detector.config and ProjectOption settings."""
+
+    project_option_key: str  # Key in get_merged_settings() result
+    hardcoded_value: Any | None = None  # If set, this is a constant value (not from config)
+
+
+@dataclass(frozen=True)
+class PerformanceDetectorConfigMapping:
+    """Complete mapping for a single performance detector type."""
+
+    settings_key: DetectorType  # e.g., DetectorType.SLOW_DB_QUERY
+    wfe_detector_type: str  # GroupType slug (e.g., "performance_slow_db_query")
+    detection_enabled_key: str  # ProjectOption key for detection_enabled fallback
+    config_fields: dict[str, ConfigFieldMapping]  # WFE field name -> mapping
+
+
+# Mapping from DetectorType to WFE Detector configuration
+PERFORMANCE_DETECTOR_CONFIG_MAPPINGS: dict[DetectorType, PerformanceDetectorConfigMapping] = {
+    DetectorType.SLOW_DB_QUERY: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.SLOW_DB_QUERY,
+        wfe_detector_type="performance_slow_db_query",
+        detection_enabled_key="slow_db_queries_detection_enabled",
+        config_fields={
+            "duration_threshold": ConfigFieldMapping(
+                project_option_key="slow_db_query_duration_threshold",
+            ),
+            "allowed_span_ops": ConfigFieldMapping(
+                project_option_key="",
+                hardcoded_value=["db"],
+            ),
+        },
+    ),
+    DetectorType.LARGE_HTTP_PAYLOAD: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.LARGE_HTTP_PAYLOAD,
+        wfe_detector_type="performance_large_http_payload",
+        detection_enabled_key="large_http_payload_detection_enabled",
+        config_fields={
+            "payload_size_threshold": ConfigFieldMapping(
+                project_option_key="large_http_payload_size_threshold",
+            ),
+            "filtered_paths": ConfigFieldMapping(
+                project_option_key="large_http_payload_filtered_paths",
+            ),
+            "minimum_span_duration": ConfigFieldMapping(
+                project_option_key="",
+                hardcoded_value=100,
+            ),
+        },
+    ),
+    DetectorType.QUERY_INJECTION: PerformanceDetectorConfigMapping(
+        settings_key=DetectorType.QUERY_INJECTION,
+        wfe_detector_type="query_injection_vulnerability",
+        detection_enabled_key="db_query_injection_detection_enabled",
+        config_fields={},  # No configurable fields beyond detection_enabled
+    ),
+}
+
+# Reverse lookup: WFE detector type -> DetectorType
+WFE_DETECTOR_TYPE_TO_CONFIG_MAPPING: dict[str, DetectorType] = {
+    mapping.wfe_detector_type: mapping.settings_key
+    for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
+}
 
 
 class EventPerformanceProblem:
@@ -131,7 +198,9 @@ def detect_performance_problems(
 
 
 # Merges system defaults, with default project settings and saved project settings.
-def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
+def get_merged_settings(
+    project_id: int | None = None, project: Project | None = None
+) -> dict[str | Any, Any]:
     system_settings = {
         "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
         "n_plus_one_db_duration_threshold": options.get(
@@ -219,16 +288,84 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
         **project_option_settings,
     }  # Merge saved project settings into default so updating the default to add new settings works in the future.
 
+    # WFE Detector config handling:
+    # When a WFE Detector exists for a detector type, it fully owns that detector's config.
+    # Values come from Detector.config, falling back to system defaults (not ProjectOptions).
+    # When no WFE Detector exists, ProjectOptions are used with system defaults as fallback.
+    if project and features.has("projects:workflow-engine-performance-detectors", project):
+        wfe_configs = _get_wfe_detector_configs(project)
+
+        for detector_type, wfe_config in wfe_configs.items():
+            mapping = PERFORMANCE_DETECTOR_CONFIG_MAPPINGS[detector_type]
+
+            # detection_enabled comes from Detector.enabled
+            project_settings[mapping.detection_enabled_key] = wfe_config["detection_enabled"]
+
+            # For each config field: use WFE value if present, otherwise clear so system default applies
+            for field_name, field_mapping in mapping.config_fields.items():
+                if field_mapping.hardcoded_value is not None:
+                    continue
+                if field_name in wfe_config:
+                    project_settings[field_mapping.project_option_key] = wfe_config[field_name]
+                else:
+                    # Remove ProjectOption value so system default is used
+                    project_settings.pop(field_mapping.project_option_key, None)
+
     return {**system_settings, **project_settings}
+
+
+def _get_wfe_detector_configs(project: Project) -> dict[DetectorType, dict[str, Any]]:
+    """
+    Fetch WFE Detector configs for performance detectors.
+
+    Returns a dict mapping DetectorType to config values from Detector.config
+    that should be used INSTEAD OF ProjectOption values for that detector.
+
+    When a WFE Detector exists, its config is always used (regardless of enabled state).
+    The Detector.enabled field controls detection_enabled, not whether we use WFE config.
+    """
+    from sentry.workflow_engine.models.detector import Detector
+
+    # Get all WFE detector types we care about
+    wfe_types = [
+        mapping.wfe_detector_type for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
+    ]
+
+    # Query all detectors for this project (regardless of enabled state)
+    # When a WFE Detector exists, it's the source of truth for config
+    detectors = Detector.objects.filter(
+        project=project,
+        type__in=wfe_types,
+    )
+
+    # Build config dict keyed by DetectorType
+    wfe_configs: dict[DetectorType, dict[str, Any]] = {}
+    for detector in detectors:
+        # Map WFE detector type to our DetectorType enum
+        detector_type = WFE_DETECTOR_TYPE_TO_CONFIG_MAPPING.get(detector.type)
+        if not detector_type:
+            continue
+
+        # Store raw Detector.config plus detection_enabled from Detector.enabled
+        config: dict[str, Any] = {
+            "detection_enabled": detector.enabled,
+            **detector.config,  # Include all fields from Detector.config
+        }
+
+        wfe_configs[detector_type] = config
+
+    return wfe_configs
 
 
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_detection_settings(
-    project_id: int | None = None, organization: Organization | None = None
+    project_id: int | None = None,
+    organization: Organization | None = None,
+    project: Project | None = None,
 ) -> dict[DetectorType, dict[str, Any]]:
-    settings = get_merged_settings(project_id)
+    settings = get_merged_settings(project_id, project)
 
     return {
         DetectorType.SLOW_DB_QUERY: {
@@ -346,7 +483,7 @@ def _detect_performance_problems(
     organization = project.organization
 
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
-        detection_settings = get_detection_settings(project.id, organization)
+        detection_settings = get_detection_settings(project.id, organization, project)
 
     if standalone or features.has("organizations:issue-detection-sort-spans", organization):
         # The performance detectors expect the span list to be ordered/flattened in the way they
