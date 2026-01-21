@@ -1,52 +1,53 @@
+import {ReleaseFixture} from 'sentry-fixture/release';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
-import type {DashboardFilters} from 'sentry/views/dashboards/types';
 
-jest.mock('sentry/views/dashboards/hooks/useReleases', () => ({
-  useReleases: jest.fn(() => ({
-    data: [
-      {
-        id: '1',
-        shortVersion: 'sentry-android-shop@1.2.0',
-        version: 'sentry-android-shop@1.2.0',
-        dateCreated: '2020-03-23T01:02:30Z',
-      },
-      {
-        id: '2',
-        shortVersion: 'sentry-android-shop@1.3.0',
-        version: 'sentry-android-shop@1.3.0',
-        dateCreated: '2020-03-24T01:02:30Z',
-      },
-      {
-        id: '3',
-        shortVersion: 'sentry-android-shop@1.4.0',
-        version: 'sentry-android-shop@1.4.0',
-        dateCreated: '2020-03-25T01:02:30Z',
-      },
-    ],
-    isLoading: false,
-  })),
-}));
-
-function renderReleasesSelect({
-  handleChangeFilter,
-}: {
-  handleChangeFilter?: (activeFilters: DashboardFilters) => void;
-} = {}) {
-  return render(
-    <ReleasesSelectControl
-      selectedReleases={[]}
-      handleChangeFilter={handleChangeFilter}
-    />
-  );
-}
+const defaultReleases = [
+  ReleaseFixture({
+    id: '1',
+    shortVersion: 'sentry-android-shop@1.2.0',
+    version: 'sentry-android-shop@1.2.0',
+  }),
+  ReleaseFixture({
+    id: '2',
+    shortVersion: 'sentry-android-shop@1.3.0',
+    version: 'sentry-android-shop@1.3.0',
+  }),
+  ReleaseFixture({
+    id: '3',
+    shortVersion: 'sentry-android-shop@1.4.0',
+    version: 'sentry-android-shop@1.4.0',
+  }),
+];
 
 describe('Dashboards > ReleasesSelectControl', () => {
-  it('updates menu title with selection', async () => {
-    renderReleasesSelect({});
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      },
+      false
+    );
+  });
 
-    // Wait for the component to load and render
+  it('updates menu title with selection', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: defaultReleases,
+    });
+
+    render(<ReleasesSelectControl selectedReleases={[]} />);
+
+    // Wait for the API request to complete
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
+
+    // Component should render with default text
     expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
     // Open the dropdown
@@ -67,7 +68,14 @@ describe('Dashboards > ReleasesSelectControl', () => {
   });
 
   it('updates menu title with multiple selections', async () => {
-    renderReleasesSelect({});
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: defaultReleases,
+    });
+
+    render(<ReleasesSelectControl selectedReleases={[]} />);
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
 
     expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
@@ -82,7 +90,14 @@ describe('Dashboards > ReleasesSelectControl', () => {
   });
 
   it('updates releases when searching', async () => {
-    renderReleasesSelect({});
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: defaultReleases,
+    });
+
+    render(<ReleasesSelectControl selectedReleases={[]} />);
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
 
     expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
@@ -99,12 +114,26 @@ describe('Dashboards > ReleasesSelectControl', () => {
     await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 'se');
 
     // In a real scenario, the hook would be called with the search term
-    // but since we're mocking it, we're just verifying the search interaction works
+    // but since we're mocking the network, we're just verifying the search interaction works
   });
 
   it('triggers handleChangeFilter with the release versions', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: defaultReleases,
+    });
+
     const mockHandleChangeFilter = jest.fn();
-    renderReleasesSelect({handleChangeFilter: mockHandleChangeFilter});
+
+    render(
+      <ReleasesSelectControl
+        selectedReleases={[]}
+        handleChangeFilter={mockHandleChangeFilter}
+      />
+    );
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
+
     expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('All Releases'));
@@ -122,13 +151,14 @@ describe('Dashboards > ReleasesSelectControl', () => {
   });
 
   it('includes Latest Release(s) even if no matching releases', async () => {
-    const useReleases = require('sentry/views/dashboards/hooks/useReleases').useReleases;
-    useReleases.mockReturnValueOnce({
-      data: [],
-      isLoading: false,
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
     });
 
-    renderReleasesSelect({});
+    render(<ReleasesSelectControl selectedReleases={[]} />);
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
 
     expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
