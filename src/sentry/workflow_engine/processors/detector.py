@@ -112,7 +112,7 @@ def _ensure_detector(project: Project, type: str) -> Detector:
         raise UnableToAcquireLockApiError
 
 
-def _ensure_metric_detector(
+def ensure_default_anomaly_detector(
     project: Project, owner_team_id: int | None = None, enabled: bool = True
 ) -> Detector | None:
     """
