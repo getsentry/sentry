@@ -6,6 +6,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {
   DashboardDetails,
@@ -84,6 +85,9 @@ describe('add to dashboard modal', () => {
         },
       ],
     };
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(defaultSelection);
 
     // Default behaviour for dashboard create limit wrapper
     mockDashboardCreateLimitWrapper.mockImplementation(({children}: {children: any}) =>

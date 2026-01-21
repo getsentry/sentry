@@ -123,10 +123,10 @@ export function FileDiffViewer({
         onClick={collapsible ? () => setIsExpanded(value => !value) : undefined}
       >
         {collapsible && <InteractionStateLayer />}
-        <FileAddedRemoved>
+        <Flex align="center" gap="md">
           <FileAdded>+{patch.added}</FileAdded>
           <FileRemoved>-{patch.removed}</FileRemoved>
-        </FileAddedRemoved>
+        </Flex>
         <FilePathName title={filePath}>{filePath}</FilePathName>
         {collapsible && <IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
       </FileHeader>
@@ -207,12 +207,6 @@ const FileHeader = styled('div')<{collapsible?: boolean}>`
   background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   ${p => (p.collapsible ? 'cursor: pointer;' : '')}
-`;
-
-const FileAddedRemoved = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;
 
 const FileAdded = styled('div')`

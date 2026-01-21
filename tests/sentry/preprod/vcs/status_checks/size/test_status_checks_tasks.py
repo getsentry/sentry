@@ -17,6 +17,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -348,7 +349,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         # Create multiple artifacts for the same commit (monorepo scenario)
         artifacts = []
         for i in range(3):
-            artifact = PreprodArtifact.objects.create(
+            artifact = Factories.create_preprod_artifact(
                 project=self.project,
                 state=PreprodArtifact.ArtifactState.PROCESSED,
                 app_id=f"com.example.app{i}",
@@ -671,6 +672,61 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
+    def test_create_preprod_status_check_task_github_403_rate_limit_error(self):
+        """Test task converts 403 rate limit errors to ApiRateLimitedError (allows retry).
+
+        GitHub sometimes returns 403 instead of 429 for rate limiting. This test ensures
+        that 403 errors with "rate limit exceeded" message are treated as rate limit errors.
+        """
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="403-rate-limit",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=403,
+            json={
+                "message": "API rate limit exceeded for installation ID 12345",
+                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
+            },
+        )
+
+        with self.tasks():
+            try:
+                create_preprod_status_check_task(preprod_artifact.id)
+                assert False, "Expected ApiRateLimitedError to be raised"
+            except Exception as e:
+                assert e.__class__.__name__ == "ApiRateLimitedError"
+                assert "rate limit" in str(e).lower()
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
     def test_create_preprod_status_check_task_truncates_long_summary(self):
         """Test task truncates summary when it exceeds GitHub's byte limit."""
         commit_comparison = CommitComparison.objects.create(
@@ -752,7 +808,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             base_ref="main",
         )
 
-        ios_old = PreprodArtifact.objects.create(
+        ios_old = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
@@ -772,7 +828,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        android_old = PreprodArtifact.objects.create(
+        android_old = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
@@ -794,7 +850,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         later_time = timezone.now() + timedelta(hours=1)
 
-        ios_new = PreprodArtifact.objects.create(
+        ios_new = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
@@ -816,7 +872,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        android_new = PreprodArtifact.objects.create(
+        android_new = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
@@ -889,7 +945,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         same_app_id = "com.example.multiplatform"
 
-        ios_artifact = PreprodArtifact.objects.create(
+        ios_artifact = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
@@ -909,7 +965,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        android_artifact = PreprodArtifact.objects.create(
+        android_artifact = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
@@ -953,7 +1009,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert ios_artifact.id in sibling_ids_from_android
 
         later_time = timezone.now() + timedelta(hours=1)
-        ios_artifact_new = PreprodArtifact.objects.create(
+        ios_artifact_new = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,

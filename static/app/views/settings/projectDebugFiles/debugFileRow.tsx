@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
@@ -47,7 +49,7 @@ function DebugFileRow({
 
   return (
     <Fragment>
-      <Column>
+      <Stack align="start">
         <div>
           <DebugId>{debugId || uuid}</DebugId>
         </div>
@@ -58,8 +60,8 @@ function DebugFileRow({
             <TimeSince date={dateCreated} />
           </TimeWrapper>
         </TimeAndSizeWrapper>
-      </Column>
-      <Column>
+      </Stack>
+      <Stack align="start">
         <Name>
           {symbolType === 'proguard' && objectName === 'proguard-mapping'
             ? '\u2015'
@@ -88,8 +90,8 @@ function DebugFileRow({
             </div>
           )}
         </Description>
-      </Column>
-      <RightColumn>
+      </Stack>
+      <Flex justify="end" align="start" marginTop="md">
         <ButtonBar gap="xs">
           <Tooltip
             disabled={hasRole}
@@ -137,7 +139,7 @@ function DebugFileRow({
             )}
           </Access>
         </ButtonBar>
-      </RightColumn>
+      </Flex>
     </Fragment>
   );
 }
@@ -155,19 +157,6 @@ const FeatureTags = styled('div')`
 
 const StyledTag = styled(Tag)`
   padding: ${space(0.5)};
-`;
-
-const Column = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const RightColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-  margin-top: ${space(1)};
 `;
 
 const DebugId = styled('code')`

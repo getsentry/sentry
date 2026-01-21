@@ -55,8 +55,10 @@ def convert_rpc_attribute_to_json(
             lowered_key = key.lower()
             if lowered_key.startswith("val"):
                 val_type = lowered_key[3:]
-                column_type: Literal["string", "number"] = "string"
-                if val_type in ["str", "bool"]:
+                column_type: Literal["string", "number", "boolean"] = "string"
+                if val_type == "bool":
+                    column_type = "boolean"
+                elif val_type == "str":
                     column_type = "string"
                 elif val_type in ["int", "float", "double"]:
                     column_type = "number"
@@ -88,6 +90,8 @@ def convert_rpc_attribute_to_json(
                 if external_name is None:
                     if column_type == "number":
                         external_name = f"tags[{internal_name},number]"
+                    elif column_type == "boolean":
+                        external_name = f"tags[{internal_name},boolean]"
                     else:
                         external_name = internal_name
 
@@ -139,13 +143,15 @@ def serialize_meta(
             result = json.loads(attribute["value"]["valStr"])
             # Map the internal field key name back to its public name
             if field_key in attribute_map:
-                item_type: Literal["string", "number"]
+                item_type: Literal["string", "number", "boolean"]
                 if (
                     "valInt" in attribute_map[field_key]
                     or "valFloat" in attribute_map[field_key]
                     or "valDouble" in attribute_map[field_key]
                 ):
                     item_type = "number"
+                elif "valBool" in attribute_map[field_key]:
+                    item_type = "boolean"
                 else:
                     item_type = "string"
                 external_name, _, _ = translate_internal_to_public_alias(
@@ -155,6 +161,8 @@ def serialize_meta(
                     field_key = external_name
                 elif item_type == "number":
                     field_key = f"tags[{field_key},number]"
+                elif item_type == "boolean":
+                    field_key = f"tags[{field_key},boolean]"
                 meta_result[field_key] = result
         except json.JSONDecodeError:
             continue
