@@ -30,7 +30,22 @@ const ColoredLine = styled('span')<Props>`
   display: inline-block;
   flex-shrink: 0;
   height: 1em;
-  background-color: ${p => (p.level ? p.theme.level[p.level] : p.theme.level.error)};
+  background-color: ${p => {
+    switch (p.level) {
+      case 'sample':
+      case 'info':
+        return p.theme.tokens.dataviz.semantic.accent;
+      case 'warning':
+        return p.theme.tokens.dataviz.semantic.meh;
+      case 'error':
+      case 'fatal':
+        return p.theme.tokens.dataviz.semantic.bad;
+      case 'unknown':
+        return p.theme.tokens.dataviz.semantic.other;
+      default:
+        return p.theme.colors.red400;
+    }
+  }};
 `;
 
 export default ErrorLevel;
