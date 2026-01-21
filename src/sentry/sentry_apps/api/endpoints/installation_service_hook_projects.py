@@ -6,10 +6,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
 from sentry.api.serializers.base import serialize
+from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.servicehookproject import ServiceHookProjectSerializer
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 class ServiceHookProjectsInputSerializer(serializers.Serializer):
@@ -53,20 +55,20 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         "DELETE": ApiPublishStatus.PRIVATE,
     }
 
+    def _get_auth_context(self, request: Request) -> AuthenticationContext:
+        return AuthenticationContext(
+            auth=getattr(request, "auth", None),
+            user=serialize_generic_user(request.user),
+        )
+
     def get(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
         result = sentry_app_region_service.get_service_hook_projects(
             organization_id=installation.organization_id,
             installation=installation,
+            auth_context=self._get_auth_context(request),
         )
         if result.error:
             return self.respond_rpc_sentry_app_error(result.error)
-
-        for project in result.projects:
-            if not request.access.has_project_access(project):
-                return Response(
-                    status=400,
-                    data={"error": "Some projects are not accessible"},
-                )
 
         return Response(
             serialize(
@@ -88,45 +90,11 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             return Response(serializer.errors, status=400)
 
         projects = serializer.validated_data["projects"]
-        current_result = sentry_app_region_service.get_service_hook_projects(
-            organization_id=installation.organization_id,
-            installation=installation,
-            extra_projects_to_fetch=projects,
-        )
-        if current_result.error:
-            return self.respond_rpc_sentry_app_error(current_result.error)
-
-        project_set = set(projects)
-        for project in current_result.extra_projects:
-            if project.id not in project_set and project.slug not in project_set:
-                return Response(
-                    status=400,
-                    data={"error": f"Project '{project.slug}' does not exist"},
-                )
-            if not request.access.has_project_access(project):
-                return Response(
-                    status=400,
-                    data={"error": "Some projects are not accessible"},
-                )
-
-        project_ids = [project.id for project in current_result.extra_projects]
-        current_project_ids = {hp.project_id for hp in current_result.service_hook_projects}
-        project_ids_to_remove = current_project_ids - set(project_ids)
-        projects_to_remove = [
-            project for project in current_result.projects if project.id in project_ids_to_remove
-        ]
-        for project in projects_to_remove:
-            if not request.access.has_project_access(project):
-                return Response(
-                    status=400,
-                    data={"error": "Some projects affected by this request are not accessible"},
-                )
-
         result = sentry_app_region_service.set_service_hook_projects(
             organization_id=installation.organization_id,
             installation=installation,
-            project_ids=project_ids,
-            existing_project_ids=list(current_project_ids),
+            project_identifiers=projects,
+            auth_context=self._get_auth_context(request),
         )
 
         if result.error:
@@ -142,25 +110,10 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         )
 
     def delete(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
-        current_result = sentry_app_region_service.get_service_hook_projects(
-            organization_id=installation.organization_id,
-            installation=installation,
-        )
-
-        if current_result.error:
-            return self.respond_rpc_sentry_app_error(current_result.error)
-
-        for project in current_result.projects:
-            if not request.access.has_project_access(project):
-                return Response(
-                    status=400,
-                    data={"error": "Some projects affected by this request are not accessible"},
-                )
-
         result = sentry_app_region_service.delete_service_hook_projects(
             organization_id=installation.organization_id,
             installation=installation,
-            existing_project_ids=[project.id for project in current_result.projects],
+            auth_context=self._get_auth_context(request),
         )
 
         if result.error:
