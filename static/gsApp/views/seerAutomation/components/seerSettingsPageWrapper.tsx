@@ -64,7 +64,7 @@ export default function SeerSettingsPageWrapper({children}: Props) {
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#root-cause-analysis" />
             ),
             code_review: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/" />
             ),
           }
         )}
