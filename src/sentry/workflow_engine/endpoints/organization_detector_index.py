@@ -35,6 +35,7 @@ from sentry.apidocs.parameters import DetectorParams, GlobalParams, Organization
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
 from sentry.issues.issue_search import convert_actor_or_none_value
@@ -188,7 +189,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
         if raw_query := request.GET.get("query"):
-            for filter in parse_detector_query(raw_query):
+            try:
+                parsed_filters = parse_detector_query(raw_query)
+            except InvalidSearchQuery as e:
+                raise ValidationError({"query": [str(e)]})
+            for filter in parsed_filters:
                 assert isinstance(filter, SearchFilter)
                 match filter:
                     case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
