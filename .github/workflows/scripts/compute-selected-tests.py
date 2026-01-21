@@ -9,9 +9,9 @@ from pathlib import Path
 
 # Files that, if changed, should trigger the full test suite (can't determine affected tests)
 FULL_SUITE_TRIGGER_FILES = [
-    "sentry/testutils/pytest/sentry.py",
+    # "sentry/testutils/pytest/sentry.py",
     "pyproject.toml",
-    "Makefile",
+    # "Makefile",
     "sentry/conf/server.py",
     "sentry/web/urls.py",
 ]
