@@ -61,6 +61,7 @@ class RepositorySettings(Model):
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
     ) -> tuple[int, ImportKind] | None:
+        # Avoid duplicate key violations when RepositorySettings already exists (e.g., created by Repository.save() during import).
         (settings, created) = self.__class__.objects.get_or_create(
             repository_id=self.repository_id, defaults=model_to_dict(self)
         )
