@@ -6,9 +6,10 @@ from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
 from sentry.auth.services.auth.model import AuthenticationContext
+from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
-from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.region import sentry_app_region_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -31,13 +32,8 @@ class TestSentryAppRegionService(TestCase):
         self.install = self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, user=self.user
         )
-        self.rpc_installation = app_service.get_many(filter=dict(uuids=[self.install.uuid]))[0]
+        self.rpc_installation = serialize_sentry_app_installation(self.install)
         self.auth_context = AuthenticationContext(user=serialize_rpc_user(self.user))
-
-    def create_service_hook_project(self, project_id: int) -> ServiceHookProject:
-        with assume_test_silo_mode_of(ServiceHook):
-            hook = ServiceHook.objects.get(installation_id=self.install.id)
-            return ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project_id)
 
     @responses.activate
     def test_get_select_options(self) -> None:
@@ -223,8 +219,12 @@ class TestSentryAppRegionService(TestCase):
     def test_get_service_hook_projects(self) -> None:
         project2 = self.create_project(organization=self.org)
 
-        self.create_service_hook_project(project_id=self.project.id)
-        self.create_service_hook_project(project_id=project2.id)
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=self.project.id
+        )
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=project2.id
+        )
 
         result = sentry_app_region_service.get_service_hook_projects(
             organization_id=self.org.id,
@@ -250,13 +250,17 @@ class TestSentryAppRegionService(TestCase):
         project2 = self.create_project(organization=self.org)
         project3 = self.create_project(organization=self.org)
 
-        self.create_service_hook_project(project_id=self.project.id)
-        self.create_service_hook_project(project_id=project2.id)
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=self.project.id
+        )
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=project2.id
+        )
 
         result = sentry_app_region_service.set_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
-            project_identifiers=[project2.id, project3.id],
+            project_identifiers=[project2.id, project3.slug],
             auth_context=self.auth_context,
         )
 
@@ -276,11 +280,53 @@ class TestSentryAppRegionService(TestCase):
                 service_hook_id=hook.id, project_id=project3.id
             ).exists()
 
+    def test_set_service_hook_projects_access(self) -> None:
+        organization = self.create_organization()
+        with assume_test_silo_mode_of(Organization):
+            organization.flags.allow_joinleave = False
+            organization.save()
+        project = self.create_project(organization=organization)
+        project2 = self.create_project(organization=organization)
+
+        member_user = self.create_user(email="member@example.com")
+        self.create_member(organization=organization, user=member_user, role="member")
+        member_auth_context = AuthenticationContext(user=serialize_rpc_user(member_user))
+
+        install = self.create_sentry_app_installation(
+            organization=organization, slug=self.sentry_app.slug, user=member_user
+        )
+        self.create_service_hook_project_for_installation(
+            installation_id=install.id, project_id=project.id
+        )
+
+        # Member user should not have access to set service hook projects
+        rpc_installation = serialize_sentry_app_installation(install)
+        result = sentry_app_region_service.set_service_hook_projects(
+            organization_id=organization.id,
+            installation=rpc_installation,
+            project_identifiers=[project2.id],
+            auth_context=member_auth_context,
+        )
+
+        assert result.error is not None
+        assert result.error.status_code == 403
+
+        # Original project should still be there
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=install.id)
+            assert ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id=project.id
+            ).exists()
+
     def test_delete_service_hook_projects(self) -> None:
         project2 = self.create_project(organization=self.org)
 
-        self.create_service_hook_project(project_id=self.project.id)
-        self.create_service_hook_project(project_id=project2.id)
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=self.project.id
+        )
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=project2.id
+        )
 
         result = sentry_app_region_service.delete_service_hook_projects(
             organization_id=self.org.id,
@@ -293,27 +339,6 @@ class TestSentryAppRegionService(TestCase):
         with assume_test_silo_mode_of(ServiceHook):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert not ServiceHookProject.objects.filter(service_hook_id=hook.id).exists()
-
-    def test_set_service_hook_projects_invalid_project(self) -> None:
-        self.create_service_hook_project(project_id=self.project.id)
-
-        result = sentry_app_region_service.set_service_hook_projects(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            project_identifiers=[self.project.id, 99999999],  # Invalid project ID
-            auth_context=self.auth_context,
-        )
-
-        assert result.error is not None
-        assert result.error.status_code == 400
-        assert "not accessible" in result.error.message or "does not exist" in result.error.message
-
-        # Original project should still be there
-        with assume_test_silo_mode_of(ServiceHook):
-            hook = ServiceHook.objects.get(installation_id=self.install.id)
-            assert ServiceHookProject.objects.filter(
-                service_hook_id=hook.id, project_id=self.project.id
-            ).exists()
 
     def test_get_interaction_stats(self) -> None:
         now = before_now(days=1)
