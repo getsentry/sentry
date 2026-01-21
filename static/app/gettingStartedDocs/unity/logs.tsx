@@ -23,8 +23,8 @@ export const logsVerify = (params: DocsParams): ContentBlock => ({
       code: `using Sentry;
 using UnityEngine;
 
-// Unity's Debug.Warning (and higher severity levels) will automatically be captured
-Debug.Warning("This warning will be sent to Sentry");
+// Unity's Debug.LogWarning (and higher severity levels) will automatically be captured
+Debug.LogWarning("This warning will be sent to Sentry");
 
 // Or use the SDK directly
 SentrySdk.Logger.LogInfo("A simple log message");
