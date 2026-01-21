@@ -7,7 +7,6 @@ import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProje
 import {t, tct} from 'sentry/locale';
 import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -91,12 +90,7 @@ export function useCreateNotificationAction({
   const createProjectRules = useCreateProjectRules();
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {integrationType: 'messaging'}},
-    ],
+    [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
     {staleTime: 0, refetchOnWindowFocus: true}
   );
 
