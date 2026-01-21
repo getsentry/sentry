@@ -66,7 +66,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         rpc_orgmember_mapping = organizationmember_mapping_service.upsert_mapping(
             organization_id=self.organization.id,
             organizationmember_id=111111,
-            mapping=RpcOrganizationMemberMappingUpdate.from_orm(om),
+            mapping=RpcOrganizationMemberMappingUpdate.model_validate(om),
         )
 
         assert rpc_orgmember_mapping is not None
@@ -80,7 +80,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         rpc_orgmember_mapping = organizationmember_mapping_service.upsert_mapping(
             organization_id=self.organization.id,
             organizationmember_id=111111,
-            mapping=RpcOrganizationMemberMappingUpdate.from_orm(om),
+            mapping=RpcOrganizationMemberMappingUpdate.model_validate(om),
         )
 
         assert rpc_orgmember_mapping is not None
