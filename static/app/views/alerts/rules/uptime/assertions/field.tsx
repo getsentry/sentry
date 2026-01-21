@@ -58,8 +58,11 @@ export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
       defaultValue={{root: {op: 'and', children: [], id: uniqueId()}}}
       {...props}
       flexibleControlStateSize
-      getData={(data: Assertion | undefined) =>
-        data?.root ? {root: normalizeAssertion(data.root)} : data
+      // Use getValue (not getData) to transform field value at submission time.
+      // getData only works for save-on-blur; getValue is used by getTransformedData()
+      // which is called during full form submission via saveForm().
+      getValue={(value: Assertion | undefined) =>
+        value?.root ? {root: normalizeAssertion(value.root)} : value
       }
     >
       {({ref: _ref, ...fieldProps}) => <UptimeAssertionsControl {...fieldProps} />}
