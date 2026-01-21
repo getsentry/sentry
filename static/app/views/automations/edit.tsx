@@ -171,6 +171,9 @@ function AutomationEditForm({automation}: {automation: Automation}) {
         projectIds: data.projectIds,
         queryClient,
       });
+      if (!formData) {
+        return;
+      }
       const newAutomationData = getNewAutomationData({
         data: formData,
         state,

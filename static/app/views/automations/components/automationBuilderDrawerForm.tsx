@@ -145,6 +145,9 @@ export function AutomationBuilderDrawerForm({
         projectIds: data.projectIds,
         queryClient,
       });
+      if (!formData) {
+        return;
+      }
       const analyticsPayload = getAutomationAnalyticsPayload(
         getNewAutomationData({
           data: formData,

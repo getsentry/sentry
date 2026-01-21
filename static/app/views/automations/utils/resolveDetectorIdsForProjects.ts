@@ -25,7 +25,7 @@ export async function resolveDetectorIdsForProjects({
   orgSlug,
   projectIds,
   queryClient,
-}: ResolveDetectorIdsForProjectsParams): Promise<AutomationFormData> {
+}: ResolveDetectorIdsForProjectsParams): Promise<AutomationFormData | null> {
   if (!projectIds?.length) {
     return formData;
   }
@@ -41,6 +41,6 @@ export async function resolveDetectorIdsForProjects({
     Sentry.captureException(error);
     onSubmitError?.(error);
     addErrorMessage(t('Something went wrong while saving selected projects'));
-    return formData;
+    return null;
   }
 }

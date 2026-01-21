@@ -140,6 +140,9 @@ export default function AutomationNewSettings() {
         projectIds: data.projectIds,
         queryClient,
       });
+      if (!formData) {
+        return;
+      }
       const newAutomationData = getNewAutomationData({
         data: formData,
         state,
