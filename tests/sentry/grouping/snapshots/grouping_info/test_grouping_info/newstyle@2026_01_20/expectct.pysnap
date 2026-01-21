@@ -1,0 +1,50 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "expect_ct": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "expect_ct",
+            "name": null,
+            "values": [
+              {
+                "contributes": true,
+                "hint": "a static salt",
+                "id": "salt",
+                "name": null,
+                "values": [
+                  "expect-ct"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "hostname",
+                "name": "hostname",
+                "values": [
+                  "example.com"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "hostname",
+      "hash": "3d2933f4b5ec459ec8d569a398fd328c",
+      "hint": null,
+      "key": "expect_ct",
+      "type": "component"
+    }
+  }
+}
