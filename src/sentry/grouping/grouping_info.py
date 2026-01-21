@@ -82,7 +82,8 @@ def _get_new_description(variant: BaseVariant) -> str:
         "checksum": "checksum",
         "csp_local_script_violation": "directive",
         "csp_url": "directive and URL",
-        "custom_fingerprint": "custom fingerprint",
+        "custom_client_fingerprint": "custom client fingerprint",
+        "custom_server_fingerprint": "custom server fingerprint",
         "exception": "exception",  # TODO: hotfix for case in which nothing in the exception contributes
         "exception_message": "exception message",
         "exception_stacktrace": "exception stacktrace",
