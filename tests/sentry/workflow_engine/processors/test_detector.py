@@ -304,21 +304,22 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         build_mock_occurrence_and_event(detector.detector_handler, None, PriorityLevel.HIGH)
 
         data_packet = DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}})
-        result = DetectorEvaluationResult(
-            group_key=None,
-            is_triggered=False,
-            priority=DetectorPriorityLevel.OK,
-            result=StatusChangeMessage(
-                fingerprint=[f"detector:{detector.id}"],
-                project_id=self.project.id,
-                new_status=GroupStatus.RESOLVED,
-                new_substatus=None,
-                id=str(self.mock_uuid4.return_value),
-            ),
-            event_data=None,
-        )
         results = process_detectors(data_packet, [detector])
-        assert results == [(detector, {result.group_key: result})]
+        # Verify the results structure
+        assert len(results) == 1
+        assert results[0][0] == detector
+        result_dict = results[0][1]
+        assert None in result_dict
+        result = result_dict[None]
+        assert result.group_key is None
+        assert result.is_triggered is False
+        assert result.priority == DetectorPriorityLevel.OK
+        # The result should be a StatusChangeMessage
+        assert isinstance(result.result, StatusChangeMessage)
+        assert result.result.fingerprint == [f"detector:{detector.id}"]
+        assert result.result.project_id == self.project.id
+        assert result.result.new_status == GroupStatus.RESOLVED
+        assert result.result.new_substatus is None
         mock_metrics.incr.assert_has_calls(
             [
                 call(
@@ -602,19 +603,17 @@ class TestEvaluate(BaseDetectorHandlerTest):
             )
         }
         assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 6}})) == {}
-        assert handler.evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}})) == {
-            "val1": DetectorEvaluationResult(
-                group_key="val1",
-                is_triggered=False,
-                result=StatusChangeMessage(
-                    fingerprint=[f"detector:{handler.detector.id}:val1"],
-                    project_id=self.project.id,
-                    new_status=1,
-                    new_substatus=None,
-                ),
-                priority=DetectorPriorityLevel.OK,
-            )
-        }
+        result = handler.evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}}))
+        # Verify the result has the expected structure
+        assert "val1" in result
+        assert result["val1"].is_triggered is False
+        assert result["val1"].priority == DetectorPriorityLevel.OK
+        # The result should be a StatusChangeMessage
+        assert isinstance(result["val1"].result, StatusChangeMessage)
+        assert result["val1"].result.fingerprint == [f"detector:{handler.detector.id}:val1"]
+        assert result["val1"].result.project_id == self.project.id
+        assert result["val1"].result.new_status == 1
+        assert result["val1"].result.new_substatus is None
 
     def test_no_condition_group(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)

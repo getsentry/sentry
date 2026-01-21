@@ -29,7 +29,7 @@ from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 def build_mock_occurrence_and_event(
     handler: DetectorHandler,
     value: DataPacketEvaluationType,
-    priority: PriorityLevel,
+    priority: PriorityLevel | None,
 ) -> tuple[DetectorOccurrence, dict[str, Any]]:
     assert handler.detector.group_type is not None
     return (
@@ -39,6 +39,7 @@ def build_mock_occurrence_and_event(
             type=handler.detector.group_type,
             level="error",
             culprit="Some culprit",
+            priority=priority,
         ),
         {},
     )
@@ -74,7 +75,9 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         value = self.extract_value(data_packet)
-        return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
+        # PriorityLevel doesn't have an OK value, so we pass None for that case
+        priority_level = None if priority == DetectorPriorityLevel.OK else PriorityLevel(priority)
+        return build_mock_occurrence_and_event(self, value, priority_level)
 
 
 class BaseDetectorHandlerTest(BaseGroupTypeTest):

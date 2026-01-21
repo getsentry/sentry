@@ -1,9 +1,12 @@
 import unittest.mock as mock
+from datetime import datetime, timezone
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.handlers.detector import DetectorOccurrence
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import (
     DataConditionResult,
     DetectorGroupKey,
@@ -462,6 +465,45 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         resolution_result = handler.evaluate(resolution_packet)
 
         assert resolution_result[self.group_key].priority == Level.OK
+
+    def test_evaluate__resolve_with_custom_detection_time(self) -> None:
+        custom_detection_time = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+
+        class CustomTimeDetectorHandler(MockDetectorStateHandler):
+            def create_occurrence(
+                self,
+                evaluation_result: ProcessedDataConditionGroup,
+                data_packet: DataPacket[dict],
+                priority: DetectorPriorityLevel,
+            ):
+                occurrence, event_data = super().create_occurrence(
+                    evaluation_result, data_packet, priority
+                )
+                # Return occurrence with custom detection_time
+                return (
+                    DetectorOccurrence(
+                        issue_title=occurrence.issue_title,
+                        subtitle=occurrence.subtitle,
+                        type=occurrence.type,
+                        level=occurrence.level,
+                        culprit=occurrence.culprit,
+                        priority=occurrence.priority,
+                        detection_time=custom_detection_time,
+                    ),
+                    event_data,
+                )
+
+        handler = CustomTimeDetectorHandler(detector=self.detector)
+
+        # Trigger and then resolve
+        handler.evaluate(self.packet(1, Level.HIGH))
+        handler.evaluate(self.packet(2, Level.HIGH))
+        result = handler.evaluate(self.packet(3, Level.OK))
+
+        # Verify the StatusChangeMessage has the custom update_date
+        evaluation_result = result[self.group_key]
+        assert isinstance(evaluation_result.result, StatusChangeMessage)
+        assert evaluation_result.result.update_date == custom_detection_time
 
 
 class TestDetectorStateManagerRedisOptimization(TestCase):
