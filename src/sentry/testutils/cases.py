@@ -3337,12 +3337,12 @@ class _OptionalOurLogData(TypedDict, total=False):
 def scalar_to_any_value(value: Any) -> AnyValue:
     if isinstance(value, str):
         return AnyValue(string_value=value)
+    if isinstance(value, bool):
+        return AnyValue(bool_value=value)
     if isinstance(value, int):
         return AnyValue(int_value=value)
     if isinstance(value, float):
         return AnyValue(double_value=value)
-    if isinstance(value, bool):
-        return AnyValue(bool_value=value)
     if isinstance(value, dict):
         return AnyValue(**value)
     raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
