@@ -75,7 +75,8 @@ export default function SeerSettingsPageWrapper({children}: Props) {
               feedbackOptions={{
                 messagePlaceholder: t('How can we make Seer better for you?'),
                 tags: {
-                  ['feedback.source']: 'seer-org-settings',
+                  ['feedback.source']: 'seer-settings-org',
+                  ['feedback.owner']: 'coding-workflows',
                 },
               }}
             />

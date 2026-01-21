@@ -76,7 +76,8 @@ function SeerProjectDetails() {
               feedbackOptions={{
                 messagePlaceholder: t('How can we make Seer better for you?'),
                 tags: {
-                  ['feedback.source']: 'seer-project-details',
+                  ['feedback.source']: 'seer-settings-project-details',
+                  ['feedback.owner']: 'coding-workflows',
                 },
               }}
             />
