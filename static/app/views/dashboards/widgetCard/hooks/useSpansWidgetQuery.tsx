@@ -16,6 +16,7 @@ import type {
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   getEquationAliasIndex,
@@ -41,6 +42,7 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type SpansSeriesResponse =
   | EventsStats
@@ -343,6 +345,21 @@ export function useSpansTableQuery(
           }
         }
         requestParams.sort = toArray(orderBy);
+      }
+
+      // Always sort by is_starred_transaction first if it's in the fields
+      const existingSort = requestParams.sort || [];
+      const hasStarredField = query.fields?.includes(SpanFields.IS_STARRED_TRANSACTION);
+
+      const alreadySortedByStarred = Array.isArray(existingSort)
+        ? existingSort.some(sort => sort.includes(SpanFields.IS_STARRED_TRANSACTION))
+        : existingSort.includes(SpanFields.IS_STARRED_TRANSACTION);
+
+      if (hasStarredField && !alreadySortedByStarred) {
+        requestParams.sort = [
+          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
+          ...existingSort,
+        ];
       }
 
       const queryParams = {
