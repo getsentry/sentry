@@ -92,8 +92,11 @@ class WebhookProcessor(Protocol):
 
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
-    external_id: str | None = event.get("installation", {}).get("id")
-    return f"{host}:{external_id}" if host else external_id
+    external_id = event.get("installation", {}).get("id")
+    if external_id is None:
+        return None
+    external_id_str = str(external_id)
+    return f"{host}:{external_id_str}" if host else external_id_str
 
 
 def get_file_language(filename: str) -> str | None:
@@ -323,7 +326,7 @@ class GitHubWebhook(SCMWebhook, ABC):
         return f"github:{username}"
 
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        return options.get("github-app.id")
+        return str(options.get("github-app.id"))
 
 
 class InstallationEventWebhook(GitHubWebhook):
@@ -849,7 +852,7 @@ class PullRequestEventWebhook(GitHubWebhook):
             identity_user = None
             identity = identity_service.get_identity(
                 filter={
-                    "identity_ext_id": user["id"],
+                    "identity_ext_id": str(user["id"]),
                     "provider_type": self.provider,
                     "provider_ext_id": self.get_idp_external_id(integration, kwargs.get("host")),
                 }

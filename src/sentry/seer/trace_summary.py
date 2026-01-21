@@ -90,4 +90,4 @@ def _call_seer(
     )
     response.raise_for_status()
 
-    return SummarizeTraceResponse.validate(response.json())
+    return SummarizeTraceResponse.model_validate(response.json())

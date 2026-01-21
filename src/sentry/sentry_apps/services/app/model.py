@@ -35,7 +35,7 @@ class RpcSentryAppAvatar(RpcModel):
     avatar_type: int = 0
     color: bool = False
 
-    AVATAR_TYPES: ClassVar = SentryAppAvatarTypes.get_choices()
+    AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]] = SentryAppAvatarTypes.get_choices()
     url_path: ClassVar[str] = "sentry-app-avatar"
     FILE_TYPE: ClassVar[str] = "avatar.file"
 

@@ -199,7 +199,7 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     if response.status == 200:
         try:
             result = orjson.loads(response.data)
-            return SeerRawPreferenceResponse.validate(result)
+            return SeerRawPreferenceResponse.model_validate(result)
         except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
             raise SeerApiResponseValidationError(str(e)) from e
 
@@ -374,7 +374,7 @@ def get_autofix_state(
             or run_id is not None
             and result["run_id"] == run_id
         ):
-            state = AutofixState.validate(result["state"])
+            state = AutofixState.model_validate(result["state"])
 
             if state.request.organization_id != organization_id:
                 raise SeerPermissionError("Different organization ID found in autofix state")
@@ -412,7 +412,7 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
     if state is None:
         return None
 
-    return AutofixState.validate(state)
+    return AutofixState.model_validate(state)
 
 
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
