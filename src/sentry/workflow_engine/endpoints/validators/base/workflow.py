@@ -273,12 +273,14 @@ class WorkflowValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(Workflow)):
             when_condition_group = condition_group_validator.create(validated_value["triggers"])
 
+            environment = validated_value.get("environment")
+
             workflow = Workflow.objects.create(
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
                 config=validated_value["config"],
                 organization_id=self.context["organization"].id,
-                environment_id=validated_value.get("environment_id"),
+                environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
                 created_by_id=self.context["request"].user.id,
             )
