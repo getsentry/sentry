@@ -9,9 +9,7 @@ from django.http import HttpRequest, HttpResponse
 
 logger = logging.getLogger(__name__)
 
-# Patterns to extract org and project from URL paths
-ORG_PATTERN = re.compile(r"^/organizations/([^/]+)/")
-PROJECT_PATTERN = re.compile(r"^/organizations/([^/]+)/projects/([^/]+)/")
+PATH_PATTERN = re.compile(r"^/organizations/([^/]+)/(?:projects/([^/]+)/)?")
 
 
 def _build_mcp_config(org_slug: str | None, project_slug: str | None) -> dict[str, Any]:
@@ -33,10 +31,8 @@ def _build_mcp_config(org_slug: str | None, project_slug: str | None) -> dict[st
 
 def _extract_org_project_from_path(path: str) -> tuple[str | None, str | None]:
     """Extract organization and project slugs from a URL path."""
-    if project_match := PROJECT_PATTERN.match(path):
-        return project_match.group(1), project_match.group(2)
-    if org_match := ORG_PATTERN.match(path):
-        return org_match.group(1), None
+    if match := PATH_PATTERN.match(path):
+        return match.group(1), match.group(2)
     return None, None
 
 
