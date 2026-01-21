@@ -7,6 +7,8 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.models import (
     GithubCopilotTaskCreateResponse,
     GithubCopilotTaskRequest,
+    GithubCopilotTaskStatusResponse,
+    GithubPRFromGraphQL,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
 
@@ -30,6 +32,13 @@ class GithubCopilotAgentClient(CodingAgentClient):
     @staticmethod
     def encode_agent_id(owner: str, repo: str, job_id: str) -> str:
         return f"{owner}:{repo}:{job_id}"
+
+    @staticmethod
+    def decode_agent_id(agent_id: str) -> tuple[str, str, str] | None:
+        parts = agent_id.split(":", 2)
+        if len(parts) != 3:
+            return None
+        return (parts[0], parts[1], parts[2])
 
     def launch(self, *, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         owner = request.repository.owner
@@ -81,4 +90,67 @@ class GithubCopilotAgentClient(CodingAgentClient):
             name="GitHub Copilot",
             started_at=task_response.task.created_at,
             agent_url=None,
+        )
+
+    def get_task_status(
+        self, owner: str, repo: str, task_id: str
+    ) -> GithubCopilotTaskStatusResponse:
+        api_response = self.get(
+            f"/agents/repos/{owner}/{repo}/tasks/{task_id}",
+            headers=self._get_auth_headers(),
+            timeout=30,
+        )
+
+        logger.info(
+            "coding_agent.github_copilot.get_task_status",
+            extra={
+                "owner": owner,
+                "repo": repo,
+                "task_id": task_id,
+                "status_code": api_response.status_code,
+            },
+        )
+
+        return GithubCopilotTaskStatusResponse.validate(api_response.json)
+
+    def get_pr_from_graphql(self, global_id: str) -> GithubPRFromGraphQL | None:
+        query = """
+            query($id: ID!) {
+                node(id: $id) {
+                    ... on PullRequest {
+                        number
+                        title
+                        url
+                    }
+                }
+            }
+        """
+
+        api_response = self.post(
+            "https://api.github.com/graphql",
+            headers={
+                **self._get_auth_headers(),
+                "content-type": "application/json",
+            },
+            data={"query": query, "variables": {"id": global_id}},
+            json=True,
+            timeout=30,
+        )
+
+        logger.info(
+            "coding_agent.github_copilot.get_pr_from_graphql",
+            extra={
+                "global_id": global_id,
+                "status_code": api_response.status_code,
+            },
+        )
+
+        node = api_response.json.get("data", {}).get("node")
+        if not node or "number" not in node:
+            return None
+
+        return GithubPRFromGraphQL(
+            number=node["number"],
+            title=node["title"],
+            url=node["url"],
         )

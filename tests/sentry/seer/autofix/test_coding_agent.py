@@ -1,8 +1,20 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
-from sentry.seer.autofix.coding_agent import _launch_agents_for_repos
-from sentry.seer.autofix.utils import AutofixRequest, AutofixState, AutofixTriggerSource
+from sentry.integrations.github_copilot.models import (
+    GithubCopilotArtifact,
+    GithubCopilotArtifactData,
+    GithubCopilotTaskStatusResponse,
+)
+from sentry.seer.autofix.coding_agent import _launch_agents_for_repos, poll_github_copilot_agents
+from sentry.seer.autofix.utils import (
+    AutofixRequest,
+    AutofixState,
+    AutofixTriggerSource,
+    CodingAgentProviderType,
+    CodingAgentState,
+    CodingAgentStatus,
+)
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
@@ -397,3 +409,287 @@ class TestLaunchAgentsForRepos(TestCase):
         mock_get_prompt.assert_called_once()
         call_args = mock_get_prompt.call_args
         assert call_args[0][3] is None  # Fourth positional arg is short_id
+
+
+class TestPollGithubCopilotAgents(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.user = self.create_user()
+        self.run_id = 12345
+
+    def _create_autofix_state_with_agents(
+        self, agents: dict[str, CodingAgentState]
+    ) -> AutofixState:
+        return AutofixState(
+            run_id=self.run_id,
+            request=AutofixRequest(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                issue={"id": 1, "title": "Test Issue"},
+                repos=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        owner="getsentry",
+                        name="sentry",
+                        external_id="123456",
+                    )
+                ],
+            ),
+            updated_at=datetime.now(UTC),
+            status="COMPLETED",
+            steps=[],
+            coding_agents=agents,
+        )
+
+    def test_poll_skips_when_no_coding_agents(self):
+        """Test that polling does nothing when there are no coding agents"""
+        autofix_state = self._create_autofix_state_with_agents({})
+
+        # Should not raise and should not call any external services
+        poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+    def test_poll_skips_non_github_copilot_agents(self):
+        """Test that polling skips agents that are not GitHub Copilot agents"""
+        agents = {
+            "cursor-agent-123": CodingAgentState(
+                id="cursor-agent-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+                name="Cursor",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        # Should not raise and should not call any external services
+        poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+    def test_poll_skips_completed_agents(self):
+        """Test that polling skips agents that are already completed"""
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.COMPLETED,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        # Should not raise and should not call any external services
+        poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_returns_early_when_no_user_token(self, mock_identity_service):
+        """Test that polling returns early when user has no access token"""
+        mock_identity_service.get_access_token_for_user.return_value = None
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        mock_identity_service.get_access_token_for_user.assert_called_once_with(
+            user_id=self.user.id
+        )
+
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_updates_state_when_pr_created(self, mock_identity_service, mock_update_state):
+        """Test that polling updates agent state when a PR is found"""
+        from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_client = MagicMock()
+        mock_client.get_task_status.return_value = GithubCopilotTaskStatusResponse(
+            id="task-123",
+            status="completed",
+            artifacts=[
+                GithubCopilotArtifact(
+                    provider="github",
+                    type="pull_request",
+                    data=GithubCopilotArtifactData(id=456, type="pull", global_id="PR_abc123"),
+                )
+            ],
+        )
+
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/12345"
+        mock_pr_info.title = "Fix the bug"
+        mock_client.get_pr_from_graphql.return_value = mock_pr_info
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(
+                GithubCopilotAgentClient, "get_task_status", mock_client.get_task_status
+            ):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_client.get_pr_from_graphql
+                ):
+                    poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        mock_client.get_task_status.assert_called_once_with("getsentry", "sentry", "task-123")
+        mock_client.get_pr_from_graphql.assert_called_once_with("PR_abc123")
+        mock_update_state.assert_called_once()
+
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["agent_id"] == "getsentry:sentry:task-123"
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/12345"
+        assert call_kwargs["result"].description == "Fix the bug"
+        assert call_kwargs["result"].repo_full_name == "getsentry/sentry"
+
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_marks_agent_failed_on_error_status(
+        self, mock_identity_service, mock_update_state
+    ):
+        """Test that polling marks agent as failed when task status is error"""
+        from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_get_task_status = MagicMock(
+            return_value=GithubCopilotTaskStatusResponse(
+                id="task-123",
+                status="failed",
+            )
+        )
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(GithubCopilotAgentClient, "get_task_status", mock_get_task_status):
+                poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        mock_update_state.assert_called_once_with(
+            agent_id="getsentry:sentry:task-123",
+            status=CodingAgentStatus.FAILED,
+        )
+
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_keeps_running_status_when_task_not_done(
+        self, mock_identity_service, mock_update_state
+    ):
+        """Test that polling keeps RUNNING status when task is still in progress"""
+        from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_get_task_status = MagicMock(
+            return_value=GithubCopilotTaskStatusResponse(
+                id="task-123",
+                status="running",
+                artifacts=[
+                    GithubCopilotArtifact(
+                        provider="github",
+                        type="pull_request",
+                        data=GithubCopilotArtifactData(id=456, type="pull", global_id="PR_abc123"),
+                    )
+                ],
+            )
+        )
+
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/12345"
+        mock_pr_info.title = "Fix the bug"
+        mock_get_pr_from_graphql = MagicMock(return_value=mock_pr_info)
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(GithubCopilotAgentClient, "get_task_status", mock_get_task_status):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_get_pr_from_graphql
+                ):
+                    poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        mock_update_state.assert_called_once()
+        call_kwargs = mock_update_state.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.RUNNING
+
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_handles_api_exception(self, mock_identity_service, mock_update_state):
+        """Test that polling handles exceptions gracefully"""
+        from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_get_task_status = MagicMock(side_effect=Exception("API Error"))
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(GithubCopilotAgentClient, "get_task_status", mock_get_task_status):
+                # Should not raise - exception should be caught and logged
+                poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+        # State should not be updated when there's an error
+        mock_update_state.assert_not_called()
+
+    def test_poll_skips_invalid_agent_id(self):
+        """Test that polling skips agents with invalid IDs"""
+        agents = {
+            "invalid-agent-id": CodingAgentState(
+                id="invalid-agent-id",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        # Should not raise - invalid agent ID should be skipped
+        poll_github_copilot_agents(autofix_state, user_id=self.user.id)
