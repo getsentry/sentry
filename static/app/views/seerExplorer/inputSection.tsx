@@ -318,7 +318,7 @@ const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
     resize: none;
 
     &::placeholder {
-      color: ${p => (p.interrupted ? p.theme.tokens.content.danger : undefined)};
+      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
     }
   }
 
@@ -348,7 +348,7 @@ const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
     ${p =>
       p.isDanger &&
       `
-      border-color: ${p.theme.tokens.content.danger};
+      border-color: ${p.theme.tokens.content.warning};
       border-left-color: transparent;
     `}
   }
