@@ -239,8 +239,8 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 )
             )
 
-        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by(
-            "project_id"
+        hook_projects = list(
+            ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by("project_id")
         )
         projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
         for project in projects:
