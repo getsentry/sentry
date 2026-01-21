@@ -18,6 +18,7 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
@@ -669,7 +670,7 @@ class PreprodComparisonApproval(DefaultFieldsModel):
     )
     approved_at = models.DateTimeField(null=True)
     # Nullable for non-Sentry users (e.g. approvals via GitHub UI)
-    approved_by = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    approved_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     # For non-Sentry approvers, store GitHub user info: {"github": {"id": 123, "login": "username"}}
     extras = models.JSONField(null=True)
 
