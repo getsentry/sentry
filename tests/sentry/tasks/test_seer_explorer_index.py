@@ -105,6 +105,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             assert active_project.id in project_ids
         assert inactive_project.id not in project_ids
 
+    @freeze_time("2024-01-15 12:00:00")
     def test_returns_empty_without_feature_flag(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
