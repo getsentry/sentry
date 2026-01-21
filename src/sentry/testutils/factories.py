@@ -1574,7 +1574,7 @@ class Factories:
     def create_service_hook_project_for_installation(
         project_id: int,
         installation_id: int,
-    ) -> ServiceHook:
+    ) -> ServiceHookProject:
         hook = ServiceHook.objects.get(installation_id=installation_id)
         return ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project_id)
 

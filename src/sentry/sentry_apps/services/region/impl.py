@@ -385,7 +385,10 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                 auth_context=auth_context,
             )
         except SentryAppSentryError as e:
-            return RpcEmptyResult(error=RpcSentryAppError.from_exc(e))
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError.from_exc(e),
+            )
         try:
             hook = ServiceHook.objects.get(
                 installation_id=installation.id, organization_id=organization_id
@@ -405,11 +408,12 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
             projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
             for project in projects:
                 if not access.has_project_access(project):
-                    return RpcServiceHookProjectsResult(
+                    return RpcEmptyResult(
+                        success=False,
                         error=RpcSentryAppError(
                             message="Some projects are not accessible",
                             status_code=403,
-                        )
+                        ),
                     )
             deletions.exec_sync_many(list(hook_projects))
 
