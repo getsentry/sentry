@@ -30,7 +30,7 @@ from sentry.testutils.cases import TestCase
 
 
 @pytest.fixture
-def mock_integration_with_client():
+def mock_integration_with_client() -> tuple[MagicMock, MagicMock]:
     mock_client = MagicMock()
     mock_installation = MagicMock()
     mock_installation.get_client.return_value = mock_client
@@ -499,7 +499,9 @@ class TestIsPrReviewCommand:
 
 class AddEyesReactionToCommentTest(TestCase):
     @pytest.fixture(autouse=True)
-    def setup_mock_integration(self, mock_integration_with_client):
+    def setup_mock_integration(
+        self, mock_integration_with_client: tuple[MagicMock, MagicMock]
+    ) -> None:
         self.mock_integration, self.mock_client = mock_integration_with_client
 
     def setUp(self) -> None:
@@ -560,7 +562,9 @@ class AddEyesReactionToCommentTest(TestCase):
 
 class AddEyesReactionToPullRequestTest(TestCase):
     @pytest.fixture(autouse=True)
-    def setup_mock_integration(self, mock_integration_with_client):
+    def setup_mock_integration(
+        self, mock_integration_with_client: tuple[MagicMock, MagicMock]
+    ) -> None:
         self.mock_integration, self.mock_client = mock_integration_with_client
 
     def setUp(self) -> None:
