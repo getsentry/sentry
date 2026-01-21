@@ -650,6 +650,33 @@ class AddEyesReactionToPullRequestTest(TestCase):
         mock_client.get_issue_reactions.assert_called_once_with(self.repo.name, "42")
         mock_client.create_issue_reaction.assert_not_called()
 
+    def test_deletes_hooray_reaction_before_adding_eyes(self) -> None:
+        """Test that hooray reactions from sentry[bot] are deleted before adding eyes reaction."""
+        mock_client = MagicMock()
+        mock_client.get_issue_reactions.return_value = [
+            {"id": 1, "user": {"login": "other-user"}, "content": "heart"},
+            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "hooray"},
+        ]
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
+        mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+
+        _add_eyes_reaction_to_pull_request(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED,
+            integration=mock_integration,
+            organization=self.organization,
+            repo=self.repo,
+            pr_number="42",
+        )
+
+        mock_client.get_issue_reactions.assert_called_once_with(self.repo.name, "42")
+        mock_client.delete_issue_reaction.assert_called_once_with(self.repo.name, "42", "2")
+        mock_client.create_issue_reaction.assert_called_once_with(
+            self.repo.name, "42", GitHubReaction.EYES
+        )
+
     @patch("sentry.seer.code_review.webhooks.pull_request.logger")
     def test_skips_creating_reaction_on_get_reactions_fail(self, mock_logger: MagicMock) -> None:
         """Test that if get_issue_reactions fails, we don't create a reaction."""
