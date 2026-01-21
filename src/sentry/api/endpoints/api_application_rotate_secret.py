@@ -21,6 +21,11 @@ class ApiApplicationRotateSecretEndpoint(ApiApplicationEndpoint):
     permission_classes = (SentryIsAuthenticated,)
 
     def post(self, request: Request, application: ApiApplication) -> Response:
+        if application.is_public:
+            return Response(
+                {"detail": "Cannot rotate secret for public clients"},
+                status=400,
+            )
         new_token = generate_token()
         application.update(client_secret=new_token)
         return Response(serialize({"clientSecret": new_token}))
