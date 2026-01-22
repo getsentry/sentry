@@ -28,7 +28,7 @@ figma.connect(
         sm: 'sm',
         md: 'md',
       }),
-      disabled: figma.enum('State', {
+      disabled: figma.enum('state', {
         disabled: true,
       }),
       children: figma.textContent('Children'),
