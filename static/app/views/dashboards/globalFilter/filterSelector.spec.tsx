@@ -131,7 +131,7 @@ describe('FilterSelector', () => {
 
     await user.click(screen.getByRole('button', {name: 'Apply'}));
 
-    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+    expect(mockOnUpdateFilter).toHaveBeenLastCalledWith({
       ...mockGlobalFilter,
       value: 'browser:[firefox,chrome]',
     });
