@@ -116,9 +116,15 @@ def _get_arroyo_subprocess_initializer(
 
 
 def _initialize_arroyo_subprocess(initializer: Callable[[], None] | None, tags: Tags) -> None:
+    import logging
+
+    logger = logging.getLogger("sentry.utils.arroyo.subprocess")
+
     from sentry.runner import configure
 
+    logger.info("_initialize_arroyo_subprocess: calling configure()")
     configure()
+    logger.info("_initialize_arroyo_subprocess: configure() complete")
 
     if initializer:
         initializer()
@@ -126,7 +132,9 @@ def _initialize_arroyo_subprocess(initializer: Callable[[], None] | None, tags: 
     from sentry.metrics.middleware import add_global_tags
 
     # Inherit global tags from the parent process
+    logger.info("_initialize_arroyo_subprocess: calling add_global_tags()")
     add_global_tags(all_threads=True, tags=tags)
+    logger.info("_initialize_arroyo_subprocess: add_global_tags() complete")
 
 
 def initialize_arroyo_main() -> None:
@@ -206,13 +214,22 @@ def _import_and_run(
     args_pickle: bytes,
     *additional_args: Any,
 ) -> None:
+    import logging
+
+    logger = logging.getLogger("sentry.utils.arroyo.subprocess")
+
+    logger.info("_import_and_run: calling initializer")
     initializer()
 
     # explicitly use pickle so that we can be sure arguments get unpickled
     # after sentry gets initialized
+    logger.info("_import_and_run: unpickling main_fn")
     main_fn = pickle.loads(main_fn_pickle)
+
+    logger.info("_import_and_run: unpickling args")
     args = pickle.loads(args_pickle)
 
+    logger.info("_import_and_run: calling main_fn")
     main_fn(*args, *additional_args)
 
 
