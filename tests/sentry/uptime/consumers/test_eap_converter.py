@@ -14,7 +14,7 @@ from sentry.uptime.consumers.eap_converter import (
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 
-JSON_ASSERTION_FAILURE_DATA = (
+MOCK_ASSERTION_FAILURE_DATA = (
     {
         "root": {
             "op": "and",
@@ -324,7 +324,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
     def test_convert_with_assertion_failure_data(self) -> None:
         result = self._create_base_result(
-            assertion_failure_data=JSON_ASSERTION_FAILURE_DATA,
+            assertion_failure_data=MOCK_ASSERTION_FAILURE_DATA,
         )
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
@@ -334,7 +334,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
         attributes = trace_item.attributes
         assert attributes["assertion_failure_data"].string_value == json.dumps(
-            JSON_ASSERTION_FAILURE_DATA
+            MOCK_ASSERTION_FAILURE_DATA
         )
 
 
