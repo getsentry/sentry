@@ -16,9 +16,7 @@ import documentation from '!!type-loader!@sentry/scraps/layout/surface';
 
 export {documentation};
 
-The `Surface` component is a simplified layout component built on top of the `Container` component. It provides a focused API for surfaces with only the essential props: `variant`, `elevation`, and `radius`.
-
-To change the layout of `Surface` children, wrap children with a specific layout component (such as [`Flex`](/stories/core/flex), [`Stack`](/stories/core/stack), [`Grid`](/stories/core/grid)).
+The `Surface` component is a simplified layout component built on top of the `Container` component. It provides a simplified API for surfaces with specific props: `variant`, `elevation`, and `radius`. It also accepts props that are passed through to `Container`.
 
 ## Flat Variants
 
@@ -26,14 +24,14 @@ Use basic variants for content areas: `primary` for main content, `secondary` fo
 
 <Storybook.Demo>
   <Stack minWidth="0" flexGrow={1} gap="md">
-    <Surface variant="primary">
-      <Flex padding="xl lg">Primary surface</Flex>
+    <Surface variant="primary" padding="xl lg">
+      Primary surface
     </Surface>
-    <Surface variant="secondary">
-      <Flex padding="xl lg">Secondary surface</Flex>
+    <Surface variant="secondary" padding="xl lg">
+      Secondary surface
     </Surface>
-    <Surface variant="tertiary">
-      <Flex padding="xl lg">Tertiary surface</Flex>
+    <Surface variant="tertiary" padding="xl lg">
+      Tertiary surface
     </Surface>
   </Stack>
 </Storybook.Demo>
@@ -49,15 +47,13 @@ Use `variant="overlay"` for floating surfaces like dropdowns, modals, and popove
 
 <Storybook.Demo>
   <Stack minWidth="0" flexGrow={1} gap="md">
-    <Surface variant="overlay" elevation="low">
-      <Flex padding="xl lg">
-        <Text variant="primary">
-          Overlay: Low elevation <Text variant="muted">(default)</Text>
-        </Text>
-      </Flex>
+    <Surface variant="overlay" elevation="low" padding="xl lg">
+      <Text variant="primary">
+        Overlay: Low elevation <Text variant="muted">(default)</Text>
+      </Text>
     </Surface>
-    <Surface variant="overlay" elevation="high">
-      <Flex padding="xl lg">Overlay: High elevation</Flex>
+    <Surface variant="overlay" elevation="high" padding="xl lg">
+      Overlay: High elevation
     </Surface>
   </Stack>
 </Storybook.Demo>
