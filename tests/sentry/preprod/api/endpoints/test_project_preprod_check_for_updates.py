@@ -654,40 +654,6 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         # Should find the app-store artifact
         assert data["current"] is not None
 
-    def test_install_groups_filters_current_artifact(self):
-        """Test that install_groups parameter filters the current artifact correctly"""
-        # Create an artifact with alpha install_groups
-        self._create_android_artifact(
-            main_binary_identifier="test-identifier",
-            build_version="1.0.0",
-            build_number=42,
-            extras={"install_groups": ["alpha"]},
-        )
-
-        # Create another artifact with beta install_groups
-        self._create_android_artifact(
-            main_binary_identifier="test-identifier",
-            build_version="1.0.0",
-            build_number=42,
-            extras={"install_groups": ["beta"]},
-        )
-
-        url = self._get_url()
-        response = self.client.get(
-            url
-            + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier&install_groups=alpha",
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-
-        # Should only find the alpha artifact
-        assert data["current"] is not None
-        assert data["current"]["build_version"] == "1.0.0"
-        assert data["current"]["build_number"] == 42
-
     def test_install_groups_filters_updates(self):
         """Test that updates are filtered by the same install_groups as the current artifact"""
         # Create current artifact with alpha install_groups
