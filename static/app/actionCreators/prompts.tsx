@@ -121,7 +121,9 @@ export const makePromptsCheckQueryKey = ({
   organization,
   projectId,
 }: PromptCheckHookParams): ApiQueryKey => {
-  const url = `/organizations/${organization?.slug}/prompts-activity/`;
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
+    path: {organizationIdOrSlug: organization?.slug!},
+  });
   return [url, {query: {feature, project_id: projectId}}];
 };
 
