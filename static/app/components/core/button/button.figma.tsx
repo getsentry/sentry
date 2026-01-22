@@ -14,7 +14,7 @@ figma.connect(
   'https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=384%3A2119',
   {
     props: {
-      priority: figma.enum('Priority', {
+      priority: figma.enum('priority', {
         default: 'default',
         primary: 'primary',
         danger: 'danger',
@@ -22,7 +22,7 @@ figma.connect(
         transparent: 'transparent',
         link: 'link',
       }),
-      size: figma.enum('Size', {
+      size: figma.enum('size', {
         zero: 'zero',
         xs: 'xs',
         sm: 'sm',
