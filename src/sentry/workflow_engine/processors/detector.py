@@ -223,10 +223,6 @@ def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
     )
 
 
-class SpecificDetectorNotFound(Exception):
-    pass
-
-
 @dataclass(frozen=True)
 class EventDetectors:
     issue_stream_detector: Detector | None = None
@@ -288,49 +284,28 @@ def get_detectors_for_event_data(
         )
 
     if detector is None and isinstance(event_data.event, GroupEvent):
-        try:
-            detector = _get_detector_for_event(event_data.event)
-        except (Detector.DoesNotExist, SpecificDetectorNotFound):
-            pass
-
+        detector = _get_detector_for_event(event_data.event)
     try:
         return EventDetectors(issue_stream_detector=issue_stream_detector, event_detector=detector)
     except ValueError:
         return None
 
 
-def _get_detector_for_event(event: GroupEvent) -> Detector:
+def _get_detector_for_event(event: GroupEvent) -> Detector | None:
     """
-    Returns the detector from the GroupEvent in event_data.
+    Returns the detector from the GroupEvent in event_data, or None if no detector is found.
     """
-
     issue_occurrence = event.occurrence
-
     try:
         if issue_occurrence is not None:
             detector_id = issue_occurrence.evidence_data.get("detector_id")
             if detector_id is None:
-                raise SpecificDetectorNotFound
-            detector = Detector.objects.get(id=detector_id)
+                return None
+            return Detector.objects.get(id=detector_id)
         else:
-            detector = Detector.get_error_detector_for_project(event.group.project_id)
+            return Detector.get_error_detector_for_project(event.group.project_id)
     except Detector.DoesNotExist:
-        metrics.incr("workflow_engine.detectors.error")
-        detector_id = (
-            issue_occurrence.evidence_data.get("detector_id") if issue_occurrence else None
-        )
-
-        logger.exception(
-            "Detector not found for event",
-            extra={
-                "event_id": event.event_id,
-                "group_id": event.group_id,
-                "detector_id": detector_id,
-            },
-        )
-        raise Detector.DoesNotExist("Detector not found for event")
-
-    return detector
+        return None
 
 
 def _get_detector_for_group(group: Group) -> Detector:
