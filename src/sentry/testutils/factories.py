@@ -155,7 +155,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
-from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.services.eventstore.models import Event
@@ -1583,6 +1583,15 @@ class Factories:
             url=url,
         ).id
         return ServiceHook.objects.get(id=hook_id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_service_hook_project_for_installation(
+        project_id: int,
+        installation_id: int,
+    ) -> ServiceHookProject:
+        hook = ServiceHook.objects.get(installation_id=installation_id)
+        return ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project_id)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
