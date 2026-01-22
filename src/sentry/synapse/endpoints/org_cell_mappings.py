@@ -1,9 +1,12 @@
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.paginator import BadPaginationError, DateTimePaginator
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.synapse.endpoints.authentication import (
     SynapseAuthPermission,
     SynapseSignatureAuthentication,
@@ -24,9 +27,41 @@ class OrgCellMappingsEndpoint(Endpoint):
     authentication_classes = (SynapseSignatureAuthentication,)
     permission_classes = (SynapseAuthPermission,)
 
+    MAX_LIMIT = 100
+
     def get(self, request: Request) -> Response:
         """
         Retrieve organization-to-cell mappings.
         """
-        # TODO: Implement GET logic
-        return Response({"mappings": []}, status=200)
+        query = OrganizationMapping.objects.all()
+        try:
+            per_page = self.get_per_page(request)
+            cursor = self.get_cursor_from_request(request)
+            paginator = DateTimePaginator(
+                queryset=query, order_by="-date_updated", max_limit=self.MAX_LIMIT
+            )
+            pagination_result = paginator.get_result(
+                limit=per_page,
+                cursor=cursor,
+            )
+        except BadPaginationError as e:
+            raise ParseError(detail=str(e))
+
+        mappings = {}
+        for item in pagination_result.results:
+            organziation_id = str(item.organization_id)
+            mappings[item.slug] = organziation_id
+            mappings[organziation_id] = organziation_id
+
+        response_data = {
+            "data": mappings,
+            "metadata": {
+                "cursor": str(pagination_result.next),
+                "has_more": pagination_result.next.has_results,
+                "cell_to_locality": {
+                    # TODO(cells) need to build this out with region/cell config data.
+                    "us1": "us"
+                },
+            },
+        }
+        return Response(response_data, status=200)
