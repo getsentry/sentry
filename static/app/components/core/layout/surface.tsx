@@ -14,7 +14,7 @@ interface BaseSurfaceProps {
 }
 interface FlatSurfaceProps extends BaseSurfaceProps {
   elevation?: never;
-  variant?: Exclude<SurfaceVariant, 'overlay'>;
+  variant?: SurfaceVariant;
 }
 interface OverlaySurfaceProps extends BaseSurfaceProps {
   variant: 'overlay';
@@ -34,6 +34,8 @@ const StyledSurface = styled(Container, {
   },
 })<SurfaceProps>`
   box-shadow: ${p => getShadow(p)};
+  background: ${p =>
+    p.variant === 'overlay' ? p.theme.tokens.background.overlay : undefined};
 `;
 
 /**
@@ -72,7 +74,6 @@ export function Surface(props: SurfaceProps) {
         variant={variant}
         elevation={elevation}
         display="block"
-        background="overlay"
         border="primary"
         radius={radius ?? 'md'}
         {...rest}
