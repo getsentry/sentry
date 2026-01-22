@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import partition from 'lodash/partition';
 
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -87,7 +86,6 @@ export function InsightsSecondaryNav() {
           <SecondaryNav.Item
             to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_agents"
-            trailingItems={<FeatureBadge type="new" />}
           >
             {AGENTS_SIDEBAR_LABEL}
           </SecondaryNav.Item>
