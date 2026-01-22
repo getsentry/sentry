@@ -228,7 +228,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         # Verify user attributes are included
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
-        # Verify model attribute is included
         assert span["gen_ai.request.model"] == "gpt-4"
 
     def test_pagination(self) -> None:
@@ -398,29 +397,27 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
-        # Create spans at different times - some outside the requested date range
         self.store_ai_span(
             conversation_id=conversation_id,
-            timestamp=now - timedelta(days=30),  # 30 days ago
+            timestamp=now - timedelta(days=30),
             op="gen_ai.chat",
             trace_id=trace_id,
         )
 
         self.store_ai_span(
             conversation_id=conversation_id,
-            timestamp=now - timedelta(days=15),  # 15 days ago
+            timestamp=now - timedelta(days=15),
             op="gen_ai.chat",
             trace_id=trace_id,
         )
 
         self.store_ai_span(
             conversation_id=conversation_id,
-            timestamp=now,  # Recent
+            timestamp=now,
             op="gen_ai.chat",
             trace_id=trace_id,
         )
 
-        # Request with a very narrow date range that only includes the recent span
         query = {
             "project": [self.project.id],
             "start": (now - timedelta(hours=1)).isoformat(),
@@ -429,10 +426,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200, response.data
-        # Should return ALL 3 spans, not just the one in the narrow date range
         assert len(response.data) == 3
 
-        # Verify all spans belong to the same conversation
         for span in response.data:
             assert span["gen_ai.conversation.id"] == conversation_id
 
