@@ -15,8 +15,8 @@ from django.db.models import (
     When,
 )
 from django.db.models.functions import Coalesce
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -116,7 +116,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
@@ -313,23 +313,36 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        operation_id="Mutate an Organization's Workflows",
-        description=("Currently supports bulk enabling/disabling workflows."),
+        operation_id="Mutate an Organization's Alerts",
+        description=("Currently supports bulk enabling/disabling alerts."),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            WorkflowParams.QUERY,
+            WorkflowParams.ID,
+            OrganizationParams.PROJECT,
         ],
         responses={
-            200: RESPONSE_SUCCESS,
-            201: WorkflowSerializer,
+            200: inline_sentry_response_serializer(
+                "ListWorkflowSerializer", list[WorkflowSerializerResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        request=inline_serializer(
+            name="BulkUpdateAlerts",
+            fields={
+                "enabled": serializers.BooleanField(
+                    help_text="Whether to enable or disable the alerts"
+                )
+            },
+        ),
+        examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
     def put(self, request, organization):
         """
-        Mutates workflows for a given org
+        Bulk enable or disable alerts for a given Organization
         """
         if not (
             request.GET.getlist("id")

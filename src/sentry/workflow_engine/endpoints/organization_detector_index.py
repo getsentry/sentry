@@ -5,8 +5,8 @@ from typing import assert_never
 from django.db import router, transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.query import QuerySet
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -148,7 +148,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
@@ -371,26 +371,36 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        operation_id="Mutate an Organization's Detectors",
+        operation_id="Mutate an Organization's Monitors",
+        description=("Currently supports bulk enabling/disabling Monitors."),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
             DetectorParams.QUERY,
-            DetectorParams.SORT,
             DetectorParams.ID,
         ],
+        request=inline_serializer(
+            name="BulkUpdateMonitors",
+            fields={
+                "enabled": serializers.BooleanField(
+                    help_text="Whether to enable or disable the monitors"
+                )
+            },
+        ),
         responses={
-            200: RESPONSE_SUCCESS,
-            201: DetectorSerializer,
+            200: inline_sentry_response_serializer(
+                "ListDetectorSerializerResponse", list[DetectorSerializerResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
     def put(self, request: Request, organization: Organization) -> Response:
         """
-        Mutate an Organization's Detectors
+        Bulk enable or disable an Organization's Monitors
         """
         if not request.user.is_authenticated:
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
