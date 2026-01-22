@@ -353,15 +353,16 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     if (props.onBarClick && event.seriesIndex !== undefined) {
       const plottable = seriesIndexToPlottableRangeMap.get(event.seriesIndex);
       if (plottable) {
-        const item = allCategories[event.dataIndex];
-        if (!defined(item)) return;
+        // Use event.name which contains the category label from ECharts,
+        // not allCategories[event.dataIndex] which would be incorrect when
+        // plottables have different category sets
+        const categoryLabel = event.name;
+        if (!defined(categoryLabel) || typeof categoryLabel !== 'string') return;
 
         const value = extractValue(event.value, orientation);
-        const categoricalItem = plottable.categories.includes(item)
-          ? {label: item, value}
-          : undefined;
+        const categoricalItem: CategoricalItem = {label: categoryLabel, value};
 
-        if (categoricalItem) {
+        if (plottable.categories.includes(categoryLabel)) {
           // Access the native event for position data
           // ECharts attaches the native event to params.event
           const nativeEvent = (event as {event?: {offsetX?: number; offsetY?: number}})
