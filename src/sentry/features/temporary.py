@@ -157,13 +157,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     )
     # Enable metrics emission for dynamic sampling rules
     manager.add("organizations:dynamic-sampling-count-biases", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Use span count per root metric instead of transaction count per root for boost low volume transactions
-    manager.add(
-        "organizations:ds-transactions-span-metric",
-        OrganizationFeature,
-        FeatureHandlerStrategy.FLAGPOLE,
-        api_expose=False,
-    )
     # Enable logging project config for debugging
     manager.add("organizations:log-project-config", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable archive/escalating issue workflow features in v2
