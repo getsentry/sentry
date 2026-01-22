@@ -12,7 +12,7 @@ import type {SurfaceVariant} from 'sentry/utils/theme';
 interface FlatSurfaceProps<T extends ContainerElement = 'div'>
   extends Omit<ContainerProps<T>, 'background' | 'border'> {
   elevation?: never;
-  variant?: Exclude<SurfaceVariant, 'overlay'>;
+  variant?: SurfaceVariant;
 }
 
 interface OverlaySurfaceProps<T extends ContainerElement = 'div'>
