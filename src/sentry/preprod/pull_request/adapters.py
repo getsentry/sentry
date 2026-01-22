@@ -139,7 +139,10 @@ class PullRequestDataAdapter:
                 commit_comparison__head_sha=head_sha,
                 commit_comparison__organization_id=organization_id,
             )
-            .select_related("commit_comparison", "build_configuration")
+            .select_related(
+                "project", "commit_comparison", "build_configuration", "mobile_app_info"
+            )
+            .prefetch_related("preprodartifactsizemetrics_set")
             .annotate_download_count()  # type: ignore[attr-defined]  # mypy doesn't know about PreprodArtifactQuerySet
         )
 
@@ -154,7 +157,11 @@ class PullRequestDataAdapter:
             )
             return []
 
-        return [transform_preprod_artifact_to_build_details(artifact) for artifact in artifacts]
+        # Skip base artifact fetching in list context to avoid N+1 queries
+        return [
+            transform_preprod_artifact_to_build_details(artifact, include_base_artifact=False)
+            for artifact in artifacts
+        ]
 
     @staticmethod
     def create_error_response(

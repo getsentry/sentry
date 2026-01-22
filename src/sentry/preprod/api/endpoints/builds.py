@@ -313,7 +313,10 @@ class BuildsEndpoint(OrganizationEndpoint):
             )
 
         on_results = lambda artifacts: [
-            transform_preprod_artifact_to_build_details(artifact).dict() for artifact in artifacts
+            transform_preprod_artifact_to_build_details(
+                artifact, include_base_artifact=False
+            ).dict()
+            for artifact in artifacts
         ]
         paginate = lambda queryset: self.paginate(
             order_by="-date_added",
