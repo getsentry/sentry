@@ -119,7 +119,9 @@ def create_issue_occurrence_from_detection(
     """
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
-    if not project:
+    if project is None:
+        if project_id is None:
+            raise ValueError("Either project or project_id must be provided")
         project = Project.objects.get_from_cache(id=project_id)
 
     event_id = uuid4().hex
@@ -149,7 +151,7 @@ def create_issue_occurrence_from_detection(
     occurrence = IssueOccurrence(
         id=occurrence_id,
         event_id=event_id,
-        project_id=project_id,
+        project_id=project.id,
         fingerprint=fingerprint,
         issue_title=detected_issue.title,
         subtitle=detected_issue.explanation[:200],  # Truncate for subtitle
@@ -166,7 +168,7 @@ def create_issue_occurrence_from_detection(
 
     event_data = {
         "event_id": event_id,
-        "project_id": project_id,
+        "project_id": project.id,
         "platform": platform,
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
