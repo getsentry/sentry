@@ -500,7 +500,6 @@ class AddEyesReactionTest(TestCase):
             organization=self.organization,
             repo=self.repo,
             comment_id="123",
-            extra={},
         )
 
         mock_logger.warning.assert_called_once()
@@ -520,7 +519,6 @@ class AddEyesReactionTest(TestCase):
             organization=self.organization,
             repo=self.repo,
             comment_id="123456",
-            extra={},
         )
 
         mock_client.create_comment_reaction.assert_called_once_with(
@@ -543,7 +541,6 @@ class AddEyesReactionTest(TestCase):
             organization=self.organization,
             repo=self.repo,
             comment_id="123456",
-            extra={},
         )
 
         mock_logger.exception.assert_called_once()
