@@ -38,7 +38,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         assert new_event.group_id == old_event.group_id
 
-        url = f"/api/0/issues/{new_event.group_id}/hashes/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{new_event.group_id}/hashes/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -78,7 +78,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         eventstream.end_merge(state)
 
-        url = f"/api/0/issues/{event1.group_id}/hashes/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group_id}/hashes/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -147,7 +147,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         metadata2.seer_matched_grouphash = grouphash1
         metadata2.save()
 
-        url = f"/api/0/issues/{event1.group_id}/hashes/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group_id}/hashes/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -178,7 +178,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         url = "?".join(
             [
-                f"/api/0/issues/{group.id}/hashes/",
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
                 urlencode({"id": [h.hash for h in hashes]}, True),
             ]
         )
@@ -210,7 +210,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         url = "?".join(
             [
-                f"/api/0/issues/{group.id}/hashes/",
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
                 urlencode({"id": [h.hash for h in hashes]}, True),
             ]
         )
@@ -237,7 +237,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         url = "?".join(
             [
-                f"/api/0/issues/{group.id}/hashes/",
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
                 urlencode({"id": [h.hash for h in hashes]}, True),
             ]
         )
