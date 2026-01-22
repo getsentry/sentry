@@ -35,7 +35,7 @@ COMMON_COLUMNS = [
         public_alias=constants.TIMESTAMP_ALIAS,
         internal_name="sentry.timestamp",
         internal_type=constants.DOUBLE,
-        search_type="string",
+        search_type="second",
         processor=datetime_processor,
     ),
 ]
