@@ -51,29 +51,25 @@ const getLetterIndex = (letter: string): number => {
   return index === -1 ? 0 : index;
 };
 
-export const makeBarColors = (theme: Theme) => ({
-  default: theme.chart.colors[17][4],
-  transaction: theme.chart.colors[17][8],
-  http: theme.chart.colors[17][10],
-  db: theme.chart.colors[17][17],
-});
-
 export const pickBarColor = (input: string | undefined, theme: Theme): string => {
-  // We pick the color for span bars using the first three letters of the op name.
-  // That way colors stay consistent between transactions.
-  const barColors = makeBarColors(theme);
+  const palette = theme.chart.getColorPalette(17);
 
   if (!input || input.length < 3) {
-    const colors = theme.chart.getColorPalette(17);
-    return colors[4];
+    return palette[4];
   }
-
+  const barColors = {
+    default: palette[4],
+    transaction: palette[8],
+    http: palette[10],
+    db: palette[17],
+  };
   if (input in barColors) {
     return barColors[input as keyof typeof barColors];
   }
 
-  const colorsAsArray = Object.values(theme.chart.colors[17]);
-
+  const colorsAsArray = Object.values(palette);
+  // We pick the color for span bars using the first three letters of the op name.
+  // That way colors stay consistent between transactions.
   const letterIndex1 = getLetterIndex(input[0]!);
   const letterIndex2 = getLetterIndex(input[1]!);
   const letterIndex3 = getLetterIndex(input[2]!);

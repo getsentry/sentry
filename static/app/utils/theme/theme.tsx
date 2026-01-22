@@ -285,7 +285,6 @@ const commonTheme = {
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
-    colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
   };
   tokens: Tokens;
@@ -665,10 +664,13 @@ type ValidLengthArgument = TupleOf<ColorLength>[number];
  */
 function makeChartColorPalette<T extends ChartColorPalette>(
   palette: T
-): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
+): <Length extends ValidLengthArgument>(length: Length | number | 'all') => T[Length] {
   return function getChartColorPalette<Length extends ValidLengthArgument>(
-    length: Length | number
+    length: Length | number | 'all'
   ): T[Length] {
+    if (length === 'all') {
+      return palette.at(-1) as T[Length];
+    }
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length));
@@ -844,7 +846,6 @@ const lightThemeDefinition = {
   ...generateThemeUtils(),
 
   chart: {
-    colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
 
@@ -873,7 +874,6 @@ export const darkTheme: SentryTheme = {
   ...generateThemeUtils(),
 
   chart: {
-    colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
 

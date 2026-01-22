@@ -7,15 +7,22 @@ describe('theme', () => {
   describe('getColorPalette', () => {
     it('should return correct amount of colors', () => {
       const {result} = renderHookWithProviders(useTheme);
-
       const theme = result.current;
 
       expect(theme.chart.getColorPalette(2)).toHaveLength(3);
     });
 
+    it('should return all colors when all is passed', () => {
+      const {result} = renderHookWithProviders(useTheme);
+      const theme = result.current;
+
+      const colors = theme.chart.getColorPalette('all');
+
+      expect(colors).toHaveLength(18);
+    });
+
     it('should have strict types', () => {
       const {result} = renderHookWithProviders(useTheme);
-
       const theme = result.current;
 
       const colors = theme.chart.getColorPalette(2);

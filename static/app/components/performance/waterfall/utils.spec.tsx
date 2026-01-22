@@ -1,26 +1,27 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {makeBarColors, pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 
 const theme = ThemeFixture();
 
 describe('pickBarColor()', () => {
-  it('returns blue when undefined', () => {
-    expect(pickBarColor(undefined, theme)).toEqual(makeBarColors(theme).default);
+  it('returns magenta when undefined', () => {
+    expect(pickBarColor(undefined, theme)).toBe('#C81792');
   });
 
   it('returns the predefined color when available', () => {
-    expect(pickBarColor('transaction', theme)).toEqual(makeBarColors(theme).transaction);
+    expect(pickBarColor('transaction', theme)).toBe('#FFCF00');
   });
 
-  it('returns blue when the string is too short', () => {
-    expect(pickBarColor('', theme)).toEqual(makeBarColors(theme).default);
-    expect(pickBarColor('c', theme)).toEqual(makeBarColors(theme).default);
+  it('returns magenta when the string is too short', () => {
+    expect(pickBarColor('', theme)).toBe('#C81792');
+    expect(pickBarColor('c', theme)).toBe('#C81792');
   });
 
   it('returns a random color when no predefined option is available', () => {
-    const colorsAsArray = Object.keys(theme.chart.colors).map(
-      key => theme.chart.colors[17][key as keyof typeof theme.chart.colors]
+    const palette = theme.chart.getColorPalette(17);
+    const colorsAsArray = Object.keys(palette).map(
+      key => palette[key as keyof typeof palette]
     );
 
     let randomColor = pickBarColor('a normal string', theme);
