@@ -417,11 +417,15 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         self.state, performance_problem = self.state.next(span)
         if performance_problem:
             if self.detector_id is not None:
+                if performance_problem.evidence_data is None:
+                    performance_problem.evidence_data = {}
                 performance_problem.evidence_data["detector_id"] = self.detector_id
             self.stored_problems[performance_problem.fingerprint] = performance_problem
 
     def on_complete(self) -> None:
         if performance_problem := self.state.finish():
             if self.detector_id is not None:
+                if performance_problem.evidence_data is None:
+                    performance_problem.evidence_data = {}
                 performance_problem.evidence_data["detector_id"] = self.detector_id
             self.stored_problems[performance_problem.fingerprint] = performance_problem
