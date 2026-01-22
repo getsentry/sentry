@@ -1,12 +1,11 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {RequestOptions} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -37,28 +36,28 @@ interface TestUptimeMonitorButtonProps {
 }
 
 export function TestUptimeMonitorButton({getFormData}: TestUptimeMonitorButtonProps) {
-  const api = useApi();
   const organization = useOrganization();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const {mutateAsync: runPreviewCheck} = useMutation<
+  const {mutate: runPreviewCheck, isPending} = useMutation<
     UptimePreviewCheckResponse,
-    Error,
+    RequestError,
     UptimePreviewCheckPayload
   >({
-    mutationFn: (payload: UptimePreviewCheckPayload) => {
-      const options: RequestOptions = {
+    mutationFn: (payload: UptimePreviewCheckPayload) =>
+      fetchMutation<UptimePreviewCheckResponse>({
+        url: `/organizations/${organization.slug}/uptime-preview-check/`,
         method: 'POST',
-        data: payload,
-      };
-      return api.requestPromise(
-        `/organizations/${organization.slug}/uptime-preview-check/`,
-        options
-      );
+        data: {...payload},
+      }),
+    onSuccess: () => {
+      addSuccessMessage(t('Uptime check passed successfully'));
+    },
+    onError: () => {
+      addErrorMessage(t('Uptime check failed'));
     },
   });
 
-  const handleTestClick = useCallback(async () => {
+  const handleTestClick = useCallback(() => {
     const formData = getFormData();
 
     if (!formData.url) {
@@ -66,34 +65,23 @@ export function TestUptimeMonitorButton({getFormData}: TestUptimeMonitorButtonPr
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const payload: UptimePreviewCheckPayload = {
-        url: formData.url,
-        timeoutMs: formData.timeoutMs ?? 5000,
-        method: formData.method ?? 'GET',
-        headers: formData.headers ?? [],
-        body: formData.body ?? null,
-        assertion: formData.assertion ?? null,
-        region: 'default',
-      };
-
-      await runPreviewCheck(payload);
-      addSuccessMessage(t('Uptime check passed successfully'));
-    } catch (error) {
-      addErrorMessage(t('Uptime check failed'));
-    } finally {
-      setIsLoading(false);
-    }
+    runPreviewCheck({
+      url: formData.url,
+      timeoutMs: formData.timeoutMs ?? 5000,
+      method: formData.method ?? 'GET',
+      headers: formData.headers ?? [],
+      body: formData.body ?? null,
+      assertion: formData.assertion ?? null,
+      region: 'default',
+    });
   }, [getFormData, runPreviewCheck]);
 
   return (
     <Button
       icon={<IconPlay />}
       onClick={handleTestClick}
-      busy={isLoading}
-      disabled={isLoading}
+      busy={isPending}
+      disabled={isPending}
     >
       {t('Test Monitor')}
     </Button>
