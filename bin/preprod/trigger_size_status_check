@@ -14,6 +14,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.preprod.models import (
     PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
@@ -265,13 +266,17 @@ def create_base_artifacts_for_comparison(
         base_artifact = PreprodArtifact.objects.create(
             project=project,
             app_id=build_config["app_id"],
-            app_name=build_config["app_name"],
             artifact_type=build_config["artifact_type"],
             commit_comparison=base_commit_comparison,
             state=PreprodArtifact.ArtifactState.PROCESSED,
+            build_configuration=base_build_config,
+        )
+        # Create mobile app info with version details
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=base_artifact,
+            app_name=build_config["app_name"],
             build_version=build_config["build_version"],
             build_number=build_config["build_number"] - 1,  # Previous build number
-            build_configuration=base_build_config,
         )
         base_artifacts.append(base_artifact)
         logger.info(
@@ -585,11 +590,8 @@ def main() -> None:
                 "project": project,
                 "artifact_type": build_config["artifact_type"],
                 "app_id": build_config["app_id"],
-                "app_name": build_config["app_name"],
                 "commit_comparison": commit_comparison,
                 "state": artifact_state,
-                "build_version": build_config["build_version"],
-                "build_number": build_config["build_number"],
                 "build_configuration": head_build_config,
             }
 
@@ -608,6 +610,14 @@ def main() -> None:
                 preprod_artifact.id,
                 preprod_artifact.get_state_display(),
                 head_build_config.name if head_build_config else "None",
+            )
+
+            # Create mobile app info with version details
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=preprod_artifact,
+                app_name=build_config["app_name"],
+                build_version=build_config["build_version"],
+                build_number=build_config["build_number"],
             )
 
             # Simulate processing time by backdating the creation timestamp

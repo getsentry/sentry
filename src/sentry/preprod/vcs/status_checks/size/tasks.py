@@ -31,7 +31,7 @@ from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
@@ -569,8 +569,8 @@ def _compute_overall_status(
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
     base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
-) -> tuple[StatusCheckStatus, list[StatusCheckRule]]:
-    triggered_rules: list[StatusCheckRule] = []
+) -> tuple[StatusCheckStatus, list[TriggeredRule]]:
+    triggered_rules: list[TriggeredRule] = []
 
     if not artifacts:
         raise ValueError("Cannot compute status for empty artifact list")
@@ -626,7 +626,14 @@ def _compute_overall_status(
                                     "threshold": rule.value,
                                 },
                             )
-                            triggered_rules.append(rule)
+                            triggered_rules.append(
+                                TriggeredRule(
+                                    rule=rule,
+                                    artifact_id=artifact.id,
+                                    app_id=artifact.app_id,
+                                    platform=artifact.get_platform_label(),
+                                )
+                            )
 
         if triggered_rules:
             return StatusCheckStatus.FAILURE, triggered_rules
