@@ -1,3 +1,4 @@
+import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -25,7 +26,12 @@ type SurfaceProps = FlatSurfaceProps | OverlaySurfaceProps;
 const omitSurfaceProps = new Set(['variant', 'elevation']);
 
 const StyledSurface = styled(Container, {
-  shouldForwardProp: prop => !omitSurfaceProps.has(prop),
+  shouldForwardProp: prop => {
+    if (omitSurfaceProps.has(prop)) {
+      return false;
+    }
+    return isPropValid(prop);
+  },
 })<SurfaceProps>`
   box-shadow: ${p => getShadow(p)};
 `;
