@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {
@@ -33,7 +34,9 @@ export const makeFetchGroupSearchViewsKey = ({
   query,
 }: FetchGroupSearchViewsParameters): ApiQueryKey =>
   [
-    `/organizations/${orgSlug}/group-search-views/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       query: {
         per_page: limit,
