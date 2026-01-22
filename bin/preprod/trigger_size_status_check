@@ -45,8 +45,8 @@ BUILD_1 = {
     "build_number": 42,
     "build_configuration": "Debug",  # Head build configuration
     "base_build_configuration": "Release",  # Base build configuration (test different configs!)
-    "state": "processed_with_metrics",  # uploading, uploaded, failed, processed_no_metrics, processed_with_metrics, metrics_pending
-    "create_base_artifacts": True,  # Create base artifacts for size comparison
+    "state": "uploading",  # TEST: This triggers IN_PROGRESS status, so completed_at will be None
+    "create_base_artifacts": False,  # Not needed for this test
     "create_multiple_metrics": False,  # Create watch/dynamic feature metrics in addition to main
     "error_message": None,  # Only used if state is "failed"
 }
@@ -604,6 +604,12 @@ def main() -> None:
 
             # Create the preprod artifact
             preprod_artifact = PreprodArtifact.objects.create(**artifact_data)
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=preprod_artifact,
+                app_name=build_config["app_name"],
+                build_version=build_config["build_version"],
+                build_number=build_config["build_number"],
+            )
             created_artifacts.append(preprod_artifact)
             logger.info(
                 "  ✓ Created artifact: %s (state: %s, build_config: %s)",
@@ -612,17 +618,9 @@ def main() -> None:
                 head_build_config.name if head_build_config else "None",
             )
 
-            # Create mobile app info with version details
-            PreprodArtifactMobileAppInfo.objects.create(
-                preprod_artifact=preprod_artifact,
-                app_name=build_config["app_name"],
-                build_version=build_config["build_version"],
-                build_number=build_config["build_number"],
-            )
-
             # Simulate processing time by backdating the creation timestamp
             # This ensures completed_at != started_at in the status check
-            preprod_artifact.date_added = preprod_artifact.date_added - timedelta(minutes=5)
+            preprod_artifact.date_added = preprod_artifact.date_added - timedelta(minutes=7)
             preprod_artifact.save(update_fields=["date_added"])
             logger.info("  ✓ Backdated artifact creation by 5 minutes (simulating processing time)")
 
