@@ -157,7 +157,7 @@ def transform_webhook_to_codegen_request(
     target_commit_sha: str,
 ) -> dict[str, Any] | None:
     """
-    Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
+    Transform a GitHub webhook payload into SeerCodeReviewRequest format for Seer.
 
     Args:
         github_event: The GitHub webhook event type
@@ -168,7 +168,7 @@ def transform_webhook_to_codegen_request(
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
 
     Returns:
-        Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
+        Dictionary in SeerCodeReviewRequest format with request_type, data, and external_owner_id,
         or None if the event is not PR-related (e.g., issue_comment on regular issues)
 
     Raises:
@@ -229,7 +229,7 @@ def transform_webhook_to_codegen_request(
     # XXX: We will need to share classes between Sentry and Seer to avoid code duplication
     # for the request payload.
     # For now, we will use the same class names and fields as the Seer repository.
-    # Build CodecovTaskRequest
+    # Build SeerCodeReviewRequest
     return {
         # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
         "request_type": request_type.value,
