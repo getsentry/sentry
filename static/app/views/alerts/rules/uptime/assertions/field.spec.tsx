@@ -223,4 +223,64 @@ describe('UptimeAssertionsField', () => {
       value: 100, // Clamped to minimum
     });
   });
+
+  it('shows empty UI when editing monitor with empty assertion children', async () => {
+    // When editing a monitor that previously had assertions removed,
+    // the backend may return an assertion structure with empty children
+    const emptyAssertion: Assertion = {
+      root: {
+        id: 'root-1',
+        op: 'and',
+        children: [],
+      },
+    };
+
+    render(
+      <Form onSubmit={mockSubmit} model={model} initialData={{assertion: emptyAssertion}}>
+        <UptimeAssertionsField name="assertion" />
+      </Form>
+    );
+
+    // Should render the Add Assertion button
+    expect(screen.getByRole('button', {name: 'Add Assertion'})).toBeInTheDocument();
+
+    // Should NOT have any assertion inputs
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+
+    // getValue should return null for empty assertions
+    const transformedData = model.getTransformedData();
+    expect(transformedData.assertion).toBeNull();
+  });
+
+  it('returns null via getValue when all assertions are deleted', async () => {
+    render(
+      <Form onSubmit={mockSubmit} model={model}>
+        <UptimeAssertionsField name="assertion" />
+      </Form>
+    );
+
+    // Wait for default assertions to render (2 status code checks)
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox')).toHaveLength(2);
+    });
+
+    // Delete both default assertions by clicking their remove buttons
+    const removeButtons = screen.getAllByRole('button', {name: 'Remove assertion'});
+    expect(removeButtons).toHaveLength(2);
+
+    await userEvent.click(removeButtons[0]!);
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    });
+
+    const remainingRemoveButton = screen.getByRole('button', {name: 'Remove assertion'});
+    await userEvent.click(remainingRemoveButton);
+    await waitFor(() => {
+      expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    });
+
+    // getValue should return null when all assertions are deleted
+    const transformedData = model.getTransformedData();
+    expect(transformedData.assertion).toBeNull();
+  });
 });
