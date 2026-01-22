@@ -1,7 +1,3 @@
-import dataclasses
-from datetime import timedelta
-
-from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -35,11 +31,6 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.conversation.id",
     "gen_ai.cost.total_tokens",
     "gen_ai.operation.type",
-    "gen_ai.request.model",
-    "gen_ai.response.model",
-    "gen_ai.agent.name",
-    "gen_ai.function.id",
-    "gen_ai.operation.name",
     "gen_ai.input.messages",
     "gen_ai.output.messages",
     "gen_ai.system_instructions",
@@ -69,13 +60,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
-
-        # Override date range to always return all spans in the conversation
-        snuba_params = dataclasses.replace(
-            snuba_params,
-            start=timezone.now() - timedelta(days=90),
-            end=timezone.now(),
-        )
 
         selected_columns = AI_CONVERSATION_ATTRIBUTES
 
