@@ -499,7 +499,7 @@ describe('OrganizationStats', () => {
 
     await userEvent.click(await screen.findByText('Category'));
     expect(
-      screen.getByRole('option', {name: 'Size Analysis Uploads'})
+      screen.getByRole('option', {name: 'Size Analysis Builds'})
     ).toBeInTheDocument();
   });
 
@@ -514,7 +514,7 @@ describe('OrganizationStats', () => {
 
     await userEvent.click(await screen.findByText('Category'));
     expect(
-      screen.queryByRole('option', {name: 'Size Analysis Uploads'})
+      screen.queryByRole('option', {name: 'Size Analysis Builds'})
     ).not.toBeInTheDocument();
   });
 
