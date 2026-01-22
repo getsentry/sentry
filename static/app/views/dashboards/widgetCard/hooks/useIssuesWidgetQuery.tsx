@@ -30,9 +30,6 @@ const DEFAULT_EXPAND = ['owners'];
 
 type IssuesTableResponse = Group[];
 
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
 function applyDashboardFilters(
   widget: Widget,
   dashboardFilters?: DashboardFilters,
@@ -40,7 +37,6 @@ function applyDashboardFilters(
 ): Widget {
   let processedWidget = widget;
 
-  // Apply dashboard filters if provided
   if (dashboardFilters) {
     const filtered = cloneDeep(widget);
     const dashboardFilterConditions = dashboardFiltersToString(
@@ -50,7 +46,6 @@ function applyDashboardFilters(
 
     filtered.queries.forEach(query => {
       if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
         if (query.conditions && !skipParens) {
           query.conditions = `(${query.conditions})`;
         }
@@ -61,18 +56,11 @@ function applyDashboardFilters(
     processedWidget = filtered;
   }
 
-  // Clean widget to remove empty/invalid fields before API request
   return cleanWidgetForRequest(processedWidget);
 }
 
-// Stable empty array to prevent infinite rerenders
 const EMPTY_ARRAY: any[] = [];
 
-/**
- * Hook for fetching Issues widget series data (charts) using React Query.
- * Queries are disabled by default - use refetch() to trigger fetching.
- * This allows genericWidgetQueries to control timing with queue/callbacks.
- */
 export function useIssuesSeriesQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
 ): HookWidgetQueryResult {
@@ -88,13 +76,11 @@ export function useIssuesSeriesQuery(
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<IssuesSeriesResponse[] | undefined>(undefined);
 
-  // Apply dashboard filters
   const filteredWidget = useMemo(
     () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  // Build query keys for all widget queries
   const queryKeys = useMemo(() => {
     const keys = filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
@@ -106,7 +92,6 @@ export function useIssuesSeriesQuery(
         getReferrer(filteredWidget.displayType)
       );
 
-      // Override pathname generation for issues timeseries endpoint
       requestData.generatePathname = () =>
         `/organizations/${organization.slug}/issues-timeseries/`;
 
@@ -115,8 +100,6 @@ export function useIssuesSeriesQuery(
         category: 'issue',
       };
 
-      // Transform requestData into proper query params
-      // Remove organization, dataset (not needed for issues endpoint), and internal flags
       const {
         organization: _org,
         includeAllArgs: _includeAllArgs,
@@ -139,7 +122,6 @@ export function useIssuesSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      // Build the API query key for issues-timeseries endpoint
       return [
         `/organizations/${organization.slug}/issues-timeseries/`,
         {
@@ -151,7 +133,6 @@ export function useIssuesSeriesQuery(
     return keys;
   }, [filteredWidget, organization, pageFilters]);
 
-  // Create stable queryFn that uses queue
   const createQueryFn = useCallback(
     () =>
       async (context: any): Promise<ApiResult<IssuesSeriesResponse>> => {
@@ -171,7 +152,6 @@ export function useIssuesSeriesQuery(
           });
         }
 
-        // Fallback: call directly if queue not available
         return fetchDataQuery<IssuesSeriesResponse>(context);
       },
     [queue]
@@ -219,13 +199,11 @@ export function useIssuesSeriesQuery(
         organization
       );
 
-      // Maintain color consistency
       transformedResult.forEach((result: Series, resultIndex: number) => {
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
     if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
@@ -234,7 +212,6 @@ export function useIssuesSeriesQuery(
       }
     }
 
-    // Store current rawData for next comparison
     if (finalRawData !== prevRawDataRef.current) {
       prevRawDataRef.current = finalRawData;
     }
@@ -250,11 +227,6 @@ export function useIssuesSeriesQuery(
   return transformedData;
 }
 
-/**
- * Hook for fetching Issues widget table data using React Query.
- * Queries are disabled by default - use refetch() to trigger fetching.
- * This allows genericWidgetQueries to control timing with queue/callbacks.
- */
 export function useIssuesTableQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
 ): HookWidgetQueryResult {
@@ -386,11 +358,9 @@ export function useIssuesTableQuery(
 
       tableResults.push(transformedDataItem);
 
-      // Get page links from response meta
       responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
     if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
@@ -399,7 +369,6 @@ export function useIssuesTableQuery(
       }
     }
 
-    // Store current rawData for next comparison
     if (finalRawData !== prevRawDataRef.current) {
       prevRawDataRef.current = finalRawData;
     }
