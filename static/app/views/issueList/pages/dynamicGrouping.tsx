@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -46,7 +47,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -57,13 +57,21 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {
-  ClusterDetailDrawer,
+  PENDING_CLUSTER_STATS,
   useClusterStats,
+  useClusterStatsMap,
+  type ClusterStats,
+} from 'sentry/views/issueList/dynamicGrouping/clusterStats';
+import {
+  ClusterDetailDrawer,
   type ClusterSummary,
-} from 'sentry/views/issueList/pages/topIssuesDrawer';
+} from 'sentry/views/issueList/dynamicGrouping/topIssuesDrawer';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
 const CLUSTERS_PER_PAGE = 20;
+const MAX_NEW_ISSUES_FOR_SCORE = 10;
+const MIN_CLUSTERS_THRESHOLD = 10;
+const clusterQueryParser = parseAsInteger.withOptions({history: 'push'});
 
 function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   const lines: string[] = [];
@@ -86,6 +94,245 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
+}
+
+// Higher tier means "more relevant to this user."
+function getAssignmentTier(
+  cluster: ClusterSummary,
+  userId: string,
+  userTeamIds: Set<string>
+): number {
+  let hasAssignment = false;
+  for (const entity of cluster.assignedTo ?? []) {
+    hasAssignment = true;
+    if (entity.type === 'user' && entity.id === userId) {
+      return 3;
+    }
+    if (entity.type === 'team' && userTeamIds.has(entity.id)) {
+      return 2;
+    }
+  }
+
+  return hasAssignment ? 1 : 0;
+}
+
+// Stats-driven urgency: regressions/escalations, new issues, volume, and recency.
+function getUrgencyScore(clusterStats: ClusterStats, now: number): number {
+  if (clusterStats.isPending) {
+    return 0;
+  }
+
+  let score = 0;
+  if (clusterStats.hasRegressedIssues) {
+    score += 400;
+  }
+  if (clusterStats.isEscalating) {
+    score += 300;
+  }
+
+  score += Math.min(clusterStats.newIssuesCount, MAX_NEW_ISSUES_FOR_SCORE) * 20;
+  score += Math.log1p(clusterStats.totalEvents) * 30;
+  score += Math.log1p(clusterStats.totalUsers) * 25;
+
+  if (clusterStats.lastSeen) {
+    const lastSeenMs = new Date(clusterStats.lastSeen).getTime();
+    const hoursSinceLastSeen = (now - lastSeenMs) / 3_600_000;
+    if (hoursSinceLastSeen <= 24) {
+      score += 120;
+    } else if (hoursSinceLastSeen <= 72) {
+      score += 60;
+    } else if (hoursSinceLastSeen <= 168) {
+      score += 20;
+    }
+  }
+
+  return score;
+}
+
+// Fixability score is already normalized (0..1); convert to a comparable weight.
+function getFixabilityScore(cluster: ClusterSummary): number {
+  return (cluster.fixability_score ?? 0) * 100;
+}
+
+// Small boost for larger clusters; capped to avoid overwhelming urgency/fixability.
+function getScopeScore(cluster: ClusterSummary): number {
+  return Math.min(cluster.group_ids.length, 10) * 5;
+}
+
+interface PreSortParams {
+  clusterData: ClusterSummary[];
+  disableFilters: boolean;
+  dismissedClusterIds: number[];
+  filterByAssignedToMe: boolean;
+  isTeamFilterActive: boolean;
+  isUsingCustomData: boolean;
+  selectedTeamIds: Set<string>;
+  selectionProjects: Readonly<Array<string | number>>;
+  userId: string;
+  userTeamIds: Set<string>;
+}
+
+function getPreSortClusters({
+  clusterData,
+  disableFilters,
+  dismissedClusterIds,
+  filterByAssignedToMe,
+  isTeamFilterActive,
+  isUsingCustomData,
+  selectedTeamIds,
+  selectionProjects,
+  userId,
+  userTeamIds,
+}: PreSortParams): ClusterSummary[] {
+  if (isUsingCustomData && disableFilters) {
+    return clusterData;
+  }
+
+  // Apply project filter and require structured fields
+  const baseFiltered = clusterData.filter(cluster => {
+    // Only show clusters with the required structured fields
+    if (!cluster.error_type || !cluster.impact || !cluster.location) {
+      return false;
+    }
+
+    if (dismissedClusterIds.includes(cluster.cluster_id)) {
+      return false;
+    }
+
+    if (
+      selectionProjects.length > 0 &&
+      !selectionProjects.includes(ALL_ACCESS_PROJECTS)
+    ) {
+      if (!cluster.project_ids.some(pid => selectionProjects.includes(pid))) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Find clusters assigned to current user or their teams
+  const assignedToMe = baseFiltered.filter(cluster =>
+    cluster.assignedTo?.some(
+      entity =>
+        (entity.type === 'user' && entity.id === userId) ||
+        (entity.type === 'team' && userTeamIds.has(entity.id))
+    )
+  );
+
+  // By default, show only clusters assigned to me if there are enough (>=10)
+  let result =
+    assignedToMe.length >= MIN_CLUSTERS_THRESHOLD ? assignedToMe : baseFiltered;
+
+  // Manual filters override the default
+  if (filterByAssignedToMe) {
+    result = assignedToMe;
+  } else if (isTeamFilterActive) {
+    result = baseFiltered.filter(cluster =>
+      cluster.assignedTo?.some(
+        entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
+      )
+    );
+  }
+
+  return result;
+}
+
+interface StatusFilterParams {
+  clusterStatsById: Map<number, ClusterStats>;
+  clusters: ClusterSummary[];
+  disableFilters: boolean;
+  filterByEscalating: boolean;
+  filterByRegressed: boolean;
+  isUsingCustomData: boolean;
+}
+
+function applyStatusFilters({
+  clusterStatsById,
+  clusters,
+  disableFilters,
+  filterByEscalating,
+  filterByRegressed,
+  isUsingCustomData,
+}: StatusFilterParams): ClusterSummary[] {
+  if (isUsingCustomData && disableFilters) {
+    return clusters;
+  }
+
+  if (!filterByRegressed && !filterByEscalating) {
+    return clusters;
+  }
+
+  return clusters.filter(cluster => {
+    const stats = clusterStatsById.get(cluster.cluster_id) ?? PENDING_CLUSTER_STATS;
+    if (!stats.isPending) {
+      if (filterByRegressed && !stats.hasRegressedIssues) {
+        return false;
+      }
+      if (filterByEscalating && !stats.isEscalating) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+interface SortClustersParams {
+  clusterStatsById: Map<number, ClusterStats>;
+  clusters: ClusterSummary[];
+  disableFilters: boolean;
+  isUsingCustomData: boolean;
+  userId: string;
+  userTeamIds: Set<string>;
+}
+
+function getSortedClusters({
+  clusterStatsById,
+  clusters,
+  disableFilters,
+  isUsingCustomData,
+  userId,
+  userTeamIds,
+}: SortClustersParams): ClusterSummary[] {
+  if (isUsingCustomData && disableFilters) {
+    return clusters;
+  }
+
+  // Sort order: relevance → urgency → fixability → scope → stable source order.
+  const clusterIndex = new Map(
+    clusters.map((cluster, index) => [cluster.cluster_id, index])
+  );
+  const now = Date.now();
+
+  return [...clusters].sort((a, b) => {
+    const aTier = getAssignmentTier(a, userId, userTeamIds);
+    const bTier = getAssignmentTier(b, userId, userTeamIds);
+    if (aTier !== bTier) {
+      return bTier - aTier;
+    }
+
+    const aStats = clusterStatsById.get(a.cluster_id) ?? PENDING_CLUSTER_STATS;
+    const bStats = clusterStatsById.get(b.cluster_id) ?? PENDING_CLUSTER_STATS;
+    const aUrgency = getUrgencyScore(aStats, now);
+    const bUrgency = getUrgencyScore(bStats, now);
+    if (aUrgency !== bUrgency) {
+      return bUrgency - aUrgency;
+    }
+
+    const aFixability = getFixabilityScore(a);
+    const bFixability = getFixabilityScore(b);
+    if (aFixability !== bFixability) {
+      return bFixability - aFixability;
+    }
+
+    const aScope = getScopeScore(a);
+    const bScope = getScopeScore(b);
+    if (aScope !== bScope) {
+      return bScope - aScope;
+    }
+
+    return (clusterIndex.get(a.cluster_id) ?? 0) - (clusterIndex.get(b.cluster_id) ?? 0);
+  });
 }
 
 interface TopIssuesResponse {
@@ -488,11 +735,14 @@ function ClusterCard({
 
 function DynamicGrouping() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const {openDrawer, isDrawerOpen} = useDrawer();
   const user = useUser();
+  const [selectedClusterId, setSelectedClusterId] = useQueryState(
+    'cluster',
+    clusterQueryParser
+  );
   const {teams: userTeams} = useUserTeams();
+  const userTeamIds = useMemo(() => new Set(userTeams.map(team => team.id)), [userTeams]);
   const {selection} = usePageFilters();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
@@ -512,9 +762,12 @@ function DynamicGrouping() {
     []
   );
 
-  const handleDismissCluster = (clusterId: number) => {
-    setDismissedClusterIds(prev => [...prev, clusterId]);
-  };
+  const handleDismissCluster = useCallback(
+    (clusterId: number) => {
+      setDismissedClusterIds(prev => [...prev, clusterId]);
+    },
+    [setDismissedClusterIds]
+  );
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -554,12 +807,11 @@ function DynamicGrouping() {
     [customClusterData, topIssuesResponse?.data]
   );
 
-  const selectedClusterId = decodeInteger(location.query.cluster);
   useEffect(() => {
     const selectedCluster = clusterData.find(
       cluster => cluster.cluster_id === selectedClusterId
     );
-    if (selectedClusterId === undefined || !selectedCluster) {
+    if (selectedClusterId === null || !selectedCluster) {
       return;
     }
 
@@ -567,16 +819,11 @@ function DynamicGrouping() {
       ariaLabel: t('Top issue details'),
       drawerKey: 'top-issues-cluster-drawer',
       onClose: () => {
-        navigate(
-          {
-            query: {...qs.parse(window.location.search), cluster: undefined},
-          },
-          {replace: true, preventScrollReset: true}
-        );
+        void setSelectedClusterId(null, {history: 'replace'});
       },
       shouldCloseOnLocationChange: nextLocation => !nextLocation.query.cluster,
     });
-  }, [clusterData, openDrawer, navigate, isDrawerOpen, selectedClusterId]);
+  }, [clusterData, openDrawer, isDrawerOpen, selectedClusterId, setSelectedClusterId]);
 
   // Extract all unique teams from the cluster data (for dev tools filter UI)
   const teamsInData = useMemo(() => {
@@ -610,68 +857,18 @@ function DynamicGrouping() {
     }
   };
 
-  const filteredAndSortedClusters = useMemo(() => {
-    if (isUsingCustomData && disableFilters) {
-      return clusterData;
-    }
-
-    // Apply project filter and require structured fields
-    const baseFiltered = clusterData.filter(cluster => {
-      // Only show clusters with the required structured fields
-      if (!cluster.error_type || !cluster.impact || !cluster.location) {
-        return false;
-      }
-
-      if (dismissedClusterIds.includes(cluster.cluster_id)) {
-        return false;
-      }
-
-      if (
-        selection.projects.length > 0 &&
-        !selection.projects.includes(ALL_ACCESS_PROJECTS)
-      ) {
-        if (!cluster.project_ids.some(pid => selection.projects.includes(pid))) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    // Find clusters assigned to current user or their teams
-    const assignedToMe = baseFiltered.filter(cluster =>
-      cluster.assignedTo?.some(
-        entity =>
-          (entity.type === 'user' && entity.id === user.id) ||
-          (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
-      )
-    );
-
-    // By default, show only clusters assigned to me if there are enough (>=10)
-    const MIN_CLUSTERS_THRESHOLD = 10;
-    let result =
-      assignedToMe.length >= MIN_CLUSTERS_THRESHOLD ? assignedToMe : baseFiltered;
-
-    // Manual filters override the default
-    if (filterByAssignedToMe) {
-      result = assignedToMe;
-    } else if (isTeamFilterActive) {
-      result = baseFiltered.filter(cluster =>
-        cluster.assignedTo?.some(
-          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
-        )
-      );
-    }
-
-    return result.sort((a, b) => {
-      // Sort clusters with >1 group before clusters with exactly 1 group
-      const aHasMultipleGroups = a.group_ids.length > 1 ? 1 : 0;
-      const bHasMultipleGroups = b.group_ids.length > 1 ? 1 : 0;
-      if (bHasMultipleGroups !== aHasMultipleGroups) {
-        return bHasMultipleGroups - aHasMultipleGroups;
-      }
-      // Within the same category, sort by fixability_score descending
-      return (b.fixability_score ?? 0) - (a.fixability_score ?? 0);
+  const preSortClusters = useMemo(() => {
+    return getPreSortClusters({
+      clusterData,
+      disableFilters,
+      dismissedClusterIds,
+      filterByAssignedToMe,
+      isTeamFilterActive,
+      isUsingCustomData,
+      selectedTeamIds,
+      selectionProjects: selection.projects,
+      userId: user.id,
+      userTeamIds,
     });
   }, [
     clusterData,
@@ -680,29 +877,59 @@ function DynamicGrouping() {
     selection.projects,
     filterByAssignedToMe,
     user.id,
-    userTeams,
+    userTeamIds,
     isTeamFilterActive,
     selectedTeamIds,
     dismissedClusterIds,
   ]);
 
-  const hasMoreClusters = filteredAndSortedClusters.length > visibleClusterCount;
-  const displayedClusters = hasMoreClusters
-    ? filteredAndSortedClusters.slice(0, visibleClusterCount)
-    : filteredAndSortedClusters;
+  const {clusterStatsById} = useClusterStatsMap(preSortClusters);
 
-  const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
-  const remainingClusterCount =
-    filteredAndSortedClusters.length - displayedClusters.length;
+  const sortedClusters = useMemo(() => {
+    const filteredClusters = applyStatusFilters({
+      clusterStatsById,
+      clusters: preSortClusters,
+      disableFilters,
+      filterByEscalating,
+      filterByRegressed,
+      isUsingCustomData,
+    });
 
-  const handleShowMore = () => {
+    return getSortedClusters({
+      clusterStatsById,
+      clusters: filteredClusters,
+      disableFilters,
+      isUsingCustomData,
+      userId: user.id,
+      userTeamIds,
+    });
+  }, [
+    preSortClusters,
+    clusterStatsById,
+    filterByRegressed,
+    filterByEscalating,
+    isUsingCustomData,
+    disableFilters,
+    user.id,
+    userTeamIds,
+  ]);
+
+  const totalIssues = sortedClusters.flatMap(c => c.group_ids).length;
+
+  const handleShowMore = useCallback(() => {
     setVisibleClusterCount(prev => prev + CLUSTERS_PER_PAGE);
-  };
+  }, []);
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
+
+  const hasMoreClusters = sortedClusters.length > visibleClusterCount;
+  const displayedClusters = hasMoreClusters
+    ? sortedClusters.slice(0, visibleClusterCount)
+    : sortedClusters;
+  const remainingClusterCount = sortedClusters.length - displayedClusters.length;
 
   return (
     <PageFiltersContainer>
@@ -811,7 +1038,7 @@ function DynamicGrouping() {
                   {tn(
                     'Viewing %s cluster containing %s issue',
                     'Viewing %s clusters containing %s issues',
-                    filteredAndSortedClusters.length,
+                    sortedClusters.length,
                     totalIssues
                   )}
                   {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
@@ -1105,17 +1332,17 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   ${p => {
     switch (p.color) {
       case 'purple':
-        return `
+        return css`
           background: ${p.theme.tokens.background.transparent.accent.muted};
           color: ${p.theme.tokens.content.accent};
         `;
       case 'yellow':
-        return `
+        return css`
           background: ${p.theme.tokens.background.transparent.warning.muted};
           color: ${p.theme.tokens.content.warning};
         `;
       case 'red':
-        return `
+        return css`
           background: ${p.theme.tokens.background.transparent.danger.muted};
           color: ${p.theme.tokens.content.danger};
         `;

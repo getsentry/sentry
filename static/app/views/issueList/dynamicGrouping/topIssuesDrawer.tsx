@@ -41,7 +41,6 @@ import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {GroupSubstatus} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -55,6 +54,8 @@ import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+
+import {useClusterStats} from './clusterStats';
 
 interface AssignedEntity {
   email: string | null;
@@ -84,118 +85,6 @@ export interface ClusterSummary {
   impact?: string;
   location?: string;
   service_tags?: string[];
-}
-
-interface ClusterStats {
-  firstSeen: string | null;
-  hasRegressedIssues: boolean;
-  isEscalating: boolean;
-  isPending: boolean;
-  lastSeen: string | null;
-  newIssuesCount: number;
-  totalEvents: number;
-  totalUsers: number;
-}
-
-export function useClusterStats(groupIds: number[]): ClusterStats {
-  const organization = useOrganization();
-
-  const {data: groups, isPending} = useApiQuery<Group[]>(
-    [
-      `/organizations/${organization.slug}/issues/`,
-      {
-        query: {
-          group: groupIds,
-          query: `issue.id:[${groupIds.join(',')}]`,
-        },
-      },
-    ],
-    {
-      staleTime: 60000,
-      enabled: groupIds.length > 0,
-    }
-  );
-
-  return useMemo(() => {
-    if (isPending || !groups || groups.length === 0) {
-      return {
-        totalEvents: 0,
-        totalUsers: 0,
-        firstSeen: null,
-        lastSeen: null,
-        newIssuesCount: 0,
-        hasRegressedIssues: false,
-        isEscalating: false,
-        isPending,
-      };
-    }
-
-    let totalEvents = 0;
-    let totalUsers = 0;
-    let earliestFirstSeen: Date | null = null;
-    let latestLastSeen: Date | null = null;
-
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    let newIssuesCount = 0;
-
-    let hasRegressedIssues = false;
-
-    let firstHalfEvents = 0;
-    let secondHalfEvents = 0;
-
-    for (const group of groups) {
-      totalEvents += parseInt(group.count, 10) || 0;
-      totalUsers += group.userCount || 0;
-
-      if (group.firstSeen) {
-        const firstSeenDate = new Date(group.firstSeen);
-        if (!earliestFirstSeen || firstSeenDate < earliestFirstSeen) {
-          earliestFirstSeen = firstSeenDate;
-        }
-        if (firstSeenDate >= oneWeekAgo) {
-          newIssuesCount++;
-        }
-      }
-
-      if (group.lastSeen) {
-        const lastSeenDate = new Date(group.lastSeen);
-        if (!latestLastSeen || lastSeenDate > latestLastSeen) {
-          latestLastSeen = lastSeenDate;
-        }
-      }
-
-      if (group.substatus === GroupSubstatus.REGRESSED) {
-        hasRegressedIssues = true;
-      }
-
-      const stats24h = group.stats?.['24h'];
-      if (stats24h && stats24h.length > 0) {
-        const midpoint = Math.floor(stats24h.length / 2);
-        for (let i = 0; i < stats24h.length; i++) {
-          const eventCount = stats24h[i]?.[1] ?? 0;
-          if (i < midpoint) {
-            firstHalfEvents += eventCount;
-          } else {
-            secondHalfEvents += eventCount;
-          }
-        }
-      }
-    }
-
-    const isEscalating = firstHalfEvents > 0 && secondHalfEvents > firstHalfEvents * 1.5;
-
-    return {
-      totalEvents,
-      totalUsers,
-      firstSeen: earliestFirstSeen?.toISOString() ?? null,
-      lastSeen: latestLastSeen?.toISOString() ?? null,
-      newIssuesCount,
-      hasRegressedIssues,
-      isEscalating,
-      isPending,
-    };
-  }, [groups, isPending]);
 }
 
 function renderWithInlineCode(text: string): React.ReactNode {
