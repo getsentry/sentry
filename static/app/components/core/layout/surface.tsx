@@ -1,34 +1,29 @@
-import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, type ContainerProps} from '@sentry/scraps/layout/container';
+import {
+  Container,
+  type ContainerElement,
+  type ContainerProps,
+} from '@sentry/scraps/layout/container';
 
 import type {SurfaceVariant} from 'sentry/utils/theme';
 
-interface FlatSurfaceProps extends Omit<ContainerProps, 'background' | 'border'> {
+interface FlatSurfaceProps<T extends ContainerElement = 'div'>
+  extends Omit<ContainerProps<T>, 'background' | 'border'> {
   elevation?: never;
   variant?: Exclude<SurfaceVariant, 'overlay'>;
 }
 
-interface OverlaySurfaceProps extends ContainerProps {
-  variant: 'overlay';
+interface OverlaySurfaceProps<T extends ContainerElement = 'div'>
+  extends Omit<ContainerProps<T>, 'background' | 'border'> {
+  variant: Extract<SurfaceVariant, 'overlay'>;
   elevation?: 'low' | 'high';
 }
 
-type SurfaceProps = FlatSurfaceProps | OverlaySurfaceProps;
-const omitSurfaceProps = new Set(['variant', 'elevation']);
-
-const StyledSurface = styled(Container, {
-  shouldForwardProp: prop => {
-    if (omitSurfaceProps.has(prop)) {
-      return false;
-    }
-    return isPropValid(prop);
-  },
-})<SurfaceProps>`
-  box-shadow: ${p => getShadow(p, p.theme)};
-`;
+type SurfaceProps<T extends ContainerElement = 'div'> =
+  | FlatSurfaceProps<T>
+  | OverlaySurfaceProps<T>;
 
 /**
  * Surface is a layout primitive that provides background colors and optional elevation
@@ -54,38 +49,21 @@ const StyledSurface = styled(Container, {
  * // Elevated overlay with high elevation
  * <Surface variant="overlay" elevation="high">Modal content</Surface>
  *
- * // With responsive radius
- * <Surface variant="secondary" radius={{xs: 'sm', md: 'lg'}}>Content</Surface>
  */
-export function Surface(props: SurfaceProps) {
-  const {variant, elevation, radius, ...rest} = props;
-
+export const Surface = styled((props: SurfaceProps<any>) => {
+  const {variant, ...rest} = props;
   if (variant === 'overlay') {
-    return (
-      <StyledSurface
-        variant={variant}
-        elevation={elevation}
-        display="block"
-        background="overlay"
-        border="primary"
-        radius={radius ?? 'md'}
-        {...rest}
-      />
-    );
+    return <Container border="primary" radius={props.radius ?? 'md'} {...rest} />;
   }
+  return <Container radius={props.radius} {...props} />;
+})<SurfaceProps<any>>`
+  background: ${p => (p.variant ? p.theme.tokens.background[p.variant] : undefined)};
+  box-shadow: ${p => getShadow(p, p.theme)};
+` as unknown as <T extends ContainerElement = 'div'>(
+  props: SurfaceProps<T>
+) => React.ReactElement;
 
-  return (
-    <StyledSurface
-      variant={variant}
-      display="block"
-      background={variant}
-      radius={radius}
-      {...rest}
-    />
-  );
-}
-
-function getShadow(props: SurfaceProps, theme: Theme) {
+function getShadow(props: SurfaceProps<any>, theme: Theme) {
   if (props.variant === 'overlay') {
     // TODO(design-eng): use shadow tokens
     switch (props.elevation) {
