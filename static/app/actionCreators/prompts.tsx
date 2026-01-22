@@ -26,7 +26,9 @@ type PromptsUpdateParams = {
  * Update the status of a prompt
  */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
-  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
+    path: {organizationIdOrSlug: params.organization.slug},
+  });
   return api.requestPromise(url, {
     method: 'PUT',
     data: {
@@ -43,10 +45,16 @@ type PromptCheckParams = {
    * The prompt feature name
    */
   feature: string | string[];
-  organization: OrganizationSummary | null;
+  organization: OrganizationSummary;
   /**
    * The numeric project ID as a string
    */
+  projectId?: string;
+};
+
+type PromptCheckHookParams = {
+  feature: string | string[];
+  organization: OrganizationSummary | null;
   projectId?: string;
 };
 
@@ -91,10 +99,9 @@ export async function promptsCheck(
 ): Promise<PromptData> {
   const query = {
     feature: params.feature,
-    organization_id: params.organization?.id,
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
-  const url = `/organizations/${params.organization?.slug}/prompts-activity/`;
+  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
   const response: PromptResponse = await api.requestPromise(url, {
     query,
   });
@@ -113,19 +120,13 @@ export const makePromptsCheckQueryKey = ({
   feature,
   organization,
   projectId,
-}: PromptCheckParams): ApiQueryKey => {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
-      path: {
-        organizationIdOrSlug: organization?.slug!,
-      },
-    }),
-    {query: {feature, organization_id: organization?.id, project_id: projectId}},
-  ];
+}: PromptCheckHookParams): ApiQueryKey => {
+  const url = `/organizations/${organization?.slug}/prompts-activity/`;
+  return [url, {query: {feature, project_id: projectId}}];
 };
 
 export function usePromptsCheck(
-  {feature, organization, projectId}: PromptCheckParams,
+  {feature, organization, projectId}: PromptCheckHookParams,
   {enabled = true, ...options}: Partial<UseApiQueryOptions<PromptResponse>> = {}
 ) {
   return useApiQuery<PromptResponse>(
@@ -426,7 +427,6 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
 ): Promise<Record<T[number], PromptData>> {
   const query = {
     feature: features,
-    organization_id: params.organization.id,
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
   const url = `/organizations/${params.organization.slug}/prompts-activity/`;

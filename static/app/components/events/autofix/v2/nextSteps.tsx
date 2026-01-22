@@ -1,10 +1,11 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Container} from '@sentry/scraps/layout/container';
 import {Flex} from '@sentry/scraps/layout/flex';
 
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Text} from 'sentry/components/core/text';
@@ -42,6 +43,10 @@ interface ExplorerNextStepsProps {
    * Whether there are coding agents already launched.
    */
   hasCodingAgents?: boolean;
+  /**
+   * Whether the chat panel is already open with this run.
+   */
+  isChatAlreadyOpen?: boolean;
   /**
    * Whether an action is currently loading.
    */
@@ -116,7 +121,8 @@ function StepButton({
   isBusy: boolean;
   onStepClick: () => void;
   step: AutofixExplorerStep;
-  codingAgentIntegrations?: Array<{id: string; name: string; provider: string}>;
+  // TODO(autofix): Handle GitHub Copilot in explore autofix
+  codingAgentIntegrations?: Array<{id: string | null; name: string; provider: string}>;
   isLoading?: boolean;
   onCodingAgentHandoff?: (integrationId: number) => void;
 }) {
@@ -136,17 +142,19 @@ function StepButton({
     );
   }
 
-  // Build dropdown items for coding agent integrations
-  const dropdownItems = codingAgentIntegrations.map(integration => ({
-    key: `agent:${integration.id}`,
-    label: (
-      <Flex gap="md" align="center">
-        <PluginIcon pluginId="cursor" size={16} />
-        <span>{t('Send to %s', integration.name)}</span>
-      </Flex>
-    ),
-    onAction: () => onCodingAgentHandoff?.(parseInt(integration.id, 10)),
-  }));
+  // Build dropdown items for coding agent integrations (filter out those without IDs for now)
+  const dropdownItems = codingAgentIntegrations
+    .filter(integration => integration.id !== null)
+    .map(integration => ({
+      key: `agent:${integration.id}`,
+      label: (
+        <Flex gap="md" align="center">
+          <PluginIcon pluginId="cursor" size={16} />
+          <span>{t('Send to %s', integration.name)}</span>
+        </Flex>
+      ),
+      onAction: () => onCodingAgentHandoff?.(parseInt(integration.id!, 10)),
+    }));
 
   return (
     <ButtonBar merged gap="0">
@@ -184,6 +192,7 @@ export function ExplorerNextSteps({
   artifacts,
   hasCodeChanges,
   hasCodingAgents = false,
+  isChatAlreadyOpen = false,
   onStartStep,
   onCodingAgentHandoff,
   onOpenChat,
@@ -198,23 +207,29 @@ export function ExplorerNextSteps({
     hasCodingAgents
   );
   const [busyStep, setBusyStep] = useState<AutofixExplorerStep | null>(null);
+  const loadingIndicatorRef = useRef<ReturnType<typeof addLoadingMessage> | null>(null);
 
-  // Clear busy state when loading starts (step is triggered)
+  // Clear busy state and loading indicator when loading starts (step is triggered)
   useEffect(() => {
     if (isLoading && busyStep) {
       setBusyStep(null);
+      clearIndicators();
+      loadingIndicatorRef.current = null;
     }
   }, [isLoading, busyStep]);
 
-  // Clear busy state when the specific artifact for the busy step appears
+  // Clear busy state and loading indicator when the specific artifact for the busy step appears
   useEffect(() => {
     if (busyStep && busyStep in artifacts) {
       setBusyStep(null);
+      clearIndicators();
+      loadingIndicatorRef.current = null;
     }
   }, [artifacts, busyStep]);
 
   const handleStepClick = (step: AutofixExplorerStep) => {
     setBusyStep(step);
+    loadingIndicatorRef.current = addLoadingMessage(t('Starting...'));
     onStartStep(step);
   };
 
@@ -252,6 +267,7 @@ export function ExplorerNextSteps({
                   onClick={onOpenChat}
                   priority="primary"
                   icon={<IconChat />}
+                  disabled={isChatAlreadyOpen}
                 >
                   {t('Open Chat')}
                 </Button>
@@ -268,6 +284,7 @@ export function ExplorerNextSteps({
                   onClick={onOpenChat}
                   priority="primary"
                   icon={<IconChat />}
+                  disabled={isChatAlreadyOpen}
                 >
                   {t('Open Chat')}
                 </Button>

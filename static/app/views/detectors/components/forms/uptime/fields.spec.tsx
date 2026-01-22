@@ -263,7 +263,7 @@ describe('uptimeSavedDetectorToFormData', () => {
     expect(formData).toMatchObject({
       intervalSeconds: 60,
       method: 'GET',
-      timeoutMs: 10000,
+      timeoutMs: 5000,
       traceSampling: false,
       url: 'https://example.com',
       headers: [],

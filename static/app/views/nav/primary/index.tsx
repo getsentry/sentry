@@ -34,7 +34,11 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-import {PREVENT_AI_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
+import {
+  PREVENT_AI_BASE_URL,
+  PREVENT_BASE_URL,
+  TESTS_BASE_URL,
+} from 'sentry/views/prevent/settings';
 
 function SidebarBody({
   children,
@@ -159,15 +163,27 @@ export function PrimaryNavigationItems() {
         <Feature features={['prevent-ai']}>
           {showPreventNav(organization) ? (
             <Container position="relative" height="100%">
-              <SidebarLink
-                to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-                activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
-                analyticsKey="prevent"
-                group={PrimaryNavGroup.PREVENT}
-                {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-              >
-                <IconPrevent />
-              </SidebarLink>
+              {showNewSeer(organization) ? (
+                <SidebarLink
+                  to={`/${prefix}/${PREVENT_BASE_URL}/${TESTS_BASE_URL}/`}
+                  activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                  analyticsKey="prevent"
+                  group={PrimaryNavGroup.PREVENT}
+                  {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+                >
+                  <IconPrevent />
+                </SidebarLink>
+              ) : (
+                <SidebarLink
+                  to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
+                  activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                  analyticsKey="prevent"
+                  group={PrimaryNavGroup.PREVENT}
+                  {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+                >
+                  <IconPrevent />
+                </SidebarLink>
+              )}
               <BetaBadge type="beta" />
             </Container>
           ) : null}
@@ -235,7 +251,7 @@ const BetaBadge = styled(FeatureBadge)`
   pointer-events: none;
   top: -2px;
   right: 2px;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};
   height: 16px;
 `;
