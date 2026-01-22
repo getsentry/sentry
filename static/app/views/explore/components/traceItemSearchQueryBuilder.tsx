@@ -48,15 +48,17 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
 };
 
 const typeMap: Partial<
-  Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric' | 'replay'>
+  Record<
+    TraceItemDataset,
+    'span' | 'log' | 'uptime' | 'tracemetric' | 'replay' | 'preprod'
+  >
 > = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
   [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
   [TraceItemDataset.REPLAYS]: 'replay',
-  // PREPROD uses 'span' type for field definitions since both have dynamic tags from the backend
-  [TraceItemDataset.PREPROD]: 'span',
+  [TraceItemDataset.PREPROD]: 'preprod',
 };
 
 function getTraceItemFieldDefinitionFunction(
