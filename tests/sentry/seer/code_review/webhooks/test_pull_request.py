@@ -7,7 +7,7 @@ import pytest
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.seer.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
+from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 

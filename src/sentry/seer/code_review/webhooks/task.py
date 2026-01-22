@@ -10,8 +10,8 @@ from urllib3.exceptions import HTTPError
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.seer.code_review.models import SeerCodeReviewTaskRequest
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
-from sentry.seer.models import SeerCodeReviewTaskRequest
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks

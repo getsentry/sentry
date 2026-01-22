@@ -13,7 +13,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
-from sentry.seer.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
+from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 

@@ -6,8 +6,8 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.code_review.models import SeerCodeReviewTrigger
 from sentry.seer.code_review.utils import (
-    SeerCodeReviewTrigger,
     _get_target_commit_sha,
     _get_trigger_metadata,
     transform_webhook_to_codegen_request,
