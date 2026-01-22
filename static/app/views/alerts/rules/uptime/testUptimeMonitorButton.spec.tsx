@@ -4,6 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUptimeMonitorButton';
+import {PreviewCheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 
 describe('TestUptimeMonitorButton', () => {
   const organization = OrganizationFixture();
@@ -42,7 +43,7 @@ describe('TestUptimeMonitorButton', () => {
     const mockPreview = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
-      body: {check_result: {status: 'success'}},
+      body: {check_result: {status: PreviewCheckStatus.SUCCESS}},
     });
 
     render(
@@ -84,7 +85,7 @@ describe('TestUptimeMonitorButton', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
-      body: {check_result: {status: 'success'}},
+      body: {check_result: {status: PreviewCheckStatus.SUCCESS}},
     });
 
     render(
@@ -143,7 +144,7 @@ describe('TestUptimeMonitorButton', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
-      body: {check_result: {status: 'failure'}},
+      body: {check_result: {status: PreviewCheckStatus.FAILURE}},
     });
 
     render(
@@ -172,7 +173,7 @@ describe('TestUptimeMonitorButton', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
-      body: {check_result: {status: 'success'}},
+      body: {check_result: {status: PreviewCheckStatus.SUCCESS}},
     });
 
     render(
