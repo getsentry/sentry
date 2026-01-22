@@ -1508,14 +1508,15 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
-        # Add response data to the result via request_info_list
+        request_info = result["request_info"]
+        assert request_info is not None
         result["request_info_list"] = [
             {
-                **result["request_info"],
+                **request_info,
                 "response_body": base64.b64encode(response_body).decode("utf-8"),
                 "response_headers": [
-                    ("Content-Type", "text/html"),
-                    ("X-Custom-Header", "value"),
+                    ["Content-Type", "text/html"],
+                    ["X-Custom-Header", "value"],
                 ],
             }
         ]
@@ -1537,7 +1538,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 sample_rate=1.0,
             )
 
-        # Verify capture was created
         captures = UptimeResponseCapture.objects.filter(uptime_subscription_id=self.subscription.id)
         assert captures.count() == 1
 
@@ -1545,7 +1545,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert capture is not None
         assert capture.scheduled_check_time_ms == result["scheduled_check_time_ms"]
 
-        # Verify file contents (headers + separator + body)
         file = File.objects.get(id=capture.file_id)
         file_content = file.getfile().read()
         assert b"Content-Type: text/html" in file_content
@@ -1561,15 +1560,15 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
-        # Set request_info_list with no response body
-        result["request_info_list"] = [{**result["request_info"], "response_body": None}]
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [{**request_info, "response_body": None}]
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             self.feature("organizations:uptime"),
         ):
             self.send_result(result)
-            # Should NOT have the created metric
             for call_args in metrics.incr.call_args_list:
                 assert call_args[0][0] != "uptime.response_capture.created"
 
@@ -1589,7 +1588,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
 
-        # Start with capture enabled
         assert self.subscription.capture_response_on_failure is True
 
         with (
@@ -1599,7 +1597,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             self.send_result(result)
 
-        # Capture should be disabled after failure
         self.subscription.refresh_from_db()
         assert self.subscription.capture_response_on_failure is False
 
@@ -1607,7 +1604,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
         Test that response capture is re-enabled on success.
         """
-        # Disable capture initially
         self.subscription.update(capture_response_on_failure=False)
 
         result = self.create_uptime_result(
@@ -1623,7 +1619,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             self.send_result(result)
 
-        # Capture should be re-enabled
         self.subscription.refresh_from_db()
         assert self.subscription.capture_response_on_failure is True
 

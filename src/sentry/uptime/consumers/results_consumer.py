@@ -123,7 +123,11 @@ def create_uptime_response_capture(
         logger.exception("Failed to decode response body")
         return None
 
-    response_headers = request_info.get("response_headers")
+    raw_headers = request_info.get("response_headers")
+    # Convert list[list[Any]] from kafka schema to list[tuple[str, str]]
+    response_headers: list[tuple[str, str]] | None = (
+        [(str(h[0]), str(h[1])) for h in raw_headers] if raw_headers else None
+    )
     response_content = format_response_for_storage(
         headers=response_headers,
         body=response_body,
@@ -497,14 +501,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             # Strip response body and headers to save Redis memory.
             # Safe because we've already stored these in UptimeResponseCapture before queuing.
             result_for_queue = dict(result)
-            if result_for_queue.get("request_info_list"):
+            request_info_list = result.get("request_info_list")
+            if request_info_list:
                 result_for_queue["request_info_list"] = [
                     {
                         k: v
                         for k, v in info.items()
                         if k not in ("response_body", "response_headers")
                     }
-                    for info in result_for_queue["request_info_list"]
+                    for info in request_info_list
                 ]
             result_json = json.dumps(result_for_queue)
             pipeline = cluster.pipeline()
