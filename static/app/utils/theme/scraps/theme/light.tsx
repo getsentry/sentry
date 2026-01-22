@@ -1872,9 +1872,9 @@ const syntax = {
 };
 
 const shadow = {
-  low: `0px ${size.elevation.sm} 0px 0px ${elevation.low}`,
-  medium: `0px ${size.elevation.md} 0px 1px ${elevation.high}, 0px ${size.elevation.sm} 0px 0px ${elevation.high}`,
-  high: `0px ${size.elevation.lg} 0px 2px ${elevation.high}, 0px ${size.elevation.sm} 0px 1px ${elevation.high}`,
+  low: `0px ${baseTheme.elevation.sm} 0px 0px ${elevation.low}`,
+  medium: `0px ${baseTheme.elevation.md} 0px 1px ${elevation.high}, 0px ${baseTheme.elevation.sm} 0px 0px ${elevation.high}`,
+  high: `0px ${baseTheme.elevation.lg} 0px 2px ${elevation.high}, 0px ${baseTheme.elevation.sm} 0px 1px ${elevation.high}`,
 };
 
 export const lightTheme = {
