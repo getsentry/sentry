@@ -10,9 +10,10 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Container, Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
+import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
@@ -153,9 +154,19 @@ function createOpenPeriodMarkerData({
 }
 
 type UseMetricDetectorChartResult =
-  | {chartProps: AreaChartProps; error: null; isLoading: false}
-  | {chartProps: null; error: null; isLoading: true}
-  | {chartProps: null; error: RequestError; isLoading: false};
+  | {
+      chartProps: AreaChartProps;
+      error: null;
+      isAnomalyThresholdCutOff: boolean;
+      isLoading: false;
+    }
+  | {chartProps: null; error: null; isAnomalyThresholdCutOff: false; isLoading: true}
+  | {
+      chartProps: null;
+      error: RequestError;
+      isAnomalyThresholdCutOff: false;
+      isLoading: false;
+    };
 
 export function useMetricDetectorChart({
   statsPeriod,
@@ -256,6 +267,28 @@ export function useMetricDetectorChart({
     thresholdMaxValue,
     aggregate,
   });
+
+  // Check if any anomaly threshold values exceed the chart bounds
+  // Only check against maxValue when it's used (maxValue > 0), otherwise chart auto-scales
+  const isAnomalyThresholdCutOff = useMemo(() => {
+    if (filteredAnomalyThresholdSeries.length === 0) {
+      return false;
+    }
+
+    for (const seriesItem of filteredAnomalyThresholdSeries) {
+      const data = (seriesItem as {data?: Array<[number, number]>}).data;
+      if (!data) {
+        continue;
+      }
+      for (const [, value] of data) {
+        const exceedsMax = maxValue > 0 && value > maxValue;
+        if (exceedsMax || value < minValue) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }, [filteredAnomalyThresholdSeries, maxValue, minValue]);
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
@@ -378,6 +411,7 @@ export function useMetricDetectorChart({
     return {
       chartProps,
       error: null,
+      isAnomalyThresholdCutOff,
       isLoading: false,
     };
   }
@@ -386,6 +420,7 @@ export function useMetricDetectorChart({
     return {
       chartProps: null,
       error,
+      isAnomalyThresholdCutOff: false,
       isLoading: false,
     };
   }
@@ -393,6 +428,7 @@ export function useMetricDetectorChart({
   return {
     isLoading: true,
     error: null,
+    isAnomalyThresholdCutOff: false,
     chartProps: null,
   };
 }
@@ -467,9 +503,25 @@ function ChartBody({children}: {children: React.ReactNode}) {
   return <Container padding="lg">{children}</Container>;
 }
 
-function ChartFooter({detector}: {detector: MetricDetector}) {
+function ChartFooter({
+  detector,
+  isAnomalyThresholdCutOff,
+}: {
+  detector: MetricDetector;
+  isAnomalyThresholdCutOff?: boolean;
+}) {
   return (
-    <Flex justify="end" padding="lg" borderTop="muted">
+    <Flex justify="between" align="center" padding="lg" borderTop="muted">
+      {isAnomalyThresholdCutOff ? (
+        <Flex align="center" gap="xs">
+          <IconInfo size="xs" variant="muted" />
+          <Text size="sm" variant="muted">
+            {t('Some anomaly thresholds are outside the chart area')}
+          </Text>
+        </Flex>
+      ) : (
+        <div />
+      )}
       <OpenInButton detector={detector} />
     </Flex>
   );
@@ -498,12 +550,14 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     ...dateParams,
   });
 
-  const {chartProps, isLoading, error} = useMetricDetectorChart({
-    detector,
-    openPeriods,
-    height: CHART_HEIGHT,
-    ...dateParams,
-  });
+  const {chartProps, isLoading, error, isAnomalyThresholdCutOff} = useMetricDetectorChart(
+    {
+      detector,
+      openPeriods,
+      height: CHART_HEIGHT,
+      ...dateParams,
+    }
+  );
 
   if (isLoading) {
     return (
@@ -545,7 +599,12 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
       <ChartBody>
         <AreaChart {...chartProps} />
       </ChartBody>
-      {destination && <ChartFooter detector={detector} />}
+      {destination && (
+        <ChartFooter
+          detector={detector}
+          isAnomalyThresholdCutOff={isAnomalyThresholdCutOff}
+        />
+      )}
     </ChartContainer>
   );
 }
