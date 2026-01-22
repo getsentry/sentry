@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -120,7 +120,7 @@ function MetricsTabBodySection() {
   return (
     <ExploreBodyContent>
       <ExploreContentSection>
-        <Flex direction="column">
+        <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
               return (
@@ -137,7 +137,7 @@ function MetricsTabBodySection() {
               );
             })}
           </WidgetSyncContextProvider>
-        </Flex>
+        </Stack>
       </ExploreContentSection>
     </ExploreBodyContent>
   );
