@@ -1123,9 +1123,9 @@ def test_dual_write_content_matches(compression_level) -> None:
         assert span_ids == {"a" * 16, "b" * 16, "c" * 16}
 
 
-@mock.patch("sentry.spans.buffer.metrics.timing")
-def test_dual_write_emits_set_metrics(mock_timing) -> None:
-    """Test that SET-specific metrics are emitted in dual write mode."""
+@mock.patch("sentry.spans.buffer.emit_observability_metrics")
+def test_dual_write_emits_set_metrics(emit_observability_metrics: mock.MagicMock) -> None:
+    """Test that SET-specific metrics are emitted separately in dual write mode."""
     opts = {
         **DEFAULT_OPTIONS,
         "spans.buffer.write-to-zset": True,
@@ -1159,20 +1159,18 @@ def test_dual_write_emits_set_metrics(mock_timing) -> None:
 
         process_spans(spans, buffer, now=0)
 
-        zset_latency_calls = [
-            call
-            for call in mock_timing.call_args_list
-            if call.args
-            and call.args[0] == "spans.buffer.process_spans.evalsha_latency_ms"
-            and call.kwargs.get("tags", {}).get("storage_type") == "zset"
-        ]
-        set_latency_calls = [
-            call
-            for call in mock_timing.call_args_list
-            if call.args
-            and call.args[0] == "spans.buffer.process_spans.evalsha_latency_ms"
-            and call.kwargs.get("tags", {}).get("storage_type") == "set"
-        ]
+        assert emit_observability_metrics.call_count == 2
 
-        assert len(zset_latency_calls) > 0
-        assert len(set_latency_calls) > 0
+        zset_call = emit_observability_metrics.call_args_list[0]
+        zset_latency_metrics = zset_call.args[0]
+        assert len(zset_latency_metrics) > 0
+        for metric_list in zset_latency_metrics:
+            for metric_name, _ in metric_list:
+                assert not metric_name.decode("utf-8").startswith("set_")
+
+        set_call = emit_observability_metrics.call_args_list[1]
+        set_latency_metrics = set_call.args[0]
+        assert len(set_latency_metrics) > 0
+        for metric_list in set_latency_metrics:
+            for metric_name, _ in metric_list:
+                assert metric_name.decode("utf-8").startswith("set_")
