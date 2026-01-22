@@ -19,7 +19,7 @@ export const InspectorMargin = styled('div')`
 
 const NotFoundText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const WarningText = styled('span')`
@@ -84,20 +84,20 @@ const SectionTitle = styled('dt')``;
 const SectionTitleExtra = styled('span')`
   flex-grow: 1;
   text-align: right;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const SectionData = styled('dd')`
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const ToggleButton = styled('button')`
   background: ${p => p.theme.tokens.background.primary};
   border: 0;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  line-height: ${p => p.theme.text.lineHeightBody};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 
   width: 100%;
   display: flex;
@@ -143,14 +143,14 @@ export function SectionItem({
 
 const StyledKeyValueTable = styled(KeyValueTable)`
   & > dt {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     padding-left: ${space(4)};
   }
   & > dd {
     width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     display: flex;
     justify-content: flex-end;
     white-space: normal;

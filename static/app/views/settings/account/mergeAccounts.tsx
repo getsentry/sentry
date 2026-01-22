@@ -354,11 +354,11 @@ const UserPanelItem = styled(PanelItem)`
 
 const Name = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const UserPanelHeader = styled(PanelHeader)`
@@ -368,7 +368,7 @@ const UserPanelHeader = styled(PanelHeader)`
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   line-height: 1.3;
 `;
 

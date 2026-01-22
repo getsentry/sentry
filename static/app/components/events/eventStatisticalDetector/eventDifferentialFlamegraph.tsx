@@ -455,7 +455,7 @@ const DifferentialFlamegraphChangedFunctionStats = styled('div')`
 
 const DifferentialFlamegraphFunctionSecondaryStats = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const DifferentialFlamegraphChangedFunctionNameLink = styled(Link)`
@@ -515,7 +515,7 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   justify-content: space-between;
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.secondary};
@@ -592,13 +592,13 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
 }
 
 const DifferentialFlamegraphChangedFunctionsTitleText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   flex: 1;
 `;
 
 const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

@@ -168,7 +168,7 @@ const GroupExtra = styled('div')`
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
   line-height: 1.2;
   min-height: ${space(2)};
@@ -227,7 +227,7 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
 `;
 
 const Location = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   min-width: 10px;
   line-height: 1.1;

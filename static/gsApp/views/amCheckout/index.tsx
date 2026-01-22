@@ -871,7 +871,7 @@ const CheckoutHeader = styled('header')`
 `;
 
 const OrgSlug = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   text-wrap: nowrap;

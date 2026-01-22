@@ -67,6 +67,6 @@ const Value = styled(Label)`
   word-break: break-all;
   color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
 `;

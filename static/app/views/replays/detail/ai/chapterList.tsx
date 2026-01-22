@@ -334,7 +334,7 @@ const Chapter = styled('summary')`
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   padding: 0 ${space(0.75)};
   color: ${p => p.theme.tokens.content.primary};
 
@@ -382,11 +382,11 @@ const ChapterTitle = styled('div')`
   grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1)} 0;
 
   .activeChapter & {
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -401,8 +401,8 @@ const ReplayTimestamp = styled('span')`
   display: flex;
   gap: ${space(0.5)};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   justify-content: flex-end;
 `;
 

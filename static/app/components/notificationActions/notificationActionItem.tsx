@@ -376,7 +376,7 @@ const StyledCard = styled(Card)<{isEditing: boolean}>`
 
 const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.radius.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 export default NotificationActionItem;

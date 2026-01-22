@@ -181,7 +181,7 @@ const TeamsBlackText = styled(Text)`
 
 const TeamsLinkButton = styled('a')`
   display: block;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   font-weight: bold;
   border-radius: 4px;
   padding: ${p => `${p.theme.space.sm} ${p.theme.space.xl}`};

@@ -195,7 +195,7 @@ const IconContainer = styled('div')`
 
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
   margin: -${space(0.5)} -${space(0.5)};

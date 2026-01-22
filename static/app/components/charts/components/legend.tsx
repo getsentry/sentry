@@ -39,7 +39,7 @@ export default function Legend(
         color: theme.tokens.content.primary,
         verticalAlign: 'top',
         fontSize: 11,
-        fontFamily: theme.text.family,
+        fontFamily: theme.font.family.sans,
         lineHeight: 14,
       },
       inactiveColor: theme.tokens.content.secondary,

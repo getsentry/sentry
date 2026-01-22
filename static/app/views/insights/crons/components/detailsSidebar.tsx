@@ -189,7 +189,7 @@ const Legend = styled('div')`
 `;
 
 const CrontabText = styled(Text)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

@@ -197,7 +197,7 @@ const StyledIcon = styled('div')`
 
 const SectionTitle = styled('h6')`
   color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   text-transform: uppercase;
   margin: 0;
@@ -205,12 +205,12 @@ const SectionTitle = styled('h6')`
 
 const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
   margin-bottom: ${space(3)};
 
   code {
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     padding: ${space(0.25)} ${space(0.5)};
     background: ${p => p.theme.tokens.background.secondary};
     border-radius: ${p => p.theme.radius.md};

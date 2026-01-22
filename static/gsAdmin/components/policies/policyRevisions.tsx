@@ -82,7 +82,7 @@ const CurrentTag = styled(Tag)`
 
 const FileName = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default PolicyRevisions;

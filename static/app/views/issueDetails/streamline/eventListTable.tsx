@@ -146,14 +146,14 @@ export const Header = styled('div')`
 
 export const Title = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 export const HeaderItem = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StreamlineGridEditable = styled('div')`
@@ -167,7 +167,7 @@ const StreamlineGridEditable = styled('div')`
 
   ${GridHead} {
     min-height: unset;
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     ${GridResizer} {
       height: 36px;
     }
@@ -202,7 +202,7 @@ const StreamlineGridEditable = styled('div')`
   ${GridBodyCell} {
     min-height: unset;
     padding: ${space(1)} ${space(1.5)};
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -225,7 +225,7 @@ const StreamlineGridEditable = styled('div')`
 
 export const PaginationButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 export function PaginationText({

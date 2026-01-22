@@ -515,7 +515,7 @@ const InfoDisplay = styled('div')`
 
   pre {
     margin: 0;
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     font-size: 12px;
     line-height: 1.4;
     color: ${p => p.theme.tokens.content.primary};

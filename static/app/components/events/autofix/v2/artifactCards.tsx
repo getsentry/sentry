@@ -891,8 +891,8 @@ const CodingAgentStatusTag = styled('span')<{
   align-items: center;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   background-color: ${p => {
     switch (p.$status) {
       case 'completed':
@@ -983,7 +983,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
 const TreeValue = styled('div')`
   padding: ${p => p.theme.space['2xs']} 0;
   align-self: start;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
   grid-column: span 1;
   color: ${p => p.theme.tokens.content.primary};
@@ -994,7 +994,7 @@ const TreeKey = styled(TreeValue)`
 `;
 
 const ImpactTreeKey = styled(TreeKey)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TreeSubValue = styled(TreeValue)`
@@ -1022,7 +1022,7 @@ const AnimatedCard = styled(motion.div)`
 `;
 
 const NonBoldTitle = styled(Text)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-top: ${p => p.theme.space.xs};
 `;
 

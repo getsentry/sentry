@@ -27,7 +27,7 @@ export const HeaderTitleLegend = styled(_HeaderTitleLegend)`
 
 export const Subtitle = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: inline-block;
 `;
 
@@ -54,11 +54,11 @@ export const Accordion = styled('ul')`
 export const AccordionItem = styled('li')`
   display: grid;
   grid-template-columns: auto auto 1fr auto auto;
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
   align-items: center;
   gap: ${space(1)};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(0.5)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   min-height: 35px;
 `;

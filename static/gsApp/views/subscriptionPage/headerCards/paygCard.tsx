@@ -263,7 +263,7 @@ const Currency = styled('div')`
     padding: 9px ${p => p.theme.space.xl} ${p => p.theme.space.md};
     content: '$';
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     font-weight: bold;
   }
 `;

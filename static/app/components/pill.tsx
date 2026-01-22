@@ -77,7 +77,7 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
       return css`
         background: ${theme.colors.green100};
         border: 1px solid ${theme.colors.green400};
-        font-family: ${theme.text.familyMono};
+        font-family: ${theme.font.family.mono};
         margin: -1px;
       `;
     case 'error':
@@ -90,13 +90,13 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
       return css`
         background: ${theme.colors.red100};
         border: 1px solid ${theme.colors.red400};
-        font-family: ${theme.text.familyMono};
+        font-family: ${theme.font.family.mono};
         margin: -1px;
       `;
     default:
       return css`
         background: ${theme.tokens.background.secondary};
-        font-family: ${theme.text.familyMono};
+        font-family: ${theme.font.family.mono};
       `;
   }
 };

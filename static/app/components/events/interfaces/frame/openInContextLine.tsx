@@ -67,7 +67,7 @@ const OpenInContainer = styled('div')`
   gap: ${space(1)};
   align-items: center;
   z-index: 1;
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
   text-indent: initial;
   overflow: auto;
   white-space: nowrap;

@@ -344,7 +344,7 @@ export function DebugImageDetails({
 const Content = styled('div')`
   display: grid;
   gap: ${space(3)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Title = styled('div')`
@@ -352,13 +352,13 @@ const Title = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   max-width: calc(100% - 40px);
   word-break: break-all;
 `;
 
 const FileName = styled('span')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

@@ -224,7 +224,7 @@ export function ProfilePreview({
 }
 
 const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.5;
   margin-bottom: ${space(2)};
 `;
@@ -310,7 +310,7 @@ const LegendItem = styled('span')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const LegendMarker = styled('span')<{color: string}>`

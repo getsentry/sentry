@@ -124,19 +124,19 @@ const UpsellContent = styled('div')`
   padding-top: 190px;
   margin-inline: -45px;
   padding-inline: 45px;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Subheader = styled('h2')`
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-weight: bold;
   margin-bottom: ${space(1.5)};
   text-transform: uppercase;
 `;
 
 const Header = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin: ${space(1.5)} 0;
 `;
@@ -151,17 +151,17 @@ const CTAPanel = styled('div')`
 `;
 
 const CTAPrimary = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   font-weight: bold;
 `;
 const CTASecondary = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Note = styled('p')`
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   margin-block: ${space(4)};
 `;
 

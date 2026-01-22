@@ -228,7 +228,7 @@ const OpenPeriodBar = styled('div')`
 `;
 
 const OpenPeriodLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -238,7 +238,7 @@ const OpenPeriodLabel = styled('div')`
 const OpenPeriodCountLabel = styled('div')`
   position: absolute;
   top: 108px;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
   transform: translateX(-50%);
@@ -257,5 +257,5 @@ const StyledContainer = styled(Container)`
 
 const ErrorContainer = styled(Container)`
   transform: translate(-50%, -50%);
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;

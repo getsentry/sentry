@@ -1032,7 +1032,7 @@ const CardHeader = styled('div')`
 
 const ClusterTitleLink = styled(Link)`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: 600;
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
@@ -1058,7 +1058,7 @@ const ClusterStats = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   gap: ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -1066,7 +1066,7 @@ const TimeStats = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -1083,7 +1083,7 @@ const ProjectAvatars = styled('div')`
 `;
 
 const MoreProjectsCount = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.25)};
 `;
@@ -1100,7 +1100,7 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   gap: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 
   ${p => {
     switch (p.color) {
@@ -1172,7 +1172,7 @@ const TagsContainer = styled('div')`
 const TagPill = styled('span')`
   display: inline-block;
   padding: ${space(0.25)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -1183,7 +1183,7 @@ const InfoRow = styled('div')`
   display: flex;
   align-items: baseline;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const InfoLabel = styled('span')`
@@ -1199,7 +1199,7 @@ const InfoValue = styled('span')`
 `;
 
 const FilterLabel = styled('span')<{disabled?: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p =>
     p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
 `;
@@ -1213,7 +1213,7 @@ const ShowMoreButton = styled('button')`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -1247,7 +1247,7 @@ const CustomDataBadge = styled('div')`
 `;
 
 const LastUpdatedText = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;

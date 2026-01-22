@@ -690,9 +690,9 @@ export default function ProjectSeerContainer() {
 }
 
 const Subheading = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
   margin-top: ${space(1)};
   line-height: 1.4;

@@ -100,5 +100,5 @@ export default UsageStatsPerMin;
 const Wrapper = styled('div')`
   display: inline-block;
   color: ${p => p.theme.tokens.content.success};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

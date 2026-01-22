@@ -214,7 +214,7 @@ function ProjectLatestReleases({
 
 const ReleasesTable = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   grid-template-columns: 1fr auto;
   margin-bottom: ${space(2)};

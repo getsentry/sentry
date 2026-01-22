@@ -165,20 +165,6 @@ const generateThemeUtils = () => ({
 
 type Colors = typeof lightColors;
 
-const legacyTypography = {
-  fontSize: typography.font.size,
-  fontWeight: {
-    normal: typography.font.weight.sans.regular,
-    bold: typography.font.weight.sans.medium,
-  },
-  text: {
-    family: typography.font.family.sans,
-    familyMono: typography.font.family.mono,
-    lineHeightHeading: typography.font.lineHeight.default,
-    lineHeightBody: typography.font.lineHeight.comfortable,
-  },
-} as const;
-
 type FormTheme = {
   form: Record<
     FormSize,
@@ -315,7 +301,6 @@ const commonTheme = {
     },
   },
 
-  ...legacyTypography,
   ...typography,
   ...formTheme,
 };

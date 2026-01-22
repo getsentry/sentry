@@ -344,18 +344,18 @@ const Header = styled('div')`
 `;
 
 const HeaderTitle = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: 0;
 `;
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: 0;
 `;
 
 const Body = styled('div')`
   margin: ${p => p.theme.space.xl};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};

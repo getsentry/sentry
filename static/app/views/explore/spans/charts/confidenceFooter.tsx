@@ -364,5 +364,5 @@ function _LowAccuracyFullTooltip({
 
 const Container = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

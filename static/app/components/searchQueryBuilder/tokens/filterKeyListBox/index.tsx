@@ -512,8 +512,8 @@ const RecentFilterPill = styled('li')`
   display: flex;
   align-items: center;
   height: 22px;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
@@ -548,8 +548,8 @@ const RecentFilterPillLabel = styled('div')`
 const SectionButton = styled(Button)`
   height: 20px;
   text-align: left;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   padding: 0 ${p => p.theme.space.lg};
   color: ${p => p.theme.tokens.content.secondary};
   border: 0;
@@ -558,7 +558,7 @@ const SectionButton = styled(Button)`
     background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.accent.muted};
     color: ${p => p.theme.tokens.content.accent};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 `;
 

@@ -20,6 +20,6 @@ const StyledCodeSnippet = styled(CodeBlock)`
     position: absolute;
     padding-top: ${space(1)};
     color: var(--prism-comment);
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;

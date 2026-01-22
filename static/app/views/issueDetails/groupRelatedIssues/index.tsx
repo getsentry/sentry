@@ -171,7 +171,7 @@ const getLinkButton = (to: LocationDescriptor, eventName: string, eventKey: stri
 export {GroupRelatedIssues};
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(0.75)};
 `;
 

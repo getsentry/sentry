@@ -153,7 +153,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
 function makeFlamegraphFonts(theme: Theme): FlamegraphTheme['FONTS'] {
   return {
     FONT: MONOSPACE_FONT,
-    FRAME_FONT: theme.text.familyMono,
+    FRAME_FONT: theme.font.family.mono,
   };
 }
 

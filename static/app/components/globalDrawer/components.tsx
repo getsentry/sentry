@@ -178,7 +178,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
 
 export const DrawerBody = styled('aside')`
   padding: ${space(2)} 24px;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const DrawerContainer = styled('div')`

@@ -135,7 +135,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
 }
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.4;
   margin-bottom: ${space(1)};
 `;

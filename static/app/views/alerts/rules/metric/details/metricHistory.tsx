@@ -207,6 +207,6 @@ const Cell = styled('div')`
   display: flex;
   align-items: center;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1)};
 `;

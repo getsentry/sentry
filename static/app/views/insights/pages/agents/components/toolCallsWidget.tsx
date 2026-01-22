@@ -176,7 +176,7 @@ const ToolText = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

@@ -225,7 +225,7 @@ const EmptyMessage = styled('div')`
   padding: ${space(2)};
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -234,5 +234,5 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const LoadingMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

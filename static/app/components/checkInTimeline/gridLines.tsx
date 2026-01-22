@@ -384,7 +384,7 @@ const TimeLabelContainer = styled('div')<{
 
 const TimeLabel = styled(DateTime)`
   font-variant-numeric: tabular-nums;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   pointer-events: none;
 `;

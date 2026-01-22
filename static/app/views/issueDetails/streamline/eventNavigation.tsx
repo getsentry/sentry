@@ -323,21 +323,21 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 }
 
 const NavigationDropdownButton = styled(DropdownButton)`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding-right: ${space(0.5)};
 `;
 
 const NavigationLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding-right: ${space(0.25)};
   padding-left: ${space(1.5)};
 `;
 
 const LargeInThisIssueText = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
   line-height: 1;
 `;
@@ -348,7 +348,7 @@ const EventNavigationWrapper = styled('div')`
   flex-wrap: wrap;
   flex-direction: column;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   @media (min-width: ${p => p.theme.breakpoints.xs}) {
     flex-direction: row;
@@ -373,7 +373,7 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   gap: ${space(3)};
   font-variant-numeric: tabular-nums;
   font-weight: ${p =>
-    p.isCurrentTab ? p.theme.fontWeight.bold : p.theme.fontWeight.normal};
+    p.isCurrentTab ? p.theme.font.weight.sans.medium : p.theme.font.weight.sans.regular};
 `;
 
 const ItemCount = styled(Count)`

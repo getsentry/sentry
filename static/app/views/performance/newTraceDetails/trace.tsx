@@ -839,7 +839,7 @@ const TraceStylingWrapper = styled('div')`
     text-align: center;
     position: absolute;
     font-size: 10px;
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     background-color: ${p => p.theme.tokens.background.primary};
     color: ${p => p.theme.tokens.content.primary};
     border-radius: 100px;
@@ -1012,7 +1012,7 @@ const TraceStylingWrapper = styled('div')`
       pointer-events: none;
 
       .TraceIndicatorLabelContainer {
-        font-weight: ${p => p.theme.fontWeight.normal};
+        font-weight: ${p => p.theme.font.weight.sans.regular};
         min-width: 0;
         top: 22px;
         width: auto;
@@ -1117,7 +1117,7 @@ const TraceStylingWrapper = styled('div')`
     height: 24px;
     width: 100%;
     transition: none;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     transform: translateZ(0);
 
     --row-background-odd: ${p => p.theme.tokens.background.secondary};
@@ -1314,7 +1314,7 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.tokens.content.accent};
 
       .TraceDescription {
-        font-weight: ${p => p.theme.fontWeight.bold};
+        font-weight: ${p => p.theme.font.weight.sans.medium};
       }
 
       .TraceChildrenCountWrapper {
@@ -1436,7 +1436,7 @@ const TraceStylingWrapper = styled('div')`
     background-color: transparent;
     border: none;
     transition: 60ms ease-out;
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     color: ${p => p.theme.tokens.content.secondary};
     padding: 0 2px;
     display: flex;
@@ -1458,7 +1458,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceBarDuration {
     display: inline-block;
     transform-origin: left center;
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     color: ${p => p.theme.tokens.content.secondary};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -1630,7 +1630,7 @@ const TraceStylingWrapper = styled('div')`
     margin-left: 4px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   .TraceEmDash {

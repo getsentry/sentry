@@ -186,7 +186,7 @@ const WebVitalName = styled('h6')`
 const WebVitalScore = styled('div')`
   display: flex;
   align-items: anchor-center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
   gap: ${space(1)};
 `;

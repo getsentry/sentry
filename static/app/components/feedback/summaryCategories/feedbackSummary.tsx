@@ -85,7 +85,7 @@ const LoadingPlaceholder = styled(Placeholder)`
 `;
 
 const SummaryContent = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;

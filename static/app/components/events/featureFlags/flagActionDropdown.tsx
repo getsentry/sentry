@@ -75,11 +75,11 @@ export default function FlagActionDropdown({
 }
 
 const StyledDropdownMenu = styled(DropdownMenu)`
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 
   /* Override monospace styling that might be applied */
   [data-test-id='menu-list-item-label'] {
-    font-family: ${p => p.theme.text.family};
+    font-family: ${p => p.theme.font.family.sans};
   }
 
   .flag-button {

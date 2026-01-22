@@ -437,11 +437,11 @@ const processSeriesData = (
 };
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const ChartSubText = styled('div')<{color?: string}>`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.color ?? p.theme.tokens.content.secondary};
 `;
 
@@ -451,7 +451,7 @@ const SectionHeading = styled('h4')`
   gap: ${p => p.theme.space.md};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
 `;
 
@@ -483,8 +483,8 @@ const CardTitle = styled('div')`
 
 const SpanOp = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: block;
 `;
 
