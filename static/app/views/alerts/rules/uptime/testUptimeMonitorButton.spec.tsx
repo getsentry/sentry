@@ -5,7 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as indicators from 'sentry/actionCreators/indicator';
 import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUptimeMonitorButton';
 import {PreviewCheckStatus} from 'sentry/views/alerts/rules/uptime/types';
-import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
 
 describe('TestUptimeMonitorButton', () => {
   const organization = OrganizationFixture();
@@ -75,43 +74,6 @@ describe('TestUptimeMonitorButton', () => {
             body: null,
             timeoutMs: 10000,
             assertion: null,
-          },
-        })
-      );
-    });
-  });
-
-  it('uses default values when form data is missing optional fields', async () => {
-    const mockPreview = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/uptime-preview-check/`,
-      method: 'POST',
-      body: {check_result: {status: PreviewCheckStatus.SUCCESS}},
-    });
-
-    render(
-      <TestUptimeMonitorButton
-        getFormData={() => ({
-          url: 'https://example.com',
-          // Omit optional fields to test defaults
-        })}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
-
-    await waitFor(() => {
-      expect(mockPreview).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/uptime-preview-check/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            url: 'https://example.com',
-            method: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.method,
-            headers: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
-            body: null,
-            timeoutMs: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.timeoutMs,
-            assertion: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.assertion,
           },
         })
       );
@@ -242,6 +204,11 @@ describe('TestUptimeMonitorButton', () => {
         label="Test Rule"
         getFormData={() => ({
           url: 'https://example.com',
+          method: 'GET',
+          headers: [],
+          body: null,
+          timeoutMs: 5000,
+          assertion: null,
         })}
       />,
       {organization}
@@ -261,6 +228,11 @@ describe('TestUptimeMonitorButton', () => {
       <TestUptimeMonitorButton
         getFormData={() => ({
           url: 'https://example.com',
+          method: 'GET',
+          headers: [],
+          body: null,
+          timeoutMs: 5000,
+          assertion: null,
         })}
       />,
       {organization}
@@ -284,6 +256,11 @@ describe('TestUptimeMonitorButton', () => {
       <TestUptimeMonitorButton
         getFormData={() => ({
           url: 'https://example.com',
+          method: 'GET',
+          headers: [],
+          body: null,
+          timeoutMs: 5000,
+          assertion: null,
         })}
       />,
       {organization}

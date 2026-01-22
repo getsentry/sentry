@@ -13,19 +13,19 @@ import {
   type PreviewCheckPayload,
   type PreviewCheckResponse,
 } from 'sentry/views/alerts/rules/uptime/types';
-import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
 
 interface TestUptimeMonitorButtonProps {
   /**
-   * Callback to get the current form data for the test request
+   * Callback to get the current form data for the test request.
+   * The caller is responsible for providing fallback values appropriate to their context.
    */
   getFormData: () => {
+    assertion: Assertion | null;
+    body: string | null;
+    headers: Array<[string, string]>;
+    method: string;
+    timeoutMs: number;
     url: string | undefined;
-    assertion?: Assertion | null;
-    body?: string | null;
-    headers?: Array<[string, string]>;
-    method?: string;
-    timeoutMs?: number;
   };
   /**
    * Button label text
@@ -72,11 +72,11 @@ export function TestUptimeMonitorButton({
 
     runPreviewCheck({
       url: formData.url,
-      timeoutMs: formData.timeoutMs ?? DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.timeoutMs,
-      method: formData.method ?? DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.method,
-      headers: formData.headers ?? DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
-      body: formData.body || null,
-      assertion: formData.assertion ?? DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.assertion,
+      timeoutMs: formData.timeoutMs,
+      method: formData.method,
+      headers: formData.headers,
+      body: formData.body,
+      assertion: formData.assertion,
     });
   }, [getFormData, runPreviewCheck]);
 

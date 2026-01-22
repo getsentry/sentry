@@ -56,6 +56,8 @@ const MINUTE = 60;
 
 const DEFAULT_DOWNTIME_THRESHOLD = 3;
 const DEFAULT_RECOVERY_THRESHOLD = 1;
+const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_METHOD = 'GET';
 
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
@@ -104,7 +106,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project?.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
 
@@ -222,24 +224,20 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             </Confirm>
           )}
           {organization.features.includes('uptime-runtime-assertions') && (
-            <Observer>
-              {() => (
-                <TestUptimeMonitorButton
-                  label={t('Test Rule')}
-                  getFormData={() => {
-                    const data = formModel.getTransformedData();
-                    return {
-                      url: data.url,
-                      method: data.method,
-                      headers: data.headers,
-                      body: methodHasBody(formModel) ? data.body : null,
-                      timeoutMs: data.timeoutMs,
-                      assertion: data.assertion,
-                    };
-                  }}
-                />
-              )}
-            </Observer>
+            <TestUptimeMonitorButton
+              label={t('Test Rule')}
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                  assertion: data.assertion ?? null,
+                };
+              }}
+            />
           )}
         </Flex>
       }
@@ -344,7 +342,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               max={60_000}
               step={250}
               tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
-              defaultValue={5_000}
+              defaultValue={DEFAULT_TIMEOUT_MS}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
               flexibleControlStateSize
@@ -513,7 +511,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               border: 'none',
             }}
           />
-          <HiddenField name="timeoutMs" defaultValue={10000} />
+          <HiddenField name="timeoutMs" defaultValue={DEFAULT_TIMEOUT_MS} />
         </FormRow>
       </List>
     </Form>

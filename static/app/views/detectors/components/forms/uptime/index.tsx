@@ -11,6 +11,7 @@ import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/commo
 import type {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
+import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
 import {
   uptimeFormDataToEndpointPayload,
@@ -19,10 +20,7 @@ import {
 import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
-import {
-  ConnectedTestUptimeMonitorButton,
-  UptimeDetectorVerificationSection,
-} from 'sentry/views/detectors/components/forms/uptime/verification';
+import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 
 const ENVIRONMENT_CONFIG: React.ComponentProps<typeof DetectorBaseFields>['environment'] =
   {includeAllEnvironments: false, fieldProps: {required: true}};
