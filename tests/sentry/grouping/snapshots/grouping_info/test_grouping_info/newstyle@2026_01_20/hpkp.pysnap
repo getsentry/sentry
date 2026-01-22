@@ -1,0 +1,50 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "hpkp": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "hpkp",
+            "name": null,
+            "values": [
+              {
+                "contributes": true,
+                "hint": "a static salt",
+                "id": "salt",
+                "name": null,
+                "values": [
+                  "hpkp"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "hostname",
+                "name": "hostname",
+                "values": [
+                  "example.com"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "hostname",
+      "hash": "1e37a374cb33572622d02ff7a6237c44",
+      "hint": null,
+      "key": "hpkp",
+      "type": "component"
+    }
+  }
+}

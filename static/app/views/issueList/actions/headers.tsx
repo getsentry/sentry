@@ -89,7 +89,7 @@ const GraphLabel = styled(IssueStreamHeaderLabel)`
 `;
 
 const GraphToggles = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-right: ${space(2)};
 `;
 

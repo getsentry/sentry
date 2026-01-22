@@ -383,6 +383,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
@@ -577,6 +578,10 @@ if ENVIRONMENT == "development":
 
 # To enforce CSP (block violated resources), update the following parameter to False
 CSP_REPORT_ONLY = True
+
+COOP_ENABLED = False
+COOP_REPORT_ONLY = True
+COOP_REPORT_TO: str | None = None
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -2737,7 +2742,7 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
 WINTER_2023_GROUPING_CONFIG = "newstyle:2023-01-11"
-FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
+FALL_2025_GROUPING_CONFIG = "newstyle:2026-01-20"
 DEFAULT_GROUPING_CONFIG = WINTER_2023_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 

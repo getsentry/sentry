@@ -708,12 +708,7 @@ function DynamicGrouping() {
     <PageFiltersContainer>
       <PageWrapper>
         <HeaderSection>
-          <Flex
-            align="center"
-            gap="md"
-            justify="between"
-            style={{marginBottom: space(2)}}
-          >
+          <Flex align="center" gap="md" justify="between" marginBottom="xl">
             <Flex align="center" gap="md">
               <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
                 {t('Top Issues')}
@@ -736,7 +731,7 @@ function DynamicGrouping() {
             </Flex>
           </Flex>
 
-          <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
+          <Flex gap="sm" align="center" marginBottom="xl">
             <ProjectPageFilter resetParamsOnChange={['cluster']} />
             {showDevTools && (
               <Button
@@ -781,7 +776,7 @@ function DynamicGrouping() {
                   {jsonError}
                 </Text>
               )}
-              <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
+              <Flex gap="sm" align="center" marginTop="lg">
                 <Checkbox
                   checked={disableFilters}
                   onChange={e => setDisableFilters(e.target.checked)}
@@ -792,7 +787,7 @@ function DynamicGrouping() {
                   {t('Disable filters and sorting')}
                 </Text>
               </Flex>
-              <Flex gap="sm" style={{marginTop: space(1)}}>
+              <Flex gap="sm" marginTop="md">
                 <Button size="sm" priority="primary" onClick={handleParseJson}>
                   {t('Parse and Load')}
                 </Button>
@@ -867,7 +862,7 @@ function DynamicGrouping() {
                             <FilterLabel disabled={filterByAssignedToMe}>
                               {t('Filter by teams')}
                             </FilterLabel>
-                            <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                            <Flex direction="column" gap="xs" paddingLeft="md">
                               {teamsInData.map(team => (
                                 <Flex key={team.id} gap="sm" align="center">
                                   <Checkbox
@@ -888,7 +883,7 @@ function DynamicGrouping() {
 
                         <Flex direction="column" gap="sm">
                           <FilterLabel>{t('Filter by status')}</FilterLabel>
-                          <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
+                          <Flex direction="column" gap="xs" paddingLeft="md">
                             <Flex gap="sm" align="center">
                               <Checkbox
                                 checked={filterByRegressed}
@@ -1037,7 +1032,7 @@ const CardHeader = styled('div')`
 
 const ClusterTitleLink = styled(Link)`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: 600;
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
@@ -1063,7 +1058,7 @@ const ClusterStats = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   gap: ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -1071,7 +1066,7 @@ const TimeStats = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -1088,7 +1083,7 @@ const ProjectAvatars = styled('div')`
 `;
 
 const MoreProjectsCount = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.25)};
 `;
@@ -1105,7 +1100,7 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   gap: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 
   ${p => {
     switch (p.color) {
@@ -1177,7 +1172,7 @@ const TagsContainer = styled('div')`
 const TagPill = styled('span')`
   display: inline-block;
   padding: ${space(0.25)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -1188,7 +1183,7 @@ const InfoRow = styled('div')`
   display: flex;
   align-items: baseline;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const InfoLabel = styled('span')`
@@ -1204,7 +1199,7 @@ const InfoValue = styled('span')`
 `;
 
 const FilterLabel = styled('span')<{disabled?: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p =>
     p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
 `;
@@ -1218,7 +1213,7 @@ const ShowMoreButton = styled('button')`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -1252,7 +1247,7 @@ const CustomDataBadge = styled('div')`
 `;
 
 const LastUpdatedText = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;

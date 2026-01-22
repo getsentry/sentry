@@ -764,7 +764,6 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
 }
 
 export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
-  const theme = useTheme();
   const organization = useOrganization();
   const clusterStats = useClusterStats(cluster.group_ids);
   const [stackTraceGroupId, setStackTraceGroupId] = useState<number>(
@@ -850,7 +849,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
       <DrawerContentBody>
         <Flex direction="column" minWidth={0}>
           <Container padding="2xl" borderBottom="muted">
-            <Flex direction="column" gap="xs" style={{marginBottom: theme.space.lg}}>
+            <Flex direction="column" gap="xs" marginBottom="lg">
               <Heading as="h2" size="lg">
                 {renderWithInlineCode(cluster.impact || cluster.title)}
               </Heading>
@@ -924,7 +923,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
               )}
             </Flex>
 
-            <Flex wrap="wrap" gap="lg" style={{marginBottom: theme.space.lg}}>
+            <Flex wrap="wrap" gap="lg" marginBottom="lg">
               {cluster.error_type && (
                 <Flex gap="xs">
                   <Text size="sm" variant="muted">
@@ -1034,7 +1033,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
 const TagPill = styled('span')`
   display: inline-block;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -1042,7 +1041,7 @@ const TagPill = styled('span')`
 `;
 
 const IssueTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.4;
@@ -1053,16 +1052,16 @@ const IssueTitle = styled('div')`
   text-overflow: ellipsis;
 
   em {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
     color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const IssueMessage = styled(EventMessage)`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.9;
 `;

@@ -564,16 +564,15 @@ class GenericOffsetPaginatorTest(SimpleTestCase):
 
 class CombinedQuerysetPaginatorTest(APITestCase):
     def test_simple(self) -> None:
-        project = self.project
         Rule.objects.all().delete()
 
         alert_rule0 = self.create_alert_rule(name="alertrule0")
         alert_rule1 = self.create_alert_rule(name="alertrule1")
-        rule1 = Rule.objects.create(label="rule1", project=project)
+        rule1 = self.create_project_rule(name="rule1")
         alert_rule2 = self.create_alert_rule(name="alertrule2")
         alert_rule3 = self.create_alert_rule(name="alertrule3")
-        rule2 = Rule.objects.create(label="rule2", project=project)
-        rule3 = Rule.objects.create(label="rule3", project=project)
+        rule2 = self.create_project_rule(name="rule2")
+        rule3 = self.create_project_rule(name="rule3")
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
             AlertRule.objects.all(), ["date_added"]
@@ -654,12 +653,11 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             )
 
     def test_only_issue_alert_rules(self) -> None:
-        project = self.project
         Rule.objects.all().delete()
         rule_ids = []
 
         for i in range(1, 9):
-            rule = Rule.objects.create(id=i, label=f"rule{i}", project=project)
+            rule = self.create_project_rule(name=f"rule{i}")
             rule_ids.append(rule.id)
 
         rules = Rule.objects.all()
@@ -758,7 +756,6 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert result == page1_results
 
     def test_issue_and_metric_alert_rules(self) -> None:
-        project = self.project
         AlertRule.objects.all().delete()
         Rule.objects.all().delete()
         alert_rule_ids = []
@@ -767,7 +764,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         for i in range(1, 4):
             alert_rule = self.create_alert_rule(name=f"alertrule{i}")
             alert_rule_ids.append(alert_rule.id)
-            rule = Rule.objects.create(id=i, label=f"rule{i}", project=project)
+            rule = self.create_project_rule(name=f"rule{i}")
             rule_ids.append(rule.id)
 
         metric_alert_rules = AlertRule.objects.all()
@@ -819,7 +816,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 1
-        assert page2_results[0].id == 3
+        assert page2_results[0].id == rule_ids[2]
 
         prev_cursor = result.prev
         result = list(paginator.get_result(limit=5, cursor=prev_cursor))

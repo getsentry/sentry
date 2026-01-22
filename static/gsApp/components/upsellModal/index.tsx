@@ -69,7 +69,7 @@ function UpsellModal({source, organization, subscription}: Props) {
 }
 
 const Header = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin: ${space(1)} 0;
 `;
@@ -78,7 +78,7 @@ const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 export const modalCss = css`

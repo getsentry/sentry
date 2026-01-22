@@ -1,10 +1,6 @@
 # Python Testing Guide
 
-> For critical test commands, see `/AGENTS.md` in the repository root.
-
-## Running Tests
-
-Always run pytest with these parameters: `pytest -svv --reuse-db` since it is faster to execute.
+> For critical test commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## How to Determine Where to Add New Test Cases
 

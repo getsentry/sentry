@@ -119,7 +119,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   const grayText = css`
     color: ${theme.tokens.content.secondary};
-    font-weight: ${theme.fontWeight.normal};
+    font-weight: ${theme.font.weight.sans.regular};
   `;
 
   const host = organization.links.regionUrl;
@@ -209,7 +209,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
 `;
 
@@ -244,8 +244,8 @@ const EventInfo = styled('div')`
 
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.colors.red400};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   :hover {
     color: ${p => p.theme.colors.red400};
   }
@@ -289,7 +289,7 @@ const EventIdWrapper = styled('div')`
   display: flex;
   gap: ${p => p.theme.space['2xs']};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 
   button {
