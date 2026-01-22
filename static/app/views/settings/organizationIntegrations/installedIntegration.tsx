@@ -264,7 +264,7 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
     content: '|';
     color: ${p => p.theme.colors.gray200};
     margin-right: ${space(1)};
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 `;
 

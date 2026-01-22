@@ -239,11 +239,11 @@ export default ThreadSelector;
 const ThreadName = styled('div')`
   display: flex;
   gap: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ActiveThreadName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   max-width: 200px;
   display: block;
   width: 100%;
@@ -256,7 +256,7 @@ const StyledGrid = styled(ThreadSelectorGrid)`
   padding-left: 36px;
   padding-right: 20px;
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(0.5)};
 `;

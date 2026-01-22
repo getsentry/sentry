@@ -582,7 +582,7 @@ const TransactionButton = styled('button')`
   position: relative;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   margin-top: ${p => p.theme.space.md};
   gap: ${p => p.theme.space.xs};
@@ -592,7 +592,7 @@ const TransactionButton = styled('button')`
   outline: none;
   justify-content: flex-start;
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 
   &:hover:not(:disabled) {
     background-color: ${p =>

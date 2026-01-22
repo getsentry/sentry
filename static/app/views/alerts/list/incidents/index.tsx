@@ -330,7 +330,7 @@ export default function IncidentsListContainer() {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   & > div {
     padding: ${space(1.5)} ${space(2)};
@@ -342,5 +342,5 @@ const StyledAlert = styled(Alert)`
 `;
 
 const EmptyStateAction = styled('p')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;

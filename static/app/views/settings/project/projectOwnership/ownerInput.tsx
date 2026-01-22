@@ -271,12 +271,12 @@ const StyledTextArea = styled(TextArea)`
 
 const InvalidOwners = styled('div')`
   color: ${p => p.theme.tokens.content.danger};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: 12px;
 `;
 
 const SyncDate = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;
 

@@ -61,7 +61,7 @@ const OnboardingTitle = styled('h3')`
 `;
 
 const SectionTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   margin-bottom: ${space(1)};

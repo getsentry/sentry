@@ -46,5 +46,5 @@ export default function PeopleSection({
 }
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

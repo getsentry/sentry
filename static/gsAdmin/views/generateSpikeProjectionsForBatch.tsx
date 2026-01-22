@@ -148,7 +148,7 @@ const BatchInput = styled(Input)`
 `;
 
 const BatchRunTime = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default GenerateSpikeProjectionsForBatch;

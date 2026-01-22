@@ -406,18 +406,18 @@ const StoryTypesTableDefinitionCell = styled('td')`
   }
 
   > span {
-    font-size: ${p => p.theme.fontSize.sm};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.sm};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     margin-right: ${p => p.theme.space.xs};
   }
 `;
 
 const StoryType = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const StoryPropDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-bottom: ${p => p.theme.space.xs};
 `;
 

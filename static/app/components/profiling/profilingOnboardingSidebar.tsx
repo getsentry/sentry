@@ -389,9 +389,9 @@ const Introduction = styled('div')`
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   margin-top: ${space(3)};
 `;

@@ -486,5 +486,5 @@ const SpanDetailsItem = styled('span')<{grow?: boolean}>`
 
 const SectionSubtext = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

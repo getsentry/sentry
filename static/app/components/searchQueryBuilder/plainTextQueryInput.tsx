@@ -95,8 +95,8 @@ const Highlight = styled('div')<{size: 'small' | 'normal'}>`
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 24px;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
@@ -113,8 +113,8 @@ const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   line-height: 25px;
   margin-bottom: -1px;
   background: transparent;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
   caret-color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   color: transparent;
 

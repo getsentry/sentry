@@ -53,7 +53,7 @@ export default function FeedbackItemSection({
 const SectionTitle = styled('h3')`
   margin: 0;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   text-transform: capitalize;
   user-select: none;
 

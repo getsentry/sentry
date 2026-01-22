@@ -199,7 +199,7 @@ export default function UsageLog() {
                           <DateTime
                             format={`MMM D, YYYY ・ ${getTimeFormat({timeZone: true})}`}
                             date={entry.dateCreated}
-                            style={{fontSize: theme.fontSize.sm}}
+                            style={{fontSize: theme.font.size.sm}}
                           />
                         </Grid>
                         {entry.actor && entry.actor.name !== 'Sentry' && (

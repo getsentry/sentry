@@ -70,7 +70,7 @@ const BinaryItem = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
 
   code {
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     word-break: break-all;
   }
 `;

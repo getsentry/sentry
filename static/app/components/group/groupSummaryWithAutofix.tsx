@@ -385,8 +385,8 @@ const CardTitle = styled('div')<{preview?: boolean}>`
 
 const CardTitleText = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: 1px;
 `;
 

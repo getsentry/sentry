@@ -481,7 +481,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
 `;
 
 const RegularExpression = styled(Input)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   margin-bottom: ${p => p.theme.space.md};
 `;
 
@@ -493,7 +493,7 @@ const DatasetRadioField = styled(RadioField)`
 `;
 
 const Toggle = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
   &:hover,
   &:focus {

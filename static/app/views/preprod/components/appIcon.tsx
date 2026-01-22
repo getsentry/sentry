@@ -50,6 +50,6 @@ const AppIconPlaceholder = styled('div')`
   flex-shrink: 0;
   background: ${p => p.theme.tokens.background.accent.vibrant};
   color: ${p => p.theme.tokens.content.onVibrant.light};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.sm};
 `;

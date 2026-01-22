@@ -317,8 +317,8 @@ const SingleCard = styled('div')`
 `;
 
 const MeetSeerHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -332,12 +332,12 @@ const Paragraph = styled('p')`
 
 const TouchCustomerMessage = styled('p')`
   color: ${p => p.theme.tokens.content.promotion};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: ${space(2)};
 `;
 
 const LegalText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;

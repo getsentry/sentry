@@ -427,7 +427,7 @@ const PermissionWrapper = styled('div')`
 
 const Title = styled('p')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`

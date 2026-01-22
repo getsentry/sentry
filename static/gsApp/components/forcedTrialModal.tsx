@@ -145,7 +145,7 @@ const TrialCheckInfo = styled('div')`
   padding: ${space(3)} 0;
 
   p {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     margin: 0;
   }
 
@@ -170,7 +170,7 @@ const Subheader = styled('h4')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

@@ -355,8 +355,8 @@ const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
 `;
 
 const Kbd = styled('kbd')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.xs};
   background: transparent;
   left: 4px;
   position: relative;

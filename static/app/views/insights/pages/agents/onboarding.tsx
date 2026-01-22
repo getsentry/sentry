@@ -410,7 +410,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   z-index: 10;
   gap: ${p => p.theme.space.md};
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
   padding-right: ${p => p.theme.space['3xl']};
 `;
@@ -430,7 +430,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BulletList = styled('ul')`
@@ -460,8 +460,8 @@ const HeaderText = styled('div')`
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${p => p.theme.space.md};
 `;
 
@@ -535,8 +535,8 @@ const DescriptionWrapper = styled('div')`
   && > h4,
   && > h5,
   && > h6 {
-    font-size: ${p => p.theme.fontSize.xl};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.xl};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     line-height: 34px;
   }
 

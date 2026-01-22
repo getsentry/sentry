@@ -766,7 +766,7 @@ const Header = styled('div')`
 `;
 
 const SelectedText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
   white-space: nowrap;
@@ -814,14 +814,14 @@ const MessageContent = styled('div')`
   flex-grow: 1;
   border-radius: ${p => p.theme.radius.md};
   padding-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
 
   code {
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     background: transparent;
   }
 `;
@@ -857,7 +857,7 @@ const ReworkHeaderSection = styled('div')`
 `;
 
 const ReworkText = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 
   ${ReworkHeaderSection}:hover & {

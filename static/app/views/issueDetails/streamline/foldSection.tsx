@@ -229,7 +229,7 @@ export const SectionDivider = styled(
 `;
 
 export const SidebarFoldSection = styled(FoldSection)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: -${space(1)};
 `;
 

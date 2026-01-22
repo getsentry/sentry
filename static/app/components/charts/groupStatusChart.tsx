@@ -158,6 +158,6 @@ const ChartAnimationWrapper = styled('div')`
 `;
 
 const GraphText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -227,7 +227,7 @@ const RateLimitRow = styled('div')`
 `;
 
 const EventsIn = styled('small')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   text-align: center;
   white-space: nowrap;
 `;

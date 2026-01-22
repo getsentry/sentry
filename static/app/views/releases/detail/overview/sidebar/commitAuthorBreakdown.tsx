@@ -115,7 +115,7 @@ const AuthorLine = styled('div')`
   grid-template-columns: 30px 2fr 1fr 40px;
   width: 100%;
   margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const AuthorName = styled('div')`

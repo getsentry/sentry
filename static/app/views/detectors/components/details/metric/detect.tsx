@@ -246,7 +246,7 @@ const Label = styled('dt')`
   color: ${p => p.theme.tokens.content.secondary};
   justify-self: flex-end;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const Value = styled('dl')`

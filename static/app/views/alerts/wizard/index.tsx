@@ -242,8 +242,8 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const CategoryTitle = styled('h2')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)} !important;
 `;
 
@@ -306,11 +306,11 @@ const PanelDescription = styled('p')`
 
 const ExampleHeader = styled('div')`
   margin: 0 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const ExampleItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const WizardFooter = styled('div')`

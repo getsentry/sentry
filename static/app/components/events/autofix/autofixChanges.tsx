@@ -171,9 +171,9 @@ const CopyButton = styled(Button)`
 `;
 
 const CodeText = styled('code')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: block;
   min-width: 0;
   width: 100%;
@@ -437,7 +437,7 @@ const Content = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   text-decoration: underline dashed;
@@ -475,8 +475,8 @@ const Separator = styled('hr')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -498,7 +498,7 @@ const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
 
 const TerminationReasonText = styled('div')`
   color: ${p => p.theme.tokens.content.danger};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   flex: 1;
   min-width: 0;
 `;

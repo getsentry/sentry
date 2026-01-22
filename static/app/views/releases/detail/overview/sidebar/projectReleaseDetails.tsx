@@ -200,7 +200,7 @@ const ButtonContainer = styled('div')`
 `;
 
 const FinalizeButton = styled(Button)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding-inline: ${space(0.5)};
 `;
 

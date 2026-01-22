@@ -282,7 +282,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 

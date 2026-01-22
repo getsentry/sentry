@@ -349,7 +349,7 @@ const Table = styled('div')`
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ShareColumnTitle = styled(ColumnTitle)`
@@ -362,7 +362,7 @@ const ColumnSort = styled(Link)`
   align-items: center;
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.tokens.content.primary};
@@ -430,5 +430,5 @@ const ExternalLinkbutton = styled(Button)`
 const UserValue = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

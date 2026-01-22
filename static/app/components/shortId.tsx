@@ -33,7 +33,7 @@ function ShortId({shortId, avatar, onClick, to, className}: Props) {
 }
 
 const StyledShortId = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   display: grid;
   grid-auto-flow: column;
   gap: 0.5em;

@@ -313,15 +313,15 @@ const PrimaryTitle = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   flex-shrink: 0;
 `;
 
 const StatTitle = styled('div')`
   display: block;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   justify-self: flex-end;
 `;

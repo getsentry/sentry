@@ -194,7 +194,7 @@ const DowntimeTooltipTitle = styled('div')`
 `;
 
 const DowntimeLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Text = styled('div')`

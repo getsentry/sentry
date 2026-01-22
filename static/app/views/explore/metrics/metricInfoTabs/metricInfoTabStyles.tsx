@@ -65,14 +65,14 @@ export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
   padding-bottom: ${p =>
     p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
 
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
   embedded?: boolean;
   noPadding?: boolean;
 }>`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${p => (p.noPadding ? 0 : p.embedded ? p.theme.space.xl : p.theme.space.lg)};
   padding-top: ${p =>
     p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};

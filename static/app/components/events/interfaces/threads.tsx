@@ -448,7 +448,7 @@ const TheadStateContainer = styled('div')`
 `;
 
 const LockReason = styled(TextOverflow)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -464,7 +464,7 @@ const ThreadTraceWrapper = styled('div')`
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
 `;

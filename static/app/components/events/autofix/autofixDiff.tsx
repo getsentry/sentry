@@ -93,7 +93,7 @@ function detectLanguageFromPath(filePath: string): string {
 }
 
 const SyntaxHighlightedCode = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   white-space: pre;
 
   && pre,
@@ -681,10 +681,10 @@ export function AutofixDiff({
 }
 
 const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   & code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
   line-height: 20px;
   vertical-align: middle;
@@ -808,7 +808,7 @@ const ButtonGroup = styled('div')`
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
   background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
   transition:
@@ -859,12 +859,12 @@ const OverlayButtonGroup = styled('div')`
   display: flex;
   justify-content: flex-end;
   gap: ${space(1)};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const RemovedLines = styled('div')`
   margin-bottom: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
@@ -877,7 +877,7 @@ const RemovedLine = styled('div')`
 `;
 
 const StyledTextArea = styled(TextArea)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   background-color: ${DIFF_COLORS.addedRow};
   border-color: ${p => p.theme.tokens.border.primary};
   position: relative;
@@ -902,22 +902,22 @@ const TextAreaWrapper = styled('div')`
 
 const SectionTitle = styled('p')`
   margin: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const NoChangesMessage = styled('p')`
   margin: ${space(1)} 0;
   color: ${p => p.theme.tokens.content.secondary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const OverlayTitle = styled('h3')`
   margin: 0 0 ${space(2)} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;

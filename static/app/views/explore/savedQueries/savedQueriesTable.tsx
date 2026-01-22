@@ -412,7 +412,7 @@ const TableHeading = styled('h2')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
 `;

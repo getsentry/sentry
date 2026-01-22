@@ -513,7 +513,7 @@ export default withOrganization(AllocationForm);
 
 const FancyInput = styled('input')`
   line-height: 1.4;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

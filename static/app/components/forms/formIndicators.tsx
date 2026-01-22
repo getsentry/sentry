@@ -154,6 +154,6 @@ const FormValue = styled('em')`
   margin: 0 ${space(0.5)};
 `;
 const FieldName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0 ${space(0.5)};
 `;

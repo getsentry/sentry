@@ -87,8 +87,8 @@ const StatusColumn = styled(Column)`
 
 const FileName = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   margin-right: ${space(0.5)};
   white-space: pre-wrap;
   word-break: break-all;
@@ -99,9 +99,9 @@ const CodeFilename = styled('span')`
 `;
 
 const ImageColumn = styled(Column)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   flex-direction: column;
   align-items: flex-start;

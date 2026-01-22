@@ -40,12 +40,12 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
 
 const TooltipTitle = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   text-align: left;
 `;
 
 const TooltipDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   text-align: left;
 `;
 

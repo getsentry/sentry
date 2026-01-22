@@ -222,14 +222,14 @@ export const CardPanel = styled(Panel)`
   display: grid;
   column-gap: ${space(1.5)};
   grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Title = styled('div')`
   grid-column: span 2;
   padding: ${space(0.25)} ${space(0.75)};
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ContentWrapper = styled('div')<{
@@ -284,13 +284,13 @@ const ContentWrapper = styled('div')<{
 
 export const Subject = styled('div')`
   grid-column: span 1;
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   word-break: break-word;
   min-width: 100px;
 `;
 
 export const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   word-break: break-word;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
   grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
@@ -311,7 +311,7 @@ const TruncateWrapper = styled('a')`
   grid-column: 1 / -1;
   margin: ${space(0.5)} 0;
   justify-content: center;
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const CardWrapper = styled('div')<{columnCount: number}>`

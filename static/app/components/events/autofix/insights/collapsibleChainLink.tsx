@@ -184,7 +184,7 @@ const AddButton = styled(Button)`
 const RethinkLabel = styled('span')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-right: ${space(0.5)};
 `;

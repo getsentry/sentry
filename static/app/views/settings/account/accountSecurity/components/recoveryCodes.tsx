@@ -97,6 +97,6 @@ const CodeContainer = styled(Panel)`
 `;
 
 const Code = styled(PanelItem)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   padding: ${space(2)};
 `;

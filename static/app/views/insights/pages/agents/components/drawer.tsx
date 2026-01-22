@@ -242,7 +242,7 @@ const StyledDrawerHeader = styled(DrawerHeader)`
 `;
 
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin-bottom: ${p => p.theme.space.xl};
 `;

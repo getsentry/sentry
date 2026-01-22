@@ -496,7 +496,7 @@ const ItemHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   line-height: 1;
   padding: ${space(1)} ${space(2)};

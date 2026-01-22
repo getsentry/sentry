@@ -159,7 +159,7 @@ function LowAccuracyFullTooltip({
 const Placeholder = styled('div')<{width: number}>`
   display: inline-block;
   width: ${p => p.width}px;
-  height: ${p => p.theme.fontSize.md};
+  height: ${p => p.theme.font.size.md};
   border-radius: ${p => p.theme.radius.md};
   background-color: ${p => p.theme.tokens.background.tertiary};
 `;

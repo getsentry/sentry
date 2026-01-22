@@ -184,7 +184,7 @@ const CommandInput = styled('input')`
   padding: ${p => p.theme.space.md};
   border: none;
   flex: 1;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 2;
 
   &:focus {

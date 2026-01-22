@@ -174,9 +174,9 @@ function useCreateInvestigationRuleMutation() {
 }
 
 const InvestigationInProgressNotification = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};

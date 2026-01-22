@@ -494,8 +494,8 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.3;
 `;
 

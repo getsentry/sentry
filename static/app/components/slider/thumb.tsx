@@ -129,7 +129,7 @@ const SliderThumbLabel = styled('span')`
   position: absolute;
   bottom: calc(100% + ${space(0.25)});
 
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-variant-numeric: tabular-nums;
 `;

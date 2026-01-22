@@ -335,17 +335,17 @@ const SummaryLeft = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SummaryText = styled('p')`
   line-height: 1.6;
   white-space: pre-wrap;
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledTabItemContainer = styled(TabItemContainer)`
@@ -381,7 +381,7 @@ const EndStateContainer = styled('div')`
 const Subtext = styled(Text)`
   padding: ${space(2)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: flex;
   justify-content: center;
 `;

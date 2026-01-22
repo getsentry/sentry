@@ -136,8 +136,8 @@ const ListTitle = styled('div')`
   background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const UserRow = styled('div')`
@@ -146,10 +146,10 @@ const UserRow = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   gap: ${space(1)};
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const SubText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;

@@ -790,7 +790,7 @@ const DisabledSection = styled('div')<{disabled: boolean}>`
 
 const PriorityLabel = styled('span')`
   min-width: 120px;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const RequiredAsterisk = styled('span')`

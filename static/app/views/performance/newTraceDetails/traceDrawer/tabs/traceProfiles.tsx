@@ -173,7 +173,7 @@ const ProfilesTableRow = styled('div')`
 
 const ProfilesTableTitle = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: 0 ${space(0.5)};
 `;

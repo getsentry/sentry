@@ -176,7 +176,7 @@ export function FileDiffViewer({
 }
 
 const SyntaxHighlightedCode = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   white-space: pre;
 
   && pre,
@@ -188,8 +188,8 @@ const SyntaxHighlightedCode = styled('div')`
 `;
 
 const FileDiffWrapper = styled('div')<{showBorder?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 20px;
   vertical-align: middle;
   overflow: hidden;

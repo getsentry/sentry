@@ -472,7 +472,7 @@ function NativeFrame({
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
 const AddressCell = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   ${p => p.onClick && `cursor: pointer`};
   ${p => p.onClick && `color:` + p.theme.tokens.interactive.link.accent.rest};
 `;
@@ -518,7 +518,7 @@ const Registers = styled(Context)`
 
 const PackageNote = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const Package = styled('span')`
@@ -550,7 +550,7 @@ const RowHeader = styled('span')<{
     !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.colors.surface200}`
       : `${p.theme.tokens.background.secondary}`};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${space(1)};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
@@ -577,9 +577,9 @@ const SymbolicatorIcon = styled('div')`
 
 const ShowHideButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
     color: ${p => p.theme.tokens.content.secondary};

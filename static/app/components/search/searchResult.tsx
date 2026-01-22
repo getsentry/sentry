@@ -110,7 +110,7 @@ const SearchDetail = styled('div')`
 `;
 
 const ExtraDetail = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.5)};
 `;
@@ -127,6 +127,6 @@ const StyledPluginIcon = styled(PluginIcon)`
 const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.interactive.link.accent.active};
 `;

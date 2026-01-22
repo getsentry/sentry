@@ -484,7 +484,7 @@ const modalBodyCss = css`
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Subtitle = styled('div')`
@@ -497,7 +497,7 @@ const Subtitle = styled('div')`
 `;
 
 const SubtitleText = styled('h4')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: 0;
 `;
 
@@ -517,11 +517,11 @@ const EditHighlightPreview = styled('div')<{columnCount: number}>`
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
   align-items: start;
   margin: 0 -${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
@@ -560,7 +560,7 @@ const EditPreviewColumn = styled(EditHighlightColumn)`
 `;
 
 const EditPreviewContextItem = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   grid-column: span 2;
   &:nth-child(4n-2) {
     background-color: ${p => p.theme.tokens.background.secondary};
@@ -576,7 +576,7 @@ const EditPreviewTagItem = styled(EventTagsTreeRow)`
 const EditTagContainer = styled('div')`
   display: grid;
   grid-template-columns: 26px 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   align-items: center;
 `;
 
@@ -602,7 +602,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
   color: ${p =>
     p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   margin-bottom: 0;
   word-wrap: break-word;
   word-break: break-all;
@@ -611,7 +611,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: capitalize;
   margin-bottom: ${space(0.25)};
 `;

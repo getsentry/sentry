@@ -326,9 +326,9 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
 `;
 
 const ContextMarkedText = styled(MarkedText)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;
 

@@ -180,7 +180,7 @@ const SelectionHint = styled(Text)<{backgroundColor?: string}>`
   display: flex;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   &::before {
     content: '';

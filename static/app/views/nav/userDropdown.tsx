@@ -63,7 +63,7 @@ export function UserDropdown() {
 
 const SectionTitleWrapper = styled('div')`
   text-transform: none;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;

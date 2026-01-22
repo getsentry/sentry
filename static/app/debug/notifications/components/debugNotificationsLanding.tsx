@@ -74,7 +74,7 @@ function Squiggle() {
 
 const Hero = styled('div')`
   padding: ${p => `80px ${p.theme.space['2xl']}`};
-  gap: ${p => p.theme.fontSize['2xl']};
+  gap: ${p => p.theme.font.size['2xl']};
   display: flex;
   align-items: center;
   background: ${p => p.theme.tokens.background.secondary};

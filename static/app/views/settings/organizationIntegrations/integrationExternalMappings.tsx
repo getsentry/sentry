@@ -256,7 +256,7 @@ const StyledPluginIcon = styled(PluginIcon)`
 `;
 
 const ExternalNameColumn = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const AddButton = styled(Button)`

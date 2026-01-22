@@ -115,7 +115,7 @@ export function IssueDetailsEventNavigation({
 
   const grayText = css`
     color: ${theme.tokens.content.secondary};
-    font-weight: ${theme.fontWeight.normal};
+    font-weight: ${theme.font.weight.sans.regular};
   `;
 
   return (

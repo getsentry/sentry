@@ -129,14 +129,14 @@ const PerformanceScoreLabelContainer = styled('div')`
 
 const PerformanceScoreLabel = styled('div')`
   width: 100%;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 export const PerformanceScoreSubtext = styled('div')`
   width: 100%;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: ${space(1)};
 `;

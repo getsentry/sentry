@@ -359,13 +359,13 @@ const AnswerContent = styled('div')`
 `;
 
 const QuestionContent = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   cursor: pointer;
 `;
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   gap: ${space(0.5)};

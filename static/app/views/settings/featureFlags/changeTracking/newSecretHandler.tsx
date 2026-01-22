@@ -91,7 +91,7 @@ const ButtonWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   gap: ${space(1)};
 `;
 

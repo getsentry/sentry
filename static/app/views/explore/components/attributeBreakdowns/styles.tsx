@@ -162,7 +162,7 @@ const ChartHeaderWrapper = styled(Flex)`
 `;
 
 const ChartTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   color: ${p => p.theme.colors.gray800};
   display: block;
@@ -174,7 +174,7 @@ const ChartTitle = styled('div')`
 
 const PopulationIndicator = styled(Flex)<{color?: string}>`
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-weight: 500;
   color: ${p => p.color || p.theme.colors.gray500};
 

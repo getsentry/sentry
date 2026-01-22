@@ -272,8 +272,8 @@ const StoryIndexContainer = styled('div')`
 
 const StoryIndexTitle = styled('div')`
   line-height: 1.25;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
   height: 28px;
   display: flex;

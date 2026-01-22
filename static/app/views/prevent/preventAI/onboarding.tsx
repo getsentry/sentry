@@ -249,7 +249,7 @@ const StepNumber = styled('div')`
   background-color: ${p => p.theme.tokens.background.accent.vibrant};
   color: ${p => p.theme.tokens.content.onVibrant.light};
   border-radius: 50%;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
 `;
 

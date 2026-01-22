@@ -275,7 +275,7 @@ export default withSubscription(withOrganization(SpikeProtectionHistoryTable));
 
 const Title = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.colors.gray500};
   display: flex;
   flex: 1;
@@ -290,7 +290,7 @@ const EmptySpikeHistory = styled(Panel)`
   text-align: center;
   padding: ${space(4)} ${space(2)};
   b {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     margin-bottom: ${space(1)};
   }
   p:last-child {

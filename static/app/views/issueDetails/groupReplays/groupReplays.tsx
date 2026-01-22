@@ -362,7 +362,7 @@ const ReplayFilterText = styled('div')`
 `;
 
 const OverlayText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const UpNext = styled('div')`

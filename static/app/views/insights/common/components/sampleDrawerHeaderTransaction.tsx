@@ -73,10 +73,10 @@ const Bar = styled('h4')`
   gap: ${space(1)};
   padding: 0;
   margin: 0;
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 
   overflow: hidden;
 `;

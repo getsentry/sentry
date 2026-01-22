@@ -84,7 +84,7 @@ const TrialInfo = styled('div')`
 
 const StyledHeading = styled('span')`
   font-weight: 400;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const StyledSubText = styled(TextBlock)`

@@ -159,22 +159,22 @@ const EventItemsWrapper = styled('div')<{hasTitle: boolean}>`
 const EventItemsTitle = styled('div')`
   padding-left: ${space(1)};
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const YouAreHere = styled('div')`
   padding: ${space(1)} ${space(2)};
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const YouAreHereItem = styled('div')`
   padding: ${space(1)} ${space(2)};
   text-align: center;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const EventItemRoot = styled(Link)`
@@ -185,7 +185,7 @@ const EventItemRoot = styled(Link)`
   width: 100%;
   padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   &:hover {
     background-color: ${p => p.theme.tokens.background.tertiary};
@@ -205,7 +205,7 @@ const EventTitle = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const EventDescription = styled('div')`

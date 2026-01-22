@@ -21,5 +21,5 @@ const TitleText = styled(HeaderTitle)`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

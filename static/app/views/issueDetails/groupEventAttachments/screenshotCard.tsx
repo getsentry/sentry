@@ -170,7 +170,7 @@ const StyledCard = styled(Card)`
 `;
 
 const AttachmentName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: block;
   width: 100%;
   white-space: nowrap;

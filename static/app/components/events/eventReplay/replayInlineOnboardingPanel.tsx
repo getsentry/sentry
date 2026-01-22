@@ -113,7 +113,7 @@ export default function ReplayInlineOnboardingPanel({
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.tokens.content.accent};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerWrapper = styled('div')`
@@ -131,9 +131,9 @@ const BannerWrapper = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerDescription = styled('div')`

@@ -160,7 +160,7 @@ const TimestampValues = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const HorizontalRule = styled('hr')`
