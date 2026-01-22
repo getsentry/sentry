@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -222,7 +224,7 @@ function DeprecatedLine({
               </div>
             </LeftLineTitle>
           </DefaultLineTitleWrapper>
-          <DefaultLineTagWrapper>
+          <Flex align="center" gap="md">
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
@@ -329,7 +331,7 @@ function DeprecatedLine({
             ) : (
               <div style={{width: 26, height: 20}} />
             )}
-          </DefaultLineTagWrapper>
+          </Flex>
         </DefaultLine>
       </StrictClick>
       <Context
@@ -403,26 +405,22 @@ const DefaultLine = styled('div')<{
   justify-content: space-between;
   align-items: center;
   background: ${p =>
-    p.isSubFrame ? `${p.theme.colors.surface200}` : `${p.theme.colors.surface300}`};
+    p.isSubFrame
+      ? `${p.theme.colors.surface200}`
+      : `${p.theme.tokens.background.tertiary}`};
   min-height: 40px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   code {
-    font-family: ${p => p.theme.text.family};
+    font-family: ${p => p.theme.font.family.sans};
   }
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
-`;
-
-const DefaultLineTagWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const ToggleContextButton = styled(Button)`
@@ -431,9 +429,9 @@ const ToggleContextButton = styled(Button)`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: ${space(0.25)} ${space(0.5)};
 
   &:hover {
@@ -448,5 +446,5 @@ const SourceMapDebuggerButtonText = styled('span')`
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
   padding: 0 ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

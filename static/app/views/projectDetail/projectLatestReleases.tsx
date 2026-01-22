@@ -214,7 +214,7 @@ function ProjectLatestReleases({
 
 const ReleasesTable = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   grid-template-columns: 1fr auto;
   margin-bottom: ${space(2)};
@@ -235,7 +235,11 @@ const ReleasesTable = styled('div')`
 `;
 
 const StyledVersion = styled(Version)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.6;
   font-variant-numeric: tabular-nums;
 `;

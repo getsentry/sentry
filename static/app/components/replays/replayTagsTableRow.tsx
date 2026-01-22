@@ -141,7 +141,7 @@ export default ReplayTagsTableRow;
 
 const ValueContainer = styled('div')`
   span {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
   display: flex;
   padding: ${space(0.25)};
@@ -149,7 +149,11 @@ const ValueContainer = styled('div')`
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledVersionContainer = styled('div')`

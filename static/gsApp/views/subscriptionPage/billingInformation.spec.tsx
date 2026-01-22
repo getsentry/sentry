@@ -369,24 +369,4 @@ describe('Subscription > BillingInformation', () => {
 
     expect(await screen.findByText('card invalid')).toBeInTheDocument();
   });
-
-  it('uses stripe components when flag is enabled', async () => {
-    organization.features = ['stripe-components'];
-
-    render(<BillingInformation subscription={subscription} />, {organization});
-
-    const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
-    const inBillingDetailsPanel = within(billingDetailsPanel);
-
-    // check for our custom fields outside of the Stripe components
-    // already open because /billing-details is not mocked
-    expect(
-      inBillingDetailsPanel.getByRole('textbox', {name: 'Billing email'})
-    ).toBeInTheDocument();
-
-    // There shouldn't be any of the fields from the LegacyBillingDetailsForm
-    expect(
-      inBillingDetailsPanel.queryByRole('textbox', {name: 'Street Address 1'})
-    ).not.toBeInTheDocument();
-  });
 });

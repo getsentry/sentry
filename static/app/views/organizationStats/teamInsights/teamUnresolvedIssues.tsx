@@ -187,7 +187,7 @@ export function TeamUnresolvedIssues({
                           totals.percentChange === 0
                             ? theme.tokens.content.secondary
                             : totals.percentChange > 0
-                              ? theme.errorText
+                              ? theme.tokens.content.danger
                               : theme.tokens.content.success
                         }
                       >
@@ -223,7 +223,7 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   box-shadow: unset;
 
   & > div {

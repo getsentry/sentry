@@ -70,8 +70,8 @@ const SliderThumbWrap = styled('div')<{
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
-  background: ${p => p.theme.active};
-  color: ${p => p.theme.activeText};
+  background: ${p => p.theme.tokens.interactive.link.accent.active};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   border: solid 2px ${p => p.theme.tokens.background.primary};
   cursor: pointer;
   transition:
@@ -79,17 +79,17 @@ const SliderThumbWrap = styled('div')<{
     background 0.1s;
 
   &:hover {
-    background: ${p => p.theme.activeHover};
+    background: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 
   ${p =>
     p.error &&
     css`
-      background: ${p.theme.error};
-      color: ${p.theme.errorText};
+      background: ${p.theme.tokens.content.danger};
+      color: ${p.theme.tokens.content.danger};
 
       &:hover {
-        background: ${p.theme.error};
+        background: ${p.theme.tokens.content.danger};
       }
     `}
 
@@ -129,7 +129,7 @@ const SliderThumbLabel = styled('span')`
   position: absolute;
   bottom: calc(100% + ${space(0.25)});
 
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-variant-numeric: tabular-nums;
 `;

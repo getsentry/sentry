@@ -101,8 +101,8 @@ const TagHeader = styled('h4')`
   align-items: center;
 
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TagValueGrid = styled('ul')`
@@ -131,7 +131,10 @@ const TagValueRow = styled('li')`
 `;
 
 const StyledLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 
   &:hover [data-underline-on-hover='true'] {

@@ -124,8 +124,12 @@ const QuickLink = styled((p: any) =>
 `;
 
 const QuickLinkText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  ${p => p.theme.overflowEllipsis}
+  font-size: ${p => p.theme.font.size.md};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default ProjectQuickLinks;

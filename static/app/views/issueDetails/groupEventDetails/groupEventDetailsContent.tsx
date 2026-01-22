@@ -77,6 +77,7 @@ import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSec
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
@@ -220,6 +221,11 @@ export function EventDetailsContent({
         />
       )}
       <EventEvidence event={event} group={group} project={project} />
+      {hasStreamlinedUI && issueTypeConfig.instrumentationFixSection.enabled && (
+        <ErrorBoundary mini>
+          <InstrumentationFixSection event={event} group={group} />
+        </ErrorBoundary>
+      )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />

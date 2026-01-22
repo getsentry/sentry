@@ -1,7 +1,7 @@
-import type {Theme} from '@emotion/react';
 import {PlatformIcon} from 'platformicons';
 
 import {t} from 'sentry/locale';
+import type {Level} from 'sentry/types/event';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {ErrorNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/errorNode';
 import {InvisibleTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
@@ -11,13 +11,10 @@ import {
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
-const ERROR_LEVEL_LABELS: Record<keyof Theme['level'], string> = {
+const ERROR_LEVEL_LABELS: Record<Level | 'default', string> = {
   sample: t('Sample'),
   info: t('Info'),
   warning: t('Warning'),
-  // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
-  // here because existing users may still associate orange with the "error" level.
   error: t('Error'),
   fatal: t('Fatal'),
   default: t('Default'),

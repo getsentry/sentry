@@ -12,7 +12,7 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
@@ -651,10 +651,10 @@ export function SourceMapsDebuggerModal({
                 <StyledProgressRing
                   progressColor={
                     activeTab === 'debug-ids'
-                      ? theme.colors.blue400
-                      : theme.colors.gray400
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.debugIdProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -674,9 +674,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'release' ? theme.colors.blue400 : theme.colors.gray400
+                    activeTab === 'release'
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.releaseProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -692,9 +694,11 @@ export function SourceMapsDebuggerModal({
               >
                 <StyledProgressRing
                   progressColor={
-                    activeTab === 'fetching' ? theme.colors.blue400 : theme.colors.gray400
+                    activeTab === 'fetching'
+                      ? theme.tokens.graphics.accent.vibrant
+                      : theme.tokens.graphics.neutral.vibrant
                   }
-                  backgroundColor={theme.colors.gray200}
+                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
                   value={sourceResolutionResults.scrapingProgressPercent * 100}
                   size={16}
                   barWidth={4}
@@ -888,7 +892,7 @@ export function SourceMapsDebuggerModal({
 function CheckListItem({children, title, status}: PropsWithChildren<CheckListItemProps>) {
   return (
     <ListItemContainer>
-      <CheckMarkContainer>
+      <Stack align="center">
         {
           {
             none: <IconCircle size="md" variant="muted" />,
@@ -898,11 +902,11 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
           }[status]
         }
         <Line className="source-map-debugger-modal-checklist-line" />
-      </CheckMarkContainer>
+      </Stack>
       <ListItemContentContainer>
-        <ListItemTitleWrapper>
+        <Flex align="center" minHeight="20px">
           <ListItemTitle status={status}>{title}</ListItemTitle>
-        </ListItemTitleWrapper>
+        </Flex>
         {children}
       </ListItemContentContainer>
     </ListItemContainer>
@@ -1519,7 +1523,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
         </p>
         <p>
           {tct(
-            'Read the [link:Sentry Source Maps Documentation] to learn how to to upload your build artifacts to Sentry.',
+            'Read the [link:Sentry Source Maps Documentation] to learn how to upload your build artifacts to Sentry.',
             {
               link: defined(sourceMapsDocLinks.legacyUploadingMethods) ? (
                 <ExternalLinkWithIcon href={sourceMapsDocLinks.legacyUploadingMethods} />
@@ -1998,12 +2002,6 @@ const ListItemContainer = styled('li')`
   }
 `;
 
-const CheckMarkContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
 const Line = styled('div')`
   margin: ${space(0.5)} 0;
   flex-grow: 1;
@@ -2028,14 +2026,8 @@ const CompletionNoteContainer = styled('div')`
   padding: 0 ${space(2)} 0 0;
 `;
 
-const ListItemTitleWrapper = styled('div')`
-  min-height: 20px;
-  display: flex;
-  align-items: center;
-`;
-
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p =>
     ({
       none: p.theme.tokens.content.secondary,
@@ -2065,9 +2057,9 @@ const MonoBlock = styled('code')`
   color: ${p => p.theme.colors.gray500};
   background: ${p => p.theme.colors.gray100};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
 `;
 
@@ -2104,7 +2096,7 @@ const DebuggerSectionContainer = styled('div')`
   gap: ${space(1.5)};
   h5 {
     margin-bottom: 0;
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
   h6 {
     font-size: 1rem;

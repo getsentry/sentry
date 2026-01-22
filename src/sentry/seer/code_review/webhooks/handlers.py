@@ -12,6 +12,7 @@ from sentry.models.repository import Repository
 
 from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
+from ..utils import extract_github_info
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
 from .pull_request import handle_pull_request_event
@@ -46,16 +47,17 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
+    # The extracted important key values are used for debugging with logs
+    extra = extract_github_info(event, github_event=github_event.value)
+    extra["organization_slug"] = organization.slug
+
     # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
     if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
 
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
-        logger.warning(
-            "github.webhook.handler.not_found",
-            extra={"github_event": github_event.value},
-        )
+        logger.warning("github.webhook.handler.not_found", extra=extra)
         return
 
     from ..utils import get_pr_author_id
@@ -76,23 +78,12 @@ def handle_webhook_event(
             )
         return
 
-    repository = event.get("repository", {})
-    if repository:
-        logger.info("repository: %s", repository)
-    github_org = event.get("repository", {}).get("owner", {}).get("login")
-    if github_org:
-        logger.info("github_org: %s", github_org)
-    else:
-        logger.info("github_org not found")
-    from .config import get_direct_to_seer_gh_orgs
-
-    gh_orgs_to_only_send_to_seer = get_direct_to_seer_gh_orgs()
-    logger.info("gh_orgs_to_only_send_to_seer: %s", gh_orgs_to_only_send_to_seer)
     handler(
         github_event=github_event,
         event=event,
         organization=organization,
-        github_org=github_org,
         repo=repo,
         integration=integration,
+        org_code_review_settings=preflight.settings,
+        extra=extra,
     )

@@ -368,6 +368,10 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
 }
 
 const Container = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
 `;

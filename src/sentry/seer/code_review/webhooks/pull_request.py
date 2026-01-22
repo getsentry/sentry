@@ -14,17 +14,16 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
 
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
-    record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import SeerCodeReviewTrigger, _get_target_commit_sha
-from .config import get_direct_to_seer_gh_orgs
+from ..utils import _get_target_commit_sha
 
 logger = logging.getLogger(__name__)
 
@@ -67,20 +66,17 @@ class PullRequestAction(enum.StrEnum):
 
 
 WHITELISTED_ACTIONS = {
+    PullRequestAction.CLOSED,
     PullRequestAction.OPENED,
     PullRequestAction.READY_FOR_REVIEW,
     PullRequestAction.SYNCHRONIZE,
 }
 
-
-def _get_trigger_for_action(action: PullRequestAction) -> SeerCodeReviewTrigger:
-    match action:
-        case PullRequestAction.OPENED | PullRequestAction.READY_FOR_REVIEW:
-            return SeerCodeReviewTrigger.ON_READY_FOR_REVIEW
-        case PullRequestAction.SYNCHRONIZE:
-            return SeerCodeReviewTrigger.ON_NEW_COMMIT
-        case _:
-            raise ValueError(f"Unsupported pull request action: {action}")
+ACTIONS_REQUIRING_TRIGGER_CHECK: dict[PullRequestAction, CodeReviewTrigger] = {
+    PullRequestAction.OPENED: CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    PullRequestAction.READY_FOR_REVIEW: CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    PullRequestAction.SYNCHRONIZE: CodeReviewTrigger.ON_NEW_COMMIT,
+}
 
 
 def handle_pull_request_event(
@@ -88,9 +84,10 @@ def handle_pull_request_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     organization: Organization,
-    github_org: str,
     repo: Repository,
     integration: RpcIntegration | None = None,
+    org_code_review_settings: CodeReviewSettings | None = None,
+    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
@@ -98,8 +95,6 @@ def handle_pull_request_event(
 
     This handler processes PR events and sends them directly to Seer
     """
-    extra = {"organization_id": organization.id, "repo": repo.name}
-
     pull_request = event.get("pull_request")
     if not pull_request:
         logger.warning(Log.MISSING_PULL_REQUEST.value, extra=extra)
@@ -113,7 +108,6 @@ def handle_pull_request_event(
         logger.warning(Log.MISSING_ACTION.value, extra=extra)
         record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
         return
-    extra["action"] = action_value
 
     record_webhook_received(github_event, action_value)
 
@@ -133,19 +127,24 @@ def handle_pull_request_event(
         )
         return
 
+    action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
+    if action_requires_trigger_permission is not None and (
+        org_code_review_settings is None
+        or action_requires_trigger_permission not in org_code_review_settings.triggers
+    ):
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        return
+
     if pull_request.get("draft") is True:
         return
 
-    if github_org in get_direct_to_seer_gh_orgs():
-        from .task import schedule_task
+    from .task import schedule_task
 
-        schedule_task(
-            github_event=github_event,
-            github_event_action=action_value,
-            event=event,
-            organization=organization,
-            repo=repo,
-            target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
-            trigger=_get_trigger_for_action(action),
-        )
-        record_webhook_enqueued(github_event, action_value)
+    schedule_task(
+        github_event=github_event,
+        github_event_action=action_value,
+        event=event,
+        organization=organization,
+        repo=repo,
+        target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
+    )

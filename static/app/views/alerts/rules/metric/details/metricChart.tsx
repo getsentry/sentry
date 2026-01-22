@@ -751,8 +751,8 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 `;
 
 const ChartFilters = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.sans};
   color: ${p => p.theme.tokens.content.primary};
   display: inline-grid;
   grid-template-columns: max-content max-content auto;
@@ -765,7 +765,11 @@ const Filters = styled('span')`
 
 const QueryFilters = styled('span')`
   min-width: 0px;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSectionValue = styled(SectionValue)`

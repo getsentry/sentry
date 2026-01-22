@@ -138,7 +138,7 @@ const StyledLink = styled(Link)`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.2;
 `;
 
@@ -159,10 +159,13 @@ const Meta = styled(TextOverflow)`
 `;
 
 const CommitContent = styled('div')`
-  display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const MetaWrapper = styled('div')`
@@ -170,7 +173,7 @@ const MetaWrapper = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 

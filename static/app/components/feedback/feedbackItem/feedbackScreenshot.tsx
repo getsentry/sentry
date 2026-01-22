@@ -91,7 +91,7 @@ const StyledLoadingIndicator = styled('div')`
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: ${p => p.theme.colors.blue100};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;
 
 const StyledImageButton = styled('button')`
@@ -125,7 +125,7 @@ const FileDownload = styled('a')`
 `;
 
 const File = styled(StyledPanel)`
-  background: ${p => p.theme.colors.blue100};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
   padding: ${space(2)};
   max-width: 300px;
 `;

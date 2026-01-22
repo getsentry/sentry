@@ -537,7 +537,7 @@ const PanelItemSelects = styled('div')`
 `;
 
 const RuleRowContainer = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border: 1px ${p => p.theme.tokens.border.primary} solid;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   &:last-child {
@@ -547,7 +547,7 @@ const RuleRowContainer = styled('div')`
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(3)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const PerformActionsListItem = styled(StyledListItem)`

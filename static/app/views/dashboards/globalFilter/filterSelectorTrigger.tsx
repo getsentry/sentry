@@ -91,12 +91,15 @@ const ButtonLabelWrapper = styled(Flex)`
 `;
 
 export const FilterValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 300px;
   width: min-content;
 `;
 
 const SubText = styled('span')`
   color: ${p => p.theme.colors.gray500};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

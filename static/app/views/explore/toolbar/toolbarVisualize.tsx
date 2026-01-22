@@ -252,9 +252,9 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
 const Label = styled('div')`
   cursor: pointer;
   border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => p.theme.colors.blue100};
-  color: ${p => p.theme.colors.blue400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  color: ${p => p.theme.tokens.content.accent};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   width: 24px;
   height: 36px;
   display: flex;

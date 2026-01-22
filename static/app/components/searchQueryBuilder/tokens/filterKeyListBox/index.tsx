@@ -480,7 +480,7 @@ const RecentFiltersPane = styled('ul')`
   grid-area: recentFilters;
   display: flex;
   flex-wrap: wrap;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} 10px;
   gap: ${p => p.theme.space['2xs']};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -512,8 +512,8 @@ const RecentFilterPill = styled('li')`
   display: flex;
   align-items: center;
   height: 22px;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
@@ -530,31 +530,35 @@ const RecentFilterPill = styled('li')`
     height: 100%;
     background: linear-gradient(
       to left,
-      ${p => p.theme.backgroundSecondary} 0 2px,
+      ${p => p.theme.tokens.background.secondary} 0 2px,
       transparent ${p => p.theme.space.xl} 100%
     );
   }
 `;
 
 const RecentFilterPillLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
 const SectionButton = styled(Button)`
   height: 20px;
   text-align: left;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   padding: 0 ${p => p.theme.space.lg};
   color: ${p => p.theme.tokens.content.secondary};
   border: 0;
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.colors.blue100};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue100};
-    color: ${p => p.theme.colors.blue400};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.accent};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 `;
 

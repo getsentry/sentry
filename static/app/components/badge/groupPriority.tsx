@@ -240,7 +240,7 @@ export function GroupPriorityDropdown({
 }
 
 const DropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: none;
   padding: 0;
   height: unset;
@@ -266,25 +266,33 @@ const InlinePlaceholder = styled(Placeholder)`
 
 const StyledFooter = styled(DropdownMenuFooter)`
   max-width: 230px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TruncatedFooterText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   background: linear-gradient(
     269.35deg,
-    ${p => p.theme.backgroundTertiary} 0.32%,
+    ${p => p.theme.tokens.background.tertiary} 0.32%,
     rgba(245, 243, 247, 0) 99.69%
   );
 

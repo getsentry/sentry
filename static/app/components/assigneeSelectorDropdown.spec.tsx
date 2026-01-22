@@ -627,7 +627,7 @@ describe('AssigneeSelectorDropdown', () => {
     expect(await screen.findByText('commit data')).toBeInTheDocument();
 
     await openMenu();
-    // User 4, Git Hub, would have normally been cut off by the the size limit since it is
+    // User 4, Git Hub, would have normally been cut off by the size limit since it is
     // alphabetically last, but it should still be shown because it is a suggested assignee
     const options = await screen.findAllByRole('option');
     expect(options).toHaveLength(2);

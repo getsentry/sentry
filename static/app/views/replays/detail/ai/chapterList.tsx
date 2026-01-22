@@ -284,24 +284,30 @@ const ChapterWrapper = styled('details')`
   }
 
   &.activeChapter .beforeCurrentTime:last-child {
-    border-bottom-color: ${p => p.theme.colors.blue400};
+    border-bottom-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid ${p => p.theme.backgroundSecondary};
+    border-top: 1px solid
+      ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    border-top: 1px solid
+      ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   [data-is-feedback='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.colors.pink100};
+      border-top: 1px solid ${p => p.theme.tokens.border.promotion.muted};
     }
   }
 
   [data-is-error='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.colors.red100};
+      border-top: 1px solid ${p => p.theme.tokens.border.danger.muted};
     }
   }
 `;
@@ -314,7 +320,13 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -322,12 +334,18 @@ const Chapter = styled('summary')`
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   padding: 0 ${space(0.75)};
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   /* sorry */
@@ -341,18 +359,18 @@ const Chapter = styled('summary')`
   }
 
   [data-is-feedback='true'] & {
-    color: ${p => p.theme.colors.pink400};
+    color: ${p => p.theme.tokens.content.promotion};
 
     &:hover {
-      background-color: ${p => p.theme.colors.pink100};
+      background-color: ${p => p.theme.tokens.background.transparent.promotion.muted};
     }
   }
 
   [data-is-error='true'] & {
-    color: ${p => p.theme.colors.red400};
+    color: ${p => p.theme.tokens.content.danger};
 
     &:hover {
-      background-color: ${p => p.theme.colors.red100};
+      background-color: ${p => p.theme.tokens.background.transparent.danger.muted};
     }
   }
 `;
@@ -364,11 +382,11 @@ const ChapterTitle = styled('div')`
   grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1)} 0;
 
   .activeChapter & {
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -383,8 +401,8 @@ const ReplayTimestamp = styled('span')`
   display: flex;
   gap: ${space(0.5)};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   justify-content: flex-end;
 `;
 

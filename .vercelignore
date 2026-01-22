@@ -15,7 +15,6 @@
 !stylelint.config.js
 !tsconfig.json
 !config
-!config/tsconfig.build.json
 !webpack.config.js
 !pnpm-lock.yaml
 !tests

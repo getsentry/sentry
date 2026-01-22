@@ -5,15 +5,12 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
 import {IconEdit} from 'sentry/icons';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 import UserPermissionsModal from 'admin/components/users/userPermissionsModal';
 
-type Props = RouteComponentProps<unknown, unknown>;
-
-function SentryEmployees(props: Props) {
+export default function SentryEmployees() {
   const gridColumns = [
     <th key="user">User</th>,
     <th key="email" style={{width: 100, textAlign: 'center'}}>
@@ -197,10 +194,7 @@ function SentryEmployees(props: Props) {
         }}
         sortOptions={[['name', 'Name']]}
         defaultSort="user"
-        {...props}
       />
     </div>
   );
 }
-
-export default SentryEmployees;

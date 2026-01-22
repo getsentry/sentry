@@ -37,6 +37,8 @@ function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDa
       return TraceItemDataset.LOGS;
     case WidgetType.SPANS:
       return TraceItemDataset.SPANS;
+    case WidgetType.PREPROD_APP_SIZE:
+      return TraceItemDataset.PREPROD;
     default:
       return TraceItemDataset.SPANS; // Default to spans for backwards compatibility
   }
@@ -82,6 +84,7 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.TRACEMETRICS]: getWidgetExploreUrlWithDataset(
     TraceItemDataset.TRACEMETRICS
   ),
+  [TraceItemDataset.PREPROD]: undefined,
 };
 
 export function getWidgetExploreUrl(

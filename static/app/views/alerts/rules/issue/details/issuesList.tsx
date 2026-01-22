@@ -131,7 +131,7 @@ export default AlertRuleIssuesList;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1.5)};
 
   ${p =>
@@ -154,14 +154,21 @@ const StyledDateTime = styled(DateTime)`
 `;
 
 const TitleWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   gap: ${space(0.5)};
   min-width: 200px;
 `;
 
 const MessageWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.primary};
 `;
 

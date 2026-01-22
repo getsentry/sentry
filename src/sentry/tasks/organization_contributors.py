@@ -5,7 +5,6 @@ import logging
 from django.utils import timezone
 
 from sentry import quotas
-from sentry.constants import DataCategory
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -62,7 +61,7 @@ def assign_seat_to_organization_contributor(contributor_id) -> None:
         },
     )
 
-    outcome = quotas.backend.assign_seat(DataCategory.SEER_USER, organization_contributor)
+    outcome = quotas.backend.assign_seat(seat_object=organization_contributor)
 
     if outcome != Outcome.ACCEPTED:
         logger.warning(

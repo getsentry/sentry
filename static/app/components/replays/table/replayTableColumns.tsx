@@ -642,7 +642,7 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   border-radius: 50%;
 
-  background-color: ${p => p.theme.colors.blue500};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   &[data-has-viewed='true'] {
     background-color: transparent;
   }
@@ -654,6 +654,6 @@ const SpanOperationBreakdown = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   color: ${p => p.theme.colors.gray800};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   text-align: right;
 `;

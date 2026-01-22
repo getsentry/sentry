@@ -326,7 +326,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/autofix/setup/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
     method: 'GET',
     body: AutofixSetupFixture({
       integration: {
@@ -340,7 +340,7 @@ const mockGroupApis = (
     }),
   });
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/autofix/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
     body: {
       steps: [],
     },

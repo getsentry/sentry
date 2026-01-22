@@ -344,7 +344,7 @@ const TagsPreview = styled('div')`
   align-content: center;
   gap: 1px;
   column-gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
@@ -406,21 +406,21 @@ const TagPreviewGrid = styled(Link)`
   margin: 0 -${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   &:hover {
-    background: ${p => p.theme.backgroundTertiary};
+    background: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
 const LegendText = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
 `;
 
 const LegendPercentage = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -432,11 +432,11 @@ const LegendTitle = styled('div')`
 `;
 
 const DistributionsDrawerLink = styled(Link)`
-  color: ${p => p.theme.colors.blue400};
+  color: ${p => p.theme.tokens.content.accent};
   align-self: flex-start;
 
   &:hover {
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
 `;
 

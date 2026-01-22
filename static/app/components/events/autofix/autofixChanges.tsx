@@ -155,7 +155,7 @@ const CopyContainer = styled('div')`
   align-items: stretch;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   max-width: 25rem;
   min-width: 0;
   flex: 1;
@@ -171,9 +171,9 @@ const CopyButton = styled(Button)`
 `;
 
 const CodeText = styled('code')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: block;
   min-width: 0;
   width: 100%;
@@ -277,7 +277,7 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconCodeRef}>
                 <IconCode size="md" variant="accent" />
@@ -294,7 +294,7 @@ export function AutofixChanges({
                 <IconChat />
               </Button>
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <AnimatePresence>
             {agentCommentThread && iconCodeRef.current && (
               <AutofixHighlightPopup
@@ -437,11 +437,11 @@ const Content = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   text-decoration: underline dashed;
-  text-decoration-color: ${p => p.theme.colors.blue400};
+  text-decoration-color: ${p => p.theme.tokens.border.accent.vibrant};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 `;
@@ -457,11 +457,11 @@ const RepoChangesHeader = styled('div')`
 `;
 
 const MarkdownAlert = styled(MarkedText)`
-  border: 1px solid ${p => p.theme.alert.warning.border};
-  background-color: ${p => p.theme.alert.warning.backgroundLight};
+  border: 1px solid ${p => p.theme.colors.yellow200};
+  background-color: ${p => p.theme.colors.yellow100};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.alert.warning.color};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const NoChangesPadding = styled('div')`
@@ -475,20 +475,12 @@ const Separator = styled('hr')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
   margin-right: ${space(2)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const BottomDivider = styled('div')`
@@ -505,8 +497,8 @@ const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
 `;
 
 const TerminationReasonText = styled('div')`
-  color: ${p => p.theme.errorText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.danger};
+  font-size: ${p => p.theme.font.size.sm};
   flex: 1;
   min-width: 0;
 `;

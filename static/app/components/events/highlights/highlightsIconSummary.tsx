@@ -250,7 +250,7 @@ const IconContainer = styled('div')`
 const IconDescription = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const IconWrapper = styled('div')`
@@ -264,7 +264,7 @@ const IconSubtitle = styled(Tooltip)`
 `;
 
 const StyledVersion = styled(Version)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

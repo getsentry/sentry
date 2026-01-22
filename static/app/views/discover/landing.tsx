@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -233,7 +234,9 @@ function DiscoverLanding() {
                   />
                 </PrebuiltSwitch>
                 <CompactSelect
-                  triggerProps={{prefix: t('Sort By')}}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
+                  )}
                   value={activeSort.value}
                   options={SORT_OPTIONS}
                   onChange={opt => handleSortChange(opt.value)}
@@ -279,7 +282,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 

@@ -97,6 +97,8 @@ export const enum SectionKey {
 
   XRAY_DIFF = 'xray-diff',
 
+  INSTRUMENTATION_FIX = 'instrumentation-fix',
+  
   PROFILE_PREVIEW = 'profile-preview',
 }
 

@@ -189,6 +189,9 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
 
         return False
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "group_id", "include_subgroups", "verify_ssl", "base_url"]
+
     # Gitlab only functions
 
     def get_group_id(self):

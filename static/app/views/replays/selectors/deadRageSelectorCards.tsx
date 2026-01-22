@@ -32,7 +32,7 @@ export default function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              <TitleTooltipContainer>
+              <Flex align="center" gap="md">
                 {t('Most Dead Clicks')}
                 <QuestionTooltip
                   size="xs"
@@ -42,7 +42,7 @@ export default function DeadRageSelectorCards() {
                   )}
                   isHoverable
                 />
-              </TitleTooltipContainer>
+              </Flex>
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -54,7 +54,7 @@ export default function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              <TitleTooltipContainer>
+              <Flex align="center" gap="md">
                 {t('Most Rage Clicks')}
                 <QuestionTooltip
                   size="xs"
@@ -64,7 +64,7 @@ export default function DeadRageSelectorCards() {
                   )}
                   isHoverable
                 />
-              </TitleTooltipContainer>
+              </Flex>
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -226,12 +226,6 @@ const StyledAccordionHeader = styled('div')`
   align-items: center;
 `;
 
-const TitleTooltipContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const StyledWidgetHeader = styled(HeaderTitleLegend)`
   display: grid;
   justify-content: space-between;
@@ -253,7 +247,7 @@ export const RightAlignedCell = styled('div')`
 `;
 
 const EmptySubtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.6em;
   padding-left: ${space(1)};
   padding-right: ${space(1)};

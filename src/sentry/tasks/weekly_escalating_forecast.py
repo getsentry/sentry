@@ -24,7 +24,7 @@ ParsedGroupsCount = dict[int, GroupCount]
 
 logger = logging.getLogger(__name__)
 
-ITERATOR_CHUNK = 1_000
+ITERATOR_CHUNK = 500
 
 
 @instrumented_task(

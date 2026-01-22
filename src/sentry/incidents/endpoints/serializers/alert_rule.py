@@ -268,13 +268,24 @@ class AlertRuleSerializer(Serializer):
             obj.organization,
             actor=user,
         )
-        # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
-        aggregate = translate_aggregate_field(
-            obj.snuba_query.aggregate,
-            reverse=True,
-            allow_mri=allow_mri,
-            allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
+
+        # Trace metrics have complicated aggregated validation that require EAP SearchResolver and do NOT need translation as they do not have tags in the old format (eg. tags[sentry:user))
+        is_trace_metric = (
+            obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+            and obj.snuba_query.event_types
+            and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in obj.snuba_query.event_types
         )
+
+        # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
+        if not is_trace_metric:
+            aggregate = translate_aggregate_field(
+                obj.snuba_query.aggregate,
+                reverse=True,
+                allow_mri=allow_mri,
+                allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
+            )
+        else:
+            aggregate = obj.snuba_query.aggregate
 
         # Apply transparency: Convert upsampled_count() back to count() for user-facing responses
         # This hides the internal upsampling implementation from users

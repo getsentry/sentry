@@ -36,7 +36,7 @@ class TestNode extends BaseNode {
   }
 
   makeBarColor(theme: Theme): string {
-    return theme.colors.blue400;
+    return theme.tokens.graphics.accent.vibrant;
   }
 
   printNode(): string {
@@ -412,13 +412,13 @@ describe('BaseNode', () => {
     it('should return correct maxIssueSeverity based on error levels', () => {
       const extra = createMockExtra();
 
-      // Node with no errors should return 'default'
+      // Node with no errors should return 'unknown'
       const nodeWithoutErrors = new TestNode(
         null,
         createMockValue({event_id: 'test-id'}),
         extra
       );
-      expect(nodeWithoutErrors.maxIssueSeverity).toBe('default');
+      expect(nodeWithoutErrors.maxIssueSeverity).toBe('unknown');
 
       // Node with error level should return 'error'
       const nodeWithError = new TestNode(
@@ -450,7 +450,7 @@ describe('BaseNode', () => {
       );
       expect(nodeWithFatal.maxIssueSeverity).toBe('fatal');
 
-      // Node with warning level should return 'default' (warning not prioritized)
+      // Node with warning level should return 'unknown' (warning not prioritized)
       const nodeWithWarning = new TestNode(
         null,
         createMockValue({event_id: 'test-id'}),
@@ -463,7 +463,7 @@ describe('BaseNode', () => {
           level: 'warning',
         })
       );
-      expect(nodeWithWarning.maxIssueSeverity).toBe('default');
+      expect(nodeWithWarning.maxIssueSeverity).toBe('unknown');
 
       // Node with mixed levels should prioritize error/fatal
       const nodeWithMixed = new TestNode(
@@ -726,7 +726,9 @@ describe('BaseNode', () => {
         title: 'Trace Header Title',
         subtitle: 'GET /api/users',
       });
-      expect(node.makeBarColor(ThemeFixture())).toEqual(ThemeFixture().blue300);
+      expect(node.makeBarColor(ThemeFixture())).toEqual(
+        ThemeFixture().tokens.graphics.accent.vibrant
+      );
       expect(node.printNode()).toBe('Print Node(test-id)');
       expect(node.analyticsName()).toBe('test');
 

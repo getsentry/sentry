@@ -269,19 +269,19 @@ export function NewIssueExperienceButton() {
 }
 
 const StyledDropdownButton = styled(DropdownButton)`
-  color: ${p => p.theme.button.primary.background};
+  color: ${p => p.theme.colors.blue400};
   :hover {
-    color: ${p => p.theme.button.primary.background};
+    color: ${p => p.theme.colors.blue400};
   }
 `;
 
 const TryNewButton = styled(Button)`
   background: linear-gradient(90deg, #3468d8, #248574);
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   &:hover,
   &:active,
   &:focus {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
   ::after {
     background: linear-gradient(90deg, #3468d8, #248574);

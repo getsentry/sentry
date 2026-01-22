@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
@@ -13,6 +14,7 @@ from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.delayed_workflow import (
     EventRedisData,
+    _process_workflows_for_project,
     process_delayed_workflows,
 )
 from sentry.workflow_engine.processors.schedule import process_in_batches
@@ -110,7 +112,7 @@ class TestDelayedWorkflowTaskBase(BaseWorkflowTest, BaseEventFrequencyPercentTes
 
         return workflow, [workflow_action_slow_filter_group, workflow_action_filter_group]
 
-    def setup_event(self, project, environment, name):
+    def setup_event(self, project: Project, environment: Environment, name: str) -> tuple[Any, Any]:
         event = self.create_event(project.id, FROZEN_TIME, name, environment.name)
         assert event.group
         return event, event.group
@@ -233,11 +235,16 @@ class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
 
     @patch("sentry.workflow_engine.processors.delayed_workflow.get_condition_group_results")
     def test_deleted_workflow_skips_snuba_queries(self, mock_snuba: MagicMock) -> None:
-        self._push_base_events()
+        redis_data = {
+            f"{self.workflow1.id}:{self.group1.id}::1:": '{"event_id": "event-1"}',
+            f"{self.workflow2.id}:{self.group2.id}::2:": '{"event_id": "event-2"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
         self.workflow1.update(status=ObjectStatus.PENDING_DELETION)
         self.workflow2.update(status=ObjectStatus.DELETION_IN_PROGRESS)
 
-        process_delayed_workflows(self.batch_client, self.project.id)
+        _process_workflows_for_project(self.project, event_data)
 
         mock_snuba.assert_not_called()
 

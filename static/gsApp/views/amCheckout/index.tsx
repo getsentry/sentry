@@ -871,7 +871,7 @@ const CheckoutHeader = styled('header')`
 `;
 
 const OrgSlug = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   text-wrap: nowrap;
@@ -898,7 +898,7 @@ const SidePanel = styled('aside')`
   display: flex;
   flex-direction: column;
   padding: 0 ${p => p.theme.space['2xl']};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     position: sticky;

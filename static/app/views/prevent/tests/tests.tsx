@@ -206,11 +206,11 @@ const MessageContainer = styled('div')`
 `;
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 14px;
 `;
 
