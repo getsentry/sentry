@@ -175,6 +175,11 @@ const GroupExtra = styled('div')`
 
   & > a {
     color: ${p => p.theme.tokens.content.secondary};
+    position: relative;
+  }
+
+  & > a:hover {
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
