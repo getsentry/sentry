@@ -55,6 +55,8 @@ const typeMap: Partial<
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
   [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
   [TraceItemDataset.REPLAYS]: 'replay',
+  // PREPROD uses 'span' type for field definitions since both have dynamic tags from the backend
+  [TraceItemDataset.PREPROD]: 'span',
 };
 
 function getTraceItemFieldDefinitionFunction(

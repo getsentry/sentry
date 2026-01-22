@@ -76,8 +76,8 @@ export function PreprodSearchBar({
       itemType={TraceItemDataset.PREPROD}
       numberAttributes={filteredNumberAttributes}
       stringAttributes={filteredStringAttributes}
-      numberSecondaryAliases={stringSecondaryAliases}
-      stringSecondaryAliases={numberSecondaryAliases}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
       searchSource={searchSource}
       projects={projects}
       portalTarget={portalTarget}
