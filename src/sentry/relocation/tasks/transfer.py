@@ -89,6 +89,7 @@ def _find_relocation_transfer(
     name="sentry.relocation.transfer.process_relocation_transfer_control",
     namespace=relocation_control_tasks,
     silo_mode=SiloMode.CONTROL,
+    processing_deadline_duration=60,
 )
 def process_relocation_transfer_control(transfer_id: int) -> None:
     log_context = {"id": transfer_id, "silo": "control"}
@@ -179,6 +180,7 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
     name="sentry.relocation.transfer.process_relocation_transfer_region",
     namespace=relocation_tasks,
     silo_mode=SiloMode.REGION,
+    processing_deadline_duration=60,
 )
 def process_relocation_transfer_region(transfer_id: int) -> None:
     log_context = {"id": transfer_id, "silo": "region", "region": get_local_region().name}
