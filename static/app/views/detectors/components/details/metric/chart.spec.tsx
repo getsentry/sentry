@@ -3,7 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -46,11 +50,11 @@ describe('MetricDetectorDetailsChart', () => {
       config: {detectionType: 'dynamic'},
       conditionGroup: {
         id: '1',
-        logicType: 'any',
+        logicType: DataConditionGroupLogicType.ANY,
         conditions: [
           {
             id: '1',
-            type: 'anomaly_detection',
+            type: DataConditionType.ANOMALY_DETECTION,
             comparison: {
               sensitivity: AlertRuleSensitivity.HIGH,
               seasonality: 'auto',
@@ -61,6 +65,7 @@ describe('MetricDetectorDetailsChart', () => {
         ],
       },
     });
+    const anomalySnubaQuery = anomalyDetector.dataSources[0].queryObj.snubaQuery;
 
     const baseTimestamp = Date.now() / 1000;
     const CUTOFF_MESSAGE = 'Some anomaly thresholds are outside the chart area';
@@ -87,7 +92,13 @@ describe('MetricDetectorDetailsChart', () => {
       mockChartData();
       mockAnomalyData(105); // Within bounds (max 100 + 10% padding = 110)
 
-      render(<MetricDetectorDetailsChart detector={anomalyDetector} />, {organization});
+      render(
+        <MetricDetectorDetailsChart
+          detector={anomalyDetector}
+          snubaQuery={anomalySnubaQuery}
+        />,
+        {organization}
+      );
 
       expect(
         await screen.findByRole('button', {name: 'Open in Discover'})
@@ -99,7 +110,13 @@ describe('MetricDetectorDetailsChart', () => {
       mockChartData();
       mockAnomalyData(500); // Exceeds bounds
 
-      render(<MetricDetectorDetailsChart detector={anomalyDetector} />, {organization});
+      render(
+        <MetricDetectorDetailsChart
+          detector={anomalyDetector}
+          snubaQuery={anomalySnubaQuery}
+        />,
+        {organization}
+      );
 
       expect(await screen.findByText(CUTOFF_MESSAGE)).toBeInTheDocument();
     });
