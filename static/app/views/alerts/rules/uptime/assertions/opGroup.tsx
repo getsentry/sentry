@@ -54,7 +54,11 @@ export function AssertionOpGroup({
       : value.operand
     : value;
 
-  const [notId] = useState(() => uniqueId());
+  // Generate a stable ID for new negations only (when toggling from non-negated to negated)
+  const [newNotId] = useState(() => uniqueId());
+
+  // Use existing value.id when already negated, or the generated ID for new negations
+  const notId = isNegated ? value.id : newNotId;
 
   const handleAddOp = (newOp: Op) => {
     const newGroupOp: GroupOp = {
@@ -86,7 +90,7 @@ export function AssertionOpGroup({
   };
 
   const handleNegationToggle = (negated: boolean) => {
-    onChange(negated ? {id: notId, op: 'not', operand: groupOp} : groupOp);
+    onChange(negated ? {id: newNotId, op: 'not', operand: groupOp} : groupOp);
   };
 
   // Generate label based on negation and group type
