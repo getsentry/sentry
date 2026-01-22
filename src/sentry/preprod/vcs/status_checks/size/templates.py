@@ -131,14 +131,24 @@ def format_status_check_messages(
 
     else:
         # Success or in-progress
-        analyzed_header = ngettext(
-            "## %(count)d App Analyzed",
-            "## %(count)d Apps Analyzed",
-            analyzed_count,
-        ) % {"count": analyzed_count}
-
         summary_parts = []
-        summary_parts.append(analyzed_header)
+
+        if analyzed_count > 0:
+            analyzed_header = ngettext(
+                "## %(count)d App Analyzed",
+                "## %(count)d Apps Analyzed",
+                analyzed_count,
+            ) % {"count": analyzed_count}
+            summary_parts.append(analyzed_header)
+        else:
+            # All apps still processing
+            processing_header = ngettext(
+                "## %(count)d App Processing",
+                "## %(count)d Apps Processing",
+                processing_count,
+            ) % {"count": processing_count}
+            summary_parts.append(processing_header)
+
         summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map))
         summary_parts.append(_format_configure_link(project, settings_url))
 

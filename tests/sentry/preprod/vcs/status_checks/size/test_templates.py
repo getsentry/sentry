@@ -1144,7 +1144,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 <summary>1 Failed Check</summary>
 
 `com.example.app` (Android)
-- **Download Size - Total Size** ≥ **50.0 MB**
+- **Download Size - Total Size** ≥ **52.4 MB**
 
 ⚙️ [Configure status check rules]({settings_url})
 </details>
@@ -1239,7 +1239,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 <summary>3 Failed Checks</summary>
 
 `com.example.app` (Android)
-- **Download Size - Total Size** ≥ **50.0 MB**
+- **Download Size - Total Size** ≥ **52.4 MB**
 - **Install Size - Absolute Diff** ≥ **10.5 MB**
 - **Download Size - Relative Diff** ≥ **5.0%**
 
@@ -1352,7 +1352,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 <summary>2 Failed Checks</summary>
 
 `com.example.app1` (iOS)
-- **Download Size - Total Size** ≥ **50.0 MB**
+- **Download Size - Total Size** ≥ **52.4 MB**
 `com.example.app2` (Android)
 - **Install Size - Total Size** ≥ **104.9 MB**
 
@@ -1451,7 +1451,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 <summary>1 Failed Check</summary>
 
 `com.example.failed` (Android)
-- **Download Size - Total Size** ≥ **50.0 MB**
+- **Download Size - Total Size** ≥ **52.4 MB**
 
 ⚙️ [Configure status check rules]({settings_url})
 </details>
