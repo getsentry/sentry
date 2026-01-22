@@ -601,7 +601,7 @@ const FilterList = styled('div')`
 `;
 
 export const SearchInput = styled(Input)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(0.5)} ${space(1)};
   height: 100%;
 
