@@ -19,7 +19,7 @@ from sentry.ratelimits import (
     get_rate_limit_value,
 )
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
+from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils import metrics
 
 DEFAULT_ERROR_MESSAGE = (
@@ -48,11 +48,35 @@ class RatelimitMiddleware:
             self.process_response(request, response)
             return response
 
+    def _apply_impersonation_limits(self) -> RateLimitConfig:
+        """Apply fixed rate limits during impersonation sessions."""
+
+        impersonation_limit = getattr(settings, "SENTRY_IMPERSONATION_RATE_LIMIT", 100)
+
+        # Create one set of limits to use for all HTTP methods
+        default_limits = {
+            RateLimitCategory.IP: RateLimit(
+                limit=impersonation_limit, window=1, concurrent_limit=impersonation_limit
+            ),
+            RateLimitCategory.USER: RateLimit(
+                limit=impersonation_limit, window=1, concurrent_limit=impersonation_limit
+            ),
+            RateLimitCategory.ORGANIZATION: RateLimit(
+                limit=impersonation_limit, window=1, concurrent_limit=impersonation_limit
+            ),
+        }
+
+        return RateLimitConfig(
+            limit_overrides={
+                method: default_limits
+                for method in ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+            }
+        )
+
     def process_view(
         self, request: HttpRequest, view_func, view_args, view_kwargs
     ) -> HttpResponseBase | None:
         """Check if the endpoint call will violate."""
-
         with metrics.timer("middleware.ratelimit.process_view", sample_rate=0.01):
             try:
                 # TODO: put these fields into their own object
@@ -65,13 +89,25 @@ class RatelimitMiddleware:
                 if not view_class:
                     return None
 
+                # Check for impersonation
+                is_impersonating = getattr(request, "actual_user", None) is not None
+
                 enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
+                # Always enforce rate limits during impersonation sessions
+                if is_impersonating and not enforce_rate_limit:
+                    enforce_rate_limit = True
+
                 if enforce_rate_limit is False:
                     return None
 
                 rate_limit_config = get_rate_limit_config(
                     view_class, view_args, {**view_kwargs, "request": request}
                 )
+
+                # Apply stricter limits during impersonation
+                if is_impersonating:
+                    rate_limit_config = self._apply_impersonation_limits()
+
                 rate_limit_group = (
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
                 )
