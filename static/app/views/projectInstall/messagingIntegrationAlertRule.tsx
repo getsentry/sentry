@@ -43,9 +43,12 @@ export default function MessagingIntegrationAlertRule({
   const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
     [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/integrations/${integration?.id}/channels/` as any,
+        `/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/`,
         {
-          path: {organizationIdOrSlug: organization.slug},
+          path: {
+            organizationIdOrSlug: organization.slug,
+            integrationId: integration?.id!,
+          },
         }
       ),
     ],
