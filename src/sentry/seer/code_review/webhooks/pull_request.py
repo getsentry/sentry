@@ -10,7 +10,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -24,7 +23,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha, add_github_reaction
+from ..utils import _get_target_commit_sha, delete_tada_and_add_eyes_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -84,47 +83,6 @@ ACTIONS_ELIGIBLE_FOR_EYES_REACTION: set[PullRequestAction] = {
     PullRequestAction.READY_FOR_REVIEW,
     PullRequestAction.SYNCHRONIZE,
 }
-
-
-def _add_eyes_reaction_to_pull_request(
-    github_event: GithubWebhookType,
-    github_event_action: PullRequestAction,
-    integration: RpcIntegration | None,
-    organization_id: int,
-    repo: Repository,
-    pr_number: str,
-) -> None:
-    """
-    Add 👀 reaction to acknowledge PR opening, ready for review, or new commits. Errors are added to metrics but not raised.
-    Before adding eyes reaction, delete the existing 🎉 reaction from Sentry bot if it exists.
-    """
-
-    def perform_reaction(client: Any) -> None:
-        try:
-            existing_reactions = client.get_issue_reactions(repo.name, str(pr_number))
-            for reaction in existing_reactions:
-                if (
-                    reaction.get("user", {}).get("login") == "sentry[bot]"
-                    and reaction.get("content") == GitHubReaction.HOORAY.value
-                ):
-                    if reaction.get("id"):
-                        client.delete_issue_reaction(
-                            repo.name, str(pr_number), str(reaction.get("id"))
-                        )
-                    break
-        except Exception:
-            # Keep going even if we can't get or delete existing reactions
-            pass
-
-        client.create_issue_reaction(repo.name, str(pr_number), GitHubReaction.EYES)
-
-    add_github_reaction(
-        github_event=github_event,
-        github_event_action=github_event_action.value,
-        integration=integration,
-        organization_id=organization_id,
-        reaction_operation=perform_reaction,
-    )
 
 
 def handle_pull_request_event(
@@ -190,13 +148,14 @@ def handle_pull_request_event(
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
-        _add_eyes_reaction_to_pull_request(
-            github_event,
-            action,
-            integration,
-            organization.id,
-            repo,
-            str(pr_number),
+        delete_tada_and_add_eyes_reaction(
+            github_event=github_event,
+            github_event_action=action_value,
+            integration=integration,
+            organization_id=organization.id,
+            repo=repo,
+            pr_number=str(pr_number),
+            comment_id=None,
         )
 
     from .task import schedule_task
