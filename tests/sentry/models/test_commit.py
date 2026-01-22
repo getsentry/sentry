@@ -9,10 +9,8 @@ from sentry.testutils.cases import TestCase
 
 
 class FindReferencedGroupsTest(TestCase):
-    def _create_commit(self, message: str, org_id: int | None = None) -> Commit:
+    def _create_commit(self, message: str) -> Commit:
         """Create a commit with the given message."""
-        if org_id is None:
-            org_id = self.organization.id
         if not hasattr(self, "_repo"):
             self._repo = Repository.objects.create(
                 name="example", organization_id=self.organization.id
@@ -20,7 +18,7 @@ class FindReferencedGroupsTest(TestCase):
         return Commit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=self._repo.id,
-            organization_id=org_id,
+            organization_id=self.organization.id,
             message=message,
         )
 
