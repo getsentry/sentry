@@ -388,14 +388,17 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             <Observer>
               {() => (
                 <TestUptimeMonitorButton
-                  getFormData={() => ({
-                    url: formModel.getValue('url'),
-                    method: formModel.getValue('method'),
-                    headers: formModel.getValue('headers'),
-                    body: methodHasBody(formModel) ? formModel.getValue('body') : null,
-                    timeoutMs: formModel.getValue('timeoutMs'),
-                    assertion: formModel.getValue('assertion'),
-                  })}
+                  getFormData={() => {
+                    const data = formModel.getTransformedData();
+                    return {
+                      url: data.url,
+                      method: data.method,
+                      headers: data.headers,
+                      body: methodHasBody(formModel) ? data.body : null,
+                      timeoutMs: data.timeoutMs,
+                      assertion: data.assertion,
+                    };
+                  }}
                 />
               )}
             </Observer>
