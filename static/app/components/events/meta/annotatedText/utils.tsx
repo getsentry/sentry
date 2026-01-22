@@ -156,5 +156,5 @@ export function getTooltipText({
 }
 
 const Wrapper = styled('div')`
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;

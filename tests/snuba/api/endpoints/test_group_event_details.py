@@ -35,62 +35,62 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         self.group = Group.objects.first()
 
     def test_snuba_no_environment_latest(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/latest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/latest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.event2.event_id)
 
     def test_snuba_no_environment_oldest(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/oldest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.event1.event_id)
 
     def test_snuba_no_environment_event_id(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/{self.event1.event_id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/{self.event1.event_id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.event1.event_id)
 
     def test_snuba_environment_latest(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/latest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/latest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.event2.event_id)
 
     def test_snuba_environment_oldest(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/oldest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/oldest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.event2.event_id)
 
     def test_snuba_environment_event_id(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/{self.event2.event_id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/{self.event2.event_id}/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.event2.event_id)
 
     def test_simple_latest(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/latest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/latest/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["eventID"] == str(self.event2.event_id)
 
     def test_simple_oldest(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/oldest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.event1.event_id)
 
     def test_simple_event_id(self) -> None:
-        url = f"/api/0/issues/{self.group.id}/events/{self.event1.event_id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/{self.event1.event_id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -99,7 +99,9 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
     def test_perf_issue_latest(self) -> None:
         event = self.create_performance_issue()
         assert event.group is not None
-        url = f"/api/0/issues/{event.group.id}/events/latest/"
+        url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/latest/"
+        )
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["eventID"] == event.event_id
@@ -107,7 +109,9 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
     def test_perf_issue_oldest(self) -> None:
         event = self.create_performance_issue()
         assert event.group is not None
-        url = f"/api/0/issues/{event.group.id}/events/oldest/"
+        url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/oldest/"
+        )
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["eventID"] == event.event_id
@@ -115,7 +119,7 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
     def test_perf_issue_event_id(self) -> None:
         event = self.create_performance_issue()
         assert event.group is not None
-        url = f"/api/0/issues/{event.group.id}/events/{event.event_id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/{event.event_id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["eventID"] == event.event_id
@@ -123,6 +127,6 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
     def test_invalid_query(self) -> None:
         event = self.create_performance_issue()
         assert event.group is not None
-        url = f"/api/0/issues/{event.group.id}/events/{event.event_id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/{event.event_id}/"
         response = self.client.get(url, format="json", data={"query": "release.version:foobar"})
         assert response.status_code == 400

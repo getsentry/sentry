@@ -23,10 +23,14 @@ from sentry.net.http import connection_from_url
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
+    CodingAgentProviderType,
+    CodingAgentResult,
     CodingAgentState,
+    CodingAgentStatus,
     get_autofix_state,
     get_coding_agent_prompt,
     get_project_seer_preferences,
+    update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -458,3 +462,100 @@ def launch_coding_agents_for_run(
     )
 
     return results
+
+
+def poll_github_copilot_agents(
+    autofix_state: AutofixState,
+    user_id: int,
+) -> None:
+    if not autofix_state.coding_agents:
+        return
+
+    user_access_token: str | None = None
+
+    for agent_id, agent_state in autofix_state.coding_agents.items():
+        if agent_state.provider != CodingAgentProviderType.GITHUB_COPILOT_AGENT:
+            continue
+
+        if agent_state.status != CodingAgentStatus.RUNNING:
+            continue
+
+        decoded = GithubCopilotAgentClient.decode_agent_id(agent_id)
+        if not decoded:
+            logger.warning(
+                "coding_agent.github_copilot.invalid_agent_id",
+                extra={"agent_id": agent_id},
+            )
+            continue
+
+        owner, repo, task_id = decoded
+
+        if user_access_token is None:
+            user_access_token = github_copilot_identity_service.get_access_token_for_user(
+                user_id=user_id
+            )
+            if not user_access_token:
+                logger.warning(
+                    "coding_agent.github_copilot.no_user_token",
+                    extra={"user_id": user_id, "agent_id": agent_id},
+                )
+                return
+
+        try:
+            client = GithubCopilotAgentClient(user_access_token)
+            task_status = client.get_task_status(owner, repo, task_id)
+
+            pr_artifact = next(
+                (a for a in (task_status.artifacts or []) if a.data.type == "pull"),
+                None,
+            )
+
+            if pr_artifact:
+                pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
+                if pr_info:
+                    pr_url = pr_info.url
+                    description = pr_info.title
+
+                    result = CodingAgentResult(
+                        description=description,
+                        repo_provider="github",
+                        repo_full_name=f"{owner}/{repo}",
+                        pr_url=pr_url,
+                    )
+
+                    is_task_done = task_status.status in ("completed", "succeeded")
+                    new_status = (
+                        CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
+                    )
+
+                    update_coding_agent_state(
+                        agent_id=agent_id,
+                        status=new_status,
+                        result=result,
+                    )
+
+                    logger.info(
+                        "coding_agent.github_copilot.pr_update",
+                        extra={
+                            "agent_id": agent_id,
+                            "pr_url": pr_url,
+                            "task_status": task_status.status,
+                            "is_task_done": is_task_done,
+                        },
+                    )
+
+            elif task_status.status in ("failed", "error"):
+                update_coding_agent_state(
+                    agent_id=agent_id,
+                    status=CodingAgentStatus.FAILED,
+                )
+                logger.info(
+                    "coding_agent.github_copilot.task_failed",
+                    extra={"agent_id": agent_id, "task_status": task_status.status},
+                )
+
+        except Exception:
+            logger.exception(
+                "coding_agent.github_copilot.poll_error",
+                extra={"agent_id": agent_id, "owner": owner, "repo": repo, "task_id": task_id},
+            )

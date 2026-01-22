@@ -2268,6 +2268,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of organization IDs that should be using span metrics for boost low volume transactions.
+register(
+    "dynamic-sampling.transactions.span-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # === Hybrid cloud subsystem options ===
 # UI rollout
@@ -3117,6 +3125,23 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# ZSET to SET migration options.
+register(
+    "spans.buffer.write-to-zset",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.write-to-set",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.read-from-set",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer

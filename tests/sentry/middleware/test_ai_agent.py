@@ -100,6 +100,11 @@ class AIAgentMiddlewareTest(TestCase):
 
         assert self.middleware(request).status_code == 401
 
+    def test_oauth_path_passes_through(self):
+        request = self.make_anonymous_request("/oauth/token/", HTTP_ACCEPT="text/markdown")
+
+        assert self.middleware(request).status_code == 401
+
     @patch("sentry.middleware.ai_agent.logger.info")
     def test_logs_request(self, mock_logger: MagicMock):
         request = self.make_anonymous_request(

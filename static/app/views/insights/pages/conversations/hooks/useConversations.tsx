@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -46,8 +46,6 @@ export function useConversations() {
     fields: {agent: decodeList},
   });
 
-  const {start, end, period, utc} = pageFilters.selection.datetime;
-
   const agentQuery =
     agentFilters.length > 0
       ? `${SpanFields.GEN_AI_AGENT_NAME}:[${agentFilters.map(a => `"${a}"`).join(',')}]`
@@ -70,10 +68,7 @@ export function useConversations() {
           query: combinedQuery,
           project: pageFilters.selection.projects,
           environment: pageFilters.selection.environments,
-          period,
-          start: start instanceof Date ? getUtcDateString(start) : start,
-          end: end instanceof Date ? getUtcDateString(end) : end,
-          utc,
+          ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
       },
     ],

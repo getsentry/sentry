@@ -9,6 +9,7 @@ from django.db.models import Count
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
+    BoundedBigIntegerField,
     DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
@@ -16,6 +17,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
+from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.uptime.types import (
@@ -92,6 +94,9 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
+    # Whether to capture response body and headers on check failures.
+    # Used for debugging - can be disabled after first capture to reduce bandwidth.
+    capture_response_on_failure = models.BooleanField(default=True, db_default=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -286,3 +291,36 @@ def get_audit_log_data(detector: Detector):
         "headers": uptime_subscription.headers,
         "body": uptime_subscription.body,
     }
+
+
+@region_silo_model
+class UptimeResponseCapture(DefaultFieldsModel):
+    """
+    Stores HTTP response data captured during uptime check failures.
+
+    When an uptime monitor detects a failure, the response body and headers
+    are captured to help users debug why their endpoint is failing. This data
+    is stored as a raw HTTP response format in an associated File.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    uptime_subscription = FlexibleForeignKey(
+        "uptime.UptimeSubscription", related_name="response_captures"
+    )
+    file_id = BoundedBigIntegerField()
+    scheduled_check_time_ms = BoundedBigIntegerField()
+
+    class Meta:
+        app_label = "uptime"
+        db_table = "uptime_uptimeresponsecapture"
+        indexes = [
+            models.Index(fields=["uptime_subscription", "scheduled_check_time_ms"]),
+        ]
+
+    def delete(self, *args, **kwargs):
+        try:
+            File.objects.get(pk=self.file_id).delete()
+        except File.DoesNotExist:
+            pass
+        return super().delete(*args, **kwargs)

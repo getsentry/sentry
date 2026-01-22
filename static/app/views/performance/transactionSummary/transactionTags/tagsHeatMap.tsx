@@ -454,7 +454,7 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)``;
 
 const SectionSubtext = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`

@@ -76,13 +76,13 @@ class CursorWebhookEndpoint(Endpoint):
         )
 
         if not integrations:
-            logger.error(
+            logger.warning(
                 "cursor_webhook.no_integrations", extra={"organization_id": organization_id}
             )
             return None
 
         if len(integrations) > 1:
-            logger.error(
+            logger.warning(
                 "cursor_webhook.multiple_integrations",
                 extra={
                     "organization_id": organization_id,
@@ -94,7 +94,7 @@ class CursorWebhookEndpoint(Endpoint):
         installation = integrations[0].get_installation(organization_id)
 
         if not isinstance(installation, CursorAgentIntegration):
-            logger.error(
+            logger.warning(
                 "cursor_webhook.unexpected_installation_type",
                 extra={
                     "integration_id": integrations[0].id,
@@ -147,7 +147,7 @@ class CursorWebhookEndpoint(Endpoint):
 
     def _handle_unknown_event(self, payload: dict[str, Any]) -> None:
         """Handle unknown event types."""
-        logger.error("cursor_webhook.unknown_event", extra=payload)
+        logger.warning("cursor_webhook.unknown_event", extra=payload)
 
     def _handle_status_change(self, payload: dict[str, Any]) -> None:
         """Handle status change events."""
@@ -160,7 +160,7 @@ class CursorWebhookEndpoint(Endpoint):
         summary = payload.get("summary")
 
         if not agent_id or not cursor_status:
-            logger.error(
+            logger.warning(
                 "cursor_webhook.status_change_missing_data",
                 extra={"agent_id": agent_id, "status": cursor_status},
             )
@@ -168,7 +168,7 @@ class CursorWebhookEndpoint(Endpoint):
 
         status = CodingAgentStatus.from_cursor_status(cursor_status)
         if not status:
-            logger.error(
+            logger.warning(
                 "cursor_webhook.unknown_status",
                 extra={"cursor_status": cursor_status, "agent_id": agent_id},
             )
@@ -187,7 +187,7 @@ class CursorWebhookEndpoint(Endpoint):
 
         repo_url = source.get("repository", None)
         if not repo_url:
-            logger.error(
+            logger.warning(
                 "cursor_webhook.repo_not_found",
                 extra={"agent_id": agent_id, "source": source},
             )
@@ -199,7 +199,7 @@ class CursorWebhookEndpoint(Endpoint):
 
         parsed = urlparse(repo_url)
         if parsed.netloc != "github.com":
-            logger.error(
+            logger.warning(
                 "cursor_webhook.not_github_repo",
                 extra={"agent_id": agent_id, "repo": repo_url},
             )
@@ -211,7 +211,7 @@ class CursorWebhookEndpoint(Endpoint):
         # If the repo isn't in the owner/repo format we can't work with it
         # Allow dots in the repository name segment (owner.repo is common)
         if not re.match(r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$", repo_full_name):
-            logger.error(
+            logger.warning(
                 "cursor_webhook.repo_format_invalid",
                 extra={"agent_id": agent_id, "source": source},
             )
@@ -254,7 +254,7 @@ class CursorWebhookEndpoint(Endpoint):
                 },
             )
         except SeerApiError:
-            logger.exception(
+            logger.warning(
                 "cursor_webhook.seer_update_error",
                 extra={
                     "agent_id": agent_id,

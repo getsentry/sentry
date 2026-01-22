@@ -153,7 +153,7 @@ const Heading = styled('h6')`
   margin: 0 ${space(2)};
   width: 60px;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const IssueHeading = styled(Heading)`
@@ -256,7 +256,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   font-variant-numeric: tabular-nums;
 `;
 

@@ -100,7 +100,7 @@ const ConsoleLog = styled('div')<{
   gap: ${space(0.75)};
   align-items: baseline;
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   background-color: ${p =>
     p.level === 'warning'
@@ -140,7 +140,7 @@ const ICONS = {
 };
 
 const MediumFontSize = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {
@@ -153,7 +153,7 @@ function ConsoleLevelIcon({level}: {level: string | undefined}) {
 }
 
 const Message = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 
   white-space: pre-wrap;
   word-break: break-word;

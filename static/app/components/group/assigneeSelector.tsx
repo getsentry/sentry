@@ -119,7 +119,7 @@ export function AssigneeSelector({
 }
 
 const StyledTrigger = styled(OverlayTrigger.Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: none;
   padding: 0;
   height: unset;
