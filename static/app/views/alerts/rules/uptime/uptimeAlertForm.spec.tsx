@@ -437,7 +437,26 @@ describe('Uptime Alert Form', () => {
         data: expect.objectContaining({
           name: 'Rule with Assertion',
           url: 'http://example.com',
-          assertion: {root: {op: 'and', children: [], id: expect.any(String)}},
+          assertion: {
+            root: {
+              op: 'and',
+              id: expect.any(String),
+              children: [
+                {
+                  op: 'status_code_check',
+                  id: expect.any(String),
+                  operator: {cmp: 'greater_than'},
+                  value: 199,
+                },
+                {
+                  op: 'status_code_check',
+                  id: expect.any(String),
+                  operator: {cmp: 'less_than'},
+                  value: 300,
+                },
+              ],
+            },
+          },
         }),
       })
     );

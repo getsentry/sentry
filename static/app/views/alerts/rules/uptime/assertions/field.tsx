@@ -1,7 +1,7 @@
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {uniqueId} from 'sentry/utils/guid';
-import type {Assertion, Op} from 'sentry/views/alerts/rules/uptime/types';
+import type {AndOp, Assertion, Op} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionOpGroup} from './opGroup';
 
@@ -33,12 +33,36 @@ export function normalizeAssertion(op: Op): Op {
   }
 }
 
+/**
+ * Creates a default assertion root that validates 2xx status codes (>199 AND <300)
+ */
+function createDefaultAssertionRoot(): AndOp {
+  return {
+    op: 'and',
+    id: uniqueId(),
+    children: [
+      {
+        op: 'status_code_check',
+        id: uniqueId(),
+        operator: {cmp: 'greater_than'},
+        value: 199,
+      },
+      {
+        op: 'status_code_check',
+        id: uniqueId(),
+        operator: {cmp: 'less_than'},
+        value: 300,
+      },
+    ],
+  };
+}
+
 // XXX(epurkhiser): The types of the FormField render props are absolutely
 // abysmal, so we're leaving this untyped for now.
 
 function UptimeAssertionsControl({onChange, onBlur, value}: any) {
   // Handle cases where value might be undefined or not have the expected structure
-  const rootOp = value?.root ?? {op: 'and' as const, children: [], id: uniqueId()};
+  const rootOp = value?.root ?? createDefaultAssertionRoot();
 
   return (
     <AssertionOpGroup
@@ -52,36 +76,10 @@ function UptimeAssertionsControl({onChange, onBlur, value}: any) {
   );
 }
 
-/**
- * Creates a default assertion that validates 2xx status codes (>199 AND <300)
- */
-function createDefaultAssertion(): Assertion {
-  return {
-    root: {
-      op: 'and',
-      id: uniqueId(),
-      children: [
-        {
-          op: 'status_code_check',
-          id: uniqueId(),
-          operator: {cmp: 'greater_than'},
-          value: 199,
-        },
-        {
-          op: 'status_code_check',
-          id: uniqueId(),
-          operator: {cmp: 'less_than'},
-          value: 300,
-        },
-      ],
-    },
-  };
-}
-
 export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
   return (
     <FormField
-      defaultValue={createDefaultAssertion()}
+      defaultValue={{root: createDefaultAssertionRoot()}}
       {...props}
       flexibleControlStateSize
       // Use getValue (not getData) to transform field value at submission time.
