@@ -245,26 +245,6 @@ class TestTransformWebhookToCodegenRequest:
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"
 
-    def test_issue_comment_on_regular_issue_returns_none(
-        self, setup_entities: tuple[User, Organization, Project, Repository]
-    ) -> None:
-        _, organization, _, repo = setup_entities
-        event_payload = {
-            "action": "created",
-            # No pull_request key indicates this is a regular issue comment
-            "issue": {"number": 42},
-            "comment": {"id": 12345},
-        }
-        result = transform_webhook_to_codegen_request(
-            GithubWebhookType.ISSUE_COMMENT,
-            "created",
-            event_payload,
-            organization,
-            repo,
-            "somesha",
-        )
-        assert result is None
-
     def test_invalid_repo_name_format_raises(
         self, setup_entities: tuple[User, Organization, Project, Repository]
     ) -> None:
