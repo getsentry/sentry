@@ -15,6 +15,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -257,7 +258,13 @@ export function getGroupEventQueryKey({
   statsPeriod?: string;
 }): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        issueId: groupId,
+        eventId,
+      },
+    }),
     {
       query: getGroupEventDetailsQueryData({
         environments,

@@ -1,5 +1,6 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -34,7 +35,9 @@ export function useMetricSessionStats(
   });
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/sessions/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         project: project.id ? [Number(project.id)] : [],

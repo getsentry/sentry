@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -47,7 +48,9 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
     refetch,
   } = useApiQuery<RelatedIssuesResponse>(
     [
-      `/organizations/${organization.slug}/issues/${group.id}/related-issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+      }),
       {
         query: {
           type: relationType,
