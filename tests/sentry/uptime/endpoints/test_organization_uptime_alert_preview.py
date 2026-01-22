@@ -21,21 +21,6 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
     method = "post"
     features: dict[str, bool] = {"organizations:uptime-runtime-assertions": True}
 
-    def test_bad_region(self) -> None:
-        with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug,
-                name="test",
-                environment="uptime-prod",
-                owner=f"user:{self.user.id}",
-                url="http://sentry.io",
-                timeout_ms=1500,
-                body=None,
-                region="does_not_exist",
-            )
-            assert "region" in response.data
-            assert '"does_not_exist" is not a valid choice.' in response.data["region"][0]
-
     def test_bad_config(self) -> None:
         with self.feature(self.features):
             response = self.get_error_response(

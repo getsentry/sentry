@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from typing import Any, override
 
 import jsonschema
-from django.conf import settings
 from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
@@ -181,10 +180,6 @@ class UptimeValidatorBase(CamelSnakeSerializer):
 
 @extend_schema_serializer()
 class UptimeCheckPreviewValidator(UptimeValidatorBase):
-    region = serializers.ChoiceField(
-        choices=[r.slug for r in settings.UPTIME_REGIONS],
-    )
-
     def __init__(self, assertions_enabled, **kwargs: Any):
         super().__init__(**kwargs)
         self.assertions_enabled = assertions_enabled
@@ -196,7 +191,7 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
             attrs.get("headers", []),
             attrs.get("body", None),
         )
-        region_config = get_region_config(attrs["region"])
+        region_config = get_region_config(get_active_regions()[0].slug)
         assert region_config is not None
         check_config = checker_api.create_preview_check(attrs, region_config)
 
@@ -214,7 +209,7 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
         return _validate_headers(headers)
 
     def create(self, validated_data):
-        region_config = get_region_config(validated_data["region"])
+        region_config = get_region_config(get_active_regions()[0].slug)
         assert region_config is not None
         return checker_api.create_preview_check(validated_data, region_config)
 
