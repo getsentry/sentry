@@ -595,7 +595,6 @@ class GitHubBaseClient(
     def create_issue_reaction(self, repo: str, issue_number: str, reaction: GitHubReaction) -> Any:
         """
         https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue
-        Returns 200 if reaction type already exists, 201 if new reaction is created.
         """
         endpoint = f"/repos/{repo}/issues/{issue_number}/reactions"
         return self.post(endpoint, data={"content": reaction.value})
@@ -604,8 +603,7 @@ class GitHubBaseClient(
         """
         https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-reaction
         """
-        endpoint = f"/repos/{repo}/issues/{issue_number}/reactions/{reaction_id}"
-        return self.delete(endpoint)
+        return self.delete(f"/repos/{repo}/issues/{issue_number}/reactions/{reaction_id}")
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """
