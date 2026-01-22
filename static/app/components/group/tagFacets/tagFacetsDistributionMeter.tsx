@@ -128,7 +128,7 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment
                   aria-label={t('Other segment')}
-                  color={theme.chart.neutral}
+                  color={theme.tokens.dataviz.semantic.neutral}
                 />
               ) : (
                 <Segment
@@ -184,7 +184,11 @@ function TagFacetsDistributionMeter({
                     onMouseLeave={() => setHoveredValue(null)}
                   >
                     <LegendDot
-                      color={segment.isOther ? theme.chart.neutral : colors[index]!}
+                      color={
+                        segment.isOther
+                          ? theme.tokens.dataviz.semantic.neutral
+                          : colors[index]!
+                      }
                       focus={focus}
                     />
                     <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
