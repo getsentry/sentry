@@ -67,9 +67,9 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
 
         # Get all artifacts to be deleted
         artifacts_to_delete = list(
-            PreprodArtifact.objects.select_related("project", "project__organization").filter(
-                id__in=preprod_artifact_ids
-            )
+            PreprodArtifact.objects.select_related(
+                "project", "project__organization", "mobile_app_info"
+            ).filter(id__in=preprod_artifact_ids)
         )
 
         if not artifacts_to_delete:
