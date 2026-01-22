@@ -56,9 +56,6 @@ function NextBillCard({
   const seerItem = invoiceItems.find(item => item.type === 'activated_seer_users');
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
-
-  // TODO(isabella): Update the getCreditApplied function to return a negative value
-  // and correct places where it's used
   const creditApplied =
     -1 *
     getCreditApplied({

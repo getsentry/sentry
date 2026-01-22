@@ -15,7 +15,7 @@ const commonFields = {
   categories: MM1_CATEGORIES,
   categoryDisplayNames: MM1_CATEGORY_DISPLAY_NAMES,
   checkoutCategories: MM1_CATEGORIES,
-  availableCategories: [], // TODO(isabella): check this
+  availableCategories: [],
   onDemandCategories: MM1_CATEGORIES,
   hasOnDemandModes: false,
   budgetTerm: BUDGET_TERM as 'on-demand',

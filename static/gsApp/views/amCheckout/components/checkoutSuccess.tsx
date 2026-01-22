@@ -521,9 +521,9 @@ function CheckoutSuccess({
   const onDemandItems = getOnDemandItems({invoiceItems});
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems});
-  // TODO(isabella): PreviewData never has the 'balance_change' type
+  // XXX: PreviewData never has the 'balance_change' type
   // and instead populates creditApplied with the value of the 'credit_applied' type
-  // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
+  // this is a workaround to ensure we only display CreditApplied if it's not already in the credits array
   const creditApplied = getCreditApplied({
     creditApplied: data?.creditApplied ?? 0,
     invoiceItems,
