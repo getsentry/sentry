@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, Mock, patch
 
+from sentry.models.organization import Organization
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.tempest.models import MessageType
 from sentry.tempest.tasks import fetch_latest_item_id, poll_tempest, poll_tempest_crashes
@@ -255,7 +256,8 @@ class TempestTasksTest(TestCase):
         credentials_without_access.latest_fetched_item_id = "42"
         credentials_without_access.save()
 
-        def mock_access_check(organization):
+        def mock_access_check(organization: Organization | None) -> bool:
+            assert organization is not None
             return organization.id == org_with_access.id
 
         mock_has_access.side_effect = mock_access_check
