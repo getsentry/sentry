@@ -2,14 +2,14 @@ import type {Theme} from '@emotion/react';
 import Color from 'color';
 import type {BarSeriesOption} from 'echarts';
 
-import BarSeries from 'sentry/components/charts/series/barSeries';
+import barCategoricalSeries from 'sentry/components/charts/categorical/barCategorical';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import type {
   CategoricalItem,
   CategoricalSeries,
+  CategoricalValueType,
 } from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/types';
-import type {PlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 
 export interface BarConfig {
   /**
@@ -74,7 +74,7 @@ export interface BarPlottable {
   /**
    * Type of the underlying data.
    */
-  dataType: PlottableTimeSeriesValueType;
+  dataType: CategoricalValueType;
   /**
    * Unit of the underlying data.
    */
@@ -137,7 +137,7 @@ export class Bar implements BarPlottable {
     return this.config.alias ?? this.categoricalSeries.yAxis;
   }
 
-  get dataType(): PlottableTimeSeriesValueType {
+  get dataType(): CategoricalValueType {
     return this.categoricalSeries.meta.valueType;
   }
 
@@ -186,7 +186,7 @@ export class Bar implements BarPlottable {
     const isHorizontal = plottingOptions.orientation === 'horizontal';
 
     return [
-      BarSeries({
+      barCategoricalSeries({
         name: this.name,
         stack: this.config.stack,
         yAxisIndex: plottingOptions.yAxisPosition === 'right' ? 1 : 0,
@@ -207,11 +207,7 @@ export class Bar implements BarPlottable {
           opacity: 1.0,
         },
         data: this.categoricalSeries.data.map(item =>
-          isHorizontal
-            ? // For horizontal bars, data format is [value, category]
-              [item.value, item.label]
-            : // For vertical bars, data format is [category, value] or just value with name
-              {name: item.label, value: item.value}
+          isHorizontal ? [item.value, item.label] : {name: item.label, value: item.value}
         ),
       }),
     ];
