@@ -1,8 +1,5 @@
-import styled from '@emotion/styled';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
-export const OverflowHidden = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  display: grid;
-`;
+export function OverflowHidden(props: ContainerProps<'div'>) {
+  return <Container height="100%" overflow="hidden" position="relative" {...props} />;
+}
