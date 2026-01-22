@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
@@ -137,9 +137,6 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     if (relevantUnits.length === 1) {
       return relevantUnits[0]!;
     }
-    if (relevantUnits.length === 0) {
-      return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
-    }
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
@@ -235,8 +232,6 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
   const seriesIndexToPlottableRangeMap = new RangeMap<BarPlottable>(
     seriesIndexToPlottableMapRanges
   );
-
-  const allSeries = seriesFromPlottables;
 
   /**
    * Extract the numeric value from ECharts data format.
@@ -424,53 +419,51 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     showLegendProp === 'always';
 
   return (
-    <Fragment>
-      <BaseChart
-        ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
-        autoHeightResize
-        series={allSeries}
-        grid={{
-          left: 2,
-          top: showLegend ? 25 : 10,
-          right: 8,
-          bottom: 0,
-          containLabel: true,
-        }}
-        legend={
-          showLegend
-            ? {
-                top: 0,
-                left: 0,
-                formatter(seriesName: string) {
-                  return truncationFormatter(
-                    aliases[seriesName] ?? seriesName,
-                    true,
-                    false
-                  );
-                },
-                selected: props.legendSelection,
-              }
-            : undefined
-        }
-        onLegendSelectChanged={event => {
-          props?.onLegendSelectionChange?.(event.selected);
-        }}
-        tooltip={{
-          appendToBody: true,
-          trigger: 'axis',
-          axisPointer: {
-            type: 'shadow',
-          },
-          formatter: formatTooltip,
-        }}
-        xAxis={xAxis}
-        yAxis={yAxis}
-        onChartReady={handleChartReady}
-        onHighlight={handleHighlight}
-        onDownplay={handleDownplay}
-        onClick={handleClick}
-      />
-    </Fragment>
+    <BaseChart
+      ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
+      autoHeightResize
+      series={seriesFromPlottables}
+      grid={{
+        left: 2,
+        top: showLegend ? 25 : 10,
+        right: 8,
+        bottom: 0,
+        containLabel: true,
+      }}
+      legend={
+        showLegend
+          ? {
+              top: 0,
+              left: 0,
+              formatter(seriesName: string) {
+                return truncationFormatter(
+                  aliases[seriesName] ?? seriesName,
+                  true,
+                  false
+                );
+              },
+              selected: props.legendSelection,
+            }
+          : undefined
+      }
+      onLegendSelectChanged={event => {
+        props?.onLegendSelectionChange?.(event.selected);
+      }}
+      tooltip={{
+        appendToBody: true,
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow',
+        },
+        formatter: formatTooltip,
+      }}
+      xAxis={xAxis}
+      yAxis={yAxis}
+      onChartReady={handleChartReady}
+      onHighlight={handleHighlight}
+      onDownplay={handleDownplay}
+      onClick={handleClick}
+    />
   );
 }
 
