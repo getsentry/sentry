@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -157,7 +158,15 @@ export function useConversation(
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const queryUrl = `/organizations/${organization.slug}/ai-conversations/${conversation.conversationId}/`;
+  const queryUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        conversationId: conversation.conversationId,
+      },
+    }
+  );
   const queryParams = {
     project: selection.projects,
     environment: selection.environments,

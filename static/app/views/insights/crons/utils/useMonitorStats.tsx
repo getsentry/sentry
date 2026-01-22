@@ -1,4 +1,5 @@
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,7 +40,12 @@ export function useMonitorStats(
   const organization = useOrganization();
   const location = useLocation();
 
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
+  const monitorStatsQueryKey = getApiUrl(
+    '/organizations/$organizationIdOrSlug/monitors-stats/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+    }
+  );
 
   return useApiQuery<Result>(
     [

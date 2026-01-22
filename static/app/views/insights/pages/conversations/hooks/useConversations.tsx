@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -58,7 +59,9 @@ export function useConversations() {
     getResponseHeader,
   } = useApiQuery<ConversationApiResponse[]>(
     [
-      `/organizations/${organization.slug}/ai-conversations/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/ai-conversations/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           cursor,
