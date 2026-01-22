@@ -186,6 +186,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     },
                     status=400,
                 )
+            if integration_id and provider:
+                return Response(
+                    {"detail": "Cannot specify both integration_id and provider"},
+                    status=400,
+                )
 
             result = trigger_coding_agent_handoff(
                 group=group,
