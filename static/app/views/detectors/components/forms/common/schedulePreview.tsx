@@ -247,7 +247,7 @@ const OpenPeriodCountLabel = styled('div')`
 
 const StyledContainer = styled(Container)`
   top: 8px;
-  z-index: ${p => p.theme.zIndex.dropdown};
+  z-index: ${p => p.theme.zIndex.monitorCreationForms.schedulePreview};
   /*
     * Prevent seeing content beneath in the uncovered strip above the sticky element.
     * Use a solid, zero-blur shadow so we don't paint over the border.
