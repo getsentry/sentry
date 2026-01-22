@@ -891,7 +891,12 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert Workflow.objects.count() == 0
 
-    def test_create_workflow_with_other_project_detector(self) -> None:
+    def test_create_workflow_with_inaccessible_project_detector(self) -> None:
+        """
+        Test that users cannot connect detectors from projects they don't have access to.
+        Even with alerts:write enabled org-wide, users must have project-level access
+        to connect a detector to a workflow.
+        """
         self.organization.update_option("sentry:alerts_member_write", True)
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -909,12 +914,43 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             "detectorIds": [other_detector.id],
         }
 
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+            status_code=403,
+        )
+
+        # Verify no detector-workflow connections were created
+        created_detector_workflows = DetectorWorkflow.objects.all()
+        assert created_detector_workflows.count() == 0
+
+    def test_create_workflow_with_accessible_project_detector(self) -> None:
+        """
+        Test that users CAN connect detectors from projects they have access to.
+        """
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        self.login_as(user=self.member_user)
+
+        # Create a detector in a project the member HAS access to (via their team)
+        accessible_detector = self.create_detector(
+            project=self.project,  # member_user has access via self.team
+            created_by_id=self.user.id,
+        )
+
+        workflow_data = {
+            **self.valid_workflow,
+            "detectorIds": [accessible_detector.id],
+        }
+
         self.get_success_response(
             self.organization.slug,
             raw_data=workflow_data,
         )
 
-        # Verify detector-workflow connections was created
+        # Verify detector-workflow connection was created
         created_detector_workflows = DetectorWorkflow.objects.all()
         assert created_detector_workflows.count() == 1
 
@@ -1409,6 +1445,37 @@ class OrganizationWorkflowProjectAccessTest(OrganizationWorkflowAPITestCase):
         assert str(self.user_workflow.id) in workflow_ids
         assert str(self.unattached_workflow.id) in workflow_ids
         assert str(self.other_workflow.id) not in workflow_ids
+
+    def test_get_user_with_no_project_access_only_sees_org_level_workflows(self) -> None:
+        """
+        Regression test: Users with org-level permissions but NO project access
+        (e.g., org member not on any teams with open membership disabled) should
+        only see org-level workflows (those with no detector connections).
+
+        Previously, when get_projects() returned an empty list, the project filter
+        was skipped entirely due to `if projects:` being falsy, which exposed
+        all workflows including those connected to projects the user shouldn't access.
+        """
+        # Create a user who is a member of the org but NOT on any team
+        no_access_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=no_access_user,
+            organization=self.organization,
+            role="member",
+            teams=[],  # No team membership = no project access
+        )
+
+        self.login_as(no_access_user)
+
+        # List all workflows - should ONLY see the unattached workflow
+        response = self.get_success_response(self.organization.slug)
+        workflow_ids = {w["id"] for w in response.data}
+
+        # User should NOT see workflows connected to projects (even by listing all)
+        assert str(self.user_workflow.id) not in workflow_ids
+        assert str(self.other_workflow.id) not in workflow_ids
+        # User SHOULD see org-level workflows with no detector connections
+        assert str(self.unattached_workflow.id) in workflow_ids
 
 
 @region_silo_test
