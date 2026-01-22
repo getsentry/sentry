@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0024_delete_deprecated_preprod_artifact_fields
+preprod: 0025_add_preprod_comparison_approval
 
 prevent: 0002_alter_integration_id_not_null
 
