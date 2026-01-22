@@ -354,8 +354,11 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
       const plottable = seriesIndexToPlottableRangeMap.get(event.seriesIndex);
       if (plottable) {
         const item = allCategories[event.dataIndex];
+        if (!defined(item)) return;
+
+        const value = extractValue(event.value, orientation);
         const categoricalItem = plottable.categories.includes(item)
-          ? {label: item, value: event.value as number | null}
+          ? {label: item, value}
           : undefined;
 
         if (categoricalItem) {
