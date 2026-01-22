@@ -16,7 +16,7 @@ describe('Grouping Store', () => {
     GroupingStore.init();
     trigger = jest.spyOn(GroupingStore, 'trigger');
     MockApiClient.addMockResponse({
-      url: '/issues/groupId/hashes/',
+      url: '/organizations/org-slug/issues/groupId/hashes/',
       body: [
         {
           latestEvent: {
@@ -218,7 +218,7 @@ describe('Grouping Store', () => {
 
     it('fetches list of hashes', () => {
       const promise = GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+        {dataKey: 'merged', endpoint: '/organizations/org-slug/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -245,7 +245,7 @@ describe('Grouping Store', () => {
 
     it('handles fingerprints with seer merging information', async () => {
       await GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+        {dataKey: 'merged', endpoint: '/organizations/org-slug/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -269,13 +269,13 @@ describe('Grouping Store', () => {
     it('unsuccessfully fetches list of hashes items', () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
-        url: '/issues/groupId/hashes/',
+        url: '/organizations/org-slug/issues/groupId/hashes/',
         statusCode: 500,
         body: {message: 'failed'},
       });
 
       const promise = GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+        {dataKey: 'merged', endpoint: '/organizations/org-slug/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -520,7 +520,7 @@ describe('Grouping Store', () => {
       unmergeList = new Map();
       unmergeState = new Map();
       await GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+        {dataKey: 'merged', endpoint: '/organizations/org-slug/issues/groupId/hashes/'},
       ]);
 
       trigger.mockClear();
