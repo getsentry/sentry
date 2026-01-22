@@ -201,8 +201,11 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
             attrs.get("headers", []),
             attrs.get("body", None),
         )
+        user = None
+        if "request" in self.context and self.context["request"]:
+            user = self.context["request"].user
 
-        _validate_check_config(attrs, self.context["organization"], self.context.get("user", None))
+        _validate_check_config(attrs, self.context["organization"], user)
         return attrs
 
     def validate_url(self, url):
@@ -519,7 +522,10 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
             attrs.get("headers", headers),
             attrs.get("body", body),
         )
-        _validate_check_config(attrs, self.context["organization"], self.context.get("user", None))
+        user = None
+        if "request" in self.context and self.context["request"]:
+            user = self.context["request"].user
+        _validate_check_config(attrs, self.context["organization"], user)
 
         return attrs
 
