@@ -223,6 +223,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             <Observer>
               {() => (
                 <TestUptimeMonitorButton
+                  label={t('Test Rule')}
                   getFormData={() => {
                     const data = formModel.getTransformedData();
                     return {

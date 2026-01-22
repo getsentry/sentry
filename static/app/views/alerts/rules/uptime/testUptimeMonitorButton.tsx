@@ -35,9 +35,16 @@ interface TestUptimeMonitorButtonProps {
     method?: string;
     timeoutMs?: number;
   };
+  /**
+   * Button label text
+   */
+  label?: string;
 }
 
-export function TestUptimeMonitorButton({getFormData}: TestUptimeMonitorButtonProps) {
+export function TestUptimeMonitorButton({
+  getFormData,
+  label,
+}: TestUptimeMonitorButtonProps) {
   const organization = useOrganization();
 
   const {mutate: runPreviewCheck, isPending} = useMutation<
@@ -89,7 +96,7 @@ export function TestUptimeMonitorButton({getFormData}: TestUptimeMonitorButtonPr
       busy={isPending}
       disabled={isPending}
     >
-      {t('Test Monitor')}
+      {label ?? t('Test Monitor')}
     </Button>
   );
 }
