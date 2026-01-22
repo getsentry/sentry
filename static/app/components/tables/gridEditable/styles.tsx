@@ -26,7 +26,7 @@ export function Header(props: FlexProps<'div'>) {
 
 export const HeaderTitle = styled('h4')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -116,8 +116,8 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
 
   background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   text-transform: uppercase;
   user-select: none;
@@ -233,7 +233,7 @@ export const GridBodyCell = styled('td')`
   flex-direction: column;
   justify-content: center;
 
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 export const GridBodyCellStatic = styled(GridBodyCell)`

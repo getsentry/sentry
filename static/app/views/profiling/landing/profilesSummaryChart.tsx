@@ -194,9 +194,9 @@ export function ProfilesSummaryChart({
 }
 
 const ProfilesChartTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: ${space(0.25)} ${space(1)};
 `;
 

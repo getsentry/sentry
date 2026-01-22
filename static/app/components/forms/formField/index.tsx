@@ -115,6 +115,12 @@ interface BaseProps {
    */
   getData?: (value: any) => any;
   /**
+   * Transform field value for form submission via getTransformedData().
+   * Unlike getData (which only works for save-on-blur), this is used
+   * when the full form is submitted via saveForm().
+   */
+  getValue?: (value: any) => any;
+  /**
    * Should hide error message?
    */
   hideErrorMessage?: boolean;

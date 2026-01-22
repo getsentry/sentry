@@ -169,7 +169,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": rule.label,
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{123}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.data['actions'][0]['legacy_rule_id']}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -210,7 +210,8 @@ class OpsgenieClientTest(APITestCase):
                 {
                     "workflow_id": "123",
                 }
-            ]
+            ],
+            include_legacy_rule_id=False,
         )
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
@@ -234,7 +235,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Workflows": rule.label,
-                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.slug}/monitors/alerts/{123}/",
+                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",

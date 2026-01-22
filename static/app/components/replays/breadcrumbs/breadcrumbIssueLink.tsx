@@ -68,7 +68,7 @@ const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${p => p.theme.space.xs};
 `;
