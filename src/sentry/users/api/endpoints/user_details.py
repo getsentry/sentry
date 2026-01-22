@@ -210,6 +210,7 @@ class SuperuserUserSerializer(BaseUserSerializer):
                     "user_id": user.id,
                     "actor_id": getattr(request.user, "id", None),
                     "form_data": getattr(request, "data", None),
+                    "changed_fields": changed_fields,
                 },
             )
 
