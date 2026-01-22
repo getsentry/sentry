@@ -511,7 +511,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               border: 'none',
             }}
           />
-          <HiddenField name="timeoutMs" defaultValue={DEFAULT_TIMEOUT_MS} />
+          <HiddenField name="timeoutMs" defaultValue={10000} />
         </FormRow>
       </List>
     </Form>
