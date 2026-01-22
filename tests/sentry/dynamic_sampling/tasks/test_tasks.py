@@ -342,9 +342,19 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                     # make up some unique count
                     idx = org_idx * num_orgs + proj_idx
                     num_transactions = self.get_count_for_transaction(idx, name)
+                    # Store with both metrics: TransactionMRI for GetActiveOrgs,
+                    # SpanMRI with is_segment for the actual task queries
                     self.store_performance_metric(
                         name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name},
+                        minutes_before_now=30,
+                        value=num_transactions,
+                        project_id=p.id,
+                        org_id=org.id,
+                    )
+                    self.store_performance_metric(
+                        name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                        tags={"transaction": name, "is_segment": "true"},
                         minutes_before_now=30,
                         value=num_transactions,
                         project_id=p.id,
