@@ -127,7 +127,11 @@ def queryset_for_query(
     Raises:
         InvalidSearchQuery: If the query string is invalid
     """
-    queryset = PreprodArtifact.objects.get_queryset()
+    queryset = (
+        PreprodArtifact.objects.get_queryset()
+        .select_related("project", "build_configuration", "commit_comparison", "mobile_app_info")
+        .prefetch_related("preprodartifactsizemetrics_set")
+    )
     queryset = queryset.annotate_download_count()
     queryset = queryset.annotate_installable()
     queryset = queryset.annotate_main_size_metrics()
