@@ -101,6 +101,7 @@ class EmailFieldMappingKeys(StrEnum):
     """
 
     FALLTHROUGH_TYPE_KEY = "fallthrough_type"
+    FALLTHROUGH_TYPE_KEY_V2 = "fallthroughType"
     TARGET_TYPE_KEY = "targetType"
 
 
@@ -577,12 +578,19 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
             self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
             == ActionTargetType.ISSUE_OWNERS.value
         ):
+            fallthrough_type: str | None = self.action.get(
+                EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value,
+                None,
+            )
+            if fallthrough_type is None:
+                fallthrough_type = self.action.get(
+                    EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY_V2.value,
+                    FallthroughChoiceType.ACTIVE_MEMBERS.value,
+                )
+
             return dataclasses.asdict(
                 EmailDataBlob(
-                    fallthrough_type=self.action.get(
-                        EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value,
-                        FallthroughChoiceType.ACTIVE_MEMBERS.value,
-                    ),
+                    fallthrough_type=str(fallthrough_type),
                 )
             )
         return {}
