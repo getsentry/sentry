@@ -56,10 +56,7 @@ describe('useLogsSeriesQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
+        data: [],
       },
     });
 
@@ -105,7 +102,7 @@ describe('useLogsSeriesQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
-        data: [[1, [{count: 100}]]],
+        data: [],
       },
     });
 
@@ -164,7 +161,7 @@ describe('useLogsTableQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
-        data: [{message: 'Test log message', 'count()': 100}],
+        data: [],
       },
     });
 
@@ -209,7 +206,7 @@ describe('useLogsTableQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
-        data: [{message: 'Test log message', 'count()': 100}],
+        data: [],
       },
     });
 
