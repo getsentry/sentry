@@ -120,7 +120,6 @@ def _add_eyes_reaction_to_pull_request(
     try:
         client = integration.get_installation(organization_id=organization.id).get_client()
 
-        # Don't fail the whole operation if we can't delete a hooray reaction--Seer will try again when dismissing old review
         try:
             existing_reactions = client.get_issue_reactions(repo.name, str(pr_number))
             for reaction in existing_reactions:
