@@ -5,8 +5,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
-import {escape} from 'sentry/utils';
-
 import {
   CHART_BASELINE_SERIES_NAME,
   CHART_SELECTED_SERIES_NAME,
@@ -28,7 +26,6 @@ export function useFormatSingleModeTooltip() {
           ? `${value.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
           : value
         : '\u2014';
-      const escapedTruncatedValue = escape(truncatedValue);
 
       return renderToString(
         // need to set padding on the `style` prop directly because the `padding` props
@@ -51,7 +48,7 @@ export function useFormatSingleModeTooltip() {
                 textAlign: 'center',
               }}
             >
-              {escapedTruncatedValue}
+              {truncatedValue}
             </strong>
             <Text size="sm" variant="muted">
               {pct}
@@ -93,7 +90,6 @@ export function useFormatComparisonModeTooltip(
         name.length > CHART_TOOLTIP_MAX_VALUE_LENGTH
           ? `${name.slice(0, CHART_TOOLTIP_MAX_VALUE_LENGTH)}...`
           : name;
-      const escapedTruncatedName = escape(truncatedName);
 
       return renderToString(
         <Container className="tooltip-series" style={{padding: 0}}>
@@ -114,7 +110,7 @@ export function useFormatComparisonModeTooltip(
                 textAlign: 'center',
               }}
             >
-              {escapedTruncatedName}
+              {truncatedName}
             </strong>
             <Flex as="span" align="center" justify="between" gap="2xl">
               <Flex align="center" gap="sm">
