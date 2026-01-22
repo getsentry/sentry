@@ -83,9 +83,9 @@ def create_preprod_status_check_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
 ) -> None:
     try:
-        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.get(
-            id=preprod_artifact_id
-        )
+        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
+            "mobile_app_info"
+        ).get(id=preprod_artifact_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.status_checks.create.artifact_not_found",
