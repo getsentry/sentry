@@ -187,6 +187,13 @@ def create_preprod_status_check_task(
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
 
+    # Convert in-progress and failure to neutral to avoid blocking PR merges:
+    # - IN_PROGRESS: Can get stuck due to GitHub API rate limiting
+    # - FAILURE: No approval flow exists yet to allow users to merge despite failures
+    if status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
+        status = StatusCheckStatus.NEUTRAL
+        completed_at = preprod_artifact.date_updated
+
     try:
         check_id = provider.create_status_check(
             repo=commit_comparison.head_repo_name,
@@ -853,6 +860,13 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                         "preprod.status_checks.create.invalid_target_url",
                         extra={"target_url": target_url},
                     )
+
+            # GitHub rejects completed_at=null when status is "completed" with a 422
+            if mapped_status == GitHubCheckStatus.COMPLETED and completed_at is None:
+                raise ValueError(
+                    "GitHub API rejects completed_at=null when status is 'completed'. "
+                    "Omit completed_at entirely instead of setting it to None."
+                )
 
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)

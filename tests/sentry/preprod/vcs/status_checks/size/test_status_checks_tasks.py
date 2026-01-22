@@ -289,8 +289,15 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
                 assert call_kwargs["repo"] == "owner/repo"
                 assert call_kwargs["sha"] == preprod_artifact.commit_comparison.head_sha
-                assert call_kwargs["status"] == expected_status
                 assert call_kwargs["title"] == "Size Analysis"
+
+                # IN_PROGRESS and FAILURE are converted to NEUTRAL to avoid blocking PR merges:
+                # - IN_PROGRESS: Can get stuck due to GitHub API rate limiting
+                # - FAILURE: No approval flow exists yet
+                if expected_status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
+                    assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
+                else:
+                    assert call_kwargs["status"] == expected_status
 
                 if expected_status == StatusCheckStatus.SUCCESS:
                     # SUCCESS only when processed AND has completed size metrics
@@ -448,7 +455,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         assert call_kwargs["title"] == "Size Analysis"
         assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
-        assert call_kwargs["status"] == StatusCheckStatus.FAILURE  # Failed takes priority
+        # Mixed states include a FAILED artifact, but FAILURE is converted to NEUTRAL
+        # to avoid blocking PR merges (no approval flow exists yet)
+        assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
 
         summary = call_kwargs["summary"]
         assert "com.example.processed" in summary
