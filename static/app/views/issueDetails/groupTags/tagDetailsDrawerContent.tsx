@@ -227,7 +227,7 @@ function TagDetailsValue({
   if (tagValue.value !== '') {
     if (tagKey === 'user') {
       valueComponent = (
-        <UserValue>
+        <Flex align="center" gap="sm" minWidth={0} overflow="hidden">
           {getContextIcon({
             alias: 'user',
             type: 'user',
@@ -237,9 +237,11 @@ function TagDetailsValue({
             },
             theme,
           })}
-          <div>{userValues.title}</div>
-          {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
-        </UserValue>
+          <Flex wrap="wrap" gap="xs" minWidth={0}>
+            <Text>{userValues.title}</Text>
+            {userValues.subtitle && <Text variant="muted">{userValues.subtitle}</Text>}
+          </Flex>
+        </Flex>
       );
     } else if (tagKey === 'device') {
       valueComponent = <DeviceName value={tagValue.value} />;
@@ -247,7 +249,7 @@ function TagDetailsValue({
   }
 
   return (
-    <Flex gap="xs" align="center">
+    <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
@@ -405,14 +407,10 @@ const RightAlignedValue = styled('div')`
   text-align: right;
 `;
 
-const UserSubtitle = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  display: inline-block; /* Prevent inheriting text decoration */
-`;
-
 const ValueLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  word-break: break-all;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
@@ -425,10 +423,4 @@ const OverflowTimeSince = styled(TimeSince)`
 
 const ExternalLinkbutton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const UserValue = styled('div')`
-  display: flex;
-  gap: ${space(0.75)};
-  font-size: ${p => p.theme.font.size.md};
 `;
