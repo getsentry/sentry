@@ -283,7 +283,7 @@ def get_suggested_assignees(
     except (Release.DoesNotExist, Commit.DoesNotExist):
         logger.info("Skipping suspect committers because release does not exist.")
     except Exception:
-        logger.exception("Could not get suspect committers. Continuing execution.")
+        logger.warning("Could not get suspect committers. Continuing execution.")
 
     if suggested_assignees:
         suggested_assignees = dedupe_suggested_assignees(suggested_assignees)

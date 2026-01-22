@@ -162,11 +162,11 @@ class VercelWebhookEndpoint(Endpoint):
 
     def post(self, request: Request) -> Response | None:
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
-            logger.error("vercel.webhook.missing-signature")
+            logger.warning("vercel.webhook.missing-signature")
             return self.respond(status=401)
         is_valid = verify_signature(request)
         if not is_valid:
-            logger.error("vercel.webhook.invalid-signature")
+            logger.warning("vercel.webhook.invalid-signature")
             return self.respond(status=401)
 
         # Vercel's webhook allows you to subscribe to different events,
@@ -389,7 +389,7 @@ class VercelWebhookEndpoint(Endpoint):
                         resp.raise_for_status()
                     except RequestException as e:
                         # errors here should be uncommon but we should be aware of them
-                        logger.exception(
+                        logger.warning(
                             "Error creating release: %s - %s",
                             e,
                             json_error,

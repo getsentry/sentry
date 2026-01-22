@@ -197,7 +197,7 @@ def error(
         org_id = None
     else:
         org_id = org.organization.id
-    logger.error(
+    logger.warning(
         "github.installation_error",
         extra={"org_id": org_id, "error_short": error_short},
     )

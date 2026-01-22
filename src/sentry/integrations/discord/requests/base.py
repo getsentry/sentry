@@ -245,7 +245,7 @@ class DiscordRequest:
         logger.info(key, extra=extra)
 
     def _error(self, key: str) -> None:
-        logger.error(key, extra={**self.logging_data})
+        logger.warning(key, extra={**self.logging_data})
 
     def is_ping(self) -> bool:
         return self._data.get("type", 0) == DiscordRequestTypes.PING

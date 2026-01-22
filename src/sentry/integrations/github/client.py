@@ -692,7 +692,7 @@ class GitHubBaseClient(
                 metrics.incr(
                     "integrations.github.get_blame_for_files.not_enough_requests_remaining"
                 )
-                logger.error(
+                logger.warning(
                     "sentry.integrations.github.get_blame_for_files.rate_limit",
                     extra={
                         "provider": IntegrationProviderSlug.GITHUB,
@@ -723,7 +723,7 @@ class GitHubBaseClient(
                     allow_text=False,
                 )
             except ValueError as e:
-                logger.exception(str(e), log_info)
+                logger.warning(str(e), log_info)
                 return []
             else:
                 self.set_cache(cache_key, response, 60)
