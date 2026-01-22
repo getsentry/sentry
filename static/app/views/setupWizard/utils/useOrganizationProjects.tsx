@@ -1,4 +1,5 @@
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
@@ -11,7 +12,9 @@ export function useOrganizationProjects({
 }) {
   return useQuery({
     queryKey: [
-      `/organizations/${organization?.slug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: organization?.slug!},
+      }),
       {
         host: organization?.region.url,
         query: {
