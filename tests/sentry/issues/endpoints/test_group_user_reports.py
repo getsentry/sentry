@@ -29,7 +29,9 @@ class GroupUserReport(APITestCase, SnubaTestCase):
 
     @cached_property
     def path(self) -> str:
-        return f"/api/0/groups/{self.group.id}/user-feedback/"
+        return (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/user-feedback/"
+        )
 
     def create_events_for_environment(self, environment: Any, num_events: int) -> list[Any]:
         return [
