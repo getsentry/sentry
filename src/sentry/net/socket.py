@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import ipaddress
 import socket
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -109,7 +108,7 @@ def safe_create_connection(
     address: tuple[str, int],
     timeout: _TYPE_DEFAULT | float | None = _DEFAULT_TIMEOUT,
     source_address: str | None = None,
-    socket_options: Sequence[tuple[int, int, int | bytes]] | None = None,
+    socket_options: list[tuple[int, int, int | bytes]] | None = None,
     is_ipaddress_permitted: IsIpAddressPermitted = None,
 ) -> socket.socket:
     if is_ipaddress_permitted is None:
