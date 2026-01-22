@@ -43,11 +43,6 @@ export function ProfilePreviewSection({
 
   const [viewMode, setViewMode] = useState<'aggregated' | 'timeline'>('aggregated');
 
-  const isApplePlatform =
-    project.platform === 'apple' ||
-    project.platform === 'apple-ios' ||
-    project.platform === 'apple-macos';
-
   if (!organization || !project?.slug) {
     return null;
   }
@@ -55,6 +50,20 @@ export function ProfilePreviewSection({
   if (!profileMeta) {
     return null;
   }
+
+  const isApplePlatform =
+    project.platform === 'apple' ||
+    project.platform === 'apple-ios' ||
+    project.platform === 'apple-macos';
+
+  const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
+  const isAnrOrAppHang =
+    mechanism === 'ANR' || mechanism === 'AppExitInfo' || mechanism === 'AppHang';
+  const sectionTitle = isAnrOrAppHang
+    ? isApplePlatform
+      ? t('App Hang Profile')
+      : t('ANR Profile')
+    : t('Profile');
 
   const openTarget = generateContinuousProfileFlamechartRouteWithQuery({
     organization,
@@ -75,14 +84,12 @@ export function ProfilePreviewSection({
           type={SectionKey.PROFILE_PREVIEW}
           title={
             <span>
-              {isApplePlatform ? t('App Hang Profile') : t('ANR Profile')}
+              {sectionTitle}
               &nbsp;
               <QuestionTooltip
                 position="bottom"
                 size="sm"
-                title={t(
-                  'This shows you a profile of the main thread around the time of this event.'
-                )}
+                title={t('This shows you a profile around the time of this event.')}
               />
             </span>
           }
@@ -165,7 +172,7 @@ function InlineFlamegraphPreview({
   if (profiles.type === 'errored') {
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon>
+        <Alert variant="warning" showIcon>
           <p>
             {t("A performance profile was attached to this event, but it wasn't stored.")}
           </p>

@@ -76,6 +76,7 @@ describe('ProfilePreviewSection', () => {
     const event = EventFixture({
       contexts: {},
       dateCreated: '2024-01-24T09:09:01+00:00',
+      tags: [{key: 'mechanism', value: 'ANR'}],
     } as any);
 
     const {container} = render(
@@ -98,6 +99,7 @@ describe('ProfilePreviewSection', () => {
         },
       },
       dateCreated: '2024-01-24T09:09:01+00:00',
+      tags: [{key: 'mechanism', value: 'ANR'}],
     } as any);
 
     render(<ProfilePreviewSection event={event} project={project} />, {organization});
@@ -115,6 +117,7 @@ describe('ProfilePreviewSection', () => {
         },
       },
       dateCreated: '2024-01-24T09:09:01+00:00',
+      tags: [{key: 'mechanism', value: 'ANR'}],
     } as any);
 
     render(<ProfilePreviewSection event={event} project={project} />, {organization});
@@ -150,6 +153,7 @@ describe('ProfilePreviewSection', () => {
         },
       },
       dateCreated: '2024-01-24T09:09:01+00:00',
+      tags: [{key: 'mechanism', value: 'ANR'}],
     } as any);
 
     render(<ProfilePreviewSection event={event} project={project} />, {organization});
@@ -177,6 +181,7 @@ describe('ProfilePreviewSection', () => {
         },
       },
       dateCreated: '2024-01-24T09:09:01+00:00',
+      tags: [{key: 'mechanism', value: 'AppHang'}],
     } as any);
 
     render(<ProfilePreviewSection event={event} project={appleProject} />, {
