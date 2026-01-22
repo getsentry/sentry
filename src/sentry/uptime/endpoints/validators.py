@@ -293,7 +293,11 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             attrs.get("body", body),
         )
 
-        _validate_check_config(attrs, self.context["organization"], self.context.get("user", None))
+        user = None
+        if "request" in self.context and self.context["request"]:
+            user = self.context["request"].user
+
+        _validate_check_config(attrs, self.context["organization"], user)
 
         return attrs
 
