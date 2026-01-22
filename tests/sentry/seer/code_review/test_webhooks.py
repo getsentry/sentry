@@ -438,7 +438,12 @@ class ProcessGitHubWebhookEventTest(TestCase):
             "request_type": "pr-review",
             "external_owner_id": "456",
             "data": {
-                "repo": {},
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                },
                 "pr_id": 123,
                 "bug_prediction_specific_information": {
                     "organization_id": 789,

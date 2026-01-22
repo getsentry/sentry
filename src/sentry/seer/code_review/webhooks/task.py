@@ -11,12 +11,13 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
+from sentry.seer.models import CodeReviewTaskRequest
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import get_seer_endpoint_for_event, make_seer_request
@@ -91,7 +92,16 @@ def process_github_webhook_event(
     should_record_latency = True
     try:
         path = get_seer_endpoint_for_event(github_event).value
-        make_seer_request(path=path, payload=event_payload)
+
+        # Do not validate the payload for CHECK_RUN webhook events (which uses a minimal payload)
+        if github_event != GithubWebhookType.CHECK_RUN:
+            validated_payload = CodeReviewTaskRequest.parse_obj(event_payload)
+            # Use .json() then parse back to properly serialize enum keys to strings
+            payload = json.loads(validated_payload.json())
+        else:
+            payload = event_payload
+
+        make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.

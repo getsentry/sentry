@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Literal, TypedDict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BranchOverride(TypedDict):
@@ -121,3 +121,111 @@ class SeerPermissionError(Exception):
 
     def __str__(self):
         return f"Seer permission error: {self.message}"
+
+
+# =============================================================================
+# Code Review Models (ported from Seer)
+# =============================================================================
+
+# Comment severity rankings for comparison
+_COMMENT_SEVERITY_RANKINGS = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+
+
+class CommentSeverity(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+    def meets_minimum(self, minimum_severity: "CommentSeverity") -> bool:
+        return (
+            _COMMENT_SEVERITY_RANKINGS[self.value]
+            >= _COMMENT_SEVERITY_RANKINGS[minimum_severity.value]
+        )
+
+
+class PrReviewFeature(StrEnum):
+    BUG_PREDICTION = "bug_prediction"
+
+
+class PrReviewTrigger(StrEnum):
+    UNKNOWN = "unknown"
+    ON_COMMAND_PHRASE = "on_command_phrase"
+    ON_READY_FOR_REVIEW = "on_ready_for_review"
+    ON_NEW_COMMIT = "on_new_commit"
+
+    @classmethod
+    def _missing_(cls: type["PrReviewTrigger"], value: object) -> "PrReviewTrigger":
+        return cls.UNKNOWN
+
+
+class CodeReviewBranchOverride(BaseModel):
+    tag_name: str = Field(description="The tag key to match against")
+    tag_value: str = Field(description="The tag value to match against")
+    branch_name: str = Field(description="The branch to use when this tag matches")
+
+
+class CodeReviewRepoDefinition(BaseModel):
+    organization_id: int | None = None
+    integration_id: str | None = None
+    provider: str
+    owner: str
+    name: str
+    external_id: str
+    branch_name: str | None = Field(
+        default=None,
+        description="The branch that will be used, otherwise the default branch will be used.",
+    )
+    branch_overrides: list[CodeReviewBranchOverride] = Field(
+        default_factory=list,
+        description="List of branch overrides based on event tags.",
+    )
+    instructions: str | None = Field(
+        default=None,
+        description="Custom instructions when working in this repo.",
+    )
+    base_commit_sha: str | None = None
+    provider_raw: str | None = None
+
+
+class BugPredictionSpecificInformation(BaseModel):
+    callback_url: str | None = None
+    organization_id: int | None = None
+    organization_slug: str | None = None
+    max_num_associations: int = 10
+    max_num_issues_analyzed: int = 10
+    should_post_to_overwatch: bool = False
+    should_publish_comments: bool = False
+    is_local_run: bool = False
+
+
+class PrReviewConfig(BaseModel):
+    features: dict[PrReviewFeature, bool] = Field(default_factory=lambda: {})
+    trigger: PrReviewTrigger = PrReviewTrigger.ON_COMMAND_PHRASE
+    trigger_comment_id: int | None = None
+    trigger_comment_type: Literal["issue_comment"] | None = None
+    trigger_user: str | None = None
+    trigger_user_id: int | None = None
+
+    def is_feature_enabled(self, feature: PrReviewFeature) -> bool:
+        return self.features.get(feature, False)
+
+    def get_minimum_severity_for_feature(self, feature: PrReviewFeature) -> CommentSeverity:
+        return CommentSeverity.MEDIUM
+
+
+class CodeReviewBaseRequest(BaseModel):
+    repo: CodeReviewRepoDefinition
+    pr_id: int
+    more_readable_repos: list[CodeReviewRepoDefinition] = Field(default_factory=list)
+
+
+class CodeReviewPrReviewRequest(CodeReviewBaseRequest):
+    config: PrReviewConfig | None = None
+    bug_prediction_specific_information: BugPredictionSpecificInformation | None = None
+
+
+class CodeReviewTaskRequest(BaseModel):
+    data: CodeReviewPrReviewRequest
+    external_owner_id: str
+    request_type: Literal["pr-review", "pr-closed"]
