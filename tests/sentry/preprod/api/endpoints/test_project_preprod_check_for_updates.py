@@ -1078,11 +1078,13 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()
 
-        # Should find an artifact (the most recent one with alpha or beta)
+        # Should find an artifact - install_groups is NOT used to filter the current artifact,
+        # only to filter updates. So the most recent artifact by date_added is returned.
         assert data["current"] is not None
         assert data["current"]["build_version"] == "1.0.0"
-        # Should be build 43 (beta) since it's the most recent matching artifact
-        assert data["current"]["build_number"] == 43
+        # Should be build 44 (gamma) since it's the most recently created artifact
+        # (install_groups query param does not filter the current artifact lookup)
+        assert data["current"]["build_number"] == 44
 
     def test_install_groups_query_param_array_with_update(self):
         """Test that query param array works correctly for finding updates"""
@@ -1102,7 +1104,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             extras={"install_groups": ["beta"]},
         )
 
-        # Create update with gamma (should NOT be returned - doesn't match query or current)
+        # Create update with gamma (should NOT be returned - doesn't match query param)
         self._create_android_artifact(
             main_binary_identifier="gamma-identifier",
             build_version="1.2.0",
@@ -1125,7 +1127,9 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         assert data["current"] is not None
         assert data["current"]["build_version"] == "1.0.0"
 
-        # The update detection uses the current artifact's install_groups (alpha),
-        # not the query param, so beta update won't be found
-        # Only updates with overlapping install_groups with current artifact are shown
-        assert data["update"] is None
+        # When provided_install_groups is given, it's used to filter updates
+        # The beta update matches the query param, so it should be returned
+        # (gamma doesn't match the query param, so it's excluded despite being higher version)
+        assert data["update"] is not None
+        assert data["update"]["build_version"] == "1.1.0"
+        assert data["update"]["build_number"] == 50

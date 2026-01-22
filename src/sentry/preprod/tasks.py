@@ -267,7 +267,7 @@ def create_preprod_artifact(
                 )
 
             # Prepare extras data if release_notes, install_groups is provided
-            extras = None
+            extras: dict[str, str | list[str]] | None = None
             if release_notes or install_groups:
                 extras = {}
                 if release_notes:
