@@ -120,3 +120,22 @@ class FindReferencedGroupsTest(TestCase):
 
         commit = self._create_commit(f"Fixes http://myorg.{self._sentry_host()}/issues/{group.id}/")
         assert commit.find_referenced_groups() == {group}
+
+    def test_sentry_issue_url_ignores_query_param_issues(self) -> None:
+        """Ensure /issues/{id} in query params doesn't match"""
+        group = self.create_group()
+
+        # URL with /issues/ID only in query param, not in path
+        commit = self._create_commit(
+            f"Fixes {self._url_prefix()}/settings?redirect=/issues/{group.id}"
+        )
+        assert commit.find_referenced_groups() == set()
+
+    def test_sentry_issue_url_overflow_id(self) -> None:
+        """Ensure extremely large IDs don't crash"""
+        self.create_group()
+
+        commit = self._create_commit(
+            f"Fixes {self._url_prefix()}/issues/999999999999999999999999999/"
+        )
+        assert commit.find_referenced_groups() == set()

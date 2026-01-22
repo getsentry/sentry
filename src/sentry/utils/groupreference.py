@@ -34,8 +34,8 @@ def _is_valid_sentry_url(url: str) -> bool:
     from sentry import options
 
     try:
-        url_host = urlparse(url).netloc
-        app_host = urlparse(options.get("system.url-prefix")).netloc
+        url_host = urlparse(url).netloc.lower()
+        app_host = urlparse(options.get("system.url-prefix")).netloc.lower()
         if not url_host or not app_host:
             return False
         return url_host == app_host or url_host.endswith(f".{app_host}")
@@ -75,10 +75,15 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
         url = fmatch.group(1)
         if not _is_valid_sentry_url(url):
             continue
-        issue_match = _issue_url_re.search(url)
+        # Only match /issues/{id} in the path, not query params
+        path = urlparse(url).path
+        issue_match = _issue_url_re.search(path)
         if not issue_match:
             continue
         group_id = int(issue_match.group(1))
+        # Skip IDs that would overflow PostgreSQL bigint
+        if group_id > 9223372036854775807:
+            continue
         try:
             group = Group.objects.get(id=group_id, project__organization_id=org_id)
         except Group.DoesNotExist:
