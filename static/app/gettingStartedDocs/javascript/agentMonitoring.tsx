@@ -1,21 +1,18 @@
-import { ExternalLink } from '@sentry/scraps/link';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import { StepType } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getAgentMonitoringInstallStep,
   getAgentMonitoringManualConfigStep,
   getImport,
 } from 'sentry/gettingStartedDocs/node/utils';
-import { t, tct } from 'sentry/locale';
-import {
-  AgentIntegration,
-} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
-
+import {t, tct} from 'sentry/locale';
+import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 function getClientSideAgentMonitoringOnboardingConfig({
   integration,
@@ -26,8 +23,6 @@ function getClientSideAgentMonitoringOnboardingConfig({
   params: DocsParams;
   sentryImport: string;
 }): ContentBlock[] {
-
-
   const initConfig: ContentBlock[] = [
     {
       type: 'text',
@@ -306,9 +301,10 @@ export function agentMonitoring({
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig {
   return {
-    install: params => getAgentMonitoringInstallStep(params, {
-      packageName,
-    }),
+    install: params =>
+      getAgentMonitoringInstallStep(params, {
+        packageName,
+      }),
     configure: params => {
       const selected =
         (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
@@ -322,7 +318,6 @@ export function agentMonitoring({
         });
       }
 
-
       return [
         {
           title: t('Configure'),
@@ -334,18 +329,16 @@ export function agentMonitoring({
         },
       ];
     },
-    verify: () => (
-      [
-        {
-          type: StepType.VERIFY,
-          content: [
-            {
-              type: 'text',
-              text: t('Verify that your instrumentation works by simply calling your LLM.'),
-            }
-          ],
-        },
-      ]
-    )
+    verify: () => [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t('Verify that your instrumentation works by simply calling your LLM.'),
+          },
+        ],
+      },
+    ],
   };
 }

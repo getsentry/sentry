@@ -1,4 +1,4 @@
-import { ExternalLink } from 'sentry/components/core/link';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   ContentBlock,
@@ -6,10 +6,10 @@ import type {
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import { StepType } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import { javascriptMetaFrameworks } from 'sentry/data/platformCategories';
-import { t, tct } from 'sentry/locale';
-import { CopyLLMPromptButton } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
+import {t, tct} from 'sentry/locale';
+import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
@@ -103,25 +103,26 @@ export function getAgentMonitoringInstallStep(
     packageName?: `@sentry/${string}`;
   } = {}
 ): OnboardingStep[] {
-  return [{
-    type: StepType.INSTALL,
-    content: [
-      {
-        type: 'text',
-        text: tct(
-          'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
-          {
-            minVersion: <code>{minVersion}</code>,
-          }
-        ),
-      },
-      getInstallCodeBlock(params, {
-        packageName,
-      }),
-    ],
-  }];
+  return [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
+            {
+              minVersion: <code>{minVersion}</code>,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          packageName,
+        }),
+      ],
+    },
+  ];
 }
-
 
 export function getAgentMonitoringManualConfigStep(
   params: DocsParams,
@@ -133,22 +134,21 @@ export function getAgentMonitoringManualConfigStep(
     packageName?: `@sentry/${string}`;
   } = {}
 ): OnboardingStep[] {
-  return [{
-    title: t('Configure'),
-    content: [
-      {
-        type: 'text',
-        text: t(
-          'Initialize the Sentry SDK in the entry point of your application.'
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
+  return [
+    {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: t('Initialize the Sentry SDK in the entry point of your application.'),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `${getImport(packageName, importMode).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -158,26 +158,27 @@ Sentry.init({
   // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
   sendDefaultPii: true,
 });`,
-          },
-        ],
-      },
-      {
-        type: 'text',
-        text: tct(
-          'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-            ),
-          }
-        ),
-      },
-      {
-        type: 'custom',
-        content: <CopyLLMPromptButton />,
-      },
-    ],
-  }];
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: <CopyLLMPromptButton />,
+        },
+      ],
+    },
+  ];
 }
 
 export function getImport(
@@ -189,13 +190,13 @@ export function getImport(
   }
   return importMode === 'esm'
     ? [
-      `// Import with \`const Sentry = require("${packageName}");\` if you are using CJS`,
-      `import * as Sentry from "${packageName}"`,
-    ]
+        `// Import with \`const Sentry = require("${packageName}");\` if you are using CJS`,
+        `import * as Sentry from "${packageName}"`,
+      ]
     : [
-      `// Import with \`import * as Sentry from "${packageName}"\` if you are using ESM`,
-      `const Sentry = require("${packageName}");`,
-    ];
+        `// Import with \`import * as Sentry from "${packageName}"\` if you are using ESM`,
+        `const Sentry = require("${packageName}");`,
+      ];
 }
 
 function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
@@ -309,33 +310,35 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
     nodeProfilingIntegration(),
-  ],${params.profilingOptions?.defaultProfilingMode === 'continuous'
-                  ? profilingLifecycle === 'trace'
-                    ? `
+  ],${
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? profilingLifecycle === 'trace'
+        ? `
   // Tracing must be enabled for profiling to work
   tracesSampleRate: 1.0,
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profileSessionSampleRate: 1.0,
   // Trace lifecycle automatically enables profiling during active traces
   profileLifecycle: 'trace',`
-                    : `
+        : `
   // Tracing is not required for profiling to work
   // but for the best experience we recommend enabling it
   tracesSampleRate: 1.0,
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profileSessionSampleRate: 1.0,`
-                  : `
+      : `
   // Tracing must be enabled for profiling to work
   tracesSampleRate: 1.0,
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profilesSampleRate: 1.0,`
-                }
+  }
 
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
-});${params.profilingOptions?.defaultProfilingMode === 'continuous' &&
-                  profilingLifecycle === 'trace'
+});${
+                params.profilingOptions?.defaultProfilingMode === 'continuous' &&
+                profilingLifecycle === 'trace'
                   ? `
 
 // Profiling happens automatically after setting it up with \`Sentry.init()\`.
@@ -346,8 +349,9 @@ Sentry.startSpan({
   // The code executed here will be profiled
 });`
                   : ''
-                }${params.profilingOptions?.defaultProfilingMode === 'continuous' &&
-                  profilingLifecycle === 'manual'
+              }${
+                params.profilingOptions?.defaultProfilingMode === 'continuous' &&
+                profilingLifecycle === 'manual'
                   ? `
 
 Sentry.profiler.startProfiler();
@@ -355,7 +359,7 @@ Sentry.profiler.startProfiler();
 Sentry.profiler.stopProfiler();
                   `
                   : ''
-                }`,
+              }`,
             },
           ],
         },
@@ -658,9 +662,10 @@ export const getNodeAgentMonitoringOnboarding = ({
   importMode?: 'esm' | 'cjs' | 'esm-only';
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
-  install: params => getAgentMonitoringInstallStep(params, {
-    packageName,
-  }),
+  install: params =>
+    getAgentMonitoringInstallStep(params, {
+      packageName,
+    }),
   configure: params => {
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
@@ -717,12 +722,12 @@ const result = await generateText({
         type: 'text',
         text: isNodeOrMetaPlatform
           ? tct(
-            'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
-            {
-              integration:
-                AGENT_INTEGRATION_LABELS[selected as AgentIntegration] ?? selected,
-            }
-          )
+              'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
+              {
+                integration:
+                  AGENT_INTEGRATION_LABELS[selected as AgentIntegration] ?? selected,
+              }
+            )
           : t('Import and initialize the Sentry SDK:'),
       },
       {
@@ -753,13 +758,13 @@ Sentry.init({
         content: isNodeOrMetaPlatform
           ? nonManualContent
           : [
-            ...nonManualContent,
-            ...getBrowserAgentMonitoringOnboardingConfiguration({
-              integration: selected,
-              packageName,
-              importMode,
-            }),
-          ],
+              ...nonManualContent,
+              ...getBrowserAgentMonitoringOnboardingConfiguration({
+                integration: selected,
+                packageName,
+                importMode,
+              }),
+            ],
       },
     ];
   },
@@ -1096,7 +1101,7 @@ export const getNodeLogsOnboarding = <
             }
           ),
         },
-        getInstallCodeBlock(params, { packageName }),
+        getInstallCodeBlock(params, {packageName}),
         {
           type: 'text',
           text: tct(
@@ -1121,7 +1126,7 @@ export const getNodeLogsOnboarding = <
           type: 'text',
           text: tct(
             'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
-            { code: <code /> }
+            {code: <code />}
           ),
         },
         generateConfigureSnippet(params, packageName),
@@ -1165,46 +1170,52 @@ export const getSdkInitSnippet = (
   params: DocsParams,
   sdkImport: 'node' | 'aws' | 'gpc' | 'nestjs' | null,
   defaultMode?: 'esm' | 'cjs'
-) => `${getDefaultNodeImports({ params, sdkImport, defaultMode })}
+) => `${getDefaultNodeImports({params, sdkImport, defaultMode})}
 
 Sentry.init({
-  dsn: "${params.dsn.public}",${params.isProfilingSelected
-    ? `integrations: [
+  dsn: "${params.dsn.public}",${
+    params.isProfilingSelected
+      ? `integrations: [
     nodeProfilingIntegration(),
   ],`
-    : ''
-  }${params.isLogsSelected
-    ? `
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
 
   // Send structured logs to Sentry
   enableLogs: true,`
-    : ''
-  }${params.isPerformanceSelected
-    ? `
+      : ''
+  }${
+    params.isPerformanceSelected
+      ? `
       // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-    : ''
-  }${params.isProfilingSelected &&
+      : ''
+  }${
+    params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode !== 'continuous'
-    ? `
+      ? `
     // Set sampling rate for profiling - this is evaluated only once per SDK.init call
     profilesSampleRate: 1.0,`
-    : ''
-  }${params.isProfilingSelected &&
+      : ''
+  }${
+    params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
-    ? `
+      ? `
     // Set sampling rate for profiling - this is evaluated only once per SDK.init call
     profileSessionSampleRate: 1.0,
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',`
-    : ''
+      : ''
   }
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
-  });${params.isProfilingSelected &&
+  });${
+    params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
-    ? `
+      ? `
 
 // Profiling happens automatically after setting it up with \`Sentry.init()\`.
 // All spans (unless those discarded by sampling) will have profiling data attached to them.
@@ -1213,5 +1224,5 @@ Sentry.startSpan({
 }, () => {
   // The code executed here will be profiled
 });`
-    : ''
+      : ''
   }`;
