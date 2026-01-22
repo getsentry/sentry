@@ -61,8 +61,12 @@ function createDefaultAssertionRoot(): AndOp {
 // abysmal, so we're leaving this untyped for now.
 
 function UptimeAssertionsControl({onChange, onBlur, value}: any) {
-  // Handle cases where value might be undefined or not have the expected structure
-  const rootOp = value?.root ?? createDefaultAssertionRoot();
+  // If value is explicitly null (editing monitor with no assertions), use empty structure
+  // If value is undefined or has no root (new monitor), use default assertions
+  const rootOp =
+    value === null
+      ? {op: 'and' as const, children: [], id: uniqueId()}
+      : (value?.root ?? createDefaultAssertionRoot());
 
   return (
     <AssertionOpGroup
@@ -85,9 +89,16 @@ export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
       // Use getValue (not getData) to transform field value at submission time.
       // getData only works for save-on-blur; getValue is used by getTransformedData()
       // which is called during full form submission via saveForm().
-      getValue={(value: Assertion | undefined) =>
-        value?.root ? {root: normalizeAssertion(value.root)} : value
-      }
+      getValue={(value: Assertion | null | undefined) => {
+        // If no assertions (empty children or null), send null to backend
+        if (
+          !value?.root ||
+          ('children' in value.root && value.root.children.length === 0)
+        ) {
+          return null;
+        }
+        return {root: normalizeAssertion(value.root)};
+      }}
     >
       {({ref: _ref, ...fieldProps}) => <UptimeAssertionsControl {...fieldProps} />}
     </FormField>
