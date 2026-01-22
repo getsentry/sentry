@@ -52,7 +52,7 @@ class SeerCodeReviewRequestType(StrEnum):
 
 class SeerCodeReviewConfig(BaseModel):
     features: dict[SeerCodeReviewFeature, bool] = Field(default_factory=lambda: {})
-    trigger: SeerCodeReviewTrigger = SeerCodeReviewTrigger.ON_COMMAND_PHRASE
+    trigger: SeerCodeReviewTrigger
     trigger_comment_id: int | None = None
     trigger_comment_type: Literal["issue_comment"] | None = None
     trigger_user: str | None = None
@@ -65,6 +65,13 @@ class SeerCodeReviewConfig(BaseModel):
         return CommentSeverity.MEDIUM
 
 
+class BugPredictionSpecificInformation(BaseModel):
+    """Information specific to bug prediction feature."""
+
+    organization_id: int
+    organization_slug: str
+
+
 class SeerCodeReviewBaseRequest(BaseModel):
     repo: SeerRepoDefinition
     pr_id: int
@@ -72,6 +79,7 @@ class SeerCodeReviewBaseRequest(BaseModel):
 
 
 class SeerCodeReviewRequest(SeerCodeReviewBaseRequest):
+    bug_prediction_specific_information: BugPredictionSpecificInformation
     config: SeerCodeReviewConfig | None = None
 
 

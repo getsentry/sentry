@@ -447,6 +447,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "pr_id": 123,
                 "bug_prediction_specific_information": {
                     "organization_id": 789,
+                    "organization_slug": "test-org",
                 },
                 "config": {
                     "features": {
