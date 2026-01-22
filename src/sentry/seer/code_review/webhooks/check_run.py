@@ -70,6 +70,7 @@ def handle_check_run_event(
     *,
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
+    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
@@ -87,8 +88,6 @@ def handle_check_run_event(
         return
 
     action = event.get("action")
-    # We can use html_url to search through the logs for this event.
-    extra = {"html_url": event.get("check_run", {}).get("html_url"), "action": action}
 
     if action is None:
         logger.error(Log.MISSING_ACTION.value, extra=extra)
