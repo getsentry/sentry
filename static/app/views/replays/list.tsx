@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Grid} from 'sentry/components/core/layout';
@@ -29,6 +28,7 @@ import ReplayIndexTimestampPrefPicker from 'sentry/views/replays/list/replayInde
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 import ReplaysSearch from 'sentry/views/replays/list/search';
+import {ReplayQueryParamsProvider} from 'sentry/views/replays/queryParams/replayQueryParamsProvider';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',
@@ -46,7 +46,6 @@ export default function ReplaysListContainer() {
     selection: {projects},
   } = usePageFilters();
 
-  const [searchQuery] = useQueryState('query', parseAsString.withDefault(''));
   const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
     minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
     projectId: projects.map(String),
@@ -62,44 +61,46 @@ export default function ReplaysListContainer() {
     <AnalyticsArea name="list">
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
-          <Layout.Header unified>
-            <Layout.Title>
-              {t('Session Replay')}
-              <PageHeadingQuestionTooltip
-                title={t(
-                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-                )}
-                docsUrl="https://docs.sentry.io/product/session-replay/"
-              />
-            </Layout.Title>
-
-            <Layout.HeaderActions>
-              <ReplayIndexTimestampPrefPicker />
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <PageFiltersContainer>
-            <Layout.Body>
-              <Layout.Main width="full">
-                <Grid gap="xl" columns="100%">
-                  <ReplayListPageHeaderHook />
-                  {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                    <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
-                      <ReplayIndexContainer />
-                    </ReplayAccess>
-                  ) : (
-                    <Fragment>
-                      <Flex gap="xl" wrap="wrap">
-                        <ReplaysFilters />
-                        <ReplaysSearch />
-                        <SaveReplayQueryButton query={searchQuery} />
-                      </Flex>
-                      <ReplayOnboardingPanel />
-                    </Fragment>
+          <ReplayQueryParamsProvider>
+            <Layout.Header unified>
+              <Layout.Title>
+                {t('Session Replay')}
+                <PageHeadingQuestionTooltip
+                  title={t(
+                    'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
                   )}
-                </Grid>
-              </Layout.Main>
-            </Layout.Body>
-          </PageFiltersContainer>
+                  docsUrl="https://docs.sentry.io/product/session-replay/"
+                />
+              </Layout.Title>
+
+              <Layout.HeaderActions>
+                <ReplayIndexTimestampPrefPicker />
+              </Layout.HeaderActions>
+            </Layout.Header>
+            <PageFiltersContainer>
+              <Layout.Body>
+                <Layout.Main width="full">
+                  <Grid gap="xl" columns="100%">
+                    <ReplayListPageHeaderHook />
+                    {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+                      <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+                        <ReplayIndexContainer />
+                      </ReplayAccess>
+                    ) : (
+                      <Fragment>
+                        <Flex gap="xl" wrap="wrap">
+                          <ReplaysFilters />
+                          <ReplaysSearch />
+                          <SaveReplayQueryButton />
+                        </Flex>
+                        <ReplayOnboardingPanel />
+                      </Fragment>
+                    )}
+                  </Grid>
+                </Layout.Main>
+              </Layout.Body>
+            </PageFiltersContainer>
+          </ReplayQueryParamsProvider>
         </ReplayPreferencesContextProvider>
       </SentryDocumentTitle>
     </AnalyticsArea>

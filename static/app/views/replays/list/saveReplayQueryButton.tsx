@@ -4,16 +4,12 @@ import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useReplaySaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {useReplaySaveQuery} from 'sentry/views/replays/hooks/useReplaySaveQuery';
 
-interface SaveReplayQueryButtonProps {
-  query: string;
-}
-
-export function SaveReplayQueryButton({query}: SaveReplayQueryButtonProps) {
+export function SaveReplayQueryButton() {
   const organization = useOrganization();
-  const {saveQuery} = useReplaySaveQuery(query);
+  const {saveQuery} = useReplaySaveQuery();
 
   const handleClick = useCallback(() => {
     openSaveQueryModal({

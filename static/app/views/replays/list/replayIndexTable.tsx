@@ -87,14 +87,12 @@ export default function ReplayIndexTable({
 
   const playlistQuery = usePlaylistQuery('replayList');
 
-  const searchQuery = (queryKey[1]?.query?.query as string) ?? '';
-
   return (
     <Fragment>
       <Flex gap="md" wrap="wrap">
         <ReplaysFilters />
         <ReplaysSearch />
-        <SaveReplayQueryButton query={searchQuery} />
+        <SaveReplayQueryButton />
         {showDeadRageClickCards ? (
           <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
             {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}

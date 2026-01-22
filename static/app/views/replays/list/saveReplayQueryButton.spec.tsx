@@ -10,6 +10,7 @@ import {
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
+import {ReplayQueryParamsProvider} from 'sentry/views/replays/queryParams/replayQueryParamsProvider';
 
 describe('SaveReplayQueryButton', () => {
   const organization = OrganizationFixture();
@@ -22,23 +23,40 @@ describe('SaveReplayQueryButton', () => {
     MockApiClient.clearMockResponses();
   });
 
+  function renderWithProvider(query = '') {
+    return render(
+      <ReplayQueryParamsProvider>
+        <SaveReplayQueryButton />
+      </ReplayQueryParamsProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/replays/',
+            query: query ? {query} : {},
+          },
+        },
+      }
+    );
+  }
+
   it('renders the Save as button', () => {
-    render(<SaveReplayQueryButton query="" />, {organization});
+    renderWithProvider();
     expect(screen.getByRole('button', {name: 'Save as'})).toBeInTheDocument();
   });
 
   it('does not disables the button when query is empty', () => {
-    render(<SaveReplayQueryButton query="" />, {organization});
+    renderWithProvider();
     expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled();
   });
 
   it('enables the button when query is not empty', () => {
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled();
   });
 
   it('opens the save query modal when clicked', async () => {
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -48,7 +66,7 @@ describe('SaveReplayQueryButton', () => {
   });
 
   it('displays name input in modal', async () => {
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -61,7 +79,7 @@ describe('SaveReplayQueryButton', () => {
   });
 
   it('displays starred toggle in modal', async () => {
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -71,7 +89,7 @@ describe('SaveReplayQueryButton', () => {
   });
 
   it('displays Cancel and Create a New Query buttons in modal', async () => {
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -82,7 +100,7 @@ describe('SaveReplayQueryButton', () => {
   });
 
   it('disables Create a New Query button when name is empty', async () => {
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -92,7 +110,7 @@ describe('SaveReplayQueryButton', () => {
   });
 
   it('enables Create a New Query button when name is entered', async () => {
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -105,7 +123,7 @@ describe('SaveReplayQueryButton', () => {
   });
 
   it('closes modal when Cancel is clicked', async () => {
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -124,7 +142,7 @@ describe('SaveReplayQueryButton', () => {
       body: {id: 1, name: 'My Test Query'},
     });
 
-    render(<SaveReplayQueryButton query="browser.name:Chrome" />, {organization});
+    renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
@@ -141,7 +159,9 @@ describe('SaveReplayQueryButton', () => {
         data: expect.objectContaining({
           name: 'My Test Query',
           dataset: 'replays',
-          query: [{mode: 'samples', query: 'browser.name:Chrome'}],
+          query: [
+            expect.objectContaining({mode: 'samples', query: 'browser.name:Chrome'}),
+          ],
           starred: true,
         }),
       })
@@ -155,7 +175,7 @@ describe('SaveReplayQueryButton', () => {
       body: {id: 1, name: 'My Test Query'},
     });
 
-    render(<SaveReplayQueryButton query="user.email:test@example.com" />, {organization});
+    renderWithProvider('user.email:test@example.com');
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
