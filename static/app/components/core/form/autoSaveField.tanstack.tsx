@@ -1,8 +1,58 @@
 import {createContext, useContext} from 'react';
+import type {DeepKeys, DeepValue, FieldApi} from '@tanstack/react-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import type {z} from 'zod';
 
-import {useScrapsForm} from './index.tanstack';
+import {useScrapsForm, type BoundFieldComponents} from './index.tanstack';
+
+/** Form data type coming from the schema */
+type SchemaData<TSchema extends z.ZodObject<z.ZodRawShape>> = z.infer<TSchema>;
+
+type SchemaFieldName<TSchema extends z.ZodObject<z.ZodRawShape>> = Extract<
+  DeepKeys<SchemaData<TSchema>>,
+  string
+>;
+
+/** FieldApi’s TData must be DeepValue<TParentData, TName> */
+type SchemaFieldValue<
+  TSchema extends z.ZodObject<z.ZodRawShape>,
+  TFieldName extends SchemaFieldName<TSchema>,
+> = DeepValue<SchemaData<TSchema>, TFieldName>;
+
+type AutoSaveFieldRenderArg<
+  TSchema extends z.ZodObject<z.ZodRawShape>,
+  TFieldName extends SchemaFieldName<TSchema>,
+> = FieldApi<
+  SchemaData<TSchema>,
+  TFieldName,
+  SchemaFieldValue<TSchema, TFieldName>,
+  // Field validators (all can be undefined to satisfy the constraints)
+  undefined, // TOnMount
+  undefined, // TOnChange
+  undefined, // TOnChangeAsync
+  undefined, // TOnBlur
+  undefined, // TOnBlurAsync
+  undefined, // TOnSubmit
+  undefined, // TOnSubmitAsync
+  undefined, // TOnDynamic
+  undefined, // TOnDynamicAsync
+  // Form validators (all can be undefined)
+  undefined, // TFormOnMount
+  undefined, // TFormOnChange
+  undefined, // TFormOnChangeAsync
+  undefined, // TFormOnBlur
+  undefined, // TFormOnBlurAsync
+  undefined, // TFormOnSubmit
+  undefined, // TFormOnSubmitAsync
+  undefined, // TFormOnDynamic
+  undefined, // TFormOnDynamicAsync
+  undefined, // TFormOnServer
+  // Submit meta (use unknown unless you have a concrete type)
+  unknown // TParentSubmitMeta
+> & {
+  // plus injected components like field.Input / field.Select
+  [K in keyof BoundFieldComponents]: BoundFieldComponents[K];
+};
 
 /**
  * Context for auto-save mutation state
@@ -71,12 +121,7 @@ interface AutoSaveFieldProps<
   /**
    * Render prop that receives field props and additional props
    */
-  children: (field: {
-    handleChange: (value: z.infer<TSchema>[TFieldName]) => void;
-    state: {
-      value: z.infer<TSchema>[TFieldName];
-    };
-  }) => React.ReactNode;
+  children: (field: AutoSaveFieldRenderArg<TSchema, TFieldName>) => React.ReactNode;
 
   /**
    * Initial value - must match the schema's type for this field
@@ -133,18 +178,7 @@ export function AutoSaveField<
 
   return (
     <AutoSaveContextProvider value={{isPending: mutation.isPending}}>
-      <form.AppField name={name}>
-        {field =>
-          children({
-            handleChange: field.handleChange as (
-              value: z.infer<TSchema>[TFieldName]
-            ) => void,
-            state: {
-              value: field.state.value as z.infer<TSchema>[TFieldName],
-            },
-          })
-        }
-      </form.AppField>
+      <form.AppField name={name}>{field => children(field as never)}</form.AppField>
     </AutoSaveContextProvider>
   );
 }

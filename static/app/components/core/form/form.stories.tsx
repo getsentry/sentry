@@ -41,11 +41,7 @@ import {
   SelectField as RHFSelectField,
   SubmitButton,
 } from './index.rhf';
-import {
-  InputField as TanStackInputField,
-  NumberField as TanStackNumberField,
-  useScrapsForm,
-} from './index.tanstack';
+import {useScrapsForm} from './index.tanstack';
 
 const COUNTRY_OPTIONS = [
   {value: 'US', label: 'United States'},
@@ -165,7 +161,7 @@ function TanStackAutoSave() {
         mutationOptions={userMutationOptions}
       >
         {field => (
-          <TanStackInputField
+          <field.Input
             label="First Name:"
             value={field.state.value}
             onChange={field.handleChange}
@@ -180,7 +176,7 @@ function TanStackAutoSave() {
         mutationOptions={userMutationOptions}
       >
         {field => (
-          <TanStackInputField
+          <field.Input
             label="Last Name:"
             required
             value={field.state.value}
@@ -196,7 +192,7 @@ function TanStackAutoSave() {
         mutationOptions={userMutationOptions}
       >
         {field => (
-          <TanStackNumberField
+          <field.Number
             label="Age:"
             required
             value={field.state.value}
@@ -230,22 +226,6 @@ function TanStack() {
   return (
     <form.AppForm>
       <Stack gap="lg">
-        {/* <AutoSaveField */}
-        {/*  form={form} */}
-        {/*  name="firstName" */}
-        {/*  mutation={userMutationOptions} */}
-        {/*  label="First Name:" */}
-        {/* > */}
-        {/*  {(field, fieldProps) => ( */}
-        {/*    <field.Input */}
-        {/*      {...fieldProps} */}
-        {/*      disabled={updateFirstName.isPending} */}
-        {/*      label="First Name:" */}
-        {/*      value={field.state.value} */}
-        {/*      onChange={field.handleChange} */}
-        {/*    /> */}
-        {/*  )} */}
-        {/* </AutoSaveField> */}
         <form.AppField
           name="firstName"
           listeners={{

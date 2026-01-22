@@ -39,12 +39,16 @@ export const defaultFormOptions = formOptions({
 const {fieldContext, formContext, useFormContext, useFieldContext} =
   createFormHookContexts();
 
+const fieldComponents = {
+  Input: InputField,
+  Number: NumberField,
+  Select: SelectField,
+} as const;
+
+export type BoundFieldComponents = typeof fieldComponents;
+
 const {useAppForm} = createFormHook({
-  fieldComponents: {
-    Input: InputField,
-    Number: NumberField,
-    Select: SelectField,
-  },
+  fieldComponents,
   formComponents: {
     SubmitButton,
   },
@@ -89,7 +93,7 @@ export function Field(
   );
 }
 
-export function InputField({
+function InputField({
   label,
   hintText,
   onChange,
@@ -116,7 +120,7 @@ export function InputField({
   );
 }
 
-export function NumberField({
+function NumberField({
   label,
   hintText,
   onChange,
@@ -153,7 +157,7 @@ function SelectInput({
   return <components.Input {...props} aria-invalid={selectProps['aria-invalid']} />;
 }
 
-export function SelectField({
+function SelectField({
   label,
   hintText,
   onChange,
