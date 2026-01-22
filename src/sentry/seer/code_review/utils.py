@@ -323,7 +323,7 @@ def delete_tada_and_add_eyes_reaction(
     try:
         client = integration.get_installation(organization_id=organization_id).get_client()
 
-        # delete existing :tada: reaction on the pr description (best effort, don't fail if this errors)
+        # delete existing :tada: reaction on the pr description
         try:
             existing_reactions = client.get_issue_reactions(repo.name, pr_number)
             for reaction in existing_reactions:
@@ -335,7 +335,8 @@ def delete_tada_and_add_eyes_reaction(
                         client.delete_issue_reaction(repo.name, pr_number, str(reaction.get("id")))
                         break
         except Exception:
-            pass  # Best effort - continue to add eyes even if tada deletion fails
+            # continue even if this fails
+            pass
 
         # add :eyes: on the originating issue comment or pr description
         if github_event == GithubWebhookType.PULL_REQUEST:
