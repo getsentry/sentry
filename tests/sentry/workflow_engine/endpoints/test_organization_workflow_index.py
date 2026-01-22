@@ -22,7 +22,11 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionType,
     SentryAppIdentifier,
 )
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, MockActionValidatorTranslator
+from tests.sentry.workflow_engine.test_base import (
+    BaseWorkflowTest,
+    MockActionValidatorTranslator,
+    ProjectAccessTestMixin,
+)
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -1333,7 +1337,9 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
 
 
 @region_silo_test
-class OrganizationWorkflowProjectAccessTest(OrganizationWorkflowAPITestCase):
+class OrganizationWorkflowProjectAccessTest(
+    OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
+):
     """
     Security tests to verify that project filtering is properly enforced.
 
@@ -1344,50 +1350,7 @@ class OrganizationWorkflowProjectAccessTest(OrganizationWorkflowAPITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Disable Open Membership - this is the key condition for testing project access
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-
-        # Create two teams: one for the user, one for someone else
-        self.user_team = self.create_team(organization=self.organization, name="user-team")
-        self.other_team = self.create_team(organization=self.organization, name="other-team")
-
-        # Create two projects, each owned by a different team
-        self.user_project = self.create_project(
-            organization=self.organization, teams=[self.user_team], name="user-proj"
-        )
-        self.other_project = self.create_project(
-            organization=self.organization, teams=[self.other_team], name="other-proj"
-        )
-
-        # Create a user who is only a member of user_team (has access to user_project only)
-        self.limited_user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=self.limited_user,
-            organization=self.organization,
-            role="member",
-            teams=[self.user_team],
-        )
-
-        # Create workflows with different project connections
-        self.user_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="User's Workflow"
-        )
-        self.other_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Other's Workflow"
-        )
-        self.unattached_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Unattached Workflow"
-        )
-
-        # Create detectors in each project
-        self.user_detector = self.create_detector(project=self.user_project)
-        self.other_detector = self.create_detector(project=self.other_project)
-
-        # Connect workflows to detectors
-        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
-        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
-        # unattached_workflow has no detectors connected
+        self.setup_project_access_test_data()
 
     def test_get_cannot_access_workflows_from_inaccessible_projects_by_id(self) -> None:
         """
@@ -1479,7 +1442,9 @@ class OrganizationWorkflowProjectAccessTest(OrganizationWorkflowAPITestCase):
 
 
 @region_silo_test
-class OrganizationWorkflowPutProjectAccessTest(OrganizationWorkflowAPITestCase):
+class OrganizationWorkflowPutProjectAccessTest(
+    OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
+):
     """
     Security tests for PUT endpoint project access filtering.
     """
@@ -1488,44 +1453,12 @@ class OrganizationWorkflowPutProjectAccessTest(OrganizationWorkflowAPITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Disable Open Membership
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-
-        # Create two teams
-        self.user_team = self.create_team(organization=self.organization, name="user-team")
-        self.other_team = self.create_team(organization=self.organization, name="other-team")
-
-        # Create two projects
-        self.user_project = self.create_project(
-            organization=self.organization, teams=[self.user_team], name="user-proj"
-        )
-        self.other_project = self.create_project(
-            organization=self.organization, teams=[self.other_team], name="other-proj"
-        )
-
-        # Create limited user
-        self.limited_user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=self.limited_user,
-            organization=self.organization,
-            role="member",
-            teams=[self.user_team],
-        )
-
-        # Create workflows
-        self.user_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="User's Workflow", enabled=False
-        )
-        self.other_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Other's Workflow", enabled=False
-        )
-
-        # Create detectors and connect workflows
-        self.user_detector = self.create_detector(project=self.user_project)
-        self.other_detector = self.create_detector(project=self.other_project)
-        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
-        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
+        self.setup_project_access_test_data()
+        # Set workflows to disabled for PUT tests
+        self.user_workflow.enabled = False
+        self.user_workflow.save()
+        self.other_workflow.enabled = False
+        self.other_workflow.save()
 
     def test_put_cannot_modify_workflows_from_inaccessible_projects(self) -> None:
         """
@@ -1567,7 +1500,9 @@ class OrganizationWorkflowPutProjectAccessTest(OrganizationWorkflowAPITestCase):
 
 
 @region_silo_test
-class OrganizationWorkflowDeleteProjectAccessTest(OrganizationWorkflowAPITestCase):
+class OrganizationWorkflowDeleteProjectAccessTest(
+    OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
+):
     """
     Security tests for DELETE endpoint project access filtering.
     """
@@ -1576,44 +1511,7 @@ class OrganizationWorkflowDeleteProjectAccessTest(OrganizationWorkflowAPITestCas
 
     def setUp(self) -> None:
         super().setUp()
-        # Disable Open Membership
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-
-        # Create two teams
-        self.user_team = self.create_team(organization=self.organization, name="user-team")
-        self.other_team = self.create_team(organization=self.organization, name="other-team")
-
-        # Create two projects
-        self.user_project = self.create_project(
-            organization=self.organization, teams=[self.user_team], name="user-proj"
-        )
-        self.other_project = self.create_project(
-            organization=self.organization, teams=[self.other_team], name="other-proj"
-        )
-
-        # Create limited user
-        self.limited_user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=self.limited_user,
-            organization=self.organization,
-            role="member",
-            teams=[self.user_team],
-        )
-
-        # Create workflows
-        self.user_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="User's Workflow"
-        )
-        self.other_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Other's Workflow"
-        )
-
-        # Create detectors and connect workflows
-        self.user_detector = self.create_detector(project=self.user_project)
-        self.other_detector = self.create_detector(project=self.other_project)
-        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
-        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
+        self.setup_project_access_test_data()
 
     def test_delete_cannot_delete_workflows_from_inaccessible_projects(self) -> None:
         """

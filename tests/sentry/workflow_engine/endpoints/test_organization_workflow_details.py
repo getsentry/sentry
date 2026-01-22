@@ -29,7 +29,7 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionType,
     SentryAppIdentifier,
 )
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, ProjectAccessTestMixin
 
 
 class OrganizationWorkflowDetailsBaseTest(APITestCase):
@@ -834,7 +834,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
 
 @region_silo_test
-class OrganizationWorkflowDetailsProjectAccessTest(APITestCase):
+class OrganizationWorkflowDetailsProjectAccessTest(APITestCase, ProjectAccessTestMixin):
     """
     Security tests to verify that project-level access is enforced when
     accessing individual workflows via the details endpoint.
@@ -848,50 +848,7 @@ class OrganizationWorkflowDetailsProjectAccessTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Disable Open Membership - this is the key condition for testing project access
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-
-        # Create two teams: one for the user, one for someone else
-        self.user_team = self.create_team(organization=self.organization, name="user-team")
-        self.other_team = self.create_team(organization=self.organization, name="other-team")
-
-        # Create two projects, each owned by a different team
-        self.user_project = self.create_project(
-            organization=self.organization, teams=[self.user_team], name="user-proj"
-        )
-        self.other_project = self.create_project(
-            organization=self.organization, teams=[self.other_team], name="other-proj"
-        )
-
-        # Create a user who is only a member of user_team (has access to user_project only)
-        self.limited_user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=self.limited_user,
-            organization=self.organization,
-            role="member",
-            teams=[self.user_team],
-        )
-
-        # Create workflows with different project connections
-        self.user_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="User's Workflow"
-        )
-        self.other_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Other's Workflow"
-        )
-        self.unattached_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Unattached Workflow"
-        )
-
-        # Create detectors in each project
-        self.user_detector = self.create_detector(project=self.user_project)
-        self.other_detector = self.create_detector(project=self.other_project)
-
-        # Connect workflows to detectors
-        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
-        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
-        # unattached_workflow has no detectors connected
+        self.setup_project_access_test_data()
 
     def test_get_cannot_access_workflow_from_inaccessible_project(self) -> None:
         """
