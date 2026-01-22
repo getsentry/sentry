@@ -48,12 +48,13 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
 };
 
 const typeMap: Partial<
-  Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric'>
+  Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric' | 'replay'>
 > = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
   [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
+  [TraceItemDataset.REPLAYS]: 'replay',
 };
 
 function getTraceItemFieldDefinitionFunction(
