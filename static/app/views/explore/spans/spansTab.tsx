@@ -290,7 +290,7 @@ function SpanTabContentSection({
           : null;
 
   return (
-    <ExploreContentSection expanded={controlSectionExpanded}>
+    <ExploreContentSection>
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={

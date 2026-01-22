@@ -359,7 +359,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
         <ExploreControlSection expanded={sidebarOpen}>
           {sidebarOpen ? <LogsToolbar /> : null}
         </ExploreControlSection>
-        <ExploreContentSection expanded={sidebarOpen}>
+        <ExploreContentSection>
           <OverChartButtonGroup>
             <LogsSidebarCollapseButton
               sidebarOpen={sidebarOpen}

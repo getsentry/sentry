@@ -37,6 +37,7 @@ import {
   TableRowContainer,
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
 import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {
@@ -185,7 +186,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.colors.gray500,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -200,7 +200,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.tokens.content.accent,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -215,7 +214,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.colors.red400,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -227,7 +225,7 @@ export function SampleTableRow({
 
   const renderTimestampCell = (field: string) => {
     return (
-      <div style={{whiteSpace: 'nowrap'}}>
+      <StyledTimestampWrapper>
         {TimestampRenderer({
           item: {
             fieldKey: field,
@@ -243,7 +241,7 @@ export function SampleTableRow({
             theme,
           },
         })}
-      </div>
+      </StyledTimestampWrapper>
     );
   };
 
