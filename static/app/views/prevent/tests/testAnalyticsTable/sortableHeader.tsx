@@ -2,6 +2,8 @@ import {Fragment, useCallback, type ReactNode} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -35,7 +37,10 @@ function WrapToggle() {
 
   return (
     <Fragment>
-      | <WrapText>{wrapValue ? 'Wrap' : 'No Wrap'}</WrapText>
+      |{' '}
+      <Container as="span" marginLeft="xs">
+        {wrapValue ? 'Wrap' : 'No Wrap'}
+      </Container>
       <span>
         <Switch checked={wrapValue} size="sm" onChange={toggle} />{' '}
       </span>
@@ -120,10 +125,6 @@ const StyledLink = styled(Link)`
   svg {
     vertical-align: top;
   }
-`;
-
-const WrapText = styled('span')`
-  margin-left: ${space(0.5)};
 `;
 
 const NonSortableHeader = styled('span')`
