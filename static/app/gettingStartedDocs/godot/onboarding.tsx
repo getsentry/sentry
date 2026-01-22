@@ -92,7 +92,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'gdscript',
-          code: getVerifySnippet(params),
+          code: getVerifySnippet(),
         },
         {
           type: 'text',
