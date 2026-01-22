@@ -314,6 +314,7 @@ export type CodingAgentIntegration = {
   id: string | null;
   name: string;
   provider: string;
+  has_identity?: boolean;
   requires_identity?: boolean;
 };
 
@@ -418,12 +419,9 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
     },
     onError: (error, params) => {
       if (needsGitHubAuth(error)) {
-        addErrorMessage(
-          t('Please connect your GitHub account. Redirecting to authorization...')
-        );
-        setTimeout(() => {
-          window.open('/remote/github-copilot/oauth/', '_blank');
-        }, 1000);
+        const currentUrl = window.location.href;
+        const oauthUrl = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+        window.location.href = oauthUrl;
         return;
       }
       const message = getErrorMessage(error, params.agentName);
