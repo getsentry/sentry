@@ -1,3 +1,4 @@
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/types';
 
 export const sampleCountCategoricalData: CategoricalSeries = {
@@ -19,7 +20,7 @@ export const sampleDurationCategoricalData: CategoricalSeries = {
   yAxis: 'p99(transaction.duration)',
   meta: {
     valueType: 'duration',
-    valueUnit: 'millisecond',
+    valueUnit: DurationUnit.MILLISECOND,
   },
   data: [
     {label: '/api/users', value: 245},
