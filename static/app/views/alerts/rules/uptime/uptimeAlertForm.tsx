@@ -38,6 +38,7 @@ import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {HTTPSnippet} from './httpSnippet';
+import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
@@ -383,6 +384,22 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               />
             )}
           </Observer>
+          {organization.features.includes('uptime-runtime-assertions') && (
+            <Observer>
+              {() => (
+                <TestUptimeMonitorButton
+                  getFormData={() => ({
+                    url: formModel.getValue('url'),
+                    method: formModel.getValue('method'),
+                    headers: formModel.getValue('headers'),
+                    body: methodHasBody(formModel) ? formModel.getValue('body') : null,
+                    timeoutMs: formModel.getValue('timeoutMs'),
+                    assertion: formModel.getValue('assertion'),
+                  })}
+                />
+              )}
+            </Observer>
+          )}
         </Configuration>
         {organization.features.includes('uptime-runtime-assertions') && (
           <Fragment>
