@@ -111,7 +111,6 @@ export function getAgentMonitoringInstallStep(
         text: tct(
           'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
           {
-            code: <code />,
             minVersion: <code>{minVersion}</code>,
           }
         ),
