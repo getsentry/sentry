@@ -224,7 +224,7 @@ describe('UptimeAssertionsField', () => {
     });
   });
 
-  it('shows empty UI when editing monitor with empty assertion children', async () => {
+  it('shows empty UI when editing monitor with empty assertion children', () => {
     // When editing a monitor that previously had assertions removed,
     // the backend may return an assertion structure with empty children
     const emptyAssertion: Assertion = {
