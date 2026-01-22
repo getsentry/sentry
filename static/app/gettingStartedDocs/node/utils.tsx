@@ -4,6 +4,7 @@ import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
@@ -89,7 +90,98 @@ export function getInstallCodeBlock(
   };
 }
 
-function getImport(
+/**
+ * Returns the install step for agent monitoring with the minimum SDK version requirement.
+ */
+export function getAgentMonitoringInstallStep(
+  params: DocsParams,
+  {
+    packageName = '@sentry/node',
+    minVersion = '10.28.0',
+  }: {
+    minVersion?: string;
+    packageName?: `@sentry/${string}`;
+  } = {}
+): OnboardingStep[] {
+  return [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
+            {
+              minVersion: <code>{minVersion}</code>,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          packageName,
+        }),
+      ],
+    },
+  ];
+}
+
+export function getAgentMonitoringManualConfigStep(
+  params: DocsParams,
+  {
+    packageName = '@sentry/node',
+    importMode,
+  }: {
+    importMode?: 'esm' | 'cjs' | 'esm-only';
+    packageName?: `@sentry/${string}`;
+  } = {}
+): OnboardingStep[] {
+  return [
+    {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: t('Initialize the Sentry SDK in the entry point of your application.'),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `${getImport(packageName, importMode).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  // Add data like inputs and responses to/from LLMs and tools;
+  // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: <CopyLLMPromptButton />,
+        },
+      ],
+    },
+  ];
+}
+
+export function getImport(
   packageName: `@sentry/${string}`,
   importMode?: 'esm' | 'cjs' | 'esm-only'
 ): string[] {
@@ -570,73 +662,19 @@ export const getNodeAgentMonitoringOnboarding = ({
   importMode?: 'esm' | 'cjs' | 'esm-only';
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.28.0].',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        getInstallCodeBlock(params, {
-          packageName,
-        }),
-      ],
-    },
-  ],
+  install: params =>
+    getAgentMonitoringInstallStep(params, {
+      packageName,
+    }),
   configure: params => {
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
 
     if (selected === AgentIntegration.MANUAL) {
-      return [
-        {
-          title: t('Configure'),
-          content: [
-            {
-              type: 'text',
-              text: t(
-                'Initialize the Sentry SDK in the entry point of your application.'
-              ),
-            },
-            {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'JavaScript',
-                  language: 'javascript',
-                  code: `${getImport(packageName, importMode).join('\n')}
-
-      Sentry.init({
-        dsn: "${params.dsn.public}",
-        tracesSampleRate: 1.0,
-      });`,
-                },
-              ],
-            },
-            {
-              type: 'text',
-              text: tct(
-                'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-                  ),
-                }
-              ),
-            },
-            {
-              type: 'custom',
-              content: <CopyLLMPromptButton />,
-            },
-          ],
-        },
-      ];
+      return getAgentMonitoringManualConfigStep(params, {
+        packageName,
+        importMode,
+      });
     }
 
     const isNodeOrMetaPlatform =

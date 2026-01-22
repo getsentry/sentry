@@ -238,6 +238,67 @@ describe('SavedQueriesTable', () => {
     );
   });
 
+  it('should link to a single query view for replays dataset', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 1,
+          name: 'Replays Query Name',
+          projects: [1, 2],
+          environment: ['production', 'staging'],
+          createdBy: {
+            name: 'Test User',
+          },
+          query: [
+            {
+              query: 'user.email:*@example.com',
+              mode: 'samples',
+            },
+          ],
+          start: '2024-01-01T00:00:00Z',
+          end: '2024-01-02T00:00:00Z',
+          dataset: 'replays',
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" title="title" />);
+    expect(await screen.findByText('Replays Query Name')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/replays/?end=2024-01-02T00%3A00%3A00.000&environment=production&environment=staging&project=1&project=2&query=user.email%3A%2A%40example.com&start=2024-01-01T00%3A00%3A00.000'
+    );
+  });
+
+  it('should link to a single query view for replays dataset with statsPeriod', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 2,
+          name: 'Recent Replays',
+          projects: [3],
+          environment: ['production'],
+          createdBy: {
+            name: 'Test User',
+          },
+          query: [
+            {
+              query: 'browser.name:Chrome',
+              mode: 'samples',
+            },
+          ],
+          range: '24h',
+          dataset: 'replays',
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" title="title" />);
+    expect(await screen.findByText('Recent Replays')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/replays/?environment=production&project=3&query=browser.name%3AChrome&statsPeriod=24h'
+    );
+  });
+
   it('should display starred status', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,

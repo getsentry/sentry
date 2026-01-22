@@ -282,13 +282,13 @@ function getRequestSectionItems(data: Data, meta: Meta) {
 }
 
 const Monospace = styled('span')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const Path = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   text-transform: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 
   & strong {
     margin-right: ${space(0.5)};

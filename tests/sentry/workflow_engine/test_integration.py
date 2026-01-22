@@ -1,4 +1,6 @@
+from collections.abc import Generator
 from datetime import datetime, timedelta
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -73,14 +75,14 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
 
     def call_post_process_group(
         self,
-        group_id,
-        is_new=False,
-        is_regression=False,
-        is_new_group_environment=True,
-        cache_key=None,
-        eventstream_type=EventStreamEventType.Generic.value,
-        include_occurrence=True,
-    ):
+        group_id: int,
+        is_new: bool = False,
+        is_regression: bool = False,
+        is_new_group_environment: bool = True,
+        cache_key: str | None = None,
+        eventstream_type: str = EventStreamEventType.Generic.value,
+        include_occurrence: bool = True,
+    ) -> str | None:
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
@@ -171,6 +173,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         with mock.patch(
             "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
+            assert error_event.group_id is not None
             self.call_post_process_group(error_event.group_id)
 
             # We currently don't have a detector for this issue type, so it should not call workflow_engine.
@@ -193,7 +196,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
 
     @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
+    def with_feature_flags(self) -> Generator[None]:
         with (
             Feature(
                 {
@@ -209,19 +212,19 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             yield
 
     @pytest.fixture(autouse=True)
-    def with_tasks(self):
+    def with_tasks(self) -> Generator[None]:
         with self.tasks():
             yield
 
     def create_error_event(
         self,
-        project=None,
-        detector=None,
-        environment=None,
-        fingerprint=None,
-        level="error",
+        project: Any = None,
+        detector: Detector | None = None,
+        environment: str | None = None,
+        fingerprint: str | None = None,
+        level: str = "error",
         tags: list[list[str]] | None = None,
-        group=None,
+        group: Group | None = None,
     ) -> Event:
         if project is None:
             project = self.project
@@ -246,7 +249,8 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
     def get_cache_key(self, event: Event) -> str:
         return cache_key_for_event({"project": event.project_id, "event_id": event.event_id})
 
-    def post_process_error(self, event: Event, **kwargs):
+    def post_process_error(self, event: Event, **kwargs: Any) -> None:
+        assert event.group_id is not None
         self.call_post_process_group(
             event.group_id,
             cache_key=self.get_cache_key(event),

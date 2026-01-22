@@ -533,7 +533,7 @@ const DetailsRow = styled('div')`
   overflow: hidden;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   > span,
   > a {
