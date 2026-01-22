@@ -263,6 +263,11 @@ class SpansBuffer:
                             except Exception:
                                 logger.exception("Failed to log debug trace info")
 
+                        span_ids = [span.span_id for span in subsegment]
+                        is_segment_span = (
+                            "true" if any(span.is_segment_span for span in subsegment) else "false"
+                        )
+
                         if write_to_zset:
                             p.execute_command(
                                 "EVALSHA",
@@ -271,15 +276,11 @@ class SpansBuffer:
                                 project_and_trace,
                                 len(subsegment),
                                 parent_span_id,
-                                (
-                                    "true"
-                                    if any(span.is_segment_span for span in subsegment)
-                                    else "false"
-                                ),
+                                is_segment_span,
                                 redis_ttl,
                                 max_segment_bytes,
                                 byte_count,
-                                *[span.span_id for span in subsegment],
+                                *span_ids,
                             )
 
                         if write_to_set:
@@ -290,15 +291,11 @@ class SpansBuffer:
                                 project_and_trace,
                                 len(subsegment),
                                 parent_span_id,
-                                (
-                                    "true"
-                                    if any(span.is_segment_span for span in subsegment)
-                                    else "false"
-                                ),
+                                is_segment_span,
                                 redis_ttl,
                                 max_segment_bytes,
                                 byte_count,
-                                *[span.span_id for span in subsegment],
+                                *span_ids,
                             )
 
                         is_root_span_count += sum(span.is_segment_span for span in subsegment)
@@ -314,21 +311,6 @@ class SpansBuffer:
                     zset_results.extend(batch_results)
                 elif write_to_set:
                     set_results.extend(batch_results)
-
-        if write_to_zset and zset_results:
-            for result in zset_results:
-                metrics.timing(
-                    "spans.buffer.process_spans.evalsha_latency_ms",
-                    result[2],
-                    tags={"storage_type": "zset"},
-                )
-        if write_to_set and set_results:
-            for result in set_results:
-                metrics.timing(
-                    "spans.buffer.process_spans.evalsha_latency_ms",
-                    result[2],
-                    tags={"storage_type": "set"},
-                )
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
