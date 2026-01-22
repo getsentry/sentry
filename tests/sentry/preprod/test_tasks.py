@@ -367,6 +367,210 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
     # Note: Tests currently expect ERROR state because the task tries to access
     # assemble_result.build_configuration which doesn't exist
 
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_assemble_preprod_artifact_filters_size_analysis_by_query(
+        self, mock_produce_to_kafka
+    ) -> None:
+        """Test that assemble_preprod_artifact filters SIZE_ANALYSIS based on project query setting"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        content = b"test preprod artifact content for filtering"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        # Create preprod artifact with specific app_id
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        # Update artifact with app_id for filtering
+        artifact.app_id = "com.my.app"
+        artifact.save()
+
+        # Set up a query filter that should NOT match the artifact
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact.id,
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called without SIZE_ANALYSIS
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS not in call_kwargs["requested_features"]
+
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_assemble_preprod_artifact_includes_size_analysis_when_query_matches(
+        self, mock_produce_to_kafka
+    ) -> None:
+        """Test that assemble_preprod_artifact includes SIZE_ANALYSIS when query matches"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        content = b"test preprod artifact content matching query"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        # Create preprod artifact with specific app_id
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        # Update artifact with app_id for filtering
+        artifact.app_id = "com.my.app"
+        artifact.save()
+
+        # Set up a query filter that SHOULD match the artifact
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.my.app")
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact.id,
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_assemble_preprod_artifact_filters_distribution_by_query(
+        self, mock_produce_to_kafka
+    ) -> None:
+        """Test that assemble_preprod_artifact filters BUILD_DISTRIBUTION based on project query setting"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import DISTRIBUTION_ENABLED_QUERY_KEY
+
+        content = b"test preprod artifact content for distribution filtering"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        # Update artifact with app_id for filtering
+        artifact.app_id = "com.my.app"
+        artifact.save()
+
+        # Set up a query filter that should NOT match the artifact
+        self.project.update_option(DISTRIBUTION_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact.id,
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called without BUILD_DISTRIBUTION
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.BUILD_DISTRIBUTION not in call_kwargs["requested_features"]
+
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_assemble_preprod_artifact_includes_all_features_when_no_query(
+        self, mock_produce_to_kafka
+    ) -> None:
+        """Test that assemble_preprod_artifact includes all features when no query is set"""
+        from sentry.preprod.producer import PreprodFeature
+
+        content = b"test preprod artifact content no query"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        # Don't set any query filters - should include all features
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact.id,
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with both features
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+        assert PreprodFeature.BUILD_DISTRIBUTION in call_kwargs["requested_features"]
+
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_assemble_preprod_artifact_includes_feature_on_invalid_query(
+        self, mock_produce_to_kafka
+    ) -> None:
+        """Test that assemble_preprod_artifact includes features when query is invalid"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        content = b"test preprod artifact content invalid query"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        # Set up an invalid query filter
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "invalid_field:value")
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact.id,
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
+        # (invalid query should be skipped, allowing the feature)
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+
 
 class CreatePreprodArtifactTest(TestCase):
     def test_create_preprod_artifact_with_all_vcs_params_succeeds(self) -> None:
@@ -412,7 +616,7 @@ class CreatePreprodArtifactTest(TestCase):
         total_checksum = sha1(content).hexdigest()
 
         with self.feature("organizations:preprod-enforce-quota"):
-            with patch("sentry.preprod.quota.quotas.backend.has_usage_quota", return_value=True):
+            with patch("sentry.preprod.quotas.quotas.backend.has_usage_quota", return_value=True):
                 artifact = create_preprod_artifact(
                     org_id=self.organization.id,
                     project_id=self.project.id,
@@ -431,7 +635,8 @@ class CreatePreprodArtifactTest(TestCase):
 
         with self.feature("organizations:preprod-enforce-quota"):
             with patch(
-                "sentry.preprod.quota.quotas.backend.has_usage_quota", side_effect=quota_side_effect
+                "sentry.preprod.quotas.quotas.backend.has_usage_quota",
+                side_effect=quota_side_effect,
             ):
                 artifact = create_preprod_artifact(
                     org_id=self.organization.id,
@@ -451,7 +656,8 @@ class CreatePreprodArtifactTest(TestCase):
 
         with self.feature("organizations:preprod-enforce-quota"):
             with patch(
-                "sentry.preprod.quota.quotas.backend.has_usage_quota", side_effect=quota_side_effect
+                "sentry.preprod.quotas.quotas.backend.has_usage_quota",
+                side_effect=quota_side_effect,
             ):
                 artifact = create_preprod_artifact(
                     org_id=self.organization.id,
@@ -467,7 +673,7 @@ class CreatePreprodArtifactTest(TestCase):
         total_checksum = sha1(content).hexdigest()
 
         with self.feature("organizations:preprod-enforce-quota"):
-            with patch("sentry.preprod.quota.quotas.backend.has_usage_quota", return_value=False):
+            with patch("sentry.preprod.quotas.quotas.backend.has_usage_quota", return_value=False):
                 with pytest.raises(NoPreprodQuota):
                     create_preprod_artifact(
                         org_id=self.organization.id,
