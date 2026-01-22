@@ -127,6 +127,7 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 
 
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
+add_buffer_set_script = redis.load_redis_script("spans/add-buffer-set.lua")
 
 
 # NamedTuples are faster to construct than dataclasses
@@ -164,6 +165,7 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
+        self.add_buffer_set_sha: str | None = None
         self.any_shard_at_limit = False
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
@@ -181,6 +183,9 @@ class SpansBuffer:
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:z:{{{project_and_trace}}}:{span_id}".encode("ascii")
+
+    def _get_set_span_key(self, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
     @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
@@ -203,6 +208,9 @@ class SpansBuffer:
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         debug_traces = set(options.get("spans.buffer.debug-traces"))
+        # write_to_zset = options.get("spans.buffer.write-to-zset")
+        write_to_zset = True  # TODO: Remove this once validate write to SET
+        write_to_set = options.get("spans.buffer.write-to-set")
 
         result_meta = []
         is_root_span_count = 0
@@ -221,9 +229,13 @@ class SpansBuffer:
             for batch in tree_batches:
                 with self.client.pipeline(transaction=False) as p:
                     for (project_and_trace, parent_span_id), subsegment in batch:
-                        set_key = self._get_span_key(project_and_trace, parent_span_id)
                         prepared = self._prepare_payloads(subsegment)
-                        p.zadd(set_key, prepared)
+                        if write_to_zset:
+                            zset_key = self._get_span_key(project_and_trace, parent_span_id)
+                            p.zadd(zset_key, prepared)
+                        if write_to_set:
+                            set_key = self._get_set_span_key(project_and_trace, parent_span_id)
+                            p.sadd(set_key, *prepared.keys())
 
                     p.execute()
 
@@ -231,9 +243,10 @@ class SpansBuffer:
             # Workaround to make `evalsha` work in pipelines. We load ensure the
             # script is loaded just before calling it below. This calls `SCRIPT
             # EXISTS` once per batch.
-            add_buffer_sha = self._ensure_script()
+            add_buffer_sha, add_buffer_set_sha = self._ensure_scripts(write_to_zset, write_to_set)
 
-            results: list[Any] = []
+            zset_results: list[Any] = []
+            set_results: list[Any] = []
             for batch in tree_batches:
                 with self.client.pipeline(transaction=False) as p:
                     for (project_and_trace, parent_span_id), subsegment in batch:
@@ -250,24 +263,72 @@ class SpansBuffer:
                             except Exception:
                                 logger.exception("Failed to log debug trace info")
 
-                        p.execute_command(
-                            "EVALSHA",
-                            add_buffer_sha,
-                            1,
-                            project_and_trace,
-                            len(subsegment),
-                            parent_span_id,
-                            "true" if any(span.is_segment_span for span in subsegment) else "false",
-                            redis_ttl,
-                            max_segment_bytes,
-                            byte_count,
-                            *[span.span_id for span in subsegment],
-                        )
+                        if write_to_zset:
+                            p.execute_command(
+                                "EVALSHA",
+                                add_buffer_sha,
+                                1,
+                                project_and_trace,
+                                len(subsegment),
+                                parent_span_id,
+                                (
+                                    "true"
+                                    if any(span.is_segment_span for span in subsegment)
+                                    else "false"
+                                ),
+                                redis_ttl,
+                                max_segment_bytes,
+                                byte_count,
+                                *[span.span_id for span in subsegment],
+                            )
+
+                        if write_to_set:
+                            p.execute_command(
+                                "EVALSHA",
+                                add_buffer_set_sha,
+                                1,
+                                project_and_trace,
+                                len(subsegment),
+                                parent_span_id,
+                                (
+                                    "true"
+                                    if any(span.is_segment_span for span in subsegment)
+                                    else "false"
+                                ),
+                                redis_ttl,
+                                max_segment_bytes,
+                                byte_count,
+                                *[span.span_id for span in subsegment],
+                            )
 
                         is_root_span_count += sum(span.is_segment_span for span in subsegment)
                         result_meta.append((project_and_trace, parent_span_id))
 
-                    results.extend(p.execute())
+                    batch_results = p.execute()
+
+                if write_to_zset and write_to_set:
+                    # EVALSHA results alternate between ZSET and SET
+                    zset_results.extend(batch_results[::2])
+                    set_results.extend(batch_results[1::2])
+                elif write_to_zset:
+                    zset_results.extend(batch_results)
+                elif write_to_set:
+                    set_results.extend(batch_results)
+
+        if write_to_zset and zset_results:
+            for result in zset_results:
+                metrics.timing(
+                    "spans.buffer.process_spans.evalsha_latency_ms",
+                    result[2],
+                    tags={"storage_type": "zset"},
+                )
+        if write_to_set and set_results:
+            for result in set_results:
+                metrics.timing(
+                    "spans.buffer.process_spans.evalsha_latency_ms",
+                    result[2],
+                    tags={"storage_type": "set"},
+                )
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
@@ -280,9 +341,9 @@ class SpansBuffer:
                 [],
             )  # (latency_ms, latency_metrics, gauge_metrics)
 
-            assert len(result_meta) == len(results)
+            assert len(result_meta) == len(zset_results)
 
-            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
+            for (project_and_trace, parent_span_id), result in zip(result_meta, zset_results):
                 (
                     set_key,
                     has_root_span,
@@ -348,13 +409,32 @@ class SpansBuffer:
         except Exception as e:
             logger.exception("Error emitting observability metrics: %s", e)
 
-    def _ensure_script(self):
-        if self.add_buffer_sha is not None:
-            if self.client.script_exists(self.add_buffer_sha)[0]:
-                return self.add_buffer_sha
+    def _ensure_scripts(
+        self, write_to_zset: bool, write_to_set: bool
+    ) -> tuple[str | None, str | None]:
+        """
+        Ensures the required Lua scripts are loaded in Redis.
 
-        self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
-        return self.add_buffer_sha
+        :param write_to_zset: Whether to write to ZSET.
+        :param write_to_set: Whether to write to SET.
+        :return: A tuple of (add_buffer_sha, add_buffer_set_sha) where if a mode is not used,
+        the value will be None.
+        """
+        if write_to_zset:
+            if not self.add_buffer_sha or not self.client.script_exists(self.add_buffer_sha)[0]:
+                self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
+
+        if write_to_set:
+            if (
+                not self.add_buffer_set_sha
+                or not self.client.script_exists(self.add_buffer_set_sha)[0]
+            ):
+                self.add_buffer_set_sha = self.client.script_load(add_buffer_set_script.script)
+
+        return (
+            self.add_buffer_sha if write_to_zset else None,
+            self.add_buffer_set_sha if write_to_set else None,
+        )
 
     def _get_queue_key(self, shard: int) -> bytes:
         if self.slice_id is not None:
