@@ -88,21 +88,15 @@ function MetricsQueryBuilderSection() {
             </MetricsQueryParamsProvider>
           );
         })}
-        <AddMetricWrapper>
-          <ToolbarVisualizeAddChart
-            add={addMetricQuery}
-            disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-            label={t('Add Metric')}
-          />
-        </AddMetricWrapper>
+        <ToolbarVisualizeAddChart
+          add={addMetricQuery}
+          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+          label={t('Add Metric')}
+        />
       </Flex>
     </MetricsQueryBuilderContainer>
   );
 }
-
-const AddMetricWrapper = styled('div')`
-  margin-left: ${p => p.theme.space.lg};
-`;
 
 function MetricsTabBodySection() {
   const metricQueries = useMultiMetricsQueryParams();
