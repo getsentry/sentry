@@ -352,6 +352,7 @@ class MetricIssue(GroupType):
             },
         },
     )
+    enable_issue_stream_detector = False
 
     @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:

@@ -262,6 +262,9 @@ class GroupType:
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation = False
 
+    # Controls whether the issue stream detector is picked up in workflow processing
+    enable_issue_stream_detector = True
+
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         registry.add(cls)
