@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 from django.core import mail
@@ -364,22 +365,22 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.assertFalse(self.user.has_2fa())
 
     @assume_test_silo_mode(SiloMode.REGION)
-    def require_2fa_for_organization(self):
+    def require_2fa_for_organization(self) -> None:
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.assertTrue(self.organization.flags.require_2fa.is_set)
 
-    def _assert_pending_invite_details_in_session(self, om):
+    def _assert_pending_invite_details_in_session(self, om: OrganizationMember) -> None:
         assert self.client.session["invite_token"] == om.token
         assert self.client.session["invite_member_id"] == om.id
         assert self.client.session["invite_organization_id"] == om.organization_id
 
-    def create_existing_om(self):
+    def create_existing_om(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             OrganizationMember.objects.create(
                 user_id=self.user.id, role="member", organization=self.organization
             )
 
-    def get_om_and_init_invite(self):
+    def get_om_and_init_invite(self) -> OrganizationMember:
         with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             om = OrganizationMember.objects.create(
                 email="newuser@example.com",
@@ -399,7 +400,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         return om
 
-    def assert_invite_accepted(self, response, member_id: int) -> None:
+    def assert_invite_accepted(self, response: Any, member_id: int) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.get(id=member_id)
         assert om.user_id == self.user.id
@@ -420,7 +421,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert not self.client.session.get("invite_member_id")
 
     @override_options({"system.url-prefix": "https://testserver"})
-    def setup_u2f(self, om):
+    def setup_u2f(self, om: OrganizationMember) -> Any:
         # We have to add the invite details back in to the session
         # prior to .save_session() since this re-creates the session property
         # when under test. See here for more details:
