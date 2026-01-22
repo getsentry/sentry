@@ -10,6 +10,15 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import {
   sampleCountCategoricalData,
   sampleDurationCategoricalData,
+  sampleLargeValueData,
+  sampleLongLabelData,
+  sampleManyCategoriesData,
+  sampleMultiSeriesData,
+  sampleNegativeData,
+  samplePercentageData,
+  sampleRateData,
+  sampleSizeData,
+  sampleSparseData,
   sampleStackedCategoricalData,
 } from './fixtures/sampleCountCategoricalData';
 import {Bar} from './plottables/bar';
@@ -245,6 +254,117 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
     );
   });
 
+  story('X Axis', () => {
+    return (
+      <Fragment>
+        <p>
+          In a <Storybook.JSXNode name="BarChartWidgetVisualization" />, the X axis
+          displays category labels. The labels are automatically truncated when they are
+          too long to fit. For long labels, consider using horizontal orientation to give
+          more room for the text.
+        </p>
+
+        <p>Short labels (vertical):</p>
+        <MediumWidget>
+          <BarChartWidgetVisualization
+            plottables={[new Bar(sampleCountCategoricalData)]}
+          />
+        </MediumWidget>
+
+        <p>
+          Long labels get truncated in vertical orientation. Notice how the endpoint paths
+          are cut off:
+        </p>
+        <MediumWidget>
+          <BarChartWidgetVisualization plottables={[new Bar(sampleLongLabelData)]} />
+        </MediumWidget>
+
+        <p>
+          Horizontal orientation gives more room for long labels, making them fully
+          readable:
+        </p>
+        <MediumWidget>
+          <BarChartWidgetVisualization
+            plottables={[new Bar(sampleLongLabelData)]}
+            orientation="horizontal"
+          />
+        </MediumWidget>
+
+        <p>
+          When you have many categories, the chart will scale to fit them. With 12
+          categories in vertical orientation, the bars become narrower:
+        </p>
+        <LargeWidget>
+          <BarChartWidgetVisualization plottables={[new Bar(sampleManyCategoriesData)]} />
+        </LargeWidget>
+
+        <p>
+          Horizontal orientation with many categories works well when you have vertical
+          space:
+        </p>
+        <TallWidget>
+          <BarChartWidgetVisualization
+            plottables={[new Bar(sampleManyCategoriesData)]}
+            orientation="horizontal"
+          />
+        </TallWidget>
+      </Fragment>
+    );
+  });
+
+  story('Y Axis', () => {
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="BarChartWidgetVisualization" /> automatically formats
+          the Y axis based on the data type and unit. The logic is similar to{' '}
+          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />:
+        </p>
+
+        <ul>
+          <li>Look through all plottables and determine their data types</li>
+          <li>Use the most common type for Y axis formatting</li>
+          <li>Format values using appropriate units (ms, KB, /s, %, etc.)</li>
+        </ul>
+
+        <p>Percentage data (values between 0 and 1, displayed as percentages):</p>
+        <MediumWidget>
+          <BarChartWidgetVisualization plottables={[new Bar(samplePercentageData)]} />
+        </MediumWidget>
+
+        <p>Size data (bytes, automatically scaled to KB, MB, etc.):</p>
+        <MediumWidget>
+          <BarChartWidgetVisualization plottables={[new Bar(sampleSizeData)]} />
+        </MediumWidget>
+
+        <p>Rate data (requests per second):</p>
+        <MediumWidget>
+          <BarChartWidgetVisualization plottables={[new Bar(sampleRateData)]} />
+        </MediumWidget>
+
+        <p>
+          Large values are automatically formatted with K, M, B suffixes for readability:
+        </p>
+        <MediumWidget>
+          <BarChartWidgetVisualization plottables={[new Bar(sampleLargeValueData)]} />
+        </MediumWidget>
+
+        <p>
+          When combining series with different data types (e.g., count and duration), the
+          chart uses the most common type for the Y axis:
+        </p>
+        <MediumWidget>
+          <BarChartWidgetVisualization
+            plottables={[
+              new Bar(sampleCountCategoricalData, {alias: 'Count'}),
+              new Bar(sampleDurationCategoricalData, {alias: 'Duration'}),
+            ]}
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
   story('Color', () => {
     const theme = useTheme();
 
@@ -371,6 +491,99 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
     );
   });
 
+  story('Null and Missing Values', () => {
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="BarChartWidgetVisualization" /> gracefully handles{' '}
+          <code>null</code> values in the data. Bars with null values are simply not
+          rendered, leaving a gap in that position.
+        </p>
+
+        <p>
+          In the example below, February and April have <code>null</code> values:
+        </p>
+
+        <MediumWidget>
+          <BarChartWidgetVisualization plottables={[new Bar(sampleSparseData)]} />
+        </MediumWidget>
+
+        <p>Same data with horizontal orientation:</p>
+
+        <MediumWidget>
+          <BarChartWidgetVisualization
+            plottables={[new Bar(sampleSparseData)]}
+            orientation="horizontal"
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
+  story('Negative Values', () => {
+    return (
+      <Fragment>
+        <p>
+          Bar charts can display negative values, which is useful for showing
+          deltas/changes, comparisons, or any data that can go below zero. Bars extend
+          downward (or leftward in horizontal mode) from the zero line.
+        </p>
+
+        <MediumWidget>
+          <BarChartWidgetVisualization plottables={[new Bar(sampleNegativeData)]} />
+        </MediumWidget>
+
+        <p>Horizontal orientation with negative values:</p>
+
+        <MediumWidget>
+          <BarChartWidgetVisualization
+            plottables={[new Bar(sampleNegativeData)]}
+            orientation="horizontal"
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
+  story('Many Series', () => {
+    return (
+      <Fragment>
+        <p>
+          When you have multiple plottables without explicit colors, the chart
+          automatically assigns colors from the theme's color palette. This ensures visual
+          distinction between series.
+        </p>
+
+        <LargeWidget>
+          <BarChartWidgetVisualization
+            plottables={sampleMultiSeriesData.map(series => new Bar(series))}
+          />
+        </LargeWidget>
+
+        <p>Stacked version with many series:</p>
+
+        <LargeWidget>
+          <BarChartWidgetVisualization
+            plottables={sampleMultiSeriesData.map(
+              series => new Bar(series, {stack: 'browsers'})
+            )}
+          />
+        </LargeWidget>
+
+        <p>Horizontal stacked version:</p>
+
+        <TallWidget>
+          <BarChartWidgetVisualization
+            plottables={sampleMultiSeriesData.map(
+              series => new Bar(series, {stack: 'browsers'})
+            )}
+            orientation="horizontal"
+          />
+        </TallWidget>
+      </Fragment>
+    );
+  });
+
   story('Loading Placeholder', () => {
     return (
       <Fragment>
@@ -388,14 +601,26 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
   });
 });
 
+const SmallWidget = styled('div')`
+  position: relative;
+  width: 360px;
+  height: 160px;
+`;
+
 const MediumWidget = styled('div')`
   position: relative;
   width: 420px;
   height: 250px;
 `;
 
-const SmallWidget = styled('div')`
+const LargeWidget = styled('div')`
   position: relative;
-  width: 360px;
-  height: 160px;
+  width: 600px;
+  height: 300px;
+`;
+
+const TallWidget = styled('div')`
+  position: relative;
+  width: 420px;
+  height: 400px;
 `;
