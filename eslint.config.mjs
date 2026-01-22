@@ -308,14 +308,6 @@ export default typescript.config([
         {
           patterns: [
             {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -867,14 +859,6 @@ export default typescript.config([
         {
           patterns: [
             {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -896,14 +880,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -956,10 +932,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into gsApp',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
