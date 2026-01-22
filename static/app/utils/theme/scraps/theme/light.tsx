@@ -49,9 +49,9 @@ const background = {
   accent: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc1NTRGRiIvPgogIDwvc3ZnPg==)
      *
-     * `accent.vibrant` `#7B52FF`
+     * `accent.vibrant` `#7554FF`
      *
      * Used to strongly emphasize blocks of content that inform users of
      * important facts. Content sitting on this background color must use
@@ -62,9 +62,9 @@ const background = {
   promotion: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGNEJCOCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZDNUNCNSIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.vibrant` `#FF4BB8`
+     * `promotion.vibrant` `#FC5CB5`
      *
      * Used to strongly emphasize blocks of content that encourage users to
      * invest in Sentry. Content sitting on this background color must use
@@ -75,9 +75,9 @@ const background = {
   danger: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAyQiIvPgogIDwvc3ZnPg==)
      *
-     * `danger.vibrant` `#FF0015`
+     * `danger.vibrant` `#FF002B`
      *
      * Used to strongly emphasize blocks of content that alert users of a issue.
      * Content sitting on this background color must use content.onVibrant.light
@@ -88,9 +88,9 @@ const background = {
   warning: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0MwMCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0YwMCIvPgogIDwvc3ZnPg==)
      *
-     * `warning.vibrant` `#FFCC00`
+     * `warning.vibrant` `#FFCF00`
      *
      * Used to strongly emphasize blocks of content that alert users of a
      * potential issue. Content sitting on this background color must use
@@ -101,9 +101,9 @@ const background = {
   success: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjc0NiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjI2MSIvPgogIDwvc3ZnPg==)
      *
-     * `success.vibrant` `#00F746`
+     * `success.vibrant` `#00F261`
      *
      * Used to strongly emphasize blocks of content that inform users of a
      * desired end-state. Content sitting on this background color must use
@@ -115,9 +115,9 @@ const background = {
     neutral: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjMwRiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjEwRiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.neutral.muted` `#0000230F`
+       * `transparent.neutral.muted` `#0000210F`
        *
        * Used to lightly emphasize blocks of content that inform users of less
        * important facts.
@@ -127,9 +127,9 @@ const background = {
     accent: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDA4RkExMiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDA4RjAxMiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.accent.muted` `#0008FA12`
+       * `transparent.accent.muted` `#0008F012`
        *
        * Used to lightly emphasize blocks of content that inform users of
        * important facts.
@@ -139,9 +139,9 @@ const background = {
     promotion: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGRjAwOTExQSIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGMDAwOEYxQSIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.promotion.muted` `#FF00911A`
+       * `transparent.promotion.muted` `#F0008F1A`
        *
        * Used to strongly emphasize blocks of content that encourage users to
        * invest in Sentry.
@@ -151,9 +151,9 @@ const background = {
     danger: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGRjAwMDAxQyIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGNzI5MDgxQyIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.danger.muted` `#FF00001C`
+       * `transparent.danger.muted` `#F729081C`
        *
        * Used to lightly emphasize blocks of content that alert users of a
        * issue.
@@ -163,9 +163,9 @@ const background = {
     warning: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNFQUFFMDAzMCIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNFMEIwMEYzMCIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.warning.muted` `#EAAE0030`
+       * `transparent.warning.muted` `#E0B00F30`
        *
        * Used to lightly emphasize blocks of content that alert users of a
        * potential issue.
@@ -175,9 +175,9 @@ const background = {
     success: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMEJCMDAxQyIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMEI4MDAxQyIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.success.muted` `#00BB001C`
+       * `transparent.success.muted` `#00B8001C`
        *
        * Used to lightly emphasize blocks of content that inform users of a
        * desired end-state.
@@ -199,9 +199,9 @@ const border = {
   primary: color.neutral.light.opaque400,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0U1RTZFOCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0U2RTZFOCIvPgogIDwvc3ZnPg==)
    *
-   * `secondary` `#E5E6E8`
+   * `secondary` `#E6E6E8`
    *
    * A shade lighter than `border.primary`,used primarily for rows of repeated
    * block elements such as table rows or list items wrapped in a container.
@@ -221,9 +221,9 @@ const border = {
     muted: color.neutral.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0JGQkZDOCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0JGQkZDNyIvPgogIDwvc3ZnPg==)
      *
-     * `neutral.moderate` `#BFBFC8`
+     * `neutral.moderate` `#BFBFC7`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This more intense than `border.neutral.muted`, and
@@ -232,9 +232,9 @@ const border = {
     moderate: color.neutral.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E0OUVBQyIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0EzOUVBQiIvPgogIDwvc3ZnPg==)
      *
-     * `neutral.vibrant` `#A49EAC`
+     * `neutral.vibrant` `#A39EAB`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the most intense of its family, and the
@@ -256,9 +256,9 @@ const border = {
     muted: color.blue.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I5QjJGRiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I4QjNGRiIvPgogIDwvc3ZnPg==)
      *
-     * `accent.moderate` `#B9B2FF`
+     * `accent.moderate` `#B8B3FF`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This more intense than `border.accent.muted`, and
@@ -267,9 +267,9 @@ const border = {
     moderate: color.blue.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc1NTRGRiIvPgogIDwvc3ZnPg==)
      *
-     * `accent.vibrant` `#7B52FF`
+     * `accent.vibrant` `#7554FF`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the most intense of its family, and the
@@ -280,9 +280,9 @@ const border = {
   promotion: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQkZFNSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQzJFMyIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.muted` `#FFBFE5`
+     * `promotion.muted` `#FFC2E3`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the least intense token of its family, and
@@ -291,9 +291,9 @@ const border = {
     muted: color.pink.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGOEREMSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGOTRDRiIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.moderate` `#FF8DD1`
+     * `promotion.moderate` `#FF94CF`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This more intense than `border.promotion.muted`, and
@@ -302,9 +302,9 @@ const border = {
     moderate: color.pink.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGNjRDMCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGNzBCRCIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.vibrant` `#FF64C0`
+     * `promotion.vibrant` `#FF70BD`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the most intense of its family, and the
@@ -315,9 +315,9 @@ const border = {
   danger: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQzFCQSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQzRCRCIvPgogIDwvc3ZnPg==)
      *
-     * `danger.muted` `#FFC1BA`
+     * `danger.muted` `#FFC4BD`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the least intense token of its family, and
@@ -326,9 +326,9 @@ const border = {
     muted: color.red.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGOTA4QiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGOTY4RiIvPgogIDwvc3ZnPg==)
      *
-     * `danger.moderate` `#FF908B`
+     * `danger.moderate` `#FF968F`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This more intense than `border.danger.muted`, and
@@ -337,9 +337,9 @@ const border = {
     moderate: color.red.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAyQiIvPgogIDwvc3ZnPg==)
      *
-     * `danger.vibrant` `#FF0015`
+     * `danger.vibrant` `#FF002B`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the most intense of its family, and the
@@ -350,17 +350,17 @@ const border = {
   warning: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Y4RDg4NCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0YyRDk4RiIvPgogIDwvc3ZnPg==)
      *
-     * `warning.muted` `#F8D884`
+     * `warning.muted` `#F2D98F`
      *
      */
     muted: color.yellow.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Y0Qzg0QSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0VEQzk2MSIvPgogIDwvc3ZnPg==)
      *
-     * `warning.moderate` `#F4C84A`
+     * `warning.moderate` `#EDC961`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This more intense than `border.warning.muted`, and
@@ -369,9 +369,9 @@ const border = {
     moderate: color.yellow.light.opaque500,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0MwMCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0YwMCIvPgogIDwvc3ZnPg==)
      *
-     * `warning.vibrant` `#FFCC00`
+     * `warning.vibrant` `#FFCF00`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the most intense of its family, and the
@@ -382,9 +382,9 @@ const border = {
   success: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E2RURCNiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I1RUJCQSIvPgogIDwvc3ZnPg==)
      *
-     * `success.muted` `#A6EDB6`
+     * `success.muted` `#B5EBBA`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the least intense token of its family, and
@@ -393,9 +393,9 @@ const border = {
     muted: color.green.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzU3REM4MSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdERDk4QSIvPgogIDwvc3ZnPg==)
      *
-     * `success.moderate` `#57DC81`
+     * `success.moderate` `#7DD98A`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This more intense than `border.success.muted`, and
@@ -404,9 +404,9 @@ const border = {
     moderate: color.green.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjc0NiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjI2MSIvPgogIDwvc3ZnPg==)
      *
-     * `success.vibrant` `#00F746`
+     * `success.vibrant` `#00F261`
      *
      * Used situationally, but its primary purpose is to emphasize borders in
      * data visualisations. This is the most intense of its family, and the
@@ -441,27 +441,27 @@ const border = {
     neutral: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjMyNiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjEyNiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.neutral.muted` `#00002326`
+       * `transparent.neutral.muted` `#00002126`
        *
        * The transparent equivalent of `border.neutral.muted`.
        */
       muted: color.neutral.light.transparent400,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMxMTA3MkI0NSIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjA4Mjk0NSIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.neutral.moderate` `#11072B45`
+       * `transparent.neutral.moderate` `#0F082945`
        *
        * The transparent equivalent of `border.neutral.moderate`.
        */
       moderate: color.neutral.light.transparent600,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMxMTA3MkI2MyIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjA4Mjk2MyIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.neutral.vibrant` `#11072B63`
+       * `transparent.neutral.vibrant` `#0F082963`
        *
        * The transparent equivalent of `border.neutral.vibrant`.
        */
@@ -470,27 +470,27 @@ const border = {
     accent: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMxMTA3RkYyRSIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjA4RjcyRSIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.accent.muted` `#1107FF2E`
+       * `transparent.accent.muted` `#0F08F72E`
        *
        * The transparent equivalent of `border.accent.muted`.
        */
       muted: color.blue.light.transparent400,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMxOTA3RkY0RiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMxNzA4Rjc0RiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.accent.moderate` `#1907FF4F`
+       * `transparent.accent.moderate` `#1708F74F`
        *
        * The transparent equivalent of `border.accent.moderate`.
        */
       moderate: color.blue.light.transparent600,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiM0NjBBRkZCOCIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiM0MDBGRjdCOCIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.accent.vibrant` `#460AFFB8`
+       * `transparent.accent.vibrant` `#400FF7B8`
        *
        * The transparent equivalent of `border.accent.vibrant`.
        */
@@ -499,27 +499,27 @@ const border = {
     promotion: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGRjFGQUI1MiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGNzQwQTg1MiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.promotion.muted` `#FF1FAB52`
+       * `transparent.promotion.muted` `#F740A852`
        *
        * The transparent equivalent of `border.promotion.muted`.
        */
       muted: color.pink.light.transparent400,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGRjAwOTE3MCIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGNzA4OEY3MCIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.promotion.moderate` `#FF009170`
+       * `transparent.promotion.moderate` `#F7088F70`
        *
        * The transparent equivalent of `border.promotion.moderate`.
        */
       moderate: color.pink.light.transparent600,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGRjAwODk4RiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGNzAwODc4RiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.promotion.vibrant` `#FF00898F`
+       * `transparent.promotion.vibrant` `#F700878F`
        *
        * The transparent equivalent of `border.promotion.vibrant`.
        */
@@ -528,27 +528,27 @@ const border = {
     danger: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGRjJFMTk1MiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGNzQ3MzA1MiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.danger.muted` `#FF2E1952`
+       * `transparent.danger.muted` `#F7473052`
        *
        * The transparent equivalent of `border.danger.muted`.
        */
       muted: color.red.light.transparent400,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGRjAwMDA3OCIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGNzIxMEY3OCIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.danger.moderate` `#FF000078`
+       * `transparent.danger.moderate` `#F7210F78`
        *
        * The transparent equivalent of `border.danger.moderate`.
        */
       moderate: color.red.light.transparent600,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAyQiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.danger.vibrant` `#FF0015`
+       * `transparent.danger.vibrant` `#FF002B`
        *
        * The transparent equivalent of `border.danger.vibrant`.
        */
@@ -557,27 +557,27 @@ const border = {
     warning: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGMUI1MDA4QyIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNFOEI4MzA4QyIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.warning.muted` `#F1B5008C`
+       * `transparent.warning.muted` `#E8B8308C`
        *
        * The transparent equivalent of `border.warning.muted`.
        */
       muted: color.yellow.light.transparent400,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNGMUI1MDBCRCIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiNFOEI4MjlCRCIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.warning.moderate` `#F1B500BD`
+       * `transparent.warning.moderate` `#E8B829BD`
        *
        * The transparent equivalent of `border.warning.moderate`.
        */
       moderate: color.yellow.light.transparent500,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0MwMCIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0YwMCIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.warning.vibrant` `#FFCC00`
+       * `transparent.warning.vibrant` `#FFCF00`
        *
        * The transparent equivalent of `border.warning.vibrant`.
        */
@@ -586,27 +586,27 @@ const border = {
     success: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMEJCMDA0QSIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMEI4MEY0QSIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.success.muted` `#00BB004A`
+       * `transparent.success.muted` `#00B80F4A`
        *
        * The transparent equivalent of `border.success.muted`.
        */
       muted: color.green.light.transparent400,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMEJCMDA4QyIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRkI4Mjk4QyIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.success.moderate` `#00BB008C`
+       * `transparent.success.moderate` `#0FB8298C`
        *
        * The transparent equivalent of `border.success.moderate`.
        */
       moderate: color.green.light.transparent600,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjc0NiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjI2MSIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.success.vibrant` `#00F746`
+       * `transparent.success.vibrant` `#00F261`
        *
        * The transparent equivalent of `border.success.vibrant`.
        */
@@ -618,18 +618,18 @@ const border = {
 const content = {
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMxMkUzNiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMwMkUzNiIvPgogIDwvc3ZnPg==)
    *
-   * `primary` `#312E36`
+   * `primary` `#302E36`
    *
    * The default color for text and icons.
    */
   primary: color.neutral.light.opaque1500,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZDNjY3NCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZCNjY3MyIvPgogIDwvc3ZnPg==)
    *
-   * `secondary` `#6C6674`
+   * `secondary` `#6B6673`
    *
    * Used in combination with `content.primary` and `content.headings` to
    * improve the visual hierarchy of content.
@@ -637,54 +637,54 @@ const content = {
   secondary: color.neutral.light.opaque1100,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZEM0JGMSIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzY2M0RFOCIvPgogIDwvc3ZnPg==)
    *
-   * `accent` `#6D3BF1`
+   * `accent` `#663DE8`
    *
    * Used for text and icons that inform users of important facts.
    */
   accent: color.blue.light.opaque1100,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0RBMDA3RiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0M3MDA3RCIvPgogIDwvc3ZnPg==)
    *
-   * `promotion` `#DA007F`
+   * `promotion` `#C7007D`
    *
    * Used for text and icons that encourage users to invest in Sentry.
    */
   promotion: color.pink.light.opaque1100,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0VBMDAwMCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Q2MDAwMCIvPgogIDwvc3ZnPg==)
    *
-   * `danger` `#EA0000`
+   * `danger` `#D60000`
    *
    * Used for text and icons that alert users of a issue.
    */
   danger: color.red.light.opaque1100,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0FGNEMwMCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0EzNTIwMCIvPgogIDwvc3ZnPg==)
    *
-   * `warning` `#AF4C00`
+   * `warning` `#A35200`
    *
    * Used for text and icons that alert users of a potential issue.
    */
   warning: color.yellow.light.opaque1100,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwOEMwMCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwOEEwMCIvPgogIDwvc3ZnPg==)
    *
-   * `success` `#008C00`
+   * `success` `#008A00`
    *
    * Used for text and icons that inform users of a desired end-state.
    */
   success: color.green.light.opaque1100,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzg4ODQ5MCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzg3ODU4RiIvPgogIDwvc3ZnPg==)
    *
-   * `disabled` `#888490`
+   * `disabled` `#87858F`
    *
    * ✋ Purely for migration purposes, isn’t being used anyway in the new token
    * system.
@@ -692,9 +692,9 @@ const content = {
   disabled: color.neutral.light.opaque900,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE4MTIyOCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE3MTIyNiIvPgogIDwvc3ZnPg==)
    *
-   * `headings` `#181228`
+   * `headings` `#171226`
    *
    * Used only for text and icons that act as headers for pages or page
    * sections.
@@ -814,9 +814,9 @@ const dataviz = {
   semantic: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E0OUVBQyIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0EzOUVBQiIvPgogIDwvc3ZnPg==)
      *
-     * `semantic.neutral` `#A49EAC`
+     * `semantic.neutral` `#A39EAB`
      *
      * Used as an alternative to the default colour of the
      * `data.viz.categorical` color scale.
@@ -824,17 +824,17 @@ const dataviz = {
     neutral: color.neutral.light.opaque800,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc1NTRGRiIvPgogIDwvc3ZnPg==)
      *
-     * `semantic.accent` `#7B52FF`
+     * `semantic.accent` `#7554FF`
      *
      */
     accent: color.categorical.light.blurple,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjc0NiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjI2MSIvPgogIDwvc3ZnPg==)
      *
-     * `semantic.good` `#00F746`
+     * `semantic.good` `#00F261`
      *
      * Used specifically for chart data that aims to visually communicate ideal
      * outcomes.
@@ -842,9 +842,9 @@ const dataviz = {
     good: border.success.vibrant,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0MwMCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0YwMCIvPgogIDwvc3ZnPg==)
      *
-     * `semantic.meh` `#FFCC00`
+     * `semantic.meh` `#FFCF00`
      *
      * Used specifically for chart data that aims to visually communicate less
      * than ideal outcomes.
@@ -852,9 +852,9 @@ const dataviz = {
     meh: border.warning.vibrant,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAyQiIvPgogIDwvc3ZnPg==)
      *
-     * `semantic.bad` `#FF0015`
+     * `semantic.bad` `#FF002B`
      *
      * Used specifically for chart data that aims to visually communicate
      * negative outcomes.
@@ -862,9 +862,9 @@ const dataviz = {
     bad: border.danger.vibrant,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzg4ODQ5MCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzg3ODU4RiIvPgogIDwvc3ZnPg==)
      *
-     * `semantic.release` `#888490`
+     * `semantic.release` `#87858F`
      *
      * Used specifically for release lines that can populate our charts.
      */
@@ -882,20 +882,39 @@ const dataviz = {
   },
 };
 
+const elevation = {
+  /**
+   *
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjBGMzAwOCIvPgogIDwvc3ZnPg==)
+   *
+   * `high` `#0F0F3008`
+   *
+   */
+  high: color.neutral.light.transparent100,
+  /**
+   *
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjEwRiIvPgogIDwvc3ZnPg==)
+   *
+   * `low` `#0000210F`
+   *
+   */
+  low: color.neutral.light.transparent200,
+};
+
 const focus = {
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc1NTRGRiIvPgogIDwvc3ZnPg==)
    *
-   * `default` `#7B52FF`
+   * `default` `#7554FF`
    *
    */
   default: border.accent.vibrant,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAyQiIvPgogIDwvc3ZnPg==)
    *
-   * `invalid` `#FF0015`
+   * `invalid` `#FF002B`
    *
    * Used specifically when form elements use some form of validation which
    * evaluates a users input to be ‘invalid’.
@@ -939,9 +958,9 @@ const graphics = {
     muted: color.neutral.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0JGQkZDOCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0JGQkZDNyIvPgogIDwvc3ZnPg==)
      *
-     * `neutral.moderate` `#BFBFC8`
+     * `neutral.moderate` `#BFBFC7`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is more intense than `graphics.neutral.muted`.
@@ -949,9 +968,9 @@ const graphics = {
     moderate: color.neutral.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc4NzU4MyIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc4NzU4MiIvPgogIDwvc3ZnPg==)
      *
-     * `neutral.vibrant` `#787583`
+     * `neutral.vibrant` `#787582`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
@@ -971,9 +990,9 @@ const graphics = {
     muted: color.blue.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I5QjJGRiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I4QjNGRiIvPgogIDwvc3ZnPg==)
      *
-     * `accent.moderate` `#B9B2FF`
+     * `accent.moderate` `#B8B3FF`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is more intense than `graphics.accent.muted`.
@@ -981,9 +1000,9 @@ const graphics = {
     moderate: color.blue.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc1NTRGRiIvPgogIDwvc3ZnPg==)
      *
-     * `accent.vibrant` `#7B52FF`
+     * `accent.vibrant` `#7554FF`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
@@ -993,9 +1012,9 @@ const graphics = {
   promotion: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQkZFNSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQzJFMyIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.muted` `#FFBFE5`
+     * `promotion.muted` `#FFC2E3`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the least intense token of its family.
@@ -1003,9 +1022,9 @@ const graphics = {
     muted: color.pink.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGOEREMSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGOTRDRiIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.moderate` `#FF8DD1`
+     * `promotion.moderate` `#FF94CF`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is more intense than
@@ -1014,9 +1033,9 @@ const graphics = {
     moderate: color.pink.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0VEMDA4RiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Q5MDA4QyIvPgogIDwvc3ZnPg==)
      *
-     * `promotion.vibrant` `#ED008F`
+     * `promotion.vibrant` `#D9008C`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
@@ -1026,9 +1045,9 @@ const graphics = {
   danger: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQzFCQSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQzRCRCIvPgogIDwvc3ZnPg==)
      *
-     * `danger.muted` `#FFC1BA`
+     * `danger.muted` `#FFC4BD`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the least intense token of its family.
@@ -1036,9 +1055,9 @@ const graphics = {
     muted: color.red.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGOTA4QiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGOTY4RiIvPgogIDwvc3ZnPg==)
      *
-     * `danger.moderate` `#FF908B`
+     * `danger.moderate` `#FF968F`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is more intense than `graphics.danger.muted`.
@@ -1046,9 +1065,9 @@ const graphics = {
     moderate: color.red.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAyQiIvPgogIDwvc3ZnPg==)
      *
-     * `danger.vibrant` `#FF0015`
+     * `danger.vibrant` `#FF002B`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
@@ -1058,9 +1077,9 @@ const graphics = {
   warning: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Y4RDg4NCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0YyRDk4RiIvPgogIDwvc3ZnPg==)
      *
-     * `warning.muted` `#F8D884`
+     * `warning.muted` `#F2D98F`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the least intense token of its family.
@@ -1068,9 +1087,9 @@ const graphics = {
     muted: color.yellow.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Y0Qzg0QSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0VEQzk2MSIvPgogIDwvc3ZnPg==)
      *
-     * `warning.moderate` `#F4C84A`
+     * `warning.moderate` `#EDC961`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is more intense than `graphics.warning.muted`.
@@ -1078,9 +1097,9 @@ const graphics = {
     moderate: color.yellow.light.opaque500,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0UxOTMwMCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Q2OTYwMCIvPgogIDwvc3ZnPg==)
      *
-     * `warning.vibrant` `#E19300`
+     * `warning.vibrant` `#D69600`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
@@ -1090,9 +1109,9 @@ const graphics = {
   success: {
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E2RURCNiIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I1RUJCQSIvPgogIDwvc3ZnPg==)
      *
-     * `success.muted` `#A6EDB6`
+     * `success.muted` `#B5EBBA`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the least intense token of its family.
@@ -1100,9 +1119,9 @@ const graphics = {
     muted: color.green.light.opaque400,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzU3REM4MSIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdERDk4QSIvPgogIDwvc3ZnPg==)
      *
-     * `success.moderate` `#57DC81`
+     * `success.moderate` `#7DD98A`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is more intense than `graphics.success.muted`.
@@ -1110,9 +1129,9 @@ const graphics = {
     moderate: color.green.light.opaque600,
     /**
      *
-     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwOUMwMCIvPgogIDwvc3ZnPg==)
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwOTkwMCIvPgogIDwvc3ZnPg==)
      *
-     * `success.vibrant` `#009C00`
+     * `success.vibrant` `#009900`
      *
      * Used situationally, but its primary purpose is to emphasize shapes in
      * data visualisations. This is the most intense token of its family.
@@ -1128,9 +1147,9 @@ const interactive = {
         content: {
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE4MTIyOCIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE3MTIyNiIvPgogIDwvc3ZnPg==)
            *
-           * `chonky.debossed.neutral.content.primary` `#181228`
+           * `chonky.debossed.neutral.content.primary` `#171226`
            *
            * The default color for the contents within a default variant of
            * chonky form elements.
@@ -1138,9 +1157,9 @@ const interactive = {
           primary: content.headings,
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZDNjY3NCIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZCNjY3MyIvPgogIDwvc3ZnPg==)
            *
-           * `chonky.debossed.neutral.content.secondary` `#6C6674`
+           * `chonky.debossed.neutral.content.secondary` `#6B6673`
            *
            * Used specifically for placeholders or labels within chonky form
            * elements.
@@ -1148,9 +1167,9 @@ const interactive = {
           secondary: content.secondary,
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0VBMDAwMCIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Q2MDAwMCIvPgogIDwvc3ZnPg==)
            *
-           * `chonky.debossed.neutral.content.danger` `#EA0000`
+           * `chonky.debossed.neutral.content.danger` `#D60000`
            *
            * Used specifically for validation errors within chonky form
            * elements.
@@ -1159,9 +1178,9 @@ const interactive = {
         },
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjBGMzMwOCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjBGMzAwOCIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.debossed.neutral.background` `#0F0F3308`
+         * `chonky.debossed.neutral.background` `#0F0F3008`
          *
          * Used specifically for the sunken surface of chonky form elements.
          * This token is intended to be used with
@@ -1185,17 +1204,17 @@ const interactive = {
       accent: {
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc1NTRGRiIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.debossed.accent.background` `#7B52FF`
+         * `chonky.debossed.accent.background` `#7554FF`
          *
          */
         background: background.accent.vibrant,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzYxMjJERiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzU5MjZENiIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.debossed.accent.chonk` `#6122DF`
+         * `chonky.debossed.accent.chonk` `#5926D6`
          *
          */
         chonk: color.blue.light.opaque1200,
@@ -1206,9 +1225,9 @@ const interactive = {
         content: {
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE4MTIyOCIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE3MTIyNiIvPgogIDwvc3ZnPg==)
            *
-           * `chonky.embossed.neutral.content.primary` `#181228`
+           * `chonky.embossed.neutral.content.primary` `#171226`
            *
            * The default color for the contents within a default variant of
            * chonky interactive elements.
@@ -1216,9 +1235,9 @@ const interactive = {
           primary: content.headings,
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZDNjY3NCIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZCNjY3MyIvPgogIDwvc3ZnPg==)
            *
-           * `chonky.embossed.neutral.content.secondary` `#6C6674`
+           * `chonky.embossed.neutral.content.secondary` `#6B6673`
            *
            * Used specifically for the contents within a default variant of
            * chonky interactive elements. This token is intended to be used with
@@ -1228,9 +1247,9 @@ const interactive = {
           secondary: content.secondary,
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZEM0JGMSIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzY2M0RFOCIvPgogIDwvc3ZnPg==)
            *
-           * `chonky.embossed.neutral.content.accent` `#6D3BF1`
+           * `chonky.embossed.neutral.content.accent` `#663DE8`
            *
            * Used specifically for the contents within a default variant of
            * elements. This token is intended to be used with
@@ -1277,9 +1296,9 @@ const interactive = {
         content: content.onVibrant.light,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzdCNTJGRiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc1NTRGRiIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.accent.background` `#7B52FF`
+         * `chonky.embossed.accent.background` `#7554FF`
          *
          * Used specifically for the protruding top-surface of chonky
          * interactive elements. This token is intended to be used with
@@ -1289,9 +1308,9 @@ const interactive = {
         background: background.accent.vibrant,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzYxMjJERiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzU5MjZENiIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.accent.chonk` `#6122DF`
+         * `chonky.embossed.accent.chonk` `#5926D6`
          *
          * Used specifically for the protruding shadow of chonky interactive
          * elements. This token is intended to be used with
@@ -1313,9 +1332,9 @@ const interactive = {
         content: content.onVibrant.dark,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGNEJCOCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZDNUNCNSIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.promotion.background` `#FF4BB8`
+         * `chonky.embossed.promotion.background` `#FC5CB5`
          *
          * Used specifically for the protruding top-surface of chonky
          * interactive elements. This token is intended to be used with
@@ -1325,9 +1344,9 @@ const interactive = {
         background: background.promotion.vibrant,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0M2MDA3MiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0I1MDA3MCIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.promotion.chonk` `#C60072`
+         * `chonky.embossed.promotion.chonk` `#B50070`
          *
          * Used specifically for the protruding shadow of chonky interactive
          * elements. This token is intended to be used with
@@ -1349,9 +1368,9 @@ const interactive = {
         content: content.onVibrant.light,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAxNSIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGMDAyQiIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.danger.background` `#FF0015`
+         * `chonky.embossed.danger.background` `#FF002B`
          *
          * Used specifically for the protruding top-surface of chonky
          * interactive elements. This token intended to be used with
@@ -1361,9 +1380,9 @@ const interactive = {
         background: background.danger.vibrant,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Q0MDAwMCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0MyMDAwMCIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.danger.chonk` `#D40000`
+         * `chonky.embossed.danger.chonk` `#C20000`
          *
          * Used specifically for the protruding shadow of chonky interactive
          * elements. This token is intended to be used with
@@ -1385,9 +1404,9 @@ const interactive = {
         content: content.onVibrant.dark,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0MwMCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQ0YwMCIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.warning.background` `#FFCC00`
+         * `chonky.embossed.warning.background` `#FFCF00`
          *
          * Used specifically for the protruding top-surface of chonky
          * interactive elements. This token is intended to be used with
@@ -1397,9 +1416,9 @@ const interactive = {
         background: background.warning.vibrant,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0UxOTMwMCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Q2OTYwMCIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.warning.chonk` `#E19300`
+         * `chonky.embossed.warning.chonk` `#D69600`
          *
          * Used specifically for the protruding shadow of chonky interactive
          * elements. This token is intended to be used with
@@ -1421,9 +1440,9 @@ const interactive = {
         content: content.onVibrant.dark,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjc0NiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwRjI2MSIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.success.background` `#00F746`
+         * `chonky.embossed.success.background` `#00F261`
          *
          * Used specifically for the protruding top-surface of chonky
          * interactive elements. This token is intended to be used with
@@ -1433,9 +1452,9 @@ const interactive = {
         background: background.success.vibrant,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwN0EwMCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwNzgwMCIvPgogIDwvc3ZnPg==)
          *
-         * `chonky.embossed.success.chonk` `#007A00`
+         * `chonky.embossed.success.chonk` `#007800`
          *
          * Used specifically for the protruding shadow of chonky interactive
          * elements. This token is intended to be used with
@@ -1453,9 +1472,9 @@ const interactive = {
     neutral: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZDNjY3NCIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZCNjY3MyIvPgogIDwvc3ZnPg==)
        *
-       * `link.neutral.rest` `#6C6674`
+       * `link.neutral.rest` `#6B6673`
        *
        * Used specifically for inline links or content thats wrapped by a link
        * element. This token can be used with
@@ -1465,9 +1484,9 @@ const interactive = {
       rest: content.secondary,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzVDNTk2NCIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzVDNTk2MyIvPgogIDwvc3ZnPg==)
        *
-       * `link.neutral.hover` `#5C5964`
+       * `link.neutral.hover` `#5C5963`
        *
        * Used specifically for inline links or content thats wrapped by a link
        * element. This token can be used with
@@ -1477,9 +1496,9 @@ const interactive = {
       hover: color.neutral.light.opaque1200,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzRENEE1NSIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzRENEE1NCIvPgogIDwvc3ZnPg==)
        *
-       * `link.neutral.active` `#4D4A55`
+       * `link.neutral.active` `#4D4A54`
        *
        * Used specifically for inline links or content thats wrapped by a link
        * element. This token can be used with
@@ -1491,9 +1510,9 @@ const interactive = {
     accent: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZEM0JGMSIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzY2M0RFOCIvPgogIDwvc3ZnPg==)
        *
-       * `link.accent.rest` `#6D3BF1`
+       * `link.accent.rest` `#663DE8`
        *
        * Used specifically for inline links or content thats wrapped by a link
        * element. This token can be used with
@@ -1503,9 +1522,9 @@ const interactive = {
       rest: content.accent,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzYxMjJERiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzU5MjZENiIvPgogIDwvc3ZnPg==)
        *
-       * `link.accent.hover` `#6122DF`
+       * `link.accent.hover` `#5926D6`
        *
        * Used specifically for inline links or content thats wrapped by a link
        * element. This token can be used with
@@ -1515,9 +1534,9 @@ const interactive = {
       hover: color.blue.light.opaque1200,
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzU0MDdDNyIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzREMEZCRiIvPgogIDwvc3ZnPg==)
        *
-       * `link.accent.active` `#5407C7`
+       * `link.accent.active` `#4D0FBF`
        *
        * Used specifically for inline links or content thats wrapped by a link
        * element. This token can be used with
@@ -1531,18 +1550,18 @@ const interactive = {
     neutral: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjMyNiIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjEyNiIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.neutral.border` `#00002326`
+       * `transparent.neutral.border` `#00002126`
        *
        */
       border: border.transparent.neutral.muted,
       content: {
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMxMkUzNiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMwMkUzNiIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.neutral.content.primary` `#312E36`
+         * `transparent.neutral.content.primary` `#302E36`
          *
          * The default color for the contents within a default variant of
          * transparent interactive elements.
@@ -1550,9 +1569,9 @@ const interactive = {
         primary: content.primary,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZDNjY3NCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZCNjY3MyIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.neutral.content.secondary` `#6C6674`
+         * `transparent.neutral.content.secondary` `#6B6673`
          *
          * Used specifically for descriptions within a default variant of
          * transparent interactive elements.
@@ -1560,9 +1579,9 @@ const interactive = {
         secondary: content.secondary,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE4MTIyOCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE3MTIyNiIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.neutral.content.headings` `#181228`
+         * `transparent.neutral.content.headings` `#171226`
          *
          * Used specifically for headings within a default variant of
          * transparent interactive elements.
@@ -1584,9 +1603,9 @@ const interactive = {
         rest: '#00002000',
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjBGMzMwOCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjBGMzAwOCIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.neutral.background.hover` `#0F0F3308`
+         * `transparent.neutral.background.hover` `#0F0F3008`
          *
          * Used specifically for the hover state of transparent interactive
          * elements. This token is intended to be used with
@@ -1596,9 +1615,9 @@ const interactive = {
         hover: color.neutral.light.transparent100,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjMwRiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjEwRiIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.neutral.background.active` `#0000230F`
+         * `transparent.neutral.background.active` `#0000210F`
          *
          * Used specifically for the pressed state of transparent interactive
          * elements. This token is intended to be used with
@@ -1611,18 +1630,18 @@ const interactive = {
     accent: {
       /**
        *
-       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMxMTA3RkYyRSIvPgogIDwvc3ZnPg==)
+       * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjA4RjcyRSIvPgogIDwvc3ZnPg==)
        *
-       * `transparent.accent.border` `#1107FF2E`
+       * `transparent.accent.border` `#0F08F72E`
        *
        */
       border: border.transparent.accent.muted,
       content: {
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZEM0JGMSIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzY2M0RFOCIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.accent.content.primary` `#6D3BF1`
+         * `transparent.accent.content.primary` `#663DE8`
          *
          * The default color for the contents within a accent variant of
          * transparent interactive elements.
@@ -1630,9 +1649,9 @@ const interactive = {
         primary: content.accent,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZDNjY3NCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZCNjY3MyIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.accent.content.secondary` `#6C6674`
+         * `transparent.accent.content.secondary` `#6B6673`
          *
          * Used specifically for descriptions within a accent variant of
          * transparent interactive elements.
@@ -1640,9 +1659,9 @@ const interactive = {
         secondary: content.secondary,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE4MTIyOCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE3MTIyNiIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.accent.content.headings` `#181228`
+         * `transparent.accent.content.headings` `#171226`
          *
          */
         headings: content.headings,
@@ -1662,9 +1681,9 @@ const interactive = {
         rest: '#0000f000',
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwRkEwOCIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwRjAwOCIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.accent.background.hover` `#0000FA08`
+         * `transparent.accent.background.hover` `#0000F008`
          *
          * Used specifically for the hover state of transparent interactive
          * elements. This token is intended to be used with
@@ -1674,9 +1693,9 @@ const interactive = {
         hover: color.blue.light.transparent100,
         /**
          *
-         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDA4RkExMiIvPgogIDwvc3ZnPg==)
+         * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDA4RjAxMiIvPgogIDwvc3ZnPg==)
          *
-         * `transparent.accent.background.active` `#0008FA12`
+         * `transparent.accent.background.active` `#0008F012`
          *
          * Used specifically for the pressed state of transparent interactive
          * elements. This token is intended to be used with
@@ -1689,9 +1708,9 @@ const interactive = {
         background: {
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwRkEwOCIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwRjAwOCIvPgogIDwvc3ZnPg==)
            *
-           * `transparent.accent.selected.background.rest` `#0000FA08`
+           * `transparent.accent.selected.background.rest` `#0000F008`
            *
            * Used specifically for the default state of selected transparent
            * interactive elements. This token is intended to be used with
@@ -1701,9 +1720,9 @@ const interactive = {
           rest: color.blue.light.transparent100,
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDA4RkExMiIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDA4RjAxMiIvPgogIDwvc3ZnPg==)
            *
-           * `transparent.accent.selected.background.hover` `#0008FA12`
+           * `transparent.accent.selected.background.hover` `#0008F012`
            *
            * Used specifically for the hover state of selected transparent
            * interactive elements. This token is intended to be used with
@@ -1713,9 +1732,9 @@ const interactive = {
           hover: color.blue.light.transparent200,
           /**
            *
-           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjBGRkYxRiIvPgogIDwvc3ZnPg==)
+           * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjBGRjcxRiIvPgogIDwvc3ZnPg==)
            *
-           * `transparent.accent.selected.background.active` `#0F0FFF1F`
+           * `transparent.accent.selected.background.active` `#0F0FF71F`
            *
            * Used specifically for the pressed state of selected transparent
            * interactive elements. This token is intended to be used with
@@ -1729,31 +1748,12 @@ const interactive = {
   },
 };
 
-const shadow = {
-  /**
-   *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjMwRiIvPgogIDwvc3ZnPg==)
-   *
-   * `elevationLow` `#0000230F`
-   *
-   */
-  elevationLow: color.neutral.light.transparent200,
-  /**
-   *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwRjBGMzMwOCIvPgogIDwvc3ZnPg==)
-   *
-   * `elevationMedium` `#0F0F3308`
-   *
-   */
-  elevationMedium: color.neutral.light.transparent100,
-};
-
 const syntax = {
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMxMkUzNiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMwMkUzNiIvPgogIDwvc3ZnPg==)
    *
-   * `base` `#312E36`
+   * `base` `#302E36`
    *
    * The default color for <code/> elements that depend on our PrismJS theme.
    */
@@ -1770,36 +1770,36 @@ const syntax = {
   codeBackground: background.secondary,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZDNjY3NCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZCNjY3MyIvPgogIDwvc3ZnPg==)
    *
-   * `comment` `#6C6674`
+   * `comment` `#6B6673`
    *
    * Used specifically for <code/> that evaluates to a comment by PrismJS.
    */
   comment: content.secondary,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZEM0JGMSIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzY2M0RFOCIvPgogIDwvc3ZnPg==)
    *
-   * `function` `#6D3BF1`
+   * `function` `#663DE8`
    *
    * Used specifically for <code/> that evaluates to a function by PrismJS.
    */
   function: content.accent,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjMyNiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjEyNiIvPgogIDwvc3ZnPg==)
    *
-   * `hightlightAccent` `#00002326`
+   * `hightlightAccent` `#00002126`
    *
    * ???
    */
   hightlightAccent: color.neutral.light.transparent400,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjMwRiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPGRlZnM+CiAgICAgIDxwYXR0ZXJuIGlkPSJjaGVja2VyYm9hcmQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICAgIDxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM4MDgwODAiLz4KICAgICAgICA8cmVjdCB4PSIwIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjODA4MDgwIi8+CiAgICAgICAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgogICAgICA8L3BhdHRlcm4+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB3aWR0aD0iMjk0IiBoZWlnaHQ9IjgwIiBmaWxsPSJ1cmwoI2NoZWNrZXJib2FyZCkiIG9wYWNpdHk9IjAuMiIvPjxyZWN0IHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIGZpbGw9IiMwMDAwMjEwRiIvPgogIDwvc3ZnPg==)
    *
-   * `hightlightBackground` `#0000230F`
+   * `hightlightBackground` `#0000210F`
    *
    * Situational background color for emphasising rows of <code/> that depend on
    * our PrismJS theme.
@@ -1807,9 +1807,9 @@ const syntax = {
   hightlightBackground: background.transparent.neutral.muted,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMxMkUzNiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMwMkUzNiIvPgogIDwvc3ZnPg==)
    *
-   * `inlineCode` `#312E36`
+   * `inlineCode` `#302E36`
    *
    * The default color for inline <code/> elements that depend on our PrismJS
    * theme.
@@ -1817,71 +1817,78 @@ const syntax = {
   inlineCode: content.primary,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0VBMDAwMCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Q2MDAwMCIvPgogIDwvc3ZnPg==)
    *
-   * `keyWord` `#EA0000`
+   * `keyWord` `#D60000`
    *
    * Used specifically for <code/> that evaluates to a keyword by PrismJS.
    */
   keyWord: content.danger,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZEM0JGMSIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzY2M0RFOCIvPgogIDwvc3ZnPg==)
    *
-   * `operator` `#6D3BF1`
+   * `operator` `#663DE8`
    *
    * Used specifically for <code/> that evaluates to a operator by PrismJS.
    */
   operator: content.accent,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZEM0JGMSIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzY2M0RFOCIvPgogIDwvc3ZnPg==)
    *
-   * `property` `#6D3BF1`
+   * `property` `#663DE8`
    *
    * Used specifically for <code/> that evaluates to a property by PrismJS.
    */
   property: content.accent,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMxMkUzNiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMwMkUzNiIvPgogIDwvc3ZnPg==)
    *
-   * `punctuation` `#312E36`
+   * `punctuation` `#302E36`
    *
    * Used specifically for <code/> that evaluates to punctuation by PrismJS.
    */
   punctuation: content.primary,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwOEMwMCIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwOEEwMCIvPgogIDwvc3ZnPg==)
    *
-   * `selector` `#008C00`
+   * `selector` `#008A00`
    *
    * Used specifically for <code/> that evaluates to a selector by PrismJS.
    */
   selector: content.success,
   /**
    *
-   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMxMkUzNiIvPgogIDwvc3ZnPg==)
+   * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMwMkUzNiIvPgogIDwvc3ZnPg==)
    *
-   * `variable` `#312E36`
+   * `variable` `#302E36`
    *
    * Used specifically for <code/> that evaluates to a variable by PrismJS.
    */
   variable: content.primary,
 };
 
+const shadow = {
+  low: `0px ${size.elevation.sm} 0px 0px ${elevation.low}`,
+  medium: `0px ${size.elevation.md} 0px 1px ${elevation.high}, 0px ${size.elevation.sm} 0px 0px ${elevation.high}`,
+  high: `0px ${size.elevation.lg} 0px 2px ${elevation.high}, 0px ${size.elevation.sm} 0px 1px ${elevation.high}`,
+};
+
 export const lightTheme = {
   ...baseTheme,
+  shadow,
   tokens: {
     background,
     border,
     content,
     dataviz,
+    elevation,
     focus,
     graphics,
     interactive,
-    shadow,
     syntax,
   },
 };

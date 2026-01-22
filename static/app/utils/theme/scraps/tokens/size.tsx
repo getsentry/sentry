@@ -181,40 +181,6 @@ export const size = {
      */
     '7xl': '1440px',
   },
-  shadow: {
-    /**
-     *
-     * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8ZGVmcz4KICAgICAgPGZpbHRlciBpZD0ic2hhZG93LTIiPgogICAgICAgIDxmZUdhdXNzaWFuQmx1ciBpbj0iU291cmNlQWxwaGEiIHN0ZERldmlhdGlvbj0iMSIvPgogICAgICAgIDxmZU9mZnNldCBkeD0iMCIgZHk9IjIiLz4KICAgICAgICA8ZmVDb21wb25lbnRUcmFuc2Zlcj48ZmVGdW5jQSB0eXBlPSJsaW5lYXIiIHNsb3BlPSIwLjMiLz48L2ZlQ29tcG9uZW50VHJhbnNmZXI+CiAgICAgICAgPGZlTWVyZ2U+CiAgICAgICAgICA8ZmVNZXJnZU5vZGUvPgogICAgICAgICAgPGZlTWVyZ2VOb2RlIGluPSJTb3VyY2VHcmFwaGljIi8+CiAgICAgICAgPC9mZU1lcmdlPgogICAgICA8L2ZpbHRlcj4KICAgIDwvZGVmcz4KICAgIDxyZWN0IHg9IjEwIiB5PSIyMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzQ4MjhCODk0IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzaGFkb3ctMikiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSI3NiIgeT0iNDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBQkE4RjgiPjJweDwvdGV4dD4KICAKICA8L3N2Zz4=)
-     *
-     * `shadow.md` `2px`
-     *
-     */
-    md: '2px',
-    /**
-     *
-     * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8ZGVmcz4KICAgICAgPGZpbHRlciBpZD0ic2hhZG93LTQiPgogICAgICAgIDxmZUdhdXNzaWFuQmx1ciBpbj0iU291cmNlQWxwaGEiIHN0ZERldmlhdGlvbj0iMiIvPgogICAgICAgIDxmZU9mZnNldCBkeD0iMCIgZHk9IjIiLz4KICAgICAgICA8ZmVDb21wb25lbnRUcmFuc2Zlcj48ZmVGdW5jQSB0eXBlPSJsaW5lYXIiIHNsb3BlPSIwLjMiLz48L2ZlQ29tcG9uZW50VHJhbnNmZXI+CiAgICAgICAgPGZlTWVyZ2U+CiAgICAgICAgICA8ZmVNZXJnZU5vZGUvPgogICAgICAgICAgPGZlTWVyZ2VOb2RlIGluPSJTb3VyY2VHcmFwaGljIi8+CiAgICAgICAgPC9mZU1lcmdlPgogICAgICA8L2ZpbHRlcj4KICAgIDwvZGVmcz4KICAgIDxyZWN0IHg9IjEwIiB5PSIyMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzQ4MjhCODk0IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzaGFkb3ctNCkiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSI3NiIgeT0iNDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBQkE4RjgiPjRweDwvdGV4dD4KICAKICA8L3N2Zz4=)
-     *
-     * `shadow.lg` `4px`
-     *
-     */
-    lg: '4px',
-    /**
-     *
-     * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8ZGVmcz4KICAgICAgPGZpbHRlciBpZD0ic2hhZG93LTYiPgogICAgICAgIDxmZUdhdXNzaWFuQmx1ciBpbj0iU291cmNlQWxwaGEiIHN0ZERldmlhdGlvbj0iMyIvPgogICAgICAgIDxmZU9mZnNldCBkeD0iMCIgZHk9IjIiLz4KICAgICAgICA8ZmVDb21wb25lbnRUcmFuc2Zlcj48ZmVGdW5jQSB0eXBlPSJsaW5lYXIiIHNsb3BlPSIwLjMiLz48L2ZlQ29tcG9uZW50VHJhbnNmZXI+CiAgICAgICAgPGZlTWVyZ2U+CiAgICAgICAgICA8ZmVNZXJnZU5vZGUvPgogICAgICAgICAgPGZlTWVyZ2VOb2RlIGluPSJTb3VyY2VHcmFwaGljIi8+CiAgICAgICAgPC9mZU1lcmdlPgogICAgICA8L2ZpbHRlcj4KICAgIDwvZGVmcz4KICAgIDxyZWN0IHg9IjEwIiB5PSIyMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzQ4MjhCODk0IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzaGFkb3ctNikiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSI3NiIgeT0iNDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBQkE4RjgiPjZweDwvdGV4dD4KICAKICA8L3N2Zz4=)
-     *
-     * `shadow.xl` `6px`
-     *
-     */
-    xl: '6px',
-    /**
-     *
-     * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8ZGVmcz4KICAgICAgPGZpbHRlciBpZD0ic2hhZG93LTEiPgogICAgICAgIDxmZUdhdXNzaWFuQmx1ciBpbj0iU291cmNlQWxwaGEiIHN0ZERldmlhdGlvbj0iMC41Ii8+CiAgICAgICAgPGZlT2Zmc2V0IGR4PSIwIiBkeT0iMiIvPgogICAgICAgIDxmZUNvbXBvbmVudFRyYW5zZmVyPjxmZUZ1bmNBIHR5cGU9ImxpbmVhciIgc2xvcGU9IjAuMyIvPjwvZmVDb21wb25lbnRUcmFuc2Zlcj4KICAgICAgICA8ZmVNZXJnZT4KICAgICAgICAgIDxmZU1lcmdlTm9kZS8+CiAgICAgICAgICA8ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz4KICAgICAgICA8L2ZlTWVyZ2U+CiAgICAgIDwvZmlsdGVyPgogICAgPC9kZWZzPgogICAgPHJlY3QgeD0iMTAiIHk9IjIwIiB3aWR0aD0iNTAiIGhlaWdodD0iMzAiIGZpbGw9IiM0ODI4Qjg5NCIgc3Ryb2tlPSIjNDgyOEI4OTQiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NoYWRvdy0xKSIgcng9IjMiLz4KICAgIDx0ZXh0IHg9Ijc2IiB5PSI0MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+MXB4PC90ZXh0PgogIAogIDwvc3ZnPg==)
-     *
-     * `shadow.sm` `1px`
-     *
-     */
-    sm: '1px',
-  },
   radius: {
     /**
      *
@@ -288,6 +254,20 @@ export const size = {
      *
      */
     full: '999px',
+  },
+  elevation: {
+    /**
+     */
+    md: '2px',
+    /**
+     */
+    lg: '4px',
+    /**
+     */
+    xl: '6px',
+    /**
+     */
+    sm: '1px',
   },
   breakpoints: {
     /**
