@@ -4,6 +4,7 @@ import type {TagCollection} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -13,6 +14,10 @@ interface PreprodSearchBarProps {
    * Optional list of attribute keys to show. If not provided, all attributes are shown.
    */
   allowedKeys?: string[];
+  /**
+   * List of attribute keys to hide from the search bar. Defaults to HIDDEN_PREPROD_ATTRIBUTES.
+   */
+  hiddenKeys?: string[];
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
   onSearch?: (query: string) => void;
   portalTarget?: HTMLElement | null;
@@ -39,6 +44,7 @@ function filterAttributes(
 export function PreprodSearchBar({
   initialQuery,
   allowedKeys,
+  hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES,
   onChange,
   onSearch,
   portalTarget,
@@ -55,9 +61,9 @@ export function PreprodSearchBar({
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string', hiddenKeys);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number', hiddenKeys);
 
   const filteredStringAttributes = useMemo(
     () => filterAttributes(stringAttributes, allowedKeys),
