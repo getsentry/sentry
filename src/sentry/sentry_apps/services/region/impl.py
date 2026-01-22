@@ -242,7 +242,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         hook_projects = list(
             ServiceHookProject.objects.filter(service_hook_id=hook.id).order_by("project_id")
         )
-        projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
+        projects = Project.objects.filter(
+            id__in={hp.project_id for hp in hook_projects}, organization_id=organization_id
+        )
         if any(not access.has_project_access(project) for project in projects):
             return RpcServiceHookProjectsResult(
                 error=RpcSentryAppError(
@@ -325,7 +327,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
                     "project_id", flat=True
                 )
             )
-            current_projects = Project.objects.filter(id__in=current_project_ids)
+            current_projects = Project.objects.filter(
+                id__in=current_project_ids, organization_id=organization_id
+            )
 
             projects_to_add = new_project_ids - current_project_ids
             projects_to_remove = current_project_ids - new_project_ids
@@ -400,7 +404,9 @@ class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
         with transaction.atomic(router.db_for_write(ServiceHookProject)):
             hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
 
-            projects = Project.objects.filter(id__in={hp.project_id for hp in hook_projects})
+            projects = Project.objects.filter(
+                id__in={hp.project_id for hp in hook_projects}, organization_id=organization_id
+            )
             if any(not access.has_project_access(project) for project in projects):
                 return RpcEmptyResult(
                     success=False,
