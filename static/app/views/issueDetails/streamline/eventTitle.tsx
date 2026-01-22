@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useMemo, type CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -260,7 +261,7 @@ const JsonLinkWrapper = styled('div')`
 const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.colors.gray400).alpha(0.5).string()};
+  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
 
   :hover {
     color: ${p => p.theme.tokens.content.secondary};
@@ -272,7 +273,7 @@ const JsonLink = styled(ExternalLink)`
 const MarkdownButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.colors.gray400).alpha(0.5).string()};
+  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
   font-size: inherit;
   font-weight: normal;
   cursor: pointer;

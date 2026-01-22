@@ -1,7 +1,8 @@
 import {Fragment, useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 import moment, {type Moment} from 'moment-timezone';
 
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
@@ -141,7 +142,7 @@ const IncidentOverlay = styled('div')`
   left: var(--incidentOverlayStart);
   width: calc(var(--incidentOverlayEnd) - var(--incidentOverlayStart));
   pointer-events: none;
-  background: ${p => Color(p.theme.colors.yellow100).alpha(0.05).toString()};
+  background: ${p => color(p.theme.colors.yellow100).alpha(0.05).toString()};
   border-left: 1px solid ${p => p.theme.colors.yellow200};
   border-right: 1px solid ${p => p.theme.colors.yellow200};
   z-index: 2;

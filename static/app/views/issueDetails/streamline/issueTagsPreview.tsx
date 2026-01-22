@@ -2,7 +2,8 @@ import type React from 'react';
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
@@ -54,7 +55,7 @@ type Segment = {
 };
 
 const bgColor = (index: number, theme: Theme) =>
-  Color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();
+  color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
   percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 
@@ -357,7 +358,7 @@ const TagBarPlaceholder = styled('div')`
   width: 100%;
   border-radius: 3px;
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
-  background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
+  background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LineSeriesOption, TooltipComponentOption} from 'echarts';
 import moment from 'moment-timezone';
