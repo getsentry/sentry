@@ -52,10 +52,36 @@ function UptimeAssertionsControl({onChange, onBlur, value}: any) {
   );
 }
 
+/**
+ * Creates a default assertion that validates 2xx status codes (>199 AND <300)
+ */
+function createDefaultAssertion(): Assertion {
+  return {
+    root: {
+      op: 'and',
+      id: uniqueId(),
+      children: [
+        {
+          op: 'status_code_check',
+          id: uniqueId(),
+          operator: {cmp: 'greater_than'},
+          value: 199,
+        },
+        {
+          op: 'status_code_check',
+          id: uniqueId(),
+          operator: {cmp: 'less_than'},
+          value: 300,
+        },
+      ],
+    },
+  };
+}
+
 export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
   return (
     <FormField
-      defaultValue={{root: {op: 'and', children: [], id: uniqueId()}}}
+      defaultValue={createDefaultAssertion()}
       {...props}
       flexibleControlStateSize
       // Use getValue (not getData) to transform field value at submission time.

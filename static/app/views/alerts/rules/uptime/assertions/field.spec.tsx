@@ -25,7 +25,13 @@ describe('UptimeAssertionsField', () => {
     // Should render the Add Assertion button (from AssertionOpGroup in root mode)
     expect(screen.getByRole('button', {name: 'Add Assertion'})).toBeInTheDocument();
 
-    // Click to add an assertion
+    // Default state should have two status code assertions (>199 AND <300)
+    const textboxes = screen.getAllByRole('textbox');
+    expect(textboxes).toHaveLength(2);
+    expect(textboxes[0]).toHaveValue('199');
+    expect(textboxes[1]).toHaveValue('300');
+
+    // Click to add another assertion
     await userEvent.click(screen.getByRole('button', {name: 'Add Assertion'}));
 
     // Should show the assertion type menu
@@ -34,15 +40,19 @@ describe('UptimeAssertionsField', () => {
     // Add a status code assertion
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Status Code'}));
 
-    // Should render the status code input
-    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+    // Should now have 3 status code inputs
+    expect(await screen.findAllByRole('textbox')).toHaveLength(3);
 
     // Verify the model has been updated with the assertion structure
     const fieldValue = model.fields.get('assertion') as unknown as Assertion;
     expect(fieldValue).toMatchObject({
       root: {
         op: 'and',
-        children: [{op: 'status_code_check'}],
+        children: [
+          {op: 'status_code_check'},
+          {op: 'status_code_check'},
+          {op: 'status_code_check'},
+        ],
       },
     });
   });
@@ -90,17 +100,39 @@ describe('UptimeAssertionsField', () => {
     expect(model.initialData.assertion).toEqual(existingAssertion);
   });
 
-  it('uses defaultValue when no initialData is provided', () => {
+  it('uses defaultValue when no initialData is provided', async () => {
     render(
       <Form onSubmit={mockSubmit} model={model}>
         <UptimeAssertionsField name="assertion" />
       </Form>
     );
 
-    // Should have default empty assertion structure
+    // Wait for component to settle (react-popper causes async updates)
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox')).toHaveLength(2);
+    });
+
+    // Should have default assertion structure with >199 AND <300 status code checks
     const fieldValue = model.fields.get('assertion') as unknown as Assertion;
-    expect(fieldValue).toEqual({
-      root: {id: expect.any(String), op: 'and', children: []},
+    expect(fieldValue).toMatchObject({
+      root: {
+        id: expect.any(String),
+        op: 'and',
+        children: [
+          {
+            id: expect.any(String),
+            op: 'status_code_check',
+            operator: {cmp: 'greater_than'},
+            value: 199,
+          },
+          {
+            id: expect.any(String),
+            op: 'status_code_check',
+            operator: {cmp: 'less_than'},
+            value: 300,
+          },
+        ],
+      },
     });
   });
 
