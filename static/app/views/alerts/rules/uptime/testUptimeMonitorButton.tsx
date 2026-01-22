@@ -1,8 +1,7 @@
 import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {IconPlay} from 'sentry/icons';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -31,11 +30,16 @@ interface TestUptimeMonitorButtonProps {
    * Button label text
    */
   label?: string;
+  /**
+   * Button size
+   */
+  size?: ButtonProps['size'];
 }
 
 export function TestUptimeMonitorButton({
   getFormData,
   label,
+  size,
 }: TestUptimeMonitorButtonProps) {
   const organization = useOrganization();
 
@@ -81,12 +85,7 @@ export function TestUptimeMonitorButton({
   }, [getFormData, runPreviewCheck]);
 
   return (
-    <Button
-      icon={<IconPlay />}
-      onClick={handleTestClick}
-      busy={isPending}
-      disabled={isPending}
-    >
+    <Button onClick={handleTestClick} busy={isPending} disabled={isPending} size={size}>
       {label ?? t('Test Monitor')}
     </Button>
   );

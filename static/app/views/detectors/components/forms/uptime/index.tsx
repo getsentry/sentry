@@ -90,7 +90,7 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
       environment={ENVIRONMENT_CONFIG}
       extraFooterButton={
-        showTestButton ? <ConnectedTestUptimeMonitorButton /> : undefined
+        showTestButton ? <ConnectedTestUptimeMonitorButton size="sm" /> : undefined
       }
     >
       <UptimeDetectorForm />
