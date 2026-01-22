@@ -159,7 +159,7 @@ export enum PreviewCheckStatus {
   DISALLOWED_BY_ROBOTS = 'disallowed_by_robots',
 }
 
-export enum PreviewCheckStatusReasonType {
+enum PreviewCheckStatusReasonType {
   TIMEOUT = 'timeout',
   DNS_ERROR = 'dns_error',
   TLS_ERROR = 'tls_error',
@@ -172,7 +172,7 @@ export enum PreviewCheckStatusReasonType {
   ASSERTION_EVALUATION_ERROR = 'assertion_evaluation_error',
 }
 
-export interface PreviewCheckStatusReason {
+interface PreviewCheckStatusReason {
   description: string;
   type: PreviewCheckStatusReasonType;
 }
