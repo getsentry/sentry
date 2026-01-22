@@ -271,7 +271,7 @@ class TestAutofixStateParsing(TestCase):
             },
         }
 
-        state = AutofixState.validate(state_data)
+        state = AutofixState.model_validate(state_data)
 
         # Check that stuff is parsed
         assert state.run_id == 1

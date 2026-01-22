@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AuthorAssociation(StrEnum):
@@ -29,7 +29,7 @@ class CommentUser(BaseModel):
     login: str
     node_id: str
     avatar_url: str
-    gravatar_id: str | None
+    gravatar_id: str | None = None
     url: str
     html_url: str
     followers_url: str
@@ -63,8 +63,7 @@ class CommentReactions(BaseModel):
     eyes: int
     rocket: int
 
-    class Config:
-        populate_by_name = True  # Allow both alias and field name
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class IssueComment(BaseModel):
@@ -78,7 +77,7 @@ class IssueComment(BaseModel):
     url: str
     html_url: str
     body: str
-    user: CommentUser | None
+    user: CommentUser | None = None
     created_at: datetime
     updated_at: datetime
     issue_url: str
@@ -115,8 +114,7 @@ class ReviewCommentLinks(BaseModel):
     html: ReviewCommentLinkObject
     pull_request: ReviewCommentLinkObject
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ReviewComment(BaseModel):
@@ -139,7 +137,7 @@ class ReviewComment(BaseModel):
     original_commit_id: str
     diff_hunk: str
     pull_request_url: str
-    pull_request_review_id: int | None
+    pull_request_review_id: int | None = None
     links: ReviewCommentLinks = Field(alias="_links")
     position: int | None = None
     original_position: int | None = None
@@ -155,8 +153,7 @@ class ReviewComment(BaseModel):
     body_html: str | None = None
     reactions: CommentReactions | None = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class PullRequestComments(BaseModel):

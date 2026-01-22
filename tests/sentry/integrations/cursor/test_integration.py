@@ -130,7 +130,7 @@ def test_build_integration_raises_on_validation_error(provider):
         ) as mock_get_metadata,
     ):
         try:
-            CursorApiKeyMetadata.parse_obj({})
+            CursorApiKeyMetadata.model_validate({})
         except Exception as e:
             validation_error = e
 

@@ -9,7 +9,7 @@ from typing import Any, TypeAlias
 
 import sentry_sdk
 from django.utils import timezone
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from sentry import features, nodestore, options
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -64,21 +64,21 @@ WorkflowId: TypeAlias = int
 
 
 class EventInstance(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     event_id: str
     occurrence_id: str | None = None
     timestamp: datetime | None = None
 
-    class Config:
-        # Ignore unknown fields; we'd like to be able to add new fields easily.
-        extra = "ignore"
-
-    @validator("event_id")
+    @field_validator("event_id")
+    @classmethod
     def validate_event_id(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("event_id is required")
         return v
 
-    @validator("occurrence_id")
+    @field_validator("occurrence_id")
+    @classmethod
     def validate_occurrence_id(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():
             return None
@@ -159,7 +159,7 @@ class EventRedisData:
         for key, value in redis_data.items():
             try:
                 event_key = EventKey.from_redis_key(key)
-                event_instance = EventInstance.parse_raw(value)
+                event_instance = EventInstance.model_validate_json(value)
                 events[event_key] = event_instance
             except Exception as e:
                 logger.exception(

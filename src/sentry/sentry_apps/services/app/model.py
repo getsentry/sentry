@@ -7,7 +7,7 @@ import datetime
 import hmac
 from collections.abc import MutableMapping
 from hashlib import sha256
-from typing import Any, Protocol, TypedDict
+from typing import Any, ClassVar, Protocol, TypedDict
 from urllib.parse import urljoin
 
 from pydantic.fields import Field
@@ -35,9 +35,9 @@ class RpcSentryAppAvatar(RpcModel):
     avatar_type: int = 0
     color: bool = False
 
-    AVATAR_TYPES = SentryAppAvatarTypes.get_choices()
-    url_path = "sentry-app-avatar"
-    FILE_TYPE = "avatar.file"
+    AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]] = SentryAppAvatarTypes.get_choices()
+    url_path: ClassVar[str] = "sentry-app-avatar"
+    FILE_TYPE: ClassVar[str] = "avatar.file"
 
     def __hash__(self) -> int:
         # Mimic the behavior of hashing a Django ORM entity, for compatibility with
@@ -141,10 +141,10 @@ class RpcSentryAppComponentContext(RpcModel):
 class RpcAlertRuleActionResult(RpcModel):
     success: bool
     message: str
-    error_type: SentryAppErrorType | None
-    webhook_context: dict[str, Any] | None
-    public_context: dict[str, Any] | None
-    status_code: int | None
+    error_type: SentryAppErrorType | None = None
+    webhook_context: dict[str, Any] | None = None
+    public_context: dict[str, Any] | None = None
+    status_code: int | None = None
 
 
 class SentryAppEventDataInterface(Protocol):

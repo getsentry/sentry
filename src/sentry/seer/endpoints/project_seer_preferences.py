@@ -111,14 +111,14 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         path = "/v1/project-preference/set"
         body = orjson.dumps(
             {
-                "preference": SeerProjectPreference.validate(
+                "preference": SeerProjectPreference.model_validate(
                     {
                         # TODO: this should allow passing a partial preference object, upserting the rest.
                         **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,
                     }
-                ).dict(),
+                ).model_dump(),
             }
         )
 
@@ -159,10 +159,10 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         code_mapping_repos = get_autofix_repos_from_project_code_mappings(project)
 
         return Response(
-            PreferenceResponse.validate(
+            PreferenceResponse.model_validate(
                 {
                     **result,
                     "code_mapping_repos": code_mapping_repos,
                 }
-            ).dict()
+            ).model_dump()
         )

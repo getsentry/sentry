@@ -123,7 +123,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.return_value = mock_summary
         mock_get_trace_tree.return_value = {"trace": "tree"}
 
-        expected_response_summary = mock_summary.dict()
+        expected_response_summary = mock_summary.model_dump()
         expected_response_summary["event_id"] = event.event_id
 
         summary_data, status_code = get_issue_summary(self.group, self.user)
@@ -228,7 +228,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.return_value = mock_summary
 
         # Set up the cache with the test data
-        expected_response_summary = mock_summary.dict()
+        expected_response_summary = mock_summary.model_dump()
         expected_response_summary["event_id"] = event.event_id
 
         cache.set(
@@ -649,7 +649,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         summary_data, status_code = get_issue_summary(self.group, self.user)
 
         assert status_code == 200
-        expected_response = mock_summary.dict()
+        expected_response = mock_summary.model_dump()
         expected_response["event_id"] = event.event_id
         assert summary_data == convert_dict_key_case(expected_response, snake_to_camel_case)
 
@@ -730,7 +730,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.return_value = mock_summary
         mock_get_trace_tree.return_value = {"trace": "tree"}
 
-        expected_response_summary = mock_summary.dict()
+        expected_response_summary = mock_summary.model_dump()
         expected_response_summary["event_id"] = event.event_id
 
         summary_data, status_code = get_issue_summary(

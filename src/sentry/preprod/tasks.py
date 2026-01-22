@@ -439,7 +439,7 @@ def _assemble_preprod_artifact_size_analysis(
     # operations fail - the analysis data is valid.
     metrics_committed_successfully = False
     try:
-        size_analysis_results = SizeAnalysisResults.parse_raw(
+        size_analysis_results = SizeAnalysisResults.model_validate_json(
             assemble_result.bundle_temp_file.read()
         )
         was_created = False

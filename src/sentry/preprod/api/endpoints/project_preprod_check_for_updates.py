@@ -28,7 +28,7 @@ class InstallableBuildDetails(BaseModel):
     id: str
     build_version: str
     build_number: int
-    release_notes: str | None
+    release_notes: str | None = None
     download_url: str
     app_name: str
     created_date: str
@@ -235,4 +235,4 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                             created_date=best_artifact.date_added.isoformat(),
                         )
 
-        return Response(CheckForUpdatesApiResponse(current=current, update=update).dict())
+        return Response(CheckForUpdatesApiResponse(current=current, update=update).model_dump())

@@ -420,7 +420,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 
 def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
     trace = get_trace_waterfall(trace_id, organization_id)
-    return trace.dict() if trace else {}
+    return trace.model_dump() if trace else {}
 
 
 def rpc_get_profile_flamegraph(

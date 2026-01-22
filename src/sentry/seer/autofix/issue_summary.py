@@ -257,7 +257,7 @@ def _call_seer(
     )
     response.raise_for_status()
 
-    return SummarizeIssueResponse.validate(response.json())
+    return SummarizeIssueResponse.model_validate(response.json())
 
 
 fixability_connection_pool_gpu = connection_from_url(
@@ -287,7 +287,7 @@ def _generate_fixability_score(
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)
-    return SummarizeIssueResponse.validate(response_data)
+    return SummarizeIssueResponse.model_validate(response_data)
 
 
 def get_and_update_group_fixability_score(
@@ -463,7 +463,7 @@ def _generate_summary(
                 "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
             )
 
-    summary_dict = issue_summary.dict()
+    summary_dict = issue_summary.model_dump()
     summary_dict["event_id"] = event.event_id
 
     cache.set(cache_key, summary_dict, timeout=int(timedelta(days=7).total_seconds()))

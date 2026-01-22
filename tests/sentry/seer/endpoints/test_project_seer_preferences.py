@@ -41,7 +41,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         )
         self.response_data = PreferenceResponse(
             preference=self.project_preference, code_mapping_repos=[self.repo_definition]
-        ).dict()
+        ).model_dump()
 
     @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     @patch(
@@ -416,7 +416,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         response_data = PreferenceResponse(
             preference=project_preference_with_handoff, code_mapping_repos=[]
-        ).dict()
+        ).model_dump()
 
         # Setup the mock
         mock_response = Mock()
@@ -507,7 +507,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         response_data = PreferenceResponse(
             preference=project_preference_with_handoff, code_mapping_repos=[]
-        ).dict()
+        ).model_dump()
 
         # Setup the mock
         mock_response = Mock()

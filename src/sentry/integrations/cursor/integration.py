@@ -156,7 +156,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
             # or if the same user can have multiple installations across multiple orgs. So just a UUID per installation is the best approach. Re-configuring an existing installation will still maintain this external id
             "external_id": uuid.uuid4().hex,
             "name": integration_name,
-            "metadata": metadata.dict(),
+            "metadata": metadata.model_dump(),
         }
 
     def get_agent_name(self) -> str:
@@ -191,7 +191,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
         if not api_key:
             raise IntegrationConfigurationError("API key is required")
 
-        metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
+        metadata = CursorIntegrationMetadata.model_validate(self.model.metadata or {})
 
         try:
             client = CursorAgentClient(api_key=api_key, webhook_secret=metadata.webhook_secret)
@@ -224,9 +224,9 @@ class CursorAgentIntegration(CodingAgentIntegration):
         )
 
         integration_service.update_integration(
-            integration_id=self.model.id, name=integration_name, metadata=metadata.dict()
+            integration_id=self.model.id, name=integration_name, metadata=metadata.model_dump()
         )
-        self.model.metadata = metadata.dict()
+        self.model.metadata = metadata.model_dump()
 
         super().update_organization_config({})
 
@@ -238,7 +238,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
 
     def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         """Return metadata to display in the configurations list."""
-        metadata = CursorIntegrationMetadata.parse_obj(self.model.metadata or {})
+        metadata = CursorIntegrationMetadata.model_validate(self.model.metadata or {})
 
         display_info = {}
         if metadata.api_key_name:
@@ -250,8 +250,8 @@ class CursorAgentIntegration(CodingAgentIntegration):
 
     @property
     def webhook_secret(self) -> str:
-        return CursorIntegrationMetadata.parse_obj(self.model.metadata).webhook_secret
+        return CursorIntegrationMetadata.model_validate(self.model.metadata).webhook_secret
 
     @property
     def api_key(self) -> str:
-        return CursorIntegrationMetadata.parse_obj(self.model.metadata).api_key
+        return CursorIntegrationMetadata.model_validate(self.model.metadata).api_key

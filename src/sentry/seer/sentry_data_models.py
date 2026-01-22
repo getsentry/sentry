@@ -17,9 +17,9 @@ class Transaction(BaseModel):
 
 class Span(BaseModel):
     span_id: str
-    parent_span_id: str | None
-    span_op: str | None
-    span_description: str | None
+    parent_span_id: str | None = None
+    span_op: str | None = None
+    span_description: str | None = None
 
 
 class TraceData(BaseModel):
@@ -63,7 +63,7 @@ class ExecutionTreeNode(BaseModel):
 
 class ProfileData(BaseModel):
     profile_id: str
-    transaction_name: str | None
+    transaction_name: str | None = None
     execution_tree: list[ExecutionTreeNode]
     project_id: int
     start_ts: float | None = None
@@ -80,8 +80,8 @@ class TraceProfiles(BaseModel):
 class IssueDetails(BaseModel):
     id: int
     title: str
-    culprit: str | None
-    transaction: str | None
+    culprit: str | None = None
+    transaction: str | None = None
     events: list[dict[str, Any]]
     metadata: dict[str, Any] = {}
     message: str = ""

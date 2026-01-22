@@ -9,6 +9,14 @@ supported-markers = [
 ]
 
 [[package]]
+name = "annotated-types"
+version = "0.7.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/annotated_types-0.7.0-py3-none-any.whl", hash = "sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53" },
+]
+
+[[package]]
 name = "anyio"
 version = "3.7.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1509,16 +1517,30 @@ wheels = [
 
 [[package]]
 name = "pydantic"
-version = "1.10.23"
+version = "2.11.9"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "annotated-types", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pydantic-core", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "typing-inspection", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-2.11.9-py3-none-any.whl", hash = "sha256:c42dd626f5cfc1c6950ce6205ea58c93efa406da65f479dcb4029d5934857da2" },
+]
+
+[[package]]
+name = "pydantic-core"
+version = "2.33.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:a6aa6881a18657fe66b9249e0572a9690ebc6f0b37c32872beb06bc51bff738f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c57bfade74111335062c8ac830d5a14004742ff5b037c52c410d9e9011258bf5" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:723cb7f6aca0b471bac9d7dceb42d151d26aabdca655bd4190be3a7de008a054" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-py3-none-any.whl", hash = "sha256:6294bb84565c294a3a6408c52b26a42803f258d5ebfdb3ae896cd7cccfa07211" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic_core-2.33.2-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:1082dd3e2d7109ad8b7da48e1d4710c8d06c253cbc4a27c1cff4fbcaa97a9e3f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic_core-2.33.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:f517ca031dfc037a9c07e748cefd8d96235088b83b4f4ba8939105d20fa1dcd6" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic_core-2.33.2-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0a9f2c9dd19656823cb8250b0724ee9c60a82f3cdf68a080979d13092a3b0fef" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic_core-2.33.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9fdac5d6ffa1b5a83bca06ffe7583f5576555e6c8b3a91fbd25ea7780f825f7d" },
 ]
 
 [[package]]
@@ -2173,7 +2195,7 @@ requires-dist = [
     { name = "psutil", specifier = ">=5.9.7" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pycountry", specifier = ">=17.5.14" },
-    { name = "pydantic", specifier = ">=1.10.23,<2" },
+    { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pyjwt", specifier = ">=2.4.0" },
     { name = "pymemcache", specifier = ">=4.0.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
@@ -2883,10 +2905,21 @@ wheels = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.12.0"
+version = "4.15.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/typing_extensions-4.12.0-py3-none-any.whl", hash = "sha256:b349c66bea9016ac22978d800cfff206d5f9816951f12a7d0ec5578b0a819594" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548" },
+]
+
+[[package]]
+name = "typing-inspection"
+version = "0.4.1"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/typing_inspection-0.4.1-py3-none-any.whl", hash = "sha256:389055682238f53b04f7badcb49b989835495a96700ced5dab2d8feae4b26f51" },
 ]
 
 [[package]]

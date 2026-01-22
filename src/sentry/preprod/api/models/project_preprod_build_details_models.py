@@ -31,9 +31,9 @@ class AndroidAppInfo(BaseModel):
 
 
 class BuildDetailsAppInfo(BaseModel):
-    app_id: str | None
-    name: str | None
-    version: str | None
+    app_id: str | None = None
+    name: str | None = None
+    version: str | None = None
     build_number: int | None = None
     date_added: str | None = None
     date_built: str | None = None

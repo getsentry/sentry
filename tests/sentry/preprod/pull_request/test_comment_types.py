@@ -140,7 +140,7 @@ class TestPullRequestCommentTypes:
             },
         ]
 
-        comment1 = IssueComment.parse_obj(raw_comments[0])
+        comment1 = IssueComment.model_validate(raw_comments[0])
         assert isinstance(comment1, IssueComment)
         assert comment1.id == 1111111111
         assert comment1.user is not None
@@ -151,7 +151,7 @@ class TestPullRequestCommentTypes:
         assert comment1.reactions is not None
         assert comment1.reactions.total_count == 0
 
-        comment2 = IssueComment.parse_obj(raw_comments[1])
+        comment2 = IssueComment.model_validate(raw_comments[1])
         assert isinstance(comment2, IssueComment)
         assert comment2.id == 2222222222
         assert comment2.user is not None
@@ -377,7 +377,7 @@ class TestPullRequestCommentTypes:
             },
         ]
 
-        comment1 = ReviewComment.parse_obj(raw_comments[0])
+        comment1 = ReviewComment.model_validate(raw_comments[0])
         assert isinstance(comment1, ReviewComment)
         assert comment1.id == 4444444444
         assert comment1.path == "ios/Gemfile.lock"
@@ -391,7 +391,7 @@ class TestPullRequestCommentTypes:
         assert comment1.diff_hunk == "@@ -1,3 +1,11 @@\n+GIT"
         assert comment1.in_reply_to_id is None
 
-        comment2 = ReviewComment.parse_obj(raw_comments[1])
+        comment2 = ReviewComment.model_validate(raw_comments[1])
         assert isinstance(comment2, ReviewComment)
         assert comment2.id == 6666666666
         assert comment2.path == "ios/Gemfile.lock"
@@ -402,7 +402,7 @@ class TestPullRequestCommentTypes:
         )
         assert comment2.in_reply_to_id == 4444444444  # Reply to first comment
 
-        comment3 = ReviewComment.parse_obj(raw_comments[2])
+        comment3 = ReviewComment.model_validate(raw_comments[2])
         assert isinstance(comment3, ReviewComment)
         assert comment3.id == 8888888888
         assert comment3.path == "ios/fastlane/Fastfile"

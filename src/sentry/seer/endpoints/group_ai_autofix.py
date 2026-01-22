@@ -267,16 +267,18 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 "autofix": {
                     "run_id": state.run_id,
                     "status": state.status,
-                    "blocks": [block.dict() for block in state.blocks],
+                    "blocks": [block.model_dump() for block in state.blocks],
                     "updated_at": state.updated_at,
                     "pending_user_input": (
-                        state.pending_user_input.dict() if state.pending_user_input else None
+                        state.pending_user_input.model_dump() if state.pending_user_input else None
                     ),
                     "repo_pr_states": {
-                        repo: pr_state.dict() for repo, pr_state in state.repo_pr_states.items()
+                        repo: pr_state.model_dump()
+                        for repo, pr_state in state.repo_pr_states.items()
                     },
                     "coding_agents": {
-                        agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
+                        agent_id: agent.model_dump()
+                        for agent_id, agent in state.coding_agents.items()
                     },
                 }
             }
@@ -317,7 +319,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         response_state: dict[str, Any] | None = None
 
         if autofix_state:
-            response_state = autofix_state.dict()
+            response_state = autofix_state.model_dump()
             user_ids = autofix_state.actor_ids
             if user_ids:
                 users = user_service.serialize_many(

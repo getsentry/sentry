@@ -266,7 +266,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 existing_pref = existing_preferences.get(project_id_str, {})
 
                 pref_update: dict[str, Any] = {
-                    **default_seer_project_preference(project).dict(),
+                    **default_seer_project_preference(project).model_dump(),
                     **existing_pref,
                     "organization_id": organization.id,
                     "project_id": proj_id,
@@ -277,7 +277,9 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 if has_repo_update:
                     repos_data = filtered_repo_mappings[proj_id]
-                    new_repos = [SeerRepoDefinition(**repo_data).dict() for repo_data in repos_data]
+                    new_repos = [
+                        SeerRepoDefinition(**repo_data).model_dump() for repo_data in repos_data
+                    ]
                     if append_repositories:
                         existing_repos = existing_pref.get("repositories") or []
                         pref_update["repositories"] = merge_repositories(existing_repos, new_repos)

@@ -445,8 +445,12 @@ def _run_size_analysis_comparison(
             comparison.save()
         return
 
-    head_size_analysis_results = SizeAnalysisResults.parse_raw(head_analysis_file.getfile().read())
-    base_size_analysis_results = SizeAnalysisResults.parse_raw(base_analysis_file.getfile().read())
+    head_size_analysis_results = SizeAnalysisResults.model_validate_json(
+        head_analysis_file.getfile().read()
+    )
+    base_size_analysis_results = SizeAnalysisResults.model_validate_json(
+        base_analysis_file.getfile().read()
+    )
 
     logger.info(
         "preprod.size_analysis.compare.running_comparison",
@@ -503,7 +507,7 @@ def _run_size_analysis_comparison(
             type="size_analysis_comparison.json",
             headers={"Content-Type": "application/json"},
         )
-        file.putfile(BytesIO(dumps_htmlsafe(comparison_results.dict()).encode()))
+        file.putfile(BytesIO(dumps_htmlsafe(comparison_results.model_dump()).encode()))
 
         comparison.file_id = file.id
         comparison.state = PreprodArtifactSizeComparison.State.SUCCESS

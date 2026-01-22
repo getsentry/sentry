@@ -534,20 +534,20 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
 
 def rpc_get_transactions_for_project(project_id: int) -> dict[str, Any]:
     transactions = get_transactions_for_project(project_id)
-    transaction_dicts = [transaction.dict() for transaction in transactions]
+    transaction_dicts = [transaction.model_dump() for transaction in transactions]
     return {"transactions": transaction_dicts}
 
 
 def rpc_get_trace_for_transaction(transaction_name: str, project_id: int) -> dict[str, Any]:
     trace = get_trace_for_transaction(transaction_name, project_id)
-    return trace.dict() if trace else {}
+    return trace.model_dump() if trace else {}
 
 
 def rpc_get_profiles_for_trace(trace_id: str, project_id: int) -> dict[str, Any]:
     profiles = get_profiles_for_trace(trace_id, project_id)
-    return profiles.dict() if profiles else {}
+    return profiles.model_dump() if profiles else {}
 
 
 def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> dict[str, Any]:
     issues = get_issues_for_transaction(transaction_name, project_id)
-    return issues.dict() if issues else {}
+    return issues.model_dump() if issues else {}

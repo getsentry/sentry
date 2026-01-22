@@ -54,7 +54,7 @@ def get_trace_summary(
         onlyTransaction,
     )
 
-    trace_summary_dict = trace_summary.dict()
+    trace_summary_dict = trace_summary.model_dump()
 
     cache.set(cache_key, trace_summary_dict, timeout=int(timedelta(days=7).total_seconds()))
 
@@ -90,4 +90,4 @@ def _call_seer(
     )
     response.raise_for_status()
 
-    return SummarizeTraceResponse.validate(response.json())
+    return SummarizeTraceResponse.model_validate(response.json())

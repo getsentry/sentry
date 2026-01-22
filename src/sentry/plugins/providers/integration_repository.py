@@ -168,7 +168,7 @@ class IntegrationRepositoryProvider:
             repo.status = ObjectStatus.ACTIVE
             repository_service.update_repository(organization_id=organization.id, update=repo)
         else:
-            create_repository = RpcCreateRepository.parse_obj(
+            create_repository = RpcCreateRepository.model_validate(
                 {**repo_update_params, "status": ObjectStatus.ACTIVE}
             )
             new_repository = repository_service.create_repository(
@@ -254,7 +254,7 @@ class IntegrationRepositoryProvider:
         missing_repos: list[RepositoryConfig] = []
         for external_id, repo_config in external_id_to_repo_config.items():
             integration_id = repo_config["integration_id"]
-            create_repository = RpcCreateRepository.parse_obj(
+            create_repository = RpcCreateRepository.model_validate(
                 {**repo_config, "provider": self.id, "status": ObjectStatus.ACTIVE}
             )
             new_repository = repository_service.create_repository(

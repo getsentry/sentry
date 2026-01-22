@@ -84,7 +84,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerExplorerClient(organization, request.user)
             state = client.get_run(run_id=int(run_id))
-            return Response({"session": state.dict()})
+            return Response({"session": state.model_dump()})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except ValueError:
