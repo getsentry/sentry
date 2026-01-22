@@ -6,10 +6,8 @@ import type {z} from 'zod';
 import {useScrapsForm, type BoundFieldComponents} from './index.tanstack';
 
 /** Form data type coming from the schema */
-type SchemaData<TSchema extends z.ZodObject<z.ZodRawShape>> = z.infer<TSchema>;
-
 type SchemaFieldName<TSchema extends z.ZodObject<z.ZodRawShape>> = Extract<
-  DeepKeys<SchemaData<TSchema>>,
+  DeepKeys<z.infer<TSchema>>,
   string
 >;
 
@@ -17,13 +15,13 @@ type SchemaFieldName<TSchema extends z.ZodObject<z.ZodRawShape>> = Extract<
 type SchemaFieldValue<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends SchemaFieldName<TSchema>,
-> = DeepValue<SchemaData<TSchema>, TFieldName>;
+> = DeepValue<z.infer<TSchema>, TFieldName>;
 
 type AutoSaveFieldRenderArg<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends SchemaFieldName<TSchema>,
 > = FieldApi<
-  SchemaData<TSchema>,
+  z.infer<TSchema>,
   TFieldName,
   SchemaFieldValue<TSchema, TFieldName>,
   // Field validators (all can be undefined to satisfy the constraints)
