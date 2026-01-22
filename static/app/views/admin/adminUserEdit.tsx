@@ -15,6 +15,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -119,7 +120,7 @@ function RemoveUserModal({user, onRemove, closeModal}: RemoveModalProps) {
 
 function AdminUserEdit() {
   const {id} = useParams<{id: string}>();
-  const userEndpoint = `/users/${id}/`;
+  const userEndpoint = getApiUrl('/users/$userId/', {path: {userId: id}});
   const [formModel] = useState(() => new FormModel());
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();

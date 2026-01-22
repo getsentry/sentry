@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
@@ -43,7 +44,7 @@ function AcceptProjectTransfer() {
     isError,
     error,
   } = useApiQuery<TransferDetails>(
-    ['/accept-transfer/', {query: location.query, host: regionHost()}],
+    [getApiUrl('/accept-transfer/'), {query: location.query, host: regionHost()}],
     {
       staleTime: 0,
     }

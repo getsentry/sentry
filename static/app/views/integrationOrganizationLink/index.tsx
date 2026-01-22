@@ -18,6 +18,7 @@ import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
@@ -86,13 +87,18 @@ export default function IntegrationOrganizationLink() {
     isPending: isPendingOrganizations,
     error: organizationsError,
   } = useApiQuery<Organization[]>(
-    ['/organizations/', {query: {include_feature_flags: 1}}],
+    [getApiUrl('/organizations/'), {query: {include_feature_flags: 1}}],
     {staleTime: Infinity}
   );
 
   const isOrganizationQueryEnabled = !!selectedOrgSlug;
   const organizationQuery = useApiQuery<Organization>(
-    [`/organizations/${selectedOrgSlug}/`, {query: {include_feature_flags: 1}}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/', {
+        path: {organizationIdOrSlug: selectedOrgSlug!},
+      }),
+      {query: {include_feature_flags: 1}},
+    ],
     {staleTime: Infinity, enabled: isOrganizationQueryEnabled}
   );
   const organization = organizationQuery.data ?? null;
@@ -107,7 +113,9 @@ export default function IntegrationOrganizationLink() {
     providers: IntegrationProvider[];
   }>(
     [
-      `/organizations/${selectedOrgSlug}/config/integrations/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
+        path: {organizationIdOrSlug: selectedOrgSlug!},
+      }),
       {query: {provider_key: integrationSlug}},
     ],
     {staleTime: Infinity, enabled: isProviderQueryEnabled}

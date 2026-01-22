@@ -9,6 +9,7 @@ import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
@@ -21,9 +22,12 @@ type Data = {
 };
 
 export default function AdminEnvironment() {
-  const {data, isPending, isError} = useApiQuery<Data>(['/internal/environment/'], {
-    staleTime: 0,
-  });
+  const {data, isPending, isError} = useApiQuery<Data>(
+    [getApiUrl('/internal/environment/')],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isError) {
     return <LoadingError />;

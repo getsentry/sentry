@@ -14,6 +14,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/automations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -37,7 +38,9 @@ export function AutomationStatsChart({
     isError,
   } = useApiQuery<AutomationStats[]>(
     [
-      `/organizations/${organization.slug}/workflows/${automationId}/stats/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/stats/', {
+        path: {organizationIdOrSlug: organization.slug, workflowId: automationId},
+      }),
       {
         query: {
           ...(period && {statsPeriod: period}),

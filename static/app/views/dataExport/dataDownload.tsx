@@ -10,6 +10,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -80,9 +81,16 @@ export default function DataDownload() {
     isPending,
     isError,
     error,
-  } = useApiQuery<Download>([`/organizations/${orgSlug}/data-export/${dataExportId}/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Download>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/data-export/$dataExportId/', {
+        path: {organizationIdOrSlug: orgSlug, dataExportId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const navigate = useNavigate();
 
