@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
@@ -6,17 +6,18 @@ import {Flex} from '@sentry/scraps/layout/flex';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import Feature from 'sentry/components/acl/feature';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import type {BillingSeatAssignment} from 'getsentry/types';
 import SeerWizardSetupBanner from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
 import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
@@ -30,30 +31,51 @@ export default function SeerSettingsPageWrapper({children}: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
+  const hasFeatureFlag = organization.features.includes('seat-based-seer-enabled');
+
+  // Query billed seats only when feature flag is false.
+  // This allows users who have downgraded mid-period but still have seats assigned
+  // to continue managing their Seer settings.
+  const {data: billedSeats, isPending: isLoadingBilledSeats} = useApiQuery<
+    BillingSeatAssignment[]
+  >([`/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`], {
+    staleTime: 0,
+    enabled: !hasFeatureFlag,
+  });
+
+  const hasBilledSeats = billedSeats && billedSeats.length > 0;
+  const canAccessSettings = hasFeatureFlag || hasBilledSeats;
+
   useEffect(() => {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
-    // Or if we havn't launched the new seer yet.
+    // Or if we haven't launched the new seer yet.
     // Then they need to see old settings page, or get downgraded off old seer.
     if (!showNewSeer(organization)) {
       navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
       return;
     }
 
-    // If the org is not on the seat-based seer plan, then they should be redirected to the trial page
-    if (!organization.features.includes('seat-based-seer-enabled')) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/trial/`));
+    if (hasFeatureFlag) {
       return;
     }
 
-    // Else you do have the new seer plan, then stay here and edit some settings.
-  }, [navigate, organization.features, organization.slug, organization]);
+    if (isLoadingBilledSeats) {
+      return;
+    }
+
+    if (hasBilledSeats) {
+      return;
+    }
+
+    navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/trial/`));
+  }, [navigate, organization, hasFeatureFlag, isLoadingBilledSeats, hasBilledSeats]);
+
+  if (!hasFeatureFlag && (isLoadingBilledSeats || !canAccessSettings)) {
+    return <NoAccess />;
+  }
 
   return (
-    <Feature
-      features={['seat-based-seer-enabled']}
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
+    <Fragment>
       <SentryDocumentTitle title={t('Seer')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Seer')}
@@ -105,6 +127,6 @@ export default function SeerSettingsPageWrapper({children}: Props) {
 
         {children}
       </Stack>
-    </Feature>
+    </Fragment>
   );
 }

@@ -19,11 +19,13 @@ import {Text} from '@sentry/scraps/text/text';
 
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import useSubscription from 'getsentry/hooks/useSubscription';
+import type {BillingSeatAssignment} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 
 const BUTTONS = [
@@ -59,6 +61,21 @@ export default function SeerAutomationTrial() {
     organization
   );
 
+  const hasFeatureFlag = organization.features.includes('seat-based-seer-enabled');
+
+  // Query billed seats only when feature flag is false.
+  // This allows users who have downgraded mid-period but still have seats assigned
+  // to continue managing their Seer settings.
+  const {data: billedSeats, isPending: isLoadingBilledSeats} = useApiQuery<
+    BillingSeatAssignment[]
+  >([`/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`], {
+    staleTime: 0,
+    enabled: !hasFeatureFlag,
+  });
+
+  const hasBilledSeats = billedSeats && billedSeats.length > 0;
+
+  // Check feature flag and billed seats to decide if we should redirect to settings or stay on trial page.
   useEffect(() => {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
     // they need to goto the old settings page, or get downgraded off old seer.
@@ -67,14 +84,22 @@ export default function SeerAutomationTrial() {
       return;
     }
 
-    // If you've already got Seer, then go to settings and you should see the new ones.
-    if (organization.features.includes('seat-based-seer-enabled')) {
+    if (hasFeatureFlag) {
       navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
       return;
     }
 
-    // Else you don't yet have the new seer plan, then stay here and click to start a trial.
-  }, [navigate, organization.features, organization.slug, organization]);
+    if (isLoadingBilledSeats) {
+      return;
+    }
+
+    if (hasBilledSeats) {
+      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      return;
+    }
+
+    // If we don't have feature flag or billed seats, then stay here and click to start a trial.
+  }, [navigate, organization, hasFeatureFlag, isLoadingBilledSeats, hasBilledSeats]);
 
   return (
     <Fragment>
