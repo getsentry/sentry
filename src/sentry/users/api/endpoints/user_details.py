@@ -188,6 +188,34 @@ class SuperuserUserSerializer(BaseUserSerializer):
         model = User
         fields = ("name", "username", "is_active")
 
+    def update(self, instance: User, validated_data: dict[str, Any]) -> User:
+        request = self.context.get("request")
+        should_audit = False
+
+        if request:
+            privileged_fields = {"is_active", "is_staff", "is_superuser"}
+            changed_fields = {
+                field
+                for field in privileged_fields
+                if field in validated_data and getattr(instance, field) != validated_data[field]
+            }
+            should_audit = bool(changed_fields)
+
+        user = super().update(instance, validated_data)
+
+        if should_audit and request:
+            audit_logger.info(
+                "user.edit",
+                extra={
+                    "user_id": user.id,
+                    "actor_id": getattr(request.user, "id", None),
+                    "form_data": getattr(request, "data", None),
+                    "changed_fields": changed_fields,
+                },
+            )
+
+        return user
+
 
 class PrivilegedUserSerializer(SuperuserUserSerializer):
     is_staff = serializers.BooleanField()
@@ -284,7 +312,9 @@ class UserDetailsEndpoint(UserEndpoint):
             serializer_cls = SuperuserUserSerializer
         else:
             serializer_cls = UserSerializer
-        serializer = serializer_cls(instance=user, data=request.data, partial=True)
+        serializer = serializer_cls(
+            instance=user, data=request.data, partial=True, context={"request": request}
+        )
 
         serializer_options = UserOptionsSerializer(
             data=request.data.get("options", {}), partial=True
@@ -315,16 +345,6 @@ class UserDetailsEndpoint(UserEndpoint):
 
         with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()
-
-            if any(k in request.data for k in ("isStaff", "isSuperuser", "isActive")):
-                audit_logger.info(
-                    "user.edit",
-                    extra={
-                        "user_id": user.id,
-                        "actor_id": request.user.id,
-                        "form_data": request.data,
-                    },
-                )
 
         return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
 

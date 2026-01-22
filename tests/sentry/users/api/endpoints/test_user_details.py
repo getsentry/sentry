@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from unittest.mock import patch
 
 from django.test import override_settings
 from pytest import fixture
@@ -327,6 +328,121 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert user.is_staff
 
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_emitted_when_is_active_changed(self, mock_audit_logger) -> None:
+        self.user.update(is_active=True)
+        self.login_as(user=self.superuser, superuser=True)
+
+        self.get_success_response(
+            self.user.id,
+            isActive="false",
+        )
+
+        mock_audit_logger.info.assert_called_once_with(
+            "user.edit",
+            extra={
+                "user_id": self.user.id,
+                "actor_id": self.superuser.id,
+                "form_data": {"isActive": "false"},
+                "changed_fields": {"is_active"},
+            },
+        )
+
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_emitted_when_is_staff_changed(self, mock_audit_logger) -> None:
+        self.user.update(is_staff=False)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        self.get_success_response(
+            self.user.id,
+            isStaff="true",
+        )
+
+        mock_audit_logger.info.assert_called_once_with(
+            "user.edit",
+            extra={
+                "user_id": self.user.id,
+                "actor_id": self.superuser.id,
+                "form_data": {"isStaff": "true"},
+                "changed_fields": {"is_staff"},
+            },
+        )
+
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_emitted_when_is_superuser_changed(self, mock_audit_logger) -> None:
+        self.user.update(is_superuser=False)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        self.get_success_response(
+            self.user.id,
+            isSuperuser="true",
+        )
+
+        mock_audit_logger.info.assert_called_once_with(
+            "user.edit",
+            extra={
+                "user_id": self.user.id,
+                "actor_id": self.superuser.id,
+                "form_data": {"isSuperuser": "true"},
+                "changed_fields": {"is_superuser"},
+            },
+        )
+
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_not_emitted_when_is_active_unchanged(self, mock_audit_logger) -> None:
+        self.user.update(is_active=True)
+        self.login_as(user=self.superuser, superuser=True)
+
+        self.get_success_response(
+            self.user.id,
+            isActive="true",  # Same as current value
+        )
+
+        mock_audit_logger.info.assert_not_called()
+
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_not_emitted_for_non_privileged_fields(self, mock_audit_logger) -> None:
+        self.login_as(user=self.superuser, superuser=True)
+
+        # Only change name, not any privileged fields
+        self.get_success_response(
+            self.user.id,
+            name="New Name",
+        )
+
+        # Verify name was updated
+        user = User.objects.get(id=self.user.id)
+        assert user.name == "New Name"
+
+        # Audit log should NOT be called for non-privileged field changes
+        mock_audit_logger.info.assert_not_called()
+
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_emitted_when_multiple_privileged_fields_changed(
+        self, mock_audit_logger
+    ) -> None:
+        self.user.update(is_active=True, is_staff=False)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        self.get_success_response(
+            self.user.id,
+            isActive="false",
+            isStaff="true",
+        )
+
+        mock_audit_logger.info.assert_called_once_with(
+            "user.edit",
+            extra={
+                "user_id": self.user.id,
+                "actor_id": self.superuser.id,
+                "form_data": {"isActive": "false", "isStaff": "true"},
+                "changed_fields": {"is_active", "is_staff"},
+            },
+        )
+
 
 @control_silo_test
 class UserDetailsStaffUpdateTest(UserDetailsTest):
@@ -445,6 +561,68 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
 
         user = User.objects.get(id=self.user.id)
         assert user.is_staff
+
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_emitted_when_staff_changes_is_active(self, mock_audit_logger) -> None:
+        self.user.update(is_active=True)
+        self.login_as(user=self.staff_user, staff=True)
+
+        self.get_success_response(
+            self.user.id,
+            isActive="false",
+        )
+
+        mock_audit_logger.info.assert_called_once_with(
+            "user.edit",
+            extra={
+                "user_id": self.user.id,
+                "actor_id": self.staff_user.id,
+                "form_data": {"isActive": "false"},
+                "changed_fields": {"is_active"},
+            },
+        )
+
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_emitted_when_staff_changes_is_staff(self, mock_audit_logger) -> None:
+        self.user.update(is_staff=False)
+        UserPermission.objects.create(user=self.staff_user, permission="users.admin")
+        self.login_as(user=self.staff_user, staff=True)
+
+        self.get_success_response(
+            self.user.id,
+            isStaff="true",
+        )
+
+        mock_audit_logger.info.assert_called_once_with(
+            "user.edit",
+            extra={
+                "user_id": self.user.id,
+                "actor_id": self.staff_user.id,
+                "form_data": {"isStaff": "true"},
+                "changed_fields": {"is_staff"},
+            },
+        )
+
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_audit_log_emitted_when_staff_changes_is_superuser(self, mock_audit_logger) -> None:
+        self.user.update(is_superuser=False)
+        UserPermission.objects.create(user=self.staff_user, permission="users.admin")
+        self.login_as(user=self.staff_user, staff=True)
+
+        self.get_success_response(
+            self.user.id,
+            isSuperuser="true",
+        )
+
+        mock_audit_logger.info.assert_called_once_with(
+            "user.edit",
+            extra={
+                "user_id": self.user.id,
+                "actor_id": self.staff_user.id,
+                "form_data": {"isSuperuser": "true"},
+                "changed_fields": {"is_superuser"},
+            },
+        )
 
 
 @control_silo_test
