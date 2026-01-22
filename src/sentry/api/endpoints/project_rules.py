@@ -682,7 +682,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     @extend_schema(
-        operation_id="List a Project's Issue Alert Rules",
+        operation_id="(DEPRECATED) List a Project's Issue Alert Rules",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
@@ -695,6 +695,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project: Project) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Fetch an Organization's Monitors](/api/monitors/fetch-an-organizations-monitors) and [Fetch Alerts](/api/monitors/fetch-alerts) instead.
+
+
         Return a list of active issue alert rules bound to a project.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
@@ -719,7 +723,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create an Issue Alert Rule for a Project",
+        operation_id="(DEPRECATED) Create an Issue Alert Rule for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -735,6 +739,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     )
     def post(self, request: Request, project) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Create a Monitor for a Project](/api/monitors/create-a-monitor-for-a-project) and [Create an Alert for an Organization](/api/monitors/create-an-alert-for-an-organization) instead.
+
+
         Create a new issue alert rule for the given project.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:

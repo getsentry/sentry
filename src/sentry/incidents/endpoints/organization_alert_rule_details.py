@@ -351,7 +351,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Metric Alert Rule for an Organization",
+        operation_id="(DEPRECATED) Retrieve a Metric Alert Rule for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             200: AlertRuleSerializer,
@@ -365,6 +365,10 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     @_check_project_access
     def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Fetch a Monitor](/api/monitors/fetch-a-monitor) and [Fetch an Alert](/api/monitors/fetch-an-alert) instead.
+
+
         Return details on an individual metric alert rule.
 
         A metric alert rule is a configuration that defines the conditions for triggering an alert.
@@ -377,7 +381,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         return fetch_alert_rule(request, organization, alert_rule)
 
     @extend_schema(
-        operation_id="Update a Metric Alert Rule",
+        operation_id="(DEPRECATED) Update a Metric Alert Rule",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         request=OrganizationAlertRuleDetailsPutSerializer,
         responses={
@@ -392,6 +396,10 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     @_check_project_access
     def put(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Update a Monitor by ID](/api/monitors/update-a-monitor-by-id) and [Update an Alert by ID](/api/monitors/update-an-alert-by-id) instead.
+
+
         Updates a metric alert rule. See **Metric Alert Rule Types** under
         [Create a Metric Alert Rule for an Organization](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types)
         to see valid request body configurations for different types of metric alert rule types.
@@ -409,7 +417,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         return update_alert_rule(request, organization, alert_rule)
 
     @extend_schema(
-        operation_id="Delete a Metric Alert Rule",
+        operation_id="(DEPRECATED) Delete a Metric Alert Rule",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             202: RESPONSE_ACCEPTED,
@@ -424,13 +432,16 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         self, request: Request, organization: Organization, alert_rule: AlertRule
     ) -> Response:
         """
-        Delete a specific metric alert rule.
+        ## Deprecated
+         🚧 Use [Delete a Monitor](/api/monitors/delete-a-monitor) and [Delete an Alert](/api/monitors/delete-an-alert) instead.
 
-        A metric alert rule is a configuration that defines the conditions for triggering an alert.
-        It specifies the metric type, function, time interval, and threshold
-        values that determine when an alert should be triggered. Metric alert rules are used to monitor
-        and notify you when certain metrics, like error count, latency, or failure rate, cross a
-        predefined threshold. These rules help you proactively identify and address issues in your
-        project.
+         Delete a specific metric alert rule.
+
+         A metric alert rule is a configuration that defines the conditions for triggering an alert.
+         It specifies the metric type, function, time interval, and threshold
+         values that determine when an alert should be triggered. Metric alert rules are used to monitor
+         and notify you when certain metrics, like error count, latency, or failure rate, cross a
+         predefined threshold. These rules help you proactively identify and address issues in your
+         project.
         """
         return remove_alert_rule(request, organization, alert_rule)
