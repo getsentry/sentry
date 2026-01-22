@@ -325,6 +325,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "request_method": "GET",
             "request_headers": [],
             "trace_sampling": False,
+            "capture_response_on_failure": True,
             "active_regions": ["default"],
             "region_schedule_mode": "round_robin",
         }
@@ -354,6 +355,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "request_headers": headers,
             "request_body": body,
             "trace_sampling": True,
+            "capture_response_on_failure": True,
             "active_regions": ["default"],
             "region_schedule_mode": "round_robin",
         }
@@ -371,7 +373,28 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "request_method": "GET",
             "request_headers": [],
             "trace_sampling": False,
+            "capture_response_on_failure": True,
             "active_regions": [],
+            "region_schedule_mode": "round_robin",
+        }
+
+    def test_capture_response_disabled(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(capture_response_on_failure=False)
+
+        subscription_id = uuid4().hex
+        assert uptime_subscription_to_check_config(
+            sub, subscription_id, UptimeSubscriptionRegion.RegionMode.ACTIVE
+        ) == {
+            "subscription_id": subscription_id,
+            "url": sub.url,
+            "interval_seconds": sub.interval_seconds,
+            "timeout_ms": sub.timeout_ms,
+            "request_method": "GET",
+            "request_headers": [],
+            "trace_sampling": False,
+            "capture_response_on_failure": False,
+            "active_regions": ["default"],
             "region_schedule_mode": "round_robin",
         }
 
