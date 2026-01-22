@@ -5,6 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as indicators from 'sentry/actionCreators/indicator';
 import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUptimeMonitorButton';
 import {PreviewCheckStatus} from 'sentry/views/alerts/rules/uptime/types';
+import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
 
 describe('TestUptimeMonitorButton', () => {
   const organization = OrganizationFixture();
@@ -74,7 +75,43 @@ describe('TestUptimeMonitorButton', () => {
             body: null,
             timeoutMs: 10000,
             assertion: null,
-            region: 'default',
+          },
+        })
+      );
+    });
+  });
+
+  it('uses default values when form data is missing optional fields', async () => {
+    const mockPreview = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/uptime-preview-check/`,
+      method: 'POST',
+      body: {check_result: {status: PreviewCheckStatus.SUCCESS}},
+    });
+
+    render(
+      <TestUptimeMonitorButton
+        getFormData={() => ({
+          url: 'https://example.com',
+          // Omit optional fields to test defaults
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
+
+    await waitFor(() => {
+      expect(mockPreview).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/uptime-preview-check/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            url: 'https://example.com',
+            method: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.method,
+            headers: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
+            body: null,
+            timeoutMs: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.timeoutMs,
+            assertion: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.assertion,
           },
         })
       );
@@ -196,6 +233,119 @@ describe('TestUptimeMonitorButton', () => {
     // Button should eventually be enabled again after the request completes
     await waitFor(() => {
       expect(button).toBeEnabled();
+    });
+  });
+
+  it('renders custom label when provided', () => {
+    render(
+      <TestUptimeMonitorButton
+        label="Test Rule"
+        getFormData={() => ({
+          url: 'https://example.com',
+        })}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByRole('button', {name: 'Test Rule'})).toBeInTheDocument();
+  });
+
+  it('shows error message when check_result.status is missed_window', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/uptime-preview-check/`,
+      method: 'POST',
+      body: {check_result: {status: PreviewCheckStatus.MISSED_WINDOW}},
+    });
+
+    render(
+      <TestUptimeMonitorButton
+        getFormData={() => ({
+          url: 'https://example.com',
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
+    });
+  });
+
+  it('shows error message when check_result.status is disallowed_by_robots', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/uptime-preview-check/`,
+      method: 'POST',
+      body: {check_result: {status: PreviewCheckStatus.DISALLOWED_BY_ROBOTS}},
+    });
+
+    render(
+      <TestUptimeMonitorButton
+        getFormData={() => ({
+          url: 'https://example.com',
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
+    });
+  });
+
+  it('sends assertion data to the preview endpoint', async () => {
+    const mockAssertion = {
+      root: {
+        id: 'root',
+        op: 'and' as const,
+        children: [
+          {
+            id: 'status-check',
+            op: 'status_code_check' as const,
+            operator: {cmp: 'equals' as const},
+            value: 200,
+          },
+        ],
+      },
+    };
+
+    const mockPreview = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/uptime-preview-check/`,
+      method: 'POST',
+      body: {check_result: {status: PreviewCheckStatus.SUCCESS}},
+    });
+
+    render(
+      <TestUptimeMonitorButton
+        getFormData={() => ({
+          url: 'https://example.com',
+          method: 'POST',
+          headers: [],
+          body: '{"test": true}',
+          timeoutMs: 10000,
+          assertion: mockAssertion,
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
+
+    await waitFor(() => {
+      expect(mockPreview).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/uptime-preview-check/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            url: 'https://example.com',
+            assertion: mockAssertion,
+            body: '{"test": true}',
+          }),
+        })
+      );
     });
   });
 });

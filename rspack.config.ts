@@ -792,8 +792,8 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        router: (req: any) => {
-          const orgSlug = extractSlug(req.hostname);
+        router: req => {
+          const orgSlug = extractSlug((req as any).hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },

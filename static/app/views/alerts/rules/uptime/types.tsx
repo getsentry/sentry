@@ -198,3 +198,12 @@ export interface PreviewCheckResult {
 export interface PreviewCheckResponse {
   check_result?: PreviewCheckResult;
 }
+
+export interface PreviewCheckPayload {
+  timeoutMs: number;
+  url: string;
+  assertion?: Assertion | null;
+  body?: string | null;
+  headers?: Array<[string, string]>;
+  method?: string;
+}

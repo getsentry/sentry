@@ -10,18 +10,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   PreviewCheckStatus,
   type Assertion,
+  type PreviewCheckPayload,
   type PreviewCheckResponse,
 } from 'sentry/views/alerts/rules/uptime/types';
-
-interface PreviewCheckPayload {
-  region: string;
-  timeoutMs: number;
-  url: string;
-  assertion?: Assertion | null;
-  body?: string | null;
-  headers?: Array<[string, string]>;
-  method?: string;
-}
+import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
 
 interface TestUptimeMonitorButtonProps {
   /**
@@ -80,12 +72,11 @@ export function TestUptimeMonitorButton({
 
     runPreviewCheck({
       url: formData.url,
-      timeoutMs: formData.timeoutMs ?? 5000,
-      method: formData.method ?? 'GET',
-      headers: formData.headers ?? [],
-      body: formData.body ?? null,
-      assertion: formData.assertion ?? null,
-      region: 'default',
+      timeoutMs: formData.timeoutMs ?? DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.timeoutMs,
+      method: formData.method ?? DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.method,
+      headers: formData.headers ?? DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
+      body: formData.body || null,
+      assertion: formData.assertion ?? DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.assertion,
     });
   }, [getFormData, runPreviewCheck]);
 
