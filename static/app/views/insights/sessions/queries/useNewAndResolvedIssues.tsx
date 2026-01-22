@@ -2,6 +2,7 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {IssuesMetricsApiResponse} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,7 +23,9 @@ export default function useNewAndResolvedIssues({
     error,
   } = useApiQuery<IssuesMetricsApiResponse>(
     [
-      `/organizations/${organization.slug}/issues-metrics/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues-metrics/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),

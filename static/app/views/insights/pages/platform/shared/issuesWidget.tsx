@@ -22,6 +22,7 @@ import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
@@ -101,7 +102,9 @@ export function IssuesWidget() {
     refetch,
   } = useApiQuery<Group[]>(
     [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: queryParams,
       },

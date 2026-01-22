@@ -2,6 +2,7 @@ import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {t, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 
 import {CheckInStatus} from './types';
 
@@ -12,7 +13,9 @@ export function makeMonitorListQueryKey(
   const {query, project, environment, owner, cursor, sort, asc} = params;
 
   return [
-    `/organizations/${organization.slug}/monitors/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/monitors/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         cursor,
@@ -36,7 +39,16 @@ export function makeMonitorDetailsQueryKey(
   query?: Record<string, any>
 ) {
   return [
-    `/projects/${organization.slug}/${projectId}/monitors/${monitorSlug}/`,
+    getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          monitorIdOrSlug: monitorSlug,
+        },
+      }
+    ),
     {query},
   ] as const;
 }

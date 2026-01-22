@@ -21,6 +21,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -167,7 +168,9 @@ export function ServerTree() {
 
   const treeRequest = useApiQuery<TreeResponse>(
     [
-      `/organizations/${organization.slug}/insights/tree/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/insights/tree/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pageFilterChartParams,
