@@ -100,6 +100,7 @@ from sentry.seer.explorer.tools import (
     rpc_get_trace_waterfall,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
@@ -1060,6 +1061,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
     "get_replay_metadata": get_replay_metadata,
+    #
+    # Issue Detection
+    "create_issue_occurrence": create_issue_occurrence,
 }
 
 

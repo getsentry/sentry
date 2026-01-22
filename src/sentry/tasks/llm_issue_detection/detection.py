@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import sentry_sdk
 from django.conf import settings
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from urllib3.exceptions import TimeoutError
 
 from sentry import features, options
@@ -35,6 +35,10 @@ START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
 NUM_TRANSACTIONS_TO_PROCESS = 10
 TRACE_PROCESSING_TTL_SECONDS = 7200
+# Character limit for LLM-generated fields to protect against abuse.
+# Word limits are enforced by Seer's prompt (see seer/automation/issue_detection/analyze.py).
+# This limit prevents excessively long outputs from malicious or malfunctioning LLMs.
+MAX_LLM_FIELD_LENGTH = 2000
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -58,15 +62,15 @@ def mark_trace_as_processed(trace_id: str) -> bool:
 
 class DetectedIssue(BaseModel):
     # LLM generated fields
-    explanation: str
-    impact: str
-    evidence: str
-    missing_telemetry: str | None = None
+    explanation: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    impact: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    evidence: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    missing_telemetry: str | None = Field(None, max_length=MAX_LLM_FIELD_LENGTH)
     offender_span_ids: list[str]
-    title: str
-    subcategory: str
-    category: str
-    verification_reason: str
+    title: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    category: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
@@ -109,15 +113,20 @@ def get_base_platform(platform: str | None) -> str | None:
 
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
-    project_id: int,
+    project_id: int | None = None,
+    project: Project | None = None,
 ) -> None:
     """
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
+    if project is None:
+        if project_id is None:
+            raise ValueError("Either project or project_id must be provided")
+        project = Project.objects.get_from_cache(id=project_id)
+
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
-    project = Project.objects.get_from_cache(id=project_id)
     trace_id = detected_issue.trace_id
     transaction_name = detected_issue.transaction_name
     title = detected_issue.title.lower().replace(" ", "-")
@@ -142,7 +151,7 @@ def create_issue_occurrence_from_detection(
     occurrence = IssueOccurrence(
         id=occurrence_id,
         event_id=event_id,
-        project_id=project_id,
+        project_id=project.id,
         fingerprint=fingerprint,
         issue_title=detected_issue.title,
         subtitle=detected_issue.explanation[:200],  # Truncate for subtitle
@@ -159,7 +168,7 @@ def create_issue_occurrence_from_detection(
 
     event_data = {
         "event_id": event_id,
-        "project_id": project_id,
+        "project_id": project.id,
         "platform": platform,
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
