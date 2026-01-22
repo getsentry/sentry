@@ -15,14 +15,8 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
-from ..metrics import (
-    CodeReviewErrorType,
-    WebhookFilteredReason,
-    record_webhook_filtered,
-    record_webhook_handler_error,
-    record_webhook_received,
-)
-from ..utils import _get_target_commit_sha
+from ..metrics import WebhookFilteredReason, record_webhook_filtered, record_webhook_received
+from ..utils import _get_target_commit_sha, add_github_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -54,38 +48,22 @@ def _add_eyes_reaction_to_comment(
     github_event: GithubWebhookType,
     github_event_action: GitHubIssueCommentAction,
     integration: RpcIntegration | None,
-    organization: Organization,
+    organization_id: int,
     repo: Repository,
     comment_id: str,
 ) -> None:
-    """Add 👀 reaction to acknowledge a review command. Errors are logged/added to metrics but not raised."""
-    extra = {
-        "organization_id": organization.id,
-        "repo": repo.name,
-        "comment_id": comment_id,
-        "github_event": github_event,
-        "github_event_action": github_event_action.value,
-    }
+    """Add 👀 reaction to acknowledge a review command. Errors are added to metrics but not raised."""
 
-    if integration is None:
-        record_webhook_handler_error(
-            github_event,
-            github_event_action.value,
-            CodeReviewErrorType.MISSING_INTEGRATION,
-        )
-        logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
-        return
-
-    try:
-        client = integration.get_installation(organization_id=organization.id).get_client()
+    def perform_reaction(client):
         client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
-    except Exception:
-        record_webhook_handler_error(
-            github_event,
-            github_event_action.value,
-            CodeReviewErrorType.REACTION_FAILED,
-        )
-        logger.exception(Log.REACTION_FAILED.value, extra=extra)
+
+    add_github_reaction(
+        github_event=github_event,
+        github_event_action=github_event_action.value,
+        integration=integration,
+        organization_id=organization_id,
+        reaction_operation=perform_reaction,
+    )
 
 
 def handle_issue_comment_event(
@@ -132,7 +110,7 @@ def handle_issue_comment_event(
             github_event,
             GitHubIssueCommentAction(github_event_action),
             integration,
-            organization,
+            organization.id,
             repo,
             str(comment_id),
         )

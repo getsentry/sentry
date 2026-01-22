@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import RetryState
@@ -8,14 +8,13 @@ from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.seer.code_review.metrics import CodeReviewErrorType
 from sentry.seer.code_review.utils import ClientError
-from sentry.seer.code_review.webhooks.issue_comment import GitHubIssueCommentAction
-from sentry.seer.code_review.webhooks.issue_comment import Log as IssueCommentLog
 from sentry.seer.code_review.webhooks.issue_comment import (
+    GitHubIssueCommentAction,
     _add_eyes_reaction_to_comment,
     is_pr_review_command,
 )
-from sentry.seer.code_review.webhooks.pull_request import Log as PullRequestLog
 from sentry.seer.code_review.webhooks.pull_request import (
     PullRequestAction,
     _add_eyes_reaction_to_pull_request,
@@ -513,19 +512,21 @@ class AddEyesReactionToCommentTest(TestCase):
             name="owner/repo",
         )
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
-    def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
+    @patch("sentry.seer.code_review.utils.record_webhook_handler_error")
+    def test_records_error_when_integration_is_none(self, mock_record_error: MagicMock) -> None:
         _add_eyes_reaction_to_comment(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED,
             integration=None,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             comment_id="123",
         )
 
-        mock_logger.warning.assert_called_once_with(
-            IssueCommentLog.MISSING_INTEGRATION.value, extra=ANY
+        mock_record_error.assert_called_once_with(
+            GithubWebhookType.ISSUE_COMMENT,
+            GitHubIssueCommentAction.CREATED.value,
+            CodeReviewErrorType.MISSING_INTEGRATION,
         )
 
     def test_calls_github_api_with_eyes_reaction(self) -> None:
@@ -533,7 +534,7 @@ class AddEyesReactionToCommentTest(TestCase):
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED,
             integration=self.mock_integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             comment_id="123456",
         )
@@ -542,21 +543,23 @@ class AddEyesReactionToCommentTest(TestCase):
             self.repo.name, "123456", GitHubReaction.EYES
         )
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
-    def test_logs_exception_on_api_error(self, mock_logger: MagicMock) -> None:
+    @patch("sentry.seer.code_review.utils.record_webhook_handler_error")
+    def test_records_error_on_api_error(self, mock_record_error: MagicMock) -> None:
         self.mock_client.create_comment_reaction.side_effect = Exception("API Error")
 
         _add_eyes_reaction_to_comment(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED,
             integration=self.mock_integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             comment_id="123456",
         )
 
-        mock_logger.exception.assert_called_once_with(
-            IssueCommentLog.REACTION_FAILED.value, extra=ANY
+        mock_record_error.assert_called_once_with(
+            GithubWebhookType.ISSUE_COMMENT,
+            GitHubIssueCommentAction.CREATED.value,
+            CodeReviewErrorType.REACTION_FAILED,
         )
 
 
@@ -576,19 +579,21 @@ class AddEyesReactionToPullRequestTest(TestCase):
             name="owner/repo",
         )
 
-    @patch("sentry.seer.code_review.webhooks.pull_request.logger")
-    def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
+    @patch("sentry.seer.code_review.utils.record_webhook_handler_error")
+    def test_records_error_when_integration_is_none(self, mock_record_error: MagicMock) -> None:
         _add_eyes_reaction_to_pull_request(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED,
             integration=None,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
         )
 
-        mock_logger.warning.assert_called_once_with(
-            PullRequestLog.MISSING_INTEGRATION.value, extra=ANY
+        mock_record_error.assert_called_once_with(
+            GithubWebhookType.PULL_REQUEST,
+            PullRequestAction.OPENED.value,
+            CodeReviewErrorType.MISSING_INTEGRATION,
         )
 
     def test_adds_eyes(self) -> None:
@@ -600,7 +605,7 @@ class AddEyesReactionToPullRequestTest(TestCase):
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED,
             integration=self.mock_integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
         )
@@ -620,7 +625,7 @@ class AddEyesReactionToPullRequestTest(TestCase):
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED,
             integration=self.mock_integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
         )
@@ -630,30 +635,23 @@ class AddEyesReactionToPullRequestTest(TestCase):
             self.repo.name, "42", GitHubReaction.EYES
         )
 
-    @patch("sentry.seer.code_review.webhooks.pull_request.logger")
-    def test_logs_warning_and_adds_eyes_when_get_reactions_fails(
-        self, mock_logger: MagicMock
-    ) -> None:
+    def test_adds_eyes_when_get_reactions_fails(self) -> None:
         self.mock_client.get_issue_reactions.side_effect = Exception("API Error")
 
         _add_eyes_reaction_to_pull_request(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED,
             integration=self.mock_integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
         )
 
-        mock_logger.warning.assert_called_once_with(PullRequestLog.REACTION_FAILED.value, extra=ANY)
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
 
-    @patch("sentry.seer.code_review.webhooks.pull_request.logger")
-    def test_logs_warning_and_adds_eyes_when_delete_reaction_fails(
-        self, mock_logger: MagicMock
-    ) -> None:
+    def test_adds_eyes_when_delete_reaction_fails(self) -> None:
         self.mock_client.get_issue_reactions.return_value = [
             {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "hooray"},
@@ -664,18 +662,17 @@ class AddEyesReactionToPullRequestTest(TestCase):
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED,
             integration=self.mock_integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
         )
 
-        mock_logger.warning.assert_called_once_with(PullRequestLog.REACTION_FAILED.value, extra=ANY)
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
 
-    @patch("sentry.seer.code_review.webhooks.pull_request.logger")
-    def test_logs_exception_on_create_reaction_fail(self, mock_logger: MagicMock) -> None:
+    @patch("sentry.seer.code_review.utils.record_webhook_handler_error")
+    def test_records_error_when_create_reaction_fails(self, mock_record_error: MagicMock) -> None:
         self.mock_client.get_issue_reactions.return_value = []
         self.mock_client.create_issue_reaction.side_effect = Exception("API Error")
 
@@ -683,11 +680,13 @@ class AddEyesReactionToPullRequestTest(TestCase):
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED,
             integration=self.mock_integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
         )
 
-        mock_logger.exception.assert_called_once_with(
-            PullRequestLog.REACTION_FAILED.value, extra=ANY
+        mock_record_error.assert_called_once_with(
+            GithubWebhookType.PULL_REQUEST,
+            PullRequestAction.OPENED.value,
+            CodeReviewErrorType.REACTION_FAILED,
         )

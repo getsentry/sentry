@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+import logging
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import Any
 
@@ -14,6 +15,10 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+
+from .metrics import CodeReviewErrorType, record_webhook_handler_error
+
+logger = logging.getLogger(__name__)
 
 
 # XXX: This needs to be a shared enum with the Seer repository
@@ -298,3 +303,44 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
         return str(user_id)
 
     return None
+
+
+def add_github_reaction(
+    *,
+    github_event: GithubWebhookType,
+    github_event_action: str,
+    integration: RpcIntegration | None,
+    organization_id: int,
+    reaction_operation: Callable[[Any], None],
+) -> None:
+    """
+    Generic helper for adding GitHub reactions with standardized error handling.
+
+    Handles integration validation, client retrieval, error logging, and metrics
+    recording. The actual reaction operation is provided as a callable.
+
+    Args:
+        github_event: The GitHub webhook event type
+        github_event_action: The action string from the webhook
+        integration: The RPC integration (can be None)
+        organization: The Sentry organization
+        reaction_operation: Callable that takes a client and performs the reaction
+    """
+
+    if integration is None:
+        record_webhook_handler_error(
+            github_event,
+            github_event_action,
+            CodeReviewErrorType.MISSING_INTEGRATION,
+        )
+        return
+
+    try:
+        client = integration.get_installation(organization_id=organization_id).get_client()
+        reaction_operation(client)
+    except Exception:
+        record_webhook_handler_error(
+            github_event,
+            github_event_action,
+            CodeReviewErrorType.REACTION_FAILED,
+        )

@@ -24,7 +24,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha
+from ..utils import _get_target_commit_sha, add_github_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -92,34 +92,17 @@ def _add_eyes_reaction_to_pull_request(
     github_event: GithubWebhookType,
     github_event_action: PullRequestAction,
     integration: RpcIntegration | None,
-    organization: Organization,
+    organization_id: int,
     repo: Repository,
     pr_number: str,
 ) -> None:
     """
-    Add 👀 reaction to acknowledge PR opening, ready for review, or new commits. Errors are logged/added to metrics but not raised.
+    Add 👀 reaction to acknowledge PR opening, ready for review, or new commits.
     Before adding eyes reaction, delete the existing 🎉 reaction from Sentry bot if it exists.
+    Errors are added to metrics but not raised.
     """
-    extra = {
-        "organization_id": organization.id,
-        "repo": repo.name,
-        "pr_number": pr_number,
-        "github_event": github_event,
-        "github_event_action": github_event_action.value,
-    }
 
-    if integration is None:
-        record_webhook_handler_error(
-            github_event,
-            github_event_action.value,
-            CodeReviewErrorType.MISSING_INTEGRATION,
-        )
-        logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
-        return
-
-    try:
-        client = integration.get_installation(organization_id=organization.id).get_client()
-
+    def perform_reaction(client):
         try:
             existing_reactions = client.get_issue_reactions(repo.name, str(pr_number))
             for reaction in existing_reactions:
@@ -133,16 +116,18 @@ def _add_eyes_reaction_to_pull_request(
                         )
                     break
         except Exception:
-            logger.warning(Log.REACTION_FAILED.value, extra=extra)
+            # Keep going even if we can't get or delete existing reactions
+            pass
 
         client.create_issue_reaction(repo.name, str(pr_number), GitHubReaction.EYES)
-    except Exception:
-        record_webhook_handler_error(
-            github_event,
-            github_event_action.value,
-            CodeReviewErrorType.REACTION_FAILED,
-        )
-        logger.exception(Log.REACTION_FAILED.value, extra=extra)
+
+    add_github_reaction(
+        github_event=github_event,
+        github_event_action=github_event_action.value,
+        integration=integration,
+        organization_id=organization_id,
+        reaction_operation=perform_reaction,
+    )
 
 
 def handle_pull_request_event(
@@ -212,7 +197,7 @@ def handle_pull_request_event(
             github_event,
             action,
             integration,
-            organization,
+            organization.id,
             repo,
             str(pr_number),
         )
