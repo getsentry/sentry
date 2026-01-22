@@ -5,13 +5,21 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import * as esbuild from 'esbuild';
+import type {Configuration, SwcLoaderOptions} from '@rspack/core';
+import rspack from '@rspack/core';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');
 const packageJsonPath = path.join(workspaceRoot, 'package.json');
 const entryPoint = path.join(workspaceRoot, 'static/app/chartcuterie/config.tsx');
-const outfile = path.join(workspaceRoot, 'config/chartcuterie/config.js');
+const outDir = path.join(workspaceRoot, 'config/chartcuterie');
+const outFile = path.join(outDir, 'config.js');
+const staticPrefix = path.join(workspaceRoot, 'static');
+const sentryDjangoAppPath = path.join(workspaceRoot, 'src/sentry/static/sentry');
+
+function formatFileSize(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
 
 /**
  * Reads package.json, modifies the sideEffects property, and writes it back.
@@ -55,64 +63,143 @@ function getCommitHash(): string {
   );
 }
 
-async function runEsbuild(commitHash: string): Promise<void> {
-  await esbuild.build({
-    entryPoints: [entryPoint],
-    bundle: true,
-    outfile,
-    platform: 'node',
-    format: 'cjs',
-    jsx: 'automatic',
-    define: {
-      'process.env.COMMIT_SHA': JSON.stringify(commitHash),
-      'process.env.NODE_ENV': JSON.stringify('production'),
-      'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(false),
-      'process.env.EXPERIMENTAL_SPA': JSON.stringify(false),
-      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(false),
-      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(false),
-      'process.env.UI_DEV_ENABLE_PROFILING': JSON.stringify(false),
-      'process.env.SPA_DSN': JSON.stringify(''),
-      'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(''),
+const swcLoaderConfig: SwcLoaderOptions = {
+  jsc: {
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
     },
-    minify: false,
-    treeShaking: true,
-    logLevel: 'info',
-    // Support loading most asset files, these should be tree-shaken, but
-    // esbuild might end up encountering them as we add and remove things from
-    // the dependency tree.
-    loader: {
-      '.svg': 'file',
-      '.png': 'file',
-      '.jpg': 'file',
-      '.jpeg': 'file',
-      '.gif': 'file',
-      '.ico': 'file',
-      '.webp': 'file',
-      '.mp4': 'file',
-      '.woff': 'file',
-      '.woff2': 'file',
-      '.ttf': 'file',
-      '.eot': 'file',
-      '.pegjs': 'text',
+    transform: {
+      react: {
+        runtime: 'automatic',
+        development: false,
+      },
     },
-    external: ['*.css'],
+  },
+  isModule: 'unknown',
+};
+
+async function runRspack(commitHash: string): Promise<void> {
+  const config: Configuration = {
+    mode: 'production',
+    target: 'node',
+    entry: entryPoint,
+    output: {
+      path: outDir,
+      filename: 'config.js',
+      library: {
+        type: 'commonjs2',
+      },
+      clean: true,
+    },
+    module: {
+      rules: [
+        {
+          test: /\.(js|jsx|ts|tsx)$/,
+          exclude: /node_modules[\\/]core-js/,
+          loader: 'builtin:swc-loader',
+          options: swcLoaderConfig,
+        },
+        // Handle asset files - these should be tree-shaken, but rspack might
+        // encounter them as we add and remove things from the dependency tree
+        {
+          test: /\.(svg|png|jpg|jpeg|gif|ico|webp|mp4|woff|woff2|ttf|eot)$/,
+          type: 'asset/resource',
+        },
+        {
+          test: /\.pegjs$/,
+          type: 'asset/source',
+        },
+      ],
+    },
+    plugins: [
+      // Exclude moment locales to reduce bundle size
+      new rspack.IgnorePlugin({
+        contextRegExp: /moment$/,
+        resourceRegExp: /^\.\/locale$/,
+      }),
+      new rspack.DefinePlugin({
+        'process.env.COMMIT_SHA': JSON.stringify(commitHash),
+        'process.env.NODE_ENV': JSON.stringify('production'),
+        'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(false),
+        'process.env.EXPERIMENTAL_SPA': JSON.stringify(false),
+        'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(false),
+        'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(false),
+        'process.env.UI_DEV_ENABLE_PROFILING': JSON.stringify(false),
+        'process.env.SPA_DSN': JSON.stringify(''),
+        'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(''),
+      }),
+    ],
+    externals: [
+      // Exclude CSS files from the bundle
+      /\.css$/,
+      /\.less$/,
+    ],
+    resolve: {
+      alias: {
+        sentry: path.join(staticPrefix, 'app'),
+        'sentry-images': path.join(staticPrefix, 'images'),
+        'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
+        'sentry-fonts': path.join(staticPrefix, 'fonts'),
+      },
+      extensions: ['.js', '.tsx', '.ts', '.json'],
+      preferAbsolute: true,
+      modules: ['node_modules'],
+    },
+    optimization: {
+      minimize: true,
+      minimizer: [new rspack.SwcJsMinimizerRspackPlugin()],
+      usedExports: true,
+      sideEffects: true,
+      providedExports: true,
+      innerGraph: true,
+    },
+    // Suppress output except errors
+    stats: 'errors-warnings',
+  };
+
+  return new Promise((resolve, reject) => {
+    rspack.rspack(config, (err, stats) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      if (stats?.hasErrors()) {
+        console.error(stats.toString({colors: true}));
+        reject(new Error('Build failed with errors'));
+        return;
+      }
+
+      if (stats?.hasWarnings()) {
+        console.warn(stats.toString({colors: true, warnings: true}));
+      }
+
+      // Get the file size from stats
+      const statsJson = stats?.toJson({assets: true});
+      const mainAsset = statsJson?.assets?.find(asset => asset.name === 'config.js');
+      const sizeStr = mainAsset ? ` (${formatFileSize(mainAsset.size)})` : '';
+
+      console.info(`Chartcuterie config built successfully: ${outFile}${sizeStr}`);
+      resolve();
+    });
   });
 }
 
 async function buildChartcuterie() {
   let originalPackageJsonContent: string | null = null;
-  let esbuildSuccess = false;
+  let buildSuccess = false;
 
   try {
     const commitHash = getCommitHash();
     originalPackageJsonContent = await modifyPackageJsonSideEffects(); // Enable sideEffects: false
-    await runEsbuild(commitHash);
-    esbuildSuccess = true;
+    await runRspack(commitHash);
+    buildSuccess = true;
   } catch (error) {
     console.error('Build process failed:', error);
   } finally {
     await restorePackageJson(originalPackageJsonContent);
-    process.exit(esbuildSuccess ? 0 : 1);
+    process.exit(buildSuccess ? 0 : 1);
   }
 }
 
