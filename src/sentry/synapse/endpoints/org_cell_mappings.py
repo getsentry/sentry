@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.endpoints.synapse.authentication import (
+from sentry.synapse.endpoints.authentication import (
     SynapseAuthPermission,
     SynapseSignatureAuthentication,
 )
