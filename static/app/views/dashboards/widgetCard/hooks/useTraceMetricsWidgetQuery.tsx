@@ -182,13 +182,25 @@ export function useTraceMetricsSeriesQuery(
     [queue]
   );
 
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
   const queryResults = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
       staleTime: 0,
       enabled,
-      retry: false,
+      retry: hasQueueFeature
+        ? false
+        : (failureCount: number, error: any) => {
+            // Retry up to 10 times on rate limit errors
+            if (error?.status === 429 && failureCount < 10) {
+              return true;
+            }
+            return false;
+          },
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -351,13 +363,25 @@ export function useTraceMetricsTableQuery(
     [queue]
   );
 
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
   const queryResults = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
       staleTime: 0,
       enabled,
-      retry: false,
+      retry: hasQueueFeature
+        ? false
+        : (failureCount: number, error: any) => {
+            // Retry up to 10 times on rate limit errors
+            if (error?.status === 429 && failureCount < 10) {
+              return true;
+            }
+            return false;
+          },
     })),
   });
 
