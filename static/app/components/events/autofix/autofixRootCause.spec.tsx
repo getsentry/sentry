@@ -278,4 +278,95 @@ describe('AutofixRootCause', () => {
 
     expect(await screen.findByText('Send to Cursor')).toBeInTheDocument();
   });
+
+  it('shows Setup button for integration requiring identity but lacking it', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {
+        integrations: [
+          {
+            id: null,
+            name: 'GitHub Copilot',
+            provider: 'github_copilot',
+            requires_identity: true,
+            has_identity: false,
+          },
+        ],
+      },
+    });
+
+    localStorage.setItem(
+      'autofix:rootCauseActionPreference',
+      JSON.stringify('agent:github_copilot')
+    );
+
+    render(<AutofixRootCause {...defaultProps} />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Setup GitHub Copilot'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows Send to button for integration with identity', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {
+        integrations: [
+          {
+            id: null,
+            name: 'GitHub Copilot',
+            provider: 'github_copilot',
+            requires_identity: true,
+            has_identity: true,
+          },
+        ],
+      },
+    });
+
+    localStorage.setItem(
+      'autofix:rootCauseActionPreference',
+      JSON.stringify('agent:github_copilot')
+    );
+
+    render(<AutofixRootCause {...defaultProps} />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Send to GitHub Copilot'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows Setup option in dropdown for integration requiring identity but lacking it', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {
+        integrations: [
+          {
+            id: 'cursor-integration-id',
+            name: 'Cursor',
+            provider: 'cursor',
+          },
+          {
+            id: null,
+            name: 'GitHub Copilot',
+            provider: 'github_copilot',
+            requires_identity: true,
+            has_identity: false,
+          },
+        ],
+      },
+    });
+
+    render(<AutofixRootCause {...defaultProps} />);
+
+    // Open dropdown
+    const dropdownTrigger = await screen.findByRole('button', {
+      name: 'More solution options',
+    });
+    await userEvent.click(dropdownTrigger);
+
+    // GitHub Copilot should show "Setup" since it requires identity but user hasn't authenticated
+    expect(await screen.findByText('Setup GitHub Copilot')).toBeInTheDocument();
+    // Cursor should show "Send to" since it doesn't require identity
+    expect(await screen.findByText('Send to Cursor')).toBeInTheDocument();
+  });
 });
