@@ -268,20 +268,19 @@ export function useMetricDetectorChart({
     aggregate,
   });
 
-  // Check if any anomaly threshold values exceed the chart bounds
-  // Only check against maxValue when it's used (maxValue > 0), otherwise chart auto-scales
+  // Check if any anomaly threshold values exceed the chart's upper bound
   const isAnomalyThresholdCutOff = useMemo(() => {
+    if (maxValue <= 0) {
+      return false;
+    }
     return filteredAnomalyThresholdSeries.some(seriesItem => {
       const data = (seriesItem as {data?: Array<[number, number]>}).data;
       if (!data) {
         return false;
       }
-      return data.some(([, value]) => {
-        const exceedsMax = maxValue > 0 && value > maxValue;
-        return exceedsMax || value < minValue;
-      });
+      return data.some(([, value]) => value > maxValue);
     });
-  }, [filteredAnomalyThresholdSeries, maxValue, minValue]);
+  }, [filteredAnomalyThresholdSeries, maxValue]);
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];

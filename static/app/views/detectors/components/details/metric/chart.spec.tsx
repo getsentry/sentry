@@ -82,7 +82,12 @@ describe('MetricDetectorDetailsChart', () => {
         url: `/organizations/org-slug/detectors/${anomalyDetector.id}/anomaly-data/`,
         body: {
           data: [
-            {timestamp: baseTimestamp, value: 50, yhat_upper: yhatUpper, yhat_lower: 10},
+            {
+              timestamp: baseTimestamp,
+              value: 50,
+              yhat_upper: yhatUpper,
+              yhat_lower: 10,
+            },
           ],
         },
       });
@@ -108,7 +113,7 @@ describe('MetricDetectorDetailsChart', () => {
 
     it('shows cutoff message when thresholds exceed chart bounds', async () => {
       mockChartData();
-      mockAnomalyData(500); // Exceeds bounds
+      mockAnomalyData(500); // yhat_upper exceeds bounds (max ~110)
 
       render(
         <MetricDetectorDetailsChart
