@@ -37,7 +37,7 @@ class GroupEventAttachmentsTest(APITestCase):
         event_ids: Sequence[str] | None = None,
         screenshot: bool = False,
     ) -> str:
-        path = f"/api/0/issues/{self.group.id}/attachments/"
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/attachments/"
 
         query = [("types", t) for t in types or ()]
         query.extend([("event_id", id) for id in event_ids or ()])
@@ -150,12 +150,14 @@ class GroupEventAttachmentsTest(APITestCase):
         newer_attachment = self.create_attachment(event_id="c" * 32)
 
         with self.feature("organizations:event-attachments"):
-            all_response = self.client.get(f"/api/0/issues/{self.group.id}/attachments/")
+            all_response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/attachments/"
+            )
         assert len(all_response.data) == 2
 
         with self.feature("organizations:event-attachments"):
             range_response = self.client.get(
-                f"/api/0/issues/{self.group.id}/attachments/?statsPeriod=14d"
+                f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/attachments/?statsPeriod=14d"
             )
 
         assert range_response.status_code == 200, range_response.content
@@ -183,12 +185,14 @@ class GroupEventAttachmentsTest(APITestCase):
         assert prod_event.group is not None
 
         with self.feature("organizations:event-attachments"):
-            all_response = self.client.get(f"/api/0/issues/{prod_event.group.id}/attachments/")
+            all_response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{prod_event.group.id}/attachments/"
+            )
         assert len(all_response.data) == 2
 
         with self.feature("organizations:event-attachments"):
             prod_response = self.client.get(
-                f"/api/0/issues/{prod_event.group.id}/attachments/?environment=production"
+                f"/api/0/organizations/{self.organization.slug}/issues/{prod_event.group.id}/attachments/?environment=production"
             )
         assert len(prod_response.data) == 1
         assert prod_response.data[0]["id"] == str(prod_attachment.id)
@@ -214,12 +218,14 @@ class GroupEventAttachmentsTest(APITestCase):
         assert sentry_event.group is not None
 
         with self.feature("organizations:event-attachments"):
-            all_response = self.client.get(f"/api/0/issues/{sentry_event.group.id}/attachments/")
+            all_response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{sentry_event.group.id}/attachments/"
+            )
         assert len(all_response.data) == 2
 
         with self.feature("organizations:event-attachments"):
             prod_response = self.client.get(
-                f"/api/0/issues/{sentry_event.group.id}/attachments/?query=organization:sentry"
+                f"/api/0/organizations/{self.organization.slug}/issues/{sentry_event.group.id}/attachments/?query=organization:sentry"
             )
         assert len(prod_response.data) == 1
         assert prod_response.data[0]["id"] == str(sentry_attachment.id)
@@ -241,7 +247,7 @@ class GroupEventAttachmentsTest(APITestCase):
 
         with self.feature("organizations:event-attachments"):
             response = self.client.get(
-                f"/api/0/issues/{event.group.id}/attachments/?query=issue:None"
+                f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/attachments/?query=issue:None"
             )
         assert response.status_code == 400
 
@@ -263,19 +269,21 @@ class GroupEventAttachmentsTest(APITestCase):
         assert event.group is not None
 
         with self.feature("organizations:event-attachments"):
-            response = self.client.get(f"/api/0/issues/{event.group.id}/attachments/")
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/attachments/"
+            )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(attachment.id)
         assert response.data[0]["event_id"] == attachment.event_id
 
         with self.feature("organizations:event-attachments"):
             response = self.client.get(
-                f"/api/0/issues/{event.group.id}/attachments/?query=organization:acme"
+                f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/attachments/?query=organization:acme"
             )
         assert len(response.data) == 0
 
         with self.feature("organizations:event-attachments"):
             response = self.client.get(
-                f"/api/0/issues/{event.group.id}/attachments/?environment=development"
+                f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/attachments/?environment=development"
             )
         assert len(response.data) == 0
