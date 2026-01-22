@@ -14,7 +14,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 
 
-class ActionSerializerResponse(TypedDict):
+class ActionSerializerResponse(TypedDict, total=False):
     id: str
     type: str
     integrationId: str | None
@@ -26,11 +26,11 @@ class ActionSerializerResponse(TypedDict):
 class ConditionSerializerResponse(TypedDict):
     id: str
     type: str
-    comparison: bool
+    comparison: bool | int
     conditionResult: bool
 
 
-class TriggerSerializerResponse(TypedDict):
+class TriggerSerializerResponse(TypedDict, total=False):
     id: str
     organizationId: str
     logicType: str
