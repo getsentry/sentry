@@ -10,7 +10,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 // eslint-disable-next-line no-restricted-imports
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {ashTheme, darkTheme, lightTheme, midnightTheme} from 'sentry/utils/theme/theme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 const SentryComponentInspector =
@@ -60,7 +60,7 @@ export function ThemeAndStyleProvider({children}: Props) {
 
   useHotkeys(themeToggleHotkey);
 
-  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  const theme = ashTheme;
 
   const didPrintBanner = useRef(false);
   if (!didPrintBanner.current && NODE_ENV !== 'development' && NODE_ENV !== 'test') {

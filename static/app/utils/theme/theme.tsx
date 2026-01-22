@@ -11,10 +11,12 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
+import {ashTheme as baseAshTheme} from 'sentry/utils/theme/scraps/theme/ash';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
 import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
+import {midnightTheme as baseMidnightTheme} from 'sentry/utils/theme/scraps/theme/midnight';
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
@@ -849,6 +851,14 @@ const darkColors: Colors = {
   },
 };
 
+const ashColors = {
+  ...darkColors,
+};
+
+const midnightColors = {
+  ...darkColors,
+};
+
 // @TODO(jonasbadalic): are these final?
 const lightShadows = {
   dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
@@ -866,7 +876,7 @@ const darkShadows = {
 };
 
 const lightThemeDefinition = {
-  type: 'light' as 'light' | 'dark',
+  type: 'light' as 'light' | 'dark' | 'ash' | 'midnight',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseLightTheme,
@@ -915,6 +925,48 @@ export const darkTheme: SentryTheme = {
   },
 
   colors: darkColors,
+};
+
+export const ashTheme: SentryTheme = {
+  type: 'ash',
+  ...commonTheme,
+  ...baseAshTheme,
+  ...darkShadows,
+  focusRing: (baseShadow = `0 0 0 0 ${baseAshTheme.tokens.background.primary}`) => ({
+    outline: 'none',
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseAshTheme.tokens.focus.default}`,
+  }),
+
+  ...generateThemeUtils(),
+
+  chart: {
+    neutral: baseAshTheme.tokens.dataviz.semantic.neutral,
+    colors: CHART_PALETTE_DARK,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
+  },
+
+  colors: ashColors,
+};
+
+export const midnightTheme: SentryTheme = {
+  type: 'midnight',
+  ...commonTheme,
+  ...baseMidnightTheme,
+  ...darkShadows,
+  focusRing: (baseShadow = `0 0 0 0 ${baseMidnightTheme.tokens.background.primary}`) => ({
+    outline: 'none',
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseMidnightTheme.tokens.focus.default}`,
+  }),
+
+  ...generateThemeUtils(),
+
+  chart: {
+    neutral: baseMidnightTheme.tokens.dataviz.semantic.neutral,
+    colors: CHART_PALETTE_DARK,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
+  },
+
+  colors: midnightColors,
 };
 
 declare module '@emotion/react' {
