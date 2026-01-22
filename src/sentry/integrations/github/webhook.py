@@ -185,7 +185,7 @@ class GitHubWebhook(SCMWebhook, ABC):
                 )
             except Exception as e:
                 # Continue processing other processors even if one fails.
-                logger.exception(
+                logger.warning(
                     "github.webhook.processor.error",
                     extra={"event_type": self.event_type.value, "error": str(e)},
                 )
@@ -304,7 +304,7 @@ class GitHubWebhook(SCMWebhook, ABC):
                     config=dict(repo.config, name=name_from_event),
                 )
             except IntegrityError:
-                logger.exception(
+                logger.warning(
                     "github.webhook.update_repo_data.integrity_error",
                     extra={
                         "repo_id": repo.id,
@@ -372,7 +372,7 @@ class InstallationEventWebhook(GitHubWebhook):
                 # end, but the integration to not exist. Possibly from deleting in
                 # Sentry first or from a failed install flow (where the integration
                 # didn't get created in the first place)
-                logger.info(
+                logger.warning(
                     "github.deletion-missing-integration",
                     extra={
                         "action": event["action"],
@@ -380,7 +380,6 @@ class InstallationEventWebhook(GitHubWebhook):
                         "external_id": str(external_id),
                     },
                 )
-                logger.error("Installation is missing.")
 
     def _handle_organization_deletion(
         self,
@@ -947,7 +946,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                                     update_fields=["num_actions", "date_updated"]
                                 )
                             except OrganizationContributors.DoesNotExist:
-                                logger.exception(
+                                logger.warning(
                                     "github.webhook.organization_contributor.not_found",
                                     extra={
                                         "organization_id": organization.id,
@@ -1061,26 +1060,25 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         secret = self.get_secret()
 
         if secret is None:
-            logger.error("github.webhook.missing-secret", extra=self.get_logging_data())
+            logger.warning("github.webhook.missing-secret", extra=self.get_logging_data())
             return HttpResponse(status=401)
 
         body = bytes(request.body)
         if not body:
-            logger.error("github.webhook.missing-body", extra=self.get_logging_data())
+            logger.warning("github.webhook.missing-body", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         try:
             github_event = GithubWebhookType(request.headers[GITHUB_WEBHOOK_TYPE_HEADER_KEY])
             handler = self.get_handler(github_event)
         except KeyError:
-            logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
-            logger.exception("Missing Github event in webhook.")
+            logger.warning("github.webhook.missing-event", extra=self.get_logging_data())
             return HttpResponse(status=400)
         except ValueError:
             return HttpResponse(status=204)
 
         if not handler:
-            logger.info(
+            logger.warning(
                 "github.webhook.missing-handler",
                 extra={"github_event": github_event},
             )
@@ -1092,18 +1090,17 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             )
             method, signature = header.split("=", 1)
         except (KeyError, ValueError):
-            logger.exception("github.webhook.missing-signature", extra=self.get_logging_data())
+            logger.warning("github.webhook.missing-signature", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, secret, signature):
-            logger.error("github.webhook.invalid-signature", extra=self.get_logging_data())
+            logger.warning("github.webhook.invalid-signature", extra=self.get_logging_data())
             return HttpResponse(status=401)
 
         try:
             event = orjson.loads(body)
         except orjson.JSONDecodeError:
-            logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
-            logger.exception("Invalid JSON.")
+            logger.warning("github.webhook.invalid-json", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         event_handler = handler()
