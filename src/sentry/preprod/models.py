@@ -18,6 +18,7 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
@@ -628,3 +629,51 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactmobileappinfo"
+
+
+@region_silo_model
+class PreprodComparisonApproval(DefaultFieldsModel):
+    """
+    Tracks approval status for preprod comparisons (size or snapshot).
+    """
+
+    class ApprovalStatus(IntEnum):
+        NEEDS_APPROVAL = 0
+        APPROVED = 1
+        REJECTED = 2
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.NEEDS_APPROVAL, "needs_approval"),
+                (cls.APPROVED, "approved"),
+                (cls.REJECTED, "rejected"),
+            )
+
+    class FeatureType(IntEnum):
+        SIZE = 0
+        SNAPSHOTS = 1
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.SIZE, "size"),
+                (cls.SNAPSHOTS, "snapshots"),
+            )
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact", on_delete=models.CASCADE)
+    preprod_feature_type = BoundedPositiveIntegerField(choices=FeatureType.as_choices())
+    approval_status = BoundedPositiveIntegerField(
+        default=ApprovalStatus.NEEDS_APPROVAL, choices=ApprovalStatus.as_choices()
+    )
+    approved_at = models.DateTimeField(null=True)
+    # Nullable for non-Sentry users (e.g. approvals via GitHub UI)
+    approved_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # For non-Sentry approvers, store GitHub user info: {"github": {"id": 123, "login": "username"}}
+    extras = models.JSONField(null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodcomparisonapproval"
