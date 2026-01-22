@@ -2,27 +2,21 @@ import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout/container';
-import type {Responsive} from '@sentry/scraps/layout/styles';
+import {Container, type ContainerProps} from '@sentry/scraps/layout/container';
 
-import type {RadiusSize, SurfaceVariant} from 'sentry/utils/theme';
+import type {SurfaceVariant} from 'sentry/utils/theme';
 
-interface BaseSurfaceProps {
-  children?: React.ReactNode;
-  radius?: Responsive<RadiusSize>;
-  ref?: React.Ref<HTMLDivElement>;
-}
-interface FlatSurfaceProps extends BaseSurfaceProps {
+interface FlatSurfaceProps extends Omit<ContainerProps, 'background' | 'border'> {
   elevation?: never;
   variant?: Exclude<SurfaceVariant, 'overlay'>;
 }
-interface OverlaySurfaceProps extends BaseSurfaceProps {
+
+interface OverlaySurfaceProps extends ContainerProps {
   variant: 'overlay';
   elevation?: 'low' | 'high';
 }
 
 type SurfaceProps = FlatSurfaceProps | OverlaySurfaceProps;
-
 const omitSurfaceProps = new Set(['variant', 'elevation']);
 
 const StyledSurface = styled(Container, {
@@ -33,7 +27,7 @@ const StyledSurface = styled(Container, {
     return isPropValid(prop);
   },
 })<SurfaceProps>`
-  box-shadow: ${p => getShadow(p)};
+  box-shadow: ${p => getShadow(p, p.theme)};
 `;
 
 /**
@@ -91,10 +85,10 @@ export function Surface(props: SurfaceProps) {
   );
 }
 
-function getShadow({variant, elevation, theme}: SurfaceProps & {theme: Theme}) {
-  if (variant === 'overlay') {
+function getShadow(props: SurfaceProps, theme: Theme) {
+  if (props.variant === 'overlay') {
     // TODO(design-eng): use shadow tokens
-    switch (elevation) {
+    switch (props.elevation) {
       case 'high':
         return `0 ${theme.shadow.sm} 0 0 ${theme.tokens.shadow.elevationMedium}, 0 ${theme.shadow.xl} 0 0 ${theme.tokens.shadow.elevationMedium}`;
       default:
