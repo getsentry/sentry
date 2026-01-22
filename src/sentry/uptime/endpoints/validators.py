@@ -12,7 +12,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_SUCCESS,
 )
 
-from sentry import audit_log, quotas
+from sentry import audit_log, features, quotas
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
@@ -148,6 +148,19 @@ def _validate_request_size(method, url, headers, body):
         )
 
 
+def _validate_check_config(attrs, organization, user):
+    assertions_enabled = features.has(
+        "organizations:uptime-runtime-assertions", organization, actor=user
+    )
+
+    region = get_region_config(get_active_regions()[0].slug)
+    assert region is not None
+    check_config = checker_api.create_preview_check(attrs, region)
+    result = checker_api.invoke_checker_validator(assertions_enabled, check_config, region)
+    if result is not None and result.status_code >= 400:
+        raise serializers.ValidationError({"assertion": result.json()})
+
+
 class UptimeValidatorBase(CamelSnakeSerializer):
     url = URLField(required=True, max_length=255)
     timeout_ms = serializers.IntegerField(
@@ -180,9 +193,6 @@ class UptimeValidatorBase(CamelSnakeSerializer):
 
 @extend_schema_serializer()
 class UptimeCheckPreviewValidator(UptimeValidatorBase):
-    def __init__(self, assertions_enabled, **kwargs: Any):
-        super().__init__(**kwargs)
-        self.assertions_enabled = assertions_enabled
 
     def validate(self, attrs):
         _validate_request_size(
@@ -191,15 +201,8 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
             attrs.get("headers", []),
             attrs.get("body", None),
         )
-        region_config = get_region_config(get_active_regions()[0].slug)
-        assert region_config is not None
-        check_config = checker_api.create_preview_check(attrs, region_config)
 
-        result = checker_api.invoke_checker_validator(
-            self.assertions_enabled, check_config, region_config
-        )
-        if result is not None and result.status_code >= 400:
-            raise serializers.ValidationError({"assertion": result.json()})
+        _validate_check_config(attrs, self.context["organization"], self.context.get("user", None))
         return attrs
 
     def validate_url(self, url):
@@ -261,10 +264,6 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         help_text="Number of consecutive failed checks required to mark monitor as down.",
     )
 
-    def __init__(self, assertions_enabled, **kwargs):
-        super().__init__(**kwargs)
-        self.assertions_enabled = assertions_enabled
-
     def validate(self, attrs):
         # When creating a new uptime monitor, check if we would exceed the organization limit
         if not self.instance:
@@ -294,12 +293,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             attrs.get("body", body),
         )
 
-        region = get_region_config(get_active_regions()[0].slug)
-        assert region is not None
-        check_config = checker_api.create_preview_check(attrs, region)
-        result = checker_api.invoke_checker_validator(self.assertions_enabled, check_config, region)
-        if result is not None and result.status_code >= 400:
-            raise serializers.ValidationError({"assertion": result.json()})
+        _validate_check_config(attrs, self.context["organization"], self.context.get("user", None))
 
         return attrs
 
@@ -515,6 +509,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
             attrs.get("headers", headers),
             attrs.get("body", body),
         )
+        _validate_check_config(attrs, self.context["organization"], self.context.get("user", None))
 
         return attrs
 
