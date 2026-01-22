@@ -310,7 +310,6 @@ export interface SentryTheme
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
-    neutral: string;
   };
   tokens: Tokens;
 }
@@ -868,7 +867,6 @@ const lightThemeDefinition = {
   ...generateThemeUtils(),
 
   chart: {
-    neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -898,7 +896,6 @@ export const darkTheme: SentryTheme = {
   ...generateThemeUtils(),
 
   chart: {
-    neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },

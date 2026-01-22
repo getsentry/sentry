@@ -98,7 +98,9 @@ export default function TokenUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(ts, {
-              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.dataviz.semantic.neutral
+                : colorPalette[index],
               stack: 'stack',
             })
         ),
