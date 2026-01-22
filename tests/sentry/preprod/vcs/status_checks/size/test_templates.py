@@ -10,6 +10,7 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -798,8 +799,11 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.slug}"
         ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}?project={self.project.slug}"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/preprod/"
 
         expected = f"""\
+## 2 Apps Analyzed
+
 ### Android Builds
 
 | Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
@@ -810,7 +814,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
 | Name | Configuration | Version | Download Size | Install Size | Approval |
 |------|--------------|---------|----------|-----------------|----------|
-| [-- (iOS)<br>`com.example.ios`]({ios_url}) | -- | 2.0.0 (2) | 2.1 MB (N/A) | 3.1 MB (N/A) | N/A |\
+| [-- (iOS)<br>`com.example.ios`]({ios_url}) | -- | 2.0.0 (2) | 2.1 MB (N/A) | 3.1 MB (N/A) | N/A |
+
+[Configure test_project status check rules]({settings_url})\
 """
 
         assert summary == expected
@@ -1071,3 +1077,396 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         # Should have N/A for both change columns
         na_count = data_line.count("N/A")
         assert na_count >= 2  # At least 2 N/A for the change columns
+
+
+@region_silo_test
+class TriggeredRulesFormattingTest(StatusCheckTestBase):
+    """Tests for formatting status checks with triggered rules."""
+
+    def test_single_triggered_rule_shows_details_section(self):
+        """Test that a single triggered rule shows a details section with rule info."""
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+
+        size_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=100 * 1024 * 1024,  # 100 MB
+            max_download_size=100 * 1024 * 1024,
+            min_install_size=200 * 1024 * 1024,  # 200 MB
+            max_install_size=200 * 1024 * 1024,
+        )
+
+        size_metrics_map = {artifact.id: [size_metrics]}
+
+        triggered_rule = TriggeredRule(
+            rule=StatusCheckRule(
+                id="rule-1",
+                metric="download_size",
+                measurement="absolute",
+                value=50 * 1024 * 1024,  # 50 MB threshold
+            ),
+            artifact_id=artifact.id,
+            app_id="com.example.app",
+            platform="Android",
+        )
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            triggered_rules=[triggered_rule],
+        )
+
+        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
+        settings_url = (
+            f"http://testserver/settings/projects/{self.project.slug}/preprod/?expanded=rule-1"
+        )
+
+        expected = f"""\
+## ❌ 1 App Failed Size Checks
+
+### Android Builds
+
+| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+
+<details>
+<summary>1 Failed Check</summary>
+
+`com.example.app` (Android)
+- **Download Size - Total Size** ≥ **52.4 MB**
+
+⚙️ [Configure status check rules]({settings_url})
+</details>
+
+[Configure test_project status check rules]({settings_url})\
+"""
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 app analyzed"
+        assert summary == expected
+
+    def test_multiple_triggered_rules_url_formatting(self):
+        """Test that multiple triggered rules format the URL correctly with expanded params."""
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+
+        size_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=100 * 1024 * 1024,  # 100 MB
+            max_download_size=100 * 1024 * 1024,
+            min_install_size=200 * 1024 * 1024,  # 200 MB
+            max_install_size=200 * 1024 * 1024,
+        )
+
+        size_metrics_map = {artifact.id: [size_metrics]}
+
+        triggered_rules = [
+            TriggeredRule(
+                rule=StatusCheckRule(
+                    id="rule-download-absolute",
+                    metric="download_size",
+                    measurement="absolute",
+                    value=50 * 1024 * 1024,  # 50 MB threshold
+                ),
+                artifact_id=artifact.id,
+                app_id="com.example.app",
+                platform="Android",
+            ),
+            TriggeredRule(
+                rule=StatusCheckRule(
+                    id="rule-install-diff",
+                    metric="install_size",
+                    measurement="absolute_diff",
+                    value=10 * 1024 * 1024,  # 10 MB diff threshold
+                ),
+                artifact_id=artifact.id,
+                app_id="com.example.app",
+                platform="Android",
+            ),
+            TriggeredRule(
+                rule=StatusCheckRule(
+                    id="rule-download-percent",
+                    metric="download_size",
+                    measurement="relative_diff",
+                    value=5.0,  # 5% threshold
+                ),
+                artifact_id=artifact.id,
+                app_id="com.example.app",
+                platform="Android",
+            ),
+        ]
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            triggered_rules=triggered_rules,
+        )
+
+        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/preprod/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
+
+        expected = f"""\
+## ❌ 1 App Failed Size Checks
+
+### Android Builds
+
+| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+
+<details>
+<summary>3 Failed Checks</summary>
+
+`com.example.app` (Android)
+- **Download Size - Total Size** ≥ **52.4 MB**
+- **Install Size - Absolute Diff** ≥ **10.5 MB**
+- **Download Size - Relative Diff** ≥ **5.0%**
+
+⚙️ [Configure status check rules]({settings_url})
+</details>
+
+[Configure test_project status check rules]({settings_url})\
+"""
+
+        assert title == "Size Analysis"
+        assert subtitle == "1 app analyzed"
+        assert summary == expected
+
+    def test_multiple_apps_with_triggered_rules(self):
+        """Test formatting when multiple apps fail with different rules."""
+        artifact1 = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app1",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        artifact2 = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app2",
+            build_version="2.0.0",
+            build_number=2,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+
+        metrics1 = self.create_preprod_artifact_size_metrics(
+            artifact1,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=100 * 1024 * 1024,
+            max_download_size=100 * 1024 * 1024,
+            min_install_size=200 * 1024 * 1024,
+            max_install_size=200 * 1024 * 1024,
+        )
+        metrics2 = self.create_preprod_artifact_size_metrics(
+            artifact2,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=80 * 1024 * 1024,
+            max_download_size=80 * 1024 * 1024,
+            min_install_size=150 * 1024 * 1024,
+            max_install_size=150 * 1024 * 1024,
+        )
+
+        size_metrics_map = {
+            artifact1.id: [metrics1],
+            artifact2.id: [metrics2],
+        }
+
+        triggered_rules = [
+            TriggeredRule(
+                rule=StatusCheckRule(
+                    id="rule-1",
+                    metric="download_size",
+                    measurement="absolute",
+                    value=50 * 1024 * 1024,
+                ),
+                artifact_id=artifact1.id,
+                app_id="com.example.app1",
+                platform="iOS",
+            ),
+            TriggeredRule(
+                rule=StatusCheckRule(
+                    id="rule-2",
+                    metric="install_size",
+                    measurement="absolute",
+                    value=100 * 1024 * 1024,
+                ),
+                artifact_id=artifact2.id,
+                app_id="com.example.app2",
+                platform="Android",
+            ),
+        ]
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact1, artifact2],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            triggered_rules=triggered_rules,
+        )
+
+        artifact1_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact1.id}?project={self.project.slug}"
+        artifact2_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact2.id}?project={self.project.slug}"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/preprod/?expanded=rule-1&expanded=rule-2"
+
+        expected = f"""\
+## ❌ 2 Apps Failed Size Checks
+
+### iOS Builds
+
+| Name | Configuration | Version | Download Size | Install Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (iOS)<br>`com.example.app1`]({artifact1_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+
+### Android Builds
+
+| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (Android)<br>`com.example.app2`]({artifact2_url}) | -- | 2.0.0 (2) | 83.9 MB (N/A) | 157.3 MB (N/A) | N/A |
+
+<details>
+<summary>2 Failed Checks</summary>
+
+`com.example.app1` (iOS)
+- **Download Size - Total Size** ≥ **52.4 MB**
+`com.example.app2` (Android)
+- **Install Size - Total Size** ≥ **104.9 MB**
+
+⚙️ [Configure status check rules]({settings_url})
+</details>
+
+[Configure test_project status check rules]({settings_url})\
+"""
+
+        assert title == "Size Analysis"
+        assert subtitle == "2 apps analyzed"
+        assert summary == expected
+
+    def test_mixed_pass_fail_with_triggered_rules(self):
+        """Test formatting when some apps pass and some fail due to triggered rules."""
+        failed_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.failed",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+        passed_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.passed",
+            build_version="2.0.0",
+            build_number=2,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+
+        failed_metrics = self.create_preprod_artifact_size_metrics(
+            failed_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=100 * 1024 * 1024,
+            max_download_size=100 * 1024 * 1024,
+            min_install_size=200 * 1024 * 1024,
+            max_install_size=200 * 1024 * 1024,
+        )
+        passed_metrics = self.create_preprod_artifact_size_metrics(
+            passed_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=20 * 1024 * 1024,
+            max_download_size=20 * 1024 * 1024,
+            min_install_size=40 * 1024 * 1024,
+            max_install_size=40 * 1024 * 1024,
+        )
+
+        size_metrics_map = {
+            failed_artifact.id: [failed_metrics],
+            passed_artifact.id: [passed_metrics],
+        }
+
+        # Only the failed artifact triggers a rule
+        triggered_rules = [
+            TriggeredRule(
+                rule=StatusCheckRule(
+                    id="rule-1",
+                    metric="download_size",
+                    measurement="absolute",
+                    value=50 * 1024 * 1024,
+                ),
+                artifact_id=failed_artifact.id,
+                app_id="com.example.failed",
+                platform="Android",
+            ),
+        ]
+
+        title, subtitle, summary = format_status_check_messages(
+            [failed_artifact, passed_artifact],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            triggered_rules=triggered_rules,
+        )
+
+        failed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{failed_artifact.id}?project={self.project.slug}"
+        passed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{passed_artifact.id}?project={self.project.slug}"
+        settings_url = (
+            f"http://testserver/settings/projects/{self.project.slug}/preprod/?expanded=rule-1"
+        )
+
+        expected = f"""\
+## ❌ 1 App Failed Size Checks
+
+### Android Builds
+
+| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (Android)<br>`com.example.failed`]({failed_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+
+<details>
+<summary>1 Failed Check</summary>
+
+`com.example.failed` (Android)
+- **Download Size - Total Size** ≥ **52.4 MB**
+
+⚙️ [Configure status check rules]({settings_url})
+</details>
+
+## 1 App Analyzed
+
+### Android Builds
+
+| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
+|------|--------------|---------|----------|-----------------|----------|
+| [-- (Android)<br>`com.example.passed`]({passed_url}) | -- | 2.0.0 (2) | 21.0 MB (N/A) | 41.9 MB (N/A) | N/A |
+
+[Configure test_project status check rules]({settings_url})\
+"""
+
+        assert title == "Size Analysis"
+        assert subtitle == "2 apps analyzed"
+        assert summary == expected

@@ -326,33 +326,50 @@ function SolutionActionButton({
         const effectiveKey = effectivePreference.replace(/^(agent|cursor):/, '');
         return integrationKey !== effectiveKey;
       })
-      .map(integration => ({
-        key: `agent:${integration.id ?? integration.provider}`,
-        label: (
-          <Flex gap="md" align="center">
-            <PluginIcon pluginId={integration.provider} size={20} />
-            <div>{t('Send to %s', integration.name)}</div>
-            {hasDuplicateNames && (
-              <SmallIntegrationIdText>
-                ({integration.id ?? integration.provider})
-              </SmallIntegrationIdText>
-            )}
-          </Flex>
-        ),
-        onAction: () => handleLaunchCodingAgent(integration),
-        disabled: isLoadingAgents || isLaunchingAgent,
-      })),
+      .map(integration => {
+        const needsSetup = integration.requires_identity && !integration.has_identity;
+        const actionLabel = needsSetup
+          ? t('Setup %s', integration.name)
+          : t('Send to %s', integration.name);
+        return {
+          key: `agent:${integration.id ?? integration.provider}`,
+          label: (
+            <Flex gap="md" align="center">
+              <PluginIcon pluginId={integration.provider} size={20} />
+              <div>{actionLabel}</div>
+              {hasDuplicateNames && (
+                <SmallIntegrationIdText>
+                  ({integration.id ?? integration.provider})
+                </SmallIntegrationIdText>
+              )}
+            </Flex>
+          ),
+          onAction: () => handleLaunchCodingAgent(integration),
+          disabled: isLoadingAgents || isLaunchingAgent,
+        };
+      }),
   ];
+
+  const preferredNeedsSetup =
+    preferredIntegration?.requires_identity && !preferredIntegration?.has_identity;
 
   const primaryButtonLabel = isSeerPreferred
     ? t('Find Solution with Seer')
     : hasDuplicateNames
-      ? t(
-          'Send to %s (%s)',
-          preferredIntegration!.name,
-          preferredIntegration!.id ?? preferredIntegration!.provider
-        )
-      : t('Send to %s', preferredIntegration!.name);
+      ? preferredNeedsSetup
+        ? t(
+            'Setup %s (%s)',
+            preferredIntegration.name,
+            preferredIntegration.id ?? preferredIntegration.provider
+          )
+        : t(
+            'Send to %s (%s)',
+            preferredIntegration!.name,
+            preferredIntegration!.id ?? preferredIntegration!.provider
+          )
+      : preferredNeedsSetup
+        ? t('Setup %s', preferredIntegration.name)
+        : t('Send to %s', preferredIntegration!.name);
 
   const primaryButtonProps = isSeerPreferred
     ? {
@@ -481,6 +498,13 @@ function AutofixRootCauseDisplay({
   };
 
   const handleLaunchCodingAgent = (integration: CodingAgentIntegration) => {
+    // Redirect to OAuth if the integration requires identity but user hasn't authenticated
+    if (integration.requires_identity && !integration.has_identity) {
+      const currentUrl = window.location.href;
+      window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+      return;
+    }
+
     // Save user preference with specific integration ID
     setPreferredAction(`agent:${integration.id ?? integration.provider}`);
 
@@ -696,8 +720,8 @@ const Content = styled('div')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -708,7 +732,7 @@ const CustomRootCausePadding = styled('div')`
 `;
 
 const CauseDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-top: ${space(0.5)};
 `;
 
@@ -735,6 +759,6 @@ const DropdownTrigger = styled(Button)`
 `;
 
 const SmallIntegrationIdText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;

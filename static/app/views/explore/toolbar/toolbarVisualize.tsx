@@ -254,7 +254,7 @@ const Label = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   color: ${p => p.theme.tokens.content.accent};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   width: 24px;
   height: 36px;
   display: flex;

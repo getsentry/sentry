@@ -357,7 +357,7 @@ const Title = styled('h3')`
 
 const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

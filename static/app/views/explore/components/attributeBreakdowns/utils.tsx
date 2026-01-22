@@ -1,11 +1,12 @@
 import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
 import type {Theme} from 'sentry/utils/theme';
+import type {AttributeDistribution} from 'sentry/views/explore/components/attributeBreakdowns/attributeDistributionContent';
 import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
-import {CHART_AXIS_LABEL_FONT_SIZE} from './constants';
+import {CHART_AXIS_LABEL_FONT_SIZE, CHART_MAX_SERIES_LENGTH} from './constants';
 
-export function calculateAttrubutePopulationPercentage(
+export function calculateAttributePopulationPercentage(
   values: Array<{
     label: string;
     value: number;
@@ -124,4 +125,69 @@ export function tooltipActionsHtmlRenderer(
   ]
     .join('\n')
     .trim();
+}
+
+export function distributionToSeriesData(
+  values: AttributeDistribution[number]['values'],
+  cohortCount: number
+): Array<{label: string; value: number}> {
+  return values
+    .map(value => ({
+      label: value.label,
+      value: cohortCount === 0 ? 0 : (value.value / cohortCount) * 100,
+    }))
+    .slice(0, CHART_MAX_SERIES_LENGTH);
+}
+
+/**
+ * From the unique labels across both cohorts, we create two series data objects,
+ * one for the selected cohort and one for the baseline cohort.
+ * If a label isn't present in either of the cohorts, we assign a value of 0 to
+ * that label in the respective series. We sort by descending value of the selected cohort.
+ */
+export function cohortsToSeriesData(
+  cohort1: Array<{label: string; value: number}>,
+  cohort2: Array<{label: string; value: number}>,
+  seriesTotals: {
+    baseline: number;
+    selected: number;
+  }
+) {
+  const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
+  const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
+
+  const uniqueLabels = new Set([...cohort1Map.keys(), ...cohort2Map.keys()]);
+
+  const seriesData = Array.from(uniqueLabels)
+    .map(label => {
+      const selectedVal = cohort1Map.get(label) ?? 0;
+      const baselineVal = cohort2Map.get(label) ?? 0;
+
+      const selectedPercentage =
+        seriesTotals.selected > 0 ? (selectedVal / seriesTotals.selected) * 100 : 0;
+      const baselinePercentage =
+        seriesTotals.baseline > 0 ? (baselineVal / seriesTotals.baseline) * 100 : 0;
+
+      return {
+        label,
+        selectedValue: selectedPercentage,
+        baselineValue: baselinePercentage,
+        sortValue: selectedPercentage,
+      };
+    })
+    .sort((a, b) => b.sortValue - a.sortValue)
+    .slice(0, CHART_MAX_SERIES_LENGTH);
+
+  const selectedSeriesData: Array<{label: string; value: number}> = [];
+  const baselineSeriesData: Array<{label: string; value: number}> = [];
+
+  for (const {label, selectedValue, baselineValue} of seriesData) {
+    selectedSeriesData.push({label, value: selectedValue});
+    baselineSeriesData.push({label, value: baselineValue});
+  }
+
+  return {
+    selected: selectedSeriesData,
+    baseline: baselineSeriesData,
+  };
 }

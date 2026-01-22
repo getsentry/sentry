@@ -160,13 +160,13 @@ const StyledTag = styled(Tag)`
 `;
 
 const DebugId = styled('code')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TimeAndSizeWrapper = styled('div')`
   width: 100%;
   display: flex;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-top: ${space(1)};
   color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
@@ -187,12 +187,12 @@ const TimeWrapper = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     line-height: 1.7;
