@@ -98,7 +98,7 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 export type ReadableSavedQuery = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics'; // ExploreSavedQueryDataset
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays'; // ExploreSavedQueryDataset
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -252,6 +252,7 @@ const DATASET_LABEL_MAP: Record<ReadableSavedQuery['dataset'], string> = {
   spans: 'Traces',
   segment_spans: 'Traces',
   metrics: 'Metrics',
+  replays: 'Replays',
 };
 
 const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
@@ -262,6 +263,7 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   spans: TraceItemDataset.SPANS,
   segment_spans: TraceItemDataset.SPANS,
   metrics: TraceItemDataset.TRACEMETRICS,
+  replays: TraceItemDataset.REPLAYS,
 };
 
 export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {
