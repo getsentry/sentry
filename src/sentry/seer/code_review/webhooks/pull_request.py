@@ -87,6 +87,7 @@ def handle_pull_request_event(
     repo: Repository,
     integration: RpcIntegration | None = None,
     org_code_review_settings: CodeReviewSettings | None = None,
+    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
@@ -94,8 +95,6 @@ def handle_pull_request_event(
 
     This handler processes PR events and sends them directly to Seer
     """
-    extra = {"organization_id": organization.id, "repo": repo.name}
-
     pull_request = event.get("pull_request")
     if not pull_request:
         logger.warning(Log.MISSING_PULL_REQUEST.value, extra=extra)
@@ -109,7 +108,6 @@ def handle_pull_request_event(
         logger.warning(Log.MISSING_ACTION.value, extra=extra)
         record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
         return
-    extra["action"] = action_value
 
     record_webhook_received(github_event, action_value)
 
