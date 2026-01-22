@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -364,7 +365,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     background: linear-gradient(
       to right,
       ${p => p.theme.tokens.background.primary},
-      ${p => Color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
+      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
     );
   }
   &:after {

@@ -1,4 +1,5 @@
 import type {Theme} from '@emotion/react';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';

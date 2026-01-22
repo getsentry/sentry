@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
