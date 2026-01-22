@@ -155,6 +155,151 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
         assert PreprodArtifactSizeMetrics.objects.filter(id=size_metric_2.id).exists()
 
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_filters_size_analysis_by_query(self, mock_produce_to_kafka):
+        """Test that rerun analysis filters SIZE_ANALYSIS based on project query setting"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Set up a query filter that should NOT match the artifact
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called without SIZE_ANALYSIS
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS not in call_kwargs["requested_features"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_includes_size_analysis_when_query_matches(self, mock_produce_to_kafka):
+        """Test that rerun analysis includes SIZE_ANALYSIS when query matches"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Set up a query filter that SHOULD match the artifact
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.my.app")
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_filters_distribution_by_query(self, mock_produce_to_kafka):
+        """Test that rerun analysis filters BUILD_DISTRIBUTION based on project query setting"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import DISTRIBUTION_ENABLED_QUERY_KEY
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Set up a query filter that should NOT match the artifact
+        self.project.update_option(DISTRIBUTION_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called without BUILD_DISTRIBUTION
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.BUILD_DISTRIBUTION not in call_kwargs["requested_features"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_includes_all_features_when_no_query(self, mock_produce_to_kafka):
+        """Test that rerun analysis includes all features when no query is set"""
+        from sentry.preprod.producer import PreprodFeature
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Don't set any query filters - should include all features
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with both features
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+        assert PreprodFeature.BUILD_DISTRIBUTION in call_kwargs["requested_features"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_includes_feature_on_invalid_query(self, mock_produce_to_kafka):
+        """Test that rerun analysis includes features when query is invalid"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Set up an invalid query filter
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "invalid_field:value")
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
+        # (invalid query should be skipped, allowing the feature)
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+
 
 class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
     endpoint = "sentry-admin-preprod-artifact-rerun-analysis"

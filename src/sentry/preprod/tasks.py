@@ -27,7 +27,12 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
-from sentry.preprod.quota import has_installable_quota, has_size_quota
+from sentry.preprod.quotas import (
+    has_installable_quota,
+    has_size_quota,
+    should_run_distribution,
+    should_run_size,
+)
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -140,9 +145,20 @@ def assemble_preprod_artifact(
 
     try:
         requested_features: list[PreprodFeature] = []
-        if has_size_quota(organization):
+
+        artifact = PreprodArtifact.objects.get(id=artifact_id)
+
+        if should_run_size(artifact):
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-        if has_installable_quota(organization):
+            PreprodArtifactSizeMetrics.objects.get_or_create(
+                preprod_artifact=artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                defaults={
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                },
+            )
+
+        if should_run_distribution(artifact):
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         produce_preprod_artifact_to_kafka(
@@ -276,14 +292,6 @@ def create_preprod_artifact(
                 state=PreprodArtifact.ArtifactState.UPLOADING,
                 commit_comparison=commit_comparison,
                 extras=extras,
-            )
-
-            PreprodArtifactSizeMetrics.objects.get_or_create(
-                preprod_artifact=preprod_artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                defaults={
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
-                },
             )
 
             logger.info(
