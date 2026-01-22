@@ -367,6 +367,79 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
             assert integrations[0]["name"] == "GitHub Copilot"
             assert integrations[0]["provider"] == "github_copilot"
             assert integrations[0]["requires_identity"] is True
+            assert integrations[0]["has_identity"] is False
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
+    )
+    def test_github_copilot_has_identity_true_when_authenticated(self, mock_identity_service):
+        """Test GET endpoint returns has_identity: True when user has GitHub Copilot OAuth token."""
+        mock_identity_service.get_access_token_for_user.return_value = "mock-access-token"
+
+        with (
+            self.feature("organizations:seer-coding-agent-integrations"),
+            self.feature("organizations:integrations-github-copilot-agent"),
+            self.mock_integration_service_calls(integrations=[]),
+        ):
+            response = self.get_success_response(self.organization.slug)
+
+            integrations = response.data["integrations"]
+            assert len(integrations) == 1
+            assert integrations[0]["provider"] == "github_copilot"
+            assert integrations[0]["has_identity"] is True
+            mock_identity_service.get_access_token_for_user.assert_called_once_with(
+                user_id=self.user.id
+            )
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
+    )
+    def test_github_copilot_has_identity_false_when_not_authenticated(self, mock_identity_service):
+        """Test GET endpoint returns has_identity: False when user doesn't have GitHub Copilot OAuth token."""
+        mock_identity_service.get_access_token_for_user.return_value = None
+
+        with (
+            self.feature("organizations:seer-coding-agent-integrations"),
+            self.feature("organizations:integrations-github-copilot-agent"),
+            self.mock_integration_service_calls(integrations=[]),
+        ):
+            response = self.get_success_response(self.organization.slug)
+
+            integrations = response.data["integrations"]
+            assert len(integrations) == 1
+            assert integrations[0]["provider"] == "github_copilot"
+            assert integrations[0]["has_identity"] is False
+            mock_identity_service.get_access_token_for_user.assert_called_once_with(
+                user_id=self.user.id
+            )
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
+    )
+    def test_github_copilot_handles_rpc_exception_gracefully(self, mock_identity_service):
+        """Test GET endpoint handles RPC exceptions gracefully when checking GitHub Copilot identity."""
+        from sentry.hybridcloud.rpc.service import RpcRemoteException
+
+        # Simulate RPC service failure
+        mock_identity_service.get_access_token_for_user.side_effect = RpcRemoteException(
+            "github_copilot_identity", "get_access_token_for_user", "Service unavailable"
+        )
+
+        with (
+            self.feature("organizations:seer-coding-agent-integrations"),
+            self.feature("organizations:integrations-github-copilot-agent"),
+            self.mock_integration_service_calls(integrations=[]),
+        ):
+            response = self.get_success_response(self.organization.slug)
+
+            # Should still return successfully with has_identity set to False
+            integrations = response.data["integrations"]
+            assert len(integrations) == 1
+            assert integrations[0]["provider"] == "github_copilot"
+            assert integrations[0]["has_identity"] is False
+            mock_identity_service.get_access_token_for_user.assert_called_once_with(
+                user_id=self.user.id
+            )
 
     def test_github_copilot_not_shown_without_feature_flag(self):
         """Test GET endpoint does not show GitHub Copilot without feature flag."""
