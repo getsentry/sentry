@@ -69,6 +69,7 @@ repos:
         entry: python3 -m tools.mypy_helpers.check_stronglist
         files: ^pyproject\.toml$
         language: python
+        always_run: true
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]

@@ -65,3 +65,6 @@ package-lock.json
 yarn.lock
 .claude/settings.local.json
 .claude/plans
+
+# Riptide artifacts (cloud-synced)
+.humanlayer/tasks/
