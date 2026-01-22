@@ -21,7 +21,6 @@ import {
   CHART_AXIS_LABEL_FONT_SIZE,
   CHART_BASELINE_SERIES_NAME,
   CHART_MAX_BAR_WIDTH,
-  CHART_MAX_SERIES_LENGTH,
   CHART_SELECTED_SERIES_NAME,
   COHORT_2_COLOR,
   MODAL_CHART_HEIGHT,
@@ -29,6 +28,7 @@ import {
 import {useFormatComparisonModeTooltip, useFormatSingleModeTooltip} from './tooltips';
 import {
   calculateAttributePopulationPercentage,
+  cohortsToSeriesData,
   distributionToSeriesData,
   percentageFormatter,
 } from './utils';
@@ -156,60 +156,6 @@ function cohortsToTableData(
         [t('Baseline %')]: null,
       },
     },
-  };
-}
-
-function cohortsToSeriesData(
-  cohort1: CohortData,
-  cohort2: CohortData,
-  seriesTotals: {
-    [CHART_BASELINE_SERIES_NAME]: number;
-    [CHART_SELECTED_SERIES_NAME]: number;
-  }
-): {
-  [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
-  [CHART_SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
-} {
-  const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
-  const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
-
-  const uniqueLabels = new Set([...cohort1Map.keys(), ...cohort2Map.keys()]);
-
-  const seriesData = Array.from(uniqueLabels)
-    .map(label => {
-      const selectedVal = cohort1Map.get(label) ?? 0;
-      const baselineVal = cohort2Map.get(label) ?? 0;
-
-      const selectedPercentage =
-        seriesTotals[CHART_SELECTED_SERIES_NAME] > 0
-          ? (selectedVal / seriesTotals[CHART_SELECTED_SERIES_NAME]) * 100
-          : 0;
-      const baselinePercentage =
-        seriesTotals[CHART_BASELINE_SERIES_NAME] > 0
-          ? (baselineVal / seriesTotals[CHART_BASELINE_SERIES_NAME]) * 100
-          : 0;
-
-      return {
-        label,
-        selectedValue: selectedPercentage,
-        baselineValue: baselinePercentage,
-        sortValue: selectedPercentage,
-      };
-    })
-    .sort((a, b) => b.sortValue - a.sortValue)
-    .slice(0, CHART_MAX_SERIES_LENGTH);
-
-  const selectedSeriesData: Array<{label: string; value: number}> = [];
-  const baselineSeriesData: Array<{label: string; value: number}> = [];
-
-  for (const {label, selectedValue, baselineValue} of seriesData) {
-    selectedSeriesData.push({label, value: selectedValue});
-    baselineSeriesData.push({label, value: baselineValue});
-  }
-
-  return {
-    [CHART_SELECTED_SERIES_NAME]: selectedSeriesData,
-    [CHART_BASELINE_SERIES_NAME]: baselineSeriesData,
   };
 }
 
@@ -524,7 +470,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
 
 const PopulationIndicator = styled(Flex)<{color?: string}>`
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-weight: 500;
   color: ${p => p.color || p.theme.colors.gray500};
 

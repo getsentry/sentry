@@ -15,7 +15,6 @@ import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttri
 import {
   CHART_BASELINE_SERIES_NAME,
   CHART_MAX_BAR_WIDTH,
-  CHART_MAX_SERIES_LENGTH,
   CHART_SELECTED_SERIES_NAME,
   COHORT_2_COLOR,
 } from './constants';
@@ -23,68 +22,10 @@ import {AttributeBreakdownsComponent} from './styles';
 import {useFormatComparisonModeTooltip} from './tooltips';
 import {
   calculateAttributePopulationPercentage,
+  cohortsToSeriesData,
   percentageFormatter,
   tooltipActionsHtmlRenderer,
 } from './utils';
-
-type CohortData = AttributeBreakdownsComparison['rankedAttributes'][number]['cohort1'];
-
-function cohortsToSeriesData(
-  cohort1: CohortData,
-  cohort2: CohortData,
-  seriesTotals: {
-    [CHART_BASELINE_SERIES_NAME]: number;
-    [CHART_SELECTED_SERIES_NAME]: number;
-  }
-): {
-  [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
-  [CHART_SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
-} {
-  const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
-  const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
-
-  const uniqueLabels = new Set([...cohort1Map.keys(), ...cohort2Map.keys()]);
-
-  // From the unique labels, we create two series data objects, one for the selected cohort and one for the baseline cohort.
-  // If a label isn't present in either of the cohorts, we assign a value of 0, to that label in the respective series.
-  // We sort by descending value of the selected cohort
-  const seriesData = Array.from(uniqueLabels)
-    .map(label => {
-      const selectedVal = cohort1Map.get(label) ?? '0';
-      const baselineVal = cohort2Map.get(label) ?? '0';
-
-      const selectedPercentage =
-        seriesTotals[CHART_SELECTED_SERIES_NAME] === 0
-          ? 0
-          : (Number(selectedVal) / seriesTotals[CHART_SELECTED_SERIES_NAME]) * 100;
-      const baselinePercentage =
-        seriesTotals[CHART_BASELINE_SERIES_NAME] === 0
-          ? 0
-          : (Number(baselineVal) / seriesTotals[CHART_BASELINE_SERIES_NAME]) * 100;
-
-      return {
-        label,
-        selectedValue: selectedPercentage,
-        baselineValue: baselinePercentage,
-        sortValue: selectedPercentage,
-      };
-    })
-    .sort((a, b) => b.sortValue - a.sortValue)
-    .slice(0, CHART_MAX_SERIES_LENGTH);
-
-  const selectedSeriesData: Array<{label: string; value: number}> = [];
-  const baselineSeriesData: Array<{label: string; value: number}> = [];
-
-  for (const {label, selectedValue, baselineValue} of seriesData) {
-    selectedSeriesData.push({label, value: selectedValue});
-    baselineSeriesData.push({label, value: baselineValue});
-  }
-
-  return {
-    [CHART_SELECTED_SERIES_NAME]: selectedSeriesData,
-    [CHART_BASELINE_SERIES_NAME]: baselineSeriesData,
-  };
-}
 
 export function Chart({
   attribute,
