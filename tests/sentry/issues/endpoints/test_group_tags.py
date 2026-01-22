@@ -627,4 +627,3 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["key"] == "release"
-        assert response.data[0]["key"] == "release"
