@@ -99,6 +99,7 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
       case 'warning':
         return theme.tokens.dataviz.semantic.meh;
       case 'error':
+        return theme.tokens.background.warning.vibrant;
       case 'fatal':
         return theme.tokens.dataviz.semantic.bad;
       case 'unknown':
