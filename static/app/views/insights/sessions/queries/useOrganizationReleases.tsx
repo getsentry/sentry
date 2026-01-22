@@ -1,6 +1,7 @@
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -65,7 +66,9 @@ export default function useOrganizationReleases({
 
   const {data, isError, isPending, getResponseHeader} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
