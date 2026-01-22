@@ -212,7 +212,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     checksum=checksum,
                     build_configuration_name=data.get("build_configuration"),
                     release_notes=data.get("release_notes"),
-                install_groups=data.get("install_groups"),
+                    install_groups=data.get("install_groups"),
                     head_sha=data.get("head_sha"),
                     base_sha=data.get("base_sha"),
                     provider=data.get("provider"),
