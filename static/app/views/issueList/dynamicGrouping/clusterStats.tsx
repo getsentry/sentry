@@ -41,7 +41,7 @@ export const PENDING_CLUSTER_STATS: ClusterStats = {
   isPending: true,
 };
 
-export function getClusterStatsFromGroups(
+function getClusterStatsFromGroups(
   groups: Group[] | undefined,
   isPending: boolean
 ): ClusterStats {
