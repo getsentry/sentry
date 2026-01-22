@@ -11,18 +11,12 @@ import {t, tct} from 'sentry/locale';
 
 import {logsVerify} from './logs';
 
-const getVerifySnippet = (params: DocsParams) => {
-  const logsCode = params.isLogsSelected
-    ? `
-	# Send a log message
-	SentrySDK.logger.info("Level loaded successfully")`
-    : '';
-
+const getVerifySnippet = () => {
   return `extends Node
 
 func _ready():
 	SentrySDK.add_breadcrumb(SentryBreadcrumb.create("Just about to welcome the World."))
-	SentrySDK.capture_message("Hello, World!")${logsCode}`;
+	SentrySDK.capture_message("Hello, World!")`;
 };
 
 export const onboarding: OnboardingConfig = {
