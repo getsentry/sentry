@@ -54,7 +54,7 @@ def _add_eyes_reaction_to_comment(
 ) -> None:
     """Add 👀 reaction to acknowledge a review command. Errors are added to metrics but not raised."""
 
-    def perform_reaction(client):
+    def perform_reaction(client: Any) -> None:
         client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
 
     add_github_reaction(

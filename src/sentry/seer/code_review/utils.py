@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import Any
@@ -17,8 +16,6 @@ from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
-
-logger = logging.getLogger(__name__)
 
 
 # XXX: This needs to be a shared enum with the Seer repository

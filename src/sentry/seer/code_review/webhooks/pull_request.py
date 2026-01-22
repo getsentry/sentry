@@ -30,12 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 class Log(enum.StrEnum):
-    DRAFT_PR = "github.webhook.pull_request.draft-pr"
-    MISSING_ACTION = "github.webhook.pull_request.missing-action"
-    MISSING_INTEGRATION = "github.webhook.pull_request.missing-integration"
     MISSING_PULL_REQUEST = "github.webhook.pull_request.missing-pull-request"
-    REACTION_FAILED = "github.webhook.pull_request.reaction-failed"
+    MISSING_ACTION = "github.webhook.pull_request.missing-action"
     UNSUPPORTED_ACTION = "github.webhook.pull_request.unsupported-action"
+    DRAFT_PR = "github.webhook.pull_request.draft-pr"
 
 
 class PullRequestAction(enum.StrEnum):
@@ -102,7 +100,7 @@ def _add_eyes_reaction_to_pull_request(
     Errors are added to metrics but not raised.
     """
 
-    def perform_reaction(client):
+    def perform_reaction(client: Any) -> None:
         try:
             existing_reactions = client.get_issue_reactions(repo.name, str(pr_number))
             for reaction in existing_reactions:

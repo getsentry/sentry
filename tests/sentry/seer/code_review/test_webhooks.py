@@ -590,6 +590,7 @@ class AddEyesReactionToPullRequestTest(TestCase):
             pr_number="42",
         )
 
+        self.mock_client.create_issue_reaction.assert_not_called()
         mock_record_error.assert_called_once_with(
             GithubWebhookType.PULL_REQUEST,
             PullRequestAction.OPENED.value,
