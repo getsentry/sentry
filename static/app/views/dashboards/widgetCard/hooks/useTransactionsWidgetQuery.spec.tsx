@@ -59,7 +59,7 @@ describe('useTransactionsSeriesQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
-        data: [[1, [{count: 100}]]],
+        data: [],
       },
     });
 
@@ -115,12 +115,7 @@ describe('useTransactionsTableQuery', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
-        data: [
-          {
-            transaction: '/api/users',
-            'count()': 100,
-          },
-        ],
+        data: [],
       },
     });
 
