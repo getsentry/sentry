@@ -249,7 +249,7 @@ function TagDetailsValue({
   }
 
   return (
-    <Flex gap="xs" align="center">
+    <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
@@ -409,7 +409,8 @@ const RightAlignedValue = styled('div')`
 
 const ValueLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  word-break: break-all;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
