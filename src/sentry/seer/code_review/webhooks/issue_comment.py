@@ -22,8 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class Log(enum.StrEnum):
-    MISSING_INTEGRATION = "github.webhook.issue_comment.missing-integration"
-    REACTION_FAILED = "github.webhook.issue_comment.reaction-failed"
     UNSUPPORTED_ACTION = "github.webhook.issue_comment.unsupported-action"
     NOT_ENABLED = "github.webhook.issue_comment.not-enabled"
     NOT_REVIEW_COMMAND = "github.webhook.issue_comment.not-review-command"
