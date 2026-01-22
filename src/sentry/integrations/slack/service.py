@@ -329,10 +329,7 @@ class SlackService:
                         lifecycle.record_failure(err)
 
         if use_open_period_start and parent_notification_count > 1:
-            sentry_sdk.capture_message(
-                f"slack.notify_all_threads_for_activity.multiple_parent_notifications_for_single_open_period Activity: {activity.id}, Group: {group.id}, Project: {activity.project.id}, Integration: {client.integration_id}, Parent Notification Count: {parent_notification_count}"
-            )
-            self._logger.error(
+            self._logger.warning(
                 "multiple parent notifications found for single open period",
                 extra={
                     "activity_id": activity.id,
