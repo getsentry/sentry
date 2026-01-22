@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Integration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +42,9 @@ export default function TestsPreOnboardingPage() {
   const {data: integrationInfo, isPending: isIntegrationPending} =
     useApiQuery<IntegrationInformation>(
       [
-        `/organizations/${organization.slug}/config/integrations/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             provider_key: 'github',

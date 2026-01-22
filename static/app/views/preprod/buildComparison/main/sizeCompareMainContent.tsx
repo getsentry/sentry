@@ -12,6 +12,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -81,7 +82,17 @@ export function SizeCompareMainContent() {
   const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
     useApiQuery<SizeComparisonApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectId,
+              headArtifactId,
+              baseArtifactId,
+            },
+          }
+        ),
       ],
       {
         staleTime: 0,
@@ -98,7 +109,17 @@ export function SizeCompareMainContent() {
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headSizeMetricId: mainArtifactComparison?.head_size_metric_id!,
+            baseSizeMetricId: mainArtifactComparison?.base_size_metric_id!,
+          },
+        }
+      ),
     ],
     {
       staleTime: 0,

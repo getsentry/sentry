@@ -17,6 +17,7 @@ import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector'
 import {getPreventParamsString} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -67,7 +68,9 @@ export default function TestsOnboardingPage() {
     isSuccess: isIntegrationsSuccess,
   } = useApiQuery<OrganizationIntegration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {includeConfig: 0, provider_key: 'github'}},
     ],
     {staleTime: 0}

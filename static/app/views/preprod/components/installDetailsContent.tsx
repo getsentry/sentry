@@ -11,6 +11,7 @@ import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {IconLink} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -42,7 +43,16 @@ export function InstallDetailsContent({
     refetch,
   } = useApiQuery<InstallDetailsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/install-details/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/install-details/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headArtifactId: artifactId,
+          },
+        }
+      ),
     ],
     {
       staleTime: 0,

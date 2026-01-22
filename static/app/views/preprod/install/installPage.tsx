@@ -4,6 +4,7 @@ import {Container, Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
@@ -29,7 +30,16 @@ export default function InstallPage() {
 
   const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headArtifactId: artifactId,
+          },
+        }
+      ),
     ],
     {
       staleTime: 0,
