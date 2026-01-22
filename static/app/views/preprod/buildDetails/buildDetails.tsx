@@ -24,6 +24,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {shouldRetryHandler} from 'sentry/views/insights/common/utils/retryHandlers';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
@@ -82,8 +83,8 @@ export default function BuildDetails() {
           if (apiError?.status === 404) {
             return false;
           }
-          // Keep default behaviour otherwise:
-          return failureCount < 2;
+          // Defer to retry handlers otherwise:
+          return shouldRetryHandler(failureCount, apiError);
         },
         enabled: !!projectId && !!artifactId,
       }
