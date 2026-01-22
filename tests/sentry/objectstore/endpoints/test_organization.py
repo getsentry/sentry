@@ -1,7 +1,9 @@
+import os
 from dataclasses import asdict
 
 import pytest
 import requests
+import zstandard
 from django.db import connections
 from django.urls import reverse
 from objectstore_client import Client, RequestError, Session, Usecase
@@ -226,3 +228,38 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 assert_status_code(response, 404)
                 # consume body to close connection
                 b"".join(response.streaming_content)  # type: ignore[attr-defined]
+
+    def test_roundtrip_compressed(self):
+
+        config = asdict(test_region)
+        config["address"] = self.live_server.url
+        auth_header = self.create_basic_auth_header(self.api_key.key).decode()
+
+        data = os.urandom(10 * 1024)
+        ctx = zstandard.ZstdCompressor()
+        compressed = ctx.compress(data)
+
+        with override_regions([Region(**config)]):
+            with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
+                base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
+
+                response = self.client.post(
+                    base_url,
+                    data=compressed,
+                    HTTP_AUTHORIZATION=auth_header,
+                    HTTP_CONTENT_ENCODING="zstd",
+                    content_type="application/octet-stream",
+                    follow=True,
+                )
+                assert_status_code(response, 201)
+                object_key = json.loads(b"".join(response.streaming_content))["key"]  # type: ignore[attr-defined]
+                assert object_key is not None
+
+                response = self.client.get(
+                    f"{base_url}{object_key}",
+                    HTTP_AUTHORIZATION=auth_header,
+                    follow=True,
+                )
+                assert_status_code(response, 200)
+                retrieved = b"".join(response.streaming_content)  # type: ignore[attr-defined]
+                assert retrieved == data
