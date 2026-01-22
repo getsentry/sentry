@@ -40,9 +40,6 @@ type LogsSeriesResponse =
   | GroupedMultiSeriesEventsStats;
 type LogsTableResponse = TableData | EventsTableData;
 
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
 function applyDashboardFilters(
   widget: Widget,
   dashboardFilters?: DashboardFilters,
@@ -50,7 +47,6 @@ function applyDashboardFilters(
 ): Widget {
   let processedWidget = widget;
 
-  // Apply dashboard filters if provided
   if (dashboardFilters) {
     const filtered = cloneDeep(widget);
     const dashboardFilterConditions = dashboardFiltersToString(
@@ -60,7 +56,6 @@ function applyDashboardFilters(
 
     filtered.queries.forEach(query => {
       if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
         if (query.conditions && !skipParens) {
           query.conditions = `(${query.conditions})`;
         }
@@ -71,18 +66,11 @@ function applyDashboardFilters(
     processedWidget = filtered;
   }
 
-  // Clean widget to remove empty/invalid fields before API request
   return cleanWidgetForRequest(processedWidget);
 }
 
-// Stable empty array to prevent infinite rerenders
 const EMPTY_ARRAY: any[] = [];
 
-/**
- * Hook for fetching Logs widget series data (charts) using React Query.
- * Queries are disabled by default - use refetch() to trigger fetching.
- * This allows genericWidgetQueries to control timing with queue/callbacks.
- */
 export function useLogsSeriesQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
 ): HookWidgetQueryResult {
@@ -99,13 +87,11 @@ export function useLogsSeriesQuery(
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<LogsSeriesResponse[] | undefined>(undefined);
 
-  // Apply dashboard filters
   const filteredWidget = useMemo(
     () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  // Build query keys for all widget queries
   const queryKeys = useMemo(() => {
     const keys = filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
@@ -117,12 +103,10 @@ export function useLogsSeriesQuery(
         getReferrer(filteredWidget.displayType)
       );
 
-      // Add sampling mode if provided
       if (samplingMode) {
         requestData.sampling = samplingMode;
       }
 
-      // Transform requestData into proper query params
       const {
         organization: _org,
         includeAllArgs: _includeAllArgs,
@@ -144,7 +128,6 @@ export function useLogsSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      // Build the API query key for events-stats endpoint
       return [
         `/organizations/${organization.slug}/events-stats/`,
         {
@@ -156,7 +139,6 @@ export function useLogsSeriesQuery(
     return keys;
   }, [filteredWidget, organization, pageFilters, samplingMode]);
 
-  // Create stable queryFn that uses queue
   const createQueryFn = useCallback(
     () =>
       async (context: any): Promise<ApiResult<LogsSeriesResponse>> => {
@@ -176,13 +158,11 @@ export function useLogsSeriesQuery(
           });
         }
 
-        // Fallback: call directly if queue not available
         return fetchDataQuery<LogsSeriesResponse>(context);
       },
     [queue]
   );
 
-  // Check if organization has the async queue feature
   const hasQueueFeature = organization.features.includes(
     'visibility-dashboards-async-queue'
   );
@@ -193,11 +173,9 @@ export function useLogsSeriesQuery(
       queryFn: createQueryFn(),
       staleTime: 0,
       enabled,
-      // Retry on 429 status codes up to 10 times, unless queue handles it
       retry: hasQueueFeature
         ? false
         : (failureCount: number, error: any) => {
-            // Retry up to 10 times on rate limit errors
             if (error?.status === 429 && failureCount < 10) {
               return true;
             }
@@ -238,13 +216,11 @@ export function useLogsSeriesQuery(
         organization
       );
 
-      // Maintain color consistency
       transformedResult.forEach((result: Series, resultIndex: number) => {
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
     if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
@@ -253,7 +229,6 @@ export function useLogsSeriesQuery(
       }
     }
 
-    // Store current rawData for next comparison
     if (finalRawData !== prevRawDataRef.current) {
       prevRawDataRef.current = finalRawData;
     }
@@ -269,11 +244,6 @@ export function useLogsSeriesQuery(
   return transformedData;
 }
 
-/**
- * Hook for fetching Logs widget table data using React Query.
- * Queries are disabled by default - use refetch() to trigger fetching.
- * This allows genericWidgetQueries to control timing with queue/callbacks.
- */
 export function useLogsTableQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
 ): HookWidgetQueryResult {
