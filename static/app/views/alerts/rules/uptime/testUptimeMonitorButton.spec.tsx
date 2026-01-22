@@ -42,7 +42,7 @@ describe('TestUptimeMonitorButton', () => {
     const mockPreview = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
-      body: {succeeded: true},
+      body: {check_result: {status: 'success'}},
     });
 
     render(
@@ -84,7 +84,7 @@ describe('TestUptimeMonitorButton', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
-      body: {succeeded: true},
+      body: {check_result: {status: 'success'}},
     });
 
     render(
@@ -139,12 +139,40 @@ describe('TestUptimeMonitorButton', () => {
     });
   });
 
+  it('shows error message when check_result.status is failure', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/uptime-preview-check/`,
+      method: 'POST',
+      body: {check_result: {status: 'failure'}},
+    });
+
+    render(
+      <TestUptimeMonitorButton
+        getFormData={() => ({
+          url: 'https://example.com',
+          method: 'GET',
+          headers: [],
+          body: null,
+          timeoutMs: 5000,
+          assertion: null,
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
+    });
+  });
+
   it('disables button while loading', async () => {
     // Use a delayed response to test loading state
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
-      body: {succeeded: true},
+      body: {check_result: {status: 'success'}},
     });
 
     render(

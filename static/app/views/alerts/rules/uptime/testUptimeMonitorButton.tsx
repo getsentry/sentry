@@ -7,9 +7,13 @@ import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  PreviewCheckStatus,
+  type Assertion,
+  type PreviewCheckResponse,
+} from 'sentry/views/alerts/rules/uptime/types';
 
-interface UptimePreviewCheckPayload {
+interface PreviewCheckPayload {
   region: string;
   timeoutMs: number;
   url: string;
@@ -18,8 +22,6 @@ interface UptimePreviewCheckPayload {
   headers?: Array<[string, string]>;
   method?: string;
 }
-
-type UptimePreviewCheckResponse = Record<string, unknown>;
 
 interface TestUptimeMonitorButtonProps {
   /**
@@ -39,18 +41,22 @@ export function TestUptimeMonitorButton({getFormData}: TestUptimeMonitorButtonPr
   const organization = useOrganization();
 
   const {mutate: runPreviewCheck, isPending} = useMutation<
-    UptimePreviewCheckResponse,
+    PreviewCheckResponse,
     RequestError,
-    UptimePreviewCheckPayload
+    PreviewCheckPayload
   >({
-    mutationFn: (payload: UptimePreviewCheckPayload) =>
-      fetchMutation<UptimePreviewCheckResponse>({
+    mutationFn: (payload: PreviewCheckPayload) =>
+      fetchMutation<PreviewCheckResponse>({
         url: `/organizations/${organization.slug}/uptime-preview-check/`,
         method: 'POST',
         data: {...payload},
       }),
-    onSuccess: () => {
-      addSuccessMessage(t('Uptime check passed successfully'));
+    onSuccess: response => {
+      if (response.check_result?.status === PreviewCheckStatus.SUCCESS) {
+        addSuccessMessage(t('Uptime check passed successfully'));
+      } else {
+        addErrorMessage(t('Uptime check failed'));
+      }
     },
     onError: () => {
       addErrorMessage(t('Uptime check failed'));

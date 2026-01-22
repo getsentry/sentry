@@ -204,20 +204,41 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         }
       }}
       extraButton={
-        rule && handleDelete ? (
-          <Confirm
-            message={t(
-              'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
-              rule.name
-            )}
-            header={<h5>{t('Delete Uptime Rule?')}</h5>}
-            priority="danger"
-            confirmText={t('Delete Rule')}
-            onConfirm={handleDelete}
-          >
-            <Button priority="danger">{t('Delete Rule')}</Button>
-          </Confirm>
-        ) : undefined
+        <Fragment>
+          {rule && handleDelete && (
+            <Confirm
+              message={t(
+                'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
+                rule.name
+              )}
+              header={<h5>{t('Delete Uptime Rule?')}</h5>}
+              priority="danger"
+              confirmText={t('Delete Rule')}
+              onConfirm={handleDelete}
+            >
+              <Button priority="danger">{t('Delete Rule')}</Button>
+            </Confirm>
+          )}
+          {organization.features.includes('uptime-runtime-assertions') && (
+            <Observer>
+              {() => (
+                <TestUptimeMonitorButton
+                  getFormData={() => {
+                    const data = formModel.getTransformedData();
+                    return {
+                      url: data.url,
+                      method: data.method,
+                      headers: data.headers,
+                      body: methodHasBody(formModel) ? data.body : null,
+                      timeoutMs: data.timeoutMs,
+                      assertion: data.assertion,
+                    };
+                  }}
+                />
+              )}
+            </Observer>
+          )}
+        </Fragment>
       }
     >
       <List symbol="colored-numeric">
@@ -384,25 +405,6 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               />
             )}
           </Observer>
-          {organization.features.includes('uptime-runtime-assertions') && (
-            <Observer>
-              {() => (
-                <TestUptimeMonitorButton
-                  getFormData={() => {
-                    const data = formModel.getTransformedData();
-                    return {
-                      url: data.url,
-                      method: data.method,
-                      headers: data.headers,
-                      body: methodHasBody(formModel) ? data.body : null,
-                      timeoutMs: data.timeoutMs,
-                      assertion: data.assertion,
-                    };
-                  }}
-                />
-              )}
-            </Observer>
-          )}
         </Configuration>
         {organization.features.includes('uptime-runtime-assertions') && (
           <Fragment>

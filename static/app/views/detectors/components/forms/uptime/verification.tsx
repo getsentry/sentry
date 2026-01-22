@@ -9,7 +9,7 @@ import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUpti
 import {useUptimeDetectorFormField} from 'sentry/views/detectors/components/forms/uptime/fields';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 
-function ConnectedTestUptimeMonitorButton() {
+export function ConnectedTestUptimeMonitorButton() {
   const url = useUptimeDetectorFormField('url');
   const method = useUptimeDetectorFormField('method');
   const headers = useUptimeDetectorFormField('headers');
@@ -52,7 +52,6 @@ export function UptimeDetectorVerificationSection() {
             flexibleControlStateSize
           />
         </UptimeSectionGrid>
-        <ConnectedTestUptimeMonitorButton />
       </Section>
     </Container>
   );

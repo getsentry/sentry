@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {Stack} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
@@ -18,7 +19,10 @@ import {
 import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
-import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
+import {
+  ConnectedTestUptimeMonitorButton,
+  UptimeDetectorVerificationSection,
+} from 'sentry/views/detectors/components/forms/uptime/verification';
 
 const ENVIRONMENT_CONFIG: React.ComponentProps<typeof DetectorBaseFields>['environment'] =
   {includeAllEnvironments: false, fieldProps: {required: true}};
@@ -59,12 +63,18 @@ function UptimeDetectorForm() {
 }
 
 export function NewUptimeDetectorForm() {
+  const organization = useOrganization();
+  const showTestButton = organization.features.includes('uptime-runtime-assertions');
+
   return (
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       initialFormData={{}}
       environment={ENVIRONMENT_CONFIG}
+      extraFooterButton={
+        showTestButton ? <ConnectedTestUptimeMonitorButton /> : undefined
+      }
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -72,12 +82,18 @@ export function NewUptimeDetectorForm() {
 }
 
 export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDetector}) {
+  const organization = useOrganization();
+  const showTestButton = organization.features.includes('uptime-runtime-assertions');
+
   return (
     <EditDetectorLayout
       detector={detector}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
       environment={ENVIRONMENT_CONFIG}
+      extraFooterButton={
+        showTestButton ? <ConnectedTestUptimeMonitorButton /> : undefined
+      }
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>
