@@ -99,6 +99,10 @@ export interface BarChartWidgetVisualizationProps {
    * - `always`: Always show the legend.
    */
   showLegend?: 'auto' | 'never' | 'always';
+  /**
+   * Truncate the category labels.
+   */
+  truncateCategoryLabels?: number | boolean;
 }
 
 export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationProps) {
@@ -168,7 +172,12 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     type: 'category',
     data: allCategories,
     axisLabel: {
-      formatter: (value: string) => truncationFormatter(value, true, false),
+      formatter: (value: string) =>
+        truncationFormatter(
+          value,
+          props.truncateCategoryLabels ? props.truncateCategoryLabels : true,
+          false
+        ),
     },
     axisLine: {
       lineStyle: {
