@@ -99,7 +99,9 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     Anyone with alert write access to the project can connect/disconnect detectors of any type,
     which is slightly different from full edit access which differs by detector type.
     """
-    return request.access.has_scope("alerts:write")
+    return request.access.has_any_project_scope(
+        detector.project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
+    )
 
 
 def validate_detectors_exist_and_have_permissions(

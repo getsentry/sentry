@@ -1294,3 +1294,304 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             target_object=self.workflow.id,
             actor=self.user,
         )
+
+
+@region_silo_test
+class OrganizationWorkflowProjectAccessTest(OrganizationWorkflowAPITestCase):
+    """
+    Security tests to verify that project filtering is properly enforced.
+
+    These tests ensure that users cannot access workflows connected to projects
+    they don't have access to, even when specifying workflow IDs directly.
+    This is a regression test for an IDOR vulnerability.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Disable Open Membership - this is the key condition for testing project access
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create two teams: one for the user, one for someone else
+        self.user_team = self.create_team(organization=self.organization, name="user-team")
+        self.other_team = self.create_team(organization=self.organization, name="other-team")
+
+        # Create two projects, each owned by a different team
+        self.user_project = self.create_project(
+            organization=self.organization, teams=[self.user_team], name="user-proj"
+        )
+        self.other_project = self.create_project(
+            organization=self.organization, teams=[self.other_team], name="other-proj"
+        )
+
+        # Create a user who is only a member of user_team (has access to user_project only)
+        self.limited_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.limited_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.user_team],
+        )
+
+        # Create workflows with different project connections
+        self.user_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="User's Workflow"
+        )
+        self.other_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Other's Workflow"
+        )
+        self.unattached_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Unattached Workflow"
+        )
+
+        # Create detectors in each project
+        self.user_detector = self.create_detector(project=self.user_project)
+        self.other_detector = self.create_detector(project=self.other_project)
+
+        # Connect workflows to detectors
+        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
+        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
+        # unattached_workflow has no detectors connected
+
+    def test_get_cannot_access_workflows_from_inaccessible_projects_by_id(self) -> None:
+        """
+        Test that users cannot GET workflows connected to projects they don't have access to,
+        even when specifying the workflow ID directly.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to get the other workflow by ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.other_workflow.id)},
+        )
+        # The workflow should not be in the results
+        assert len(response.data) == 0
+
+    def test_get_can_access_workflows_from_accessible_projects_by_id(self) -> None:
+        """
+        Test that users CAN GET workflows connected to projects they have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to get their own workflow by ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.user_workflow.id)},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.user_workflow.id)
+
+    def test_get_can_access_unattached_workflows_by_id(self) -> None:
+        """
+        Test that users can access workflows with no detector connections (org-level workflows).
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to get unattached workflows
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.unattached_workflow.id)},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.unattached_workflow.id)
+
+    def test_get_filters_workflows_by_project_access(self) -> None:
+        """
+        Test that listing workflows only returns those connected to accessible projects.
+        """
+        self.login_as(self.limited_user)
+
+        # List all workflows - should only see user's workflow and unattached workflow
+        response = self.get_success_response(self.organization.slug)
+        workflow_ids = {w["id"] for w in response.data}
+
+        assert str(self.user_workflow.id) in workflow_ids
+        assert str(self.unattached_workflow.id) in workflow_ids
+        assert str(self.other_workflow.id) not in workflow_ids
+
+
+@region_silo_test
+class OrganizationWorkflowPutProjectAccessTest(OrganizationWorkflowAPITestCase):
+    """
+    Security tests for PUT endpoint project access filtering.
+    """
+
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create two teams
+        self.user_team = self.create_team(organization=self.organization, name="user-team")
+        self.other_team = self.create_team(organization=self.organization, name="other-team")
+
+        # Create two projects
+        self.user_project = self.create_project(
+            organization=self.organization, teams=[self.user_team], name="user-proj"
+        )
+        self.other_project = self.create_project(
+            organization=self.organization, teams=[self.other_team], name="other-proj"
+        )
+
+        # Create limited user
+        self.limited_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.limited_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.user_team],
+        )
+
+        # Create workflows
+        self.user_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="User's Workflow", enabled=False
+        )
+        self.other_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Other's Workflow", enabled=False
+        )
+
+        # Create detectors and connect workflows
+        self.user_detector = self.create_detector(project=self.user_project)
+        self.other_detector = self.create_detector(project=self.other_project)
+        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
+        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
+
+    def test_put_cannot_modify_workflows_from_inaccessible_projects(self) -> None:
+        """
+        Test that users cannot PUT (modify) workflows connected to projects they don't have
+        access to, even when specifying the workflow ID directly.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to modify the other workflow
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.other_workflow.id)},
+            raw_data={"enabled": True},
+        )
+        # Should return "No workflows found" because the workflow was filtered out
+        assert "No workflows found" in str(response.data.get("detail", ""))
+
+        # Verify the workflow was NOT modified
+        self.other_workflow.refresh_from_db()
+        assert self.other_workflow.enabled is False
+
+    def test_put_can_modify_workflows_from_accessible_projects(self) -> None:
+        """
+        Test that users CAN PUT (modify) workflows connected to projects they have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to modify their own workflow
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.user_workflow.id)},
+            raw_data={"enabled": True},
+        )
+
+        # Verify the workflow WAS modified
+        self.user_workflow.refresh_from_db()
+        assert self.user_workflow.enabled is True
+
+
+@region_silo_test
+class OrganizationWorkflowDeleteProjectAccessTest(OrganizationWorkflowAPITestCase):
+    """
+    Security tests for DELETE endpoint project access filtering.
+    """
+
+    method = "DELETE"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create two teams
+        self.user_team = self.create_team(organization=self.organization, name="user-team")
+        self.other_team = self.create_team(organization=self.organization, name="other-team")
+
+        # Create two projects
+        self.user_project = self.create_project(
+            organization=self.organization, teams=[self.user_team], name="user-proj"
+        )
+        self.other_project = self.create_project(
+            organization=self.organization, teams=[self.other_team], name="other-proj"
+        )
+
+        # Create limited user
+        self.limited_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.limited_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.user_team],
+        )
+
+        # Create workflows
+        self.user_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="User's Workflow"
+        )
+        self.other_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Other's Workflow"
+        )
+
+        # Create detectors and connect workflows
+        self.user_detector = self.create_detector(project=self.user_project)
+        self.other_detector = self.create_detector(project=self.other_project)
+        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
+        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
+
+    def test_delete_cannot_delete_workflows_from_inaccessible_projects(self) -> None:
+        """
+        Test that users cannot DELETE workflows connected to projects they don't have
+        access to, even when specifying the workflow ID directly.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to delete the other workflow
+        # Returns 200 (not 204) with "No workflows found" when filtered out
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.other_workflow.id)},
+            status_code=200,
+        )
+        # Should return "No workflows found" because the workflow was filtered out
+        assert "No workflows found" in str(response.data.get("detail", ""))
+
+        # Verify the workflow was NOT deleted
+        self.other_workflow.refresh_from_db()
+        assert self.other_workflow.status != ObjectStatus.PENDING_DELETION
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.other_workflow.id,
+        ).exists()
+
+    def test_delete_can_delete_workflows_from_accessible_projects(self) -> None:
+        """
+        Test that users CAN DELETE workflows connected to projects they have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to delete their own workflow
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(self.user_workflow.id)},
+                status_code=204,
+            )
+
+        # Verify the workflow WAS scheduled for deletion
+        self.user_workflow.refresh_from_db()
+        assert self.user_workflow.status == ObjectStatus.PENDING_DELETION
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id=self.user_workflow.id,
+        ).exists()
