@@ -2,6 +2,8 @@ import React, {Children, useRef, useState, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -207,7 +209,11 @@ function Container({children}: {children: React.ReactNode}) {
   // Evenly distributing the cards into columns.
   const columnSize = Math.ceil(cards.length / columnCount);
   for (let i = 0; i < cards.length; i += columnSize) {
-    columns.push(<CardColumn key={i}>{cards.slice(i, i + columnSize)}</CardColumn>);
+    columns.push(
+      <Container column="span 1" key={i}>
+        {cards.slice(i, i + columnSize)}
+      </Container>
+    );
   }
 
   return (
@@ -319,10 +325,6 @@ const CardWrapper = styled('div')<{columnCount: number}>`
   align-items: start;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   gap: 10px;
-`;
-
-const CardColumn = styled('div')`
-  grid-column: span 1;
 `;
 
 export const ValueLink = styled(Link)`

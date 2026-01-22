@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button/button';
@@ -555,17 +555,15 @@ function InlineThreadSection({
   title: React.ReactNode;
 }) {
   return (
-    <Wrapper>
+    <Container>
       <Flex justify="between" align="center" marginBottom="md">
         <ThreadHeading>{title}</ThreadHeading>
         {actions}
       </Flex>
       {children}
-    </Wrapper>
+    </Container>
   );
 }
-
-const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};

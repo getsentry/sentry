@@ -1,6 +1,8 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
@@ -75,7 +77,7 @@ function GroupReleaseStats({
         <Placeholder height="346px" bottomGutter={4} />
       ) : (
         <Fragment>
-          <GraphContainer>
+          <Container marginBottom="2xl">
             <GroupReleaseChart
               group={allEnvironments}
               environment={environment}
@@ -88,8 +90,8 @@ function GroupReleaseStats({
               firstSeen={group.firstSeen}
               lastSeen={group.lastSeen}
             />
-          </GraphContainer>
-          <GraphContainer>
+          </Container>
+          <Container marginBottom="2xl">
             <GroupReleaseChart
               group={allEnvironments}
               environment={environment}
@@ -103,7 +105,7 @@ function GroupReleaseStats({
               firstSeen={group.firstSeen}
               lastSeen={group.lastSeen}
             />
-          </GraphContainer>
+          </Container>
           <div>
             <SidebarSection.Wrap>
               <SidebarSection.Title>
@@ -171,10 +173,6 @@ function GroupReleaseStats({
 }
 
 export default memo(GroupReleaseStats);
-
-const GraphContainer = styled('div')`
-  margin-bottom: ${space(3)};
-`;
 
 const StyledSidebarSectionContent = styled(SidebarSection.Content)`
   margin-top: ${space(0.5)};

@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
@@ -40,7 +40,11 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
                 disableUnallowed &&
                 !r.isAllowed &&
                 !(isMemberInvite && r.id === 'member'),
-              details: <Details>{r.desc}</Details>,
+              details: (
+                <Container as="span" width="20rem">
+                  {r.desc}
+                </Container>
+              ),
             }) as OptionType
         )}
       showDividers
@@ -50,8 +54,3 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
 }
 
 export default RoleSelectControl;
-
-const Details = styled('span')`
-  display: inline-block;
-  width: 20rem;
-`;

@@ -2,6 +2,8 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Container} from '@sentry/scraps/layout';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -100,13 +102,13 @@ function OrganizationProjects() {
         title={routeTitleGen(t('Projects'), organization.slug, false)}
       />
       <SettingsPageHeader title="Projects" action={action} />
-      <SearchWrapper>
+      <Container marginBottom="xl">
         <SearchBar
           placeholder={t('Search Projects')}
           onChange={debouncedSearch}
           query={query}
         />
-      </SearchWrapper>
+      </Container>
       <Panel>
         <PanelHeader>{t('Projects')}</PanelHeader>
         <PanelBody>
@@ -115,9 +117,9 @@ function OrganizationProjects() {
           {projectList &&
             sortProjects(projectList).map(project => (
               <GridPanelItem key={project.id}>
-                <ProjectListItemWrapper>
+                <Container flex="1" padding="xl">
                   <ProjectListItem project={project} organization={organization} />
-                </ProjectListItemWrapper>
+                </Container>
                 <ProjectStatsGraphWrapper>
                   {isLoadingStats && <Placeholder height="25px" />}
                   {projectStats && (
@@ -142,19 +144,10 @@ function OrganizationProjects() {
 
 export default OrganizationProjects;
 
-const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
 const GridPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   padding: 0;
-`;
-
-const ProjectListItemWrapper = styled('div')`
-  padding: ${space(2)};
-  flex: 1;
 `;
 
 const ProjectStatsGraphWrapper = styled('div')`

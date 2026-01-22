@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
@@ -167,7 +167,7 @@ function CommitRow({
       {customAvatar ? (
         customAvatar
       ) : commit.author && commit.author.id === undefined ? (
-        <AvatarWrapper>
+        <Container position="relative">
           <Hovercard
             skipWrapper
             body={
@@ -198,7 +198,7 @@ function CommitRow({
               <IconWarning size="xs" />
             </EmailWarningIcon>
           </Hovercard>
-        </AvatarWrapper>
+        </Container>
       ) : (
         <div>
           <UserAvatar size={36} user={commit.author} />
@@ -250,10 +250,6 @@ const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   gap: ${space(2)};
-`;
-
-const AvatarWrapper = styled('div')`
-  position: relative;
 `;
 
 const EmailWarning = styled('div')`

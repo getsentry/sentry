@@ -2,6 +2,7 @@ import {Component, Fragment, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -305,13 +306,13 @@ class _TransactionsList extends Component<Props> {
           />
         </div>
         {supportsInvestigationRule && (
-          <InvestigationRuleWrapper>
+          <Container marginRight="md">
             <InvestigationRuleCreation
               buttonProps={{size: 'xs'}}
               eventView={eventView}
               numSamples={totalNumSamples}
             />
-          </InvestigationRuleWrapper>
+          </Container>
         )}
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
@@ -511,10 +512,6 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
-`;
-
-const InvestigationRuleWrapper = styled('div')`
-  margin-right: ${space(1)};
 `;
 
 function TransactionsList(

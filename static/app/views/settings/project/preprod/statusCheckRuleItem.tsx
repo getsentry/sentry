@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from 'sentry/components/core/layout';
+import {Container, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {
   parseSearch,
@@ -79,14 +79,14 @@ export function StatusCheckRuleItem({
         <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
       </ItemHeader>
       {isExpanded && (
-        <ItemContent>
+        <Container padding="0 xl xl xl">
           <StatusCheckRuleForm
             key={rule.id}
             rule={rule}
             onSave={onSave}
             onDelete={onDelete}
           />
-        </ItemContent>
+        </Container>
       )}
     </ItemContainer>
   );
@@ -118,10 +118,6 @@ const ItemHeader = styled('button')`
   &:active {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
-`;
-
-const ItemContent = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
 `;
 
 const BoldText = styled('span')`

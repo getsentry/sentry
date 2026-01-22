@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/core/button';
@@ -57,9 +57,9 @@ export default function ReplayInlineOnboardingPanel({
               platform: <PurpleText>{platformName}</PurpleText>,
             })}
           </BannerTitle>
-          <BannerDescription>
+          <Container marginBottom="lg" maxWidth="340px">
             {t('Watch the errors and latency issues your users face')}
-          </BannerDescription>
+          </Container>
           <Flex gap="md">
             <Button
               type="button"
@@ -134,11 +134,6 @@ const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
-  max-width: 340px;
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`

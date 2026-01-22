@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -136,9 +138,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
       <div>
         <HeaderWrapper>
           <Title>{t('Get Started with Sentry Issues')}</Title>
-          <Description>
+          <Container maxWidth="340px">
             {t('Your code sleuth eagerly awaits its first mission.')}
-          </Description>
+          </Container>
           <Image src={waitingForEventImg} />
         </HeaderWrapper>
         <Divider />
@@ -172,13 +174,15 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                         eventType="error"
                       >
                         {({indicator, firstEventButton}) => (
-                          <FirstEventWrapper>
-                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                          <Container paddingTop="md">
+                            <Container marginBottom="md" width="300px" maxWidth="100%">
+                              {indicator}
+                            </Container>
                             <StyledButtonBar>
                               <GuidedSteps.BackButton size="md" />
                               {firstEventButton}
                             </StyledButtonBar>
-                          </FirstEventWrapper>
+                          </Container>
                         )}
                       </FirstEventIndicator>
                     ) : (
@@ -192,16 +196,16 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
               })}
             </GuidedSteps>
           </Setup>
-          <Preview>
+          <Container padding="3xl">
             <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-            <ArcadeWrapper>
+            <Container marginTop="md">
               <Arcade
                 src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
                 loading="lazy"
                 allowFullScreen
               />
-            </ArcadeWrapper>
-          </Preview>
+            </Container>
+          </Container>
         </Body>
       </div>
     </AuthTokenGeneratorProvider>
@@ -217,14 +221,6 @@ const ProjectBadgeWrapper = styled('div')`
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const Description = styled('div')`
-  max-width: 340px;
-`;
-
-const ArcadeWrapper = styled('div')`
-  margin-top: ${space(1)};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -249,10 +245,6 @@ export const BodyTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
-`;
-
-const Preview = styled('div')`
-  padding: ${space(4)};
 `;
 
 const Body = styled('div')`
@@ -298,14 +290,4 @@ const Arcade = styled('iframe')`
 
 const StyledButtonBar = styled(ButtonBar)`
   display: flex;
-`;
-
-const IndicatorWrapper = styled('div')`
-  width: 300px;
-  max-width: 100%;
-  margin-bottom: ${space(1)};
-`;
-
-const FirstEventWrapper = styled('div')`
-  padding-top: ${space(1)};
 `;

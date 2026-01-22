@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {formatDateRange} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
@@ -28,9 +28,9 @@ function QueryTokens({
         {parsedQuery
           .filter(({text}) => text.trim() !== '')
           .map(({text}) => (
-            <FormattedQueryWrapper key={text}>
+            <Container as="span" key={text}>
               <ProvidedFormattedQuery query={text} />
-            </FormattedQueryWrapper>
+            </Container>
           ))}
       </Flex>
     );
@@ -144,7 +144,3 @@ const ExploreVisualizes = styled('span')`
 `;
 
 const ExploreGroupBys = ExploreVisualizes;
-
-const FormattedQueryWrapper = styled('span')`
-  display: inline-block;
-`;

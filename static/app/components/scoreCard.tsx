@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, type FlexProps} from 'sentry/components/core/layout';
+import {Container, Flex, type ContainerProps} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -98,9 +98,9 @@ export const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-export const ScoreWrapper = styled((props: FlexProps<'div'>) => {
-  return <Flex align="baseline" maxWidth="100%" {...props} />;
-})``;
+export function ScoreWrapper(props: ContainerProps<'div'>) {
+  return <Container {...props} />;
+}
 
 export const Score = styled('span')`
   flex-shrink: 1;

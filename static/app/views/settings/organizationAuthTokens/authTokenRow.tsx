@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -83,11 +83,11 @@ export function OrganizationAuthTokensAuthTokenRow({
   return (
     <Fragment>
       <div>
-        <Label>
+        <Container>
           <Link to={`/settings/${organization.slug}/auth-tokens/${token.id}/`}>
             {token.name}
           </Link>
-        </Label>
+        </Container>
 
         {token.tokenLastCharacters && (
           <TokenPreview aria-label={t('Token preview')}>
@@ -145,8 +145,6 @@ export function OrganizationAuthTokensAuthTokenRow({
     </Fragment>
   );
 }
-
-const Label = styled('div')``;
 
 const NeverUsed = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};

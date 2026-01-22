@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -300,7 +302,7 @@ function AccountNotificationFineTuning({
               />
             </Fragment>
           ) : (
-            <Heading>{t('Organizations')}</Heading>
+            <Container flex="1">{t('Organizations')}</Container>
           )}
         </StyledPanelHeader>
         <PanelBody>
@@ -332,10 +334,6 @@ function AccountNotificationFineTuning({
     </div>
   );
 }
-
-const Heading = styled('div')`
-  flex: 1;
-`;
 
 const StyledPanelHeader = styled(PanelHeader)`
   flex-wrap: wrap;

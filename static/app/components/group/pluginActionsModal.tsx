@@ -1,12 +1,12 @@
 import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {t, tct} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -82,7 +82,7 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
           <h4>{tct('[name] Issue', {name: plugin.name || plugin.title})}</h4>
         </Header>
 
-        <TabsContainer>
+        <Container marginBottom="xl">
           <Tabs
             value={this.state.actionType ?? 'create'}
             onChange={key => this.setState({actionType: key})}
@@ -92,7 +92,7 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
               <TabList.Item key="link">{t('Link')}</TabList.Item>
             </TabList>
           </Tabs>
-        </TabsContainer>
+        </Container>
 
         {actionType && (
           // need the key here so React will re-render
@@ -115,7 +115,3 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
     );
   }
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;

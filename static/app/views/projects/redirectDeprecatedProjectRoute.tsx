@@ -1,5 +1,6 @@
 import {Component} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
@@ -7,7 +8,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -134,7 +134,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
     const {orgId, projectId: projectSlug} = params;
 
     return (
-      <Wrapper>
+      <Container flex="1" padding="2xl">
         <ProjectDetails orgId={orgId} projectSlug={projectSlug}>
           {({loading, error, hasProjectId, projectId, organizationId}) => {
             if (loading) {
@@ -167,13 +167,8 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
             );
           }}
         </ProjectDetails>
-      </Wrapper>
+      </Container>
     );
   };
 
 export default redirectDeprecatedProjectRoute;
-
-const Wrapper = styled('div')`
-  flex: 1;
-  padding: ${space(3)};
-`;

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/core/button';
@@ -249,7 +249,7 @@ function TagFacetsDistributionMeter({
   }
 
   return (
-    <TagSummary>
+    <Container marginBottom="xl">
       <details open aria-expanded={expanded} onClick={e => e.preventDefault()}>
         <StyledSummary>
           <TagHeader onClick={() => setExpanded(!expanded)}>
@@ -259,15 +259,11 @@ function TagFacetsDistributionMeter({
         </StyledSummary>
         {renderLegend()}
       </details>
-    </TagSummary>
+    </Container>
   );
 }
 
 export default TagFacetsDistributionMeter;
-
-const TagSummary = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 const TagHeader = styled('span')`
   cursor: pointer;

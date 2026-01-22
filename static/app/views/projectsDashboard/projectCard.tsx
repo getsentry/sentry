@@ -2,6 +2,8 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -116,7 +118,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
 
   return (
     <CardPanel data-test-id={slug}>
-      <CardHeader>
+      <Container height="32px">
         <HeaderRow>
           <AlignedIdBadge
             project={project}
@@ -165,7 +167,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             <SummaryLinkPlaceholder />
           )}
         </SummaryLinks>
-      </CardHeader>
+      </Container>
       <ChartContainer data-test-id="chart-container">
         {stats ? (
           <ProjectChart
@@ -220,10 +222,6 @@ const CardPanel = styled(Panel)`
   height: 100%;
   padding: ${space(2)};
   margin: 0;
-`;
-
-const CardHeader = styled('div')`
-  height: 32px;
 `;
 
 const CardFooter = styled('div')`

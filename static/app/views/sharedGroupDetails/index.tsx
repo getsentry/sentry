@@ -1,5 +1,6 @@
 import {useLayoutEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {Link} from 'sentry/components/core/link';
 import NotFound from 'sentry/components/errors/notFound';
@@ -9,7 +10,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
@@ -82,7 +82,10 @@ function SharedGroupDetails() {
               </div>
               <div className="box-content">
                 <SharedGroupHeader group={group} />
-                <Container className="group-overview event-details-container">
+                <Container
+                  padding="3xl"
+                  className="group-overview event-details-container"
+                >
                   <BorderlessEventEntries
                     organization={org}
                     group={group}
@@ -100,9 +103,5 @@ function SharedGroupDetails() {
     </SentryDocumentTitle>
   );
 }
-
-const Container = styled('div')`
-  padding: ${space(4)};
-`;
 
 export default SharedGroupDetails;

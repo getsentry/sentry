@@ -4,7 +4,7 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -253,9 +253,9 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 
 function SectionSeparator() {
   return (
-    <SeparatorWrapper data-separator>
+    <Container margin="lg 0" data-separator>
       <Separator />
-    </SeparatorWrapper>
+    </Container>
   );
 }
 
@@ -350,11 +350,6 @@ const SectionTitleLabelWrap = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
-`;
-
-const SeparatorWrapper = styled('div')`
-  margin: ${space(1.5)} 0;
-  display: none;
 `;
 
 const Separator = styled('hr')`

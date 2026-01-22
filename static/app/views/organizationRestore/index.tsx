@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
@@ -10,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -101,11 +101,11 @@ function RestoreForm({endpoint, organization}: RestoreFormProps) {
             'Would you like to cancel this process and restore the organization back to the original state?'
           )}
         </p>
-        <ButtonWrapper>
+        <Container marginBottom="xl">
           <Button data-test-id="form-submit" priority="primary" type="submit">
             {t('Restore Organization')}
           </Button>
-        </ButtonWrapper>
+        </Container>
       </ApiForm>
       <p>
         {t(
@@ -115,9 +115,5 @@ function RestoreForm({endpoint, organization}: RestoreFormProps) {
     </Fragment>
   );
 }
-
-const ButtonWrapper = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 export default OrganizationRestore;

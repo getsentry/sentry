@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -123,7 +123,7 @@ function TeamNotificationSettingsPanel({
         value={externalTeam.externalName}
       />
 
-      <DeleteButtonWrapper>
+      <Container marginRight="xl">
         <Tooltip
           title={t(
             'You must be an organization owner, manager or admin to remove a Slack team link'
@@ -140,7 +140,7 @@ function TeamNotificationSettingsPanel({
             </Button>
           </Confirm>
         </Tooltip>
-      </DeleteButtonWrapper>
+      </Container>
     </Flex>
   ));
 }
@@ -248,7 +248,4 @@ const NotDisabledSubText = styled('div')`
 `;
 const StyledFormField = styled(TextField)`
   flex: 1;
-`;
-const DeleteButtonWrapper = styled('div')`
-  margin-right: ${space(2)};
 `;

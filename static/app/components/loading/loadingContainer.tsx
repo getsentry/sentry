@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 
 export type LoadingContainerProps = {
@@ -29,7 +31,7 @@ export default function LoadingContainer({
   const isLoadingOrReloading = isLoading || isReloading;
 
   return (
-    <Container className={className}>
+    <Container position="relative" className={className}>
       {isLoadingOrReloading && (
         <div>
           <LoadingMask
@@ -43,10 +45,6 @@ export default function LoadingContainer({
     </Container>
   );
 }
-
-const Container = styled('div')`
-  position: relative;
-`;
 
 const LoadingMask = styled('div')<MaskProps>`
   position: absolute;

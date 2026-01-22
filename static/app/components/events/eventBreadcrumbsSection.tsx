@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -75,7 +76,7 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
 
   const actions = (
     <ActionsWrapper>
-      <SearchWrapper>
+      <Container>
         <InputGroup>
           <SearchInput
             size="xs"
@@ -88,7 +89,7 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
             <IconSearch size="xs" />
           </InputGroup.TrailingItems>
         </InputGroup>
-      </SearchWrapper>
+      </Container>
       <CompactSelect
         size="xs"
         multiple
@@ -167,12 +168,6 @@ const ActionsWrapper = styled('div')`
   align-items: center;
 
   @container (max-width: 400px) {
-    display: none;
-  }
-`;
-
-const SearchWrapper = styled('div')`
-  @container (max-width: 500px) {
     display: none;
   }
 `;
