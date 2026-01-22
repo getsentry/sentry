@@ -1,6 +1,6 @@
 # Frontend Development Guide
 
-> For critical commands and testing rules, see `/AGENTS.md` in the repository root.
+> For critical commands and testing rules, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## Frontend Tech Stack
 
@@ -12,50 +12,7 @@
 - **Styling**: Emotion (CSS-in-JS), Less
 - **Testing**: Jest, React Testing Library
 
-## Commands
-
-### Development Setup
-
-```bash
-# Start the development server
-pnpm run dev
-
-# Start only the UI development server with hot reload
-pnpm run dev-ui
-```
-
-### Typechecking
-
-Typechecking only works on the entire project. Individual files cannot be checked.
-
-```bash
-pnpm run typecheck
-```
-
-### Linting
-
-```bash
-# JavaScript/TypeScript linting
-pnpm run lint:js
-
-# Linting for specific file(s)
-pnpm run lint:js components/avatar.tsx [...other files]
-
-# Fix linting issues
-pnpm run fix
-```
-
-### Testing
-
-```bash
-# Run JavaScript tests (always use CI flag)
-CI=true pnpm test <file_path>
-
-# Run specific test file(s)
-CI=true pnpm test components/avatar.spec.tsx
-```
-
-### Important Files and Directories
+## Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
 - `rspack.config.ts`: Frontend build configuration
