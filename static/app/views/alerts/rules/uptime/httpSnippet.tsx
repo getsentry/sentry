@@ -78,6 +78,7 @@ export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) 
 }
 
 const MaxSizedSnippet = styled(CodeBlock)`
+  height: auto;
   pre {
     overflow-y: auto;
     max-height: 400px;
