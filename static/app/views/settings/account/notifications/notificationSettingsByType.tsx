@@ -283,7 +283,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
           )
         );
       } else {
-        // TODO(isabella): Once GA, remove this case
         fields.push(
           ...filterCategoryFields(
             QUOTA_FIELDS.map(field => ({
@@ -412,7 +411,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const unlinkedSlackOrgs = getUnlinkedOrgs('slack');
   let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
-  // TODO(isabella): Once GA, remove this
   if (
     notificationType === 'quota' &&
     organizations.some(org => org.features?.includes('spend-visibility-notifications'))

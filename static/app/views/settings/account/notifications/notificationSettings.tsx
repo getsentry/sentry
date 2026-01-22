@@ -50,7 +50,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   });
 
   const renderOneSetting = (type: NotificationSettingsType) => {
-    // TODO(isabella): Once GA, remove this
     const field = NOTIFICATION_SETTING_FIELDS[type];
     if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
       field.label = t('Spend');
