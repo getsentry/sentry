@@ -12,8 +12,8 @@ import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/del
 import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
 import {GroupBySelector} from 'sentry/views/explore/metrics/metricToolbar/groupBySelector';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {VisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 interface MetricToolbarProps {
   queryIndex: number;
@@ -34,7 +34,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
       width="100%"
       align="center"
       gap="md"
-      columns={`24px auto auto auto 1fr ${metricQueries.length > 1 ? '40px' : '0'}`}
+      columns={`34px auto auto auto 1fr ${metricQueries.length > 1 ? '40px' : '0'}`}
       data-test-id="metric-toolbar"
     >
       <VisualizeLabel

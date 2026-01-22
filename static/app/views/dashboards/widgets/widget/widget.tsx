@@ -163,7 +163,7 @@ const Frame = styled('div')<{
     `}
 `;
 
-const Header = styled('div')<{noPadding?: boolean}>`
+export const Header = styled('div')<{noPadding?: boolean}>`
   display: flex;
   align-items: center;
   height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});

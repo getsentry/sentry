@@ -10,8 +10,9 @@ import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrien
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
 export const TabListWrapper = styled('div')<{orientation: TableOrientation}>`
-  padding-top: 10px;
   width: 100%;
+  padding-left: ${p => p.theme.space.md};
+  padding-top: ${p => p.theme.space.md};
 
   ${p =>
     p.orientation === 'bottom' &&
