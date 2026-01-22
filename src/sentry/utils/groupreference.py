@@ -44,7 +44,7 @@ def _is_valid_sentry_url(url: str) -> bool:
 
 
 def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
-    from sentry.models.group import Group
+    from sentry.models.group import Group, GroupStatus
 
     if not text:
         return set()
@@ -85,7 +85,13 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
         if group_id > 9223372036854775807:
             continue
         try:
-            group = Group.objects.get(id=group_id, project__organization_id=org_id)
+            group = Group.objects.exclude(
+                status__in=[
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                    GroupStatus.PENDING_MERGE,
+                ]
+            ).get(id=group_id, project__organization_id=org_id)
         except Group.DoesNotExist:
             continue
         else:
