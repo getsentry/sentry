@@ -419,8 +419,8 @@ export default OrganizationMemberDetail;
 
 const ExtraHeaderText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Details = styled('div')`
@@ -437,7 +437,7 @@ const Details = styled('div')`
 `;
 
 const DetailLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.tokens.content.primary};
 `;

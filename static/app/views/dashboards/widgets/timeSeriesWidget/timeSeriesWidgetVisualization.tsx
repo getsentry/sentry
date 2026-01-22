@@ -747,7 +747,7 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMessage = styled('div')<{visible: boolean}>`
   opacity: ${p => (p.visible ? 1 : 0)};
-  height: ${p => p.theme.fontSize.sm};
+  height: ${p => p.theme.font.size.sm};
 `;
 
 const LoadingMask = styled(TransparentLoadingMask)`
