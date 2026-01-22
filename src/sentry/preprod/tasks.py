@@ -408,7 +408,7 @@ def _assemble_preprod_artifact_size_analysis(
 
     preprod_artifact = None
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -711,7 +711,7 @@ def _assemble_preprod_artifact_installable_app(
     assemble_result: AssembleResult, project: Project, artifact_id: int, org_id: int
 ) -> None:
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
