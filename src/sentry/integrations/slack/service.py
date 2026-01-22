@@ -333,6 +333,9 @@ class SlackService:
                 "multiple parent notifications found for single open period",
                 extra={
                     "activity_id": activity.id,
+                    "group_id": group.id,
+                    "project_id": activity.project.id,
+                    "integration_id": client.integration_id,
                     "parent_notification_count": parent_notification_count,
                 },
             )
