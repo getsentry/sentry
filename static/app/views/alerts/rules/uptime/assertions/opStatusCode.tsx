@@ -58,7 +58,12 @@ export function AssertionOpStatusCode({
   };
 
   return (
-    <OpContainer label={t('Status Code')} onRemove={onRemove} inputId={inputId}>
+    <OpContainer
+      label={t('Status Code')}
+      onRemove={onRemove}
+      inputId={inputId}
+      op={value}
+    >
       <InputGroup>
         <InputGroup.LeadingItems>
           <CompactSelect
