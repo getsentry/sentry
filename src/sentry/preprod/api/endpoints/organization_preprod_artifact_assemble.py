@@ -233,6 +233,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             create_preprod_status_check_task.apply_async(
                 kwargs={
                     "preprod_artifact_id": artifact.id,
+                    "caller": "assemble_endpoint",
                 }
             )
 

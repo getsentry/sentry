@@ -18,13 +18,7 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-import type {
-  AlertVariant,
-  FormSize,
-  LevelVariant,
-  MotionDuration,
-  MotionEasing,
-} from './types';
+import type {FormSize, MotionDuration, MotionEasing} from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
 
@@ -152,19 +146,6 @@ function generateMotion() {
   };
 }
 
-type AlertColors = Record<
-  AlertVariant,
-  {
-    background: string;
-    backgroundLight: string;
-    border: string;
-    borderHover: string;
-    color: string;
-    // @TODO(jonasbadalic): Why is textLight optional and only set on error?
-    textLight?: string;
-  }
->;
-
 const generateThemeUtils = () => ({
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
@@ -178,81 +159,11 @@ const generateThemeUtils = () => ({
   `,
 });
 
-const generateAlertTheme = (colors: Colors, tokens: Tokens): AlertColors => ({
-  info: {
-    border: colors.blue200,
-    background: colors.blue400,
-    color: colors.blue500,
-    backgroundLight: colors.blue100,
-    borderHover: colors.blue400,
-  },
-  success: {
-    background: colors.green400,
-    backgroundLight: colors.green100,
-    border: colors.green200,
-    borderHover: colors.green400,
-    color: colors.green500,
-  },
-  muted: {
-    background: colors.gray200,
-    backgroundLight: tokens.background.secondary,
-    border: tokens.border.primary,
-    borderHover: tokens.border.primary,
-    color: 'inherit',
-  },
-  warning: {
-    background: colors.yellow400,
-    backgroundLight: colors.yellow100,
-    border: colors.yellow200,
-    borderHover: colors.yellow400,
-    color: colors.yellow500,
-  },
-  danger: {
-    background: colors.red400,
-    backgroundLight: colors.red100,
-    border: colors.red200,
-    borderHover: colors.red400,
-    color: colors.red500,
-    textLight: colors.red200,
-  },
-});
-
-const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
-  sample: tokens.dataviz.semantic.accent,
-  info: tokens.dataviz.semantic.accent,
-  // BAD: accessing named colors is forbidden
-  // but necessary to differente from orange
-  warning: color.categorical[mode].yellow,
-  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
-  // but do have it in the chart palette. This needs to be harcoded
-  // because existing users still associate orange with the "error" level.
-  error: color.categorical[mode].orange,
-  fatal: tokens.dataviz.semantic.bad,
-  default: tokens.dataviz.semantic.neutral,
-  unknown: tokens.dataviz.semantic.other,
-});
-
 /**
  * Theme definition
  */
 
 type Colors = typeof lightColors;
-
-type LevelColors = Record<LevelVariant, string>;
-
-const legacyTypography = {
-  fontSize: typography.font.size,
-  fontWeight: {
-    normal: typography.font.weight.sans.regular,
-    bold: typography.font.weight.sans.medium,
-  },
-  text: {
-    family: typography.font.family.sans,
-    familyMono: typography.font.family.mono,
-    lineHeightHeading: typography.font.lineHeight.default,
-    lineHeightBody: typography.font.lineHeight.comfortable,
-  },
-} as const;
 
 type FormTheme = {
   form: Record<
@@ -325,6 +236,10 @@ const commonTheme = {
     initial: 1,
     truncationFullValue: 10,
 
+    monitorCreationForms: {
+      schedulePreview: 2,
+    },
+
     // @TODO(jonasbadalic) This should exist on traceView component
     traceView: {
       spanTreeToggler: 900,
@@ -386,7 +301,6 @@ const commonTheme = {
     },
   },
 
-  ...legacyTypography,
   ...typography,
   ...formTheme,
 };
@@ -396,7 +310,6 @@ export interface SentryTheme
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
-    neutral: string;
   };
   tokens: Tokens;
 }
@@ -951,13 +864,9 @@ const lightThemeDefinition = {
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
-  // @TODO: these colors need to be ported
   ...generateThemeUtils(),
-  alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
-  level: generateLevelTheme(baseLightTheme.tokens, 'light'),
 
   chart: {
-    neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -984,13 +893,9 @@ export const darkTheme: SentryTheme = {
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
-  // @TODO: these colors need to be ported
   ...generateThemeUtils(),
-  alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
-  level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
 
   chart: {
-    neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },

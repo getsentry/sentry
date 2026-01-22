@@ -131,7 +131,7 @@ export const RadioLineItem = styled('label', {shouldForwardProp})<{
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 
@@ -141,7 +141,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 
 const Description = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4em;
 `;
 

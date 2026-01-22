@@ -76,17 +76,17 @@ function Footer({
 
 const SidebarFooter = styled('div')`
   margin-left: auto;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.secondary};
   h1 {
     text-transform: uppercase;
     font-weight: bold;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     margin-bottom: 0.5rem;
   }
   h2 {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     font-weight: normal;
     margin-bottom: 0.5rem;
   }

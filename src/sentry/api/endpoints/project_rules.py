@@ -535,7 +535,7 @@ A list of actions that take place when all required conditions and filters for t
 - `integration` - The integration ID associated with Jira.
 - `project` - The ID of the Jira project.
 - `issuetype` - The ID of the type of issue that the ticket should be created as.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+- `dynamic_form_fields` - A list of any custom fields you want to include in the ticket as objects.
 ```json
 {
     "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
@@ -549,7 +549,7 @@ A list of actions that take place when all required conditions and filters for t
 - `integration` - The integration ID associated with Jira Server.
 - `project` - The ID of the Jira Server project.
 - `issuetype` - The ID of the type of issue that the ticket should be created as.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+- `dynamic_form_fields` - A list of any custom fields you want to include in the ticket as objects.
 ```json
 {
     "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
@@ -601,7 +601,7 @@ A list of actions that take place when all required conditions and filters for t
 - `integration` - The integration ID.
 - `project` - The ID of the Azure DevOps project.
 - `work_item_type` - The type of work item to create.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the work item as objects.
+- `dynamic_form_fields` - A list of any custom fields you want to include in the work item as objects.
 ```json
 {
     "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
