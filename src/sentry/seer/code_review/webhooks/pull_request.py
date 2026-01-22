@@ -127,9 +127,11 @@ def _add_eyes_reaction_to_pull_request(
                 if (
                     reaction.get("user", {}).get("login") == "sentry[bot]"
                     and reaction.get("content") == GitHubReaction.HOORAY.value
-                    and reaction.get("id")
                 ):
-                    client.delete_issue_reaction(repo.name, str(pr_number), str(reaction.get("id")))
+                    if reaction.get("id"):
+                        client.delete_issue_reaction(
+                            repo.name, str(pr_number), str(reaction.get("id"))
+                        )
                     break
         except Exception:
             logger.warning(Log.REACTION_FAILED.value, extra=extra)

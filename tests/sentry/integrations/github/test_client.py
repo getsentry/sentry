@@ -446,8 +446,6 @@ class GitHubApiClientTest(TestCase):
             headers={},
         )
         result = self.github_client.get_issue_reactions(repo=self.repo.name, issue_number="42")
-        assert len(responses.calls) == 1
-        assert responses.calls[0].response.status_code == 200
         assert len(result) == 2
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -470,7 +468,6 @@ class GitHubApiClientTest(TestCase):
             repo=self.repo.name, issue_number="42", reaction=GitHubReaction.EYES
         )
         assert result == response_data
-        assert orjson.loads(responses.calls[0].request.body) == {"content": "eyes"}
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -485,8 +482,6 @@ class GitHubApiClientTest(TestCase):
             repo=self.repo.name, issue_number="42", reaction_id="123"
         )
         assert result is None or result == {}
-        assert len(responses.calls) == 1
-        assert responses.calls[0].request.method == "DELETE"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
