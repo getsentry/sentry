@@ -71,4 +71,3 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         # Ensure the external issue still exists after failed attempts
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
-            assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
