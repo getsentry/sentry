@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import StrEnum
 from typing import Literal
 
@@ -146,66 +148,61 @@ class CommentSeverity(StrEnum):
     HIGH = "high"
     CRITICAL = "critical"
 
-    def meets_minimum(self, minimum_severity: "CommentSeverity") -> bool:
+    def meets_minimum(self, minimum_severity: CommentSeverity) -> bool:
         return (
             _COMMENT_SEVERITY_RANKINGS[self.value]
             >= _COMMENT_SEVERITY_RANKINGS[minimum_severity.value]
         )
 
 
-class PrReviewFeature(StrEnum):
+class SeerCodeReviewFeature(StrEnum):
     BUG_PREDICTION = "bug_prediction"
 
 
-class PrReviewTrigger(StrEnum):
+class SeerCodeReviewTrigger(StrEnum):
     UNKNOWN = "unknown"
     ON_COMMAND_PHRASE = "on_command_phrase"
     ON_READY_FOR_REVIEW = "on_ready_for_review"
     ON_NEW_COMMIT = "on_new_commit"
 
     @classmethod
-    def _missing_(cls: type["PrReviewTrigger"], value: object) -> "PrReviewTrigger":
+    def _missing_(cls: type[SeerCodeReviewTrigger], value: object) -> SeerCodeReviewTrigger:
         return cls.UNKNOWN
 
 
-class BugPredictionSpecificInformation(BaseModel):
-    callback_url: str | None = None
-    organization_id: int | None = None
-    organization_slug: str | None = None
-    max_num_associations: int = 10
-    max_num_issues_analyzed: int = 10
-    should_post_to_overwatch: bool = False
-    should_publish_comments: bool = False
-    is_local_run: bool = False
+class SeerCodeReviewRequestType(StrEnum):
+    """Request type for Seer code review requests."""
+
+    PR_REVIEW = "pr-review"
+    PR_CLOSED = "pr-closed"
 
 
-class PrReviewConfig(BaseModel):
-    features: dict[PrReviewFeature, bool] = Field(default_factory=lambda: {})
-    trigger: PrReviewTrigger = PrReviewTrigger.ON_COMMAND_PHRASE
+class SeerCodeReviewConfig(BaseModel):
+    features: dict[SeerCodeReviewFeature, bool] = Field(default_factory=lambda: {})
+    trigger: SeerCodeReviewTrigger = SeerCodeReviewTrigger.ON_COMMAND_PHRASE
     trigger_comment_id: int | None = None
     trigger_comment_type: Literal["issue_comment"] | None = None
     trigger_user: str | None = None
     trigger_user_id: int | None = None
 
-    def is_feature_enabled(self, feature: PrReviewFeature) -> bool:
+    def is_feature_enabled(self, feature: SeerCodeReviewFeature) -> bool:
         return self.features.get(feature, False)
 
-    def get_minimum_severity_for_feature(self, feature: PrReviewFeature) -> CommentSeverity:
+    def get_minimum_severity_for_feature(self, feature: SeerCodeReviewFeature) -> CommentSeverity:
         return CommentSeverity.MEDIUM
 
 
-class CodeReviewBaseRequest(BaseModel):
+class SeerCodeReviewBaseRequest(BaseModel):
     repo: SeerRepoDefinition
     pr_id: int
     more_readable_repos: list[SeerRepoDefinition] = Field(default_factory=list)
 
 
-class CodeReviewPrReviewRequest(CodeReviewBaseRequest):
-    config: PrReviewConfig | None = None
-    bug_prediction_specific_information: BugPredictionSpecificInformation | None = None
+class SeerCodeReviewRequest(SeerCodeReviewBaseRequest):
+    config: SeerCodeReviewConfig | None = None
 
 
-class CodeReviewTaskRequest(BaseModel):
-    data: CodeReviewPrReviewRequest
+class SeerCodeReviewTaskRequest(BaseModel):
+    data: SeerCodeReviewRequest
     external_owner_id: str
-    request_type: Literal["pr-review", "pr-closed"]
+    request_type: SeerCodeReviewRequestType

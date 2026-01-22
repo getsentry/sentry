@@ -13,35 +13,14 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
+from sentry.seer.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-
-
-# XXX: This needs to be a shared enum with the Seer repository
-# Look at CodecovTaskRequest.request_type in Seer repository for the possible request types
-class RequestType(StrEnum):
-    # It triggers PR review events on Seer side
-    PR_REVIEW = "pr-review"
-    # It triggers PR closed events on Seer side
-    PR_CLOSED = "pr-closed"
 
 
 class ClientError(Exception):
     "Non-retryable client error from Seer"
 
     pass
-
-
-# XXX: This needs to be a shared enum with the Seer repository
-# In Seer, src/seer/automation/codegen/types.py:PrReviewTrigger
-class SeerCodeReviewTrigger(StrEnum):
-    UNKNOWN = "unknown"
-    ON_COMMAND_PHRASE = "on_command_phrase"
-    ON_READY_FOR_REVIEW = "on_ready_for_review"
-    ON_NEW_COMMIT = "on_new_commit"
-
-    @classmethod
-    def _missing_(cls: type[SeerCodeReviewTrigger], value: object) -> SeerCodeReviewTrigger:
-        return cls.UNKNOWN
 
 
 # These values need to match the value defined in the Seer API.
@@ -195,9 +174,9 @@ def transform_webhook_to_codegen_request(
     Raises:
         ValueError: If required fields are missing from the webhook payload
     """
-    request_type = RequestType.PR_REVIEW
+    request_type = SeerCodeReviewRequestType.PR_REVIEW
     if github_event == GithubWebhookType.PULL_REQUEST and github_event_action == "closed":
-        request_type = RequestType.PR_CLOSED
+        request_type = SeerCodeReviewRequestType.PR_CLOSED
 
     review_request_trigger = SeerCodeReviewTrigger.UNKNOWN
     match github_event_action:

@@ -7,7 +7,7 @@ import pytest
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.seer.code_review.utils import RequestType, SeerCodeReviewTrigger
+from sentry.seer.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 
@@ -57,7 +57,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             call_kwargs = self.mock_seer.call_args[1]
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
             payload = call_kwargs["payload"]
-            assert payload["request_type"] == RequestType.PR_REVIEW.value
+            assert payload["request_type"] == SeerCodeReviewRequestType.PR_REVIEW.value
 
     def test_pull_request_skips_draft(self) -> None:
         """Test that draft PRs are skipped."""
@@ -221,7 +221,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             call_kwargs = self.mock_seer.call_args[1]
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
             payload = call_kwargs["payload"]
-            assert payload["request_type"] == RequestType.PR_CLOSED.value
+            assert payload["request_type"] == SeerCodeReviewRequestType.PR_CLOSED.value
             assert payload["data"]["config"]["trigger"] == SeerCodeReviewTrigger.UNKNOWN.value
             assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
             assert payload["data"]["config"]["trigger_comment_id"] is None

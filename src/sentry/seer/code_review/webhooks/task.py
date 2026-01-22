@@ -11,7 +11,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
-from sentry.seer.models import CodeReviewTaskRequest
+from sentry.seer.models import SeerCodeReviewTaskRequest
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -95,7 +95,7 @@ def process_github_webhook_event(
 
         # Do not validate the payload for CHECK_RUN webhook events (which uses a minimal payload)
         if github_event != GithubWebhookType.CHECK_RUN:
-            validated_payload = CodeReviewTaskRequest.parse_obj(event_payload)
+            validated_payload = SeerCodeReviewTaskRequest.parse_obj(event_payload)
             # Use .json() then parse back to properly serialize enum keys to strings
             payload = json.loads(validated_payload.json())
         else:
