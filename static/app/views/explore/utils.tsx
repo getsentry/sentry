@@ -53,6 +53,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -672,7 +673,7 @@ function getReplayUrlFromSavedQueryUrl({
   };
 
   const queryString = qs.stringify(queryParams, {skipNull: true});
-  return `/organizations/${organization.slug}/replays/?${queryString}`;
+  return `${makeReplaysPathname({organization, path: '/'})}?${queryString}`;
 }
 
 const TRACE_ITEM_TO_URL_FUNCTION: Record<
