@@ -1645,10 +1645,10 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             ],
         )
 
-    @mock.patch("sentry.integrations.github.client.logger.error")
+    @mock.patch("sentry.integrations.github.client.logger.warning")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_invalid_commit(self, get_jwt, mock_logger_error) -> None:
+    def test_get_blame_for_files_invalid_commit(self, get_jwt, mock_logger_warning) -> None:
         """
         Tests commits that have invalid data are skipped and logged
         """
@@ -1717,7 +1717,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
         response = self.github_client.get_blame_for_files([file1, file2], extra={})
         self.assertEqual(response, [])
 
-        mock_logger_error.assert_has_calls(
+        mock_logger_warning.assert_has_calls(
             [
                 mock.call(
                     "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
@@ -1789,13 +1789,13 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
             content_type="application/json",
         )
 
-    @mock.patch("sentry.integrations.github.client.logger.error")
+    @mock.patch("sentry.integrations.github.client.logger.warning")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_rate_limit_exceeded(self, get_jwt, mock_logger_error) -> None:
+    def test_rate_limit_exceeded(self, get_jwt, mock_logger_warning) -> None:
         with pytest.raises(ApiRateLimitedError):
             self.github_client.get_blame_for_files([self.file], extra={})
-        mock_logger_error.assert_called_with(
+        mock_logger_warning.assert_called_with(
             "sentry.integrations.github.get_blame_for_files.rate_limit",
             extra={
                 "provider": "github",

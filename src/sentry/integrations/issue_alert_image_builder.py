@@ -73,7 +73,7 @@ class IssueAlertImageBuilder:
                     extra={"group_id": self.group.id},
                 )
         except Exception as e:
-            logger.exception(
+            logger.warning(
                 "issue_alert_chartcuterie_image.failed",
                 extra={"exception": e, "group_id": self.group.id},
             )

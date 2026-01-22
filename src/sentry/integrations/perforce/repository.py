@@ -87,7 +87,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         except Exception as e:
             # Log and re-raise connection/P4 errors
             # We cannot create a repository if we can't validate the depot exists
-            logger.exception(
+            logger.warning(
                 "perforce.get_repository_data.depot_validation_failed",
                 extra={"depot_path": depot_path.path},
             )
@@ -250,7 +250,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
 
         except (ValueError, TypeError) as e:
             # Log conversion errors for debugging
-            logger.exception(
+            logger.warning(
                 "perforce.compare_commits.invalid_changelist",
                 extra={
                     "start_sha": start_sha,
@@ -262,7 +262,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
             )
             return []
         except Exception as e:
-            logger.exception(
+            logger.warning(
                 "perforce.compare_commits.failed",
                 extra={
                     "start_sha": start_sha,

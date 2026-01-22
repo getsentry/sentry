@@ -50,19 +50,16 @@ def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
         external_id = f"{instance}:{group_path}"
         return (external_id, secret)
     except KeyError:
-        logger.info("gitlab.webhook.missing-gitlab-token")
         extra["reason"] = "The customer needs to set a Secret Token in their webhook."
-        logger.exception(extra["reason"])
+        logger.warning("gitlab.webhook.missing-gitlab-token", extra=extra)
         return HttpResponse(status=400, reason=extra["reason"])
     except ValueError:
-        logger.info("gitlab.webhook.malformed-gitlab-token", extra=extra)
         extra["reason"] = "The customer's Secret Token is malformed."
-        logger.exception(extra["reason"])
+        logger.warning("gitlab.webhook.malformed-gitlab-token", extra=extra)
         return HttpResponse(status=400, reason=extra["reason"])
     except Exception:
-        logger.info("gitlab.webhook.invalid-token", extra=extra)
         extra["reason"] = "Generic catch-all error."
-        logger.exception(extra["reason"])
+        logger.warning("gitlab.webhook.invalid-token", extra=extra)
         return HttpResponse(status=400, reason=extra["reason"])
 
 
@@ -82,10 +79,9 @@ class GitlabWebhook(SCMWebhook, ABC):
         try:
             project_id = event["project"]["id"]
         except KeyError:
-            logger.info(
+            logger.warning(
                 "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
             )
-            logger.exception("Missing project ID.")
             raise Http404()
 
         external_id = "{}:{}".format(integration.metadata["instance"], project_id)
@@ -156,11 +152,10 @@ class MergeEventWebhook(GitlabWebhook):
                 author_email = last_commit["author"]["email"]
                 author_name = last_commit["author"]["name"]
         except KeyError as e:
-            logger.info(
+            logger.warning(
                 "gitlab.webhook.invalid-merge-data",
                 extra={"integration_id": integration.id, "error": str(e)},
             )
-            logger.exception("Invalid merge data.")
             # TODO(mgaeta): This try/catch is full of reportUnboundVariable errors.
             return
 
@@ -298,7 +293,7 @@ class GitlabWebhookEndpoint(Endpoint):
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
-            logger.error(extra["reason"])
+            logger.warning(extra["reason"])
             return HttpResponse(status=409, reason=extra["reason"])
 
         extra = {
@@ -326,21 +321,19 @@ class GitlabWebhookEndpoint(Endpoint):
         try:
             event = orjson.loads(request.body)
         except orjson.JSONDecodeError:
-            logger.info("gitlab.webhook.invalid-json", extra=extra)
             extra["reason"] = "Data received is not JSON."
-            logger.exception(extra["reason"])
+            logger.warning("gitlab.webhook.invalid-json", extra=extra)
             return HttpResponse(status=400, reason=extra["reason"])
 
         try:
             handler = self._handlers[request.META["HTTP_X_GITLAB_EVENT"]]
         except KeyError:
-            logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
-            logger.info("We only support these kinds of events: %s", supported_events)
             extra["reason"] = (
-                "The customer has edited the webhook in Gitlab to include other types of events."
+                "The customer has edited the webhook in Gitlab to include other types of events. We only support these kinds of events: %s"
+                % supported_events
             )
-            logger.exception(extra["reason"])
+            logger.warning("gitlab.webhook.wrong-event-type", extra=extra)
             return HttpResponse(status=400, reason=extra["reason"])
 
         for install in installs:

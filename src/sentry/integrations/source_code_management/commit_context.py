@@ -547,7 +547,7 @@ class PRCommentWorkflow(ABC):
                 for row in result["data"]
             ]
         except Exception:
-            logger.exception(
+            logger.warning(
                 "Fetching top 5 issues by count from EAP failed",
                 extra={
                     "issue_ids": issue_ids,

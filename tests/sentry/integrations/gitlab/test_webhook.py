@@ -70,7 +70,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 400
         assert (
             response.reason_phrase
-            == "The customer has edited the webhook in Gitlab to include other types of events."
+            == "The customer has edited the webhook in Gitlab to include other types of events. We only support these kinds of events: Merge Request Hook, Push Hook"
         )
 
     def test_invalid_token(self) -> None:

@@ -76,7 +76,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
             )
 
         if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
-            logger.error(".link-user.bad_request.error", extra={"slack_request": slack_request})
+            logger.warning(".link-user.bad_request.error", extra={"slack_request": slack_request})
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         associate_url = build_linking_url(

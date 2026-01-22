@@ -245,7 +245,7 @@ class VercelIntegration(IntegrationInstallation):
         for configuration_id, data in self.metadata["configurations"].items():
             if data["organization_id"] == self.organization_id:
                 return configuration_id
-        logger.error(
+        logger.warning(
             "could not find matching org",
             extra={"organization_id": self.organization_id, "integration_id": self.model.id},
         )

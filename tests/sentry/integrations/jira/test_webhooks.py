@@ -356,4 +356,4 @@ class JiraWebhookBaseTest(TestCase):
 
             assert mock_super_handle_exception.call_args.args[1] == unknown_error
             assert str(unknown_error) == expected_error_message
-            assert mock_logger.error.call_args.args[0] == "Unclear JIRA exception"
+            assert mock_logger.warning.call_args.args[0] == "Unclear JIRA exception"

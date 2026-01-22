@@ -315,19 +315,19 @@ def _get_blames_from_all_integrations(
                     )
                 else:
                     if e.code == 429:
-                        logger.exception(
+                        logger.warning(
                             "process_commit_context_all_frames.get_commit_context_all_frames.rate_limit",
                             extra={**log_info, "error_message": e.text},
                         )
                     else:
-                        logger.exception(
+                        logger.warning(
                             "process_commit_context_all_frames.get_commit_context_all_frames.api_error",
                             extra={**log_info, "code": e.code, "error_message": e.text},
                         )
                     # Rate limit and other API errors should be raised to the task to trigger a retry
                     raise
             except Exception:
-                logger.exception(
+                logger.warning(
                     "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
                     extra=log_info,
                 )

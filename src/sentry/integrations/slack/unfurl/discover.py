@@ -165,7 +165,7 @@ def _unfurl_discover(
                 )
 
             except Exception:
-                _logger.exception("Failed to load saved query for unfurl")
+                _logger.warning("Failed to load saved query for unfurl")
             else:
                 saved_query = response.data
 
@@ -278,7 +278,7 @@ def _unfurl_discover(
                 params=params,
             )
         except Exception:
-            _logger.exception("Failed to load %s for unfurl", endpoint)
+            _logger.warning("Failed to load %s for unfurl", endpoint)
             continue
 
         chart_data = {"seriesName": params.get("yAxis"), "stats": resp.data}
@@ -288,7 +288,7 @@ def _unfurl_discover(
         try:
             url = charts.generate_chart(style, chart_data)
         except RuntimeError:
-            _logger.exception("Failed to generate chart for discover unfurl")
+            _logger.warning("Failed to generate chart for discover unfurl")
             continue
 
         unfurls[link.url] = SlackDiscoverMessageBuilder(
