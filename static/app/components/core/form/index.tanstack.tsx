@@ -14,6 +14,8 @@ import {Text} from '@sentry/scraps/text';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
+import {useAutoSaveContext} from './autoSaveField.tanstack';
+
 type FieldProps = {
   label: string;
   hintText?: string;
@@ -98,10 +100,17 @@ export function InputField({
     onChange: (value: string) => void;
     value: string;
   }) {
+  const autoSaveContext = useAutoSaveContext();
+
   return (
     <Field label={label} hintText={hintText} required={required}>
       {fieldProps => (
-        <Input {...fieldProps} {...props} onChange={e => onChange(e.target.value)} />
+        <Input
+          {...fieldProps}
+          {...props}
+          disabled={props.disabled || autoSaveContext?.isPending}
+          onChange={e => onChange(e.target.value)}
+        />
       )}
     </Field>
   );
@@ -118,6 +127,8 @@ export function NumberField({
     onChange: (value: number) => void;
     value: number;
   }) {
+  const autoSaveContext = useAutoSaveContext();
+
   return (
     <Field label={label} hintText={hintText} required={required}>
       {fieldProps => (
@@ -125,6 +136,7 @@ export function NumberField({
           {...fieldProps}
           {...props}
           type="number"
+          disabled={props.disabled || autoSaveContext?.isPending}
           onChange={e => onChange(Number(e.target.value))}
         />
       )}
@@ -151,13 +163,17 @@ export function SelectField({
   Omit<React.ComponentProps<typeof Select>, 'value' | 'onChange' | 'onBlur'> & {
     onChange: (value: string) => void;
     value: string;
+    disabled?: boolean;
   }) {
+  const autoSaveContext = useAutoSaveContext();
+
   return (
     <Field label={label} hintText={hintText} required={required}>
       {fieldProps => (
         <Select
           {...fieldProps}
           {...props}
+          disabled={props.disabled || autoSaveContext?.isPending}
           components={{...props.components, Input: SelectInput}}
           onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
         />

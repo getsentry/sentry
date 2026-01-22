@@ -7,7 +7,6 @@ import {
   type UseFormTrigger,
 } from 'react-hook-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
-import type {z} from 'zod/index';
 
 import {RHFField, SelectField} from './index.rhf';
 

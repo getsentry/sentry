@@ -1,13 +1,48 @@
+import {createContext, useContext} from 'react';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import type {z} from 'zod';
 
 import {useScrapsForm} from './index.tanstack';
 
 /**
+ * Context for auto-save mutation state
+ * Consumed by field components to automatically apply mutation state
+ */
+interface AutoSaveContextValue {
+  isPending: boolean;
+}
+
+const AutoSaveContext = createContext<AutoSaveContextValue | null>(null);
+
+/**
+ * Hook to access auto-save context
+ * Returns null if not within AutoSaveField
+ */
+export function useAutoSaveContext() {
+  return useContext(AutoSaveContext);
+}
+
+/**
+ * Provider for auto-save context
+ * Wraps fields to provide mutation state
+ */
+function AutoSaveContextProvider({
+  value,
+  children,
+}: {
+  children: React.ReactNode;
+  value: AutoSaveContextValue;
+}) {
+  return <AutoSaveContext.Provider value={value}>{children}</AutoSaveContext.Provider>;
+}
+
+/**
  * AutoSaveField Component
  *
  * A component that provides field props and mutation state via render prop.
  * Clean API matching RHF's pattern but for TanStack Form.
+ *
+ * Field components automatically consume the context and apply disabled state.
  *
  * @example
  * <AutoSaveField
@@ -18,13 +53,12 @@ import {useScrapsForm} from './index.tanstack';
  *     mutationFn: async (data) => api.patch('/user', data),
  *   }}
  * >
- *   {(field, fieldProps) => (
+ *   {field => (
  *     <InputField
  *       label="Last Name:"
  *       required
- *       {...fieldProps}
- *       value={field.value}
- *       onChange={field.onChange}
+ *       value={field.state.value}
+ *       onChange={field.handleChange}
  *     />
  *   )}
  * </AutoSaveField>
@@ -37,17 +71,12 @@ interface AutoSaveFieldProps<
   /**
    * Render prop that receives field props and additional props
    */
-  children: (
-    field: {
-      handleChange: (value: z.infer<TSchema>[TFieldName]) => void;
-      state: {
-        value: z.infer<TSchema>[TFieldName];
-      };
-    },
-    fieldProps: {
-      disabled: boolean;
-    }
-  ) => React.ReactNode;
+  children: (field: {
+    handleChange: (value: z.infer<TSchema>[TFieldName]) => void;
+    state: {
+      value: z.infer<TSchema>[TFieldName];
+    };
+  }) => React.ReactNode;
 
   /**
    * Initial value - must match the schema's type for this field
@@ -103,22 +132,19 @@ export function AutoSaveField<
   });
 
   return (
-    <form.AppField name={name}>
-      {field =>
-        children(
-          {
+    <AutoSaveContextProvider value={{isPending: mutation.isPending}}>
+      <form.AppField name={name}>
+        {field =>
+          children({
             handleChange: field.handleChange as (
               value: z.infer<TSchema>[TFieldName]
             ) => void,
             state: {
               value: field.state.value as z.infer<TSchema>[TFieldName],
             },
-          },
-          {
-            disabled: mutation.isPending,
-          }
-        )
-      }
-    </form.AppField>
+          })
+        }
+      </form.AppField>
+    </AutoSaveContextProvider>
   );
 }

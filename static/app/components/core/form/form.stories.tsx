@@ -25,8 +25,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
-import {AutoSaveField} from './autoSaveField';
 import {RHFAutoSaveField} from './autoSaveField.rhf';
+import {AutoSaveField} from './autoSaveField.tanstack';
 import {
   FormischField,
   InputField as FormischInputField,
@@ -164,10 +164,9 @@ function TanStackAutoSave() {
         initialValue={user.data?.firstName ?? ''}
         mutationOptions={userMutationOptions}
       >
-        {(field, fieldProps) => (
+        {field => (
           <TanStackInputField
             label="First Name:"
-            {...fieldProps}
             value={field.state.value}
             onChange={field.handleChange}
           />
@@ -180,11 +179,10 @@ function TanStackAutoSave() {
         initialValue={user.data?.lastName ?? ''}
         mutationOptions={userMutationOptions}
       >
-        {(field, fieldProps) => (
+        {field => (
           <TanStackInputField
             label="Last Name:"
             required
-            {...fieldProps}
             value={field.state.value}
             onChange={field.handleChange}
           />
@@ -197,11 +195,10 @@ function TanStackAutoSave() {
         initialValue={user.data?.age ?? 0}
         mutationOptions={userMutationOptions}
       >
-        {(field, fieldProps) => (
+        {field => (
           <TanStackNumberField
             label="Age:"
             required
-            {...fieldProps}
             value={field.state.value}
             onChange={field.handleChange}
           />
