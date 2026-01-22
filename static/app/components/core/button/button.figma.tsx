@@ -1,7 +1,5 @@
 import figma from '@figma/code-connect';
 
-import {IconAdd, IconArrow, IconOpen, IconStar, IconZoom} from 'sentry/icons';
-
 import {Button, type ButtonProps} from './button';
 
 /**
@@ -33,26 +31,11 @@ figma.connect(
       disabled: figma.enum('State', {
         disabled: true,
       }),
-      icon: figma.enum('Icon', {
-        IconArrow: <IconArrow />,
-        IconAdd: <IconAdd />,
-        IconOpen: <IconOpen />,
-        IconStar: <IconStar />,
-        IconZoom: <IconZoom />,
-      }),
-      text: figma.string('Text'),
-      // No matching props could be found for these Figma properties:
-      // "icon": figma.boolean('Icon'),
-      // "children": figma.boolean('Children')
+      children: figma.textContent('Children'),
     },
-    example: (props: ButtonProps & {text: string}) => (
-      <Button
-        icon={props.icon}
-        priority={props.priority}
-        size={props.size}
-        disabled={props.disabled}
-      >
-        {props.text}
+    example: (props: ButtonProps) => (
+      <Button priority={props.priority} size={props.size} disabled={props.disabled}>
+        {props.children}
       </Button>
     ),
   }
