@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Separator} from 'sentry/components/core/separator';
+import {Text} from 'sentry/components/core/text';
 import {
   getAutofixRunExists,
   isIssueQuickFixable,
@@ -10,13 +13,12 @@ import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChat} from 'sentry/icons';
-import {tct} from 'sentry/locale';
+import {IconChat, IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -66,13 +68,13 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     shortId,
     project,
     lifetime,
+    level,
     isUnhandled,
   } = data as Group;
   const organization = useOrganization();
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {getReplayCountForIssue} = useReplayCountForIssues();
-
   const showReplayCount =
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(organization, project) &&
@@ -89,6 +91,15 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
   const {subtitle} = getTitle(data);
 
   const items = [
+    isUnhandled || level ? (
+      <Text
+        variant={
+          level === 'error' ? 'danger' : level === 'warning' ? 'warning' : 'accent'
+        }
+      >
+        {isUnhandled ? `${t('unhandled')} ${level}` : `${level}`}
+      </Text>
+    ) : null,
     shortId ? (
       <ShortId
         shortId={shortId}
@@ -97,9 +108,24 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
         }
       />
     ) : null,
-    isUnhandled ? <UnhandledTag /> : null,
     showLifetime ? (
       <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
+    ) : null,
+    showSeer ? <IssueSeerBadge group={data as Group} key="issue-seer-badge" /> : null,
+    showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
+    logger ? (
+      <LoggerAnnotation>
+        <GlobalSelectionLink
+          to={{
+            pathname: issuesPath,
+            query: {
+              query: `logger:${logger}`,
+            },
+          }}
+        >
+          {logger}
+        </GlobalSelectionLink>
+      </LoggerAnnotation>
     ) : null,
     subtitle ? <Location>{subtitle}</Location> : null,
     numComments > 0 ? (
@@ -116,22 +142,6 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
         />
         <span>{numComments}</span>
       </CommentsLink>
-    ) : null,
-    showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
-    showSeer ? <IssueSeerBadge group={data as Group} key="issue-seer-badge" /> : null,
-    logger ? (
-      <LoggerAnnotation>
-        <GlobalSelectionLink
-          to={{
-            pathname: issuesPath,
-            query: {
-              query: `logger:${logger}`,
-            },
-          }}
-        >
-          {logger}
-        </GlobalSelectionLink>
-      </LoggerAnnotation>
     ) : null,
     ...(annotations?.map((annotation, key) => (
       <AnnotationNoMargin key={key}>
@@ -153,13 +163,19 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
         return (
           <Fragment key={i}>
             {item}
-            {i < items.length - 1 ? <Separator /> : null}
+            {i === items.length - 1 ? null : <LineSeparator orientation="vertical" />}
           </Fragment>
         );
       })}
     </GroupExtra>
   );
 }
+
+// @TODO(Design Engineering): Should we build this into the Separator component?
+const LineSeparator = styled(Separator)`
+  height: 1em;
+  margin: auto;
+`;
 
 const GroupExtra = styled('div')`
   display: inline-grid;
@@ -175,18 +191,16 @@ const GroupExtra = styled('div')`
 
   & > a {
     color: ${p => p.theme.tokens.content.secondary};
+    position: relative;
+  }
+
+  & > a:hover {
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     line-height: 1;
   }
-`;
-
-const Separator = styled('div')`
-  height: 10px;
-  width: 1px;
-  background-color: ${p => p.theme.tokens.border.secondary};
-  border-radius: 1px;
 `;
 
 const ShadowlessProjectBadge = styled(ProjectBadge)`

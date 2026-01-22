@@ -1,5 +1,4 @@
-import styled from '@emotion/styled';
-
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -8,7 +7,6 @@ import {
 } from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,26 +42,22 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
 
   return (
     <Tooltip title={seerTitle} skipWrapper>
-      <SeerLink
-        to={{
-          pathname: `${issuesPath}${group.id}/`,
-          query: {...location.query, seerDrawer: true},
-        }}
-      >
-        <IconSeer size="xs" />
-        {seerFixable && <p>{t('Quick Fix')}</p>}
-      </SeerLink>
+      <Flex align="center" gap="sm">
+        {props => (
+          <Link
+            to={{
+              pathname: `${issuesPath}${group.id}/`,
+              query: {...location.query, seerDrawer: true},
+            }}
+            {...props}
+          >
+            <IconSeer size="xs" />
+            {seerFixable ? t('Quick Fix') : null}
+          </Link>
+        )}
+      </Flex>
     </Tooltip>
   );
 }
-
-const SeerLink = styled(Link)`
-  display: inline-grid;
-  gap: ${space(0.5)};
-  align-items: center;
-  grid-auto-flow: column;
-  color: ${p => p.theme.tokens.content.primary};
-  position: relative;
-`;
 
 export default IssueSeerBadge;

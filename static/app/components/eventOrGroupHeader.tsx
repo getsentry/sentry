@@ -144,12 +144,7 @@ function EventOrGroupHeader({
   return (
     <div data-test-id="event-issue-header">
       <Title>{getTitle()}</Title>
-      <StyledEventMessage
-        data={data}
-        level={'level' in data ? data.level : undefined}
-        message={getMessage(data)}
-        type={data.type}
-      />
+      <StyledEventMessage data={data} message={getMessage(data)} />
     </div>
   );
 }
