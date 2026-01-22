@@ -17,7 +17,7 @@ interface FlatSurfaceProps<T extends ContainerElement = 'div'>
 
 interface OverlaySurfaceProps<T extends ContainerElement = 'div'>
   extends Omit<ContainerProps<T>, 'background' | 'border'> {
-  variant: Extract<SurfaceVariant, 'overlay'>;
+  variant: 'overlay';
   elevation?: 'low' | 'high';
 }
 
