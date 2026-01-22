@@ -26,9 +26,9 @@ import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplayIndexContainer from 'sentry/views/replays/list/replayIndexContainer';
 import ReplayIndexTimestampPrefPicker from 'sentry/views/replays/list/replayIndexTimestampPrefPicker';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
+import {ReplayQueryParamsProvider} from 'sentry/views/replays/list/replayQueryParamsProvider';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 import ReplaysSearch from 'sentry/views/replays/list/search';
-import {ReplayQueryParamsProvider} from 'sentry/views/replays/queryParams/replayQueryParamsProvider';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',
