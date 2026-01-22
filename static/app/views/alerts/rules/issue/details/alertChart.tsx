@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import RouteError from 'sentry/views/routeError';
@@ -37,7 +38,13 @@ export function IssueAlertDetailsChart({
     error,
   } = useApiQuery<ProjectAlertRuleStats[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/stats/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          ruleId: rule.id,
+        },
+      }),
       {
         query: {
           ...(period && {statsPeriod: period}),

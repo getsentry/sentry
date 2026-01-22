@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -66,7 +67,13 @@ const getIssueAlertDetailsQueryKey = ({
   projectSlug: string;
   ruleId: string;
 }): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/rules/${ruleId}/`,
+  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      projectIdOrSlug: projectSlug,
+      ruleId,
+    },
+  }),
   {query: {expand: 'lastTriggered'}},
 ];
 
