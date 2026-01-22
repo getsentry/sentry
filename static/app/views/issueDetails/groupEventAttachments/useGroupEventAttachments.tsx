@@ -1,5 +1,6 @@
 import type {DateString} from 'sentry/types/core';
 import type {Group, IssueAttachment} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -97,7 +98,12 @@ export const makeFetchGroupEventAttachmentsQueryKey = ({
     query.types = ['event.minidump', 'event.applecrashreport'];
   }
 
-  return [`/organizations/${orgSlug}/issues/${group.id}/attachments/`, {query}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/attachments/', {
+      path: {organizationIdOrSlug: orgSlug, issueId: group.id},
+    }),
+    {query},
+  ];
 };
 
 export function useGroupEventAttachments({
