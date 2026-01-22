@@ -385,7 +385,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         return sentry_app, installation
 
 
-class ProjectAccessTestMixin:
+class ProjectAccessTestMixin(TestCase):
     """
     Mixin that provides common setup for testing project-level access controls.
 
