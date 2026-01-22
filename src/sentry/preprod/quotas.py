@@ -23,7 +23,7 @@ DISTRIBUTION_ENABLED_QUERY_KEY = "sentry:preprod_distribution_enabled_query"
 
 
 def has_size_quota(organization: Organization, actor: User | AnonymousUser | None = None) -> bool:
-    if not features.has("organizations:preprod-enforce-quota", organization, actor=actor):
+    if not features.has("organizations:preprod-enforce-size-quota", organization, actor=actor):
         return True
     return quotas.backend.has_usage_quota(organization.id, DataCategory.SIZE_ANALYSIS)
 
@@ -31,7 +31,9 @@ def has_size_quota(organization: Organization, actor: User | AnonymousUser | Non
 def has_installable_quota(
     organization: Organization, actor: User | AnonymousUser | None = None
 ) -> bool:
-    if not features.has("organizations:preprod-enforce-quota", organization, actor=actor):
+    if not features.has(
+        "organizations:preprod-enforce-distribution-quota", organization, actor=actor
+    ):
         return True
     return quotas.backend.has_usage_quota(organization.id, DataCategory.INSTALLABLE_BUILD)
 

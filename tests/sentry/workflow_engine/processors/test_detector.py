@@ -949,7 +949,7 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.detectors == {self.issue_stream_detector}
 
         # assert no exception is logged
-        mock_logger.exception.assert_called_once()
+        mock_logger.exception.assert_not_called()
 
     def test_no_detectors(self) -> None:
         self.issue_stream_detector.delete()
