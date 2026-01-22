@@ -25,6 +25,7 @@ export type TraceItemSearchQueryBuilderProps = {
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
   caseInsensitive?: CaseInsensitive;
+  disableHas?: boolean;
   disabled?: boolean;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
@@ -90,11 +91,17 @@ export function useTraceItemSearchQueryBuilderProps({
   matchKeySuggestions,
   caseInsensitive,
   onCaseInsensitiveClick,
+  disableHas,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
-  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
+  const filterTags = useFilterTags(
+    numberAttributes,
+    stringAttributes,
+    functionTags,
+    disableHas
+  );
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: itemType,
@@ -180,6 +187,7 @@ export function TraceItemSearchQueryBuilder({
   onCaseInsensitiveClick,
   matchKeySuggestions,
   replaceRawSearchKeys,
+  disableHas,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -201,6 +209,7 @@ export function TraceItemSearchQueryBuilder({
     onCaseInsensitiveClick,
     matchKeySuggestions,
     replaceRawSearchKeys,
+    disableHas,
   });
 
   return (
@@ -227,7 +236,8 @@ function useFunctionTags(
 function useFilterTags(
   numberAttributes: TagCollection,
   stringAttributes: TagCollection,
-  functionTags: TagCollection
+  functionTags: TagCollection,
+  disableHas: boolean
 ) {
   return useMemo(() => {
     const tags: TagCollection = {
@@ -235,12 +245,15 @@ function useFilterTags(
       ...numberAttributes,
       ...stringAttributes,
     };
-    tags.has = getHasTag({
-      ...numberAttributes,
-      ...stringAttributes,
-    });
+
+    if (!disableHas) {
+      tags.has = getHasTag({
+        ...numberAttributes,
+        ...stringAttributes,
+      });
+    }
     return tags;
-  }, [numberAttributes, stringAttributes, functionTags]);
+  }, [numberAttributes, stringAttributes, functionTags, disableHas]);
 }
 
 function useFilterKeySections(

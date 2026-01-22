@@ -14,6 +14,7 @@ interface PreprodSearchBarProps {
    * Optional list of attribute keys to show. If not provided, all attributes are shown.
    */
   allowedKeys?: string[];
+  disableHas?: boolean;
   /**
    * List of attribute keys to hide from the search bar. Defaults to HIDDEN_PREPROD_ATTRIBUTES.
    */
@@ -48,6 +49,7 @@ export function PreprodSearchBar({
   onChange,
   onSearch,
   portalTarget,
+  disableHas,
   searchSource = 'preprod',
 }: PreprodSearchBarProps) {
   const organization = useOrganization();
@@ -87,6 +89,7 @@ export function PreprodSearchBar({
       searchSource={searchSource}
       projects={projects}
       portalTarget={portalTarget}
+      disableHas={disableHas}
     />
   );
 }

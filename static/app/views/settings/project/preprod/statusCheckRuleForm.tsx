@@ -109,6 +109,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
           onChange={(query, _state) => handleQueryChange(query)}
           searchSource="preprod_status_check_filters"
           portalTarget={document.body}
+          disableHas
           allowedKeys={[
             'app_id',
             'git_head_ref',
