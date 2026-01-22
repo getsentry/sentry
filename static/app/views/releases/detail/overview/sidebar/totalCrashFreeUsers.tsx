@@ -122,7 +122,7 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
 }
 
 const Timeline = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 

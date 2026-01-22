@@ -133,7 +133,9 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | tr '\n' ' ')
+          # Use triple-dot syntax to find the merge-base first, so we only get
+          # changes introduced in this PR, not changes merged to master since branching
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | tr '\n' ' ')
           echo "Changed files: $CHANGED_FILES"
           echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
 

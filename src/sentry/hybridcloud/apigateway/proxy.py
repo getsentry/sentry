@@ -124,6 +124,8 @@ def proxy_region_request(
 ) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
+
+    content_encoding = request.headers.get("Content-Encoding")
     header_dict = clean_proxy_headers(request.headers)
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
@@ -140,6 +142,8 @@ def proxy_region_request(
 
     data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
+        if content_encoding:
+            header_dict["Content-Encoding"] = content_encoding
         data = get_raw_body(request)
     else:
         data = BodyWithLength(request)

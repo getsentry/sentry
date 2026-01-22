@@ -18,7 +18,7 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-import type {FormSize, MotionDuration, MotionEasing} from './types';
+import type {MotionDuration, MotionEasing} from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
 
@@ -165,78 +165,6 @@ const generateThemeUtils = () => ({
 
 type Colors = typeof lightColors;
 
-const legacyTypography = {
-  fontSize: typography.font.size,
-  fontWeight: {
-    normal: typography.font.weight.sans.regular,
-    bold: typography.font.weight.sans.medium,
-  },
-  text: {
-    family: typography.font.family.sans,
-    familyMono: typography.font.family.mono,
-    lineHeightHeading: typography.font.lineHeight.default,
-    lineHeightBody: typography.font.lineHeight.comfortable,
-  },
-} as const;
-
-type FormTheme = {
-  form: Record<
-    FormSize,
-    {
-      borderRadius: string;
-      fontSize: string;
-      height: string;
-      lineHeight: string;
-      minHeight: string;
-      paddingBottom: number;
-      paddingLeft: number;
-      paddingRight: number;
-      paddingTop: number;
-    }
-  >;
-};
-const formTheme: FormTheme = {
-  /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: {
-    md: {
-      height: '36px',
-      minHeight: '36px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-      borderRadius: baseLightTheme.radius.lg,
-    },
-    sm: {
-      height: '32px',
-      minHeight: '32px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-      borderRadius: baseLightTheme.radius.md,
-    },
-    xs: {
-      height: '28px',
-      minHeight: '28px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-      paddingLeft: 8,
-      paddingRight: 8,
-      paddingTop: 6,
-      paddingBottom: 6,
-      borderRadius: baseLightTheme.radius.sm,
-    },
-  },
-};
-
 /**
  * Values shared between light and dark theme
  */
@@ -249,6 +177,10 @@ const commonTheme = {
     // does not need to battle others for z-index priority
     initial: 1,
     truncationFullValue: 10,
+
+    monitorCreationForms: {
+      schedulePreview: 2,
+    },
 
     // @TODO(jonasbadalic) This should exist on traceView component
     traceView: {
@@ -311,17 +243,49 @@ const commonTheme = {
     },
   },
 
-  ...legacyTypography,
+  form: {
+    md: {
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: baseLightTheme.radius.lg,
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: baseLightTheme.radius.md,
+    },
+    xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+      borderRadius: baseLightTheme.radius.sm,
+    },
+  },
+
   ...typography,
-  ...formTheme,
 };
 
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
-    colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
-    neutral: string;
   };
   tokens: Tokens;
 }
@@ -700,10 +664,13 @@ type ValidLengthArgument = TupleOf<ColorLength>[number];
  */
 function makeChartColorPalette<T extends ChartColorPalette>(
   palette: T
-): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
+): <Length extends ValidLengthArgument>(length: Length | number | 'all') => T[Length] {
   return function getChartColorPalette<Length extends ValidLengthArgument>(
-    length: Length | number
+    length: Length | number | 'all'
   ): T[Length] {
+    if (length === 'all') {
+      return palette.at(-1) as T[Length];
+    }
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length));
@@ -879,8 +846,6 @@ const lightThemeDefinition = {
   ...generateThemeUtils(),
 
   chart: {
-    neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
-    colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
 
@@ -909,8 +874,6 @@ export const darkTheme: SentryTheme = {
   ...generateThemeUtils(),
 
   chart: {
-    neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
-    colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
 
