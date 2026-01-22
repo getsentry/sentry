@@ -4,6 +4,7 @@ import logging
 import time
 
 from sentry import options
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -68,3 +69,72 @@ class BufferLogger:
                 )
             self._data.clear()
             self._last_log_time = None
+
+
+type DataPoint = tuple[bytes, float]
+type EvalshaData = list[DataPoint]
+
+
+def emit_observability_metrics(
+    latency_metrics: list[EvalshaData],
+    gauge_metrics: list[EvalshaData],
+    longest_evalsha_data: tuple[float, EvalshaData, EvalshaData],
+) -> None:
+    """
+    This function takes all the observability metrics returned for a batch of EVALSHA operations on the
+    add-buffer.lua script, aggregates them, and emits them as metrics.
+
+    The input is two lists:
+    - latency_metrics: Each element is a list of tuples, where each tuple represents the duration of a single step of the EVALSHA operation.
+    - gauge_metrics: Each element is a list of tuples, where each tuple represents a single value returned by the EVALSHA operation.
+
+    For each metric that can be emitted, calculate the min, max and avg across the batch.
+    For the longest evalsha, emit a special metric for that evalsha that is just the values
+    without aggregation.
+    """
+    latency_metrics_dict: dict[str, tuple[float, float, float, float]] = (
+        {}
+    )  # metric, min, max, sum, count
+    gauge_metrics_dict: dict[str, tuple[float, float, float, float]] = (
+        {}
+    )  # metric, min, max, sum, count
+
+    for evalsha_latency_metrics, evalsha_gauge_metrics in zip(latency_metrics, gauge_metrics):
+        for raw_key, value in evalsha_latency_metrics:
+            key = raw_key.decode("utf-8")
+            if key not in latency_metrics_dict:
+                latency_metrics_dict[key] = (value, value, value, 1.0)
+            else:
+                latency_metrics_dict[key] = (
+                    min(latency_metrics_dict[key][0], value),
+                    max(latency_metrics_dict[key][1], value),
+                    latency_metrics_dict[key][2] + value,
+                    latency_metrics_dict[key][3] + 1.0,
+                )
+        for raw_key, value in evalsha_gauge_metrics:
+            key = raw_key.decode("utf-8")
+            if key not in gauge_metrics_dict:
+                gauge_metrics_dict[key] = (value, value, value, 1.0)
+            else:
+                gauge_metrics_dict[key] = (
+                    min(gauge_metrics_dict[key][0], value),
+                    max(gauge_metrics_dict[key][1], value),
+                    gauge_metrics_dict[key][2] + value,
+                    gauge_metrics_dict[key][3] + 1.0,
+                )
+
+    for metric, (min_value, max_value, sum_value, count) in latency_metrics_dict.items():
+        metrics.timing(f"spans.buffer.process_spans.avg_{metric}", sum_value / count)
+        metrics.timing(f"spans.buffer.process_spans.min_{metric}", min_value)
+        metrics.timing(f"spans.buffer.process_spans.max_{metric}", max_value)
+    for metric, (min_value, max_value, sum_value, count) in gauge_metrics_dict.items():
+        metrics.gauge(f"spans.buffer.avg_{metric}", sum_value / count)
+        metrics.gauge(f"spans.buffer.min_{metric}", min_value)
+        metrics.gauge(f"spans.buffer.max_{metric}", max_value)
+
+    for data_point in longest_evalsha_data[1]:  # latency_metrics
+        key = data_point[0].decode("utf-8")
+        metrics.timing(f"spans.buffer.process_spans.longest_evalsha.latency.{key}", data_point[1])
+    for data_point in longest_evalsha_data[2]:  # gauge_metrics
+        key = data_point[0].decode("utf-8")
+        metrics.gauge(f"spans.buffer.process_spans.longest_evalsha.{key}", data_point[1])

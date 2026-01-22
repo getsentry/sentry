@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ClippedBox from 'sentry/components/clippedBox';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Text} from 'sentry/components/core/text';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -290,9 +290,6 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   if (messages.length === 0) {
     return (
       <PanelContainer direction="column">
-        <Container padding="md xl">
-          <Heading as="h6">{t('Messages')}</Heading>
-        </Container>
         <EmptyMessage>{t('No messages found')}</EmptyMessage>
       </PanelContainer>
     );
@@ -300,102 +297,87 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
   return (
     <PanelContainer direction="column">
-      <Container padding="md xl">
-        <Heading as="h6" size="xl">
-          {t('Messages')}
-        </Heading>
-      </Container>
-      <ScrollableContent direction="column" padding="md">
-        <Stack gap="md">
-          {messages.map((message, index) => {
-            const isSelected = message.id === effectiveSelectedMessageId;
-            return (
-              <MessageBubble
-                key={index}
-                role={message.role}
-                isClickable
-                isSelected={isSelected}
-                onClick={() => handleMessageClick(message)}
-              >
-                <MessageHeader justify={message.role === 'assistant' ? 'end' : 'start'}>
-                  {message.role === 'user' ? (
-                    <IconUser size="sm" />
-                  ) : (
-                    <IconBot size="sm" />
-                  )}
-                  <Text bold size="sm">
-                    {message.role === 'user' ? t('User') : t('Assistant')}
+      <Stack gap="md">
+        {messages.map((message, index) => {
+          const isSelected = message.id === effectiveSelectedMessageId;
+          const isAssistant = message.role === 'assistant';
+          return (
+            <MessageBubble
+              key={index}
+              role={message.role}
+              isClickable={isAssistant}
+              isSelected={isAssistant && isSelected}
+              onClick={isAssistant ? () => handleMessageClick(message) : undefined}
+            >
+              <MessageHeader justify={message.role === 'assistant' ? 'end' : 'start'}>
+                {message.role === 'user' ? <IconUser size="sm" /> : <IconBot size="sm" />}
+                <Text bold size="sm">
+                  {message.role === 'user' ? t('User') : t('Assistant')}
+                </Text>
+                {message.role === 'user' && message.userEmail && (
+                  <Text size="sm" style={{color: 'inherit', opacity: 0.7}}>
+                    {message.userEmail}
                   </Text>
-                  {message.role === 'user' && message.userEmail && (
-                    <Text size="sm" style={{color: 'inherit', opacity: 0.7}}>
-                      {message.userEmail}
+                )}
+              </MessageHeader>
+              <StyledClippedBox
+                clipHeight={200}
+                buttonProps={{priority: 'default', size: 'xs'}}
+                collapsible
+              >
+                <Container padding="sm">
+                  <MessageText size="sm">
+                    <MarkedText
+                      as={TraceDrawerComponents.MarkdownContainer}
+                      text={escapeXmlTags(message.content)}
+                    />
+                  </MessageText>
+                </Container>
+              </StyledClippedBox>
+              {message.role === 'assistant' &&
+                message.toolCalls &&
+                message.toolCalls.length > 0 && (
+                  <ToolCallsFooter
+                    direction="row"
+                    align="center"
+                    gap="xs"
+                    wrap="wrap"
+                    padding="xs sm"
+                  >
+                    <Text size="xs" style={{opacity: 0.7}}>
+                      {t('Tools called:')}
                     </Text>
-                  )}
-                </MessageHeader>
-                <StyledClippedBox
-                  clipHeight={200}
-                  buttonProps={{priority: 'default', size: 'xs'}}
-                  collapsible
-                >
-                  <Container padding="sm">
-                    <MessageText size="sm">
-                      <MarkedText
-                        as={TraceDrawerComponents.MarkdownContainer}
-                        text={escapeXmlTags(message.content)}
-                      />
-                    </MessageText>
-                  </Container>
-                </StyledClippedBox>
-                {message.role === 'assistant' &&
-                  message.toolCalls &&
-                  message.toolCalls.length > 0 && (
-                    <ToolCallsFooter
-                      direction="row"
-                      align="center"
-                      gap="xs"
-                      wrap="wrap"
-                      padding="xs sm"
-                    >
-                      <Text size="xs" style={{opacity: 0.7}}>
-                        {t('Tools called:')}
-                      </Text>
-                      {message.toolCalls.map(tool => {
-                        const toolNode = nodeMap.get(tool.nodeId);
-                        return (
-                          <ClickableTag
-                            key={tool.nodeId}
-                            variant="info"
-                            onClick={e => {
-                              e.stopPropagation();
-                              if (toolNode) {
-                                onSelectNode(toolNode);
-                              }
-                            }}
-                          >
-                            {tool.name}
-                          </ClickableTag>
-                        );
-                      })}
-                    </ToolCallsFooter>
-                  )}
-              </MessageBubble>
-            );
-          })}
-        </Stack>
-      </ScrollableContent>
+                    {message.toolCalls.map(tool => {
+                      const toolNode = nodeMap.get(tool.nodeId);
+                      const isToolSelected = tool.nodeId === selectedNodeId;
+                      return (
+                        <ClickableTag
+                          key={tool.nodeId}
+                          variant="info"
+                          isSelected={isToolSelected}
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (toolNode) {
+                              onSelectNode(toolNode);
+                            }
+                          }}
+                        >
+                          {tool.name}
+                        </ClickableTag>
+                      );
+                    })}
+                  </ToolCallsFooter>
+                )}
+            </MessageBubble>
+          );
+        })}
+      </Stack>
     </PanelContainer>
   );
 }
 
 const PanelContainer = styled(Flex)`
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  overflow: hidden;
-`;
-
-const ScrollableContent = styled(Flex)`
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
@@ -420,6 +402,12 @@ const MessageBubble = styled('div')<{
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
+  width: 90%;
+  align-self: ${p => (p.role === 'user' ? 'flex-start' : 'flex-end')};
+  background-color: ${p =>
+    p.role === 'user'
+      ? p.theme.tokens.background.secondary
+      : p.theme.tokens.background.primary};
   ${p =>
     p.isClickable &&
     `
@@ -448,9 +436,15 @@ const ToolCallsFooter = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const ClickableTag = styled(Tag)`
+const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
   cursor: pointer;
   &:hover {
     opacity: 0.8;
   }
+  ${p =>
+    p.isSelected &&
+    `
+    outline: 2px solid ${p.theme.tokens.focus.default};
+    outline-offset: -2px;
+  `}
 `;

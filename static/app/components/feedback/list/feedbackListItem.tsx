@@ -78,7 +78,7 @@ export default function FeedbackListItem({
         <InteractionStateLayer />
 
         <Row
-          style={{gridArea: 'checkbox'}}
+          area="checkbox"
           onClick={e => {
             e.stopPropagation();
           }}
@@ -101,20 +101,14 @@ export default function FeedbackListItem({
         <StyledTimeSince date={feedbackItem.firstSeen} />
 
         {feedbackItem.hasSeen ? null : (
-          <DotRow style={{gridArea: 'unread'}}>
+          <DotRow area="unread">
             <Tooltip title={t('Unread')} skipWrapper>
               <UnreadIndicator />
             </Tooltip>
           </DotRow>
         )}
 
-        <PreviewRow
-          align="start"
-          justify="start"
-          style={{
-            gridArea: 'message',
-          }}
-        >
+        <PreviewRow align="start" justify="start" area="message">
           <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
         </PreviewRow>
 

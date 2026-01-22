@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from unittest import mock
+from unittest.mock import call
 
-from sentry.spans.buffer_logger import BufferLogger
+from sentry.spans.buffer_logger import BufferLogger, emit_observability_metrics
 from sentry.testutils.helpers.options import override_options
 
 
@@ -143,3 +144,159 @@ class TestBufferLogger:
         # the logging path without going through log() method
         # So we just verify initial state
         assert mock_logger.info.call_count == 0
+
+
+class TestEmitObservabilityMetrics:
+    def data(self):
+        return {
+            "latency_metrics": [
+                [
+                    [b"redirect_step_latency_ms", 1],
+                    [b"sunionstore_args_step_latency_ms", 1],
+                    [b"zunionstore_step_latency_ms", 2],
+                    [b"arg_cleanup_step_latency_ms", 3],
+                    [b"zpopmin_step_latency_ms", 5],
+                    [b"ingested_count_step_latency_ms", 8],
+                    [b"total_step_latency_ms", 13],
+                ],
+                [
+                    [b"redirect_step_latency_ms", 1],
+                    [b"sunionstore_args_step_latency_ms", 1],
+                    [b"ingested_count_step_latency_ms", 2],
+                    [b"total_step_latency_ms", 3],
+                ],
+            ],
+            "gauge_metrics": [
+                [
+                    [b"redirect_table_size", 1123],
+                    [b"redirect_depth", 5],
+                    [b"parent_span_set_before_size", 813],
+                    [b"parent_span_set_after_size", 2134],
+                    [b"zpopcalls", 55],
+                ],
+                [
+                    [b"redirect_table_size", 1123],
+                    [b"redirect_depth", 5],
+                    [b"parent_span_set_before_size", 813],
+                    [b"parent_span_set_after_size", 2134],
+                    [b"zpopcalls", 55],
+                ],
+            ],
+            "longest_evalsha_data": (
+                13,
+                [
+                    [b"redirect_step_latency_ms", 1],
+                    [b"sunionstore_args_step_latency_ms", 1],
+                    [b"zunionstore_step_latency_ms", 2],
+                    [b"arg_cleanup_step_latency_ms", 3],
+                    [b"zpopmin_step_latency_ms", 5],
+                    [b"ingested_count_step_latency_ms", 8],
+                    [b"total_step_latency_ms", 13],
+                ],
+                [
+                    [b"redirect_table_size", 1123],
+                    [b"redirect_depth", 5],
+                    [b"parent_span_set_before_size", 813],
+                    [b"parent_span_set_after_size", 2134],
+                    [b"zpopcalls", 55],
+                ],
+            ),
+        }
+
+    @mock.patch("sentry.spans.buffer_logger.metrics.timing")
+    @mock.patch("sentry.spans.buffer_logger.metrics.gauge")
+    def test_emit_observability_metrics(self, mock_gauge, mock_timing):
+        emit_observability_metrics(
+            latency_metrics=self.data()["latency_metrics"],
+            gauge_metrics=self.data()["gauge_metrics"],
+            longest_evalsha_data=self.data()["longest_evalsha_data"],
+        )
+
+        # Expected timing calls: 7 timing metrics * 3 (min, max, avg) + 8 for longest evalsha
+        mock_timing.assert_has_calls(
+            [
+                # Aggregated latency metrics (min, max, avg for each metric)
+                call("spans.buffer.process_spans.avg_redirect_step_latency_ms", 1.0),
+                call("spans.buffer.process_spans.min_redirect_step_latency_ms", 1),
+                call("spans.buffer.process_spans.max_redirect_step_latency_ms", 1),
+                call("spans.buffer.process_spans.avg_sunionstore_args_step_latency_ms", 1.0),
+                call("spans.buffer.process_spans.min_sunionstore_args_step_latency_ms", 1),
+                call("spans.buffer.process_spans.max_sunionstore_args_step_latency_ms", 1),
+                call("spans.buffer.process_spans.avg_zunionstore_step_latency_ms", 2.0),
+                call("spans.buffer.process_spans.min_zunionstore_step_latency_ms", 2),
+                call("spans.buffer.process_spans.max_zunionstore_step_latency_ms", 2),
+                call("spans.buffer.process_spans.avg_arg_cleanup_step_latency_ms", 3.0),
+                call("spans.buffer.process_spans.min_arg_cleanup_step_latency_ms", 3),
+                call("spans.buffer.process_spans.max_arg_cleanup_step_latency_ms", 3),
+                call("spans.buffer.process_spans.avg_zpopmin_step_latency_ms", 5.0),
+                call("spans.buffer.process_spans.min_zpopmin_step_latency_ms", 5),
+                call("spans.buffer.process_spans.max_zpopmin_step_latency_ms", 5),
+                call("spans.buffer.process_spans.avg_ingested_count_step_latency_ms", 5.0),
+                call("spans.buffer.process_spans.min_ingested_count_step_latency_ms", 2),
+                call("spans.buffer.process_spans.max_ingested_count_step_latency_ms", 8),
+                call("spans.buffer.process_spans.avg_total_step_latency_ms", 8.0),
+                call("spans.buffer.process_spans.min_total_step_latency_ms", 3),
+                call("spans.buffer.process_spans.max_total_step_latency_ms", 13),
+                # Longest evalsha metrics
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.latency.redirect_step_latency_ms",
+                    1,
+                ),
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.latency.sunionstore_args_step_latency_ms",
+                    1,
+                ),
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.latency.zunionstore_step_latency_ms",
+                    2,
+                ),
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.latency.arg_cleanup_step_latency_ms",
+                    3,
+                ),
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.latency.zpopmin_step_latency_ms",
+                    5,
+                ),
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.latency.ingested_count_step_latency_ms",
+                    8,
+                ),
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.latency.total_step_latency_ms",
+                    13,
+                ),
+            ]
+        )
+
+        # Expected gauge calls: 5 gauge metrics * 3 (min, max, avg) + 5 for longest evalsha
+        mock_gauge.assert_has_calls(
+            [
+                # Aggregated gauge metrics (min, max, avg for each metric)
+                call("spans.buffer.avg_redirect_table_size", 1123.0),
+                call("spans.buffer.min_redirect_table_size", 1123.0),
+                call("spans.buffer.max_redirect_table_size", 1123.0),
+                call("spans.buffer.avg_redirect_depth", 5.0),
+                call("spans.buffer.min_redirect_depth", 5.0),
+                call("spans.buffer.max_redirect_depth", 5.0),
+                call("spans.buffer.avg_parent_span_set_before_size", 813.0),
+                call("spans.buffer.min_parent_span_set_before_size", 813.0),
+                call("spans.buffer.max_parent_span_set_before_size", 813.0),
+                call("spans.buffer.avg_parent_span_set_after_size", 2134.0),
+                call("spans.buffer.min_parent_span_set_after_size", 2134.0),
+                call("spans.buffer.max_parent_span_set_after_size", 2134.0),
+                call("spans.buffer.avg_zpopcalls", 55.0),
+                call("spans.buffer.min_zpopcalls", 55.0),
+                call("spans.buffer.max_zpopcalls", 55.0),
+                # Longest evalsha gauge metrics
+                call("spans.buffer.process_spans.longest_evalsha.redirect_table_size", 1123.0),
+                call("spans.buffer.process_spans.longest_evalsha.redirect_depth", 5.0),
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.parent_span_set_before_size", 813.0
+                ),
+                call(
+                    "spans.buffer.process_spans.longest_evalsha.parent_span_set_after_size", 2134.0
+                ),
+                call("spans.buffer.process_spans.longest_evalsha.zpopcalls", 55.0),
+            ]
+        )

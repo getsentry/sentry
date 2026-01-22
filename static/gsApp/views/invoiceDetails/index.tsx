@@ -344,7 +344,7 @@ const InvoiceItems = styled('table')`
 const RefundRow = styled('tr')`
   td,
   th {
-    background: ${p => p.theme.alert.warning.backgroundLight};
+    background: ${p => p.theme.colors.yellow100};
   }
 `;
 

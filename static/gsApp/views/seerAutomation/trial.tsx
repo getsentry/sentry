@@ -137,7 +137,7 @@ export default function SeerAutomationTrial() {
                     radius="md"
                     background="tertiary"
                     padding="md"
-                    style={{position: 'relative'}}
+                    position="relative"
                   >
                     <InteractionStateLayer />
                     <ExternalLink href={href}>

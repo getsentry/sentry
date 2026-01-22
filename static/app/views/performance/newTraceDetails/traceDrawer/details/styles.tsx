@@ -1203,10 +1203,7 @@ function MultilineText({children}: {children: string}) {
     <Fragment>
       <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
-          <Container
-            position="absolute"
-            style={{top: theme.space.xs, right: theme.space.xs}}
-          >
+          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (
               <SegmentedControl
                 size="xs"
@@ -1329,9 +1326,9 @@ function MultilineJSON({
       {isHovered && (
         <Container
           position="absolute"
+          top={theme.space.xs}
+          right={theme.space.xs}
           style={{
-            top: theme.space.xs,
-            right: theme.space.xs,
             // Ensure the segmented control is on top of the text StructuredData
             zIndex: 1,
           }}
