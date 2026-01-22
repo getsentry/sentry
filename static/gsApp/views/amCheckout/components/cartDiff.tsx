@@ -620,7 +620,7 @@ const Change = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
 
@@ -653,8 +653,8 @@ const Removed = styled(Change)<{prefersDarkMode?: boolean}>`
 `;
 
 const ChangedCategory = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -671,7 +671,7 @@ const ChangeGrid = styled('div')`
 `;
 
 const ChangeSectionTitle = styled(Text)<{hasBottomMargin?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   margin-bottom: ${p => (p.hasBottomMargin ? p.theme.space.xs : 0)};
 `;

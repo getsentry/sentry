@@ -84,7 +84,7 @@ const ApplicationName = styled(Link)`
 
 const ClientId = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default Row;

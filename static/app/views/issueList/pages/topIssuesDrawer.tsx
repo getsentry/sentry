@@ -1033,7 +1033,7 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
 const TagPill = styled('span')`
   display: inline-block;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -1041,7 +1041,7 @@ const TagPill = styled('span')`
 `;
 
 const IssueTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.4;
@@ -1052,16 +1052,16 @@ const IssueTitle = styled('div')`
   text-overflow: ellipsis;
 
   em {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
     color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const IssueMessage = styled(EventMessage)`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.9;
 `;

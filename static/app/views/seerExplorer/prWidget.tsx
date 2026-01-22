@@ -335,7 +335,7 @@ const PRLink = styled('a')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   text-decoration: none;
 
   &:hover {

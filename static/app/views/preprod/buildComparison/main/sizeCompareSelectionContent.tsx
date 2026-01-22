@@ -356,6 +356,6 @@ const BuildItemBranchTag = styled('span')`
   background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
