@@ -281,7 +281,9 @@ def get_detectors_for_event_data(
     issue_stream_detector: Detector | None = None
 
     try:
-        if event_data.group.issue_type.enable_issue_stream_detector:
+        if event_data.group.type not in options.get(
+            "workflow_engine.group.type_id.disable_issue_stream_detector"
+        ):
             issue_stream_detector = Detector.get_issue_stream_detector_for_project(
                 event_data.group.project_id
             )
