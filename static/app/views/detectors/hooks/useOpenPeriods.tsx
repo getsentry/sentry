@@ -1,4 +1,5 @@
 import type {GroupOpenPeriod} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -27,7 +28,9 @@ function makeOpenPeriodsQueryKey({
   ...params
 }: UseOpenPeriodsParams & {orgSlug: string}): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/open-periods/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/open-periods/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       query: params,
     },
