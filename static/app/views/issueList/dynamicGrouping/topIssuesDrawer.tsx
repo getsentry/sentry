@@ -495,11 +495,11 @@ function DenseTagFacets({groupIds}: DenseTagFacetsProps) {
           {t('Top Value')}
         </Text>
       </TagsTableHeader>
-      <DenseTagsGrid>
+      <Container>
         {tags.map((tag: GroupTag) => (
           <DenseTagItem key={tag.key} tag={tag} colors={theme.chart.getColorPalette(4)} />
         ))}
-      </DenseTagsGrid>
+      </Container>
     </Grid>
   );
 }
@@ -539,7 +539,9 @@ function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
             {topValues.map((value, index) => {
               const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
               return (
-                <DenseTagSegment
+                <Container
+                  minWidth="2px"
+                  height="100%"
                   key={value.value}
                   style={{
                     width: `${pct}%`,
@@ -601,12 +603,14 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
             skipWrapper
             maxWidth={360}
           >
-            <TagBarHoverArea>
+            <Flex align="center" padding="xs 0" width="100%" height="100%">
               <TagMiniBar aria-hidden="true">
                 {barValues.map((value, index) => {
                   const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
                   return (
-                    <DenseTagSegment
+                    <Container
+                      minWidth="2px"
+                      height="100%"
                       key={value.value}
                       style={{
                         width: `${pct}%`,
@@ -616,7 +620,7 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
                   );
                 })}
               </TagMiniBar>
-            </TagBarHoverArea>
+            </Flex>
           </Tooltip>
         ) : (
           <Text size="xs" variant="muted">
@@ -1016,10 +1020,6 @@ const TagsTableHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const DenseTagsGrid = styled('div')`
-  display: contents;
-`;
-
 const DenseTagBar = styled('div')`
   display: flex;
   width: 100%;
@@ -1030,11 +1030,6 @@ const DenseTagBar = styled('div')`
   margin-bottom: ${p => p.theme.space.sm};
 `;
 
-const DenseTagSegment = styled('div')`
-  height: 100%;
-  min-width: 2px;
-`;
-
 const TagMiniBar = styled('div')`
   display: flex;
   width: 100%;
@@ -1043,14 +1038,6 @@ const TagMiniBar = styled('div')`
   overflow: hidden;
   background: ${p => p.theme.tokens.background.secondary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
-`;
-
-const TagBarHoverArea = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  padding: ${p => p.theme.space.xs} 0;
 `;
 
 const DenseTagChip = styled('div')`
