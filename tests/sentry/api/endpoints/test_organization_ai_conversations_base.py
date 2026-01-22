@@ -38,10 +38,6 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         output_messages=None,
         system_instructions=None,
         tool_definitions=None,
-        model=None,
-        response_model=None,
-        function_id=None,
-        operation_name=None,
     ):
         """Create and store an AI span with the given attributes.
 
@@ -67,10 +63,6 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             output_messages: The gen_ai.output.messages (new format, will be JSON serialized)
             system_instructions: The gen_ai.system_instructions attribute
             tool_definitions: The gen_ai.tool.definitions (new format, will be JSON serialized)
-            model: The gen_ai.request.model attribute
-            response_model: The gen_ai.response.model attribute
-            function_id: The gen_ai.function.id attribute
-            operation_name: The gen_ai.operation.name attribute
 
         Returns:
             The created span object
@@ -100,14 +92,6 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.system_instructions"] = system_instructions
         if tool_definitions is not None:
             span_data["gen_ai.tool.definitions"] = json.dumps(tool_definitions)
-        if model is not None:
-            span_data["gen_ai.request.model"] = model
-        if response_model is not None:
-            span_data["gen_ai.response.model"] = response_model
-        if function_id is not None:
-            span_data["gen_ai.function.id"] = function_id
-        if operation_name is not None:
-            span_data["gen_ai.operation.name"] = operation_name
         # Store user data with sentry. prefix for EAP indexing
         if user_id is not None:
             span_data["sentry.user.id"] = user_id
