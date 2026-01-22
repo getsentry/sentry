@@ -66,6 +66,9 @@ const config: KnipConfig = {
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
     // ignore eslint plugins in production
     '!static/eslint/**/*.mjs!',
+    // TODO: temporarily ignore bar chart widget visualization and categorical bar chart
+    '!static/app/views/dashboards/widgets/barChartWidgetVisualization/**/*.{js,mjs,ts,tsx}',
+    '!static/app/components/charts/categorical/barCategorical.tsx',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
