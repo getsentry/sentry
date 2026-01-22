@@ -58,12 +58,11 @@ const StyledSurface = styled(Container, {
  * <Surface variant="secondary" radius={{xs: 'sm', md: 'lg'}}>Content</Surface>
  */
 export function Surface(props: SurfaceProps) {
-  const {variant, elevation, radius, ref, ...rest} = props;
+  const {variant, elevation, radius, ...rest} = props;
 
   if (variant === 'overlay') {
     return (
       <StyledSurface
-        ref={ref}
         variant={variant}
         elevation={elevation}
         display="block"
@@ -77,9 +76,7 @@ export function Surface(props: SurfaceProps) {
 
   return (
     <StyledSurface
-      ref={ref}
       variant={variant}
-      elevation={elevation}
       display="block"
       background={variant}
       radius={radius}
