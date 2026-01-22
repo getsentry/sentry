@@ -111,12 +111,12 @@ const IssueRow = styled('div')<{isFirst: boolean}>`
 
 const IssueTitle = styled('div')`
   flex: 1;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 const IssueCount = styled(Count)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

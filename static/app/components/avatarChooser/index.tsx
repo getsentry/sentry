@@ -415,7 +415,7 @@ const CropperHovercard = styled(Hovercard)`
 const AvatarHelp = styled('p')`
   margin-right: auto;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 50%;
 `;
 

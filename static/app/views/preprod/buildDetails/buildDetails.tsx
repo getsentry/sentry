@@ -11,6 +11,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   useApiQuery,
@@ -51,7 +52,16 @@ export default function BuildDetails() {
   const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectId,
+              headArtifactId: artifactId,
+            },
+          }
+        ),
       ],
       {
         staleTime: 0,
@@ -70,10 +80,30 @@ export default function BuildDetails() {
   const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
     useApiQuery<AppSizeApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/size-analysis/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size-analysis/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectId,
+              headArtifactId: artifactId,
+            },
+          }
+        ),
       ],
       {
         staleTime: 0,
+        retry: (failureCount, apiError: RequestError) => {
+          // By default we retry 404s 3 times which causes
+          // latency when loading the page if there is no size-analysis
+          // (which is legitimate if size was not run on this artifact).
+          // Instead don't retry 404s:
+          if (apiError?.status === 404) {
+            return false;
+          }
+          // Keep default behaviour otherwise:
+          return failureCount < 2;
+        },
         enabled: !!projectId && !!artifactId,
       }
     );
