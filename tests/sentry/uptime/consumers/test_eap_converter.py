@@ -12,6 +12,24 @@ from sentry.uptime.consumers.eap_converter import (
     ms_to_us,
 )
 from sentry.uptime.types import IncidentStatus
+from sentry.utils import json
+
+JSON_ASSERTION_FAILURE_DATA = (
+    {
+        "root": {
+            "op": "and",
+            "children": [
+                {
+                    "op": "not",
+                    "operand": {
+                        "op": "json_path",
+                        "value": '$.components[?@.status == "operational"]',
+                    },
+                }
+            ],
+        }
+    },
+)
 
 
 class TestHelperFunctions(TestCase):
@@ -59,6 +77,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
             "duration_ms": 150,
             "request_info": None,
             "region": "us-east-1",
+            "assertion_failure_data": None,
             **overrides,
         }
 
@@ -303,6 +322,21 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert "request_body_size_bytes" not in attributes
         assert "response_body_size_bytes" not in attributes
 
+    def test_convert_with_assertion_failure_data(self) -> None:
+        result = self._create_base_result(
+            assertion_failure_data=JSON_ASSERTION_FAILURE_DATA,
+        )
+
+        item_id = b"span-789"[:16].ljust(16, b"\x00")
+        trace_item = convert_uptime_request_to_trace_item(
+            self.project, result, None, 0, item_id, IncidentStatus.NO_INCIDENT
+        )
+
+        attributes = trace_item.attributes
+        assert attributes["assertion_failure_data"].string_value == json.dumps(
+            JSON_ASSERTION_FAILURE_DATA
+        )
+
 
 class TestFullDenormalizedConversion(SentryTestCase):
 
@@ -320,6 +354,7 @@ class TestFullDenormalizedConversion(SentryTestCase):
             "duration_ms": 150,
             "request_info": None,
             "region": "us-east-1",
+            "assertion_failure_data": None,
         }
         base.update(overrides)
         return base
