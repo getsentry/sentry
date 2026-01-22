@@ -303,7 +303,6 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
 
 
 def add_github_reaction(
-    *,
     github_event: GithubWebhookType,
     github_event_action: str,
     integration: RpcIntegration | None,

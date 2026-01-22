@@ -95,9 +95,8 @@ def _add_eyes_reaction_to_pull_request(
     pr_number: str,
 ) -> None:
     """
-    Add 👀 reaction to acknowledge PR opening, ready for review, or new commits.
+    Add 👀 reaction to acknowledge PR opening, ready for review, or new commits. Errors are added to metrics but not raised.
     Before adding eyes reaction, delete the existing 🎉 reaction from Sentry bot if it exists.
-    Errors are added to metrics but not raised.
     """
 
     def perform_reaction(client: Any) -> None:
