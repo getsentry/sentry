@@ -51,7 +51,7 @@ type SurfaceProps<T extends ContainerElement = 'div'> =
  *
  */
 export const Surface = styled((props: SurfaceProps<any>) => {
-  const {variant, ...rest} = props;
+  const {variant, elevation: _, ...rest} = props;
   if (variant === 'overlay') {
     return <Container border="primary" radius={props.radius ?? 'md'} {...rest} />;
   }
