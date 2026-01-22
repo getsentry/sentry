@@ -129,6 +129,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/sentry-app-installations/[^/]+/external-issue-actions/$'),
   new RegExp('^api/0/sentry-app-installations/[^/]+/external-issues/$'),
   new RegExp('^api/0/sentry-app-installations/[^/]+/external-issues/[^/]+/$'),
+  new RegExp('^api/0/sentry-app-installations/[^/]+/service-hook-projects/$'),
   new RegExp('^api/0/auth/$'),
   new RegExp('^api/0/auth/config/$'),
   new RegExp('^api/0/auth/login/$'),

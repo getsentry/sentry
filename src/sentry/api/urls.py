@@ -3499,8 +3499,6 @@ SENTRY_APP_INSTALLATION_URLS = [
         SentryAppInstallationExternalIssueDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-external-issue-details",
     ),
-    # The following endpoints are region scoped, not control
-    # like most of sentryapps.
     re_path(
         r"^(?P<uuid>[^/]+)/service-hook-projects/$",
         SentryAppInstallationServiceHookProjectsEndpoint.as_view(),
