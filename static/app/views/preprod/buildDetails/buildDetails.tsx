@@ -74,6 +74,17 @@ export default function BuildDetails() {
       ],
       {
         staleTime: 0,
+        retry: (failureCount, apiError: RequestError) => {
+          // By default we retry 404s 3 times which causes
+          // latency when loading the page if there is no size-analysis
+          // (which is legitimate if size was not run on this artifact).
+          // Instead don't retry 404s:
+          if (apiError?.status === 404) {
+            return false;
+          }
+          // Keep default behaviour otherwise:
+          return failureCount < 2;
+        },
         enabled: !!projectId && !!artifactId,
       }
     );
