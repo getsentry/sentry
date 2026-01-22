@@ -115,27 +115,19 @@ def _add_eyes_reaction_to_pull_request(
     try:
         client = integration.get_installation(organization_id=organization.id).get_client()
 
-        existing_reactions = client.get_issue_reactions(repo.name, str(pr_number))
-
-        has_eyes_reaction = False
-        hooray_reaction_ids = []
-        for reaction in existing_reactions:
-            if reaction.get("user", {}).get("login") == "sentry[bot]":
-                content = reaction.get("content")
-                if content == GitHubReaction.EYES.value:
-                    has_eyes_reaction = True
-                elif content == GitHubReaction.HOORAY.value and reaction.get("id"):
-                    hooray_reaction_ids.append(reaction.get("id"))
-
-        for reaction_id in hooray_reaction_ids:
-            # Don't fail the whole operation if we can't delete a hooray reaction--Seer will try again when dismissing old review
-            try:
-                client.delete_issue_reaction(repo.name, str(pr_number), str(reaction_id))
-            except Exception:
-                logger.warning(Log.REACTION_FAILED.value, extra=extra)
-
-        if has_eyes_reaction:
-            return
+        # Don't fail the whole operation if we can't delete a hooray reaction--Seer will try again when dismissing old review
+        try:
+            existing_reactions = client.get_issue_reactions(repo.name, str(pr_number))
+            for reaction in existing_reactions:
+                if (
+                    reaction.get("user", {}).get("login") == "sentry[bot]"
+                    and reaction.get("content") == GitHubReaction.HOORAY.value
+                    and reaction.get("id")
+                ):
+                    client.delete_issue_reaction(repo.name, str(pr_number), str(reaction.get("id")))
+                    break
+        except Exception:
+            logger.warning(Log.REACTION_FAILED.value, extra=extra)
 
         client.create_issue_reaction(repo.name, str(pr_number), GitHubReaction.EYES)
     except Exception:

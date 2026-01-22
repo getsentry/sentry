@@ -595,6 +595,7 @@ class GitHubBaseClient(
     def create_issue_reaction(self, repo: str, issue_number: str, reaction: GitHubReaction) -> Any:
         """
         https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue
+        Returns 200 if reaction type already exists, 201 if new reaction is created.
         """
         endpoint = f"/repos/{repo}/issues/{issue_number}/reactions"
         return self.post(endpoint, data={"content": reaction.value})
