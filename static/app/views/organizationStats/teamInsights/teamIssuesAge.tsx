@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -58,7 +59,9 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
     refetch: refetchOldestIssues,
   } = useApiQuery<Group[]>(
     [
-      `/teams/${organization.slug}/${teamSlug}/issues/old/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/issues/old/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           limit: 7,
@@ -74,7 +77,11 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
     isError: isUnresolvedIssueAgeError,
     refetch: refetchUnresolvedIssueAge,
   } = useApiQuery<Record<string, number>>(
-    [`/teams/${organization.slug}/${teamSlug}/unresolved-issue-age/`],
+    [
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/unresolved-issue-age/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
+    ],
     {staleTime: 5000}
   );
 

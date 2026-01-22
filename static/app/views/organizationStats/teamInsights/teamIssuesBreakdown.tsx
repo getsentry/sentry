@@ -15,6 +15,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -79,7 +80,9 @@ function TeamIssuesBreakdown({
     refetch,
   } = useApiQuery<IssuesBreakdown>(
     [
-      `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/issue-breakdown/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams({start, end, period, utc}),
