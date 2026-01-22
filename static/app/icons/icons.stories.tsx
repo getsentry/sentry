@@ -1895,11 +1895,11 @@ function CodeBlock({code, language}: {code: string; language: string}) {
     <Pre className={`language-${language}`}>
       <code>
         {lines.map((line, lineIndex) => (
-          <Line key={lineIndex}>
+          <Container minHeight="1lh" key={lineIndex}>
             {line.map((tokenProps, tokenIndex) => (
               <span key={`${lineIndex}:${tokenIndex}`} {...tokenProps} />
             ))}
-          </Line>
+          </Container>
         ))}
       </code>
     </Pre>
@@ -1958,10 +1958,6 @@ const Pre = styled('pre')`
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
 `;
-const Line = styled('div')`
-  min-height: 1lh;
-`;
-
 const Cell = styled('button')`
   background: none;
   display: flex;
