@@ -69,32 +69,3 @@ Use `variant="overlay"` for floating surfaces like dropdowns, modals, and popove
   Overlay: High elevation
 </Surface>
 ```
-
-## Radius
-
-The `radius` prop controls the border radius. Overlay surfaces default to `md` radius; other variants have no radius by default.
-
-<Storybook.Demo>
-  <Stack minWidth="0" flexGrow={1} gap="md">
-    <Surface variant="overlay" elevation="low" radius="sm">
-      <Flex padding="xl lg">Small radius</Flex>
-    </Surface>
-    <Surface variant="overlay" elevation="low" radius="md">
-      <Flex padding="xl lg">Medium radius</Flex>
-    </Surface>
-    <Surface variant="overlay" elevation="low" radius="lg">
-      <Flex padding="xl lg">Large radius</Flex>
-    </Surface>
-  </Stack>
-</Storybook.Demo>
-```jsx
-<Surface variant="overlay" elevation="low" radius="sm">
-  Small radius
-</Surface>
-<Surface variant="overlay" elevation="low" radius="md">
-  Medium radius
-</Surface>
-<Surface variant="overlay" elevation="low" radius="lg">
-  Large radius
-</Surface>
-```
