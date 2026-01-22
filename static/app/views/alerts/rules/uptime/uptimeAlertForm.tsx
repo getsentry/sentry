@@ -4,6 +4,8 @@ import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react-lite';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -204,7 +206,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         }
       }}
       extraButton={
-        <Fragment>
+        <Flex gap="md">
           {rule && handleDelete && (
             <Confirm
               message={t(
@@ -239,7 +241,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               )}
             </Observer>
           )}
-        </Fragment>
+        </Flex>
       }
     >
       <List symbol="colored-numeric">
