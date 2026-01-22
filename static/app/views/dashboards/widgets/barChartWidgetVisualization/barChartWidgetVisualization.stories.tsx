@@ -12,8 +12,8 @@ import {
   sampleDurationCategoricalData,
   sampleStackedCategoricalData,
 } from './fixtures/sampleCountCategoricalData';
+import {Bar} from './plottables/bar';
 import {BarChartWidgetVisualization} from './barChartWidgetVisualization';
-import {Bar} from './plottables';
 
 export default Storybook.story('BarChartWidgetVisualization', (story, APIReference) => {
   APIReference(documentation.props?.BarChartWidgetVisualization);

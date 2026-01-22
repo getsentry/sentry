@@ -6,7 +6,7 @@ import {
   sampleDurationCategoricalData,
   sampleStackedCategoricalData,
 } from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/sampleCountCategoricalData';
-import {Bar} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables';
+import {Bar} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables/bar';
 import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/types';
 
 describe('BarChartWidgetVisualization', () => {
