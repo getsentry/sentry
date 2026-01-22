@@ -133,7 +133,6 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           />
         </MediumWidget>
 
-        <br />
         <p>
           Horizontal bars are particularly useful when you have long category labels or
           many categories:
