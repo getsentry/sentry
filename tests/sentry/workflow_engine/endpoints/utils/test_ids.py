@@ -19,11 +19,13 @@ class TestToValidIntId:
     def test_negative_numbers_are_invalid(self) -> None:
         with pytest.raises(ValidationError) as exc_info:
             to_valid_int_id("test_id", -1)
+        assert isinstance(exc_info.value.detail, dict)
         assert "test_id" in exc_info.value.detail
         assert "not a valid integer id" in exc_info.value.detail["test_id"]
 
         with pytest.raises(ValidationError) as exc_info:
             to_valid_int_id("test_id", "-1")
+        assert isinstance(exc_info.value.detail, dict)
         assert "test_id" in exc_info.value.detail
         assert "not a valid integer id" in exc_info.value.detail["test_id"]
 
@@ -36,17 +38,20 @@ class TestToValidIntId:
         too_large = BoundedBigAutoField.MAX_VALUE + 1
         with pytest.raises(ValidationError) as exc_info:
             to_valid_int_id("test_id", too_large)
+        assert isinstance(exc_info.value.detail, dict)
         assert "test_id" in exc_info.value.detail
         assert "not a valid integer id" in exc_info.value.detail["test_id"]
 
         with pytest.raises(ValidationError) as exc_info:
             to_valid_int_id("test_id", str(too_large))
+        assert isinstance(exc_info.value.detail, dict)
         assert "test_id" in exc_info.value.detail
         assert "not a valid integer id" in exc_info.value.detail["test_id"]
 
     def test_non_numeric_string(self) -> None:
         with pytest.raises(ValidationError) as exc_info:
             to_valid_int_id("test_id", "not_a_number")
+        assert isinstance(exc_info.value.detail, dict)
         assert "test_id" in exc_info.value.detail
         assert "not a valid integer id" in exc_info.value.detail["test_id"]
 
