@@ -315,15 +315,25 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
-            latency_metrics = []
-            gauge_metrics = []
-            longest_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+            zset_latency_metrics = []
+            zset_gauge_metrics = []
+            set_latency_metrics = []
+            set_gauge_metrics = []
+            longest_zset_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
                 -1.0,
                 [],
                 [],
-            )  # (latency_ms, latency_metrics, gauge_metrics)
+            )
+            longest_set_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+                -1.0,
+                [],
+                [],
+            )
 
-            assert len(result_meta) == len(zset_results)
+            if write_to_zset:
+                assert len(result_meta) == len(zset_results)
+            if write_to_set:
+                assert len(result_meta) == len(set_results)
 
             for (project_and_trace, parent_span_id), result in zip(result_meta, zset_results):
                 (
@@ -333,10 +343,10 @@ class SpansBuffer:
                     evalsha_latency_metrics,
                     evalsha_gauge_metrics,
                 ) = result
-                latency_metrics.append(evalsha_latency_metrics)
-                gauge_metrics.append(evalsha_gauge_metrics)
-                if evalsha_latency_ms > longest_evalsha_data[0]:
-                    longest_evalsha_data = (
+                zset_latency_metrics.append(evalsha_latency_metrics)
+                zset_gauge_metrics.append(evalsha_gauge_metrics)
+                if evalsha_latency_ms > longest_zset_evalsha_data[0]:
+                    longest_zset_evalsha_data = (
                         evalsha_latency_ms,
                         evalsha_latency_metrics,
                         evalsha_gauge_metrics,
@@ -368,6 +378,24 @@ class SpansBuffer:
                 )
                 delete_set.discard(set_key)
 
+            if write_to_set and set_results:
+                for result in set_results:
+                    (
+                        _,
+                        _,
+                        evalsha_latency_ms,
+                        evalsha_latency_metrics,
+                        evalsha_gauge_metrics,
+                    ) = result
+                    set_latency_metrics.append(evalsha_latency_metrics)
+                    set_gauge_metrics.append(evalsha_gauge_metrics)
+                    if evalsha_latency_ms > longest_set_evalsha_data[0]:
+                        longest_set_evalsha_data = (
+                            evalsha_latency_ms,
+                            evalsha_latency_metrics,
+                            evalsha_gauge_metrics,
+                        )
+
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
                     if adds:
@@ -387,7 +415,14 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
 
         try:
-            emit_observability_metrics(latency_metrics, gauge_metrics, longest_evalsha_data)
+            if write_to_zset:
+                emit_observability_metrics(
+                    zset_latency_metrics, zset_gauge_metrics, longest_zset_evalsha_data
+                )
+            if write_to_set:
+                emit_observability_metrics(
+                    set_latency_metrics, set_gauge_metrics, longest_set_evalsha_data
+                )
         except Exception as e:
             logger.exception("Error emitting observability metrics: %s", e)
 
