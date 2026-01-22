@@ -101,14 +101,22 @@ function TraceMetricsSearchBar({
       'number',
       HiddenTraceMetricSearchFields
     );
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributesWithConfig(
+      traceItemAttributeConfig,
+      'boolean',
+      HiddenTraceMetricSearchFields
+    );
 
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.TRACEMETRICS}
+      booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       searchSource="dashboards"
@@ -141,12 +149,16 @@ function useTraceMetricsSearchBarDataProvider(
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.TRACEMETRICS,
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',

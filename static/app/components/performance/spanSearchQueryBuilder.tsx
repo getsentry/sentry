@@ -50,6 +50,8 @@ export interface UseSpanSearchQueryBuilderProps {
   useEap?: boolean;
 }
 export interface SpanSearchQueryBuilderProps extends UseSpanSearchQueryBuilderProps {
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
@@ -69,6 +71,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     useTraceItemTags('number');
   const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemTags('string');
+  const {tags: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemTags('boolean');
 
   const stringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in stringAttributes) {
@@ -84,6 +88,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     () => ({
       ...props,
       itemType: TraceItemDataset.SPANS,
+      booleanAttributes,
+      booleanSecondaryAliases,
       numberAttributes,
       stringAttributes: stringAttributesWithSemver,
       numberSecondaryAliases,
@@ -91,6 +97,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
       caseInsensitive: props.caseInsensitive ? true : undefined,
     }),
     [
+      booleanAttributes,
+      booleanSecondaryAliases,
       numberAttributes,
       numberSecondaryAliases,
       props,
@@ -102,6 +110,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   const spanSearchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
     ...props,
     itemType: TraceItemDataset.SPANS,
+    booleanAttributes,
+    booleanSecondaryAliases,
     numberAttributes,
     stringAttributes: stringAttributesWithSemver,
     numberSecondaryAliases,
