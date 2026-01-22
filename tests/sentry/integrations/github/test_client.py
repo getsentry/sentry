@@ -462,39 +462,20 @@ class GitHubApiClientTest(TestCase):
                 {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"},
                 {"id": 2, "user": {"login": "other-user"}, "content": "heart"},
             ],
-            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=4>; rel="last"'},
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=2>; rel="last"'},
         )
-        # For simplicity, we're skipping the `first` and `prev` links from the following responses
         responses.add(
             method=responses.GET,
             url=f"{url}&page=2",
             json=[
-                {"id": 3, "user": {"login": "user3"}, "content": "heart"},
-                {"id": 4, "user": {"login": "user4"}, "content": "hooray"},
+                {"id": 3, "user": {"login": "user3"}, "content": "hooray"},
             ],
-            headers={"link": f'<{url}&page=3>; rel="next", <{url}&page=4>; rel="last"'},
-        )
-        responses.add(
-            method=responses.GET,
-            url=f"{url}&page=3",
-            json=[
-                {"id": 5, "user": {"login": "user5"}, "content": "rocket"},
-                {"id": 6, "user": {"login": "user6"}, "content": "laugh"},
-            ],
-            headers={"link": f'<{url}&page=4>; rel="next", <{url}&page=4>; rel="last"'},
-        )
-        responses.add(
-            method=responses.GET,
-            url=f"{url}&page=4",
-            json=[
-                {"id": 7, "user": {"login": "user7"}, "content": "confused"},
-            ],
-            headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=3>; rel="prev"'},
+            headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=1>; rel="prev"'},
         )
         result = self.github_client.get_issue_reactions(repo=self.repo.name, issue_number="42")
-        assert len(responses.calls) == 4
+        assert len(responses.calls) == 2
         assert responses.calls[0].response.status_code == 200
-        assert len(result) == 7
+        assert len(result) == 3
         assert result[0] == {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"}
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

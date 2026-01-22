@@ -92,8 +92,7 @@ def _add_eyes_reaction_to_pull_request(
 ) -> None:
     """
     Add 👀 reaction to acknowledge PR opening, ready for review, or new commits. Errors are logged/added to metrics but not raised.
-    This function is idempotent--ie, we skip adding another reaction if Sentry bot has already reacted with eyes, or if the call to get the existing reactions fails.
-    Before adding eyes reaction, any existing 🎉 reactions from Sentry bot are deleted.
+    Before adding eyes reaction, delete the existing 🎉 reaction from Sentry bot if it exists.
     """
     extra = {
         "organization_id": organization.id,
