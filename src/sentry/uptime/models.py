@@ -17,6 +17,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
+from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.uptime.types import (
@@ -316,3 +317,10 @@ class UptimeResponseCapture(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["uptime_subscription", "scheduled_check_time_ms"]),
         ]
+
+    def delete(self, *args, **kwargs):
+        try:
+            File.objects.get(pk=self.file_id).delete()
+        except File.DoesNotExist:
+            pass
+        return super().delete(*args, **kwargs)
