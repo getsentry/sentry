@@ -12,7 +12,6 @@ import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOption
 import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -105,7 +104,7 @@ export function ReplayOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
-        {introduction && <Introduction>{introduction}</Introduction>}
+        {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
         <Stack gap="lg">
           {steps
             // TODO(aknaus): Move inserting the toggle into the docs definitions
@@ -161,10 +160,4 @@ const Wrapper = styled('div')`
       margin-bottom: 0;
     }
   }
-`;
-
-const Introduction = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin: 0 0 ${space(2)} 0;
 `;

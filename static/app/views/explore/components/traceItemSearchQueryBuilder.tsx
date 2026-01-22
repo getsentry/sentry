@@ -14,6 +14,7 @@ import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
+import {TRACEMETRICS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/metrics/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
@@ -46,11 +47,14 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {} as TagCollection);
 };
 
-const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric'> = {
+const typeMap: Partial<
+  Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric' | 'replay'>
+> = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
   [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
+  [TraceItemDataset.REPLAYS]: 'replay',
 };
 
 function getTraceItemFieldDefinitionFunction(
@@ -266,6 +270,9 @@ function itemTypeToRecentSearches(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.TRACEMETRICS) {
     return SavedSearchType.TRACEMETRIC;
   }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SavedSearchType.PREPROD_APP_SIZE;
+  }
   return SavedSearchType.LOG;
 }
 
@@ -274,6 +281,9 @@ function itemTypeToFilterKeySections(itemType: TraceItemDataset) {
     return SPANS_FILTER_KEY_SECTIONS;
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return TRACEMETRICS_FILTER_KEY_SECTIONS;
+  }
+  if (itemType === TraceItemDataset.PREPROD) {
     return [];
   }
   return LOGS_FILTER_KEY_SECTIONS;
@@ -285,6 +295,9 @@ function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
     return t('Search for metrics, users, tags, and more');
+  }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return t('Search for builds, versions, and more');
   }
   return t('Search for logs, users, tags, and more');
 }

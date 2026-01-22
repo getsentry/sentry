@@ -38,14 +38,18 @@ export function useEditDetectorFormSubmit<
   const {mutateAsync: updateDetector} = useUpdateDetector();
 
   return useCallback<OnSubmitCallback>(
-    async (data, onSubmitSuccess, onSubmitError, _, formModel) => {
+    async (_data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const isValid = formModel.validateForm();
       if (!isValid) {
         return;
       }
 
       try {
-        const payload = formDataToEndpointPayload(data as TFormData);
+        // Use getTransformedData() instead of raw data to apply field-level
+        // getValue transformations (e.g., assertion normalization)
+        const payload = formDataToEndpointPayload(
+          formModel.getTransformedData() as TFormData
+        );
 
         const updatedData = {
           detectorId: detector.id,

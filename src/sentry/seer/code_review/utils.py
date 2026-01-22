@@ -8,7 +8,6 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
@@ -66,21 +65,6 @@ def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint
     if github_event == GithubWebhookType.CHECK_RUN:
         return SeerEndpoint.PR_REVIEW_RERUN
     return SeerEndpoint.OVERWATCH_REQUEST
-
-
-def _get_webhook_option_key(webhook_type: GithubWebhookType) -> str | None:
-    """
-    Get the option key for a given GitHub webhook type.
-
-    Args:
-        webhook_type: The GitHub webhook event type
-
-    Returns:
-        The option key string if the webhook type has an associated option, None otherwise
-    """
-    from .webhooks.config import WEBHOOK_TYPE_TO_OPTION_KEY
-
-    return WEBHOOK_TYPE_TO_OPTION_KEY.get(webhook_type)
 
 
 def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
@@ -203,7 +187,6 @@ def transform_webhook_to_codegen_request(
         organization: The Sentry organization
         repo: The repository model
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
-        trigger: The trigger type for the PR review
 
     Returns:
         Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
@@ -255,7 +238,12 @@ def transform_webhook_to_codegen_request(
         "name": repo_name,
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
+        "organization_id": organization.id,
     }
+
+    # add integration_id which is used in pr_closed_step for product metrics dashboarding only
+    if repo.integration_id is not None:
+        repo_definition["integration_id"] = str(repo.integration_id)
 
     trigger_metadata = _get_trigger_metadata(github_event, event_payload)
 
@@ -310,60 +298,3 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
         return str(user_id)
 
     return None
-
-
-def should_forward_to_seer(
-    github_event: GithubWebhookType, event_payload: Mapping[str, Any]
-) -> bool:
-    """
-    Determine if we should proceed with the code review flow to Seer.
-
-    We will proceed if the GitHub org is in the direct-to-seer whitelist.
-    For CHECK_RUN events (no option key), we always proceed.
-    """
-    if not should_forward_to_overwatch(github_event):
-        return True
-
-    return is_github_org_direct_to_seer(event_payload)
-
-
-def is_github_org_direct_to_seer(event_payload: Mapping[str, Any]) -> bool:
-    """
-    Determine if the GitHub org is in the direct-to-seer whitelist.
-    """
-    repository = event_payload.get("repository", {})
-    if not isinstance(repository, dict):
-        return False
-    owner = repository.get("owner", {})
-    if not isinstance(owner, dict):
-        return False
-    github_org = owner.get("login")
-    return github_org is not None and github_org in _direct_to_seer_gh_orgs()
-
-
-def should_forward_to_overwatch(github_event: GithubWebhookType) -> bool:
-    """
-    Determine if a GitHub webhook event should be forwarded to Overwatch.
-
-    - If there is no option key (i.e., _get_webhook_option_key returns None),
-      the event should NOT be forwarded to Overwatch (returns False).
-      This ensures events like CHECK_RUN are excluded from forwarding.
-    - If there is an option key, forwarding is controlled by the option value.
-
-    Args:
-        github_event: The GitHub webhook event type.
-
-    Returns:
-        bool: True if the event should be forwarded to Overwatch, False otherwise.
-    """
-    option_key = _get_webhook_option_key(github_event)
-    if option_key is None:
-        return False
-    return options.get(option_key)
-
-
-def _direct_to_seer_gh_orgs() -> list[str]:
-    """
-    Returns the list of GitHub org names that should always send directly to Seer.
-    """
-    return options.get("seer.code-review.direct-to-seer-enabled-gh-orgs") or []

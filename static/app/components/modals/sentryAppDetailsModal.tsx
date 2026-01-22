@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Access from 'sentry/components/acl/access';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -159,10 +159,10 @@ export default function SentryAppDetailsModal(props: Props) {
     <Fragment>
       <Heading>
         <SentryAppAvatar sentryApp={sentryApp} size={50} />
-        <HeadingInfo>
+        <Stack gap="sm">
           <Name>{sentryApp.name}</Name>
           {!!features.length && <Features>{featureTags(features)}</Features>}
-        </HeadingInfo>
+        </Stack>
       </Heading>
       <Description>{overview}</Description>
       <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
@@ -211,15 +211,8 @@ const Heading = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const HeadingInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  gap: ${space(0.75)};
-`;
-
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
 `;
 
@@ -261,7 +254,7 @@ const Footer = styled('div')`
 
 const Title = styled('p')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`

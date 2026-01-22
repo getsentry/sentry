@@ -39,7 +39,7 @@ RUST_CACHE = RustCache(1_000)
 # comment is merged
 VERSIONS = [2, 3]
 DEFAULT_ENHANCEMENTS_VERSION = VERSIONS[-1]
-DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2023-01-11"
+DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2026-01-20"
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
 # base64 strings never contain '#')

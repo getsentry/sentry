@@ -68,6 +68,9 @@ export function useUpdateProjectSeerPreferences(project: Project) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey});
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${organization.slug}/autofix/automation-settings/`],
+      });
     },
   });
 }

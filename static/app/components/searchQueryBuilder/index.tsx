@@ -318,7 +318,7 @@ const Wrapper = styled(Input.withComponent('div'))`
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: text;
 `;
 

@@ -89,7 +89,7 @@ import {
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
-// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+// eslint-disable-next-line boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = {
@@ -357,11 +357,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
 
       <ExploreBodyContent>
         <ExploreControlSection expanded={sidebarOpen}>
-          {sidebarOpen && (
-            <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
-          )}
+          {sidebarOpen ? <LogsToolbar /> : null}
         </ExploreControlSection>
-        <ExploreContentSection expanded={sidebarOpen}>
+        <ExploreContentSection>
           <OverChartButtonGroup>
             <LogsSidebarCollapseButton
               sidebarOpen={sidebarOpen}

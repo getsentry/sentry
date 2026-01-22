@@ -238,7 +238,7 @@ const CheckboxLabelContainer = styled('div')`
 `;
 
 const CheckboxLabel = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
   display: block;
   width: 100%;

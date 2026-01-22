@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {UsageSeries} from './types';
@@ -38,7 +39,9 @@ function UsageStatsPerMin({
     isError,
   } = useApiQuery<UsageSeries>(
     [
-      `/organizations/${organization.slug}/stats_v2/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           statsPeriod: '5m', // Any value <1h will return current hour's data
@@ -100,5 +103,5 @@ export default UsageStatsPerMin;
 const Wrapper = styled('div')`
   display: inline-block;
   color: ${p => p.theme.tokens.content.success};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

@@ -2,6 +2,8 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -277,7 +279,9 @@ function LaunchpadAdminPage() {
         </Text>
 
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region ? region.url : undefined}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -511,7 +515,7 @@ const InfoDisplay = styled('div')`
 
   pre {
     margin: 0;
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     font-size: 12px;
     line-height: 1.4;
     color: ${p => p.theme.tokens.content.primary};

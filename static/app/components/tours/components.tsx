@@ -4,6 +4,8 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -429,7 +431,11 @@ export function TourGuide({
                         )}
                         {title && <TitleRow>{title}</TitleRow>}
                         {description && <DescriptionRow>{description}</DescriptionRow>}
-                        {actions && <ActionRow>{actions}</ActionRow>}
+                        {actions && (
+                          <Flex justify="end" marginTop="md">
+                            {actions}
+                          </Flex>
+                        )}
                       </TourBody>
                     </TourOverlay>
                   )}
@@ -472,31 +478,25 @@ const TopRow = styled('div')`
   justify-content: space-between;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TitleRow = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.4;
   white-space: wrap;
 `;
 
 const DescriptionRow = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 1.4;
   white-space: wrap;
   opacity: 0.9;
-`;
-
-const ActionRow = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(1)};
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {

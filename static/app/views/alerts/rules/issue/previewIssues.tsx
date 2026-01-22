@@ -195,7 +195,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const StepHeader = styled('h5')`
