@@ -40,7 +40,7 @@ def handle_webhook_event(
     Handle GitHub webhook events.
 
     Args:
-        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
+        github_event: The GitHub webhook event type (e.g., GithubWebhookType.CHECK_RUN)
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
         repo: The repository that the webhook event is for

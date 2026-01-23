@@ -3587,7 +3587,8 @@ CHECK_RUN_COMPLETED_EVENT_EXAMPLE = b"""{
     "check_run": {
         "id": 9876543,
         "status": "completed",
-        "conclusion": "success"
+        "conclusion": "success",
+        "html_url": "https://github.com/getsentry/sentry/runs/9876543"
     },
     "sender": {
         "id": 12345678,

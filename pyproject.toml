@@ -440,6 +440,7 @@ module = [
     "sentry.integrations.discord.webhooks.*",
     "sentry.integrations.github.actions.*",
     "sentry.integrations.github.handlers.*",
+    "sentry.integrations.github.webhook",
     "sentry.integrations.github_enterprise.actions.*",
     "sentry.integrations.github_enterprise.handlers.*",
     "sentry.integrations.jira.actions.*",

@@ -353,7 +353,7 @@ class TestExtractGithubInfo:
         assert result["github_owner"] == "getsentry"
         assert result["github_repo_name"] == "sentry"
         assert result["github_repo_full_name"] == "getsentry/sentry"
-        assert result["github_event_url"] is None
+        assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/9876543"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "completed"
 

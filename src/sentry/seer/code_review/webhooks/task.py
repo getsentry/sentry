@@ -43,7 +43,7 @@ def schedule_task(
     from .task import process_github_webhook_event
 
     transformed_event = transform_webhook_to_codegen_request(
-        github_event=github_event,
+        github_event=github_event.value,
         github_event_action=github_event_action,
         event_payload=dict(event),
         organization=organization,
@@ -57,8 +57,9 @@ def schedule_task(
         )
         return
 
+    # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
-        github_event=github_event,
+        github_event=github_event.value,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
@@ -74,7 +75,7 @@ def schedule_task(
 def process_github_webhook_event(
     *,
     enqueued_at_str: str,
-    github_event: GithubWebhookType,
+    github_event: str,
     event_payload: Mapping[str, Any],
     **kwargs: Any,
 ) -> None:

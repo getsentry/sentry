@@ -52,7 +52,7 @@ class SeerEndpoint(StrEnum):
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
 
 
-def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint:
+def get_seer_endpoint_for_event(github_event: str) -> SeerEndpoint:
     """
     Get the appropriate Seer endpoint for a given GitHub webhook event.
 
@@ -62,7 +62,7 @@ def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint
     Returns:
         The SeerEndpoint to use for the event
     """
-    if github_event == GithubWebhookType.CHECK_RUN:
+    if github_event == GithubWebhookType.CHECK_RUN.value:
         return SeerEndpoint.PR_REVIEW_RERUN
     return SeerEndpoint.OVERWATCH_REQUEST
 
@@ -124,21 +124,19 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
     }
 
 
-def _get_trigger_metadata(
-    github_event: GithubWebhookType, event_payload: Mapping[str, Any]
-) -> dict[str, Any]:
+def _get_trigger_metadata(github_event: str, event_payload: Mapping[str, Any]) -> dict[str, Any]:
     """Extract trigger metadata fields from the event payload based on the GitHub event type."""
-    if github_event == GithubWebhookType.PULL_REQUEST:
+    if github_event == GithubWebhookType.PULL_REQUEST.value:
         return _get_trigger_metadata_for_pull_request(event_payload)
 
-    if github_event == GithubWebhookType.ISSUE_COMMENT:
+    if github_event == GithubWebhookType.ISSUE_COMMENT.value:
         return _get_trigger_metadata_for_issue_comment(event_payload)
 
     raise ValueError(f"unsupported-event-type-for-trigger-metadata: {github_event}")
 
 
 def _get_target_commit_sha(
-    github_event: GithubWebhookType,
+    github_event: str,
     event_payload: Mapping[str, Any],
     repo: Repository,
     integration: RpcIntegration | None,
@@ -146,13 +144,13 @@ def _get_target_commit_sha(
     """
     Get the target commit SHA for code review.
     """
-    if github_event == GithubWebhookType.PULL_REQUEST:
+    if github_event == GithubWebhookType.PULL_REQUEST.value:
         sha = event_payload.get("pull_request", {}).get("head", {}).get("sha")
         if not isinstance(sha, str) or not sha:
             raise ValueError("missing-pr-head-sha")
         return sha
 
-    if github_event == GithubWebhookType.ISSUE_COMMENT:
+    if github_event == GithubWebhookType.ISSUE_COMMENT.value:
         if integration is None:
             raise ValueError("missing-integration-for-sha")
         pr_number = event_payload.get("issue", {}).get("number")
@@ -170,7 +168,7 @@ def _get_target_commit_sha(
 
 # XXX: Refactor this function to handle it at the handler level rather than during task execution
 def transform_webhook_to_codegen_request(
-    github_event: GithubWebhookType,
+    github_event: str,
     github_event_action: str,  # XXX: This should be the enum
     event_payload: Mapping[str, Any],
     organization: Organization,
@@ -196,7 +194,7 @@ def transform_webhook_to_codegen_request(
         ValueError: If required fields are missing from the webhook payload
     """
     request_type = RequestType.PR_REVIEW
-    if github_event == GithubWebhookType.PULL_REQUEST and github_event_action == "closed":
+    if github_event == GithubWebhookType.PULL_REQUEST.value and github_event_action == "closed":
         request_type = RequestType.PR_CLOSED
 
     review_request_trigger = SeerCodeReviewTrigger.UNKNOWN
@@ -207,7 +205,7 @@ def transform_webhook_to_codegen_request(
             review_request_trigger = SeerCodeReviewTrigger.ON_NEW_COMMIT
 
     # We know that we only schedule a task if the comment contains the command phrase
-    if github_event == GithubWebhookType.ISSUE_COMMENT:
+    if github_event == GithubWebhookType.ISSUE_COMMENT.value:
         review_request_trigger = SeerCodeReviewTrigger.ON_COMMAND_PHRASE
 
     # Extract pull request number
