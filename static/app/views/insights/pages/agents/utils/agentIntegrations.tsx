@@ -27,24 +27,24 @@ export const AGENT_INTEGRATION_LABELS = {
 };
 
 export const PYTHON_AGENT_INTEGRATIONS = [
+  AgentIntegration.OPENAI_AGENTS,
   AgentIntegration.ANTHROPIC,
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
   AgentIntegration.LANGGRAPH,
   AgentIntegration.LITTELLM,
-  AgentIntegration.OPENAI_AGENTS,
   AgentIntegration.OPENAI,
   AgentIntegration.PYDANTIC_AI,
   AgentIntegration.MANUAL,
 ];
 
 export const NODE_AGENT_INTEGRATIONS = [
+  AgentIntegration.VERCEL_AI,
   AgentIntegration.ANTHROPIC,
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
   AgentIntegration.LANGGRAPH,
   AgentIntegration.MASTRA,
   AgentIntegration.OPENAI,
-  AgentIntegration.VERCEL_AI,
   AgentIntegration.MANUAL,
 ];
