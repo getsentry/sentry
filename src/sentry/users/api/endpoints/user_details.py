@@ -21,6 +21,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
 from sentry.models.organization import OrganizationStatus
@@ -304,6 +305,19 @@ class UserDetailsEndpoint(UserEndpoint):
         serializer_cls: type[BaseUserSerializer]
         if can_elevate_user:
             serializer_cls = PrivilegedUserSerializer
+            # Check if user has membership to the default organization
+            if settings.SENTRY_MODE == SentryMode.SAAS:
+                user_can_elevate = OrganizationMemberMapping.objects.filter(
+                    user_id=user.id, organization_id=settings.SENTRY_DEFAULT_ORGANIZATION_ID
+                ).exists()
+
+                if not user_can_elevate:
+                    return Response(
+                        {
+                            "detail": "User must be a member to the default organization to enable SuperUser mode."
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
         # With superuser read/write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser. Once the feature flag is
         # removed and we only check is_active_staff, we can remove this comment.
