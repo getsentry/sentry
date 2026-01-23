@@ -171,7 +171,7 @@ def create_preprod_status_check_task(
             size_metrics_map[metrics.preprod_artifact_id].append(metrics)
 
     rules = _get_status_check_rules(preprod_artifact.project)
-    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts, preprod_artifact.project)
+    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
 
     status, triggered_rules = _compute_overall_status(
         all_artifacts, size_metrics_map, rules=rules, base_size_metrics_map=base_size_metrics_map
@@ -360,80 +360,26 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
 
 
 def _fetch_base_size_metrics(
-    artifacts: list[PreprodArtifact], project: Project
+    artifacts: list[PreprodArtifact],
 ) -> dict[int, PreprodArtifactSizeMetrics]:
-    """
-    Fetch base artifact main size metrics for size comparison in absolute_diff rules.
-
-    Returns a map of {head_artifact_id: base_main_size_metrics} for artifacts that have
-    base artifacts with matching build configurations. Only returns the main artifact metrics.
-    """
+    """Fetch base artifact size metrics for head artifacts."""
     if not artifacts:
         return {}
 
-    # All artifacts share the same commit_comparison, so get base_sha from the first one
-    first_artifact = artifacts[0]
-    if not first_artifact.commit_comparison or not first_artifact.commit_comparison.base_sha:
-        return {}
-
-    base_sha = first_artifact.commit_comparison.base_sha
-
-    # Find the base commit comparison (where head_sha matches our base_sha)
-    base_commit_comparison = (
-        CommitComparison.objects.filter(
-            head_sha=base_sha,
-            organization_id=project.organization_id,
-        )
-        .order_by("date_added")
-        .first()
-    )
-
-    if not base_commit_comparison:
-        return {}
-
-    # Batch query all base artifacts for this commit comparison
-    base_artifacts_qs = PreprodArtifact.objects.filter(
-        commit_comparison=base_commit_comparison,
-        project__organization_id=project.organization_id,
-    )
-
-    # Build lookup key -> base artifact
-    # Key: (app_id, artifact_type, build_configuration_id)
-    base_artifact_lookup = {}
-    for ba in base_artifacts_qs:
-        key = (ba.app_id, ba.artifact_type, ba.build_configuration_id)
-        if key not in base_artifact_lookup:
-            base_artifact_lookup[key] = ba
-
-    # Map head artifacts to their base artifacts
-    base_artifact_map: dict[int, PreprodArtifact] = {}
-    for artifact in artifacts:
-        key = (artifact.app_id, artifact.artifact_type, artifact.build_configuration_id)
-        base_artifact = base_artifact_lookup.get(key)
-        if base_artifact:
-            base_artifact_map[artifact.id] = base_artifact
-
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commits(artifacts)
     if not base_artifact_map:
         return {}
 
-    # Batch fetch size metrics for all base artifacts
     base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact_id__in=[ba.id for ba in base_artifact_map.values()],
-        preprod_artifact__project__organization_id=project.organization_id,
         metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-    ).select_related("preprod_artifact")
+    )
 
-    # Build base_artifact_id -> metrics lookup
-    base_metrics_lookup: dict[int, PreprodArtifactSizeMetrics] = {}
-    for metrics in base_size_metrics_qs:
-        base_metrics_lookup[metrics.preprod_artifact_id] = metrics
-
-    # Map head artifact IDs to their base metrics
     result: dict[int, PreprodArtifactSizeMetrics] = {}
-    for head_artifact_id, base_artifact in base_artifact_map.items():
-        base_metrics = base_metrics_lookup.get(base_artifact.id)
-        if base_metrics:
-            result[head_artifact_id] = base_metrics
+    for metrics in base_size_metrics_qs:
+        for head_artifact_id, base_artifact in base_artifact_map.items():
+            if base_artifact.id == metrics.preprod_artifact_id:
+                result[head_artifact_id] = metrics
 
     return result
 
