@@ -545,6 +545,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId'
   | '/organizations/$organizationIdOrSlug/seer/explorer-runs/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
+  | '/organizations/$organizationIdOrSlug/seer/models/'
   | '/organizations/$organizationIdOrSlug/seer/onboarding-check/'
   | '/organizations/$organizationIdOrSlug/seer/setup-check/'
   | '/organizations/$organizationIdOrSlug/sent-first-event/'
