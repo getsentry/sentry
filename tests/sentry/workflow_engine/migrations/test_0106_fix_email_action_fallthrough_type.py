@@ -1,6 +1,11 @@
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.migration_helpers.rule_action import (
+    translate_rule_data_actions_to_notification_actions,
+)
 from sentry.workflow_engine.models import Action
+
+EMAIL_ACTION_REGISTRY_ID = "sentry.mail.actions.NotifyEmailAction"
 
 
 class FixEmailActionFallthroughTypeTest(TestMigrations):
@@ -38,15 +43,16 @@ class FixEmailActionFallthroughTypeTest(TestMigrations):
         # Migrate rule1 to workflow
         self.workflow1 = IssueAlertMigrator(self.rule1).run()
 
-        # Simulate the bug: update all email actions to have fallthrough_type = "ActiveMembers"
+        # Simulate the bug: update all email actions to have wrong data/config
         email_actions_1 = Action.objects.filter(
             dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id=self.workflow1.id,
             type="email",
         ).order_by("id")
 
         for action in email_actions_1:
-            # Overwrite with wrong fallthrough_type to simulate the bug
+            # Overwrite with wrong data to simulate the bug
             action.data = {"fallthrough_type": "ActiveMembers"}
+            action.config = {}
             action.save()
 
         # Store original plugin action data for comparison
@@ -91,10 +97,13 @@ class FixEmailActionFallthroughTypeTest(TestMigrations):
         )
 
     def test_migration(self) -> None:
-        self._test_migration_fixes_email_action_fallthrough_type()
+        self._test_migration_fixes_email_actions()
         self._test_migration_does_not_change_non_email_actions()
 
-    def _test_migration_fixes_email_action_fallthrough_type(self) -> None:
+    def _test_migration_fixes_email_actions(self) -> None:
+        """
+        Verify the migration produces the same Action state as translate_rule_data_actions_to_notification_actions.
+        """
         # Get the email actions for workflow1 after migration
         email_actions = list(
             Action.objects.filter(
@@ -103,20 +112,38 @@ class FixEmailActionFallthroughTypeTest(TestMigrations):
             ).order_by("id")
         )
 
-        # Get the rule's email actions
+        # Get the rule's email actions and translate them using the helper function
         rule_email_actions = [
             action
             for action in self.rule1.data["actions"]
-            if action.get("id") == "sentry.mail.actions.NotifyEmailAction"
+            if action.get("id") == EMAIL_ACTION_REGISTRY_ID
         ]
+        expected_actions = translate_rule_data_actions_to_notification_actions(
+            rule_email_actions, skip_failures=True
+        )
 
-        assert len(email_actions) == len(rule_email_actions) == 2
+        assert len(email_actions) == len(expected_actions) == 2
 
-        # Assert the fallthrough_type on each workflow email action matches the rule's
-        # First email action should have "ActiveMembers"
-        assert email_actions[0].data.get("fallthrough_type") == "ActiveMembers"
-        # Second email action should have "NoOne"
-        assert email_actions[1].data.get("fallthrough_type") == "NoOne"
+        # Compare each migrated action to what the helper function produces
+        for i, (migrated_action, expected_action) in enumerate(
+            zip(email_actions, expected_actions)
+        ):
+            assert migrated_action.type == expected_action.type, (
+                f"Action {i}: type mismatch - "
+                f"got {migrated_action.type}, expected {expected_action.type}"
+            )
+            assert migrated_action.data == expected_action.data, (
+                f"Action {i}: data mismatch - "
+                f"got {migrated_action.data}, expected {expected_action.data}"
+            )
+            assert migrated_action.config == expected_action.config, (
+                f"Action {i}: config mismatch - "
+                f"got {migrated_action.config}, expected {expected_action.config}"
+            )
+            assert migrated_action.integration_id == expected_action.integration_id, (
+                f"Action {i}: integration_id mismatch - "
+                f"got {migrated_action.integration_id}, expected {expected_action.integration_id}"
+            )
 
     def _test_migration_does_not_change_non_email_actions(self) -> None:
         # Check that the plugin action in workflow1 is unchanged
