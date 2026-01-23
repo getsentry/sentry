@@ -550,6 +550,7 @@ function isSimpleFilter(
   key: string,
   value: string[],
   attributes: {
+    booleanAttributes: TagCollection;
     numberAttributes: TagCollection;
     stringAttributes: TagCollection;
   }
@@ -564,6 +565,12 @@ function isSimpleFilter(
   // almost always match on a range of values
   if (key in attributes.numberAttributes) {
     return false;
+  }
+
+  // boolean attributes are always considered trivial because they almost match on a
+  // single value, so there's no value in adding a column
+  if (key in attributes.booleanAttributes) {
+    return true;
   }
 
   if (value.length === 1) {
