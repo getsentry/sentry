@@ -70,9 +70,9 @@ export function useReleases(
       const newQuery: NewQuery = {
         name: '',
         fields: ['release', 'count()'],
-        query: `transaction.op:[ui.load,navigation] ${escapeFilterValue(
+        query: escapeFilterValue(
           `release:[${releaseChunk.map(r => `"${r.version}"`).join()}]`
-        )}`,
+        ),
         dataset: DiscoverDatasets.SPANS,
         version: 2,
         projects: selection.projects,
