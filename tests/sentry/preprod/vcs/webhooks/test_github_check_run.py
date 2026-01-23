@@ -177,9 +177,11 @@ class HandlePreprodCheckRunEventTest(TestCase):
         assert approval.extras == {"github": {"id": 12345, "login": "octocat"}}
         assert approval.approved_at is not None
 
-        mock_task.assert_called_once_with(
-            preprod_artifact_id=artifact.id,
-            caller="github_approve_webhook",
+        mock_task.apply_async.assert_called_once_with(
+            kwargs={
+                "preprod_artifact_id": artifact.id,
+                "caller": "github_approve_webhook",
+            }
         )
 
     def test_creates_approvals_for_all_sibling_artifacts(self):
@@ -297,21 +299,26 @@ class HandlePreprodCheckRunEventTest(TestCase):
 
         assert PreprodComparisonApproval.objects.count() == 0
 
-    def test_handles_duplicate_approval(self):
+    def test_skips_duplicate_approval_from_same_user(self):
+        """Same GitHub user clicking approve twice should not create duplicate."""
         artifact = self._create_preprod_artifact()
 
+        # Create existing approval from user 12345
         PreprodComparisonApproval.objects.create(
             preprod_artifact=artifact,
             preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
             approved_at=datetime.now(timezone.utc),
-            extras={"github": {"id": 11111, "login": "existing_user"}},
+            extras={"github": {"id": 12345, "login": "octocat"}},
         )
 
+        # Webhook from the same user (12345)
         event = self._create_webhook_event(
             action="requested_action",
             identifier=APPROVE_SIZE_ACTION_IDENTIFIER,
             external_id=str(artifact.id),
+            sender_id=12345,
+            sender_login="octocat",
         )
 
         with patch("sentry.preprod.vcs.webhooks.github_check_run.create_preprod_status_check_task"):
@@ -322,4 +329,46 @@ class HandlePreprodCheckRunEventTest(TestCase):
                 repo=self.repo,
             )
 
+        # Should still be 1 (no duplicate created)
         assert PreprodComparisonApproval.objects.filter(preprod_artifact=artifact).count() == 1
+
+    def test_allows_different_user_to_create_new_approval(self):
+        """Different GitHub user approving should create a new approval record."""
+        artifact = self._create_preprod_artifact()
+
+        # Create existing approval from user 11111
+        PreprodComparisonApproval.objects.create(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            approved_at=datetime.now(timezone.utc),
+            extras={"github": {"id": 11111, "login": "existing_user"}},
+        )
+
+        # Webhook from a different user (12345)
+        event = self._create_webhook_event(
+            action="requested_action",
+            identifier=APPROVE_SIZE_ACTION_IDENTIFIER,
+            external_id=str(artifact.id),
+            sender_id=12345,
+            sender_login="octocat",
+        )
+
+        with patch("sentry.preprod.vcs.webhooks.github_check_run.create_preprod_status_check_task"):
+            handle_preprod_check_run_event(
+                github_event=GithubWebhookType.CHECK_RUN,
+                event=event,
+                organization=self.organization,
+                repo=self.repo,
+            )
+
+        # Should be 2 (different user creates new approval)
+        assert PreprodComparisonApproval.objects.filter(preprod_artifact=artifact).count() == 2
+
+        # Verify the new approval has the correct user info
+        latest_approval = (
+            PreprodComparisonApproval.objects.filter(preprod_artifact=artifact)
+            .order_by("-id")
+            .first()
+        )
+        assert latest_approval.extras == {"github": {"id": 12345, "login": "octocat"}}
