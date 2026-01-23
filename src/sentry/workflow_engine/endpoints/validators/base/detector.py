@@ -237,7 +237,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
         self._invalidate_cache_by_detector(self.instance)
 
-    def _create_data_source(self, validated_data_source, detector: Detector):
+    def _create_data_source(self, validated_data_source, detector: Detector) -> None:
         data_source_creator = validated_data_source["_creator"]
         data_source = data_source_creator.create()
 
@@ -248,9 +248,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         )
         DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
-        # Invalidate cache for the new data source association
-        invalidate_detectors_by_data_source_cache(
-            detector_data_source.source_id, detector_data_source.type
+        # Invalidate cache after transaction commits (may be called from within a transaction)
+        source_id = detector_data_source.source_id
+        source_type = detector_data_source.type
+        transaction.on_commit(
+            lambda: invalidate_detectors_by_data_source_cache(source_id, source_type),
+            using=router.db_for_write(Detector),
         )
 
     def create(self, validated_data):
