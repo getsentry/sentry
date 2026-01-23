@@ -192,7 +192,7 @@ const client = Sentry.instrumentGoogleGenAIClient(genAI, {
 });
 
 const response = await client.models.generateContent({
-  model: 'gemini-2.0-flash-001',
+  model: 'gemini-2.5-flash-lite',
   contents: 'Why is the sky blue?',
 });
             `,

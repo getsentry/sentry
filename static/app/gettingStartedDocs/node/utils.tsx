@@ -558,7 +558,7 @@ const client = Sentry.instrumentGoogleGenAIClient(genAI, {
 });
 
 const response = await client.models.generateContent({
-  model: 'gemini-2.0-flash-001',
+  model: 'gemini-2.5-flash-lite',
   contents: 'Why is the sky blue?',
 });
             `,
@@ -893,13 +893,14 @@ Sentry.init({
             label: 'JavaScript',
             language: 'javascript',
             code: `
-const Anthropic = require("anthropic");
-const anthropic = new Anthropic();
+const Anthropic = require("@anthropic-ai/sdk");
+const client = new Anthropic();
 
-const msg = await anthropic.messages.create({
-model: "claude-3-5-sonnet",
-messages: [{role: "user", content: "Tell me a joke"}],
-});`,
+const msg = await client.messages.create({
+  messages: [{role: "user", content: "Tell me a joke"}],
+  model: "claude-sonnet-4-5-20250929",
+});
+`,
           },
         ],
       });
@@ -936,7 +937,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
 const response = await ai.models.generateContent({
-  model: 'gemini-2.0-flash-001',
+  model: 'gemini-2.5-flash-lite',
   contents: 'Why is the sky blue?',
 });`,
           },
