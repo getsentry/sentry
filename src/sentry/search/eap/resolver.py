@@ -1177,8 +1177,12 @@ class SearchResolver:
                 ),
                 [],
             )
-        lhs, lhs_contexts = self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
-        rhs, rhs_contexts = self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
+        lhs, lhs_contexts = (
+            self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
+        )
+        rhs, rhs_contexts = (
+            self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
+        )
         has_aggregates = False
         for function in functions:
             resolved_function, _ = self.resolve_function(function)
