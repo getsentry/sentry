@@ -98,8 +98,11 @@ class ReleaseModelManager(BaseManager["Release"]):
     def get_queryset(self) -> ReleaseQuerySet:
         return ReleaseQuerySet(self.model, using=self._db)
 
-    def annotate_prerelease_column(self):
+    def annotate_prerelease_column(self) -> ReleaseQuerySet:
         return self.get_queryset().annotate_prerelease_column()
+
+    def annotate_build_code_column(self) -> ReleaseQuerySet:
+        return self.get_queryset().annotate_build_code_column()
 
     def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
@@ -300,6 +303,18 @@ class Release(Model):
     __repr__ = sane_repr("organization_id", "version")
 
     SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
+
+    SEMVER_COLS_WITH_BUILD_CODE = [
+        "major",
+        "minor",
+        "patch",
+        "revision",
+        "prerelease_case",
+        "prerelease",
+        "build_code_case",
+        "build_number",
+        "build_code",
+    ]
 
     def __eq__(self, other: object) -> bool:
         """Make sure that specialized releases are only comparable to the same
