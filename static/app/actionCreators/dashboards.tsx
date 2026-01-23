@@ -8,6 +8,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {TOP_N} from 'sentry/utils/discover/types';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
@@ -244,7 +245,9 @@ export function validateWidgetRequest(
   selection: PageFilters
 ) {
   return [
-    `/organizations/${orgId}/dashboards/widgets/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/widgets/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
     {
       method: 'POST',
       data: widget,

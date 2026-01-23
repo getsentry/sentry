@@ -639,7 +639,7 @@ from google.genai import Client
 
 client = Client()
 response = client.models.generate_content(
-    model="gemini-2.0-flash-exp",
+    model="gemini-2.5-flash-lite",
     contents="What's the weather like in San Francisco?"
 )
 

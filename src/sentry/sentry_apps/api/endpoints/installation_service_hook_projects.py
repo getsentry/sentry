@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import all_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.base import serialize
 from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
@@ -46,7 +46,7 @@ class ServiceHookProjectsInputSerializer(serializers.Serializer):
         return value
 
 
-@all_silo_endpoint
+@control_silo_endpoint
 class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
