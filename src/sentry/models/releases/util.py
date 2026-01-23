@@ -29,15 +29,6 @@ class SemverVersion(
     pass
 
 
-class SemverVersionWithBuildCode(
-    namedtuple(
-        "SemverVersionWithBuildCode",
-        "major minor patch revision prerelease_case prerelease build_code_case build_number build_code",
-    )
-):
-    pass
-
-
 @dataclass
 class SemverFilter:
     operator: str

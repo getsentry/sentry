@@ -41,12 +41,7 @@ from sentry.models.releases.constants import (
 )
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import (
-    ReleaseQuerySet,
-    SemverFilter,
-    SemverVersion,
-    SemverVersionWithBuildCode,
-)
+from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -418,27 +413,6 @@ class Release(Model):
             self.revision,
             1 if self.prerelease == "" else 0,
             self.prerelease,
-        )
-
-    @property
-    def semver_tuple_with_build_code(self) -> SemverVersionWithBuildCode:
-        if self.build_number is None and self.build_code is not None:
-            build_code_case = 2
-        elif self.build_number is not None:
-            build_code_case = 1
-        else:
-            build_code_case = 0
-
-        return SemverVersionWithBuildCode(
-            self.major,
-            self.minor,
-            self.patch,
-            self.revision,
-            1 if self.prerelease == "" else 0,
-            self.prerelease,
-            build_code_case,
-            self.build_number,
-            self.build_code,
         )
 
     @classmethod
