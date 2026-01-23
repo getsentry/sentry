@@ -1,20 +1,23 @@
 import {useCallback, useMemo} from 'react';
 import chunk from 'lodash/chunk';
 
-import {ReleasesSortOption} from 'sentry/constants/releases';
+import {ReleasesSortOption, type ReleasesSortByOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import {
+  fetchDataQuery,
+  useApiQuery,
+  useQueries,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {ReleasesSortByOption} from 'sentry/views/dashboards/components/releasesSortSelect';
 
 export type ReleaseWithCount = Release & {
   count?: number;
@@ -32,14 +35,15 @@ export function useReleases(
   const location = useLocation();
   const {selection, isReady} = usePageFilters();
   const {environments, projects} = selection;
-  const api = useApi();
 
   const activeSort = sortBy ?? ReleasesSortOption.DATE;
 
-  // Fetch releases
+  // Fetch releases - use getApiUrl from master
   const releaseResults = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: projects,
@@ -78,7 +82,7 @@ export function useReleases(
         projects: selection.projects,
       };
       const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
-      const queryKey = [
+      const queryKey: ApiQueryKey = [
         `/organizations/${organization.slug}/events/`,
         {
           query: {
@@ -86,14 +90,10 @@ export function useReleases(
             referrer: 'api.dashboards-release-selector',
           },
         },
-      ] as ApiQueryKey;
+      ];
       return {
         queryKey,
-        queryFn: () =>
-          api.requestPromise(queryKey[0], {
-            method: 'GET',
-            query: queryKey[1]?.query,
-          }) as Promise<TableData>,
+        queryFn: fetchDataQuery<TableData>,
         staleTime: Infinity,
         enabled: isReady && !releaseResults.isPending,
         retry: false,
@@ -117,7 +117,7 @@ export function useReleases(
     }
     const stats: Record<string, {count: number}> = {};
     metricsData.forEach(data =>
-      data?.data?.forEach(release => {
+      data?.[0]?.data?.forEach(release => {
         stats[release.release!] = {count: release['count()'] as number};
       })
     );

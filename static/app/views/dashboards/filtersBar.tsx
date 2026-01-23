@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import {parseAsString, useQueryState} from 'nuqs';
+import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -9,7 +9,11 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {ReleasesSortOption} from 'sentry/constants/releases';
+import {
+  RELEASES_SORT_OPTIONS,
+  ReleasesSortOption,
+  type ReleasesSortByOption,
+} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -33,7 +37,6 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
-import type {ReleasesSortByOption} from './components/releasesSortSelect';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesFilter} from './sortableReleasesFilter';
 import type {
@@ -44,6 +47,20 @@ import type {
   Widget,
 } from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
+
+/**
+ * Custom Nuqs parser for release sort options.
+ * Validates the sort option is valid and defaults to DATE if not.
+ */
+const parseReleaseSort = createParser({
+  parse: (value: string): ReleasesSortByOption => {
+    if (value in RELEASES_SORT_OPTIONS) {
+      return value as ReleasesSortByOption;
+    }
+    return ReleasesSortOption.DATE;
+  },
+  serialize: (value: ReleasesSortByOption): string => value,
+}).withDefault(ReleasesSortOption.DATE);
 
 /**
  * Maps widget types to data categories for determining max pickable days
@@ -87,18 +104,6 @@ function getDataCategoriesFromWidgets(
   return categoriesArray.length > 0
     ? (categoriesArray as [DataCategory, ...DataCategory[]])
     : [DataCategory.TRANSACTIONS];
-}
-
-function getReleasesSortBy(
-  sort: ReleasesSortByOption,
-  environments: string[]
-): ReleasesSortByOption {
-  // Require 1 environment for adoption sort
-  if (sort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
-    return ReleasesSortOption.DATE;
-  }
-
-  return sort;
 }
 
 export type FiltersBarProps = {
@@ -155,16 +160,14 @@ export default function FiltersBar({
   // Calculate maxPickableDays based on the data categories
   const maxPickableDaysOptions = useMaxPickableDays({dataCategories});
 
-  // Release sort state - just URL, no localStorage
-  const [releaseSort, setReleaseSort] = useQueryState(
-    'sortReleasesBy',
-    parseAsString.withDefault(ReleasesSortOption.DATE)
-  );
+  // Release sort state - validates and defaults to DATE via custom parser
+  const [releaseSort, setReleaseSort] = useQueryState('sortReleasesBy', parseReleaseSort);
 
-  const validatedReleaseFilterSortBy = getReleasesSortBy(
-    releaseSort as ReleasesSortByOption,
-    selection.environments
-  );
+  // Adoption sort requires exactly one environment, fallback to DATE otherwise
+  const validatedReleaseFilterSortBy =
+    releaseSort === ReleasesSortOption.ADOPTION && selection.environments.length !== 1
+      ? ReleasesSortOption.DATE
+      : releaseSort;
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,

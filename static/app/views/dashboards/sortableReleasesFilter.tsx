@@ -1,11 +1,9 @@
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {type ReleasesSortByOption} from 'sentry/constants/releases';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {
-  ReleasesSortSelect,
-  type ReleasesSortByOption,
-} from './components/releasesSortSelect';
+import {ReleasesSortSelect} from './components/releasesSortSelect';
 import {ReleasesSelectControl} from './releasesSelectControl';
 import type {DashboardFilters} from './types';
 import {DashboardFilterKeys} from './types';

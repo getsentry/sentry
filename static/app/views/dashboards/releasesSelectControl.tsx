@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -11,27 +11,27 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {
+  RELEASES_SORT_OPTIONS,
+  type ReleasesSortByOption,
+} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-import {
-  SORT_BY_OPTIONS,
-  type ReleasesSortByOption,
-} from './components/releasesSortSelect';
 import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';
 import {DashboardFilterKeys} from './types';
 
-type Props = {
+interface ReleasesSelectControlProps {
   selectedReleases: string[];
   sortBy: ReleasesSortByOption;
   className?: string;
   handleChangeFilter?: (activeFilters: DashboardFilters) => void;
   id?: string;
   isDisabled?: boolean;
-};
+}
 
 const ALIASED_RELEASES = [
   {
@@ -50,7 +50,7 @@ export function ReleasesSelectControl({
   className,
   isDisabled,
   id,
-}: Props) {
+}: ReleasesSelectControlProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
 
@@ -90,7 +90,7 @@ export function ReleasesSelectControl({
         {
           value: '_releases',
           label: tct('Sorted by [sortBy]', {
-            sortBy: SORT_BY_OPTIONS[sortBy].label,
+            sortBy: RELEASES_SORT_OPTIONS[sortBy].label,
           }),
           options: [
             ...ALIASED_RELEASES,
@@ -154,16 +154,16 @@ type LabelDetailsProps = {
 function LabelDetails(props: LabelDetailsProps) {
   return (
     <Flex justify="between" gap="sm" style={{minWidth: 200}}>
-      <div>
+      <Container>
         {defined(props.eventCount)
           ? tn('%s event', '%s events', props.eventCount)
           : t('No events')}
-      </div>
-      <div>
+      </Container>
+      <Container>
         {defined(props.dateCreated) && (
           <DateTime dateOnly year date={props.dateCreated} />
         )}
-      </div>
+      </Container>
     </Flex>
   );
 }

@@ -1,29 +1,21 @@
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ReleasesSortOption} from 'sentry/constants/releases';
+import {
+  RELEASES_SORT_OPTIONS,
+  ReleasesSortOption,
+  type ReleasesSortByOption,
+} from 'sentry/constants/releases';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export const SORT_BY_OPTIONS = {
-  [ReleasesSortOption.SESSIONS_24_HOURS]: {label: t('Active Sessions')},
-  [ReleasesSortOption.USERS_24_HOURS]: {label: t('Active Users')},
-  [ReleasesSortOption.ADOPTION]: {label: t('Adoption')},
-  [ReleasesSortOption.BUILD]: {label: t('Build Number')},
-  [ReleasesSortOption.DATE]: {label: t('Date Created')},
-  [ReleasesSortOption.SEMVER]: {label: t('Semantic Version')},
-  [ReleasesSortOption.SESSIONS]: {label: t('Total Sessions')},
-};
-
-export type ReleasesSortByOption = keyof typeof SORT_BY_OPTIONS;
-
-interface Props {
+interface ReleasesSortSelectProps {
   onChange: (sortBy: string) => void;
   sortBy: ReleasesSortByOption;
 }
 
-export function ReleasesSortSelect({sortBy, onChange}: Props) {
+export function ReleasesSortSelect({sortBy, onChange}: ReleasesSortSelectProps) {
   const {selection} = usePageFilters();
   const {environments} = selection;
   return (
@@ -32,7 +24,7 @@ export function ReleasesSortSelect({sortBy, onChange}: Props) {
       onChange={option => {
         onChange(option.value);
       }}
-      options={Object.entries(SORT_BY_OPTIONS).map(([name, filter]) => {
+      options={Object.entries(RELEASES_SORT_OPTIONS).map(([name, filter]) => {
         if (name !== ReleasesSortOption.ADOPTION) {
           return {
             label: filter.label,
@@ -40,6 +32,8 @@ export function ReleasesSortSelect({sortBy, onChange}: Props) {
           };
         }
 
+        // Adoption sort requires exactly one environment because it calculates
+        // the percentage of sessions/users in that specific environment
         const isNotSingleEnvironment = environments.length !== 1;
         return {
           label: filter.label,
