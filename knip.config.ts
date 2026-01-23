@@ -84,6 +84,7 @@ const config: KnipConfig = {
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest
     '@emotion/babel-plugin', // Still used in jest
+    '@figma/code-connect', // used by Figma CLI via figma.config.json
   ],
   rules: {
     binaries: 'off',
