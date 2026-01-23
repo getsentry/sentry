@@ -26,6 +26,7 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
+import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   isSizeInfoProcessing,
@@ -195,6 +196,7 @@ export default function BuildDetails() {
   return (
     <SentryDocumentTitle title={title}>
       <Layout.Page>
+        <PreprodQuotaAlert />
         <Layout.Header>
           <BuildDetailsHeaderContent
             buildDetailsQuery={buildDetailsQuery}
