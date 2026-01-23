@@ -17,7 +17,7 @@ jest.mock('sentry/utils/useRoutes');
 const mockUseRoutes = jest.mocked(useRoutes);
 
 describe('EventNavigation', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['discover-basic']});
   const group = GroupFixture({id: 'group-id'});
   const testEvent = EventFixture({
     id: 'event-id',
@@ -81,6 +81,7 @@ describe('EventNavigation', () => {
     it('renders the all events controls', () => {
       render(<IssueEventNavigation {...defaultProps} />, {
         initialRouterConfig,
+        organization,
       });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
@@ -103,6 +104,7 @@ describe('EventNavigation', () => {
     it('supplies the default timestamp sort when no sort is set in the query params', () => {
       render(<IssueEventNavigation {...defaultProps} />, {
         initialRouterConfig,
+        organization,
       });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
@@ -123,6 +125,7 @@ describe('EventNavigation', () => {
             query: {sort: '-title'},
           },
         },
+        organization,
       });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
