@@ -207,7 +207,7 @@ artifacts:
   objects:
     location: "$bucket_root/runs/$uuid/findings/"
     paths: ["/workspace/findings/**"]
-timeout: 3600s
+timeout: 4800s
 options:
   machineType: "N1_HIGHCPU_32"
   env:
