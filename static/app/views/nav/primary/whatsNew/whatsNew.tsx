@@ -6,6 +6,7 @@ import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Broadcast} from 'sentry/types/system';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -34,7 +35,11 @@ function makeBroadcastsQueryKey({
 }: {
   organization: Organization;
 }): ApiQueryKey {
-  return [`/organizations/${organization.slug}/broadcasts/`];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
 }
 
 function useFetchBroadcasts() {

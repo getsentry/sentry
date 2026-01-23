@@ -29,6 +29,7 @@ import type {Project} from 'sentry/types/project';
 import type {CurrentRelease} from 'sentry/types/release';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -67,7 +68,11 @@ export function useFetchAllEnvsGroupData(
 
 function useFetchCurrentRelease(organization: OrganizationSummary, group: Group) {
   return useApiQuery<CurrentRelease>(
-    [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/current-release/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+      }),
+    ],
     {staleTime: 30000, gcTime: 30000}
   );
 }

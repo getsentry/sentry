@@ -123,7 +123,7 @@ class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient)
             # The bot failed to leave the guild for some other reason, but
             # this doesn't need to interrupt the uninstall. Just means the
             # bot will persist on the server until removed manually.
-            logger.error(
+            logger.warning(
                 "discord.uninstall.failed_to_leave_guild",
                 extra={"discord_guild_id": self.model.external_id, "status": e.code},
             )
@@ -210,7 +210,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         try:
             return self.client.has_application_commands()
         except ApiError as e:
-            logger.error(
+            logger.warning(
                 "discord.fail.setup.get_application_commands",
                 extra={
                     "status": e.code,
@@ -232,7 +232,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
                 for command in COMMANDS:
                     self.client.set_application_command(command)
             except ApiError as e:
-                logger.error(
+                logger.warning(
                     "discord.fail.setup.set_application_command",
                     extra={
                         "status": e.code,
@@ -284,7 +284,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
             (self.application_id, self.public_key, self.bot_token, self.client_secret)
         )
         if not has_credentials:
-            logger.error(
+            logger.warning(
                 "discord.install.fail.credentials_exist",
                 extra={
                     "application_id": self.application_id,

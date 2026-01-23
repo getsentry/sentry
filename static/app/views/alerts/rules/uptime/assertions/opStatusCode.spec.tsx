@@ -4,6 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
 
+import {AssertionsDndContext} from './dragDrop';
 import {AssertionOpStatusCode} from './opStatusCode';
 
 describe('AssertionOpStatusCode', () => {
@@ -295,5 +296,20 @@ describe('AssertionOpStatusCode', () => {
       operator: {cmp: 'greater_than'},
       value: 200, // Original value preserved
     });
+  });
+
+  it('renders drag handle for reordering', async () => {
+    render(
+      <AssertionsDndContext>
+        <AssertionOpStatusCode
+          value={{id: 'test-id-1', op, operator: {cmp: 'equals'}, value: 200}}
+          onChange={mockOnChange}
+          onRemove={mockOnRemove}
+        />
+      </AssertionsDndContext>
+    );
+
+    await screen.findByLabelText('Status Code');
+    expect(screen.getByRole('button', {name: 'Reorder assertion'})).toBeInTheDocument();
   });
 });
