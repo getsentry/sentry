@@ -78,6 +78,8 @@ export function PreprodSearchBar({
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string', hiddenKeys);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number', hiddenKeys);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean', hiddenKeys);
 
   const filteredStringAttributes = useMemo(
     () => filterAttributes(stringAttributes, allowedKeys),
@@ -86,6 +88,10 @@ export function PreprodSearchBar({
   const filteredNumberAttributes = useMemo(
     () => filterAttributes(numberAttributes, allowedKeys),
     [numberAttributes, allowedKeys]
+  );
+  const filteredBooleanAttributes = useMemo(
+    () => filterAttributes(booleanAttributes, allowedKeys),
+    [booleanAttributes, allowedKeys]
   );
 
   return (
@@ -96,8 +102,10 @@ export function PreprodSearchBar({
       itemType={TraceItemDataset.PREPROD}
       numberAttributes={filteredNumberAttributes}
       stringAttributes={filteredStringAttributes}
+      booleanAttributes={filteredBooleanAttributes}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
+      booleanSecondaryAliases={booleanSecondaryAliases}
       searchSource={searchSource}
       projects={projects}
       portalTarget={portalTarget}
