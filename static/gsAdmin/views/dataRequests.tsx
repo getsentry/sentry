@@ -9,6 +9,7 @@ import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -43,7 +44,9 @@ function DataRequests() {
 
   const {data: eventsData = [], isLoading: isLoadingEvents} = useApiQuery<any[]>(
     [
-      `/organizations/${queryFromRouterOrgSlug}/events/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        path: {organizationIdOrSlug: queryFromRouterOrgSlug},
+      }),
       {query: {query: 'user.email:' + queryFromRouterEmail}},
     ],
     {
@@ -53,7 +56,7 @@ function DataRequests() {
   );
 
   const {data: usersData = [], isLoading: isLoadingUsers} = useApiQuery<any[]>(
-    ['/users/', {query: {query: 'email:' + queryFromRouterEmail}}],
+    [getApiUrl('/users/'), {query: {query: 'email:' + queryFromRouterEmail}}],
     {
       staleTime: 0,
       enabled: hasQuery && !isEventSearch,

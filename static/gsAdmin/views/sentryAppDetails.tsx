@@ -10,6 +10,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -28,7 +29,9 @@ import SentryAppUpdateModal from 'admin/components/sentryAppUpdateModal';
 
 export default function SentryAppDetails() {
   const {sentryAppSlug} = useParams<{sentryAppSlug: string}>();
-  const ENDPOINT = `/sentry-apps/${sentryAppSlug}/`;
+  const ENDPOINT = getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+    path: {sentryAppIdOrSlug: sentryAppSlug},
+  });
   const api = useApi();
   const queryClient = useQueryClient();
 

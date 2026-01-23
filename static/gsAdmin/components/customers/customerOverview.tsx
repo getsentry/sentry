@@ -13,6 +13,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -404,7 +405,11 @@ function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
   const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
-    [`/organizations/${organization.slug}/sampling/effective-sample-rate/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: dynamicSamplingEnabled,
