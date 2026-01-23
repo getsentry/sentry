@@ -399,6 +399,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "capture_response_on_failure": False,
             "active_regions": ["default"],
             "region_schedule_mode": "round_robin",
+            "assertion": None,
         }
 
     def test_region_mode(self) -> None:
