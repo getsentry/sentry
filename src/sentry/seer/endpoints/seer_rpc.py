@@ -377,7 +377,6 @@ def get_attributes_and_values(
     """
     start_dt, end_dt = get_date_range_from_params(
         {"start": start, "end": end, "statsPeriod": stats_period},
-        default_stats_period=datetime.timedelta(days=7),
     )
 
     start_time_proto = ProtobufTimestamp()
