@@ -2,7 +2,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
+import type {
+  AndOp,
+  Assertion,
+  StatusCodeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {normalizeAssertion, UptimeAssertionsField} from './field';
 
@@ -399,8 +403,8 @@ describe('normalizeAssertion', () => {
       value: 700,
     };
 
-    expect(normalizeAssertion(tooLow).value).toBe(100);
-    expect(normalizeAssertion(tooHigh).value).toBe(599);
+    expect((normalizeAssertion(tooLow) as StatusCodeOp).value).toBe(100);
+    expect((normalizeAssertion(tooHigh) as StatusCodeOp).value).toBe(599);
   });
 
   it('preserves valid status code values', () => {
@@ -411,7 +415,7 @@ describe('normalizeAssertion', () => {
       value: 404,
     };
 
-    expect(normalizeAssertion(valid).value).toBe(404);
+    expect((normalizeAssertion(valid) as StatusCodeOp).value).toBe(404);
   });
 
   it('recursively normalizes nested assertions in and/or groups', () => {
@@ -434,8 +438,8 @@ describe('normalizeAssertion', () => {
       ],
     };
 
-    const result = normalizeAssertion(nested);
-    expect(result.children[0]?.value).toBe(200);
-    expect(result.children[1]?.value).toBe(599);
+    const result = normalizeAssertion(nested) as AndOp;
+    expect((result.children[0] as StatusCodeOp).value).toBe(200);
+    expect((result.children[1] as StatusCodeOp).value).toBe(599);
   });
 });
