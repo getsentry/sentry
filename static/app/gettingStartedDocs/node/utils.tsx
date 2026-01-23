@@ -662,10 +662,53 @@ export const getNodeAgentMonitoringOnboarding = ({
   importMode?: 'esm' | 'cjs' | 'esm-only';
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
-  install: params =>
-    getAgentMonitoringInstallStep(params, {
+  install: params => {
+    const selected =
+      (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
+
+    if (selected === AgentIntegration.MASTRA) {
+      return [
+        {
+          type: StepType.INSTALL,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'Install the [code:@mastra/sentry] package to enable Sentry integration with Mastra.',
+                {
+                  code: <code />,
+                }
+              ),
+            },
+            {
+              type: 'code',
+              tabs: [
+                {
+                  label: 'npm',
+                  language: 'bash',
+                  code: 'npm install @mastra/sentry',
+                },
+                {
+                  label: 'yarn',
+                  language: 'bash',
+                  code: 'yarn add @mastra/sentry',
+                },
+                {
+                  label: 'pnpm',
+                  language: 'bash',
+                  code: 'pnpm add @mastra/sentry',
+                },
+              ],
+            },
+          ],
+        },
+      ];
+    }
+
+    return getAgentMonitoringInstallStep(params, {
       packageName,
-    }),
+    });
+  },
   configure: params => {
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
@@ -675,6 +718,56 @@ export const getNodeAgentMonitoringOnboarding = ({
         packageName,
         importMode,
       });
+    }
+
+    if (selected === AgentIntegration.MASTRA) {
+      return [
+        {
+          title: t('Configure'),
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'Configure Mastra to use Sentry by adding the [code:SentryExporter] to your Mastra observability config. For more details, see the [link:@mastra/sentry package].',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://www.npmjs.com/package/@mastra/sentry" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              tabs: [
+                {
+                  label: 'JavaScript',
+                  language: 'javascript',
+                  code: `import { Mastra } from '@mastra/core';
+import { SentryExporter } from '@mastra/sentry';
+
+const mastra = new Mastra({
+  // ... your existing config
+  observability: {
+    configs: {
+      sentry: {
+        serviceName: 'my-service',
+        exporters: [
+          new SentryExporter({
+            dsn: '${params.dsn.public}',
+            tracesSampleRate: 1.0,
+          }),
+        ],
+      },
+    },
+  },
+});`,
+                },
+              ],
+            },
+          ],
+        },
+      ];
     }
 
     const isNodeOrMetaPlatform =
@@ -906,6 +999,28 @@ const result = await agent.invoke({
 const messages = result.messages;
 const lastMessage = messages[messages.length - 1];
 const text = lastMessage.content;`,
+          },
+        ],
+      });
+    }
+    if (selected === AgentIntegration.MASTRA) {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `import { Agent } from '@mastra/core/agent';
+
+// This agent needs to be registered in your Mastra config
+const agent = new Agent({
+  id: 'my-agent',
+  name: 'My Agent',
+  instructions: 'You are a helpful assistant',
+  model: 'openai/gpt-4o',
+});
+
+const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
           },
         ],
       });

@@ -48,7 +48,7 @@ import {
   PYTHON_AGENT_INTEGRATIONS,
 } from './utils/agentIntegrations';
 
-// Full-stack JS frameworks that support Vercel AI SDK (they have server-side capabilities)
+// Full-stack JS frameworks that support server-side agent SDKs.
 const fullStackJsPlatforms = [
   'javascript-astro',
   'javascript-nextjs',
@@ -59,6 +59,11 @@ const fullStackJsPlatforms = [
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
 ];
+
+const serverSideNodeIntegrations = new Set([
+  AgentIntegration.VERCEL_AI,
+  AgentIntegration.MASTRA,
+]);
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -232,7 +237,7 @@ export function Onboarding() {
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isNodePlatform = (project?.platform ?? '').startsWith('node');
   const isFullStackJsPlatform = fullStackJsPlatforms.includes(project?.platform ?? '');
-  const hasVercelAI = isNodePlatform || isFullStackJsPlatform;
+  const hasServerSideNode = isNodePlatform || isFullStackJsPlatform;
 
   const integrationOptions = {
     integration: {
@@ -242,10 +247,10 @@ export function Onboarding() {
             label: AGENT_INTEGRATION_LABELS[integration],
             value: integration,
           }))
-        : (hasVercelAI
+        : (hasServerSideNode
             ? NODE_AGENT_INTEGRATIONS
             : NODE_AGENT_INTEGRATIONS.filter(
-                integration => integration !== AgentIntegration.VERCEL_AI
+                integration => !serverSideNodeIntegrations.has(integration)
               )
           ).map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
