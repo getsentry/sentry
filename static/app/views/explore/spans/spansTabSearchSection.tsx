@@ -396,6 +396,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       onSearch: (newQuery: string) => {
         const newSearch = new MutableSearch(newQuery);
         const suggestedColumns = findSuggestedColumns(newSearch, oldSearch, {
+          booleanAttributes,
           numberAttributes,
           stringAttributes,
         });
@@ -431,6 +432,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       onCaseInsensitiveClick: setCaseInsensitive,
     }),
     [
+      booleanAttributes,
       caseInsensitive,
       fields,
       hasRawSearchReplacement,

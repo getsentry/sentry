@@ -48,6 +48,7 @@ export function useLogsSearchQueryBuilderProps({
       const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch, {
         numberAttributes,
         stringAttributes,
+        booleanAttributes,
       });
 
       const existingFields = new Set(fields);
@@ -58,7 +59,14 @@ export function useLogsSearchQueryBuilderProps({
         fields: newColumns.length ? [...fields, ...newColumns] : undefined,
       });
     },
-    [oldLogsSearch, numberAttributes, stringAttributes, fields, setQueryParams]
+    [
+      booleanAttributes,
+      fields,
+      numberAttributes,
+      oldLogsSearch,
+      setQueryParams,
+      stringAttributes,
+    ]
   );
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = {

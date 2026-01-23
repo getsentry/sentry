@@ -478,6 +478,7 @@ export function findSuggestedColumns(
   newSearch: MutableSearch,
   oldSearch: MutableSearch,
   attributes: {
+    booleanAttributes: TagCollection;
     numberAttributes: TagCollection;
     stringAttributes: TagCollection;
   }
@@ -499,9 +500,12 @@ export function findSuggestedColumns(
     const isNumberAttribute = key.startsWith('!')
       ? key.slice(1) in attributes.numberAttributes
       : key in attributes.numberAttributes;
+    const isBooleanAttribute = key.startsWith('!')
+      ? key.slice(1) in attributes.booleanAttributes
+      : key in attributes.booleanAttributes;
 
     // guard against unknown keys and aggregate keys
-    if (!isStringAttribute && !isNumberAttribute) {
+    if (!isStringAttribute && !isNumberAttribute && !isBooleanAttribute) {
       continue;
     }
 
