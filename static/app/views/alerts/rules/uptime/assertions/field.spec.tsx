@@ -4,7 +4,7 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
 
-import {UptimeAssertionsField} from './field';
+import {normalizeAssertion, UptimeAssertionsField} from './field';
 
 describe('UptimeAssertionsField', () => {
   const mockSubmit = jest.fn();
@@ -100,7 +100,7 @@ describe('UptimeAssertionsField', () => {
     expect(model.initialData.assertion).toEqual(existingAssertion);
   });
 
-  it('uses defaultValue when no initialData is provided', async () => {
+  it('shows default assertions and submits them when no initialData is provided', async () => {
     render(
       <Form onSubmit={mockSubmit} model={model}>
         <UptimeAssertionsField name="assertion" />
@@ -112,9 +112,14 @@ describe('UptimeAssertionsField', () => {
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
     });
 
-    // Should have default assertion structure with >199 AND <300 status code checks
-    const fieldValue = model.fields.get('assertion') as unknown as Assertion;
-    expect(fieldValue).toMatchObject({
+    // UI should show default 2xx assertions
+    const textboxes = screen.getAllByRole('textbox');
+    expect(textboxes[0]).toHaveValue('199');
+    expect(textboxes[1]).toHaveValue('300');
+
+    // getTransformedData (used by form submission) should return default assertions
+    const transformedData = model.getTransformedData();
+    expect(transformedData.assertion).toMatchObject({
       root: {
         id: expect.any(String),
         op: 'and',
@@ -184,7 +189,7 @@ describe('UptimeAssertionsField', () => {
     });
   });
 
-  it('clamps out-of-range values via getValue on form submission', async () => {
+  it('clamps values below minimum to 100 via getValue on form submission', async () => {
     const assertionWithInvalidValues: Assertion = {
       root: {
         id: 'root-1',
@@ -224,12 +229,50 @@ describe('UptimeAssertionsField', () => {
     });
   });
 
-  it('shows empty UI when editing monitor with empty assertion children', () => {
-    // When editing a monitor that previously had assertions removed,
-    // the backend may return an assertion structure with empty children
-    const emptyAssertion: Assertion = {
+  it('clamps values above maximum to 599 via getValue on form submission', async () => {
+    const assertionWithInvalidValues: Assertion = {
       root: {
         id: 'root-1',
+        op: 'and',
+        children: [
+          {
+            id: 'status-1',
+            op: 'status_code_check',
+            operator: {cmp: 'equals'},
+            value: 700, // Above valid range (100-599)
+          },
+        ],
+      },
+    };
+
+    render(
+      <Form
+        onSubmit={mockSubmit}
+        model={model}
+        initialData={{assertion: assertionWithInvalidValues}}
+      >
+        <UptimeAssertionsField name="assertion" />
+      </Form>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    const transformedData = model.getTransformedData();
+    const transformedAssertion = transformedData.assertion as Assertion;
+    expect(transformedAssertion.root.children[0]).toMatchObject({
+      op: 'status_code_check',
+      value: 599, // Clamped to maximum
+    });
+  });
+
+  it('shows empty UI when editing monitor with no assertions', () => {
+    // When editing a monitor that has no assertions, pass empty assertion structure
+    // (FormField converts null to '' so we can't use null directly)
+    const emptyAssertion: Assertion = {
+      root: {
+        id: 'empty',
         op: 'and',
         children: [],
       },
@@ -244,12 +287,51 @@ describe('UptimeAssertionsField', () => {
     // Should render the Add Assertion button
     expect(screen.getByRole('button', {name: 'Add Assertion'})).toBeInTheDocument();
 
-    // Should NOT have any assertion inputs
+    // Should NOT have any assertion inputs (no default 2xx assertions)
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
 
     // getValue should return null for empty assertions
     const transformedData = model.getTransformedData();
     expect(transformedData.assertion).toBeNull();
+  });
+
+  it('allows adding assertions when editing monitor with no assertions', async () => {
+    // When editing a monitor that has no assertions, user should be able to add new ones
+    const emptyAssertion: Assertion = {
+      root: {
+        id: 'empty',
+        op: 'and',
+        children: [],
+      },
+    };
+
+    render(
+      <Form onSubmit={mockSubmit} model={model} initialData={{assertion: emptyAssertion}}>
+        <UptimeAssertionsField name="assertion" />
+      </Form>
+    );
+
+    // Should start with no assertion inputs
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+
+    // Add a status code assertion
+    await userEvent.click(screen.getByRole('button', {name: 'Add Assertion'}));
+    expect(await screen.findByRole('menu')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Status Code'}));
+
+    // Should now have 1 assertion input
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    });
+
+    // getValue should return the new assertion (not null)
+    const transformedData = model.getTransformedData();
+    expect(transformedData.assertion).toMatchObject({
+      root: {
+        op: 'and',
+        children: [{op: 'status_code_check'}],
+      },
+    });
   });
 
   it('returns null via getValue when all assertions are deleted', async () => {
@@ -282,5 +364,78 @@ describe('UptimeAssertionsField', () => {
     // getValue should return null when all assertions are deleted
     const transformedData = model.getTransformedData();
     expect(transformedData.assertion).toBeNull();
+  });
+});
+
+describe('normalizeAssertion', () => {
+  it('handles NaN status code value by defaulting to 200', () => {
+    const op = {
+      id: 'test-1',
+      op: 'status_code_check' as const,
+      operator: {cmp: 'equals' as const},
+      value: NaN,
+    };
+
+    expect(normalizeAssertion(op)).toEqual({
+      id: 'test-1',
+      op: 'status_code_check',
+      operator: {cmp: 'equals'},
+      value: 200,
+    });
+  });
+
+  it('clamps status code values to valid HTTP range', () => {
+    const tooLow = {
+      id: 'test-1',
+      op: 'status_code_check' as const,
+      operator: {cmp: 'equals' as const},
+      value: 50,
+    };
+
+    const tooHigh = {
+      id: 'test-2',
+      op: 'status_code_check' as const,
+      operator: {cmp: 'equals' as const},
+      value: 700,
+    };
+
+    expect(normalizeAssertion(tooLow).value).toBe(100);
+    expect(normalizeAssertion(tooHigh).value).toBe(599);
+  });
+
+  it('preserves valid status code values', () => {
+    const valid = {
+      id: 'test-1',
+      op: 'status_code_check' as const,
+      operator: {cmp: 'equals' as const},
+      value: 404,
+    };
+
+    expect(normalizeAssertion(valid).value).toBe(404);
+  });
+
+  it('recursively normalizes nested assertions in and/or groups', () => {
+    const nested = {
+      id: 'group-1',
+      op: 'and' as const,
+      children: [
+        {
+          id: 'test-1',
+          op: 'status_code_check' as const,
+          operator: {cmp: 'equals' as const},
+          value: NaN,
+        },
+        {
+          id: 'test-2',
+          op: 'status_code_check' as const,
+          operator: {cmp: 'equals' as const},
+          value: 800,
+        },
+      ],
+    };
+
+    const result = normalizeAssertion(nested);
+    expect(result.children[0].value).toBe(200);
+    expect(result.children[1].value).toBe(599);
   });
 });

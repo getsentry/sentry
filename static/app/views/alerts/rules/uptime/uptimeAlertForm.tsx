@@ -28,6 +28,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {uniqueId} from 'sentry/utils/guid';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -82,7 +83,9 @@ function getFormDataFromRule(rule: UptimeRule) {
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
     recoveryThreshold: rule.recoveryThreshold,
     downtimeThreshold: rule.downtimeThreshold,
-    assertion: rule.assertion,
+    // Use empty assertion structure for null - FormField converts null to '' which
+    // we can't distinguish from "new form". Empty children signals "edit with no assertions".
+    assertion: rule.assertion ?? {root: {op: 'and', children: [], id: uniqueId()}},
   };
 }
 
