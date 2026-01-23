@@ -141,7 +141,8 @@ export function getWidgetInterval(
   let interval =
     widget.widgetType === WidgetType.SPANS ||
     widget.widgetType === WidgetType.LOGS ||
-    widget.widgetType === WidgetType.TRACEMETRICS
+    widget.widgetType === WidgetType.TRACEMETRICS ||
+    widget.widgetType === WidgetType.ERRORS
       ? // For span based widgets, we want to permit non 1d bar charts.
         undefined
       : // Bars charts are daily totals to aligned with discover. It also makes them
