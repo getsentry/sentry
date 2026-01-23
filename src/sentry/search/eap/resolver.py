@@ -531,7 +531,6 @@ class SearchResolver:
 
         # Handle lists containing None for IN/NOT IN operators
         if isinstance(value, list) and None in value and term.operator in constants.IN_OPERATORS:
-            # Split None from non-None values
             non_none_values = [v for v in value if v is not None]
 
             exists_filter = TraceItemFilter(
@@ -541,12 +540,9 @@ class SearchResolver:
             )
 
             if term.operator == "IN":
-                # For IN: (field IS NULL) OR (field IN [non-none values])
                 filters = []
-                # Add NOT EXISTS filter for NULL values
                 filters.append(TraceItemFilter(not_filter=NotFilter(filters=[exists_filter])))
 
-                # Add IN filter for non-None values if any exist
                 if non_none_values:
                     filters.append(
                         TraceItemFilter(
@@ -567,10 +563,8 @@ class SearchResolver:
                     context_definition,
                 )
             else:  # NOT IN
-                # For NOT IN: (field IS NOT NULL) AND (field NOT IN [non-none values])
                 filters = [exists_filter]
 
-                # Add NOT IN filter for non-None values if any exist
                 if non_none_values:
                     filters.append(
                         TraceItemFilter(
