@@ -33,7 +33,7 @@ export function useValidateChannel({
         {
           path: {
             organizationIdOrSlug: organization.slug,
-            integrationId: String(integrationId),
+            integrationId: integrationId!,
           },
         }
       ),
