@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any
 
 from urllib3.exceptions import HTTPError
@@ -22,7 +21,7 @@ from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
-from ..utils import get_seer_endpoint_for_event, make_seer_request
+from ..utils import convert_enum_keys_to_strings, get_seer_endpoint_for_event, make_seer_request
 
 logger = logging.getLogger(__name__)
 
@@ -32,32 +31,6 @@ MAX_RETRIES = 3
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
 METRICS_PREFIX = "seer.code_review.task"
-
-
-def convert_enum_keys_to_strings(obj: Any) -> Any:
-    """
-    Recursively convert enum keys in dictionaries to their string values.
-
-    This is needed because Pydantic v1 converts string keys to enum members when parsing,
-    but JSON serialization requires string keys. Enum values are also converted to strings.
-
-    Args:
-        obj: The object to process (can be dict, list, enum, or primitive)
-
-    Returns:
-        A copy of the object with all enum keys and values converted to strings
-    """
-    if isinstance(obj, dict):
-        return {
-            (k.value if isinstance(k, Enum) else k): convert_enum_keys_to_strings(v)
-            for k, v in obj.items()
-        }
-    elif isinstance(obj, list):
-        return [convert_enum_keys_to_strings(item) for item in obj]
-    elif isinstance(obj, Enum):
-        return obj.value
-    else:
-        return obj
 
 
 def schedule_task(

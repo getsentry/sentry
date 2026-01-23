@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Any
 
 import orjson
@@ -21,6 +21,32 @@ class ClientError(Exception):
     "Non-retryable client error from Seer"
 
     pass
+
+
+def convert_enum_keys_to_strings(obj: Any) -> Any:
+    """
+    Recursively convert enum keys in dictionaries to their string values.
+
+    This is needed because Pydantic v1 converts string keys to enum members when parsing,
+    but JSON serialization requires string keys. Enum values are also converted to strings.
+
+    Args:
+        obj: The object to process (can be dict, list, enum, or primitive)
+
+    Returns:
+        A copy of the object with all enum keys and values converted to strings
+    """
+    if isinstance(obj, dict):
+        return {
+            (k.value if isinstance(k, Enum) else k): convert_enum_keys_to_strings(v)
+            for k, v in obj.items()
+        }
+    elif isinstance(obj, list):
+        return [convert_enum_keys_to_strings(item) for item in obj]
+    elif isinstance(obj, Enum):
+        return obj.value
+    else:
+        return obj
 
 
 # These values need to match the value defined in the Seer API.

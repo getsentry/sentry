@@ -11,21 +11,12 @@ from sentry.seer.models import SeerRepoDefinition
 # Code Review Models (ported from Seer)
 # =============================================================================
 
-# Comment severity rankings for comparison
-_COMMENT_SEVERITY_RANKINGS = {"low": 1, "medium": 2, "high": 3, "critical": 4}
-
 
 class CommentSeverity(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
-
-    def meets_minimum(self, minimum_severity: CommentSeverity) -> bool:
-        return (
-            _COMMENT_SEVERITY_RANKINGS[self.value]
-            >= _COMMENT_SEVERITY_RANKINGS[minimum_severity.value]
-        )
 
 
 class SeerCodeReviewFeature(StrEnum):
