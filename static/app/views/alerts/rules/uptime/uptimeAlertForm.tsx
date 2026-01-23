@@ -94,12 +94,26 @@ function getFormDataFromRule(rule: UptimeRule) {
 }
 
 /**
+ * Maps assertion error types to user-friendly titles.
+ */
+function getAssertionErrorTitle(errorType: string): string {
+  switch (errorType) {
+    case 'compilation_error':
+      return t('Compilation Error');
+    case 'serialization_error':
+      return t('Serialization Error');
+    default:
+      return t('Validation Error');
+  }
+}
+
+/**
  * Maps form errors from the API response format to the format expected by FormModel.
  *
  * Handles special cases like assertion errors which come back as:
  * {"assertion": {"error": "compilation_error", "details": "..."}}
  *
- * And transforms them to: {"assertion": ["<error details>"]}
+ * And transforms them to: {"assertion": ["Compilation Error: <error details>"]}
  */
 function mapFormErrors(responseJson: any): any {
   if (!responseJson) {
@@ -115,7 +129,8 @@ function mapFormErrors(responseJson: any): any {
     !Array.isArray(result.assertion) &&
     'details' in result.assertion
   ) {
-    result.assertion = [result.assertion.details];
+    const title = getAssertionErrorTitle(result.assertion.error);
+    result.assertion = [`${title}: ${result.assertion.details}`];
   }
 
   return result;
