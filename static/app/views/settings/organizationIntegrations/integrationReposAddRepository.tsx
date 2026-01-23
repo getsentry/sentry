@@ -2,7 +2,6 @@ import {useMemo, useState} from 'react';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -85,10 +84,9 @@ export function IntegrationReposAddRepository({
     try {
       const repo = await promise;
       onAddRepository(repo);
-      addSuccessMessage(t('Repository added'));
       RepositoryStore.resetRepositories();
-    } catch (error) {
-      addErrorMessage(t('Unable to add repository.'));
+    } catch {
+      // Error feedback is handled by addRepository/migrateRepository
     } finally {
       setAdding(false);
     }

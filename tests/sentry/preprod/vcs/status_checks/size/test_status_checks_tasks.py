@@ -17,6 +17,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -288,8 +289,15 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
                 assert call_kwargs["repo"] == "owner/repo"
                 assert call_kwargs["sha"] == preprod_artifact.commit_comparison.head_sha
-                assert call_kwargs["status"] == expected_status
                 assert call_kwargs["title"] == "Size Analysis"
+
+                # IN_PROGRESS and FAILURE are converted to NEUTRAL to avoid blocking PR merges:
+                # - IN_PROGRESS: Can get stuck due to GitHub API rate limiting
+                # - FAILURE: No approval flow exists yet
+                if expected_status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
+                    assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
+                else:
+                    assert call_kwargs["status"] == expected_status
 
                 if expected_status == StatusCheckStatus.SUCCESS:
                     # SUCCESS only when processed AND has completed size metrics
@@ -348,7 +356,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         # Create multiple artifacts for the same commit (monorepo scenario)
         artifacts = []
         for i in range(3):
-            artifact = PreprodArtifact.objects.create(
+            artifact = Factories.create_preprod_artifact(
                 project=self.project,
                 state=PreprodArtifact.ArtifactState.PROCESSED,
                 app_id=f"com.example.app{i}",
@@ -447,7 +455,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         assert call_kwargs["title"] == "Size Analysis"
         assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
-        assert call_kwargs["status"] == StatusCheckStatus.FAILURE  # Failed takes priority
+        # Mixed states include a FAILED artifact, but FAILURE is converted to NEUTRAL
+        # to avoid blocking PR merges (no approval flow exists yet)
+        assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
 
         summary = call_kwargs["summary"]
         assert "com.example.processed" in summary
@@ -807,7 +817,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             base_ref="main",
         )
 
-        ios_old = PreprodArtifact.objects.create(
+        ios_old = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
@@ -827,7 +837,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        android_old = PreprodArtifact.objects.create(
+        android_old = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
@@ -849,7 +859,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         later_time = timezone.now() + timedelta(hours=1)
 
-        ios_new = PreprodArtifact.objects.create(
+        ios_new = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
@@ -871,7 +881,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        android_new = PreprodArtifact.objects.create(
+        android_new = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
@@ -944,7 +954,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         same_app_id = "com.example.multiplatform"
 
-        ios_artifact = PreprodArtifact.objects.create(
+        ios_artifact = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
@@ -964,7 +974,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        android_artifact = PreprodArtifact.objects.create(
+        android_artifact = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
@@ -1008,7 +1018,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert ios_artifact.id in sibling_ids_from_android
 
         later_time = timezone.now() + timedelta(hours=1)
-        ios_artifact_new = PreprodArtifact.objects.create(
+        ios_artifact_new = Factories.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,

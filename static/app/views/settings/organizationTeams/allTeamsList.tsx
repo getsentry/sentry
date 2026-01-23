@@ -60,5 +60,5 @@ function AllTeamsList({organization, openMembership, teamList, access}: Props) {
 export default AllTeamsList;
 
 const StyledButton = styled(Button)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

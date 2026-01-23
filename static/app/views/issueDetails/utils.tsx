@@ -15,6 +15,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -257,7 +258,13 @@ export function getGroupEventQueryKey({
   statsPeriod?: string;
 }): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        issueId: groupId,
+        eventId,
+      },
+    }),
     {
       query: getGroupEventDetailsQueryData({
         environments,
@@ -341,12 +348,10 @@ export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: b
 
 export function getUserTagValue(tagValue: TagValue): {
   subtitle: string | null;
-  subtitleType: string | null;
-  title: string | null;
+  title: string;
 } {
   let title: string | null = null;
   let subtitle: string | null = null;
-  let subtitleType: string | null = null;
   if (defined(tagValue?.name)) {
     title = tagValue?.name;
   } else if (defined(tagValue?.email)) {
@@ -361,7 +366,6 @@ export function getUserTagValue(tagValue: TagValue): {
     title = title ? title : tagValue?.id;
     if (tagValue?.id && tagValue?.id !== 'None') {
       subtitle = tagValue?.id;
-      subtitleType = t('ID');
     }
   }
 
@@ -369,5 +373,6 @@ export function getUserTagValue(tagValue: TagValue): {
     subtitle = null;
   }
 
-  return {title, subtitle, subtitleType};
+  // Fall back to the raw tag value if no user-specific fields are available
+  return {title: title || tagValue.value, subtitle};
 }

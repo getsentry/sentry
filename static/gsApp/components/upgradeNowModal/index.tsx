@@ -108,7 +108,7 @@ const Subheader = styled('h2')`
   text-transform: uppercase;
   font-weight: bold;
 
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-bottom: ${space(1)};
 `;
 
@@ -117,14 +117,14 @@ const SubheaderPrimary = styled(Subheader)`
 `;
 
 const Header = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin: ${space(1)} 0;
 `;
 
 const ModalLayout = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -136,12 +136,12 @@ const ModalLayout = styled('div')`
 const UpsellContent = styled('div')`
   grid-column: 1;
   grid-row: 1;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Note = styled('p')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 export const modalCss = css`

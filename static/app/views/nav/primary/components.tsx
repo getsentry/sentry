@@ -312,8 +312,8 @@ const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   letter-spacing: -0.05em;
 `;
 
@@ -442,7 +442,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   display: block;
   text-align: center;
   color: ${p => p.theme.colors.white};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;
   height: 10px;

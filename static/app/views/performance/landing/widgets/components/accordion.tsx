@@ -49,7 +49,7 @@ function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
 }
 
 const AccordionItem = styled('li')`
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const AccordionContainer = styled('ul')`
@@ -62,7 +62,7 @@ const AccordionHeader = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const AccordionContent = styled('div')`

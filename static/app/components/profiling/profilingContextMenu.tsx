@@ -14,7 +14,7 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   return <div ref={ref} role="menu" {...props} />;
 })`
   position: absolute;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -32,7 +32,7 @@ const MenuContentContainer = styled('div')`
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
@@ -51,7 +51,7 @@ const MenuContentContainer = styled('div')`
 const MenuItemCheckboxLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
   cursor: pointer;
   flex: 1 1 100%;
@@ -254,7 +254,7 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
 })`
   text-transform: uppercase;
   line-height: 1.5;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
   cursor: default;
