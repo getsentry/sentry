@@ -492,6 +492,15 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
             uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
             delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
+        # Invalidate cache after transaction commits
+        data_sources = list(detector.data_sources.values_list("source_id", "type"))
+
+        def invalidate_cache():
+            for source_id, source_type in data_sources:
+                invalidate_detectors_by_data_source_cache(source_id, source_type)
+
+        transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
+
 
 def ensure_uptime_seat(detector: Detector) -> None:
     """
@@ -532,6 +541,10 @@ def enable_uptime_detector(
     uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
     detector.update(enabled=True)
 
+    # Invalidate cache after enabling detector
+    for source_id, source_type in detector.data_sources.values_list("source_id", "type"):
+        invalidate_detectors_by_data_source_cache(source_id, source_type)
+
     # The subscription was disabled, it can be re-activated now
     if uptime_subscription.status == UptimeSubscription.Status.DISABLED.value:
         uptime_subscription.update(status=UptimeSubscription.Status.CREATING.value)
@@ -549,14 +562,16 @@ def remove_uptime_seat(detector: Detector):
 def delete_uptime_detector(detector: Detector):
     uptime_subscription = get_uptime_subscription(detector)
 
-    # Invalidate cache for all data sources before deletion
-    for source_id, source_type in detector.data_sources.values_list("source_id", "type"):
-        invalidate_detectors_by_data_source_cache(source_id, source_type)
+    # Capture data source info before any state changes
+    data_sources = list(detector.data_sources.values_list("source_id", "type"))
 
     remove_uptime_seat(detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
     delete_uptime_subscription(uptime_subscription)
+
+    for source_id, source_type in data_sources:
+        invalidate_detectors_by_data_source_cache(source_id, source_type)
 
 
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
