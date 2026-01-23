@@ -93,6 +93,34 @@ function getFormDataFromRule(rule: UptimeRule) {
   };
 }
 
+/**
+ * Maps form errors from the API response format to the format expected by FormModel.
+ *
+ * Handles special cases like assertion errors which come back as:
+ * {"assertion": {"error": "compilation_error", "details": "..."}}
+ *
+ * And transforms them to: {"assertion": ["<error details>"]}
+ */
+function mapFormErrors(responseJson: any): any {
+  if (!responseJson) {
+    return responseJson;
+  }
+
+  const result = {...responseJson};
+
+  // Handle assertion errors from the uptime-checker validator
+  if (
+    result.assertion &&
+    typeof result.assertion === 'object' &&
+    !Array.isArray(result.assertion) &&
+    'details' in result.assertion
+  ) {
+    result.assertion = [result.assertion.details];
+  }
+
+  return result;
+}
+
 export function UptimeAlertForm({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -202,6 +230,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      mapFormErrors={mapFormErrors}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);

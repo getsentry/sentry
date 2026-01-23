@@ -524,6 +524,44 @@ describe('Uptime Alert Form', () => {
     );
   });
 
+  it('displays assertion compilation errors', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
+    });
+    OrganizationStore.onUpdate(orgWithAssertions);
+
+    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+    await screen.findByText('Verification');
+
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Invalid Assertion');
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        assertion: {
+          error: 'compilation_error',
+          details: 'Invalid JSON path expression: syntax error at position 5',
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    // The error message from the assertion compilation should be displayed
+    expect(
+      await screen.findByText('Invalid JSON path expression: syntax error at position 5')
+    ).toBeInTheDocument();
+  });
+
   it('preserves null assertion when editing rule without assertions', async () => {
     const orgWithAssertions = OrganizationFixture({
       features: ['uptime-runtime-assertions'],
