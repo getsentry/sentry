@@ -1079,10 +1079,14 @@ def update_detector(detector: Detector, enabled: bool) -> None:
         if query_subscriptions:
             enable_disable_subscriptions(query_subscriptions, enabled)
 
-    # Invalidate cache after transaction commits
-    data_sources = detector.data_sources.values_list("source_id", "type")
-    for source_id, source_type in data_sources:
-        invalidate_detectors_by_data_source_cache(source_id, source_type)
+    # Invalidate cache after transaction commits (may be called from within a larger transaction)
+    data_sources = list(detector.data_sources.values_list("source_id", "type"))
+
+    def invalidate_cache():
+        for source_id, source_type in data_sources:
+            invalidate_detectors_by_data_source_cache(source_id, source_type)
+
+    transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
 
 
 def delete_alert_rule(

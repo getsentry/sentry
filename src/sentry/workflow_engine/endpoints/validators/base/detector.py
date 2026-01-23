@@ -248,7 +248,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         )
         DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
-        # Invalidate cache after transaction commits (may be called from within a transaction)
+        # Invalidate cache after transaction commits
         source_id = detector_data_source.source_id
         source_type = detector_data_source.type
         transaction.on_commit(
