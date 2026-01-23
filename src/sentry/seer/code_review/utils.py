@@ -327,6 +327,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
         client = integration.get_installation(organization_id=organization_id).get_client()
 
         if pr_number:
+            # Delete existing :tada: or :eyes: reaction on the PR description
             try:
                 existing_reactions = client.get_issue_reactions(repo.name, pr_number)
                 for reaction in existing_reactions:
