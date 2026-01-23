@@ -9,14 +9,13 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 from ..metrics import WebhookFilteredReason, record_webhook_filtered, record_webhook_received
-from ..utils import _get_target_commit_sha, add_github_reaction
+from ..utils import _get_target_commit_sha, delete_tada_and_add_eyes_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -40,28 +39,6 @@ def is_pr_review_command(comment_body: str | None) -> bool:
     if comment_body is None:
         return False
     return SENTRY_REVIEW_COMMAND in comment_body.lower()
-
-
-def _add_eyes_reaction_to_comment(
-    github_event: GithubWebhookType,
-    github_event_action: GitHubIssueCommentAction,
-    integration: RpcIntegration | None,
-    organization_id: int,
-    repo: Repository,
-    comment_id: str,
-) -> None:
-    """Add 👀 reaction to acknowledge a review command. Errors are added to metrics but not raised."""
-
-    def perform_reaction(client: Any) -> None:
-        client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
-
-    add_github_reaction(
-        github_event=github_event,
-        github_event_action=github_event_action.value,
-        integration=integration,
-        organization_id=organization_id,
-        reaction_operation=perform_reaction,
-    )
 
 
 def handle_issue_comment_event(
@@ -104,13 +81,14 @@ def handle_issue_comment_event(
         return
 
     if comment_id:
-        _add_eyes_reaction_to_comment(
-            github_event,
-            GitHubIssueCommentAction(github_event_action),
-            integration,
-            organization.id,
-            repo,
-            str(comment_id),
+        delete_tada_and_add_eyes_reaction(
+            github_event=github_event,
+            github_event_action=github_event_action,
+            integration=integration,
+            organization_id=organization.id,
+            repo=repo,
+            pr_number=str(event.get("issue", {}).get("number", "")),
+            comment_id=str(comment_id),
         )
 
     target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)

@@ -9,16 +9,12 @@ from urllib3.exceptions import HTTPError
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.metrics import CodeReviewErrorType
-from sentry.seer.code_review.utils import ClientError
+from sentry.seer.code_review.utils import ClientError, delete_tada_and_add_eyes_reaction
 from sentry.seer.code_review.webhooks.issue_comment import (
     GitHubIssueCommentAction,
-    _add_eyes_reaction_to_comment,
     is_pr_review_command,
 )
-from sentry.seer.code_review.webhooks.pull_request import (
-    PullRequestAction,
-    _add_eyes_reaction_to_pull_request,
-)
+from sentry.seer.code_review.webhooks.pull_request import PullRequestAction
 from sentry.seer.code_review.webhooks.task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
@@ -514,12 +510,13 @@ class AddEyesReactionToCommentTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.record_webhook_handler_error")
     def test_records_error_when_integration_is_none(self, mock_record_error: MagicMock) -> None:
-        _add_eyes_reaction_to_comment(
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
-            github_event_action=GitHubIssueCommentAction.CREATED,
+            github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=None,
             organization_id=self.organization.id,
             repo=self.repo,
+            pr_number="42",
             comment_id="123",
         )
 
@@ -530,12 +527,15 @@ class AddEyesReactionToCommentTest(TestCase):
         )
 
     def test_calls_github_api_with_eyes_reaction(self) -> None:
-        _add_eyes_reaction_to_comment(
+        self.mock_client.get_issue_reactions.return_value = []
+
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
-            github_event_action=GitHubIssueCommentAction.CREATED,
+            github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
             organization_id=self.organization.id,
             repo=self.repo,
+            pr_number="42",
             comment_id="123456",
         )
 
@@ -545,14 +545,16 @@ class AddEyesReactionToCommentTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.record_webhook_handler_error")
     def test_records_error_on_api_error(self, mock_record_error: MagicMock) -> None:
+        self.mock_client.get_issue_reactions.return_value = []
         self.mock_client.create_comment_reaction.side_effect = Exception("API Error")
 
-        _add_eyes_reaction_to_comment(
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
-            github_event_action=GitHubIssueCommentAction.CREATED,
+            github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
             organization_id=self.organization.id,
             repo=self.repo,
+            pr_number="42",
             comment_id="123456",
         )
 
@@ -581,13 +583,14 @@ class AddEyesReactionToPullRequestTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.record_webhook_handler_error")
     def test_records_error_when_integration_is_none(self, mock_record_error: MagicMock) -> None:
-        _add_eyes_reaction_to_pull_request(
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
-            github_event_action=PullRequestAction.OPENED,
+            github_event_action=PullRequestAction.OPENED.value,
             integration=None,
             organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
+            comment_id=None,
         )
 
         self.mock_client.create_issue_reaction.assert_not_called()
@@ -602,13 +605,14 @@ class AddEyesReactionToPullRequestTest(TestCase):
             {"id": 1, "user": {"login": "other-user"}, "content": "hooray"}
         ]
 
-        _add_eyes_reaction_to_pull_request(
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
-            github_event_action=PullRequestAction.OPENED,
+            github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
             organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
+            comment_id=None,
         )
 
         self.mock_client.delete_issue_reaction.assert_not_called()
@@ -622,13 +626,14 @@ class AddEyesReactionToPullRequestTest(TestCase):
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "hooray"},
         ]
 
-        _add_eyes_reaction_to_pull_request(
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
-            github_event_action=PullRequestAction.OPENED,
+            github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
             organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
+            comment_id=None,
         )
 
         self.mock_client.delete_issue_reaction.assert_called_once_with(self.repo.name, "42", "2")
@@ -639,13 +644,14 @@ class AddEyesReactionToPullRequestTest(TestCase):
     def test_adds_eyes_when_get_reactions_fails(self) -> None:
         self.mock_client.get_issue_reactions.side_effect = Exception("API Error")
 
-        _add_eyes_reaction_to_pull_request(
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
-            github_event_action=PullRequestAction.OPENED,
+            github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
             organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
+            comment_id=None,
         )
 
         self.mock_client.create_issue_reaction.assert_called_once_with(
@@ -659,13 +665,14 @@ class AddEyesReactionToPullRequestTest(TestCase):
         ]
         self.mock_client.delete_issue_reaction.side_effect = Exception("API Error")
 
-        _add_eyes_reaction_to_pull_request(
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
-            github_event_action=PullRequestAction.OPENED,
+            github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
             organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
+            comment_id=None,
         )
 
         self.mock_client.create_issue_reaction.assert_called_once_with(
@@ -677,13 +684,14 @@ class AddEyesReactionToPullRequestTest(TestCase):
         self.mock_client.get_issue_reactions.return_value = []
         self.mock_client.create_issue_reaction.side_effect = Exception("API Error")
 
-        _add_eyes_reaction_to_pull_request(
+        delete_tada_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
-            github_event_action=PullRequestAction.OPENED,
+            github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
             organization_id=self.organization.id,
             repo=self.repo,
             pr_number="42",
+            comment_id=None,
         )
 
         mock_record_error.assert_called_once_with(

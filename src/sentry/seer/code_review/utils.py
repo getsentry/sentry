@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
@@ -8,6 +8,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
@@ -302,27 +303,15 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     return None
 
 
-def add_github_reaction(
+def delete_tada_and_add_eyes_reaction(
     github_event: GithubWebhookType,
     github_event_action: str,
     integration: RpcIntegration | None,
     organization_id: int,
-    reaction_operation: Callable[[Any], None],
+    repo: Repository,
+    pr_number: str,
+    comment_id: str | None,
 ) -> None:
-    """
-    Generic helper for adding GitHub reactions with standardized error handling.
-
-    Handles integration validation, client retrieval, error logging, and metrics
-    recording. The actual reaction operation is provided as a callable.
-
-    Args:
-        github_event: The GitHub webhook event type
-        github_event_action: The action string from the webhook
-        integration: The RPC integration (can be None)
-        organization: The Sentry organization
-        reaction_operation: Callable that takes a client and performs the reaction
-    """
-
     if integration is None:
         record_webhook_handler_error(
             github_event,
@@ -333,7 +322,28 @@ def add_github_reaction(
 
     try:
         client = integration.get_installation(organization_id=organization_id).get_client()
-        reaction_operation(client)
+
+        # delete existing :tada: reaction on the pr description
+        try:
+            existing_reactions = client.get_issue_reactions(repo.name, pr_number)
+            for reaction in existing_reactions:
+                if (
+                    reaction.get("user", {}).get("login") == "sentry[bot]"
+                    and reaction.get("content") == GitHubReaction.HOORAY.value
+                ):
+                    if reaction.get("id"):
+                        client.delete_issue_reaction(repo.name, pr_number, str(reaction.get("id")))
+                        break
+        except Exception:
+            # continue even if this fails
+            pass
+
+        # add :eyes: on the originating issue comment or pr description
+        if github_event == GithubWebhookType.PULL_REQUEST:
+            client.create_issue_reaction(repo.name, pr_number, GitHubReaction.EYES)
+        elif github_event == GithubWebhookType.ISSUE_COMMENT:
+            client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
+
     except Exception:
         record_webhook_handler_error(
             github_event,
