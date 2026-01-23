@@ -9,11 +9,12 @@ from sentry.testutils.cases import APITestCase
 
 
 class TestSeerModels(APITestCase):
-    endpoint = "sentry-api-0-seer-models"
+    endpoint = "sentry-api-0-organization-seer-models"
 
     def setUp(self) -> None:
         super().setUp()
-        self.url = "/api/0/seer/models/"
+        org = self.create_organization()
+        self.url = f"/api/0/organizations/{org.slug}/seer/models/"
 
     @patch("sentry.api.endpoints.seer_models.requests.get")
     def test_get_models_successful(self, mock_get: MagicMock) -> None:

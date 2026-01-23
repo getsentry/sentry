@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import requests
 from django.conf import settings
@@ -13,7 +13,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -61,13 +63,14 @@ class SeerModelsEndpoint(Endpoint):
         }
     )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-seer-models"])
     @extend_schema(
         operation_id="List Seer AI Models",
         responses={
             200: inline_sentry_response_serializer("SeerModelsResponse", SeerModelsResponse),
         },
     )
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request, **kwargs: Any) -> Response:
         """
         Get list of actively used LLM model names from Seer.
 
