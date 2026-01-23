@@ -541,9 +541,14 @@ def enable_uptime_detector(
     uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
     detector.update(enabled=True)
 
-    # Invalidate cache after enabling detector
-    for source_id, source_type in detector.data_sources.values_list("source_id", "type"):
-        invalidate_detectors_by_data_source_cache(source_id, source_type)
+    # Invalidate cache after transaction commits (may be called from within a transaction)
+    data_sources = list(detector.data_sources.values_list("source_id", "type"))
+
+    def invalidate_cache():
+        for source_id, source_type in data_sources:
+            invalidate_detectors_by_data_source_cache(source_id, source_type)
+
+    transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
 
     # The subscription was disabled, it can be re-activated now
     if uptime_subscription.status == UptimeSubscription.Status.DISABLED.value:
