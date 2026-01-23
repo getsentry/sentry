@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IssueType, type Group, type ISSUE_TYPE_TO_ISSUE_TITLE} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -47,7 +48,9 @@ function useWebVitalsIssuesQueryKey({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   return [
-    `/organizations/${organization.slug}/issues/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         query: getIssueQueryFilter({issueTypes, transaction, webVital}),
