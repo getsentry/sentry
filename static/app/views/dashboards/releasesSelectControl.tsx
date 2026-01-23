@@ -50,8 +50,14 @@ export function ReleasesSelectControl({
 }: ReleasesSelectControlProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
+  const [isReleasesDropdownOpen, setIsReleasesDropdownOpen] = useState(false);
 
-  const {data: releases, isLoading: loading} = useReleases(searchTerm, sortBy);
+  // Event counts are lazy-loaded only when the dropdown is open to reduce API calls
+  const {data: releases, isLoading: loading} = useReleases(
+    searchTerm,
+    sortBy,
+    isReleasesDropdownOpen
+  );
 
   function resetSearch() {
     setSearchTerm('');
@@ -124,6 +130,7 @@ export function ReleasesSelectControl({
         },
       ]}
       onChange={opts => setActiveReleases(opts.map(opt => opt.value as string))}
+      onOpenChange={setIsReleasesDropdownOpen}
       onClose={() => {
         resetSearch();
         if (!isEqual(activeReleases, selectedReleases)) {

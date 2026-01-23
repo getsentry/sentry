@@ -31,7 +31,8 @@ export type ReleaseWithCount = Release & {
  */
 export function useReleases(
   searchTerm: string,
-  sortBy: ReleasesSortOption
+  sortBy: ReleasesSortOption,
+  eventCountsEnabled = false
 ): {
   data: ReleaseWithCount[];
   isLoading: boolean;
@@ -101,7 +102,7 @@ export function useReleases(
         queryKey,
         queryFn: fetchDataQuery<TableData>,
         staleTime: Infinity,
-        enabled: isReady && !releaseResults.isPending,
+        enabled: isReady && !releaseResults.isPending && eventCountsEnabled,
         retry: false,
       };
     }),
@@ -141,6 +142,6 @@ export function useReleases(
 
   return {
     data: enrichedReleases,
-    isLoading: !metricsFetched || releaseResults.isPending,
+    isLoading: releaseResults.isPending || (eventCountsEnabled && !metricsFetched),
   };
 }

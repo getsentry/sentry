@@ -9,7 +9,7 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
 
-export default function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
+function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
   return (
     <Tooltip
       title={t('Changes to these filters can only be made at the dashboard level')}
@@ -29,6 +29,8 @@ export default function WidgetBuilderFilterBar({releases}: {releases: string[]})
     </Tooltip>
   );
 }
+
+export default WidgetBuilderFilterBar;
 
 // Override the styles of the trigger button of the releases selection
 // control. This is because filter buttons are

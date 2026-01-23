@@ -12,6 +12,14 @@ export enum ReleasesSortOption {
   ADOPTION = 'adoption',
 }
 
+/**
+ * Sort options available for dashboard release filtering.
+ *
+ * Note: CRASH_FREE_USERS and CRASH_FREE_SESSIONS are intentionally excluded.
+ * These options are only shown in the releases list page where there's a
+ * "display mode" toggle (users vs sessions) that determines which one to show.
+ * See: static/app/views/releases/list/releasesSortOptions.tsx
+ */
 export const RELEASES_SORT_OPTIONS = {
   [ReleasesSortOption.SESSIONS_24_HOURS]: {label: t('Active Sessions')},
   [ReleasesSortOption.USERS_24_HOURS]: {label: t('Active Users')},

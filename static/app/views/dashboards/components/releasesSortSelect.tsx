@@ -18,9 +18,12 @@ export function ReleasesSortSelect({sortBy, onChange}: ReleasesSortSelectProps) 
     <CompactSelect
       value={sortBy}
       onChange={option => {
-        onChange(option.value as ReleasesSortOption);
+        onChange(option.value);
       }}
-      options={Object.entries(RELEASES_SORT_OPTIONS).map(([name, filter]) => {
+      options={(
+        Object.keys(RELEASES_SORT_OPTIONS) as Array<keyof typeof RELEASES_SORT_OPTIONS>
+      ).map(name => {
+        const filter = RELEASES_SORT_OPTIONS[name];
         if (name !== ReleasesSortOption.ADOPTION) {
           return {
             label: filter.label,
@@ -41,14 +44,11 @@ export function ReleasesSortSelect({sortBy, onChange}: ReleasesSortSelectProps) 
         };
       })}
       trigger={triggerProps => (
-        <OverlayTrigger.Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           icon={<IconSort variant="muted" />}
           aria-label={t('Sort Releases')}
-          showChevron={false}
-        >
-          {''}
-        </OverlayTrigger.Button>
+        />
       )}
     />
   );
