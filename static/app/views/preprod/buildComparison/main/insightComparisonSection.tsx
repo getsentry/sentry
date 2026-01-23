@@ -56,32 +56,30 @@ function filterDiffItems(
     const filteredChildren = children.filter(child => allowedTypes.has(child.type));
     const hasAllowedType = allowedTypes.has(item.type);
 
-    if (!hasAllowedType && filteredChildren.length === 0) {
-      return [];
-    }
+    if (children.length > 0) {
+      if (filteredChildren.length === 0) {
+        return [];
+      }
 
-    if (filteredChildren.length === 0) {
+      const childTypes = new Set(filteredChildren.map(child => child.type));
+      const inferredType =
+        childTypes.size === 1 ? filteredChildren[0]!.type : fallbackType;
+
       return [
-        item.diff_items
-          ? {
-              ...item,
-              diff_items: undefined,
-            }
-          : item,
+        {
+          ...item,
+          type: inferredType,
+          size_diff: sumDiffItems(filteredChildren),
+          diff_items: filteredChildren,
+        },
       ];
     }
 
-    const childTypes = new Set(filteredChildren.map(child => child.type));
-    const inferredType = childTypes.size === 1 ? filteredChildren[0]!.type : fallbackType;
+    if (!hasAllowedType) {
+      return [];
+    }
 
-    return [
-      {
-        ...item,
-        type: inferredType,
-        size_diff: sumDiffItems(filteredChildren),
-        diff_items: filteredChildren,
-      },
-    ];
+    return [item];
   });
 }
 
@@ -134,35 +132,47 @@ export function InsightComparisonSection({
   type InsightTab = 'all' | InsightStatus;
   const [selectedTab, setSelectedTab] = useState<InsightTab>('all');
 
-  const filteredInsights = useMemo(() => {
-    return insightDiffItems
-      .map(insight => getFilteredInsight(insight, selectedTab))
-      .filter((insight): insight is InsightDiffItem => Boolean(insight));
-  }, [insightDiffItems, selectedTab]);
+  const tabbedInsights = useMemo(() => {
+    const byTab: Record<InsightTab, InsightDiffItem[]> = {
+      all: [],
+      new: [],
+      unresolved: [],
+      resolved: [],
+    };
 
-  const statusCounts = useMemo(() => {
-    let newCount = 0;
-    let unresolvedCount = 0;
-    let resolvedCount = 0;
     for (const insight of insightDiffItems) {
-      if (getFilteredInsight(insight, 'new')) {
-        newCount += 1;
+      byTab.all.push(insight);
+
+      if (insight.status === 'new') {
+        byTab.new.push(insight);
       }
-      if (getFilteredInsight(insight, 'unresolved')) {
-        unresolvedCount += 1;
+
+      if (insight.status === 'unresolved') {
+        const unresolvedInsight = getFilteredInsight(insight, 'unresolved');
+        if (unresolvedInsight) {
+          byTab.unresolved.push(unresolvedInsight);
+        }
       }
-      if (getFilteredInsight(insight, 'resolved')) {
-        resolvedCount += 1;
+
+      const resolvedInsight = getFilteredInsight(insight, 'resolved');
+      if (resolvedInsight) {
+        byTab.resolved.push(resolvedInsight);
       }
     }
 
     return {
-      all: insightDiffItems.length,
-      new: newCount,
-      unresolved: unresolvedCount,
-      resolved: resolvedCount,
+      byTab,
+      counts: {
+        all: byTab.all.length,
+        new: byTab.new.length,
+        unresolved: byTab.unresolved.length,
+        resolved: byTab.resolved.length,
+      },
     };
   }, [insightDiffItems]);
+
+  const filteredInsights = tabbedInsights.byTab[selectedTab];
+  const statusCounts = tabbedInsights.counts;
 
   if (insightDiffItems.length === 0) {
     return null;
