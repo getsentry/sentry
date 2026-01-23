@@ -7,7 +7,7 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
+from sentry.preprod.vcs.status_checks.size.types import TriggeredRule
 
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
 
@@ -17,7 +17,7 @@ def format_status_check_messages(
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     overall_status: StatusCheckStatus,
     project: Project,
-    triggered_rules: list[StatusCheckRule] | None = None,
+    triggered_rules: list[TriggeredRule] | None = None,
 ) -> tuple[str, str, str]:
     """
     Args:
@@ -25,7 +25,7 @@ def format_status_check_messages(
         size_metrics_map: Dict mapping artifact_id to PreprodArtifactSizeMetrics
         overall_status: The overall status of the check
         project: The project associated with the artifacts
-        triggered_rules: List of rules that triggered a failure
+        triggered_rules: List of triggered rules with artifact associations
 
     Returns:
         tuple: (title, subtitle, summary)
@@ -87,21 +87,72 @@ def format_status_check_messages(
 
     subtitle = ", ".join(parts)
 
+    settings_url = _get_settings_url(project, triggered_rules)
+
     if triggered_rules:
-        summary = _format_artifact_summary(artifacts, size_metrics_map)
-        base_url = f"/settings/projects/{project.slug}/preprod/"
-        expanded_params = "&".join(f"expanded={rule.id}" for rule in triggered_rules)
-        settings_url = project.organization.absolute_url(base_url, query=expanded_params)
-        summary += str(
-            _(
-                "\n\n**Status check failed due to size threshold rules.** "
-                "[View triggered rules]({settings_url})"
-            ).format(settings_url=settings_url)
-        )
+        failed_artifact_ids = {tr.artifact_id for tr in triggered_rules}
+        failed_artifacts = [a for a in artifacts if a.id in failed_artifact_ids]
+        passed_artifacts = [a for a in artifacts if a.id not in failed_artifact_ids]
+
+        failed_count = len(failed_artifact_ids)
+        failed_header = ngettext(
+            "## ❌ %(count)d App Failed Size Checks",
+            "## ❌ %(count)d Apps Failed Size Checks",
+            failed_count,
+        ) % {"count": failed_count}
+
+        summary_parts = []
+
+        # Failed apps section
+        summary_parts.append(failed_header)
+        summary_parts.append(_format_artifact_summary(failed_artifacts, size_metrics_map))
+        summary_parts.append(_format_failed_checks_details(triggered_rules, settings_url))
+
+        # Passed apps section (if any)
+        if passed_artifacts:
+            passed_count = len(passed_artifacts)
+            passed_header = ngettext(
+                "## %(count)d App Analyzed",
+                "## %(count)d Apps Analyzed",
+                passed_count,
+            ) % {"count": passed_count}
+            summary_parts.append(passed_header)
+            summary_parts.append(_format_artifact_summary(passed_artifacts, size_metrics_map))
+
+        # Footer link
+        summary_parts.append(_format_configure_link(project, settings_url))
+
+        summary = "\n\n".join(summary_parts)
+
     elif overall_status == StatusCheckStatus.FAILURE:
+        # Failed due to processing errors
         summary = _format_failure_summary(artifacts)
+        summary += "\n\n" + _format_configure_link(project, settings_url)
+
     else:
-        summary = _format_artifact_summary(artifacts, size_metrics_map)
+        # Success or in-progress
+        summary_parts = []
+
+        if analyzed_count > 0:
+            analyzed_header = ngettext(
+                "## %(count)d App Analyzed",
+                "## %(count)d Apps Analyzed",
+                analyzed_count,
+            ) % {"count": analyzed_count}
+            summary_parts.append(analyzed_header)
+        else:
+            # All apps still processing
+            processing_header = ngettext(
+                "## %(count)d App Processing",
+                "## %(count)d Apps Processing",
+                processing_count,
+            ) % {"count": processing_count}
+            summary_parts.append(processing_header)
+
+        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map))
+        summary_parts.append(_format_configure_link(project, settings_url))
+
+        summary = "\n\n".join(summary_parts)
 
     return str(title), str(subtitle), str(summary)
 
@@ -234,6 +285,103 @@ def _format_failure_summary(
         table_rows="\n".join(table_rows)
     )
     return table
+
+
+def _get_settings_url(
+    project: Project,
+    triggered_rules: list[TriggeredRule] | None = None,
+) -> str:
+    """Build the settings URL for the project's preprod settings page."""
+    base_url = f"/settings/projects/{project.slug}/preprod/"
+    if triggered_rules:
+        expanded_params = "&".join(f"expanded={tr.rule.id}" for tr in triggered_rules)
+        return project.organization.absolute_url(base_url, query=expanded_params)
+    return project.organization.absolute_url(base_url)
+
+
+def _format_failed_checks_details(
+    triggered_rules: list[TriggeredRule],
+    settings_url: str,
+) -> str:
+    """Format the <details> section for failed checks grouped by bundle."""
+    if not triggered_rules:
+        return ""
+
+    # Group rules by app_id
+    rules_by_app: dict[str, list[TriggeredRule]] = {}
+    for tr in triggered_rules:
+        app_key = tr.app_id or "Unknown"
+        if app_key not in rules_by_app:
+            rules_by_app[app_key] = []
+        rules_by_app[app_key].append(tr)
+
+    total_failed = len(triggered_rules)
+    summary_text = ngettext(
+        "%(count)d Failed Check",
+        "%(count)d Failed Checks",
+        total_failed,
+    ) % {"count": total_failed}
+
+    details_content = []
+    for app_id, app_rules in rules_by_app.items():
+        platform = app_rules[0].platform if app_rules else None
+        platform_text = f" ({platform})" if platform else ""
+        details_content.append(f"`{app_id}`{platform_text}")
+
+        for tr in app_rules:
+            metric_display = _get_metric_display_name(tr.rule.metric)
+            measurement_display = _get_measurement_display_name(tr.rule.measurement)
+            threshold_display = _format_threshold_value(tr.rule.value, tr.rule.measurement)
+            details_content.append(
+                f"- **{metric_display} - {measurement_display}** ≥ **{threshold_display}**"
+            )
+
+    details_content.append(f"\n⚙️ [Configure status check rules]({settings_url})")
+
+    return (
+        f"<details>\n"
+        f"<summary>{summary_text}</summary>\n\n"
+        f"{chr(10).join(details_content)}\n"
+        f"</details>"
+    )
+
+
+def _format_configure_link(project: Project, settings_url: str) -> str:
+    """Format the footer link to configure status check rules."""
+    return str(
+        _("[Configure {project_name} status check rules]({settings_url})").format(
+            project_name=project.name,
+            settings_url=settings_url,
+        )
+    )
+
+
+def _get_metric_display_name(metric: str) -> str:
+    """Get human-readable display name for a metric."""
+    metric_names = {
+        "install_size": str(_("Install Size")),
+        "download_size": str(_("Download Size")),
+    }
+    return metric_names.get(metric, metric.replace("_", " ").title())
+
+
+def _get_measurement_display_name(measurement: str) -> str:
+    """Get human-readable display name for a measurement type."""
+    measurement_names = {
+        "absolute": str(_("Total Size")),
+        "absolute_diff": str(_("Absolute Diff")),
+        "relative_diff": str(_("Relative Diff")),
+    }
+    return measurement_names.get(measurement, measurement.replace("_", " ").title())
+
+
+def _format_threshold_value(value: float, measurement: str) -> str:
+    """Format the threshold value based on measurement type."""
+    if measurement == "relative_diff":
+        return f"{value}%"
+    else:
+        # absolute or absolute_diff - value is in bytes
+        return _format_file_size(int(value))
 
 
 def _get_size_metric_display_data(

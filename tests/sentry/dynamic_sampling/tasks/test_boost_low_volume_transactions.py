@@ -49,8 +49,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     # make up some unique count
                     idx = org_idx * num_orgs + proj_idx
                     num_transactions = self.get_count_for_transaction(idx, name)
-                    # Store with both metrics: TransactionMRI for GetActiveOrgs,
-                    # SpanMRI with is_segment for the actual task queries
                     self.store_performance_metric(
                         name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name},
@@ -159,7 +157,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         orgs = self.org_ids
         fetcher = FetchProjectTransactionTotals(orgs, use_span_metric=False)
 
-        # Verify metric_id is resolved from TransactionMRI.COUNT_PER_ROOT_PROJECT
         expected_metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
@@ -177,7 +174,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             orgs, large_transactions=True, max_transactions=3, use_span_metric=False
         )
 
-        # Verify metric_id is resolved from TransactionMRI.COUNT_PER_ROOT_PROJECT
         expected_metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
@@ -193,12 +189,10 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         orgs = self.org_ids
         fetcher = FetchProjectTransactionTotals(orgs, use_span_metric=True)
 
-        # Verify metric_id is resolved from SpanMRI.COUNT_PER_ROOT_PROJECT
         expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
         assert fetcher.metric_id == expected_metric_id
         assert fetcher.use_span_metric is True
 
-        # Verify is_segment tag is set up
         is_segment_string_id = indexer.resolve_shared_org("is_segment")
         expected_is_segment_tag = f"tags_raw[{is_segment_string_id}]"
         assert fetcher.is_segment_tag == expected_is_segment_tag
@@ -213,12 +207,10 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             orgs, large_transactions=True, max_transactions=3, use_span_metric=True
         )
 
-        # Verify metric_id is resolved from SpanMRI.COUNT_PER_ROOT_PROJECT
         expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
         assert fetcher.metric_id == expected_metric_id
         assert fetcher.use_span_metric is True
 
-        # Verify is_segment tag is set up
         is_segment_string_id = indexer.resolve_shared_org("is_segment")
         expected_is_segment_tag = f"tags_raw[{is_segment_string_id}]"
         assert fetcher.is_segment_tag == expected_is_segment_tag
@@ -234,18 +226,15 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         orgs = self.org_ids
         fetcher = FetchProjectTransactionTotals(orgs, use_span_metric=True)
-        # Trigger the query
         try:
             next(fetcher)
         except StopIteration:
             pass
 
-        # Verify raw_snql_query was called
         assert mock_raw_snql_query.called
         call_args = mock_raw_snql_query.call_args
         request = call_args[0][0]
 
-        # Check the query includes is_segment filter (using indexed ID)
         query_str = str(request.query)
         is_segment_id = indexer.resolve_shared_org("is_segment")
         assert f"tags_raw[{is_segment_id}]" in query_str
@@ -262,18 +251,15 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         orgs = self.org_ids
         fetcher = FetchProjectTransactionTotals(orgs, use_span_metric=False)
-        # Trigger the query
         try:
             next(fetcher)
         except StopIteration:
             pass
 
-        # Verify raw_snql_query was called
         assert mock_raw_snql_query.called
         call_args = mock_raw_snql_query.call_args
         request = call_args[0][0]
 
-        # Check the query does NOT include is_segment filter
         query_str = str(request.query)
         is_segment_id = indexer.resolve_shared_org("is_segment")
         assert f"tags_raw[{is_segment_id}]" not in query_str
@@ -291,18 +277,15 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         fetcher = FetchProjectTransactionVolumes(
             orgs, large_transactions=True, max_transactions=3, use_span_metric=True
         )
-        # Trigger the query
         try:
             next(fetcher)
         except StopIteration:
             pass
 
-        # Verify raw_snql_query was called
         assert mock_raw_snql_query.called
         call_args = mock_raw_snql_query.call_args
         request = call_args[0][0]
 
-        # Check the query includes is_segment filter (using indexed ID)
         query_str = str(request.query)
         is_segment_id = indexer.resolve_shared_org("is_segment")
         assert f"tags_raw[{is_segment_id}]" in query_str
@@ -321,18 +304,15 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         fetcher = FetchProjectTransactionVolumes(
             orgs, large_transactions=True, max_transactions=3, use_span_metric=False
         )
-        # Trigger the query
         try:
             next(fetcher)
         except StopIteration:
             pass
 
-        # Verify raw_snql_query was called
         assert mock_raw_snql_query.called
         call_args = mock_raw_snql_query.call_args
         request = call_args[0][0]
 
-        # Check the query does NOT include is_segment filter
         query_str = str(request.query)
         is_segment_id = indexer.resolve_shared_org("is_segment")
         assert f"tags_raw[{is_segment_id}]" not in query_str

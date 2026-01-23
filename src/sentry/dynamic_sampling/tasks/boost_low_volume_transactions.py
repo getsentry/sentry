@@ -20,7 +20,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features, options, quotas
+from sentry import options, quotas
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
@@ -101,10 +101,8 @@ def boost_low_volume_transactions() -> None:
 
     orgs_iterator = GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60))
     for orgs in orgs_iterator:
-        # Partition orgs by feature flag
-        span_metric_orgs, transaction_metric_orgs = _partition_orgs_by_span_metric_feature(orgs)
+        span_metric_orgs, transaction_metric_orgs = _partition_orgs_by_span_metric_option(orgs)
 
-        # Track how many orgs use each metric type
         metrics.incr(
             "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
             tags={"metric_type": "span"},
@@ -116,39 +114,32 @@ def boost_low_volume_transactions() -> None:
             amount=len(transaction_metric_orgs),
         )
 
-        # Process orgs using span metric
         _process_orgs_for_boost_low_volume_transactions(
             span_metric_orgs, num_big_trans, num_small_trans, use_span_metric=True
         )
 
-        # Process orgs using transaction metric
         _process_orgs_for_boost_low_volume_transactions(
             transaction_metric_orgs, num_big_trans, num_small_trans, use_span_metric=False
         )
 
 
-def _partition_orgs_by_span_metric_feature(
+def _partition_orgs_by_span_metric_option(
     org_ids: list[int],
 ) -> tuple[list[int], list[int]]:
     """
-    Partition organizations by whether they have the ds-transactions-span-metric feature enabled.
+    Partition organizations by whether they are in the span-metric-orgs option.
     Returns (span_metric_orgs, transaction_metric_orgs).
     """
-    orgs = Organization.objects.get_many_from_cache(org_ids)
-
-    feature_results = features.batch_has_for_organizations(
-        "organizations:ds-transactions-span-metric", orgs
-    )
+    span_metric_org_ids = set(options.get("dynamic-sampling.transactions.span-metric-orgs") or [])
 
     span_metric_orgs = []
     transaction_metric_orgs = []
 
-    for org in orgs:
-        org_key = f"organization:{org.id}"
-        if feature_results and feature_results.get(org_key):
-            span_metric_orgs.append(org.id)
+    for org_id in org_ids:
+        if org_id in span_metric_org_ids:
+            span_metric_orgs.append(org_id)
         else:
-            transaction_metric_orgs.append(org.id)
+            transaction_metric_orgs.append(org_id)
 
     return span_metric_orgs, transaction_metric_orgs
 
@@ -309,7 +300,6 @@ class FetchProjectTransactionTotals:
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
 
-        # Use the span metric with is_segment filter or the transaction metric
         self.use_span_metric = use_span_metric
         self.is_segment_tag: str | None
         if self.use_span_metric:
@@ -350,7 +340,6 @@ class FetchProjectTransactionTotals:
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
                 Condition(Column("org_id"), Op.IN, self.org_ids),
             ]
-            # Add is_segment filter only when using span metric
             if self.use_span_metric and self.is_segment_tag:
                 where_conditions.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
 
@@ -388,7 +377,6 @@ class FetchProjectTransactionTotals:
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
             )["data"]
 
-            # Track which metric type is being used for queries
             metric_type = "span" if self.use_span_metric else "transaction"
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",
@@ -458,7 +446,6 @@ class FetchProjectTransactionVolumes:
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
 
-        # Use the span metric with is_segment filter or the transaction metric
         self.use_span_metric = use_span_metric
         self.is_segment_tag: str | None
         if self.use_span_metric:
@@ -507,7 +494,6 @@ class FetchProjectTransactionVolumes:
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
                 Condition(Column("org_id"), Op.IN, self.org_ids),
             ]
-            # Add is_segment filter only when using span metric
             if self.use_span_metric and self.is_segment_tag:
                 where_conditions.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
 
@@ -553,7 +539,6 @@ class FetchProjectTransactionVolumes:
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
             )["data"]
 
-            # Track which metric type is being used for queries
             metric_type = "span" if self.use_span_metric else "transaction"
             volume_type = "large" if self.large_transactions else "small"
             metrics.incr(
