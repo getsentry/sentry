@@ -12,8 +12,8 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
+import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';
 import {DashboardFilterKeys} from './types';
 
@@ -42,11 +42,12 @@ function ReleasesSelectControl({
   isDisabled,
   id,
 }: Props) {
-  const {releases, loading, onSearch} = useReleases();
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const {data: releases = [], isLoading: loading} = useReleases(searchTerm);
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
 
   function resetSearch() {
-    onSearch('');
+    setSearchTerm('');
   }
 
   useEffect(() => {
@@ -73,7 +74,7 @@ function ReleasesSelectControl({
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
       onSearch={debounce(val => {
-        onSearch(val);
+        setSearchTerm(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       options={[
         {
