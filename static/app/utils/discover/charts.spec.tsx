@@ -43,6 +43,7 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
       ['percentage', 0.6612, '66.12%'],
       ['duration', 321, '321.00ms'],
       ['size', 416 * 1024, '416.0 KiB'],
+      ['size_decimal', 50 * 1000 * 1000, '50 MB'],
       ['', 444, '444'],
     ];
     for (const scenario of cases) {
@@ -113,6 +114,7 @@ describe('axisLabelFormatterUsingAggregateOutputType()', () => {
       ['percentage', 0.6612, '66%'],
       ['duration', 321, '321ms'],
       ['size', 416 * 1024, '416 KiB'],
+      ['size_decimal', 50 * 1000 * 1000, '50 MB'],
       ['', 444, '444'],
     ];
     for (const scenario of cases) {

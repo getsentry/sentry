@@ -23,7 +23,10 @@ import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onD
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -325,15 +328,25 @@ export const MobileAppSizeConfig: DatasetConfig<
     return seriesWithOrder.sort((a, b) => a.order - b.order).map(item => item.series);
   },
   getSeriesResultType: (
-    _data: EventsStats | MultiSeriesEventsStats,
-    _widgetQuery: WidgetQuery
+    data: EventsStats | MultiSeriesEventsStats,
+    widgetQuery: WidgetQuery
   ): Record<string, AggregationOutputType> => {
-    return {
-      'max(install_size)': 'size',
-      'max(download_size)': 'size',
-      'min(install_size)': 'size',
-      'min(download_size)': 'size',
-    };
+    const result: Record<string, AggregationOutputType> = {};
+
+    // For single-series, key by aggregate name
+    const aggregate = widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0];
+    if (aggregate) {
+      result[aggregate] = 'size_decimal';
+    }
+
+    // For multi-series (grouped), key by each series name from the response
+    if (isMultiSeriesEventsStats(data)) {
+      Object.keys(data).forEach(seriesName => {
+        result[seriesName] = 'size_decimal';
+      });
+    }
+
+    return result;
   },
   filterAggregateParams,
   handleOrderByReset,

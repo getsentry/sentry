@@ -295,6 +295,7 @@ export enum FieldValueType {
   STRING = 'string',
   NEVER = 'never',
   SIZE = 'size',
+  SIZE_DECIMAL = 'size_decimal',
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
