@@ -390,6 +390,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.visibleChildren.length > 0;
   }
 
+  hasDirectVisibleChildren(): boolean {
+    return this.directVisibleChildren.length > 0;
+  }
+
   matchById(id: string): boolean {
     const hasMatchingErrors = Array.from(this.errors).some(
       error => error.event_id === id
