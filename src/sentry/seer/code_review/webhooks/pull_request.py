@@ -32,7 +32,6 @@ class Log(enum.StrEnum):
     MISSING_PULL_REQUEST = "github.webhook.pull_request.missing-pull-request"
     MISSING_ACTION = "github.webhook.pull_request.missing-action"
     UNSUPPORTED_ACTION = "github.webhook.pull_request.unsupported-action"
-    DRAFT_PR = "github.webhook.pull_request.draft-pr"
 
 
 class PullRequestAction(enum.StrEnum):
@@ -137,7 +136,9 @@ def handle_pull_request_event(
         record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
         return
 
-    if pull_request.get("draft") is True:
+    # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
+    # even if the PR was converted to draft before closing
+    if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
         return
 
     from .task import schedule_task
