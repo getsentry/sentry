@@ -38,9 +38,12 @@ const makeGroupPreviewRequestUrl = ({
   groupId: string;
   orgSlug: string;
 }) => {
-  return getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/', {
-    path: {organizationIdOrSlug: orgSlug, issueId: groupId, eventId: 'latest'},
-  });
+  return getApiUrl(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId, eventId: 'latest'},
+    }
+  );
 };
 
 function AllEventsTable({organization, excludedTags, group}: Props) {
