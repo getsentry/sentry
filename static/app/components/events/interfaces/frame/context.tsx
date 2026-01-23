@@ -1,34 +1,25 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
-  LineCoverage,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
-import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 
 import {Assembly} from './assembly';
 import ContextLineNumber from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
-import {useStacktraceCoverage} from './useStacktraceCoverage';
 
 type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
@@ -48,21 +39,6 @@ type Props = {
   registersMeta?: Record<any, any>;
 };
 
-export function getLineCoverage(
-  lines: Frame['context'],
-  lineCov: LineCoverage[]
-): [Array<Coverage | undefined>, boolean] {
-  const keyedCoverage = keyBy(lineCov, 0);
-  const lineCoverage = lines.map<Coverage | undefined>(
-    ([lineNo]) => keyedCoverage[lineNo]?.[1]
-  );
-  const hasCoverage = lineCoverage.some(
-    coverage => coverage !== Coverage.NOT_APPLICABLE && coverage !== undefined
-  );
-
-  return [lineCoverage, hasCoverage];
-}
-
 function Context({
   hasContextVars = false,
   hasContextSource = false,
@@ -78,34 +54,6 @@ function Context({
   registersMeta,
   platform,
 }: Props) {
-  const organization = useOrganization();
-  const {
-    hasCoverageData: issueHasCoverageData,
-    setHasCoverageData: setIssueHasCoverageData,
-  } = useLineCoverageContext();
-
-  const {projects} = useProjects();
-  const project = useMemo(
-    () => projects.find(p => p.id === event.projectID),
-    [projects, event]
-  );
-
-  const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
-    {
-      event,
-      frame,
-      orgSlug: organization?.slug || '',
-      projectSlug: project?.slug,
-    },
-    {
-      enabled:
-        defined(organization) &&
-        defined(project) &&
-        !!organization.codecovAccess &&
-        isExpanded,
-    }
-  );
-
   /**
    * frame.lineNo is the highlighted frame in the middle of the context
    */
@@ -113,28 +61,6 @@ function Context({
   const contextLines = isExpanded
     ? frame?.context
     : frame?.context?.filter(l => l[0] === activeLineNumber);
-
-  const hasCoverageData =
-    !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
-
-  useEffect(() => {
-    if (hasCoverageData && !issueHasCoverageData) {
-      setIssueHasCoverageData(true);
-    }
-  }, [hasCoverageData, issueHasCoverageData, setIssueHasCoverageData]);
-
-  const [lineCoverage = [], hasCoverage] =
-    hasCoverageData && coverage?.lineCoverage && !!activeLineNumber! && contextLines
-      ? getLineCoverage(contextLines, coverage.lineCoverage)
-      : [];
-
-  useRouteAnalyticsParams(
-    hasCoverageData
-      ? {
-          has_line_coverage: hasCoverage,
-        }
-      : {}
-  );
 
   const fileExtension = getFileExtension(frame.filename || '') ?? '';
   const lines = usePrismTokensSourceContext({
@@ -177,7 +103,6 @@ function Context({
                       <ContextLineNumber
                         lineNumber={contextLine[0]}
                         isActive={isActive}
-                        coverage={lineCoverage[i]}
                       />
                       <ContextLineCode>
                         {line.map((token, key) => (

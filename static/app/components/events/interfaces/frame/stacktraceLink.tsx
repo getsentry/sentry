@@ -6,17 +6,11 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-import Placeholder from 'sentry/components/placeholder';
-import {IconCopy, IconWarning} from 'sentry/icons';
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
-import type {StacktraceLinkResult} from 'sentry/types/integrations';
-import {CodecovStatusCode} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
@@ -102,21 +96,6 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     },
     {
       enabled: isQueryEnabled, // The query will not run until `isQueryEnabled` is true
-    }
-  );
-  const coverageEnabled =
-    isQueryEnabled &&
-    organization.codecovAccess &&
-    organization.features.includes('codecov-integration');
-  const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
-    {
-      event,
-      frame,
-      orgSlug: organization.slug,
-      projectSlug: project?.slug,
-    },
-    {
-      enabled: coverageEnabled,
     }
   );
 
@@ -212,17 +191,6 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
             icon={getIntegrationIcon(match.config.provider.key, DEFAULT_ICON_SIZE)}
           />
         </Tooltip>
-        {coverageEnabled && isLoadingCoverage ? (
-          <Placeholder height="14px" width="14px" />
-        ) : coverage &&
-          shouldShowCodecovFeatures(organization, match, coverage.status) ? (
-          <CodecovLink
-            coverageUrl={`${coverage.coverageUrl}#L${frame.lineNo}`}
-            status={coverage.status}
-            organization={organization}
-            event={event}
-          />
-        ) : null}
       </StacktraceLinkWrapper>
     );
   }
@@ -252,17 +220,6 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
             icon={getIntegrationIcon('github', DEFAULT_ICON_SIZE)}
           />
         </Tooltip>
-        {coverageEnabled && isLoadingCoverage ? (
-          <Placeholder height="14px" width="14px" />
-        ) : coverage &&
-          shouldShowCodecovFeatures(organization, match, coverage.status) ? (
-          <CodecovLink
-            coverageUrl={`${frame.sourceLink}`}
-            status={coverage.status}
-            organization={organization}
-            event={event}
-          />
-        ) : null}
       </StacktraceLinkWrapper>
     );
   }
@@ -330,72 +287,12 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   return null;
 }
 
-function shouldShowCodecovFeatures(
-  organization: Organization,
-  match: StacktraceLinkResult,
-  codecovStatus: CodecovStatusCode
-) {
-  return (
-    codecovStatus &&
-    codecovStatus !== CodecovStatusCode.NO_INTEGRATION &&
-    organization.codecovAccess &&
-    match.config?.provider.key === 'github'
-  );
-}
-
 // This should never have been set, as the icons inside buttons already auto adjust
 // depending on the button size, however the reason it cannot be removed is that the icon
 // function initializes a default argument for the icon size to md, meaning we cannot simply remove it.
 const DEFAULT_ICON_SIZE = 'xs';
 const DEFAULT_BUTTON_SIZE = 'xs';
 
-interface CodecovLinkProps {
-  event: Event;
-  organization: Organization;
-  coverageUrl?: string;
-  status?: CodecovStatusCode;
-}
-
-function CodecovLink({
-  coverageUrl,
-  status = CodecovStatusCode.COVERAGE_EXISTS,
-  organization,
-  event,
-}: CodecovLinkProps) {
-  if (status === CodecovStatusCode.NO_COVERAGE_DATA) {
-    return (
-      <Flex align="center" gap="sm">
-        <Text variant="danger">{t('Code Coverage not found')}</Text>
-        <IconWarning size={DEFAULT_ICON_SIZE} variant="danger" />
-      </Flex>
-    );
-  }
-
-  if (status !== CodecovStatusCode.COVERAGE_EXISTS || !coverageUrl) {
-    return null;
-  }
-
-  const onOpenCodecovLink = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    trackAnalytics('integrations.stacktrace_codecov_link_clicked', {
-      view: 'stacktrace_issue_details',
-      organization,
-      group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
-      ...getAnalyticsDataForEvent(event),
-    });
-  };
-
-  return (
-    <Tooltip title={t('Open in Codecov')} skipWrapper>
-      <ProviderLink
-        href={coverageUrl}
-        onClick={onOpenCodecovLink}
-        aria-label={t('Open in Codecov')}
-        icon={getIntegrationIcon('codecov', DEFAULT_ICON_SIZE)}
-      />
-    </Tooltip>
-  );
-}
 interface CopyFrameLinkProps {
   event: Event;
   frame: Frame;

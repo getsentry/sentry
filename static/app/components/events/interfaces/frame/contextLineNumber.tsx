@@ -1,41 +1,18 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Coverage} from 'sentry/types/integrations';
 
 interface Props {
   isActive: boolean;
   lineNumber: number;
   children?: React.ReactNode;
-  coverage?: Coverage;
 }
 
-export const coverageText: Record<Coverage, string | undefined> = {
-  [Coverage.NOT_COVERED]: t('Line uncovered by tests'),
-  [Coverage.COVERED]: t('Line covered by tests'),
-  [Coverage.PARTIAL]: t('Line partially covered by tests'),
-  [Coverage.NOT_APPLICABLE]: undefined,
-};
-const coverageClass: Record<Coverage, string | undefined> = {
-  [Coverage.NOT_COVERED]: 'uncovered',
-  [Coverage.COVERED]: 'covered',
-  [Coverage.PARTIAL]: 'partial',
-  [Coverage.NOT_APPLICABLE]: undefined,
-};
-
-function ContextLineNumber({
-  lineNumber,
-  isActive,
-  coverage = Coverage.NOT_APPLICABLE,
-}: Props) {
+function ContextLineNumber({lineNumber, isActive}: Props) {
   return (
-    <Wrapper className={classNames(coverageClass[coverage], isActive ? 'active' : '')}>
-      <Tooltip skipWrapper title={coverageText[coverage]} delay={200}>
-        <div className="line-number">{lineNumber}</div>
-      </Tooltip>
+    <Wrapper className={classNames(isActive ? 'active' : '')}>
+      <div className="line-number">{lineNumber}</div>
     </Wrapper>
   );
 }
@@ -67,38 +44,7 @@ const Wrapper = styled('div')`
     user-select: none;
   }
 
-  &.covered .line-number {
-    background: ${p => p.theme.colors.green100};
-    border-right: 3px solid ${p => p.theme.tokens.border.success.vibrant};
-  }
-
-  &.uncovered .line-number {
-    background: ${p => p.theme.colors.red100};
-    border-right: 3px solid ${p => p.theme.tokens.border.danger.vibrant};
-  }
-
-  &.partial .line-number {
-    background: ${p => p.theme.colors.yellow100};
-    border-right: 3px dashed ${p => p.theme.tokens.border.warning.vibrant};
-  }
-
   &.active {
     background: none;
-  }
-
-  &.active.partial .line-number {
-    mix-blend-mode: screen;
-    background: ${p => p.theme.colors.yellow200};
-  }
-
-  &.active.covered .line-number {
-    mix-blend-mode: screen;
-    background: ${p => p.theme.colors.green200};
-  }
-
-  &.active.uncovered .line-number {
-    color: ${p => p.theme.colors.white};
-    mix-blend-mode: screen;
-    background: ${p => p.theme.colors.red400};
   }
 `;

@@ -6,7 +6,6 @@ import type {Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 
 import {Content} from './content';
-import {LineCoverageProvider} from './lineCoverageContext';
 import RawContent from './rawContent';
 
 type Props = {
@@ -38,19 +37,17 @@ export function ExceptionContent({
           platform={event.platform}
         />
       ) : (
-        <LineCoverageProvider>
-          <Content
-            type={stackType}
-            stackView={stackView}
-            values={values}
-            projectSlug={projectSlug}
-            newestFirst={isNewestFramesFirst}
-            event={event}
-            groupingCurrentLevel={groupingCurrentLevel}
-            meta={meta}
-            threadId={threadId}
-          />
-        </LineCoverageProvider>
+        <Content
+          type={stackType}
+          stackView={stackView}
+          values={values}
+          projectSlug={projectSlug}
+          newestFirst={isNewestFramesFirst}
+          event={event}
+          groupingCurrentLevel={groupingCurrentLevel}
+          meta={meta}
+          threadId={threadId}
+        />
       )}
     </ErrorBoundary>
   );
