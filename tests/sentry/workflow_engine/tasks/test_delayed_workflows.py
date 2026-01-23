@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
@@ -111,7 +112,7 @@ class TestDelayedWorkflowTaskBase(BaseWorkflowTest, BaseEventFrequencyPercentTes
 
         return workflow, [workflow_action_slow_filter_group, workflow_action_filter_group]
 
-    def setup_event(self, project, environment, name):
+    def setup_event(self, project: Project, environment: Environment, name: str) -> tuple[Any, Any]:
         event = self.create_event(project.id, FROZEN_TIME, name, environment.name)
         assert event.group
         return event, event.group

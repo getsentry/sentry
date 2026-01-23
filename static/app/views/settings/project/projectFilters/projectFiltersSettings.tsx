@@ -666,13 +666,13 @@ const FilterGridIcon = styled('img')`
 `;
 
 const FilterTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
 `;

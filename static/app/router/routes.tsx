@@ -1270,6 +1270,13 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: 'console-sdk-invites/',
+      name: t('Console SDK Invites'),
+      component: make(
+        () => import('sentry/views/settings/organizationConsoleSdkInvites')
+      ),
+    },
   ];
   const orgSettingsRoutes: SentryRouteObject = {
     component: make(
@@ -1469,7 +1476,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleDetails'
               )
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: ':projectId/',

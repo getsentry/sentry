@@ -98,7 +98,9 @@ export default function ToolErrorsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(ts, {
-              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.dataviz.semantic.neutral
+                : colorPalette[index],
               stack: 'stack',
             })
         ),
@@ -178,7 +180,7 @@ const ToolText = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;
   min-width: 0px;
 `;
