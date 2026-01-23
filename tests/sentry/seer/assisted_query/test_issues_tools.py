@@ -68,6 +68,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -107,6 +108,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         result = get_issue_filter_keys(
             org_id=99999,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
         assert result is None
 
@@ -115,6 +117,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[],
+            stats_period="7d",
         )
         assert result is not None
         assert "tags" in result
@@ -149,6 +152,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id, project2.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -201,6 +205,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="environment",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -256,6 +261,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="issue_type",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -302,6 +308,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="feature.organizations:test-feature",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -319,6 +326,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=99999,
             project_ids=[self.project.id],
             attribute_key="environment",
+            stats_period="7d",
         )
         assert result is None
 
@@ -328,6 +336,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="nonexistent_attribute_key_12345",
+            stats_period="7d",
         )
         # Should return empty list, not None
         assert result == []
@@ -358,6 +367,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id, project2.id],
             attribute_key="region",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -415,6 +425,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="category",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -480,6 +491,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_ids=[self.project.id],
             attribute_key="environment",
             substring="prod",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -981,6 +993,7 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1044,6 +1057,7 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1068,6 +1082,7 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1091,6 +1106,7 @@ class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="error.handled",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1104,6 +1120,7 @@ class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="device.class",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1117,6 +1134,7 @@ class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="lastSeen",
+            stats_period="7d",
         )
 
         assert result == []
@@ -1127,6 +1145,7 @@ class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="id",
+            stats_period="7d",
         )
 
         assert result == []
@@ -1138,6 +1157,7 @@ class TestGetFilterKeyValuesStaticFields(APITestCase, SnubaTestCase):
             project_ids=[self.project.id],
             attribute_key="error.handled",
             substring="tr",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1188,6 +1208,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="message",
+            stats_period="7d",
         )
 
         # Should return actual message values from events, not empty or None
@@ -1230,6 +1251,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             project_ids=[self.project.id],
             attribute_key="message",
             substring="Database",
+            stats_period="7d",
         )
 
         # Should return a list (API was queried, not short-circuited)
@@ -1261,6 +1283,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="title",
+            stats_period="7d",
         )
 
         # Should return a list (API was queried)
@@ -1301,6 +1324,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="location",
+            stats_period="7d",
         )
 
         # Should return a list (API was queried)
@@ -1343,6 +1367,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="release",
+            stats_period="7d",
         )
 
         # Should return a list with actual release values
@@ -1369,6 +1394,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1391,6 +1417,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned_or_suggested",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1409,6 +1436,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1424,6 +1452,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="bookmarks",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1436,6 +1465,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="subscribed",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1448,6 +1478,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             project_ids=[self.project.id],
             attribute_key="assigned",
             substring="my_",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1464,6 +1495,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1508,6 +1540,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="assigned",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1537,6 +1570,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="release",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1554,6 +1588,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="firstRelease",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1567,6 +1602,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             attribute_key="release.stage",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1587,6 +1623,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
             project_ids=[self.project.id],
             attribute_key="release",
             substring="myapp",
+            stats_period="7d",
         )
 
         assert result is not None
@@ -1601,6 +1638,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[self.project.id],
+            stats_period="7d",
         )
 
         assert result is not None

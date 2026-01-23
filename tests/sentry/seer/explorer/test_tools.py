@@ -4,6 +4,7 @@ from typing import Any, Literal
 from unittest.mock import Mock, patch
 
 import pytest
+from django.core.exceptions import BadRequest, ObjectDoesNotExist
 from pydantic import BaseModel
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
@@ -157,33 +158,6 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 3  # Should exclude the span created at 1 minute ago
 
-    @patch("sentry.seer.explorer.tools.client")
-    def test_spans_timeseries_count_metric_start_end_prioritized_over_stats_period(
-        self, mock_client
-    ):
-        mock_client.get.side_effect = client.get
-
-        start_iso = _get_utc_iso_without_timezone(self.ten_mins_ago)
-        end_iso = _get_utc_iso_without_timezone(self.two_mins_ago)
-
-        execute_timeseries_query(
-            org_id=self.organization.id,
-            dataset="spans",
-            query="",
-            stats_period="1h",
-            interval="1m",
-            start=start_iso,
-            end=end_iso,
-            y_axes=["count()"],
-        )
-
-        params: dict[str, Any] = mock_client.get.call_args.kwargs["params"]
-        assert params["start"] is not None
-        assert params["start"] == start_iso
-        assert params["end"] is not None
-        assert params["end"] == end_iso
-        assert "statsPeriod" not in params
-
     def test_spans_timeseries_multiple_metrics(self):
         """Test timeseries query with multiple metrics"""
         result = execute_timeseries_query(
@@ -268,32 +242,6 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
         http_rows = [row for row in rows if row.get("span.op") == "http.client"]
         assert len(http_rows) == 1  # One HTTP span
-
-    @patch("sentry.seer.explorer.tools.client")
-    def test_spans_table_query_start_end_errors_with_stats_period(self, mock_client):
-        mock_client.get.side_effect = client.get
-
-        start_iso = _get_utc_iso_without_timezone(self.ten_mins_ago)
-        end_iso = _get_utc_iso_without_timezone(self.two_mins_ago)
-
-        execute_table_query(
-            org_id=self.organization.id,
-            dataset="spans",
-            fields=self.default_span_fields,
-            query="",
-            stats_period="1h",
-            start=start_iso,
-            end=end_iso,
-            sort="-timestamp",
-            per_page=10,
-        )
-
-        params: dict[str, Any] = mock_client.get.call_args.kwargs["params"]
-        assert params["start"] is not None
-        assert params["start"] == start_iso
-        assert params["end"] is not None
-        assert params["end"] == end_iso
-        assert "statsPeriod" not in params
 
     def test_spans_table_specific_operation(self):
         """Test table query filtering by specific operation"""
@@ -1509,7 +1457,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         )
 
         with patch(
-            "sentry.seer.explorer.tools.quotas.backend.get_event_retention",
+            "sentry.quotas.backend.get_event_retention",
             return_value=retention_days,
         ):
             with patch(
@@ -1532,7 +1480,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
 
     def test_get_recommended_event_end_outside_retention(self):
         """
-        No queries are made and returns None if both start and end are outside retention.
+        Raises error if both start and end are outside retention.
         """
         project = self.create_project()
         now = datetime.now(UTC)
@@ -1546,15 +1494,14 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with patch("sentry.seer.explorer.tools.quotas.backend.get_event_retention", return_value=5):
-            result = _get_recommended_event(
-                group=event.group,
-                organization=project.organization,
-                start=start,
-                end=end,
-            )
-
-        assert result is None
+        with patch("sentry.quotas.backend.get_event_retention", return_value=5):
+            with pytest.raises(BadRequest):
+                _get_recommended_event(
+                    group=event.group,
+                    organization=project.organization,
+                    start=start,
+                    end=end,
+                )
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):
@@ -2580,7 +2527,17 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, Sear
             )
         )
 
+    def test_raises_for_non_existent_group(self) -> None:
+        with pytest.raises(ObjectDoesNotExist):
+            get_baseline_tag_distribution(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=1,
+                tag_keys=["browser"],
+            )
+
     def test_returns_empty_for_empty_tag_keys(self) -> None:
+        self.create_group(id=1)
         result = get_baseline_tag_distribution(
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -2598,6 +2555,9 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, Sear
 
         target_group_id = 12345
         other_group_id = 67890
+
+        self.create_group(id=target_group_id)
+        self.create_group(id=other_group_id)
 
         # Events in target group (should be EXCLUDED from baseline)
         self._insert_event(now, target_group_id, {"browser": "Chrome", "os": "Windows"})
@@ -2645,12 +2605,13 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, Sear
         # Insert events with multiple tags
         self._insert_event(now, 1, {"browser": "Chrome", "os": "Windows", "device": "Desktop"})
         self._insert_event(now, 1, {"browser": "Firefox", "os": "Mac", "device": "Mobile"})
+        self.create_group(id=99999)
 
         # Only request browser tag
         result = get_baseline_tag_distribution(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            group_id=99999,  # Non-existent group, so all events are baseline
+            group_id=99999,  # Empty group, so all events are baseline
             tag_keys=["browser"],
             start=_get_utc_iso_without_timezone(before),
             end=_get_utc_iso_without_timezone(after),
@@ -2676,8 +2637,6 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, Sear
         before = now - timedelta(hours=1)
         after = now + timedelta(hours=1)
 
-        target_group_id = 12345
-
         # Insert error events (goes to "events" dataset only)
         self._insert_event(now, 67890, {"browser": "Chrome", "os": "Windows"})
         self._insert_event(now, 67890, {"browser": "Firefox", "os": "Linux"})
@@ -2702,6 +2661,10 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, Sear
             tags=[("browser", "Safari"), ("os", "Mac")],
         )
 
+        target_group_id = 12345
+        self.create_group(id=target_group_id)
+
+        # query a different group so we get all tags from the previously mocked events
         result = get_baseline_tag_distribution(
             organization_id=self.organization.id,
             project_id=self.project.id,
