@@ -275,7 +275,7 @@ function WidgetViewerModal(props: Props) {
 
   // Top N widget charts (including widgets with limits) results rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
-  const primaryWidget =
+  let primaryWidget =
     widget.displayType === DisplayType.TOP_N || widget.limit !== undefined
       ? {...widget, queries: sortedQueries}
       : widget;
@@ -317,6 +317,30 @@ function WidgetViewerModal(props: Props) {
       });
     } else {
       tableWidget.queries.forEach(query => {
+        if (!query.columns.includes(rawOrderby)) {
+          query.columns.push(rawOrderby);
+        }
+      });
+    }
+  }
+
+  // Apply the same orderby logic to primaryWidget for TOP_N charts
+  // TOP_N charts need the orderby field included in their queries for data fetching
+  if (
+    widget.displayType === DisplayType.TOP_N &&
+    orderby &&
+    !isEquationAlias(rawOrderby) &&
+    !fields.map(getAggregateAlias).includes(getAggregateAlias(rawOrderby))
+  ) {
+    primaryWidget = cloneDeep(primaryWidget);
+    if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
+      primaryWidget.queries.forEach(query => {
+        if (!query.aggregates.includes(rawOrderby)) {
+          query.aggregates.push(rawOrderby);
+        }
+      });
+    } else {
+      primaryWidget.queries.forEach(query => {
         if (!query.columns.includes(rawOrderby)) {
           query.columns.push(rawOrderby);
         }
