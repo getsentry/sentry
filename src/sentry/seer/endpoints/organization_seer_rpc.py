@@ -39,7 +39,6 @@ from sentry.seer.endpoints.seer_rpc import (
     get_attributes_for_span,
     get_organization_project_ids,
     get_organization_slug,
-    get_spans,
 )
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.explorer.index_data import (
@@ -88,7 +87,6 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_attribute_names": map_org_id_param(get_attribute_names),
     "get_attribute_values_with_substring": map_org_id_param(get_attribute_values_with_substring),
     "get_attributes_and_values": map_org_id_param(get_attributes_and_values),
-    "get_spans": map_org_id_param(get_spans),
     "get_event_filter_keys": map_org_id_param(get_event_filter_keys),
     "get_event_filter_key_values": map_org_id_param(get_event_filter_key_values),
     "get_issue_filter_keys": map_org_id_param(get_issue_filter_keys),
