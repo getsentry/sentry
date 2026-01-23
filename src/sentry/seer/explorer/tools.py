@@ -1503,9 +1503,6 @@ def get_baseline_tag_distribution(
         {"tag_key": str, "tag_value": str, "count": int} entries.
     """
 
-    if not tag_keys:
-        return {"baseline_tag_distribution": []}
-
     group = Group.objects.get(id=group_id, project_id=project_id)
     organization = group.organization
     if organization.id != organization_id:
@@ -1515,6 +1512,9 @@ def get_baseline_tag_distribution(
         {"start": start, "end": end, "statsPeriod": stats_period},
         optional=True,
     )
+
+    if not tag_keys:
+        return {"baseline_tag_distribution": []}
 
     # Use first/last seen if date params are not provided.
     start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
