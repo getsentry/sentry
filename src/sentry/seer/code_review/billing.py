@@ -26,10 +26,7 @@ def passes_code_review_billing_check(
             external_identifier=external_identifier,
         )
     except OrganizationContributors.DoesNotExist:
-        metrics.incr(
-            "seer.code_review.error.contributor_not_found",
-            tags={"organization_id": organization_id},
-        )
+        metrics.incr("seer.code_review.error.contributor_not_found")
         return False
 
     return quotas.backend.check_seer_quota(

@@ -33,6 +33,7 @@ class Log(enum.StrEnum):
     UNSUPPORTED_ACTION = "github.webhook.issue_comment.unsupported-action"
     NOT_ENABLED = "github.webhook.issue_comment.not-enabled"
     NOT_REVIEW_COMMAND = "github.webhook.issue_comment.not-review-command"
+    NOT_PR_COMMENT = "github.webhook.issue_comment.not-pr-comment"
 
 
 class GitHubIssueCommentAction(enum.StrEnum):
@@ -119,6 +120,14 @@ def handle_issue_comment_event(
     comment = event.get("comment", {})
     comment_id = comment.get("id")
     comment_body = comment.get("body")
+
+    issue = event.get("issue", {})
+    if not issue.get("pull_request"):
+        record_webhook_filtered(
+            github_event, github_event_action, WebhookFilteredReason.NOT_PR_COMMENT
+        )
+        logger.info(Log.NOT_PR_COMMENT.value, extra=extra)
+        return
 
     if not is_pr_review_command(comment_body or ""):
         record_webhook_filtered(
