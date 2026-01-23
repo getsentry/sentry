@@ -100,7 +100,7 @@ describe('groupEvents', () => {
 
     requests.latestEvent = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/issues/1/events/latest/',
+      url: '/organizations/org-slug/issues/1/events/latest/',
       body: {},
     });
 
