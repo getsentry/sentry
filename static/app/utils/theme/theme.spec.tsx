@@ -29,7 +29,7 @@ describe('theme', () => {
 
       expectTypeOf(colors).toEqualTypeOf<
         | readonly ['#7B52FF', '#401477', '#FF049B']
-        | readonly ['#7B52FF', '#613CB9', '#FF049B']
+        | readonly ['#7B52FF', '#561EA2', '#FF049B']
       >();
     });
   });
