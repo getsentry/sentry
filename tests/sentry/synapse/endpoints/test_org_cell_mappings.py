@@ -6,7 +6,13 @@ from django.urls import reverse
 
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
+from sentry.types.region import Region, RegionCategory
+
+us_region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+de_region = Region("de", 1, "https://de.testserver", RegionCategory.MULTI_TENANT)
+region_config = (us_region, de_region)
 
 
 @control_silo_test
@@ -49,6 +55,7 @@ class OrgCellMappingsTest(APITestCase):
         assert "cell_to_locality" in res.data["metadata"]
         assert res.data["metadata"]["has_more"] is False
 
+    @override_regions(region_config)
     def test_get_results_no_next(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
@@ -59,12 +66,13 @@ class OrgCellMappingsTest(APITestCase):
         )
         assert res.status_code == 200
         for org in (org1, org2):
-            assert res.data["data"][org.slug] == str(org.id)
-            assert res.data["data"][str(org.id)] == str(org.id)
+            assert res.data["data"][org.slug] == "us"
+            assert res.data["data"][str(org.id)] == "us"
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False
 
+    @override_regions(region_config)
     @patch("sentry.synapse.endpoints.org_cell_mappings.OrgCellMappingsEndpoint.MAX_LIMIT", 2)
     def test_get_next_page(self) -> None:
         # oldest is in next page.
@@ -80,19 +88,20 @@ class OrgCellMappingsTest(APITestCase):
         )
         assert res.status_code == 200
         for org in (org3, org4):
-            assert res.data["data"][org.slug] == str(org.id)
-            assert res.data["data"][str(org.id)] == str(org.id)
+            assert res.data["data"][org.slug] == "us"
+            assert res.data["data"][str(org.id)] == "us"
         assert len(res.data["data"].keys()) == 4
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"]
 
+    @override_regions(region_config)
     @patch("sentry.synapse.endpoints.org_cell_mappings.OrgCellMappingsEndpoint.MAX_LIMIT", 2)
     def test_get_multiple_pages(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
-        org3 = self.create_organization()
-        org4 = self.create_organization()
+        org3 = self.create_organization(region=de_region)
+        org4 = self.create_organization(region=de_region)
 
         url = reverse("sentry-api-0-org-cell-mappings")
         res = self.client.get(
@@ -101,8 +110,8 @@ class OrgCellMappingsTest(APITestCase):
         )
         assert res.status_code == 200
         for org in (org4, org3):
-            assert res.data["data"][org.slug] == str(org.id)
-            assert res.data["data"][str(org.id)] == str(org.id)
+            assert res.data["data"][org.slug] == "de"
+            assert res.data["data"][str(org.id)] == "de"
         assert len(res.data["data"].keys()) == 4
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
@@ -117,8 +126,8 @@ class OrgCellMappingsTest(APITestCase):
         )
         assert res.status_code == 200, res.content
         for org in (org2, org1):
-            assert res.data["data"][org.slug] == str(org.id)
-            assert res.data["data"][str(org.id)] == str(org.id)
+            assert res.data["data"][org.slug] == "us"
+            assert res.data["data"][str(org.id)] == "us"
         assert len(res.data["data"].keys()) == 4
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]

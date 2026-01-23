@@ -49,9 +49,8 @@ class OrgCellMappingsEndpoint(Endpoint):
 
         mappings = {}
         for item in pagination_result.results:
-            organziation_id = str(item.organization_id)
-            mappings[item.slug] = organziation_id
-            mappings[organziation_id] = organziation_id
+            mappings[item.slug] = item.region_name
+            mappings[str(item.organization_id)] = item.region_name
 
         response_data = {
             "data": mappings,
