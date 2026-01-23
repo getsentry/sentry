@@ -26,8 +26,11 @@ export function GithubButton({
   const {provider, isProviderPending, installationData, isInstallationPending} =
     useSeerOnboardingContext();
   const organization = useOrganization();
-  const hasInstallation = installationData?.find(
-    installation => installation.provider.key === 'github'
+  const githubInstallation = installationData?.find(
+    installation =>
+      installation.provider.key === 'github' &&
+      installation.organizationIntegrationStatus === 'active' &&
+      installation.status === 'active'
   );
 
   if (!provider || isProviderPending || isInstallationPending) {
@@ -39,10 +42,10 @@ export function GithubButton({
       value={{
         provider,
         type: 'first_party',
-        installStatus: hasInstallation ? 'Installed' : 'Not Installed', // `AddIntegrationButton` only handles `Disabled`
+        installStatus: githubInstallation ? 'Installed' : 'Not Installed', // `AddIntegrationButton` only handles `Disabled`
         analyticsParams: {
           view: analyticsView,
-          already_installed: Boolean(hasInstallation),
+          already_installed: Boolean(githubInstallation),
         },
       }}
     >
@@ -54,8 +57,8 @@ export function GithubButton({
             onExternalClick={() => {}}
             buttonProps={
               buttonProps ?? {
-                icon: hasInstallation ? <IconSettings /> : <IconAdd />,
-                buttonText: hasInstallation
+                icon: githubInstallation ? <IconSettings /> : <IconAdd />,
+                buttonText: githubInstallation
                   ? t('Manage GitHub Integration')
                   : t('Connect GitHub'),
                 priority: 'primary',

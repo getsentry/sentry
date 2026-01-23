@@ -9,7 +9,8 @@ from sentry.models.repository import Repository
 from sentry.seer.code_review.utils import (
     SeerCodeReviewTrigger,
     _get_target_commit_sha,
-    _get_trigger_metadata,
+    _get_trigger_metadata_for_issue_comment,
+    _get_trigger_metadata_for_pull_request,
     transform_webhook_to_codegen_request,
 )
 from sentry.testutils.cases import TestCase
@@ -22,41 +23,42 @@ class TestGetTriggerMetadata:
         event_payload = {
             "comment": {
                 "id": 12345,
-                "user": {"login": "test-user"},
+                "user": {"login": "test-user", "id": 99999},
             }
         }
-        result = _get_trigger_metadata(GithubWebhookType.ISSUE_COMMENT, event_payload)
+        result = _get_trigger_metadata_for_issue_comment(event_payload)
         assert result["trigger_comment_id"] == 12345
         assert result["trigger_user"] == "test-user"
+        assert result["trigger_user_id"] == 99999
         assert result["trigger_comment_type"] == "issue_comment"
 
-    def test_pull_request_uses_sender(self) -> None:
+    def test_pull_request_uses_sender_rather_than_pr_author(self) -> None:
         event_payload = {
-            "sender": {"login": "sender-user"},
+            "sender": {"login": "sender-user", "id": 12345},
+            "pull_request": {"user": {"login": "pr-author", "id": 67890}},
         }
-        result = _get_trigger_metadata(GithubWebhookType.PULL_REQUEST, event_payload)
+        result = _get_trigger_metadata_for_pull_request(event_payload)
         assert result["trigger_user"] == "sender-user"
+        assert result["trigger_user_id"] == 12345
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
 
     def test_pull_request_falls_back_to_pr_user(self) -> None:
         event_payload = {
-            "pull_request": {"user": {"login": "pr-author"}},
+            "pull_request": {"user": {"login": "pr-author", "id": 67890}},
         }
-        result = _get_trigger_metadata(GithubWebhookType.PULL_REQUEST, event_payload)
+        result = _get_trigger_metadata_for_pull_request(event_payload)
         assert result["trigger_user"] == "pr-author"
+        assert result["trigger_user_id"] == 67890
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
 
     def test_pull_request_no_data_returns_none_values(self) -> None:
-        result = _get_trigger_metadata(GithubWebhookType.PULL_REQUEST, {})
+        result = _get_trigger_metadata_for_pull_request({})
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
         assert result["trigger_user"] is None
-
-    def test_raises_for_unsupported_event_type(self) -> None:
-        with pytest.raises(ValueError, match="unsupported-event-type-for-trigger-metadata"):
-            _get_trigger_metadata(GithubWebhookType.CHECK_RUN, {})
+        assert result["trigger_user_id"] is None
 
 
 class GetTargetCommitShaTest(TestCase):
@@ -155,6 +157,8 @@ class TestTransformWebhookToCodegenRequest:
             provider="integrations:github",
             external_id="123456",
         )
+        repo.integration_id = 99999
+        repo.save()
         return owner, organization, project, repo
 
     def test_pull_request_event(
@@ -184,7 +188,9 @@ class TestTransformWebhookToCodegenRequest:
             "name": "test-repo",
             "external_id": "123456",
             "base_commit_sha": "abc123sha",
+            "organization_id": organization.id,
         }
+        expected_repo["integration_id"] = str(repo.integration_id)
 
         assert isinstance(result, dict)
         assert result["request_type"] == "pr-review"
@@ -232,29 +238,12 @@ class TestTransformWebhookToCodegenRequest:
         data = result["data"]
         config = data["config"]
         assert data["pr_id"] == 42
+        assert data["repo"]["organization_id"] == organization.id
+        assert data["repo"]["integration_id"] == str(repo.integration_id)
         assert config["trigger"] == SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"
-
-    def test_issue_comment_on_regular_issue_returns_none(
-        self, setup_entities: tuple[User, Organization, Project, Repository]
-    ) -> None:
-        _, organization, _, repo = setup_entities
-        event_payload = {
-            "action": "created",
-            "issue": {"number": 42},
-            "comment": {"id": 12345},
-        }
-        result = transform_webhook_to_codegen_request(
-            GithubWebhookType.ISSUE_COMMENT,
-            "created",
-            event_payload,
-            organization,
-            repo,
-            "somesha",
-        )
-        assert result is None
 
     def test_invalid_repo_name_format_raises(
         self, setup_entities: tuple[User, Organization, Project, Repository]
@@ -278,3 +267,33 @@ class TestTransformWebhookToCodegenRequest:
                 bad_repo,
                 "sha123",
             )
+
+    def test_integration_id_not_included_when_none(
+        self, setup_entities: tuple[User, Organization, Project, Repository]
+    ) -> None:
+        _, organization, project, _ = setup_entities
+        repo_without_integration = Factories.create_repo(
+            project,
+            name="test-owner/test-repo-no-integration",
+            provider="integrations:github",
+            external_id="222222",
+        )
+        # Ensure integration_id is None
+        repo_without_integration.integration_id = None
+        repo_without_integration.save()
+
+        event_payload = {
+            "pull_request": {"number": 1},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo_without_integration,
+            "sha123",
+        )
+
+        assert result is not None
+        assert "integration_id" not in result["data"]["repo"]

@@ -47,11 +47,10 @@ function PlanSubstep({
   onUpdate,
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
-    // TODO(isabella): Remove this once Developer is surfaced
     const plans = billingConfig.planList.filter(
       ({contractInterval, id}) =>
         contractInterval === activePlan.contractInterval &&
-        !id.includes(billingConfig.freePlan)
+        !id.includes(billingConfig.freePlan) // TODO(billing): If we ever surface Developer in checkout, we'll need to remove this filter
     );
 
     if (plans.length === 0) {
@@ -65,7 +64,8 @@ function PlanSubstep({
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (
       plan.id === subscription.plan ||
-      // TODO(billing): Test this once Developer is surfaced
+      // If Developer is surfaced in checkout and the current plan is a trial plan, we should show the `Current` badge
+      // on the Developer plan
       (isTrialPlan(subscription.plan) && isDeveloperPlan(plan))
     ) {
       const copy = t('Current');
@@ -99,7 +99,7 @@ function PlanSubstep({
             subscription,
             organization
           );
-          const basePrice = utils.formatPrice({cents: plan.basePrice}); // TODO(isabella): confirm discountInfo is no longer used
+          const basePrice = utils.formatPrice({cents: plan.basePrice});
           const planContent = utils.getContentForPlan(plan);
           const badge = getBadge(plan);
 

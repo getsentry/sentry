@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import datetime, timezone
+from typing import Any
 
 from django.db import router, transaction
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
@@ -123,6 +124,7 @@ def create_uptime_subscription(
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
     trace_sampling: bool = False,
+    assertion: Any | None = None,
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -146,6 +148,7 @@ def create_uptime_subscription(
         headers=headers,  # type: ignore[misc]
         body=body,
         trace_sampling=trace_sampling,
+        assertion=assertion,
     )
 
     # Associate active regions with this subscription
@@ -174,6 +177,7 @@ def update_uptime_subscription(
     headers: Sequence[tuple[str, str]] | None | NotSet = NOT_SET,
     body: str | None | NotSet = NOT_SET,
     trace_sampling: bool | NotSet = NOT_SET,
+    assertion: Any | NotSet = NOT_SET,
 ):
     """
     Updates an existing uptime subscription. This updates the row in postgres, and fires a task that will send the
@@ -201,6 +205,7 @@ def update_uptime_subscription(
         headers=headers,
         body=default_if_not_set(subscription.body, body),
         trace_sampling=default_if_not_set(subscription.trace_sampling, trace_sampling),
+        assertion=default_if_not_set(subscription.assertion, assertion),
     )
 
     # Associate active regions with this subscription
@@ -247,6 +252,7 @@ def create_uptime_detector(
     override_manual_org_limit: bool = False,
     recovery_threshold: int = DEFAULT_RECOVERY_THRESHOLD,
     downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
+    assertion: Any | None = None,
 ) -> Detector:
     """
     Creates an UptimeSubscription and associated Detector
@@ -282,6 +288,7 @@ def create_uptime_detector(
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
         owner_user_id = None
         owner_team_id = None
@@ -369,6 +376,7 @@ def update_uptime_detector(
     ensure_assignment: bool = False,
     recovery_threshold: int | NotSet = NOT_SET,
     downtime_threshold: int | NotSet = NOT_SET,
+    assertion: Any | NotSet = NOT_SET,
 ):
     """
     Updates a uptime detector and its associated uptime subscription.
@@ -391,6 +399,7 @@ def update_uptime_detector(
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
 
         owner_user_id = detector.owner_user_id
@@ -678,4 +687,26 @@ def check_url_limits(url):
     if existing_count >= MAX_MONITORS_PER_DOMAIN:
         raise MaxUrlsForDomainReachedException(
             url_parts.domain, url_parts.suffix, MAX_MONITORS_PER_DOMAIN
+        )
+
+
+def set_response_capture_enabled(subscription: UptimeSubscription, enabled: bool) -> None:
+    """
+    Toggle response capture for an uptime subscription.
+
+    Updates the capture_response_on_failure flag and pushes the updated config
+    to the uptime checker.
+    """
+    if subscription.capture_response_on_failure == enabled:
+        return
+
+    subscription.update(capture_response_on_failure=enabled)
+
+    if (
+        subscription.subscription_id
+        and subscription.status == UptimeSubscription.Status.ACTIVE.value
+    ):
+        transaction.on_commit(
+            lambda: update_remote_uptime_subscription.delay(subscription.id),
+            using=router.db_for_write(UptimeSubscription),
         )

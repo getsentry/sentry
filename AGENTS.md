@@ -28,6 +28,135 @@ sentry/
 └── config/               # Configuration files
 ```
 
+## Command Execution Guide
+
+This section contains critical command execution instructions that apply across all Sentry development.
+
+### Python Command Execution Requirements
+
+**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+
+#### For AI Agents (automated commands)
+
+Use the full relative path to virtualenv executables:
+
+```bash
+cd /path/to/sentry && .venv/bin/pytest tests/...
+cd /path/to/sentry && .venv/bin/python -m mypy ...
+```
+
+Or source the activate script in your command:
+
+```bash
+cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
+```
+
+**Important for AI agents:**
+
+- Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
+- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
+
+### Backend Development Commands
+
+#### Setup
+
+```bash
+# Install dependencies and setup development environment
+make develop
+
+# Or use the newer devenv command
+devenv sync
+
+# Activate the Python virtual environment (required for running tests and Python commands)
+direnv allow
+
+# Start dev dependencies
+devservices up
+
+# Start the development server
+devservices serve
+```
+
+#### Linting
+
+```bash
+# Preferred: Run pre-commit hooks on specific files
+pre-commit run --files src/sentry/path/to/file.py
+
+# Run all pre-commit hooks
+pre-commit run --all-files
+```
+
+#### Testing
+
+```bash
+# Run Python tests (always use these parameters)
+pytest -svv --reuse-db
+
+# Run specific test file
+pytest -svv --reuse-db tests/sentry/api/test_base.py
+```
+
+#### Database Operations
+
+```bash
+# Run migrations
+sentry django migrate
+
+# Create new migration
+sentry django makemigrations
+
+# Update migration after rebase conflict (handles renaming, dependencies, lockfile)
+./bin/update-migration <migration_name_or_number> <app_label>
+# Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
+
+# Reset database
+make reset-db
+```
+
+### Frontend Development Commands
+
+#### Development Setup
+
+```bash
+# Start the development server
+pnpm run dev
+
+# Start only the UI development server with hot reload
+pnpm run dev-ui
+```
+
+#### Typechecking
+
+Typechecking only works on the entire project. Individual files cannot be checked.
+
+```bash
+pnpm run typecheck
+```
+
+#### Linting
+
+```bash
+# JavaScript/TypeScript linting
+pnpm run lint:js
+
+# Linting for specific file(s)
+pnpm run lint:js components/avatar.tsx [...other files]
+
+# Fix linting issues
+pnpm run fix
+```
+
+#### Testing
+
+```bash
+# Run JavaScript tests (always use CI flag)
+CI=true pnpm test <file_path>
+
+# Run specific test file(s)
+CI=true pnpm test components/avatar.spec.tsx
+```
+
 > For detailed development patterns, see nested AGENTS.md files:
 >
 > - **Backend patterns**: `src/AGENTS.md`
@@ -47,9 +176,9 @@ Cursor is configured to automatically load relevant AGENTS.md files based on the
 
 ## Backend
 
-For backend development patterns, commands, security guidelines, and architecture, see `src/AGENTS.md`.
+For backend development patterns, security guidelines, and architecture, see `src/AGENTS.md`.
 For backend testing patterns and best practices, see `tests/AGENTS.md`.
 
 ## Frontend
 
-For frontend development patterns, commands, design system guidelines, and React testing best practices, see `static/AGENTS.md`.
+For frontend development patterns, design system guidelines, and React testing best practices, see `static/AGENTS.md`.

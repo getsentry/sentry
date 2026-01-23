@@ -66,8 +66,8 @@ function ApiTokenRow({
 }
 
 const ScopeList = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   max-width: 400px;
 `;
 

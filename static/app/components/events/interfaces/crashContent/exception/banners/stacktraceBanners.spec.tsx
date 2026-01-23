@@ -92,7 +92,6 @@ describe('StacktraceBanners', () => {
       expect.objectContaining({
         query: {
           feature: 'stacktrace_link',
-          organization_id: org.id,
           project_id: project.id,
         },
       })

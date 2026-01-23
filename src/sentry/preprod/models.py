@@ -18,6 +18,7 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
@@ -159,13 +160,6 @@ class PreprodArtifact(DefaultFieldsModel):
     error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
     error_message = models.TextField(null=True)
 
-    # E.g. 1.2.300
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    build_version = models.CharField(max_length=255, null=True)
-    # E.g. 9999
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    build_number = BoundedBigIntegerField(null=True)
-
     # Version of tooling used to upload/build the artifact, extracted from metadata files
     cli_version = models.CharField(max_length=255, null=True)
     fastlane_plugin_version = models.CharField(max_length=255, null=True)
@@ -186,19 +180,11 @@ class PreprodArtifact(DefaultFieldsModel):
     # Installable file like IPA or APK
     installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
-    # The name of the app, e.g. "My App"
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    app_name = models.CharField(max_length=255, null=True)
-
     # The identifier of the app, e.g. "com.myapp.MyApp"
     app_id = models.CharField(max_length=255, null=True)
 
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
-
-    # The objectstore id of the app icon
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    app_icon_id = models.CharField(max_length=255, null=True)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
@@ -643,3 +629,51 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactmobileappinfo"
+
+
+@region_silo_model
+class PreprodComparisonApproval(DefaultFieldsModel):
+    """
+    Tracks approval status for preprod comparisons (size or snapshot).
+    """
+
+    class ApprovalStatus(IntEnum):
+        NEEDS_APPROVAL = 0
+        APPROVED = 1
+        REJECTED = 2
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.NEEDS_APPROVAL, "needs_approval"),
+                (cls.APPROVED, "approved"),
+                (cls.REJECTED, "rejected"),
+            )
+
+    class FeatureType(IntEnum):
+        SIZE = 0
+        SNAPSHOTS = 1
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.SIZE, "size"),
+                (cls.SNAPSHOTS, "snapshots"),
+            )
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact", on_delete=models.CASCADE)
+    preprod_feature_type = BoundedPositiveIntegerField(choices=FeatureType.as_choices())
+    approval_status = BoundedPositiveIntegerField(
+        default=ApprovalStatus.NEEDS_APPROVAL, choices=ApprovalStatus.as_choices()
+    )
+    approved_at = models.DateTimeField(null=True)
+    # Nullable for non-Sentry users (e.g. approvals via GitHub UI)
+    approved_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # For non-Sentry approvers, store GitHub user info: {"github": {"id": 123, "login": "username"}}
+    extras = models.JSONField(null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodcomparisonapproval"
