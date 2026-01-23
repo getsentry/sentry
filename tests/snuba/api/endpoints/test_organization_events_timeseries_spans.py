@@ -2556,7 +2556,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["timeSeries"]) == 4
+        assert len(response.data["timeSeries"]) == 3
 
         time_series_by_release = {}
         for ts in response.data["timeSeries"]:
@@ -2569,8 +2569,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert None in time_series_by_release
         assert "1.0.0" in time_series_by_release
         assert "2.0.0" in time_series_by_release
-        assert "Other" in time_series_by_release
+        assert "Other" not in time_series_by_release
 
-        assert len(time_series_by_release[None]["values"]) == 0
+        # All releases including None should now have data
+        assert len(time_series_by_release[None]["values"]) > 0
         assert len(time_series_by_release["1.0.0"]["values"]) > 0
         assert len(time_series_by_release["2.0.0"]["values"]) > 0
+
+        # Verify the None release actually has the span with no release
+        none_values = [v for v in time_series_by_release[None]["values"] if v["value"] > 0]
+        assert len(none_values) > 0, "None release should have at least one data point"
