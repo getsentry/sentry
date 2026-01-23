@@ -289,7 +289,8 @@ describe('useInfiniteLogsQuery', () => {
     });
 
     renderHookWithProviders(useInfiniteLogsQuery, {
-      additionalWrapper: createWrapper(), initialProps: {},
+      additionalWrapper: createWrapper(),
+      initialProps: {},
     });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
@@ -380,12 +381,10 @@ describe('useInfiniteLogsQuery', () => {
         makeMockEventsResponse({cursor: 'page6', nextCursor: 'page7', hasNext: false}),
       ].map(response => MockApiClient.addMockResponse(response));
 
-      const {result} = renderHookWithProviders(
-        useInfiniteLogsQuery,
-        {
-          additionalWrapper: createWrapper(), initialProps: {highFidelity: true, maxAutoFetches: 3},
-        }
-      );
+      const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
+        additionalWrapper: createWrapper(),
+        initialProps: {highFidelity: true, maxAutoFetches: 3},
+      });
 
       // the first 3 requests should have been called
       await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
@@ -433,12 +432,10 @@ describe('useInfiniteLogsQuery', () => {
         }),
       ].map(response => MockApiClient.addMockResponse(response));
 
-      const {result} = renderHookWithProviders(
-        useInfiniteLogsQuery,
-        {
-          additionalWrapper: createWrapper(), initialProps: {highFidelity: true, maxAutoFetches: 3},
-        }
-      );
+      const {result} = renderHookWithProviders(useInfiniteLogsQuery, {
+        additionalWrapper: createWrapper(),
+        initialProps: {highFidelity: true, maxAutoFetches: 3},
+      });
 
       // the first 2 requests should have been called and stop because it totals 1000 results
       await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));

@@ -1,4 +1,4 @@
-import {renderHook, render} from 'sentry-test/reactTestingLibrary';
+import {render, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useIsMountedRef} from './useIsMountedRef';
 

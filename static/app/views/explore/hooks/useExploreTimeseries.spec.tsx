@@ -60,15 +60,13 @@ describe('useExploreTimeseries', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(
-      useExploreTimeseries,
-      {
-        additionalWrapper: Wrapper, initialProps: {
-          query: 'test value',
-          enabled: true,
-        },
-      }
-    );
+    renderHookWithProviders(useExploreTimeseries, {
+      additionalWrapper: Wrapper,
+      initialProps: {
+        query: 'test value',
+        enabled: true,
+      },
+    });
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
@@ -109,23 +107,21 @@ describe('useExploreTimeseries', () => {
       method: 'GET',
     });
 
-    renderHookWithProviders(
-      useExploreTimeseries,
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              extrapolate: '0',
-            },
+    renderHookWithProviders(useExploreTimeseries, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            extrapolate: '0',
           },
-        }, initialProps: {
-          query: 'test value',
-          enabled: true,
         },
-      }
-    );
+      },
+      initialProps: {
+        query: 'test value',
+        enabled: true,
+      },
+    });
 
     await waitFor(() => expect(mockNonExtrapolatedRequest).toHaveBeenCalledTimes(1));
     expect(mockNonExtrapolatedRequest).toHaveBeenCalledWith(

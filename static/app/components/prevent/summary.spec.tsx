@@ -18,7 +18,8 @@ describe('useCreateSummaryFilterLink', () => {
   describe('when the filter is not applied', () => {
     it('returns isFiltered as false', () => {
       const {result} = renderHook(useCreateSummaryFilterLink, {
-        wrapper: createWrapper('/'), initialProps: 'slowestTests',
+        wrapper: createWrapper('/'),
+        initialProps: 'slowestTests',
       });
 
       expect(result.current.isFiltered).toBeFalsy();
@@ -26,7 +27,8 @@ describe('useCreateSummaryFilterLink', () => {
 
     it('returns the link with search param', () => {
       const {result} = renderHook(useCreateSummaryFilterLink, {
-        wrapper: createWrapper('/'), initialProps: 'slowestTests',
+        wrapper: createWrapper('/'),
+        initialProps: 'slowestTests',
       });
 
       expect(result.current.filterLink).toEqual(
@@ -38,7 +40,8 @@ describe('useCreateSummaryFilterLink', () => {
   describe('when the filter is applied', () => {
     it('returns isFiltered as true', () => {
       const {result} = renderHook(useCreateSummaryFilterLink, {
-        wrapper: createWrapper('/?filterBy=slowestTests'), initialProps: 'slowestTests',
+        wrapper: createWrapper('/?filterBy=slowestTests'),
+        initialProps: 'slowestTests',
       });
 
       expect(result.current.isFiltered).toBeTruthy();
@@ -46,7 +49,8 @@ describe('useCreateSummaryFilterLink', () => {
 
     it('returns the link without search param', () => {
       const {result} = renderHook(useCreateSummaryFilterLink, {
-        wrapper: createWrapper('/?filterBy=slowestTests'), initialProps: 'slowestTests',
+        wrapper: createWrapper('/?filterBy=slowestTests'),
+        initialProps: 'slowestTests',
       });
 
       expect(result.current.filterLink).toEqual(expect.objectContaining({query: {}}));

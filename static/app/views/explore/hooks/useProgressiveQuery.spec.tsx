@@ -82,17 +82,18 @@ describe('useProgressiveQuery', () => {
           },
         ],
       });
-      renderHookWithProviders(useProgressiveQuery, {initialProps: {
+      renderHookWithProviders(useProgressiveQuery, {
+        initialProps: {
           queryHookImplementation: useMockHookImpl,
           queryHookArgs: {enabled: true, query: 'test value'},
           queryOptions: {
-            canTriggerHighAccuracy: results => {
+            canTriggerHighAccuracy: (results: any) => {
               // Simulate checking if there is data and more data is available
               return defined(results.data) && results.data.meta.dataScanned === 'partial';
             },
           },
-        }}
-      );
+        },
+      });
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
       expect(mockNormalRequestUrl).toHaveBeenCalledWith(
@@ -132,7 +133,8 @@ describe('useProgressiveQuery', () => {
           },
         ],
       });
-      renderHookWithProviders(useProgressiveQuery, {initialProps: {
+      renderHookWithProviders(useProgressiveQuery, {
+        initialProps: {
           queryHookImplementation: useMockHookImpl,
           queryHookArgs: {enabled: true, query: 'test value'},
           queryOptions: {
@@ -141,8 +143,8 @@ describe('useProgressiveQuery', () => {
               return false;
             },
           },
-        }}
-      );
+        },
+      });
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
       expect(mockNormalRequestUrl).toHaveBeenCalledWith(

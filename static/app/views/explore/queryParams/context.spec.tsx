@@ -1,6 +1,6 @@
 import {useMemo, type ReactNode} from 'react';
 
-import {renderHookWithProviders, render} from 'sentry-test/reactTestingLibrary';
+import {render, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useResettableState} from 'sentry/utils/useResettableState';
 import {

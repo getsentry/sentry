@@ -74,16 +74,15 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTraceMetricsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -130,19 +129,18 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTraceMetricsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -178,16 +176,15 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTraceMetricsSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -239,16 +236,15 @@ describe('useTraceMetricsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTraceMetricsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -289,18 +285,17 @@ describe('useTraceMetricsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 25,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useTraceMetricsTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        limit: 25,
+        cursor: 'test-cursor',
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(

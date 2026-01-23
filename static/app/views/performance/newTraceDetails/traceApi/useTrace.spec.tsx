@@ -48,10 +48,11 @@ describe('useTrace', () => {
         body: [],
       });
 
-      renderHookWithProviders(useTrace, {initialProps: {
+      renderHookWithProviders(useTrace, {
+        initialProps: {
           traceSlug: 'test-trace-id',
-        }}
-      );
+        },
+      });
 
       // Wait for the hook to make the API call
       await waitFor(() => {
@@ -133,10 +134,11 @@ describe('useTrace', () => {
           body: [],
         });
 
-        renderHookWithProviders(useTrace, {initialProps: {
+        renderHookWithProviders(useTrace, {
+          initialProps: {
             traceSlug: 'trace-test-id',
-          }}
-        );
+          },
+        });
 
         await waitFor(() => {
           expect(eapTraceMock).toHaveBeenCalled();

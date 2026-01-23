@@ -13,15 +13,16 @@ describe('useProfileFunctions', () => {
       body: {data: []},
     });
 
-    const hook = renderHookWithProviders(useProfileFunctions, {initialProps: {
+    const hook = renderHookWithProviders(useProfileFunctions, {
+      initialProps: {
         fields: ['count()'],
         referrer: '',
         sort: {
           key: 'count()',
           order: 'desc',
         },
-      }}
-    );
+      },
+    });
     expect(hook.result.current).toMatchObject(
       expect.objectContaining({
         isInitialLoading: true,
@@ -35,15 +36,16 @@ describe('useProfileFunctions', () => {
       body: {data: []},
     });
 
-    const hook = renderHookWithProviders(useProfileFunctions, {initialProps: {
+    const hook = renderHookWithProviders(useProfileFunctions, {
+      initialProps: {
         fields: ['count()'],
         referrer: '',
         sort: {
           key: 'count()',
           order: 'desc',
         },
-      }}
-    );
+      },
+    });
     expect(hook.result.current.isPending).toBe(true);
     expect(hook.result.current.isFetched).toBe(false);
     await waitFor(() =>

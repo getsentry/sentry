@@ -54,20 +54,18 @@ describe('useMetricSamplesTable', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(
-      useMetricSamplesTable,
-      {
-        additionalWrapper: MockMetricQueryParamsContext, initialProps: {
-          traceMetric: {
-            name: 'test metric',
-            type: 'counter',
-          },
-          fields: [],
-          limit: 100,
-          ingestionDelaySeconds: 0,
+    renderHookWithProviders(useMetricSamplesTable, {
+      additionalWrapper: MockMetricQueryParamsContext,
+      initialProps: {
+        traceMetric: {
+          name: 'test metric',
+          type: 'counter',
         },
-      }
-    );
+        fields: [],
+        limit: 100,
+        ingestionDelaySeconds: 0,
+      },
+    });
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
@@ -104,20 +102,18 @@ describe('useMetricSamplesTable', () => {
       method: 'GET',
     });
 
-    renderHookWithProviders(
-      useMetricSamplesTable,
-      {
-        additionalWrapper: MockMetricQueryParamsContext, initialProps: {
-          traceMetric: {
-            name: 'test.metric',
-            type: 'counter',
-          },
-          fields: ['trace', 'timestamp'],
-          limit: 50,
-          ingestionDelaySeconds: 0,
+    renderHookWithProviders(useMetricSamplesTable, {
+      additionalWrapper: MockMetricQueryParamsContext,
+      initialProps: {
+        traceMetric: {
+          name: 'test.metric',
+          type: 'counter',
         },
-      }
-    );
+        fields: ['trace', 'timestamp'],
+        limit: 50,
+        ingestionDelaySeconds: 0,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledTimes(1);

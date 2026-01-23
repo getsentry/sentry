@@ -100,7 +100,8 @@ describe('useInfiniteTestResults', () => {
 
     const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
-      organization, initialProps: {},
+      organization,
+      initialProps: {},
     });
 
     await waitFor(() => {
@@ -152,16 +153,14 @@ describe('useInfiniteTestResults', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(
-      useInfiniteTestResults,
-      {
-        additionalWrapper,
-        organization, initialProps: {
-          cursor: 'next-cursor',
-          navigation: 'next',
-        },
-      }
-    );
+    const {result} = renderHookWithProviders(useInfiniteTestResults, {
+      additionalWrapper,
+      organization,
+      initialProps: {
+        cursor: 'next-cursor',
+        navigation: 'next',
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -195,7 +194,8 @@ describe('useInfiniteTestResults', () => {
 
     const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
-      organization, initialProps: {},
+      organization,
+      initialProps: {},
     });
 
     await waitFor(() => {
@@ -227,7 +227,8 @@ describe('useInfiniteTestResults', () => {
 
     const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
-      organization, initialProps: {},
+      organization,
+      initialProps: {},
     });
 
     await waitFor(() => {
@@ -278,7 +279,8 @@ describe('useInfiniteTestResults', () => {
 
     const {result} = renderHookWithProviders(useInfiniteTestResults, {
       additionalWrapper,
-      organization, initialProps: {},
+      organization,
+      initialProps: {},
     });
 
     await waitFor(() => {

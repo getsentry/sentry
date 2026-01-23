@@ -77,16 +77,15 @@ describe('useSpansSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters: pageFiltersWithDates,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters: pageFiltersWithDates,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -123,19 +122,18 @@ describe('useSpansSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -202,16 +200,15 @@ describe('useSpansSeriesQuery', () => {
       ],
     });
 
-    renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest1).toHaveBeenCalled();
@@ -241,16 +238,15 @@ describe('useSpansSeriesQuery', () => {
       },
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSpansSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     expect(result.current.loading).toBe(true);
   });
@@ -278,16 +274,15 @@ describe('useSpansSeriesQuery', () => {
       statusCode: 500,
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSpansSeriesQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.errorMessage).toBeDefined();
@@ -342,16 +337,15 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters: pageFiltersWithDates,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters: pageFiltersWithDates,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -388,16 +382,15 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -426,19 +419,18 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -474,18 +466,17 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 50,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        limit: 50,
+        cursor: 'test-cursor',
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -522,16 +513,15 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     expect(result.current.loading).toBe(true);
   });
@@ -559,16 +549,15 @@ describe('useSpansTableQuery', () => {
       statusCode: 500,
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.errorMessage).toBeDefined();
@@ -601,16 +590,15 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -644,16 +632,15 @@ describe('useSpansTableQuery', () => {
         data: [{transaction: '/api/test', 'count()': 100}],
       },
     });
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -688,16 +675,15 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
-    );
+    renderHook(useSpansTableQuery, {
+      wrapper: createWrapper(),
+      initialProps: {
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(

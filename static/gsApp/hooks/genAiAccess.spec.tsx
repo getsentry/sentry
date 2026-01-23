@@ -53,7 +53,8 @@ describe('useGenAiConsentButtonAccess', () => {
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
       const {result} = renderHook(useGenAiConsentButtonAccess, {
-        wrapper: contextWrapper(organization), initialProps: {subscription},
+        wrapper: contextWrapper(organization),
+        initialProps: {subscription},
       });
 
       expect(result.current).toEqual(
@@ -84,7 +85,8 @@ describe('useGenAiConsentButtonAccess', () => {
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
       const {result} = renderHook(useGenAiConsentButtonAccess, {
-        wrapper: contextWrapper(organization), initialProps: {subscription},
+        wrapper: contextWrapper(organization),
+        initialProps: {subscription},
       });
 
       expect(result.current).toEqual(
@@ -115,7 +117,8 @@ describe('useGenAiConsentButtonAccess', () => {
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: true}));
 
       const {result} = renderHook(useGenAiConsentButtonAccess, {
-        wrapper: contextWrapper(organization), initialProps: {subscription},
+        wrapper: contextWrapper(organization),
+        initialProps: {subscription},
       });
 
       expect(result.current).toEqual(
@@ -146,7 +149,8 @@ describe('useGenAiConsentButtonAccess', () => {
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
       const {result} = renderHook(useGenAiConsentButtonAccess, {
-        wrapper: contextWrapper(organization), initialProps: {subscription},
+        wrapper: contextWrapper(organization),
+        initialProps: {subscription},
       });
 
       expect(result.current).toEqual(
@@ -180,7 +184,8 @@ describe('useGenAiConsentButtonAccess', () => {
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
       const {result} = renderHook(useGenAiConsentButtonAccess, {
-        wrapper: contextWrapper(organization), initialProps: {subscription},
+        wrapper: contextWrapper(organization),
+        initialProps: {subscription},
       });
 
       expect(result.current).toEqual(
@@ -211,7 +216,8 @@ describe('useGenAiConsentButtonAccess', () => {
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
       const {result} = renderHook(useGenAiConsentButtonAccess, {
-        wrapper: contextWrapper(organization), initialProps: {subscription},
+        wrapper: contextWrapper(organization),
+        initialProps: {subscription},
       });
 
       expect(result.current).toEqual(

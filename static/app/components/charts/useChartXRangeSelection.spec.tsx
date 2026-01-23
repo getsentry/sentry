@@ -40,21 +40,23 @@ describe('useChartXRangeSelection', () => {
 
   describe('initial state', () => {
     it('should return brush configuration when not disabled', () => {
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
-        }}
-      );
+        },
+      });
 
       expect(result.current.brush).toBeDefined();
       expect(result.current.toolBox).toBeDefined();
     });
 
     it('should return undefined brush when disabled', () => {
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           disabled: true,
-        }}
-      );
+        },
+      });
 
       expect(result.current.brush).toBeUndefined();
       expect(result.current.toolBox).toBeUndefined();
@@ -65,11 +67,12 @@ describe('useChartXRangeSelection', () => {
     it('should hide tooltip when brush starts', () => {
       const onSelectionStart = jest.fn();
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           onSelectionStart,
-        }}
-      );
+        },
+      });
 
       act(() => {
         result.current.onBrushStart({} as any, mockChartInstance);
@@ -85,11 +88,12 @@ describe('useChartXRangeSelection', () => {
       const disconnectSpy = jest.fn();
       jest.spyOn(require('echarts'), 'disconnect').mockImplementation(disconnectSpy);
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           chartsGroupName: 'test-group',
-        }}
-      );
+        },
+      });
 
       act(() => {
         result.current.onBrushStart({} as any, mockChartInstance);
@@ -140,11 +144,12 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           onSelectionEnd,
-        }}
-      );
+        },
+      });
 
       const mockEvent = {
         areas: [
@@ -208,11 +213,12 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           onSelectionEnd,
-        }}
-      );
+        },
+      });
 
       const mockEvent = {
         areas: [
@@ -270,11 +276,12 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           chartsGroupName: 'test-group',
-        }}
-      );
+        },
+      });
 
       const mockEvent = {
         areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}],
@@ -321,11 +328,12 @@ describe('useChartXRangeSelection', () => {
         <div data-test-id="action-menu">Action Menu</div>
       ));
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           actionMenuRenderer,
-        }}
-      );
+        },
+      });
 
       act(() => {
         result.current.onBrushEnd(
@@ -382,13 +390,14 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           actionMenuRenderer: _params => (
             <div data-test-id="action-menu">Action Menu</div>
           ),
-        }}
-      );
+        },
+      });
 
       act(() => {
         result.current.onBrushEnd(
@@ -414,10 +423,11 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      renderHook(useChartXRangeSelection, {initialProps: {
+      renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
-        }}
-      );
+        },
+      });
 
       await waitFor(() => {
         expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
@@ -498,11 +508,12 @@ describe('useChartXRangeSelection', () => {
         panelId: 'initial-panel-id',
       };
 
-      renderHook(useChartXRangeSelection, {initialProps: {
+      renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           initialSelection,
-        }}
-      );
+        },
+      });
 
       await waitFor(() => {
         expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
@@ -702,11 +713,12 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           onInsideSelectionClick,
-        }}
-      );
+        },
+      });
 
       // Create a selection first
       act(() => {
@@ -782,11 +794,12 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           onOutsideSelectionClick,
-        }}
-      );
+        },
+      });
 
       // Create a selection first
       act(() => {
@@ -860,11 +873,12 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const {result} = renderHook(useChartXRangeSelection, {initialProps: {
+      const {result} = renderHook(useChartXRangeSelection, {
+        initialProps: {
           chartRef: mockChartRef,
           onOutsideSelectionClick,
-        }}
-      );
+        },
+      });
 
       // Create a selection first
       act(() => {

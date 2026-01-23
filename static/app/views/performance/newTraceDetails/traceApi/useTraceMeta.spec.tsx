@@ -83,7 +83,8 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization, initialProps: mockedReplayTraces,
+      organization,
+      initialProps: mockedReplayTraces,
     });
 
     expect(result.current).toEqual({
@@ -171,7 +172,8 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization: org, initialProps: mockedReplayTraces,
+      organization: org,
+      initialProps: mockedReplayTraces,
     });
 
     expect(result.current).toEqual({
@@ -223,7 +225,8 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization, initialProps: mockedReplayTraces,
+      organization,
+      initialProps: mockedReplayTraces,
     });
 
     expect(result.current).toEqual({
@@ -291,7 +294,8 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization, initialProps: mockedReplayTraces,
+      organization,
+      initialProps: mockedReplayTraces,
     });
 
     expect(result.current).toEqual({

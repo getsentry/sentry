@@ -9,8 +9,9 @@ const queryKey: ApiQueryKey = [getApiUrl('/api-tokens/')];
 describe('useListItemCheckboxContext', () => {
   describe('All hits are already known', () => {
     it('should return the correct initial state', () => {
-      const {result} = renderHook(useListItemCheckboxContext, {initialProps: {hits: 3, knownIds: ['1', '2', '3'], queryKey}}
-      );
+      const {result} = renderHook(useListItemCheckboxContext, {
+        initialProps: {hits: 3, knownIds: ['1', '2', '3'], queryKey},
+      });
       expect(result.current).toEqual({
         countSelected: 0,
         deselectAll: expect.any(Function),
@@ -27,8 +28,9 @@ describe('useListItemCheckboxContext', () => {
     });
 
     it('should allow selecting an individual item when all hits are known', () => {
-      const {result} = renderHook(useListItemCheckboxContext, {initialProps: {hits: 3, knownIds: ['1', '2', '3'], queryKey}}
-      );
+      const {result} = renderHook(useListItemCheckboxContext, {
+        initialProps: {hits: 3, knownIds: ['1', '2', '3'], queryKey},
+      });
 
       // Initially nothing is selected
       expect(result.current.isSelected('1')).toBe(false);
@@ -82,8 +84,9 @@ describe('useListItemCheckboxContext', () => {
     });
 
     it('sets isAllSelected to true when all items are selected', () => {
-      const {result} = renderHook(useListItemCheckboxContext, {initialProps: {hits: 3, knownIds: ['1', '2', '3'], queryKey}}
-      );
+      const {result} = renderHook(useListItemCheckboxContext, {
+        initialProps: {hits: 3, knownIds: ['1', '2', '3'], queryKey},
+      });
 
       // Initially nothing is selected
       expect(result.current.isSelected('1')).toBe(false);
@@ -105,8 +108,9 @@ describe('useListItemCheckboxContext', () => {
     });
 
     it('should allow selecting all items with selectAll', () => {
-      const {result} = renderHook(useListItemCheckboxContext, {initialProps: {hits: 3, knownIds: ['1', '2', '3'], queryKey}}
-      );
+      const {result} = renderHook(useListItemCheckboxContext, {
+        initialProps: {hits: 3, knownIds: ['1', '2', '3'], queryKey},
+      });
 
       // Initially nothing is selected
       expect(result.current.isSelected('1')).toBe(false);
@@ -148,8 +152,9 @@ describe('useListItemCheckboxContext', () => {
 
   describe('More hits to load', () => {
     it('should return the correct initial state', () => {
-      const {result} = renderHook(useListItemCheckboxContext, {initialProps: {hits: 10, knownIds: ['1', '2', '3'], queryKey}}
-      );
+      const {result} = renderHook(useListItemCheckboxContext, {
+        initialProps: {hits: 10, knownIds: ['1', '2', '3'], queryKey},
+      });
       expect(result.current).toEqual({
         countSelected: 0,
         deselectAll: expect.any(Function),
@@ -166,8 +171,9 @@ describe('useListItemCheckboxContext', () => {
     });
 
     it('should allow selecting individual items when there are more hits to load', () => {
-      const {result} = renderHook(useListItemCheckboxContext, {initialProps: {hits: 10, knownIds: ['1', '2', '3'], queryKey}}
-      );
+      const {result} = renderHook(useListItemCheckboxContext, {
+        initialProps: {hits: 10, knownIds: ['1', '2', '3'], queryKey},
+      });
 
       // Initially nothing is selected
       expect(result.current.isSelected('1')).toBe(false);
@@ -235,8 +241,9 @@ describe('useListItemCheckboxContext', () => {
     });
 
     it('should allow selecting all items with selectAll', () => {
-      const {result} = renderHook(useListItemCheckboxContext, {initialProps: {hits: 10, knownIds: ['1', '2', '3'], queryKey}}
-      );
+      const {result} = renderHook(useListItemCheckboxContext, {
+        initialProps: {hits: 10, knownIds: ['1', '2', '3'], queryKey},
+      });
 
       // Initially nothing is selected
       expect(result.current.isSelected('1')).toBe(false);

@@ -41,19 +41,17 @@ describe('useMetricAggregatesTable', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(
-      useMetricAggregatesTable,
-      {
-        additionalWrapper: MockMetricQueryParamsContext, initialProps: {
-          traceMetric: {
-            name: 'test metric',
-            type: 'counter',
-          },
-          limit: 100,
-          enabled: true,
+    renderHookWithProviders(useMetricAggregatesTable, {
+      additionalWrapper: MockMetricQueryParamsContext,
+      initialProps: {
+        traceMetric: {
+          name: 'test metric',
+          type: 'counter',
         },
-      }
-    );
+        limit: 100,
+        enabled: true,
+      },
+    });
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(

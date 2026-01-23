@@ -64,11 +64,12 @@ describe('useTraceItemAttributeKeys', () => {
       mockAttributeKeys
     );
 
-    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {initialProps: {
+    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {
+      initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'string',
-      }}
-    );
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockResponse).toHaveBeenCalled();
@@ -118,11 +119,12 @@ describe('useTraceItemAttributeKeys', () => {
       'number'
     );
 
-    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {initialProps: {
+    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {
+      initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'number',
-      }}
-    );
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockResponse).toHaveBeenCalled();
@@ -171,11 +173,12 @@ describe('useTraceItemAttributeKeys', () => {
 
     mockTraceItemAttributeKeysApi(organization.slug, attributesWithInvalidChars);
 
-    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {initialProps: {
+    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {
+      initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'string',
-      }}
-    );
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -224,11 +227,12 @@ describe('useTraceItemAttributeKeys', () => {
       testAttributeKeys
     );
 
-    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {initialProps: {
+    const {result} = renderHookWithProviders(useTraceItemAttributeKeys, {
+      initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'string',
-      }}
-    );
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockResponse).toHaveBeenCalled();

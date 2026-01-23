@@ -32,8 +32,9 @@ describe('useSyncScrollMargin', () => {
 
   describe('overlayRef is set', () => {
     it('returns the scroll margin', () => {
-      const {result} = renderHook(useSyncScrollMargin, {initialProps: {current: {} as HTMLDivElement}}
-      );
+      const {result} = renderHook(useSyncScrollMargin, {
+        initialProps: {current: {} as HTMLDivElement},
+      });
 
       expect(result.current).toBe(100);
     });

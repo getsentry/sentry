@@ -74,7 +74,8 @@ describe('useMetricDetectorAnomalyPeriods', () => {
       },
     ];
 
-    const {result} = renderHookWithProviders(useMetricDetectorAnomalyPeriods, {initialProps: {
+    const {result} = renderHookWithProviders(useMetricDetectorAnomalyPeriods, {
+      initialProps: {
         series,
         detectorDataset: DetectorDataset.ERRORS,
         dataset: Dataset.ERRORS,
@@ -89,8 +90,8 @@ describe('useMetricDetectorAnomalyPeriods', () => {
         sensitivity: AlertRuleSensitivity.MEDIUM,
         isLoadingSeries: false,
         enabled: true,
-      }}
-    );
+      },
+    });
 
     await waitFor(() => {
       expect(anomalyRequest).toHaveBeenCalled();

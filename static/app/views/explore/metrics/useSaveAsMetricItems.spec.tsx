@@ -64,12 +64,12 @@ describe('useSaveAsMetricItems', () => {
   });
 
   it('should open save query modal when save as new query is clicked', () => {
-    const {result} = renderHook(
-      useSaveAsMetricItems,
-      {wrapper: createWrapper(), initialProps: {
-          interval: '5m',
-        }}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {
+        interval: '5m',
+      },
+    });
 
     const saveAsItems = result.current;
     const saveAsQuery = saveAsItems.find(item => item.key === 'save-query') as {
@@ -114,12 +114,12 @@ describe('useSaveAsMetricItems', () => {
       })
     );
 
-    const {result} = renderHook(
-      useSaveAsMetricItems,
-      {wrapper: createWrapper(), initialProps: {
-          interval: '5m',
-        }}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {
+        interval: '5m',
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.some(item => item.key === 'update-query')).toBe(true);
@@ -138,12 +138,12 @@ describe('useSaveAsMetricItems', () => {
       })
     );
 
-    const {result} = renderHook(
-      useSaveAsMetricItems,
-      {wrapper: createWrapper(), initialProps: {
-          interval: '5m',
-        }}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {
+        interval: '5m',
+      },
+    });
 
     const saveAsItems = result.current;
 
@@ -156,22 +156,20 @@ describe('useSaveAsMetricItems', () => {
       features: [],
     });
 
-    const {result} = renderHook(
-      useSaveAsMetricItems,
-      {
-        wrapper: function ({children}: {children?: React.ReactNode}) {
-          return (
-            <OrganizationContext.Provider value={orgWithoutFeature}>
-              <QueryClientProvider client={queryClient}>
-                <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
-              </QueryClientProvider>
-            </OrganizationContext.Provider>
-          );
-        }, initialProps: {
-          interval: '5m',
-        },
-      }
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: function ({children}: {children?: React.ReactNode}) {
+        return (
+          <OrganizationContext.Provider value={orgWithoutFeature}>
+            <QueryClientProvider client={queryClient}>
+              <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
+            </QueryClientProvider>
+          </OrganizationContext.Provider>
+        );
+      },
+      initialProps: {
+        interval: '5m',
+      },
+    });
 
     const saveAsItems = result.current;
     expect(saveAsItems).toEqual([]);

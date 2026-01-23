@@ -109,10 +109,10 @@ describe('apiOptions', () => {
       },
     });
 
-    const {result} = renderHook(
-      useQuery,
-      {wrapper, initialProps: {...options, select: selectWithHeaders(['Link', 'X-Hits'] as const)}}
-    );
+    const {result} = renderHook(useQuery, {
+      wrapper,
+      initialProps: {...options, select: selectWithHeaders(['Link', 'X-Hits'] as const)},
+    });
 
     await waitFor(() => result.current.isSuccess);
 

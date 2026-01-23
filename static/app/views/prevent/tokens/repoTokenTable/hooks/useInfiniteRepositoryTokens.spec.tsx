@@ -68,16 +68,14 @@ describe('useInfiniteRepositoryTokens', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(
-      useInfiniteRepositoryTokens,
-      {
-        organization,
-        additionalWrapper, initialProps: {
-          cursor: undefined,
-          navigation: undefined,
-        },
-      }
-    );
+    const {result} = renderHookWithProviders(useInfiniteRepositoryTokens, {
+      organization,
+      additionalWrapper,
+      initialProps: {
+        cursor: undefined,
+        navigation: undefined,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -119,16 +117,14 @@ describe('useInfiniteRepositoryTokens', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(
-      useInfiniteRepositoryTokens,
-      {
-        organization,
-        additionalWrapper, initialProps: {
-          cursor: 'next-cursor',
-          navigation: 'next',
-        },
-      }
-    );
+    const {result} = renderHookWithProviders(useInfiniteRepositoryTokens, {
+      organization,
+      additionalWrapper,
+      initialProps: {
+        cursor: 'next-cursor',
+        navigation: 'next',
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -153,16 +149,14 @@ describe('useInfiniteRepositoryTokens', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(
-      useInfiniteRepositoryTokens,
-      {
-        organization,
-        additionalWrapper, initialProps: {
-          cursor: undefined,
-          navigation: undefined,
-        },
-      }
-    );
+    const {result} = renderHookWithProviders(useInfiniteRepositoryTokens, {
+      organization,
+      additionalWrapper,
+      initialProps: {
+        cursor: undefined,
+        navigation: undefined,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -191,16 +185,14 @@ describe('useInfiniteRepositoryTokens', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(
-      useInfiniteRepositoryTokens,
-      {
-        additionalWrapper,
-        organization, initialProps: {
-          cursor: undefined,
-          navigation: undefined,
-        },
-      }
-    );
+    const {result} = renderHookWithProviders(useInfiniteRepositoryTokens, {
+      additionalWrapper,
+      organization,
+      initialProps: {
+        cursor: undefined,
+        navigation: undefined,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
@@ -225,16 +217,14 @@ describe('useInfiniteRepositoryTokens', () => {
       </PreventContext.Provider>
     );
 
-    const {result} = renderHookWithProviders(
-      useInfiniteRepositoryTokens,
-      {
-        additionalWrapper,
-        organization, initialProps: {
-          cursor: undefined,
-          navigation: undefined,
-        },
-      }
-    );
+    const {result} = renderHookWithProviders(useInfiniteRepositoryTokens, {
+      additionalWrapper,
+      organization,
+      initialProps: {
+        cursor: undefined,
+        navigation: undefined,
+      },
+    });
 
     expect(result.current.data).toHaveLength(0);
     expect(result.current.totalCount).toBe(0);

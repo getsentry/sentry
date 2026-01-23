@@ -40,7 +40,8 @@ describe('useUpdateOrganization', () => {
     const {result} = renderHook(useUpdateOrganization, {
       wrapper: ({children}) => (
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      ), initialProps: organization,
+      ),
+      initialProps: organization,
     });
 
     // Verify initial state
@@ -84,7 +85,8 @@ describe('useUpdateOrganization', () => {
     const {result} = renderHook(useUpdateOrganization, {
       wrapper: ({children}) => (
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      ), initialProps: organization,
+      ),
+      initialProps: organization,
     });
 
     // Verify initial state

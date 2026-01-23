@@ -28,11 +28,12 @@ describe('useLiveBadge', () => {
     const startedAt = new Date(now - 60_000); // 1 minute ago
     const finishedAt = new Date(now); // just now
 
-    const {result} = renderHook(useLiveBadge, {initialProps: {
+    const {result} = renderHook(useLiveBadge, {
+      initialProps: {
         startedAt,
         finishedAt,
-      }}
-    );
+      },
+    });
 
     expect(result.current.isLive).toBe(true);
   });
@@ -42,11 +43,12 @@ describe('useLiveBadge', () => {
     const startedAt = new Date(now - 10 * 60_000); // 10 minutes ago
     const finishedAt = new Date(now - 6 * 60_000); // 6 minutes ago (more than 5 min threshold)
 
-    const {result} = renderHook(useLiveBadge, {initialProps: {
+    const {result} = renderHook(useLiveBadge, {
+      initialProps: {
         startedAt,
         finishedAt,
-      }}
-    );
+      },
+    });
 
     expect(result.current.isLive).toBe(false);
   });
@@ -56,11 +58,12 @@ describe('useLiveBadge', () => {
     const startedAt = new Date(now - 2 * 60 * 60_000); // 2 hours ago
     const finishedAt = new Date(now); // just now
 
-    const {result} = renderHook(useLiveBadge, {initialProps: {
+    const {result} = renderHook(useLiveBadge, {
+      initialProps: {
         startedAt,
         finishedAt,
-      }}
-    );
+      },
+    });
 
     expect(result.current.isLive).toBe(false);
   });
@@ -70,11 +73,12 @@ describe('useLiveBadge', () => {
     const startedAt = new Date(now - 60_000); // 1 minute ago
     const finishedAt = new Date(now); // just now
 
-    const {result} = renderHook(useLiveBadge, {initialProps: {
+    const {result} = renderHook(useLiveBadge, {
+      initialProps: {
         startedAt,
         finishedAt,
-      }}
-    );
+      },
+    });
 
     expect(result.current.isLive).toBe(true);
 
@@ -90,11 +94,12 @@ describe('useLiveBadge', () => {
     const now = Date.now();
     const startedAt = new Date(now - 60_000);
 
-    const {result} = renderHook(useLiveBadge, {initialProps: {
+    const {result} = renderHook(useLiveBadge, {
+      initialProps: {
         startedAt,
         finishedAt: null,
-      }}
-    );
+      },
+    });
 
     expect(result.current.isLive).toBe(false);
   });
@@ -120,7 +125,8 @@ describe('useLiveRefresh', () => {
 
   it('should not show refresh button when replay is undefined', () => {
     const {result} = renderHook(useLiveRefresh, {
-      wrapper: createWrapper(), initialProps: {replay: undefined},
+      wrapper: createWrapper(),
+      initialProps: {replay: undefined},
     });
 
     expect(result.current.shouldShowRefreshButton).toBe(false);
@@ -138,7 +144,8 @@ describe('useLiveRefresh', () => {
     });
 
     const {result} = renderHook(useLiveRefresh, {
-      wrapper: createWrapper(), initialProps: {replay},
+      wrapper: createWrapper(),
+      initialProps: {replay},
     });
 
     // Initial state - no refresh button since polled and current are equal
@@ -164,7 +171,8 @@ describe('useLiveRefresh', () => {
     });
 
     const {result} = renderHook(useLiveRefresh, {
-      wrapper: createWrapper(), initialProps: {replay},
+      wrapper: createWrapper(),
+      initialProps: {replay},
     });
 
     // Wait for the API call to complete and state to update
@@ -186,7 +194,8 @@ describe('useLiveRefresh', () => {
     });
 
     renderHook(useLiveRefresh, {
-      wrapper: createWrapper(), initialProps: {replay},
+      wrapper: createWrapper(),
+      initialProps: {replay},
     });
 
     // Advance time past polling interval
@@ -211,7 +220,8 @@ describe('useLiveRefresh', () => {
     });
 
     const {result} = renderHook(useLiveRefresh, {
-      wrapper: createWrapper(), initialProps: {replay},
+      wrapper: createWrapper(),
+      initialProps: {replay},
     });
 
     result.current.doRefresh();

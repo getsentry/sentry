@@ -70,11 +70,12 @@ describe('useMultiQueryTimeseries', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(useMultiQueryTimeseries, {initialProps: {
+    renderHookWithProviders(useMultiQueryTimeseries, {
+      initialProps: {
         enabled: true,
         index: 0,
-      }}
-    );
+      },
+    });
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
