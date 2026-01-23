@@ -9,7 +9,10 @@ from urllib3.exceptions import HTTPError
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.seer.code_review.metrics import CodeReviewErrorType
-from sentry.seer.code_review.utils import ClientError, delete_tada_and_add_eyes_reaction
+from sentry.seer.code_review.utils import (
+    ClientError,
+    delete_existing_reactions_and_add_eyes_reaction,
+)
 from sentry.seer.code_review.webhooks.issue_comment import (
     GitHubIssueCommentAction,
     is_pr_review_command,
@@ -503,7 +506,7 @@ class AddEyesReactionTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.record_webhook_handler_error")
     def test_records_error_when_integration_is_none(self, mock_record_error: MagicMock) -> None:
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=None,
@@ -526,7 +529,7 @@ class AddEyesReactionTest(TestCase):
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
         ]
 
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -547,7 +550,7 @@ class AddEyesReactionTest(TestCase):
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
         ]
 
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
@@ -562,14 +565,15 @@ class AddEyesReactionTest(TestCase):
             self.repo.name, "123456", GitHubReaction.EYES
         )
 
-    def test_deletes_hooray_before_adding_eyes_to_pr(self) -> None:
+    def test_deletes_tada_and_eyes_before_adding_eyes_to_pr(self) -> None:
         self.mock_client.get_issue_reactions.return_value = [
             {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
             {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"},
+            {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
         ]
 
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -579,19 +583,22 @@ class AddEyesReactionTest(TestCase):
             comment_id=None,
         )
 
-        self.mock_client.delete_issue_reaction.assert_called_once_with(self.repo.name, "42", "3")
+        assert self.mock_client.delete_issue_reaction.call_count == 2
+        self.mock_client.delete_issue_reaction.assert_any_call(self.repo.name, "42", "3")
+        self.mock_client.delete_issue_reaction.assert_any_call(self.repo.name, "42", "4")
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
 
-    def test_deletes_hooray_before_adding_eyes_to_comment(self) -> None:
+    def test_deletes_tada_and_eyes_before_adding_eyes_to_comment(self) -> None:
         self.mock_client.get_issue_reactions.return_value = [
             {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
             {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"},
+            {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
         ]
 
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
@@ -601,7 +608,9 @@ class AddEyesReactionTest(TestCase):
             comment_id="123456",
         )
 
-        self.mock_client.delete_issue_reaction.assert_called_once_with(self.repo.name, "42", "3")
+        assert self.mock_client.delete_issue_reaction.call_count == 2
+        self.mock_client.delete_issue_reaction.assert_any_call(self.repo.name, "42", "3")
+        self.mock_client.delete_issue_reaction.assert_any_call(self.repo.name, "42", "4")
         self.mock_client.create_comment_reaction.assert_called_once_with(
             self.repo.name, "123456", GitHubReaction.EYES
         )
@@ -612,7 +621,7 @@ class AddEyesReactionTest(TestCase):
     ) -> None:
         self.mock_client.get_issue_reactions.side_effect = Exception("API Error")
 
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -642,7 +651,7 @@ class AddEyesReactionTest(TestCase):
         ]
         self.mock_client.delete_issue_reaction.side_effect = Exception("API Error")
 
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -666,7 +675,7 @@ class AddEyesReactionTest(TestCase):
         self.mock_client.get_issue_reactions.return_value = []
         self.mock_client.create_issue_reaction.side_effect = Exception("API Error")
 
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,

@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 from ..metrics import WebhookFilteredReason, record_webhook_filtered, record_webhook_received
-from ..utils import _get_target_commit_sha, delete_tada_and_add_eyes_reaction
+from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_eyes_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ def handle_issue_comment_event(
         return
 
     if comment_id:
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=github_event,
             github_event_action=github_event_action,
             integration=integration,

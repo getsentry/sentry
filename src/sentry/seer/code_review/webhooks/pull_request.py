@@ -23,7 +23,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha, delete_tada_and_add_eyes_reaction
+from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_eyes_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ def handle_pull_request_event(
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
-        delete_tada_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_eyes_reaction(
             github_event=github_event,
             github_event_action=action_value,
             integration=integration,
