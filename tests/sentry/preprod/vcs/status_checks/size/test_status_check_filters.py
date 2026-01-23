@@ -244,7 +244,8 @@ class StatusCheckFiltersTest(TestCase):
             [artifact], size_metrics_map, rules=[rule]
         )
         assert status == StatusCheckStatus.FAILURE
-        assert triggered_rules == [rule]
+        assert len(triggered_rules) == 1
+        assert triggered_rules[0].rule == rule
 
     def test_status_check_succeeds_when_rule_matches_but_under_threshold(self):
         artifact = PreprodArtifact.objects.create(
@@ -739,7 +740,8 @@ class StatusCheckFiltersTest(TestCase):
             base_size_metrics_map=base_size_metrics_map,
         )
         assert status == StatusCheckStatus.FAILURE
-        assert triggered_rules == [rule]
+        assert len(triggered_rules) == 1
+        assert triggered_rules[0].rule == rule
 
     def test_rules_only_evaluate_main_artifact_not_watch_app(self):
         artifact = self.create_preprod_artifact(

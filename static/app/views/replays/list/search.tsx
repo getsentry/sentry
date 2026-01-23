@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
+import {parseAsString, useQueryStates} from 'nuqs';
 
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaySearchBar from 'sentry/views/replays/list/replaySearchBar';
 
 export default function ReplaysSearch() {
   const {selection} = usePageFilters();
-  const {pathname, query} = useLocation();
   const organization = useOrganization();
 
-  const navigate = useNavigate();
+  const [{query}, setQueryParams] = useQueryStates({
+    query: parseAsString.withDefault(''),
+    cursor: parseAsString,
+  });
 
   return (
     <SearchContainer>
@@ -20,15 +20,11 @@ export default function ReplaysSearch() {
         organization={organization}
         pageFilters={selection}
         initialQuery=""
-        query={decodeScalar(query.query, '')}
+        query={query}
         onSearch={searchQuery => {
-          navigate({
-            pathname,
-            query: {
-              ...query,
-              cursor: undefined,
-              query: searchQuery.trim(),
-            },
+          setQueryParams({
+            query: searchQuery.trim() || null,
+            cursor: null,
           });
         }}
       />
