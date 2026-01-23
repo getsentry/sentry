@@ -21,7 +21,7 @@ pytestmark = [requires_snuba]
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int) -> str:
-        return f"/api/0/issues/{group_id}/autofix/"
+        return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
 
     def setUp(self) -> None:
         super().setUp()
@@ -862,7 +862,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
     """Tests for feature flag routing to Explorer-based autofix."""
 
     def _get_url(self, group_id: int, mode: str | None = None) -> str:
-        url = f"/api/0/issues/{group_id}/autofix/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
         if mode is not None:
             url = f"{url}?mode={mode}"
         return url
@@ -966,7 +966,7 @@ class GroupAutofixEndpointLegacyRoutingTest(APITestCase, SnubaTestCase):
     """Tests that endpoint routes to legacy when autofix-on-explorer flag is missing."""
 
     def _get_url(self, group_id: int) -> str:
-        return f"/api/0/issues/{group_id}/autofix/"
+        return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
 
     def setUp(self) -> None:
         super().setUp()
