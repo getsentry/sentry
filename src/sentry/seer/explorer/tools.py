@@ -718,46 +718,53 @@ EVENT_TIMESERIES_RESOLUTIONS = (
 
 def _get_issue_event_timeseries(
     *,
+    group: Group,
     organization: Organization,
-    project_id: int,
-    issue_short_id: str,
-    first_seen_delta: timedelta,
-    issue_category: GroupCategory,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> tuple[dict[str, Any], str, str] | None:
     """
     Get event counts over time for an issue (no group by) by calling the events-stats endpoint. Dynamically picks
-    a stats period and interval based on the issue's first seen date and EVENT_TIMESERIES_RESOLUTIONS.
+    an interval based on the time range and EVENT_TIMESERIES_RESOLUTIONS.
     """
+    start, end = get_group_date_range(group, organization, start, end)
 
-    stats_period, interval = None, None
+    # Round up to nearest supported period
+    delta = end - start
+    selected_period, selected_delta, interval = None, None, None
     for p, i in EVENT_TIMESERIES_RESOLUTIONS:
-        delta = parse_stats_period(p)
-        if delta and first_seen_delta <= delta:
-            stats_period, interval = p, i
+        d = parse_stats_period(p)
+        if d and delta <= d:
+            selected_period, selected_delta, interval = p, d, i
             break
-    stats_period = stats_period or "90d"
+    selected_period = selected_period or "90d"
+    selected_delta = selected_delta or timedelta(days=90)
     interval = interval or "3d"
+
+    # Adjust range to equal period
+    end = start + selected_delta
 
     # Use the correct dataset based on issue category
     # Error issues are stored in the "events" dataset, while issue platform issues
     # (performance, etc.) are stored in "issuePlatform" (search_issues)
-    dataset = "errors" if issue_category == GroupCategory.ERROR else "issuePlatform"
+    dataset = "errors" if group.issue_category == GroupCategory.ERROR else "issuePlatform"
 
     data = execute_timeseries_query(
         org_id=organization.id,
         dataset=dataset,
         y_axes=["count()"],
         group_by=[],
-        query=f"issue:{issue_short_id}",
-        stats_period=stats_period,
+        query=f"issue:{group.qualified_short_id}",
+        start=start.isoformat(),
+        end=end.isoformat(),
         interval=interval,
-        project_ids=[project_id],
+        project_ids=[group.project_id],
         partial=True,
     )
 
     if data is None:
         return None
-    return data, stats_period, interval
+    return data, selected_period, interval
 
 
 def _get_recommended_event(
@@ -904,11 +911,10 @@ def get_issue_and_event_response(
             tags_overview = None
 
         ts_result = _get_issue_event_timeseries(
+            group=group,
             organization=organization,
-            project_id=group.project_id,
-            issue_short_id=group.qualified_short_id,
-            first_seen_delta=datetime.now(UTC) - group.first_seen,
-            issue_category=group.issue_category,
+            start=start,
+            end=end,
         )
         if ts_result:
             timeseries, timeseries_stats_period, timeseries_interval = ts_result
