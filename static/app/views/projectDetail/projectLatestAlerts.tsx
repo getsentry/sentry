@@ -14,6 +14,7 @@ import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -95,7 +96,9 @@ function ProjectLatestAlerts({
     isError: unresolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      `/organizations/${organization.slug}/incidents/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {...query, status: 'open'}},
     ],
     {staleTime: 0, enabled: isProjectStabilized}
@@ -106,7 +109,9 @@ function ProjectLatestAlerts({
     isError: resolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      `/organizations/${organization.slug}/incidents/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {...query, status: 'closed'}},
     ],
     {staleTime: 0, enabled: isProjectStabilized}
@@ -120,7 +125,9 @@ function ProjectLatestAlerts({
   // This is only used to determine if we should show the "Create Alert" button
   const {data: alertRules = [], isPending: alertRulesLoading} = useApiQuery<any[]>(
     [
-      `/organizations/${organization.slug}/alert-rules/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/alert-rules/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pick(location.query, Object.values(URL_PARAM)),
