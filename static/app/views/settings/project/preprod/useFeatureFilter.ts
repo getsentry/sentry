@@ -24,7 +24,7 @@ export function useFeatureFilter(
       addLoadingMessage(t('Saving...'));
       updateProject.mutate(
         {
-          [writeKey]: query,
+          [writeKey]: query === '' ? null : query,
         },
         {
           onSuccess: () => {
