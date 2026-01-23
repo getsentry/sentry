@@ -31,10 +31,19 @@ interface Props {
   organization: Organization;
 }
 
-const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
-  return getApiUrl('/issues/$issueId/events/$eventId/', {
-    path: {issueId: groupId, eventId: 'latest'},
-  });
+const makeGroupPreviewRequestUrl = ({
+  orgSlug,
+  groupId,
+}: {
+  groupId: string;
+  orgSlug: string;
+}) => {
+  return getApiUrl(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId, eventId: 'latest'},
+    }
+  );
 };
 
 function AllEventsTable({organization, excludedTags, group}: Props) {
@@ -47,6 +56,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
   const now = useMemo(() => Date.now(), []);
 
   const endpointUrl = makeGroupPreviewRequestUrl({
+    orgSlug: organization.slug,
     groupId: group.id,
   });
 

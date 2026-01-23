@@ -36,6 +36,7 @@ const EVENT_POLL_INTERVAL = 1000;
 
 async function latestEventAvailable(
   api: Client,
+  orgSlug: string,
   groupID: string
 ): Promise<{eventCreated: boolean; retries: number}> {
   let retries = 0;
@@ -48,7 +49,9 @@ async function latestEventAvailable(
     await new Promise(resolve => window.setTimeout(resolve, EVENT_POLL_INTERVAL));
 
     try {
-      await api.requestPromise(`/issues/${groupID}/events/latest/`);
+      await api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupID}/events/latest/`
+      );
       return {eventCreated: true, retries};
     } catch {
       ++retries;
@@ -141,7 +144,11 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     // Wait for the event to be fully processed and available on the group
     // before redirecting.
     const t0 = performance.now();
-    const {eventCreated, retries} = await latestEventAvailable(api, eventData.groupID);
+    const {eventCreated, retries} = await latestEventAvailable(
+      api,
+      organization.slug,
+      eventData.groupID
+    );
 
     // Navigated away before event was created - skip analytics and error messages
     // latestEventAvailable will succeed even if the request was cancelled
