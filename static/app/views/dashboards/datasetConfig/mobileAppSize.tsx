@@ -1,5 +1,6 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
@@ -26,10 +27,7 @@ import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {
-  TraceItemSearchQueryBuilder,
-  useTraceItemSearchQueryBuilderProps,
-} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -171,27 +169,12 @@ function MobileAppSizeSearchBar({
   WidgetBuilderSearchBarProps,
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
-  const {
-    selection: {projects},
-  } = usePageFilters();
-
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
-
   return (
-    <TraceItemSearchQueryBuilder
+    <PreprodSearchBar
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
-      itemType={TraceItemDataset.PREPROD}
-      numberAttributes={numberAttributes}
-      stringAttributes={stringAttributes}
-      numberSecondaryAliases={numberSecondaryAliases}
-      stringSecondaryAliases={stringSecondaryAliases}
-      searchSource="dashboards"
-      projects={projects}
       portalTarget={portalTarget}
+      searchSource="dashboards"
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}

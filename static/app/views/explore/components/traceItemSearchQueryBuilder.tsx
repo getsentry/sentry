@@ -26,6 +26,9 @@ export type TraceItemSearchQueryBuilderProps = {
   stringSecondaryAliases: TagCollection;
   caseInsensitive?: CaseInsensitive;
   disabled?: boolean;
+  disallowFreeText?: boolean;
+  disallowHas?: boolean;
+  disallowLogicalOperators?: boolean;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -48,13 +51,17 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
 };
 
 const typeMap: Partial<
-  Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric' | 'replay'>
+  Record<
+    TraceItemDataset,
+    'span' | 'log' | 'uptime' | 'tracemetric' | 'replay' | 'preprod'
+  >
 > = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
   [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
   [TraceItemDataset.REPLAYS]: 'replay',
+  [TraceItemDataset.PREPROD]: 'preprod',
 };
 
 function getTraceItemFieldDefinitionFunction(
@@ -86,11 +93,19 @@ export function useTraceItemSearchQueryBuilderProps({
   matchKeySuggestions,
   caseInsensitive,
   onCaseInsensitiveClick,
+  disallowHas,
+  disallowFreeText,
+  disallowLogicalOperators,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
-  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
+  const filterTags = useFilterTags(
+    numberAttributes,
+    stringAttributes,
+    functionTags,
+    disallowHas ?? false
+  );
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: itemType,
@@ -118,6 +133,8 @@ export function useTraceItemSearchQueryBuilderProps({
       getSuggestedFilterKey: getSuggestedAttribute,
       getTagValues: getTraceItemAttributeValues,
       disallowUnsupportedFilters: true,
+      disallowFreeText,
+      disallowLogicalOperators,
       recentSearches: itemTypeToRecentSearches(itemType),
       namespace,
       showUnsubmittedIndicator: true,
@@ -130,6 +147,8 @@ export function useTraceItemSearchQueryBuilderProps({
     }),
     [
       caseInsensitive,
+      disallowFreeText,
+      disallowLogicalOperators,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -176,6 +195,9 @@ export function TraceItemSearchQueryBuilder({
   onCaseInsensitiveClick,
   matchKeySuggestions,
   replaceRawSearchKeys,
+  disallowHas,
+  disallowFreeText,
+  disallowLogicalOperators,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -197,6 +219,9 @@ export function TraceItemSearchQueryBuilder({
     onCaseInsensitiveClick,
     matchKeySuggestions,
     replaceRawSearchKeys,
+    disallowHas,
+    disallowFreeText,
+    disallowLogicalOperators,
   });
 
   return (
@@ -223,7 +248,8 @@ function useFunctionTags(
 function useFilterTags(
   numberAttributes: TagCollection,
   stringAttributes: TagCollection,
-  functionTags: TagCollection
+  functionTags: TagCollection,
+  disallowHas: boolean
 ) {
   return useMemo(() => {
     const tags: TagCollection = {
@@ -231,12 +257,15 @@ function useFilterTags(
       ...numberAttributes,
       ...stringAttributes,
     };
-    tags.has = getHasTag({
-      ...numberAttributes,
-      ...stringAttributes,
-    });
+
+    if (!disallowHas) {
+      tags.has = getHasTag({
+        ...numberAttributes,
+        ...stringAttributes,
+      });
+    }
     return tags;
-  }, [numberAttributes, stringAttributes, functionTags]);
+  }, [numberAttributes, stringAttributes, functionTags, disallowHas]);
 }
 
 function useFilterKeySections(
