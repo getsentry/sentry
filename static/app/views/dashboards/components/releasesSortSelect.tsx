@@ -1,18 +1,14 @@
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {
-  RELEASES_SORT_OPTIONS,
-  ReleasesSortOption,
-  type ReleasesSortByOption,
-} from 'sentry/constants/releases';
+import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface ReleasesSortSelectProps {
-  onChange: (sortBy: ReleasesSortByOption) => void;
-  sortBy: ReleasesSortByOption;
+  onChange: (sortBy: ReleasesSortOption) => void;
+  sortBy: ReleasesSortOption;
 }
 
 export function ReleasesSortSelect({sortBy, onChange}: ReleasesSortSelectProps) {
@@ -22,7 +18,7 @@ export function ReleasesSortSelect({sortBy, onChange}: ReleasesSortSelectProps) 
     <CompactSelect
       value={sortBy}
       onChange={option => {
-        onChange(option.value as ReleasesSortByOption);
+        onChange(option.value as ReleasesSortOption);
       }}
       options={Object.entries(RELEASES_SORT_OPTIONS).map(([name, filter]) => {
         if (name !== ReleasesSortOption.ADOPTION) {

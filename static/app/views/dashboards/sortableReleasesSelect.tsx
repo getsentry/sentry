@@ -1,5 +1,5 @@
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {type ReleasesSortByOption} from 'sentry/constants/releases';
+import type {ReleasesSortOption} from 'sentry/constants/releases';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -7,21 +7,21 @@ import {ReleasesSortSelect} from './components/releasesSortSelect';
 import {ReleasesSelectControl} from './releasesSelectControl';
 import type {DashboardFilters} from './types';
 
-interface SortableReleasesFilterProps {
+interface SortableReleasesSelectProps {
   selectedReleases: string[];
-  sortBy: ReleasesSortByOption;
+  sortBy: ReleasesSortOption;
   handleChangeFilter?: (activeFilters: DashboardFilters) => void;
   isDisabled?: boolean;
-  onSortChange?: (sortBy: ReleasesSortByOption) => void;
+  onSortChange?: (sortBy: ReleasesSortOption) => void;
 }
 
-export function SortableReleasesFilter({
+export function SortableReleasesSelect({
   selectedReleases,
   sortBy,
   handleChangeFilter,
   isDisabled,
   onSortChange,
-}: SortableReleasesFilterProps) {
+}: SortableReleasesSelectProps) {
   const organization = useOrganization();
 
   return (

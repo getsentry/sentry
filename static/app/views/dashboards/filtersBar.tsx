@@ -9,11 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {
-  RELEASES_SORT_OPTIONS,
-  ReleasesSortOption,
-  type ReleasesSortByOption,
-} from 'sentry/constants/releases';
+import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -23,7 +19,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
@@ -38,7 +33,7 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import {SortableReleasesFilter} from './sortableReleasesFilter';
+import {SortableReleasesSelect} from './sortableReleasesSelect';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -47,20 +42,6 @@ import type {
   Widget,
 } from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
-
-/**
- * Custom Nuqs parser for release sort options.
- * Validates the sort option is valid and defaults to DATE if not.
- */
-const parseReleaseSort = createParser({
-  parse: (value: string): ReleasesSortByOption => {
-    if (value in RELEASES_SORT_OPTIONS) {
-      return value as ReleasesSortByOption;
-    }
-    return ReleasesSortOption.DATE;
-  },
-  serialize: (value: ReleasesSortByOption): string => value,
-}).withDefault(ReleasesSortOption.DATE);
 
 /**
  * Maps widget types to data categories for determining max pickable days
@@ -140,7 +121,6 @@ export default function FiltersBar({
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const {selection} = usePageFilters();
   const getSearchBarData = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters: GlobalFilter[] = prebuiltDashboardId
@@ -162,12 +142,6 @@ export default function FiltersBar({
 
   // Release sort state - validates and defaults to DATE via custom parser
   const [releaseSort, setReleaseSort] = useQueryState('sortReleasesBy', parseReleaseSort);
-
-  // Adoption sort requires exactly one environment, fallback to DATE otherwise
-  const validatedReleaseFilterSortBy =
-    releaseSort === ReleasesSortOption.ADOPTION && selection.environments.length !== 1
-      ? ReleasesSortOption.DATE
-      : releaseSort;
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -235,8 +209,8 @@ export default function FiltersBar({
           }}
         />
       </PageFilterBar>
-      <SortableReleasesFilter
-        sortBy={validatedReleaseFilterSortBy}
+      <SortableReleasesSelect
+        sortBy={releaseSort}
         selectedReleases={selectedReleases}
         isDisabled={isEditingDashboard}
         handleChangeFilter={activeFilters => {
@@ -329,6 +303,16 @@ export default function FiltersBar({
     </Wrapper>
   );
 }
+
+const parseReleaseSort = createParser({
+  parse: (value: string): ReleasesSortOption => {
+    if (value in RELEASES_SORT_OPTIONS) {
+      return value as ReleasesSortOption;
+    }
+    return ReleasesSortOption.DATE;
+  },
+  serialize: (value: ReleasesSortOption): string => value,
+}).withDefault(ReleasesSortOption.DATE);
 
 const Wrapper = styled('div')`
   display: flex;

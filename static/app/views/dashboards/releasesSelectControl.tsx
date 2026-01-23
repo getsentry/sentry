@@ -11,10 +11,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {
-  RELEASES_SORT_OPTIONS,
-  type ReleasesSortByOption,
-} from 'sentry/constants/releases';
+import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,7 +23,7 @@ import {DashboardFilterKeys} from './types';
 
 interface ReleasesSelectControlProps {
   selectedReleases: string[];
-  sortBy: ReleasesSortByOption;
+  sortBy: ReleasesSortOption;
   className?: string;
   handleChangeFilter?: (activeFilters: DashboardFilters) => void;
   id?: string;
@@ -90,7 +87,11 @@ export function ReleasesSelectControl({
         {
           value: '_releases',
           label: tct('Sorted by [sortBy]', {
-            sortBy: RELEASES_SORT_OPTIONS[sortBy].label,
+            sortBy:
+              sortBy in RELEASES_SORT_OPTIONS
+                ? RELEASES_SORT_OPTIONS[sortBy as keyof typeof RELEASES_SORT_OPTIONS]
+                    .label
+                : sortBy,
           }),
           options: [
             ...ALIASED_RELEASES,
@@ -154,16 +155,14 @@ type LabelDetailsProps = {
 function LabelDetails(props: LabelDetailsProps) {
   return (
     <Flex justify="between" gap="sm" style={{minWidth: 200}}>
-      <Container>
-        {defined(props.eventCount)
-          ? tn('%s event', '%s events', props.eventCount)
-          : t('No events')}
-      </Container>
-      <Container>
-        {defined(props.dateCreated) && (
+      {defined(props.eventCount) && (
+        <Container>{tn('%s event', '%s events', props.eventCount)}</Container>
+      )}
+      {defined(props.dateCreated) && (
+        <Container>
           <DateTime dateOnly year date={props.dateCreated} />
-        )}
-      </Container>
+        </Container>
+      )}
     </Flex>
   );
 }

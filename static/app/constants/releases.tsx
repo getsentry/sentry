@@ -21,5 +21,3 @@ export const RELEASES_SORT_OPTIONS = {
   [ReleasesSortOption.SEMVER]: {label: t('Semantic Version')},
   [ReleasesSortOption.SESSIONS]: {label: t('Total Sessions')},
 } as const;
-
-export type ReleasesSortByOption = keyof typeof RELEASES_SORT_OPTIONS;
