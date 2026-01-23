@@ -6,23 +6,23 @@ from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.detector import Detector
 
 
-def processing_workflow_cache_key(detector_id: int, env_id: int) -> str:
-    # TODO - is this the correct cache key? what if the env_id is None?
+def processing_workflow_cache_key(detector_id: int, env_id: int | None) -> str:
     return f"workflows_by_detector_env:{detector_id}:{env_id}"
 
 
-def invalidate_processing_workflows(detector_id: int, env_id: int) -> None:
+def invalidate_processing_workflows(detector_id: int, env_id: int | None) -> None:
     cache_key = processing_workflow_cache_key(detector_id, env_id)
     return cache.delete(cache_key)
 
 
-def get_processing_workflows(detector: Detector, environment: Environment) -> set[Workflow]:
+def get_processing_workflows(detector: Detector, environment: Environment | None) -> set[Workflow]:
     """
     Use this method to select workflows for processing.
 
     This method uses a read-through cache, and returns which workflows to evaluate.
     """
-    cache_key = processing_workflow_cache_key(detector.id, environment.id)
+    env_id = environment.id if environment is not None else None
+    cache_key = processing_workflow_cache_key(detector.id, env_id)
     workflows = cache.get(cache_key)
 
     if workflows is None:
