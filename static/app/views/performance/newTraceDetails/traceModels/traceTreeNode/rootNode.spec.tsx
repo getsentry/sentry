@@ -73,7 +73,7 @@ describe('RootNode', () => {
 
       const color = rootNode.makeBarColor(theme);
 
-      expect(color).toBe('#B82E8F');
+      expect(color).toBe('#B82D90');
     });
   });
 
