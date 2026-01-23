@@ -5,7 +5,6 @@ from sentry.api import client
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.seer.endpoints.utils import validate_date_params
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +114,6 @@ def get_attribute_names(
     """
     organization = Organization.objects.get(id=org_id)
 
-    stats_period, start, end = validate_date_params(stats_period, start, end)
-
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
     fields: dict[str, list[str]] = {"string": [], "number": []}
@@ -185,8 +182,6 @@ def get_attribute_values_with_substring(
         return {}
 
     organization = Organization.objects.get(id=org_id)
-
-    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
