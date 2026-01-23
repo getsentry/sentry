@@ -11,7 +11,10 @@ from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.code_review.models import SeerCodeReviewTaskRequest
+from sentry.seer.code_review.models import (
+    SeerCodeReviewTaskRequestForPrClosed,
+    SeerCodeReviewTaskRequestForPrReview,
+)
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -97,10 +100,19 @@ def process_github_webhook_event(
         # Validate payload with Pydantic if enabled (except for CHECK_RUN events which use minimal payload)
         should_validate = options.get("seer.code_review.validate_webhook_payload", False)
         if should_validate and github_event != GithubWebhookType.CHECK_RUN:
-            validated_payload = SeerCodeReviewTaskRequest.parse_obj(event_payload)
+            # Parse with appropriate model based on request type to enforce
+            # organization_id and integration_id requirements for PR closed
+            request_type = event_payload.get("request_type")
+            if request_type == "pr-closed":
+                validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(event_payload)
+            else:
+                validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(event_payload)
             # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
             # but JSON requires string keys, so we need to convert them back)
             payload = convert_enum_keys_to_strings(validated_payload.dict())
+            # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
+            # Pydantic v2 will automatically convert enum keys to strings.
+            # payload = validated_payload.model_dump(mode="json")
         else:
             payload = event_payload
 

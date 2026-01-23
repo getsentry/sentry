@@ -63,6 +63,57 @@ class BugPredictionSpecificInformation(BaseModel):
     organization_slug: str
 
 
+# =============================================================================
+# Code Review Repo Definition Models
+# =============================================================================
+
+
+class SeerCodeReviewRepoDefinition(BaseModel):
+    """
+    Repo definition for code review with required fields for Sentry.
+
+    This is a "shortened" version of SeerRepoDefinition that only includes
+    the fields actually sent by Sentry for code review requests.
+    """
+
+    provider: str
+    owner: str
+    name: str
+    external_id: str
+    base_commit_sha: str
+    # Optional in base, overridden in subclasses based on request type
+    organization_id: int | None = None
+    integration_id: str | None = None
+
+
+class SeerCodeReviewRepoForPrReview(SeerCodeReviewRepoDefinition):
+    """
+    Repo definition for PR review requests.
+
+    organization_id and integration_id are optional for PR review requests,
+    though organization_id is typically included.
+    """
+
+    pass  # Inherits optional fields from base
+
+
+class SeerCodeReviewRepoForPrClosed(SeerCodeReviewRepoDefinition):
+    """
+    Repo definition for PR closed requests.
+
+    organization_id and integration_id are required for PR closed requests
+    to support metrics and dashboarding.
+    """
+
+    organization_id: int  # Override to make required
+    integration_id: str  # Override to make required
+
+
+# =============================================================================
+# Code Review Request Models
+# =============================================================================
+
+
 class SeerCodeReviewBaseRequest(BaseModel):
     repo: SeerRepoDefinition
     pr_id: int
@@ -74,7 +125,43 @@ class SeerCodeReviewRequest(SeerCodeReviewBaseRequest):
     config: SeerCodeReviewConfig | None = None
 
 
+class SeerCodeReviewRequestForPrReview(BaseModel):
+    """Request model for PR review with optional organization_id and integration_id."""
+
+    repo: SeerCodeReviewRepoForPrReview
+    pr_id: int
+    more_readable_repos: list[SeerCodeReviewRepoForPrReview] = Field(default_factory=list)
+    bug_prediction_specific_information: BugPredictionSpecificInformation
+    config: SeerCodeReviewConfig | None = None
+
+
+class SeerCodeReviewRequestForPrClosed(BaseModel):
+    """Request model for PR closed with required organization_id and integration_id."""
+
+    repo: SeerCodeReviewRepoForPrClosed
+    pr_id: int
+    more_readable_repos: list[SeerCodeReviewRepoForPrClosed] = Field(default_factory=list)
+    bug_prediction_specific_information: BugPredictionSpecificInformation
+    config: SeerCodeReviewConfig | None = None
+
+
 class SeerCodeReviewTaskRequest(BaseModel):
     data: SeerCodeReviewRequest
+    external_owner_id: str
+    request_type: SeerCodeReviewRequestType
+
+
+class SeerCodeReviewTaskRequestForPrReview(BaseModel):
+    """Task request wrapper for PR review."""
+
+    data: SeerCodeReviewRequestForPrReview
+    external_owner_id: str
+    request_type: SeerCodeReviewRequestType
+
+
+class SeerCodeReviewTaskRequestForPrClosed(BaseModel):
+    """Task request wrapper for PR closed."""
+
+    data: SeerCodeReviewRequestForPrClosed
     external_owner_id: str
     request_type: SeerCodeReviewRequestType
