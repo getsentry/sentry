@@ -6,6 +6,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -535,3 +536,87 @@ class OrganizationDetectorDetailsGetFilterTest(UptimeDetectorBaseTest):
         # Verify we got the correct detector
         assert response.data["id"] == str(active_detector.id)
         assert response.data["name"] == "Active Auto Detector"
+
+
+class OrganizationDetectorDetailsPutCacheInvalidationTest(UptimeDetectorBaseTest):
+
+    endpoint = "sentry-api-0-organization-detector-details"
+
+    def test_put_invalidates_cache(self) -> None:
+        data_source = self.detector.data_sources.first()
+        assert data_source is not None
+
+        # Warm the cache
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].id == self.detector.id
+        original_name = cached_detectors[0].name
+
+        assert self.detector.workflow_condition_group is not None
+        valid_data = {
+            "id": self.detector.id,
+            "projectId": self.project.id,
+            "name": "Updated Detector Name",
+            "type": UptimeDomainCheckFailure.slug,
+            "dateCreated": self.detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": self.detector.workflow_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": self.detector.config,
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            **valid_data,
+            status_code=status.HTTP_200_OK,
+            method="PUT",
+        )
+
+        # Cache should have been invalidated and refreshed with new data
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].name == "Updated Detector Name"
+        assert cached_detectors[0].name != original_name
+
+    def test_put_disable_detector_invalidates_cache(self) -> None:
+        data_source = self.detector.data_sources.first()
+        assert data_source is not None
+
+        # Warm the cache
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].id == self.detector.id
+
+        assert self.detector.workflow_condition_group is not None
+        valid_data = {
+            "id": self.detector.id,
+            "projectId": self.project.id,
+            "name": self.detector.name,
+            "type": UptimeDomainCheckFailure.slug,
+            "enabled": False,
+            "dateCreated": self.detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": self.detector.workflow_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": self.detector.config,
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            **valid_data,
+            status_code=status.HTTP_200_OK,
+            method="PUT",
+        )
+
+        self.detector.refresh_from_db()
+        assert not self.detector.enabled
+
+        # Cache should now be empty since detector is disabled
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 0
