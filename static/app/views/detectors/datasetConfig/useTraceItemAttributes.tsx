@@ -106,10 +106,13 @@ export function useTraceItemNumberAttributes({
       {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
     ]);
 
-    return removeHiddenKeys(
-      {...numberAttributes, ...Object.fromEntries(measurements)},
-      HIDDEN_PREPROD_ATTRIBUTES
-    );
+    const combined = {...numberAttributes, ...Object.fromEntries(measurements)};
+
+    if (traceItemType === TraceItemDataset.PREPROD) {
+      return removeHiddenKeys(combined, HIDDEN_PREPROD_ATTRIBUTES);
+    }
+
+    return combined;
   }, [numberAttributes, traceItemType]);
 
   return {
@@ -142,10 +145,13 @@ export function useTraceItemStringAttributes({
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
 
-    return removeHiddenKeys(
-      {...stringAttributes, ...Object.fromEntries(tags)},
-      HIDDEN_PREPROD_ATTRIBUTES
-    );
+    const combined = {...stringAttributes, ...Object.fromEntries(tags)};
+
+    if (traceItemType === TraceItemDataset.PREPROD) {
+      return removeHiddenKeys(combined, HIDDEN_PREPROD_ATTRIBUTES);
+    }
+
+    return combined;
   }, [stringAttributes, traceItemType]);
 
   return {
@@ -189,10 +195,13 @@ export function useTraceItemBooleanAttributes({
       {key: tag, name: tag, kind: FieldKind.BOOLEAN},
     ]);
 
-    return removeHiddenKeys(
-      {...booleanAttributes, ...Object.fromEntries(tags)},
-      HIDDEN_PREPROD_ATTRIBUTES
-    );
+    const combined = {...booleanAttributes, ...Object.fromEntries(tags)};
+
+    if (traceItemType === TraceItemDataset.PREPROD) {
+      return removeHiddenKeys(combined, HIDDEN_PREPROD_ATTRIBUTES);
+    }
+
+    return combined;
   }, [booleanAttributes, hasBooleanFilters, traceItemType]);
 
   return {
