@@ -57,7 +57,7 @@ class RpcOrganizationIntegration(RpcModel):
     default_auth_id: int | None
     organization_id: int
     integration_id: int
-    config: dict[str, Any]
+    config: dict[str, Any] = Field(repr=False)
     status: int  # As ObjectStatus
     grace_period_end: datetime | None
     date_added: datetime | None

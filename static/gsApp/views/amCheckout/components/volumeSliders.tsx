@@ -59,21 +59,17 @@ export function renderPerformanceHovercard() {
 }
 
 function VolumeSliders({
+  currentSliderValues,
   checkoutTier,
   activePlan,
   organization,
-  formData,
   subscription,
   onReservedChange,
 }: Pick<
   StepProps,
-  | 'activePlan'
-  | 'checkoutTier'
-  | 'organization'
-  | 'onUpdate'
-  | 'formData'
-  | 'subscription'
+  'activePlan' | 'checkoutTier' | 'organization' | 'onUpdate' | 'subscription'
 > & {
+  currentSliderValues: Partial<Record<DataCategory, number>>;
   onReservedChange: (value: number, category: DataCategory) => void;
 }) {
   const renderPerformanceUnitDecoration = () => (
@@ -102,7 +98,7 @@ function VolumeSliders({
           }
 
           const eventBucket = utils.getBucket({
-            events: formData.reserved[category],
+            events: currentSliderValues[category],
             buckets: activePlan.planCategories[category],
           });
 
@@ -170,7 +166,7 @@ function VolumeSliders({
                   <SpaceBetweenGrid>
                     <VolumeAmount>
                       {formatReservedWithUnits(
-                        formData.reserved[category] ?? null,
+                        currentSliderValues[category] ?? null,
                         category,
                         {
                           isAbbreviated: !isByteCategory(category),
@@ -201,7 +197,7 @@ function VolumeSliders({
                             getPlanCategoryName({plan: activePlan, category})
                           )
                     }
-                    value={formData.reserved[category] ?? ''}
+                    value={currentSliderValues[category] ?? ''}
                     allowedValues={allowedValues}
                     onChange={value =>
                       defined(value) && typeof value === 'number'
@@ -262,8 +258,8 @@ const Title = styled('label')`
   gap: ${p => p.theme.space.xs};
   align-items: center;
   margin-bottom: 0px;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const SpaceBetweenGrid = styled('div')`
@@ -273,12 +269,12 @@ const SpaceBetweenGrid = styled('div')`
 `;
 
 const Description = styled(SpaceBetweenGrid)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MinMax = styled(Description)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const BaseRow = styled('div')`
@@ -294,7 +290,7 @@ const StyledHovercard = styled(Hovercard)`
   ${Header} {
     color: ${p => p.theme.tokens.content.secondary};
     text-transform: uppercase;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     border-radius: 6px 6px 0px 0px;
     padding: ${p => p.theme.space.xl};
   }
@@ -320,7 +316,7 @@ const IconContainer = styled('span')`
 
 const PerformanceUnits = styled(BaseRow)`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-weight: 600;
 `;
 
@@ -330,17 +326,17 @@ const PerformanceTag = styled(BaseRow)`
 `;
 
 const VolumeAmount = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Price = styled('span')<{isIncluded: boolean}>`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p =>
-    p.isIncluded ? p.theme.fontWeight.normal : p.theme.fontWeight.bold};
+    p.isIncluded ? p.theme.font.weight.sans.regular : p.theme.font.weight.sans.medium};
 `;
 
 const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const CategoryContainer = styled('div')`

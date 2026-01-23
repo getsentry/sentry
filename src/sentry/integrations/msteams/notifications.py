@@ -127,7 +127,7 @@ def send_notification_as_msteams(
 
                         notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)
                     except Exception:
-                        logger.exception("Exception occurred while trying to send the notification")
+                        logger.warning("Exception occurred while trying to send the notification")
 
     metrics.incr(
         f"{notification.metrics_key}.notifications.sent",

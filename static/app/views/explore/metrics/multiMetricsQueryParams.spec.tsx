@@ -25,7 +25,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
         metric: {name: '', type: ''},
         queryParams: new ReadableQueryParams({
           extrapolate: true,
-          mode: Mode.AGGREGATE,
+          mode: Mode.SAMPLES,
           query: '',
 
           cursor: '',

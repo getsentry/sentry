@@ -124,7 +124,7 @@ const LegacyTitleText = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
 `;
 
@@ -164,7 +164,7 @@ const SubTitleWrapper = styled(FlexBox)`
 `;
 
 const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -192,12 +192,12 @@ function TitleOp({text}: {text: string}) {
 }
 
 const Type = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TitleOpText = styled('div')`
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: block;
   width: 100%;
   white-space: nowrap;
@@ -665,7 +665,7 @@ const HiglightsDurationComparison = styled('div')<
   color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].normal};
   background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
   height: 21px;
@@ -677,13 +677,13 @@ const HighlightsDurationWrapper = styled(FlexBox)`
 `;
 
 const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: 400;
 `;
 
 const HighlightOp = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: normal;
 `;
 
@@ -692,7 +692,7 @@ const HighlightedAttributesWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   column-gap: ${space(1.5)};
   row-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }
@@ -767,7 +767,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 };
 
 const DurationContainer = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-right: ${space(1)};
 `;
 
@@ -1203,10 +1203,7 @@ function MultilineText({children}: {children: string}) {
     <Fragment>
       <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
-          <Container
-            position="absolute"
-            style={{top: theme.space.xs, right: theme.space.xs}}
-          >
+          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (
               <SegmentedControl
                 size="xs"
@@ -1255,7 +1252,7 @@ const MarkdownContainer = styled('div')`
   h4,
   h5,
   h6 {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     margin: 0;
     padding-bottom: ${p => p.theme.space.sm};
   }
@@ -1329,9 +1326,9 @@ function MultilineJSON({
       {isHovered && (
         <Container
           position="absolute"
+          top={theme.space.xs}
+          right={theme.space.xs}
           style={{
-            top: theme.space.xs,
-            right: theme.space.xs,
             // Ensure the segmented control is on top of the text StructuredData
             zIndex: 1,
           }}
@@ -1367,12 +1364,14 @@ function MultilineJSON({
 }
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
+  /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
+  min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
   pre {
     margin: 0;
     padding: 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;
 

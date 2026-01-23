@@ -162,9 +162,30 @@ export function hasAIOutputAttribute(
     getTraceNodeAttribute('gen_ai.output.messages', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.response.text', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.response.object', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.call.result', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.response.tool_calls', node, event, attributes) ||
     getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes)
   );
+}
+
+/**
+ * Gets AI tool output, checking gen_ai.tool.call.result first, falling back to gen_ai.tool.output.
+ */
+function getAIToolOutput(
+  node: EapSpanNode | SpanNode | TransactionNode,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  const toolCallResult = getTraceNodeAttribute(
+    'gen_ai.tool.call.result',
+    node,
+    event,
+    attributes
+  );
+  if (toolCallResult) {
+    return toolCallResult;
+  }
+  return getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes);
 }
 
 export function AIOutputSection({
@@ -185,7 +206,7 @@ export function AIOutputSection({
     attributes,
     event
   );
-  const toolOutput = getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes);
+  const toolOutput = getAIToolOutput(node, attributes, event);
 
   if (!responseText && !responseObject && !toolCalls && !toolOutput) {
     return null;

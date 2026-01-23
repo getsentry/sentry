@@ -1,45 +1,28 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Container} from 'sentry/components/core/layout';
 import type {ContainerProps} from 'sentry/components/core/layout/container';
 
-function SubscriptionPageContainer({
-  header,
+export default function SubscriptionPageContainer({
   children,
   background,
-  dataTestId,
-  useBorderTopLogic = true,
-  paddingOverride,
-}: {
-  children: React.ReactNode;
-  background?: 'primary' | 'secondary';
-  dataTestId?: string;
-  header?: React.ReactNode;
-  paddingOverride?: ContainerProps['padding'];
-  useBorderTopLogic?: boolean;
-}) {
+  ...rest
+}: {children: React.ReactNode} & Omit<ContainerProps, 'children'>) {
   useEffect(() => {
     // record replays for all usage and billing settings pages
     Sentry.getReplay()?.start();
   }, []);
 
   return (
-    <Fragment>
-      {header}
-      <Container
-        padding={paddingOverride ?? {xs: 'xl', md: '3xl'}}
-        background={background}
-        flexGrow={1}
-        data-test-id={dataTestId}
-        borderTop={
-          useBorderTopLogic && background === 'secondary' ? 'primary' : undefined
-        }
-      >
-        {children}
-      </Container>
-    </Fragment>
+    <Container
+      background={background}
+      borderTop={background === 'secondary' ? 'primary' : undefined}
+      flexGrow={1}
+      padding={{xs: 'xl', md: '3xl'}}
+      {...rest}
+    >
+      {children}
+    </Container>
   );
 }
-
-export default SubscriptionPageContainer;

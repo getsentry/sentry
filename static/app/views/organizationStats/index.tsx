@@ -5,6 +5,8 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -301,7 +303,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         <PageFilterBar>
           <ProjectPageFilter />
           <DropdownDataCategory
-            triggerProps={{prefix: t('Category')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
+            )}
             value={this.dataCategory}
             options={options}
             onChange={opt =>
