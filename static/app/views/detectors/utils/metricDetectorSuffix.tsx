@@ -37,7 +37,6 @@ export function getStaticDetectorThresholdSuffix(aggregate: string) {
     case 'duration':
       return 'ms';
     case 'size':
-    case 'size_decimal':
       return 'B';
     case 'rate':
       return '1/s';

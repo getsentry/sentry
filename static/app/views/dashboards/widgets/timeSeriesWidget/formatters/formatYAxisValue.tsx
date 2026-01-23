@@ -79,12 +79,6 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
 
       return formatter(sizeInBytes);
     }
-    case 'size_decimal': {
-      const sizeUnit = isASizeUnit(unit) ? unit : SizeUnit.BYTE;
-      const sizeInBytes = convertSize(value, sizeUnit, SizeUnit.BYTE);
-
-      return formatBytesBase10(sizeInBytes);
-    }
     case 'rate': {
       // Always show rate in the original dataset's unit. If the unit is not
       // appropriate, always convert the unit in the original dataset first.

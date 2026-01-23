@@ -43,7 +43,6 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
       ['percentage', 0.6612, '66.12%'],
       ['duration', 321, '321.00ms'],
       ['size', 416 * 1024, '416.0 KiB'],
-      ['size_decimal', 50 * 1000 * 1000, '50 MB'],
       ['', 444, '444'],
     ];
     for (const scenario of cases) {
@@ -51,6 +50,15 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
         scenario[2]
       );
     }
+  });
+
+  it('formats size with base 10 when sizeBase is 10', () => {
+    expect(
+      tooltipFormatterUsingAggregateOutputType(50 * 1000 * 1000, 'size', undefined, 10)
+    ).toBe('50 MB');
+    expect(tooltipFormatterUsingAggregateOutputType(1000, 'size', undefined, 10)).toBe(
+      '1 KB'
+    );
   });
 });
 
@@ -114,7 +122,6 @@ describe('axisLabelFormatterUsingAggregateOutputType()', () => {
       ['percentage', 0.6612, '66%'],
       ['duration', 321, '321ms'],
       ['size', 416 * 1024, '416 KiB'],
-      ['size_decimal', 50 * 1000 * 1000, '50 MB'],
       ['', 444, '444'],
     ];
     for (const scenario of cases) {
@@ -122,6 +129,31 @@ describe('axisLabelFormatterUsingAggregateOutputType()', () => {
         axisLabelFormatterUsingAggregateOutputType(scenario[1], scenario[0])
       ).toEqual(scenario[2]);
     }
+  });
+
+  it('formats size with base 10 when sizeBase is 10', () => {
+    expect(
+      axisLabelFormatterUsingAggregateOutputType(
+        50 * 1000 * 1000,
+        'size',
+        false,
+        undefined,
+        undefined,
+        0,
+        10
+      )
+    ).toBe('50 MB');
+    expect(
+      axisLabelFormatterUsingAggregateOutputType(
+        1000,
+        'size',
+        false,
+        undefined,
+        undefined,
+        0,
+        10
+      )
+    ).toBe('1 KB');
   });
 });
 

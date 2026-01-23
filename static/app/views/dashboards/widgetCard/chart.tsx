@@ -38,7 +38,10 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {
+  ABYTE_UNITS,
+  type RenderFunctionBaggage,
+} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -295,6 +298,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : undefined;
   const bucketSize = getBucketSize(series);
 
+  // Derive sizeBase from units - if any unit is a decimal byte unit, use base 10
+  const sizeBase =
+    timeseriesResultsUnits &&
+    Object.values(timeseriesResultsUnits).some(unit =>
+      ABYTE_UNITS.includes(unit as string)
+    )
+      ? 10
+      : 2;
+
   const valueFormatter = (value: number, seriesName?: string) => {
     const decodedSeriesName = seriesName
       ? WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)
@@ -308,7 +320,12 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       const unit =
         timeseriesResultsUnits?.[aggregateName] ??
         timeseriesResultsUnits?.[decodedSeriesName ?? ''];
-      return tooltipFormatter(value, type ?? aggregateOutputType(aggregateName), unit);
+      return tooltipFormatter(
+        value,
+        type ?? aggregateOutputType(aggregateName),
+        unit,
+        sizeBase
+      );
     }
     return tooltipFormatter(value, 'number');
   };
@@ -383,7 +400,8 @@ function WidgetCardChart(props: WidgetCardChartProps) {
               true,
               durationUnit,
               undefined,
-              PERCENTAGE_DECIMAL_POINTS
+              PERCENTAGE_DECIMAL_POINTS,
+              sizeBase
             );
           }
           return axisLabelFormatter(

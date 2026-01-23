@@ -119,8 +119,6 @@ function mapAggregationTypeToValueTypeAndUnit(
       return {valueType: 'rate', valueUnit: null};
     case 'size':
       return {valueType: 'size', valueUnit: null};
-    case 'size_decimal':
-      return {valueType: 'size_decimal', valueUnit: null};
     case 'duration':
       return {valueType: 'duration', valueUnit: null};
     case 'score':

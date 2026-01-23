@@ -24,12 +24,13 @@ import {categorizeDuration} from './categorizeDuration';
 export function tooltipFormatter(
   value: number | null,
   outputType: AggregationOutputType = 'number',
-  unit?: DataUnit
+  unit?: DataUnit,
+  sizeBase: 2 | 10 = 2
 ): string {
   if (!defined(value)) {
     return '\u2014';
   }
-  return tooltipFormatterUsingAggregateOutputType(value, outputType, unit);
+  return tooltipFormatterUsingAggregateOutputType(value, outputType, unit, sizeBase);
 }
 
 /**
@@ -38,7 +39,8 @@ export function tooltipFormatter(
 export function tooltipFormatterUsingAggregateOutputType(
   value: number | null,
   type: string,
-  unit?: DataUnit
+  unit?: DataUnit,
+  sizeBase: 2 | 10 = 2
 ): string {
   if (!defined(value)) {
     return '\u2014';
@@ -52,9 +54,7 @@ export function tooltipFormatterUsingAggregateOutputType(
     case 'duration':
       return getDuration(value / 1000, 2, true);
     case 'size':
-      return formatBytesBase2(value);
-    case 'size_decimal':
-      return formatBytesBase10(value);
+      return sizeBase === 10 ? formatBytesBase10(value) : formatBytesBase2(value);
     case 'rate':
       if (unit) {
         return formatRate(value, unit as RateUnit);
@@ -75,7 +75,8 @@ export function axisLabelFormatter(
   abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces?: number
+  decimalPlaces?: number,
+  sizeBase: 2 | 10 = 2
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
@@ -83,7 +84,8 @@ export function axisLabelFormatter(
     abbreviation,
     durationUnit,
     rateUnit,
-    decimalPlaces
+    decimalPlaces,
+    sizeBase
   );
 }
 
@@ -96,7 +98,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
   abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces = 0
+  decimalPlaces = 0,
+  sizeBase: 2 | 10 = 2
 ): string {
   switch (type) {
     case 'integer':
@@ -107,9 +110,7 @@ export function axisLabelFormatterUsingAggregateOutputType(
     case 'duration':
       return axisDuration(value, durationUnit);
     case 'size':
-      return formatBytesBase2(value, 0);
-    case 'size_decimal':
-      return formatBytesBase10(value, 0);
+      return sizeBase === 10 ? formatBytesBase10(value, 0) : formatBytesBase2(value, 0);
     case 'rate':
       return formatRate(value, rateUnit);
     default:

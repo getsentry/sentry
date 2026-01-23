@@ -11,11 +11,8 @@ import type {
 } from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {
-  Aggregation,
-  AggregationOutputType,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {SizeUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -215,6 +212,27 @@ function useMobileAppSizeSearchBarDataProvider(
   };
 }
 
+function buildSeriesResultMap<T>(
+  data: EventsStats | MultiSeriesEventsStats,
+  widgetQuery: WidgetQuery,
+  value: T
+): Record<string, T> {
+  const result: Record<string, T> = {};
+
+  const aggregate = widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0];
+  if (aggregate) {
+    result[aggregate] = value;
+  }
+
+  if (isMultiSeriesEventsStats(data)) {
+    for (const seriesName of Object.keys(data)) {
+      result[seriesName] = value;
+    }
+  }
+
+  return result;
+}
+
 export const MobileAppSizeConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData
@@ -327,27 +345,10 @@ export const MobileAppSizeConfig: DatasetConfig<
 
     return seriesWithOrder.sort((a, b) => a.order - b.order).map(item => item.series);
   },
-  getSeriesResultType: (
-    data: EventsStats | MultiSeriesEventsStats,
-    widgetQuery: WidgetQuery
-  ): Record<string, AggregationOutputType> => {
-    const result: Record<string, AggregationOutputType> = {};
-
-    // For single-series, key by aggregate name
-    const aggregate = widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0];
-    if (aggregate) {
-      result[aggregate] = 'size_decimal';
-    }
-
-    // For multi-series (grouped), key by each series name from the response
-    if (isMultiSeriesEventsStats(data)) {
-      Object.keys(data).forEach(seriesName => {
-        result[seriesName] = 'size_decimal';
-      });
-    }
-
-    return result;
-  },
+  getSeriesResultType: (data, widgetQuery) =>
+    buildSeriesResultMap(data, widgetQuery, 'size'),
+  getSeriesResultUnit: (data, widgetQuery) =>
+    buildSeriesResultMap(data, widgetQuery, SizeUnit.BYTE),
   filterAggregateParams,
   handleOrderByReset,
 };

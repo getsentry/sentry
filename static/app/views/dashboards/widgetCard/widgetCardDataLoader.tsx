@@ -158,6 +158,7 @@ export function WidgetCardDataLoader({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
         confidence,
       }) => (
         <Fragment>
@@ -167,6 +168,7 @@ export function WidgetCardDataLoader({
             errorMessage,
             loading,
             timeseriesResultsTypes,
+            timeseriesResultsUnits,
             confidence,
           })}
         </Fragment>

@@ -11,7 +11,6 @@ export const PLOTTABLE_TIME_SERIES_VALUE_TYPES = [
   'duration',
   'percentage',
   'size',
-  'size_decimal',
   'rate',
   'score',
   'currency',
