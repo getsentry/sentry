@@ -106,7 +106,6 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
               src={sizeAnalysisPreview}
               alt={t('Size analysis illustration')}
               height="120px"
-              style={{pointerEvents: 'none', overflow: 'hidden'}}
             />
           </Container>
         </Flex>
