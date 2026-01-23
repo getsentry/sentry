@@ -958,6 +958,27 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         mock_call_autofix.assert_called_once()
 
+    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(
+        self, mock_get_seer_org_acknowledgement
+    ):
+        """POST returns 400 when both provider and integration_id are specified for coding_agent_handoff."""
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id, mode="explorer"),
+            data={
+                "step": "coding_agent_handoff",
+                "run_id": 123,
+                "integration_id": 456,
+                "provider": "github_copilot",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Cannot specify both integration_id and provider"
+
 
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:seer-explorer")
