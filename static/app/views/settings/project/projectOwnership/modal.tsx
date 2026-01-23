@@ -118,7 +118,10 @@ function ProjectOwnershipModal({
     isPending: isUrlTagDataPending,
     isError: isUrlTagDataError,
     error,
-  } = useApiQuery<TagWithTopValues>([`/issues/${issueId}/tags/url/`], {staleTime: 0});
+  } = useApiQuery<TagWithTopValues>(
+    [`/organizations/${organization.slug}/issues/${issueId}/tags/url/`],
+    {staleTime: 0}
+  );
 
   const {
     data: ownership,
