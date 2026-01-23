@@ -58,7 +58,6 @@ export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-d
 const Color = styled('span')<{
   colorConfig: NonNullable<TimelineItemProps['colorConfig']>;
 }>`
-  display: flex;
   color: ${p => p.colorConfig.icon};
 `;
 
