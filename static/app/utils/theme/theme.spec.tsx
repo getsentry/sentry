@@ -28,8 +28,8 @@ describe('theme', () => {
       const colors = theme.chart.getColorPalette(2);
 
       expectTypeOf(colors).toEqualTypeOf<
-        | readonly ['#7554FF', '#3B1773', '#F03699']
-        | readonly ['#7554FF', '#4F219C', '#F03699']
+        | readonly ['#7553FF', '#3A1873', '#F0369A']
+        | readonly ['#7553FF', '#50219C', '#F0369A']
       >();
     });
   });
