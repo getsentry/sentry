@@ -38,7 +38,7 @@ const ColoredLine = styled('span')<Props>`
       case 'warning':
         return p.theme.tokens.dataviz.semantic.meh;
       case 'error':
-        return p.theme.tokens.background.warning.vibrant;
+        return p.theme.level.orange;
       case 'fatal':
         return p.theme.tokens.dataviz.semantic.bad;
       case 'unknown':
