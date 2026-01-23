@@ -298,7 +298,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : undefined;
   const bucketSize = getBucketSize(series);
 
-  // Derive sizeBase from units - if any unit is a decimal byte unit, use base 10
   const sizeBase =
     timeseriesResultsUnits &&
     Object.values(timeseriesResultsUnits).some(unit =>
