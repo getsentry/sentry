@@ -3,7 +3,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
-import {t} from 'sentry/locale';
 import type {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
@@ -12,10 +11,11 @@ import getTransformedData from './getTransformedData';
 type Props = {
   data: EntryRequest['data']['data'];
   inferredContentType: EntryRequest['data']['inferredContentType'];
-  meta?: Record<any, any>;
+  meta: Record<any, any>;
+  title: React.ReactNode;
 };
 
-export function getBodyContent({data, meta, inferredContentType}: Props) {
+export function getBodyContent({data, meta, inferredContentType}: Omit<Props, 'title'>) {
   switch (inferredContentType) {
     case 'application/json':
       return (
@@ -59,6 +59,7 @@ export function RichHttpContentClippedBoxBodySection({
   data,
   meta,
   inferredContentType,
+  title,
 }: Props) {
   if (!defined(data)) {
     return null;
@@ -71,7 +72,7 @@ export function RichHttpContentClippedBoxBodySection({
   }
 
   return (
-    <ClippedBox title={t('Body')} defaultClipped>
+    <ClippedBox title={title} defaultClipped>
       <ErrorBoundary mini>{content}</ErrorBoundary>
     </ClippedBox>
   );

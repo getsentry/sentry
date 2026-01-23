@@ -140,7 +140,7 @@ interface ClippedBoxProps {
    */
   onSetRenderedHeight?: (renderedHeight: number) => void;
   renderedHeight?: number;
-  title?: string;
+  title?: React.ReactNode;
 }
 
 function ClippedBox(props: ClippedBoxProps) {
