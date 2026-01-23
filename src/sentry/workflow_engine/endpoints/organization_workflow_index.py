@@ -17,7 +17,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -46,6 +46,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
@@ -107,6 +108,22 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
 
+        # Check project access for workflows connected to detectors.
+        # User must have access to at least one connected project.
+        # Workflows with no detector connections are org-level and accessible
+        # to anyone with org-level workflow permissions.
+        workflow = kwargs["workflow"]
+        connected_projects = Project.objects.filter(
+            detector__detectorworkflow__workflow=workflow
+        ).distinct()
+
+        if connected_projects.exists():
+            has_access = any(
+                request.access.has_project_access(project) for project in connected_projects
+            )
+            if not has_access:
+                raise PermissionDenied
+
         return args, kwargs
 
 
@@ -125,6 +142,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     def filter_workflows(self, request: Request, organization: Organization) -> QuerySet[Workflow]:
         """
         Helper function to filter workflows based on request parameters.
+        Project filtering is ALWAYS applied to ensure users can only
+        access workflows connected to projects they have access to.
         """
         queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
 
@@ -134,9 +153,6 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             except ValueError:
                 raise ValidationError({"id": ["Invalid ID format"]})
             queryset = queryset.filter(id__in=ids)
-
-            # If specific IDs are provided, skip query and project filtering
-            return queryset
 
         if raw_detectorlist := request.GET.getlist("detector"):
             try:
@@ -171,12 +187,15 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                         # TODO: What about unrecognized keys?
                         pass
 
-        projects = self.get_projects(request, organization)
-        if projects:
-            queryset = queryset.filter(
-                Q(detectorworkflow__detector__project__in=projects)
-                | Q(detectorworkflow__isnull=True)
-            ).distinct()
+        # Use include_all_accessible=True to get all projects the user can access,
+        # not just those explicitly requested. This filter is ALWAYS applied to ensure
+        # users with no project access only see org-level workflows (those with no
+        # detector connections). When projects is empty, only workflows with
+        # detectorworkflow__isnull=True are returned.
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        queryset = queryset.filter(
+            Q(detectorworkflow__detector__project__in=projects) | Q(detectorworkflow__isnull=True)
+        ).distinct()
 
         return queryset
 

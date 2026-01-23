@@ -383,3 +383,65 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             slug=sentry_app.slug, organization=self.organization
         )
         return sentry_app, installation
+
+
+class ProjectAccessTestMixin(TestCase):
+    """
+    Mixin that provides common setup for testing project-level access controls.
+
+    Sets up an organization with open membership disabled, two teams with separate
+    projects, a limited user with access to only one team/project, and workflows
+    connected to detectors in each project.
+
+    Use this mixin for testing IDOR vulnerabilities and project-level access filtering.
+    """
+
+    def setup_project_access_test_data(self) -> None:
+        """
+        Set up common test data for project access tests.
+        Call this from setUp() after calling super().setUp().
+        """
+        # Disable Open Membership - this is the key condition for testing project access
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create two teams: one for the user, one for someone else
+        self.user_team = self.create_team(organization=self.organization, name="user-team")
+        self.other_team = self.create_team(organization=self.organization, name="other-team")
+
+        # Create two projects, each owned by a different team
+        self.user_project = self.create_project(
+            organization=self.organization, teams=[self.user_team], name="user-proj"
+        )
+        self.other_project = self.create_project(
+            organization=self.organization, teams=[self.other_team], name="other-proj"
+        )
+
+        # Create a user who is only a member of user_team (has access to user_project only)
+        self.limited_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.limited_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.user_team],
+        )
+
+        # Create workflows with different project connections
+        self.user_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="User's Workflow"
+        )
+        self.other_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Other's Workflow"
+        )
+        self.unattached_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Unattached Workflow"
+        )
+
+        # Create detectors in each project
+        self.user_detector = self.create_detector(project=self.user_project)
+        self.other_detector = self.create_detector(project=self.other_project)
+
+        # Connect workflows to detectors
+        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
+        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
+        # unattached_workflow has no detectors connected
