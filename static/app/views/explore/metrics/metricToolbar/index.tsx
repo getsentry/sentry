@@ -47,8 +47,12 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
         <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
       </Flex>
       <Flex gap="md" minWidth={0}>
-        <AggregateDropdown traceMetric={traceMetric} />
-        <GroupBySelector traceMetric={traceMetric} />
+        <Flex flex="2 1 0" minWidth={0}>
+          <AggregateDropdown traceMetric={traceMetric} />
+        </Flex>
+        <Flex flex="3 1 0" minWidth={0}>
+          <GroupBySelector traceMetric={traceMetric} />
+        </Flex>
       </Flex>
       <Flex minWidth={0}>
         <Filter traceMetric={traceMetric} />
