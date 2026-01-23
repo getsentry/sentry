@@ -906,16 +906,34 @@ def get_issue_and_event_response(
         except Exception:
             logger.exception(
                 "Failed to get tags overview for issue",
-                extra={"organization_id": organization.id, "issue_id": group.id},
+                extra={
+                    "organization_id": organization.id,
+                    "issue_id": group.id,
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                },
             )
             tags_overview = None
 
-        ts_result = _get_issue_event_timeseries(
-            group=group,
-            organization=organization,
-            start=start,
-            end=end,
-        )
+        try:
+            ts_result = _get_issue_event_timeseries(
+                group=group,
+                organization=organization,
+                start=start,
+                end=end,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to get issue event timeseries",
+                extra={
+                    "organization_id": organization.id,
+                    "issue_id": group.id,
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                },
+            )
+            ts_result = None
+
         if ts_result:
             timeseries, timeseries_stats_period, timeseries_interval = ts_result
         else:
