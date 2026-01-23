@@ -122,6 +122,69 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[1]["key"] == "release"
         assert len(data[1]["topValues"]) == 1
 
+    def test_date_range_filtering(self) -> None:
+
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "bar", "biz": "baz"},
+                "release": "releaseme",
+                "timestamp": before_now(days=2).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "quux"},
+                "release": "releaseme",
+                "timestamp": before_now(hours=23).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # group 2 - should be excluded from results
+        self.store_event(
+            data={
+                "fingerprint": ["group-2"],
+                "tags": {"abc": "xyz"},
+                "timestamp": before_now(hours=7).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        # Call endpoint with the date range filter last 1 day. Only tags from event 2 should be returned.
+        start_str = before_now(days=1).isoformat().split("+00:00")[0].strip("Z")
+        end_str = before_now(days=0).isoformat().split("+00:00")[0].strip("Z")
+
+        for query in [f"?start={start_str}&end={end_str}", "?statsPeriod=1d"]:
+            url = f"/api/0/issues/{event1.group.id}/tags/{query}"
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 3
+
+            data = sorted(response.data, key=lambda r: r["key"])
+
+            assert data[0]["key"] == "foo"
+            assert len(data[0]["topValues"]) == 1
+            assert data[0]["topValues"][0]["value"] == "quux"
+
+            assert data[1]["key"] == "level"
+            assert len(data[1]["topValues"]) == 1
+            assert data[2]["key"] == "release"  # Formatted from sentry:release
+            assert len(data[2]["topValues"]) == 1
+
+        # Test a range with no events.
+        start_str = before_now(days=9).isoformat().split("+00:00")[0].strip("Z")
+        end_str = before_now(days=7).isoformat().split("+00:00")[0].strip("Z")
+        url = f"/api/0/issues/{event1.group.id}/tags/?start={start_str}&end={end_str}"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
     def test_invalid_env(self) -> None:
         this_group = self.create_group()
         self.login_as(user=self.user)
