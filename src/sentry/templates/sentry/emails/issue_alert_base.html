@@ -80,11 +80,13 @@
     {% if enhanced_privacy %}
       <div class="event">
         <div class="event-id">ID: {{ event.event_id }}</div>
-          {% if timezone %}
-            <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
-          {% else %}
-            <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
-          {% endif %}
+          <div class="event-date">
+            {% if clock_24_hours %}
+              {% if timezone %}{{ event.datetime|timezone:timezone|date:"N j, Y, H:i:s e"}}{% else %}{{ event.datetime|date:"N j, Y, H:i:s e"}}{% endif %}
+            {% else %}
+              {% if timezone %}{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}{% else %}{{ event.datetime|date:"N j, Y, g:i:s a e"}}{% endif %}
+            {% endif %}
+          </div>
       </div>
 
       <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
@@ -163,11 +165,13 @@
       {% if not is_new_design %}
         <div class="event">
           <div class="event-id">ID: {{ event.event_id }}</div>
-            {% if timezone %}
-                <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
-            {% else %}
-                <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
-            {% endif %}
+            <div class="event-date">
+              {% if clock_24_hours %}
+                {% if timezone %}{{ event.datetime|timezone:timezone|date:"N j, Y, H:i:s e"}}{% else %}{{ event.datetime|date:"N j, Y, H:i:s e"}}{% endif %}
+              {% else %}
+                {% if timezone %}{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}{% else %}{{ event.datetime|date:"N j, Y, g:i:s a e"}}{% endif %}
+              {% endif %}
+            </div>
         </div>
       {% endif %}
 
@@ -206,10 +210,10 @@
               <tr>
                 <th>Start Time</th>
                 <td>
-                  {% if timezone %}
-                    {{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}
+                  {% if clock_24_hours %}
+                    {% if timezone %}{{ event.datetime|timezone:timezone|date:"N j, Y, H:i:s e"}}{% else %}{{ event.datetime|date:"N j, Y, H:i:s e"}}{% endif %}
                   {% else %}
-                    {{ event.datetime|date:"N j, Y, g:i:s a e"}}
+                    {% if timezone %}{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}{% else %}{{ event.datetime|date:"N j, Y, g:i:s a e"}}{% endif %}
                   {% endif %}
                 </td>
               </tr>
