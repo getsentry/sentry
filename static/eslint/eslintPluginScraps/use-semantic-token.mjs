@@ -130,6 +130,7 @@ const useSemanticToken = {
 
     /**
      * Check if a node is within a style context (styled-components, css, style attr)
+     * but NOT inside a JavaScript object used as a lookup table.
      * @param {import('estree').Node} node
      * @returns {boolean}
      */
@@ -138,6 +139,17 @@ const useSemanticToken = {
       let current = node;
       while (current.parent) {
         current = current.parent;
+
+        // If this object is accessed via bracket notation (lookup table pattern),
+        // it's not a direct style object - skip it
+        // e.g., ({ none: theme.tokens.content.primary })[status]
+        if (
+          current.type === 'MemberExpression' &&
+          current.computed === true &&
+          current.object?.type === 'ObjectExpression'
+        ) {
+          return false;
+        }
 
         // Check for styled-components or emotion patterns
         if (current.type === 'TaggedTemplateExpression') {
@@ -177,6 +189,27 @@ const useSemanticToken = {
     }
 
     /**
+     * Extract the CSS property name from CSS text that precedes an interpolation.
+     * Must correctly handle nested selectors (a:hover) and only match actual properties.
+     * @param {string} cssText
+     * @returns {string | null}
+     */
+    function extractCssProperty(cssText) {
+      // Match a CSS property declaration: property-name: value
+      // The property must appear after {, ;, or at line start (with optional whitespace)
+      // This avoids matching pseudo-selectors like a:hover
+      //
+      // Pattern breakdown:
+      // (?:^|[{;])  - Start of string, or after { or ;
+      // \s*         - Optional whitespace
+      // ([a-z-]+)   - The property name (captured)
+      // \s*:\s*     - Colon with optional whitespace
+      // [^;{]*$     - Value part (no ; or { until end, meaning we're mid-declaration)
+      const match = cssText.match(/(?:^|[{;])\s*([a-z-]+)\s*:\s*[^;{]*$/i);
+      return match?.[1] ?? null;
+    }
+
+    /**
      * Parse CSS properties from template literal and check content token references
      * @param {any} templateNode
      */
@@ -196,13 +229,11 @@ const useSemanticToken = {
             return;
           }
 
-          // Find the last property declaration before this expression
-          const propertyMatch = cssText.match(/([a-z-]+)\s*:\s*[^;]*$/i);
-          if (!propertyMatch) {
+          // Find the CSS property declaration before this expression
+          const property = extractCssProperty(cssText);
+          if (!property) {
             return;
           }
-
-          const property = propertyMatch[1];
 
           // Convert expression AST to string for pattern matching
           const exprText = nodeToString(expr);

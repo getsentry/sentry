@@ -87,6 +87,51 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
   column-rule-color: \${p => p.theme.tokens.content.accent};
 \`;`,
     },
+    // Nested selector with pseudo-class (a:hover) - color is valid
+    {
+      code: `const Component = styled.div\`
+  a:hover {
+    color: \${p => p.theme.tokens.content.primary};
+  }
+\`;`,
+    },
+    // Object expression for dynamic color property
+    {
+      code: `const Component = styled.p\`
+  color: \${p =>
+    ({
+      none: p.theme.tokens.content.secondary,
+      alert: p.theme.colors.yellow500,
+    })[p.status]};
+\`;`,
+    },
+    // Multiple nested selectors
+    {
+      code: `const Component = styled.div\`
+  &:hover {
+    color: \${p => p.theme.tokens.content.accent};
+  }
+  &:focus {
+    color: \${p => p.theme.tokens.content.primary};
+  }
+\`;`,
+    },
+    // Pseudo-element with color
+    {
+      code: `const Component = styled.div\`
+  &::before {
+    color: \${p => p.theme.tokens.content.secondary};
+  }
+\`;`,
+    },
+    // Media query with color
+    {
+      code: `const Component = styled.div\`
+  @media (max-width: 768px) {
+    color: \${p => p.theme.tokens.content.primary};
+  }
+\`;`,
+    },
   ],
 
   invalid: [
