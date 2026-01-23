@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -34,7 +35,6 @@ export function useProfileFunctions<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/events/`;
   const endpointOptions = {
     query: {
       dataset: 'profileFunctions',
@@ -50,11 +50,19 @@ export function useProfileFunctions<F extends string>({
     },
   };
 
-  return useApiQuery<EventsResults<F>>([path, endpointOptions], {
-    staleTime: 0,
-    refetchOnWindowFocus: false,
-    refetchOnMount,
-    retry: false,
-    enabled,
-  });
+  return useApiQuery<EventsResults<F>>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      endpointOptions,
+    ],
+    {
+      staleTime: 0,
+      refetchOnWindowFocus: false,
+      refetchOnMount,
+      retry: false,
+      enabled,
+    }
+  );
 }

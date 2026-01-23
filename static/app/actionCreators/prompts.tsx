@@ -3,6 +3,7 @@ import {useCallback, useMemo} from 'react';
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -25,7 +26,9 @@ type PromptsUpdateParams = {
  * Update the status of a prompt
  */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
-  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
+    path: {organizationIdOrSlug: params.organization.slug},
+  });
   return api.requestPromise(url, {
     method: 'PUT',
     data: {
@@ -118,7 +121,9 @@ export const makePromptsCheckQueryKey = ({
   organization,
   projectId,
 }: PromptCheckHookParams): ApiQueryKey => {
-  const url = `/organizations/${organization?.slug}/prompts-activity/`;
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/prompts-activity/', {
+    path: {organizationIdOrSlug: organization?.slug!},
+  });
   return [url, {query: {feature, project_id: projectId}}];
 };
 

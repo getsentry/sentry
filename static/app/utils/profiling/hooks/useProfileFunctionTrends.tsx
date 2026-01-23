@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -32,7 +33,10 @@ export function useProfileFunctionTrends<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/profiling/function-trends/`;
+  const path = getApiUrl(
+    '/organizations/$organizationIdOrSlug/profiling/function-trends/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
   const endpointOptions = {
     query: {
       project: projects || selection.projects,

@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -63,7 +64,9 @@ export default function useReplayCount({
     bufferLimit,
     getQueryKey: useCallback(
       (ids: readonly string[]): ApiQueryKey => [
-        `/organizations/${organization.slug}/replay-count/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replay-count/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             data_source: dataSource,

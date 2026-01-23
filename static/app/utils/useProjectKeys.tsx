@@ -1,5 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -14,7 +15,14 @@ interface ProjectKeysParameters {
 const makeProjectKeysQueryKey = ({
   orgSlug,
   projSlug,
-}: ProjectKeysParameters): ApiQueryKey => [`/projects/${orgSlug}/${projSlug}/keys/`];
+}: ProjectKeysParameters): ApiQueryKey => [
+  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      projectIdOrSlug: projSlug!,
+    },
+  }),
+];
 
 export function useProjectKeys(
   params: ProjectKeysParameters,

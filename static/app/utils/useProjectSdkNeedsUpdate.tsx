@@ -1,4 +1,5 @@
 import type {ProjectSdkUpdates} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
@@ -18,7 +19,14 @@ export default function useProjectSdkNeedsUpdate({
   const organization = useOrganization();
 
   const {data, isError, isPending} = useApiQuery<ProjectSdkUpdates[]>(
-    [`/organizations/${organization.slug}/sdk-updates/`, {query: {project: projectId}}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/sdk-updates/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {
+        query: {project: projectId},
+      },
+    ],
     {staleTime: Infinity, refetchOnMount: true}
   );
 

@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -95,11 +96,21 @@ function useReplayData({
     data: replayData,
     status: fetchReplayStatus,
     error: fetchReplayError,
-  } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
-    enabled: enableReplayRecord,
-    retry: false,
-    staleTime: Infinity,
-  });
+  } = useApiQuery<{data: unknown}>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          replayId: replayId!,
+        },
+      }),
+    ],
+    {
+      enabled: enableReplayRecord,
+      retry: false,
+      staleTime: Infinity,
+    }
+  );
   const replayRecord = useMemo(
     () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
     [replayData?.data]
@@ -110,7 +121,16 @@ function useReplayData({
   const getAttachmentsQueryKey = useCallback(
     ({cursor, per_page}: any): ApiQueryKey => {
       return [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug!,
+              replayId: replayId!,
+            },
+          }
+        ),
         {
           query: {
             download: true,
@@ -150,7 +170,9 @@ function useReplayData({
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
       return [
-        `/organizations/${orgSlug}/replays-events-meta/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         {
           query: {
             referrer: 'replay_details',
@@ -178,7 +200,9 @@ function useReplayData({
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
       return [
-        `/organizations/${orgSlug}/replays-events-meta/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         {
           query: {
             referrer: 'replay_details',
