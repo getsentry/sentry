@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
+@control_silo_test
 class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
     def setUp(self) -> None:
         self.user = self.create_user(email="boop@example.com")
@@ -27,18 +29,16 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
             install=self.install, user=self.user  # using same install for auth token and webhooks
         )
 
-        self.service_hook = ServiceHook.objects.get(
-            installation_id=self.install.id,
-        )
+        with assume_test_silo_mode_of(ServiceHook):
+            self.service_hook = ServiceHook.objects.get(installation_id=self.install.id)
 
         self.url = reverse(
             "sentry-api-0-sentry-app-installation-service-hook-projects", args=[self.install.uuid]
         )
 
     def test_get_service_hook_projects(self) -> None:
-        # Create a service hook project
-        ServiceHookProject.objects.create(
-            project_id=self.project.id, service_hook_id=self.service_hook.id
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=self.project.id
         )
 
         response = self.client.get(
@@ -49,11 +49,11 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         assert response.data[0]["project_id"] == str(self.project.id)
 
     def test_post_service_hook_projects(self) -> None:
-        ServiceHookProject.objects.create(
-            project_id=self.project2.id, service_hook_id=self.service_hook.id
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=self.project2.id
         )
-        ServiceHookProject.objects.create(
-            project_id=self.project3.id, service_hook_id=self.service_hook.id
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=self.project3.id
         )
 
         data = {"projects": [self.project.id, self.project2.id]}
@@ -67,8 +67,8 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         response_data = {response.data[0]["project_id"], response.data[1]["project_id"]}
         assert response_data == {str(self.project.id), str(self.project2.id)}
 
-        # Verify both projects are in the database
-        hook_projects = ServiceHookProject.objects.filter(service_hook_id=self.service_hook.id)
+        with assume_test_silo_mode_of(ServiceHookProject):
+            hook_projects = ServiceHookProject.objects.filter(service_hook_id=self.service_hook.id)
         assert hook_projects.count() == 2
         project_ids = {hp.project_id for hp in hook_projects}
         assert project_ids == {self.project.id, self.project2.id}
@@ -96,16 +96,17 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         assert response.status_code == 400
 
     def test_delete_service_hook_projects(self) -> None:
-        # Create some service hook projects first
-        ServiceHookProject.objects.create(
-            project_id=self.project.id, service_hook_id=self.service_hook.id
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=self.project.id
         )
-        ServiceHookProject.objects.create(
-            project_id=self.project2.id, service_hook_id=self.service_hook.id
+        self.create_service_hook_project_for_installation(
+            installation_id=self.install.id, project_id=self.project2.id
         )
 
         response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}")
         assert response.status_code == 204
 
-        # Verify all hook projects were deleted
-        assert ServiceHookProject.objects.filter(service_hook_id=self.service_hook.id).count() == 0
+        with assume_test_silo_mode_of(ServiceHookProject):
+            assert not ServiceHookProject.objects.filter(
+                service_hook_id=self.service_hook.id
+            ).exists()
