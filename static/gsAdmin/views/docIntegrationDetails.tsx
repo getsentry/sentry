@@ -11,6 +11,7 @@ import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {DocIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -34,7 +35,9 @@ export default function DocIntegrationDetails() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const ENDPOINT = `/doc-integrations/${docIntegrationSlug}/`;
+  const ENDPOINT = getApiUrl(`/doc-integrations/$docIntegrationIdOrSlug/`, {
+    path: {docIntegrationIdOrSlug: docIntegrationSlug},
+  });
 
   const {data, isPending, isError, refetch} = useApiQuery<any>([ENDPOINT], {
     staleTime: 0,

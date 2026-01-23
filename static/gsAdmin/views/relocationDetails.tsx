@@ -17,6 +17,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -184,7 +185,12 @@ function RelocationDetails() {
   const regionApi = useApi({api: regionClient});
 
   const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
-    [`/relocations/${relocationUuid}/`, {host: region ? region.url : ''}],
+    [
+      getApiUrl(`/relocations/$relocationUuid/`, {
+        path: {relocationUuid},
+      }),
+      {host: region ? region.url : ''},
+    ],
     {
       staleTime: 0,
     }

@@ -8,6 +8,7 @@ import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {IntegrationFeature} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -80,7 +81,7 @@ function SentryAppUpdateModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([`/integration-features/`], {
+  } = useApiQuery<IntegrationFeature[]>([getApiUrl(`/integration-features/`)], {
     staleTime: 0,
   });
 

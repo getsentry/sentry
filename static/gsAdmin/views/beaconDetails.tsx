@@ -1,5 +1,6 @@
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -12,7 +13,11 @@ import DetailsPage from 'admin/components/detailsPage';
 export default function BeaconDetails() {
   const params = useParams<{beaconId: string}>();
   const {data, isPending, isError} = useApiQuery<BeaconData>(
-    [`/beacons/${params.beaconId}/`],
+    [
+      getApiUrl(`/beacons/$beaconId/`, {
+        path: {beaconId: params.beaconId},
+      }),
+    ],
     {
       staleTime: 0,
     }
