@@ -35,7 +35,7 @@ class OrgCellMappingsEndpoint(Endpoint):
         """
         query = OrganizationMapping.objects.all()
         try:
-            per_page = self.get_per_page(request)
+            per_page = self.get_per_page(request, max_per_page=self.MAX_LIMIT)
             cursor = self.get_cursor_from_request(request)
             paginator = DateTimePaginator(
                 queryset=query, order_by="-date_updated", max_limit=self.MAX_LIMIT
