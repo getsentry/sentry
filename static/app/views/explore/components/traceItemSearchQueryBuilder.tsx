@@ -121,6 +121,7 @@ export function useTraceItemSearchQueryBuilderProps({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes,
     stringAttributes,
+    booleanAttributes,
   });
 
   return useMemo(
