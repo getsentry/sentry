@@ -43,6 +43,10 @@ def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
     return f"span-buf:z:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
 
 
+def _set_segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
+    return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+
+
 def _payload(span_id: str) -> bytes:
     return orjson.dumps({"span_id": span_id})
 
@@ -1176,3 +1180,130 @@ def test_dual_write_emits_set_metrics(emit_observability_metrics: mock.MagicMock
         for metric_list in set_latency_metrics:
             for metric_name, _ in metric_list:
                 assert metric_name.decode("utf-8").startswith("set_")
+
+
+def test_read_from_set() -> None:
+    """Test reading from SET instead of ZSET when read-from-set is enabled."""
+    opts = {
+        **DEFAULT_OPTIONS,
+        "spans.buffer.write-to-zset": True,
+        "spans.buffer.write-to-set": True,
+        "spans.buffer.read-from-set": True,
+    }
+    with override_options(opts):
+        buffer = SpansBuffer(assigned_shards=list(range(32)))
+        buffer.client.flushdb()
+
+        spans = [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+        ]
+
+        process_spans(spans, buffer, now=0)
+
+        assert_ttls(buffer.client)
+
+        # Verify both SET and ZSET keys exist
+        set_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:s:")]
+        zset_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:z:")]
+        assert len(set_keys) > 0
+        assert len(zset_keys) > 0
+
+        # Verify the queue contains SET keys, not ZSET keys
+        queue_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:q:")]
+        for queue_key in queue_keys:
+            queue_members = buffer.client.zrange(queue_key, 0, -1)
+            for member in queue_members:
+                assert member.startswith(
+                    b"span-buf:s:"
+                ), f"Expected SET key in queue, got: {member}"
+
+        # Verify flush works and returns SET keys
+        rv = buffer.flush_segments(now=11)
+        _normalize_output(rv)
+
+        expected_key = _set_segment_id(1, "a" * 32, "b" * 16)
+        assert expected_key in rv
+        assert rv[expected_key] == FlushedSegment(
+            queue_key=mock.ANY,
+            spans=[
+                _output_segment(b"a" * 16, b"b" * 16, False),
+                _output_segment(b"b" * 16, b"b" * 16, True),
+            ],
+        )
+        buffer.done_flush_segments(rv)
+
+        assert_clean(buffer.client)
+
+
+def test_read_from_set_only_writes_to_set() -> None:
+    """Test reading from SET when only writing to SET (no dual write)."""
+    opts = {
+        **DEFAULT_OPTIONS,
+        "spans.buffer.write-to-zset": False,
+        "spans.buffer.write-to-set": True,
+        "spans.buffer.read-from-set": True,
+    }
+    with override_options(opts):
+        buffer = SpansBuffer(assigned_shards=list(range(32)))
+        buffer.client.flushdb()
+
+        spans = [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+        ]
+
+        process_spans(spans, buffer, now=0)
+
+        assert_ttls(buffer.client)
+
+        # Verify only SET keys exist
+        set_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:s:")]
+        zset_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:z:")]
+        assert len(set_keys) > 0
+        assert len(zset_keys) == 0
+
+        # Verify flush works
+        rv = buffer.flush_segments(now=11)
+        _normalize_output(rv)
+
+        expected_key = _set_segment_id(1, "a" * 32, "b" * 16)
+        assert expected_key in rv
+        assert len(rv[expected_key].spans) == 2
+        buffer.done_flush_segments(rv)
+
+        assert_clean(buffer.client)

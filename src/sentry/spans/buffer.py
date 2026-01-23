@@ -126,6 +126,15 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
+def validate_mode_consistency(write_to_zset: bool, write_to_set: bool, read_from_set: bool) -> None:
+    if not write_to_zset and not write_to_set:
+        raise ValueError("must write to at least zset or set")
+    if not write_to_zset and not read_from_set:
+        raise ValueError("cannot read from zset if not writing to zset")
+    if not write_to_set and read_from_set:
+        raise ValueError("cannot read from set if not writing to set")
+
+
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 add_buffer_set_script = redis.load_redis_script("spans/add-buffer-set.lua")
 
@@ -208,9 +217,11 @@ class SpansBuffer:
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         debug_traces = set(options.get("spans.buffer.debug-traces"))
-        # write_to_zset = options.get("spans.buffer.write-to-zset")
-        write_to_zset = True  # TODO: Remove this once we can read from SET
+        write_to_zset = options.get("spans.buffer.write-to-zset")
         write_to_set = options.get("spans.buffer.write-to-set")
+        read_from_set = options.get("spans.buffer.read-from-set")
+
+        validate_mode_consistency(write_to_zset, write_to_set, read_from_set)
 
         result_meta = []
         is_root_span_count = 0
@@ -334,23 +345,21 @@ class SpansBuffer:
                 assert len(result_meta) == len(zset_results)
             if write_to_set:
                 assert len(result_meta) == len(set_results)
+            if read_from_set:
+                queue_results = set_results
+                get_span_key_fn = self._get_set_span_key
+            else:
+                queue_results = zset_results
+                get_span_key_fn = self._get_span_key
 
-            for (project_and_trace, parent_span_id), result in zip(result_meta, zset_results):
+            for (project_and_trace, parent_span_id), result in zip(result_meta, queue_results):
                 (
-                    set_key,
+                    segment_key,
                     has_root_span,
                     evalsha_latency_ms,
-                    evalsha_latency_metrics,
-                    evalsha_gauge_metrics,
+                    _,
+                    _,
                 ) = result
-                zset_latency_metrics.append(evalsha_latency_metrics)
-                zset_gauge_metrics.append(evalsha_gauge_metrics)
-                if evalsha_latency_ms > longest_zset_evalsha_data[0]:
-                    longest_zset_evalsha_data = (
-                        evalsha_latency_ms,
-                        evalsha_latency_metrics,
-                        evalsha_gauge_metrics,
-                    )
 
                 # Log individual EVALSHA latency for this trace
                 self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
@@ -369,16 +378,34 @@ class SpansBuffer:
                     offset = timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
-                zadd_items[set_key] = now + offset
+                zadd_items[segment_key] = now + offset
 
                 subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 delete_set.update(
-                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
+                    get_span_key_fn(project_and_trace, span.span_id) for span in subsegment_spans
                 )
-                delete_set.discard(set_key)
+                delete_set.discard(segment_key)
 
-            if write_to_set and set_results:
+            if write_to_zset:
+                for result in zset_results:
+                    (
+                        _,
+                        _,
+                        evalsha_latency_ms,
+                        evalsha_latency_metrics,
+                        evalsha_gauge_metrics,
+                    ) = result
+                    zset_latency_metrics.append(evalsha_latency_metrics)
+                    zset_gauge_metrics.append(evalsha_gauge_metrics)
+                    if evalsha_latency_ms > longest_zset_evalsha_data[0]:
+                        longest_zset_evalsha_data = (
+                            evalsha_latency_ms,
+                            evalsha_latency_metrics,
+                            evalsha_gauge_metrics,
+                        )
+
+            if write_to_set:
                 for result in set_results:
                     (
                         _,
@@ -727,8 +754,7 @@ class SpansBuffer:
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
-        # write_to_zset = options.get("spans.buffer.write-to-zset")
-        write_to_zset = True  # TODO: Remove this once we can read from SET
+        write_to_zset = options.get("spans.buffer.write-to-zset")
         write_to_set = options.get("spans.buffer.write-to-set")
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
