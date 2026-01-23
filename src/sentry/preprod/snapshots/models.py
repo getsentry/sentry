@@ -83,7 +83,7 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
     images_removed = BoundedPositiveIntegerField(default=0)
     images_changed = BoundedPositiveIntegerField(default=0)
     images_unchanged = BoundedPositiveIntegerField(default=0)
-    images_failed = BoundedPositiveIntegerField(default=0)
+    images_renamed = BoundedPositiveIntegerField(default=0)
 
     # Miscellaneous fields that we don't need columns for
     extras = models.JSONField(null=True)
