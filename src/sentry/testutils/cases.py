@@ -3208,6 +3208,20 @@ class UptimeTestCaseMixin:
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+            "assertion_failure_data": {
+                "root": {
+                    "op": "and",
+                    "children": [
+                        {
+                            "op": "not",
+                            "operand": {
+                                "op": "json_path",
+                                "value": '$.components[?@.status == "operational"]',
+                            },
+                        }
+                    ],
+                }
+            },
             **optional_fields,
         }
 
@@ -4007,6 +4021,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
         send_request_duration_us=None,
         receive_response_duration_us=None,
         request_body_size_bytes=None,
+        assertion_failure_data=None,
         response_body_size_bytes=None,
         status_reason_type=None,
         status_reason_description=None,
@@ -4070,6 +4085,8 @@ class UptimeResultEAPTestCase(BaseTestCase):
         if status_reason_description is not None:
             attributes_data["status_reason_description"] = status_reason_description
 
+        if assertion_failure_data is not None:
+            attributes_data["assertion_failure_data"] = json.dumps(assertion_failure_data)
         if incident_status is not None:
             attributes_data["incident_status"] = incident_status.value
 
