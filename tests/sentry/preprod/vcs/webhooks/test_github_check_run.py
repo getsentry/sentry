@@ -171,6 +171,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
         assert approvals.count() == 1
 
         approval = approvals.first()
+        assert approval is not None
         assert approval.preprod_feature_type == PreprodComparisonApproval.FeatureType.SIZE
         assert approval.approval_status == PreprodComparisonApproval.ApprovalStatus.APPROVED
         assert approval.approved_by_id is None
@@ -371,4 +372,5 @@ class HandlePreprodCheckRunEventTest(TestCase):
             .order_by("-id")
             .first()
         )
+        assert latest_approval is not None
         assert latest_approval.extras == {"github": {"id": 12345, "login": "octocat"}}
