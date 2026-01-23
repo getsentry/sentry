@@ -39,6 +39,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
+import {mapAssertionFormErrors} from './assertionFormErrors';
 import {HTTPSnippet} from './httpSnippet';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
@@ -91,49 +92,6 @@ function getFormDataFromRule(rule: UptimeRule) {
     // we can't distinguish from "new form". Empty children signals "edit with no assertions".
     assertion: rule.assertion ?? {root: createEmptyAssertionRoot()},
   };
-}
-
-/**
- * Maps assertion error types to user-friendly titles.
- */
-function getAssertionErrorTitle(errorType: string): string {
-  switch (errorType) {
-    case 'compilation_error':
-      return t('Compilation Error');
-    case 'serialization_error':
-      return t('Serialization Error');
-    default:
-      return t('Validation Error');
-  }
-}
-
-/**
- * Maps form errors from the API response format to the format expected by FormModel.
- *
- * Handles special cases like assertion errors which come back as:
- * {"assertion": {"error": "compilation_error", "details": "..."}}
- *
- * And transforms them to: {"assertion": ["Compilation Error: <error details>"]}
- */
-function mapFormErrors(responseJson: any): any {
-  if (!responseJson) {
-    return responseJson;
-  }
-
-  const result = {...responseJson};
-
-  // Handle assertion errors from the uptime-checker validator
-  if (
-    result.assertion &&
-    typeof result.assertion === 'object' &&
-    !Array.isArray(result.assertion) &&
-    'details' in result.assertion
-  ) {
-    const title = getAssertionErrorTitle(result.assertion.error);
-    result.assertion = [`${title}: ${result.assertion.details}`];
-  }
-
-  return result;
 }
 
 export function UptimeAlertForm({handleDelete, rule}: Props) {
@@ -245,7 +203,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
-      mapFormErrors={mapFormErrors}
+      mapFormErrors={mapAssertionFormErrors}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
