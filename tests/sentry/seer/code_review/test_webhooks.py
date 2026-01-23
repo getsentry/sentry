@@ -18,9 +18,11 @@ from sentry.seer.code_review.webhooks.task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
     PREFIX,
+    convert_enum_keys_to_strings,
     process_github_webhook_event,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class ProcessGitHubWebhookEventTest(TestCase):
@@ -470,6 +472,183 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert mock_request.call_count == 1
         pr_call = mock_request.call_args
         assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
+
+    @override_options({"seer.code_review.validate_webhook_payload": True})
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_validation_enabled_converts_enum_keys_to_strings(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that when validation is enabled, enum keys are properly converted to strings.
+
+        This test verifies the fix for the Pydantic v1 enum key serialization bug:
+        - Pydantic v1 converts string keys to enum members during parsing
+        - JSON serialization requires string keys, not enum objects
+        - The convert_enum_keys_to_strings function handles this conversion
+        """
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        event_payload = {
+            "request_type": "pr-review",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+                "config": {
+                    "features": {
+                        "bug_prediction": True,
+                    },
+                    "trigger": "on_new_commit",
+                    "trigger_comment_id": None,
+                    "trigger_comment_type": None,
+                    "trigger_user": None,
+                },
+            },
+        }
+
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event_payload=event_payload,
+            enqueued_at_str=self.enqueued_at_str,
+        )
+
+        # Verify the request was made
+        assert mock_request.call_count == 1
+
+        # Get the actual payload that was sent
+        import orjson
+
+        sent_body = mock_request.call_args[1]["body"]
+        sent_payload = orjson.loads(sent_body)
+
+        # Verify that features keys are strings, not enum objects
+        features = sent_payload["data"]["config"]["features"]
+        assert "bug_prediction" in features
+        assert features["bug_prediction"] is True
+
+        # Verify all keys in features dict are strings
+        for key in features.keys():
+            assert isinstance(key, str), f"Expected string key, got {type(key)}"
+
+    @override_options({"seer.code_review.validate_webhook_payload": False})
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_validation_disabled_skips_pydantic_parsing(self, mock_request: MagicMock) -> None:
+        """Test that when validation is disabled, payload is passed through without Pydantic parsing."""
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        event_payload = {
+            "request_type": "pr-review",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+            },
+        }
+
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event_payload=event_payload,
+            enqueued_at_str=self.enqueued_at_str,
+        )
+
+        # Verify the request was made with the original payload (no validation)
+        assert mock_request.call_count == 1
+
+
+class TestConvertEnumKeysToStrings:
+    """Tests for the convert_enum_keys_to_strings utility function."""
+
+    def test_converts_enum_keys_in_dict(self) -> None:
+        """Test that enum keys in dictionaries are converted to their string values."""
+        from enum import Enum
+
+        class TestEnum(Enum):
+            KEY1 = "key1"
+            KEY2 = "key2"
+
+        input_dict = {TestEnum.KEY1: "value1", TestEnum.KEY2: "value2"}
+        result = convert_enum_keys_to_strings(input_dict)
+
+        assert result == {"key1": "value1", "key2": "value2"}
+        assert all(isinstance(k, str) for k in result.keys())
+
+    def test_converts_enum_values(self) -> None:
+        """Test that enum values are converted to their string values."""
+        from enum import Enum
+
+        class TestEnum(Enum):
+            VALUE1 = "value1"
+            VALUE2 = "value2"
+
+        input_dict = {"key1": TestEnum.VALUE1, "key2": TestEnum.VALUE2}
+        result = convert_enum_keys_to_strings(input_dict)
+
+        assert result == {"key1": "value1", "key2": "value2"}
+
+    def test_handles_nested_structures(self) -> None:
+        """Test that nested dictionaries and lists are processed recursively."""
+        from enum import Enum
+
+        class TestEnum(Enum):
+            KEY1 = "key1"
+            VALUE1 = "value1"
+
+        input_data = {
+            "top_level": {
+                TestEnum.KEY1: "nested_value",
+                "nested_list": [TestEnum.VALUE1, {"inner_key": TestEnum.VALUE1}],
+            }
+        }
+        result = convert_enum_keys_to_strings(input_data)
+
+        assert result == {
+            "top_level": {
+                "key1": "nested_value",
+                "nested_list": ["value1", {"inner_key": "value1"}],
+            }
+        }
+
+    def test_preserves_non_enum_values(self) -> None:
+        """Test that non-enum values are preserved unchanged."""
+        input_dict = {
+            "string_key": "string_value",
+            "int_key": 123,
+            "bool_key": True,
+            "none_key": None,
+            "list_key": [1, 2, 3],
+        }
+        result = convert_enum_keys_to_strings(input_dict)
+
+        assert result == input_dict
+
+    def test_handles_seer_code_review_feature_enum(self) -> None:
+        """Test with the actual SeerCodeReviewFeature enum used in the codebase."""
+        from sentry.seer.code_review.models import SeerCodeReviewFeature
+
+        input_dict = {
+            SeerCodeReviewFeature.BUG_PREDICTION: True,
+        }
+        result = convert_enum_keys_to_strings(input_dict)
+
+        assert result == {"bug_prediction": True}
+        assert isinstance(list(result.keys())[0], str)
 
 
 class TestIsPrReviewCommand:

@@ -3,10 +3,12 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any
 
 from urllib3.exceptions import HTTPError
 
+from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -17,7 +19,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import get_seer_endpoint_for_event, make_seer_request
@@ -30,6 +32,32 @@ MAX_RETRIES = 3
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
 METRICS_PREFIX = "seer.code_review.task"
+
+
+def convert_enum_keys_to_strings(obj: Any) -> Any:
+    """
+    Recursively convert enum keys in dictionaries to their string values.
+
+    This is needed because Pydantic v1 converts string keys to enum members when parsing,
+    but JSON serialization requires string keys. Enum values are also converted to strings.
+
+    Args:
+        obj: The object to process (can be dict, list, enum, or primitive)
+
+    Returns:
+        A copy of the object with all enum keys and values converted to strings
+    """
+    if isinstance(obj, dict):
+        return {
+            (k.value if isinstance(k, Enum) else k): convert_enum_keys_to_strings(v)
+            for k, v in obj.items()
+        }
+    elif isinstance(obj, list):
+        return [convert_enum_keys_to_strings(item) for item in obj]
+    elif isinstance(obj, Enum):
+        return obj.value
+    else:
+        return obj
 
 
 def schedule_task(
@@ -93,11 +121,13 @@ def process_github_webhook_event(
     try:
         path = get_seer_endpoint_for_event(github_event).value
 
-        # Do not validate the payload for CHECK_RUN webhook events (which uses a minimal payload)
-        if github_event != GithubWebhookType.CHECK_RUN:
+        # Validate payload with Pydantic if enabled (except for CHECK_RUN events which use minimal payload)
+        should_validate = options.get("seer.code_review.validate_webhook_payload", False)
+        if should_validate and github_event != GithubWebhookType.CHECK_RUN:
             validated_payload = SeerCodeReviewTaskRequest.parse_obj(event_payload)
-            # Use .json() then parse back to properly serialize enum keys to strings
-            payload = json.loads(validated_payload.json())
+            # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
+            # but JSON requires string keys, so we need to convert them back)
+            payload = convert_enum_keys_to_strings(validated_payload.dict())
         else:
             payload = event_payload
 
