@@ -23,7 +23,7 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -462,3 +462,192 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                         )
 
             assert mock_query.call_count == 2
+
+
+@freeze_time(MOCK_DATETIME)
+class TestQueryProjectCountsByOrgSpanMetric(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    """
+    Test that query_project_counts_by_org correctly handles span metrics.
+    """
+
+    @property
+    def now(self) -> datetime:
+        return MOCK_DATETIME
+
+    def test_fetch_with_transaction_metric_returns_correct_data(self) -> None:
+        """
+        Test that fetch_projects_with_total_root_transaction_count_and_rates
+        returns correct data when using transaction metrics.
+        """
+        org = self.create_organization("test-org-tx")
+        project = self.create_project(organization=org)
+
+        # Store transaction metrics: 7 keep, 13 drop = 20 total
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep"},
+            minutes_before_now=30,
+            value=7,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "drop"},
+            minutes_before_now=30,
+            value=13,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.TRANSACTIONS
+        )
+
+        assert org.id in results
+        assert results[org.id] == [(project.id, 20.0, 7, 13)]
+
+    def test_fetch_with_span_metric_returns_correct_data(self) -> None:
+        """
+        Test that fetch_projects_with_total_root_transaction_count_and_rates
+        returns correct data when using span metrics.
+        """
+        org = self.create_organization("test-org-span")
+        project = self.create_project(organization=org)
+
+        # Store span metrics with is_segment=true: 5 keep, 10 drop = 15 total
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=5,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=30,
+            value=10,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.SPANS
+        )
+
+        assert org.id in results
+        assert results[org.id] == [(project.id, 15.0, 5, 10)]
+
+    def test_fetch_with_span_metric_ignores_non_segment_spans(self) -> None:
+        """
+        Test that fetch_projects_with_total_root_transaction_count_and_rates
+        with span metrics ignores spans where is_segment=false.
+        """
+        org = self.create_organization("test-org-mixed")
+        project = self.create_project(organization=org)
+
+        # Store span metrics with is_segment=true: 5 keep, 10 drop
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=5,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=30,
+            value=10,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        # Store span metrics with is_segment=false (should be ignored): 100 keep, 200 drop
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep", "is_segment": "false"},
+            minutes_before_now=30,
+            value=100,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "drop", "is_segment": "false"},
+            minutes_before_now=30,
+            value=200,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.SPANS
+        )
+
+        assert org.id in results
+        # Only segment spans counted: 5 keep, 10 drop = 15 total
+        assert results[org.id] == [(project.id, 15.0, 5, 10)]
+
+    def test_fetch_transaction_vs_span_metric_returns_different_data(self) -> None:
+        """
+        Test that transaction and span metrics return different data for the same org/project.
+        """
+        org = self.create_organization("test-org-both")
+        project = self.create_project(organization=org)
+
+        # Store transaction metrics: 10 keep, 20 drop = 30 total
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "tx", "decision": "keep"},
+            minutes_before_now=30,
+            value=10,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "tx", "decision": "drop"},
+            minutes_before_now=30,
+            value=20,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        # Store span metrics with is_segment=true: 3 keep, 7 drop = 10 total
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "span", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=3,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "span", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=30,
+            value=7,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        # Query with transaction metric
+        tx_results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.TRANSACTIONS
+        )
+
+        # Query with span metric
+        span_results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.SPANS
+        )
+
+        # Transaction results
+        assert org.id in tx_results
+        assert tx_results[org.id] == [(project.id, 30.0, 10, 20)]
+
+        # Span results
+        assert org.id in span_results
+        assert span_results[org.id] == [(project.id, 10.0, 3, 7)]
