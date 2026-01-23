@@ -6,16 +6,16 @@ const theme = ThemeFixture();
 
 describe('pickBarColor()', () => {
   it('returns magenta when undefined', () => {
-    expect(pickBarColor(undefined, theme)).toBe('#C81792');
+    expect(pickBarColor(undefined, theme)).toBe('#B82D90');
   });
 
   it('returns the predefined color when available', () => {
-    expect(pickBarColor('transaction', theme)).toBe('#FFCF00');
+    expect(pickBarColor('transaction', theme)).toBe('#FFD00E');
   });
 
   it('returns magenta when the string is too short', () => {
-    expect(pickBarColor('', theme)).toBe('#C81792');
-    expect(pickBarColor('c', theme)).toBe('#C81792');
+    expect(pickBarColor('', theme)).toBe('#B82D90');
+    expect(pickBarColor('c', theme)).toBe('#B82D90');
   });
 
   it('returns a random color when no predefined option is available', () => {
