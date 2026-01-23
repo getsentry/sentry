@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import type {Measurement} from 'sentry/types/event';
+import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -137,7 +137,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   /**
    * The maximum severity of the node's issues.
    */
-  private _max_severity: keyof Theme['level'] | undefined;
+  private _max_severity: Level | undefined;
 
   constructor(parent: BaseNode | null, value: T, extra: TraceTreeNodeExtra | null) {
     this.parent = parent;
@@ -308,7 +308,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.children;
   }
 
-  get maxIssueSeverity(): keyof Theme['level'] {
+  get maxIssueSeverity(): Level {
     if (this._max_severity) {
       return this._max_severity;
     }
@@ -320,7 +320,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       }
     }
 
-    return 'default';
+    return 'unknown';
   }
 
   get path(): TraceTree.NodePath {
@@ -388,6 +388,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   hasVisibleChildren(): boolean {
     return this.visibleChildren.length > 0;
+  }
+
+  hasDirectVisibleChildren(): boolean {
+    return this.directVisibleChildren.length > 0;
   }
 
   matchById(id: string): boolean {

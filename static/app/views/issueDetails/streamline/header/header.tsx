@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -313,15 +314,15 @@ const PrimaryTitle = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   flex-shrink: 0;
 `;
 
 const StatTitle = styled('div')`
   display: block;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   justify-self: flex-end;
 `;
@@ -364,7 +365,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     background: linear-gradient(
       to right,
       ${p => p.theme.tokens.background.primary},
-      ${p => Color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
+      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
     );
   }
   &:after {

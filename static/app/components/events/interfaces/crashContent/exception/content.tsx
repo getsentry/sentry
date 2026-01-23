@@ -401,8 +401,8 @@ const Title = styled('h5')`
 `;
 
 const ShowRelatedExceptionsButton = styled(Button)`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledFoldSection = styled(FoldSection)`

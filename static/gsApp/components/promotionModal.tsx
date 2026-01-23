@@ -4,6 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -77,7 +79,7 @@ function DefaultDiscountBody({promotion, price}: DefaultDiscountBodyProps) {
         total {billingInterval} bill up to ${maxCentsPerPeriod / 100} per{' '}
         {intervalSingular}.
       </p>
-      <PromotionPriceComparison>
+      <Flex align="center" gap="xl">
         <PromotionPriceDisplay
           price={calculatePrice({
             price,
@@ -97,7 +99,7 @@ function DefaultDiscountBody({promotion, price}: DefaultDiscountBodyProps) {
           title="Promo Price"
           promo
         />
-      </PromotionPriceComparison>
+      </Flex>
     </Fragment>
   );
 }
@@ -207,21 +209,16 @@ const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1)};
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 
-const PromotionPriceComparison = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-  align-items: center;
-`;
 const StyledButtonBar = styled(ButtonBar)`
   max-width: 150px;
   margin-top: ${space(2)};

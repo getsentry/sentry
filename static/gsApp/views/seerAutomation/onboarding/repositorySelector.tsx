@@ -194,7 +194,7 @@ const RepositoryRow = memo(({repository, checked, onChange}: RepositoryRowProps)
 });
 
 const Label = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: 0;
 `;
 

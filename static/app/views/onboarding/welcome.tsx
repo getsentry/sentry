@@ -192,7 +192,7 @@ const TextWrapper = styled('div')`
 `;
 
 const ActionTitle = styled('h5')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0 0 ${space(0.5)};
   color: ${p => p.theme.tokens.content.primary};
 `;

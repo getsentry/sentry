@@ -151,6 +151,15 @@ test-backend-ci-with-coverage:
 		-o junit_suite_name=pytest
 	@echo ""
 
+compute-selected-tests:
+	@echo "--> Computing selected tests from coverage data"
+	python3 .github/workflows/scripts/compute-selected-tests.py \
+		--coverage-db "$(COVERAGE_DB)" \
+		--changed-files "$(CHANGED_FILES)" \
+		--output .artifacts/selected-tests.txt \
+		--github-output
+	@echo ""
+
 # it's not possible to change settings.DATABASE after django startup, so
 # unfortunately these tests must be run in a separate pytest process. References:
 #   * https://docs.djangoproject.com/en/4.2/topics/testing/tools/#overriding-settings

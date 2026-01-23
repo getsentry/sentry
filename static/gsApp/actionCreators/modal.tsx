@@ -282,13 +282,13 @@ export async function openCodecovModal(options: {organization: Organization}) {
 }
 
 const HeaderText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
 `;
 
 const Subheader = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 export async function openDataConsentModal() {

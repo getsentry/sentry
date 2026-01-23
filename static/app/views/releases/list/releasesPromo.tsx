@@ -5,6 +5,8 @@ import emailImage from 'sentry-images/spot/releases-tour-email.svg';
 import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -23,6 +25,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -91,7 +94,12 @@ type Props = {
 
 function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useApiQuery<SentryApp[]>(
-    [`/organizations/${organization.slug}/sentry-apps/`, {query: {status: 'internal'}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {status: 'internal'}},
+    ],
     {
       staleTime: 0,
     }
@@ -246,10 +254,14 @@ sentry-cli releases finalize "$VERSION"`;
               {t('Add New Integration')}
             </Button>
           )}
-          triggerProps={{
-            prefix: selectedApp ? t('Token From') : undefined,
-            children: selectedApp ? undefined : t('Select Integration'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={selectedApp ? t('Token From') : undefined}
+            >
+              {selectedApp ? triggerProps.children : t('Select Integration')}
+            </OverlayTrigger.Button>
+          )}
           onChange={option => {
             const app = apps.find(i => i.slug === option.value)!;
             setSelectedApp(app);

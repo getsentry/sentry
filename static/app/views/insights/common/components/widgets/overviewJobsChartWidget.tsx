@@ -63,10 +63,10 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
       countSeries &&
       new Bars(countSeries, {
         alias: ALIASES['count(span.duration)'],
-        color: theme.chart.neutral,
+        color: theme.tokens.dataviz.semantic.neutral,
       })
     );
-  }, [data, theme.chart.neutral]);
+  }, [data, theme.tokens.dataviz.semantic.neutral]);
 
   const errorRatePlottable = useMemo(() => {
     const timeSeries = data?.timeSeries || [];

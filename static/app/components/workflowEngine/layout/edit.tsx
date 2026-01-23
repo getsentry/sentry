@@ -127,7 +127,7 @@ interface FooterProps extends RequiredChildren {
 function Footer({children, label, maxWidth}: FooterProps) {
   return (
     <StickyFooter>
-      <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+      <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
         {label && (
           <Text variant="muted" size="md">
             {label}

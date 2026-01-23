@@ -104,7 +104,7 @@ const Name = styled('div')`
 `;
 
 const NameText = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: block;
   white-space: nowrap;
   overflow: hidden;

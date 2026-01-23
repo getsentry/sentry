@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import StrEnum
@@ -30,8 +31,13 @@ from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiRateLimitedError,
+    IntegrationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
@@ -45,17 +51,23 @@ RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 
 preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
-    key_mappings={
-        "platform": ["platform"],
-        "git_head_ref": ["git_head_ref"],
-        "app_id": ["app_id"],
-        "build_configuration": ["build_configuration"],
-    },
-    allowed_keys={
-        "platform",
+    text_operator_keys={
+        "platform_name",
         "git_head_ref",
         "app_id",
-        "build_configuration",
+        "build_configuration_name",
+    },
+    key_mappings={
+        "platform_name": ["platform_name"],
+        "git_head_ref": ["git_head_ref"],
+        "app_id": ["app_id"],
+        "build_configuration_name": ["build_configuration_name"],
+    },
+    allowed_keys={
+        "platform_name",
+        "git_head_ref",
+        "app_id",
+        "build_configuration_name",
     },
 )
 
@@ -64,31 +76,33 @@ preprod_artifact_search_config = SearchConfig.create_from(
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    retry=Retry(times=3, delay=60, ignore=(IntegrationConfigurationError,)),
+    retry=Retry(times=3, delay=60, on=(ApiRateLimitedError,)),
     silo_mode=SiloMode.REGION,
 )
-def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) -> None:
+def create_preprod_status_check_task(
+    preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
+) -> None:
     try:
-        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.get(
-            id=preprod_artifact_id
-        )
+        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
+            "mobile_app_info"
+        ).get(id=preprod_artifact_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id},
+            extra={"artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     if not preprod_artifact or not isinstance(preprod_artifact, PreprodArtifact):
         logger.error(
             "preprod.status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id},
+            extra={"artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     logger.info(
         "preprod.status_checks.create.start",
-        extra={"artifact_id": preprod_artifact.id},
+        extra={"artifact_id": preprod_artifact.id, "caller": caller},
     )
 
     if not preprod_artifact.commit_comparison:
@@ -171,6 +185,13 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
 
     completed_at: datetime | None = None
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
+        completed_at = preprod_artifact.date_updated
+
+    # Convert in-progress and failure to neutral to avoid blocking PR merges:
+    # - IN_PROGRESS: Can get stuck due to GitHub API rate limiting
+    # - FAILURE: No approval flow exists yet to allow users to merge despite failures
+    if status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
+        status = StatusCheckStatus.NEUTRAL
         completed_at = preprod_artifact.date_updated
 
     try:
@@ -292,7 +313,10 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
         return []
 
     try:
-        rules_data = json.loads(rules_json)
+        # Handle bytes from project options (json.loads requires str, not bytes)
+        if isinstance(rules_json, bytes):
+            rules_json = rules_json.decode("utf-8")
+        rules_data = json.loads(rules_json) if isinstance(rules_json, str) else rules_json
         if not isinstance(rules_data, list):
             logger.warning(
                 "preprod.status_checks.rules.invalid_format",
@@ -420,9 +444,9 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     Returns a dict with keys matching the filter key format:
     - git_head_ref: The git_head_ref name (from commit_comparison.head_ref)
-    - platform: "ios" or "android" (derived from artifact_type)
+    - platform_name: "ios" or "android" (derived from artifact_type)
     - app_id: The app ID (e.g., "com.example.app")
-    - build_configuration: The build configuration name
+    - build_configuration_name: The build configuration name
     """
     context: dict[str, str] = {}
 
@@ -431,19 +455,19 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     if artifact.artifact_type is not None:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            context["platform"] = "ios"
+            context["platform_name"] = "ios"
         elif artifact.artifact_type in (
             PreprodArtifact.ArtifactType.AAB,
             PreprodArtifact.ArtifactType.APK,
         ):
-            context["platform"] = "android"
+            context["platform_name"] = "android"
 
     if artifact.app_id:
         context["app_id"] = artifact.app_id
 
     if artifact.build_configuration:
         try:
-            context["build_configuration"] = artifact.build_configuration.name
+            context["build_configuration_name"] = artifact.build_configuration.name
         except Exception:
             pass
 
@@ -492,9 +516,20 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
 
         group_matches = False
         for f in group_filters:
-            if f.is_in_filter:
+            if f.value.is_wildcard():
+                # Wildcard operators (contains, starts_with, ends_with)
+                # Works for both single values and IN filters
+                # For IN filters with wildcards, value is a regex alternation pattern
+                try:
+                    pattern = f.value.value
+                    matches = bool(re.search(pattern, artifact_value))
+                except (re.error, TypeError):
+                    matches = False
+            elif f.is_in_filter:
+                # Non-wildcard IN filter
                 matches = artifact_value in f.value.value
             else:
+                # Exact equality match
                 matches = artifact_value == f.value.value
 
             if f.is_negation:
@@ -584,8 +619,8 @@ def _compute_overall_status(
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
     base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
-) -> tuple[StatusCheckStatus, list[StatusCheckRule]]:
-    triggered_rules: list[StatusCheckRule] = []
+) -> tuple[StatusCheckStatus, list[TriggeredRule]]:
+    triggered_rules: list[TriggeredRule] = []
 
     if not artifacts:
         raise ValueError("Cannot compute status for empty artifact list")
@@ -593,23 +628,23 @@ def _compute_overall_status(
     states = {artifact.state for artifact in artifacts}
 
     if PreprodArtifact.ArtifactState.FAILED in states:
-        return StatusCheckStatus.FAILURE, triggered_rules
+        return StatusCheckStatus.FAILURE, []
     elif (
         PreprodArtifact.ArtifactState.UPLOADING in states
         or PreprodArtifact.ArtifactState.UPLOADED in states
     ):
-        return StatusCheckStatus.IN_PROGRESS, triggered_rules
+        return StatusCheckStatus.IN_PROGRESS, []
     elif all(state == PreprodArtifact.ArtifactState.PROCESSED for state in states):
         for artifact in artifacts:
             size_metrics_list = size_metrics_map.get(artifact.id, [])
             if size_metrics_list:
                 for size_metrics in size_metrics_list:
                     if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-                        return StatusCheckStatus.FAILURE, triggered_rules
+                        return StatusCheckStatus.FAILURE, []
                     elif (
                         size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                     ):
-                        return StatusCheckStatus.IN_PROGRESS, triggered_rules
+                        return StatusCheckStatus.IN_PROGRESS, []
 
         if rules:
             for artifact in artifacts:
@@ -641,7 +676,14 @@ def _compute_overall_status(
                                     "threshold": rule.value,
                                 },
                             )
-                            triggered_rules.append(rule)
+                            triggered_rules.append(
+                                TriggeredRule(
+                                    rule=rule,
+                                    artifact_id=artifact.id,
+                                    app_id=artifact.app_id,
+                                    platform=artifact.get_platform_label(),
+                                )
+                            )
 
         if triggered_rules:
             return StatusCheckStatus.FAILURE, triggered_rules
@@ -862,37 +904,51 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                         extra={"target_url": target_url},
                     )
 
+            # GitHub rejects completed_at=null when status is "completed" with a 422
+            if mapped_status == GitHubCheckStatus.COMPLETED and completed_at is None:
+                raise ValueError(
+                    "GitHub API rejects completed_at=null when status is 'completed'. "
+                    "Omit completed_at entirely instead of setting it to None."
+                )
+
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)
                 check_id = response.get("id")
                 return str(check_id) if check_id else None
+            except ApiForbiddenError as e:
+                lifecycle.record_halt(e)
+                error_message = str(e).lower()
+                if "rate limit exceeded" in error_message:
+                    raise ApiRateLimitedError("GitHub rate limit exceeded") from e
+                if (
+                    "resource not accessible" in error_message
+                    or "insufficient" in error_message
+                    or "permission" in error_message
+                ):
+                    logger.warning(
+                        "preprod.status_checks.create.insufficient_permissions",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "integration_id": self.integration_id,
+                            "repo": repo,
+                            "error_message": str(e),
+                        },
+                    )
+                    raise IntegrationConfigurationError(
+                        "GitHub App lacks permissions to create check runs. "
+                        "Please ensure the app has the required permissions and that "
+                        "the organization has accepted any updated permissions."
+                    ) from e
+                raise
+            except ApiRateLimitedError as e:
+                lifecycle.record_halt(e)
+                raise
             except ApiError as e:
-                lifecycle.record_failure(e)
-                # Only convert specific permission 403s as IntegrationConfigurationError
-                # GitHub can return 403 for various reasons (rate limits, temporary issues, permissions)
-                if e.code == 403:
-                    error_message = str(e).lower()
-                    if (
-                        "resource not accessible" in error_message
-                        or "insufficient" in error_message
-                        or "permission" in error_message
-                    ):
-                        logger.exception(
-                            "preprod.status_checks.create.insufficient_permissions",
-                            extra={
-                                "organization_id": self.organization_id,
-                                "integration_id": self.integration_id,
-                                "repo": repo,
-                                "error_message": str(e),
-                            },
-                        )
-                        raise IntegrationConfigurationError(
-                            "GitHub App lacks permissions to create check runs. "
-                            "Please ensure the app has the required permissions and that "
-                            "the organization has accepted any updated permissions."
-                        ) from e
-                elif e.code and 400 <= e.code < 500 and e.code != 429:
-                    logger.exception(
+                lifecycle.record_halt(e)
+                # 403s are handled by ApiForbiddenError above
+                # 4xx errors are typically user/config issues, not bugs
+                if e.code and 400 <= e.code < 500 and e.code not in (403, 429):
+                    logger.warning(
                         "preprod.status_checks.create.client_error",
                         extra={
                             "organization_id": self.organization_id,
@@ -904,8 +960,6 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     raise IntegrationConfigurationError(
                         f"GitHub API returned {e.code} client error when creating check run"
                     ) from e
-
-                # For non-permission 403s, 429s, 5xx, and other error
                 raise
 
 

@@ -83,11 +83,11 @@ function HotkeysLabel({value, forcePlatform}: Props) {
 export default HotkeysLabel;
 
 const Key = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const HotkeysContainer = styled('div')`
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
   display: flex;
   flex-direction: row;
   align-items: center;

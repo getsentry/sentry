@@ -41,7 +41,14 @@ import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboard
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
-// Full-stack JS frameworks that support Vercel AI SDK (they have server-side capabilities)
+import {
+  AGENT_INTEGRATION_LABELS,
+  AgentIntegration,
+  NODE_AGENT_INTEGRATIONS,
+  PYTHON_AGENT_INTEGRATIONS,
+} from './utils/agentIntegrations';
+
+// Full-stack JS frameworks that support server-side agent SDKs.
 const fullStackJsPlatforms = [
   'javascript-astro',
   'javascript-nextjs',
@@ -52,6 +59,11 @@ const fullStackJsPlatforms = [
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
 ];
+
+const serverSideNodeIntegrations = new Set([
+  AgentIntegration.VERCEL_AI,
+  AgentIntegration.MASTRA,
+]);
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -225,32 +237,25 @@ export function Onboarding() {
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isNodePlatform = (project?.platform ?? '').startsWith('node');
   const isFullStackJsPlatform = fullStackJsPlatforms.includes(project?.platform ?? '');
-  const hasVercelAI = isNodePlatform || isFullStackJsPlatform;
+  const hasServerSideNode = isNodePlatform || isFullStackJsPlatform;
 
   const integrationOptions = {
     integration: {
       label: t('Integration'),
       items: isPythonPlatform
-        ? [
-            {label: 'OpenAI SDK', value: 'openai'},
-            {label: 'OpenAI Agents SDK', value: 'openai_agents'},
-            {label: 'Anthropic SDK', value: 'anthropic'},
-            {label: 'Google Gen AI SDK', value: 'google_genai'},
-            {label: 'LangChain', value: 'langchain'},
-            {label: 'LangGraph', value: 'langgraph'},
-            {label: 'LiteLLM', value: 'litellm'},
-            {label: 'Pydantic AI', value: 'pydantic_ai'},
-            {label: 'Other', value: 'manual'},
-          ]
-        : [
-            ...(hasVercelAI ? [{label: 'Vercel AI SDK', value: 'vercel_ai'}] : []),
-            {label: 'OpenAI SDK', value: 'openai'},
-            {label: 'Anthropic SDK', value: 'anthropic'},
-            {label: 'Google Gen AI SDK', value: 'google_genai'},
-            {label: 'LangChain', value: 'langchain'},
-            {label: 'LangGraph', value: 'langgraph'},
-            {label: 'Other', value: 'manual'},
-          ],
+        ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
+            label: AGENT_INTEGRATION_LABELS[integration],
+            value: integration,
+          }))
+        : (hasServerSideNode
+            ? NODE_AGENT_INTEGRATIONS
+            : NODE_AGENT_INTEGRATIONS.filter(
+                integration => !serverSideNodeIntegrations.has(integration)
+              )
+          ).map(integration => ({
+            label: AGENT_INTEGRATION_LABELS[integration],
+            value: integration,
+          })),
     },
   };
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
@@ -410,7 +415,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   z-index: 10;
   gap: ${p => p.theme.space.md};
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
   padding-right: ${p => p.theme.space['3xl']};
 `;
@@ -430,7 +435,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BulletList = styled('ul')`
@@ -460,8 +465,8 @@ const HeaderText = styled('div')`
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${p => p.theme.space.md};
 `;
 
@@ -535,8 +540,8 @@ const DescriptionWrapper = styled('div')`
   && > h4,
   && > h5,
   && > h6 {
-    font-size: ${p => p.theme.fontSize.xl};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.xl};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     line-height: 34px;
   }
 
