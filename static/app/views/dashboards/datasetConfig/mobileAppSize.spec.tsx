@@ -235,6 +235,12 @@ describe('MobileAppSizeConfig', () => {
       orderby: '',
     };
 
+    const multiAggregateQuery = {
+      ...singleSeriesQuery,
+      aggregates: ['max(install_size)', 'max(download_size)'],
+      fields: ['max(install_size)', 'max(download_size)'],
+    };
+
     const multiSeriesQuery = {
       ...singleSeriesQuery,
       columns: ['app_id', 'platform'],
@@ -244,6 +250,15 @@ describe('MobileAppSizeConfig', () => {
       expect(
         MobileAppSizeConfig.getSeriesResultType!(singleSeriesData, singleSeriesQuery)
       ).toEqual({'max(install_size)': 'size'});
+    });
+
+    it('returns size type for multiple aggregates', () => {
+      expect(
+        MobileAppSizeConfig.getSeriesResultType!(singleSeriesData, multiAggregateQuery)
+      ).toEqual({
+        'max(install_size)': 'size',
+        'max(download_size)': 'size',
+      });
     });
 
     it('returns size type for multi-series grouped data', () => {

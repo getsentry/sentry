@@ -219,8 +219,7 @@ function buildSeriesResultMap<T>(
 ): Record<string, T> {
   const result: Record<string, T> = {};
 
-  const aggregate = widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0];
-  if (aggregate) {
+  for (const aggregate of widgetQuery.aggregates ?? []) {
     result[aggregate] = value;
   }
 
