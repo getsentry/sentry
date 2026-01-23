@@ -103,6 +103,9 @@ def process_github_webhook_event(
             # Parse with appropriate model based on request type to enforce
             # organization_id and integration_id requirements for PR closed
             request_type = event_payload.get("request_type")
+            validated_payload: (
+                SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
+            )
             if request_type == "pr-closed":
                 validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(event_payload)
             else:
