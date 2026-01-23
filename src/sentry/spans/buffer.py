@@ -209,7 +209,7 @@ class SpansBuffer:
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         debug_traces = set(options.get("spans.buffer.debug-traces"))
         # write_to_zset = options.get("spans.buffer.write-to-zset")
-        write_to_zset = True  # TODO: Remove this once validate write to SET
+        write_to_zset = True  # TODO: Remove this once we can read from SET
         write_to_set = options.get("spans.buffer.write-to-set")
 
         result_meta = []
@@ -727,14 +727,31 @@ class SpansBuffer:
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
+        # write_to_zset = options.get("spans.buffer.write-to-zset")
+        write_to_zset = True  # TODO: Remove this once we can read from SET
+        write_to_set = options.get("spans.buffer.write-to-set")
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    p.delete(b"span-buf:hrs:" + segment_key)
-                    p.delete(b"span-buf:ic:" + segment_key)
-                    p.delete(b"span-buf:ibc:" + segment_key)
-                    p.unlink(segment_key)
-                    p.zrem(flushed_segment.queue_key, segment_key)
+                    # segment_key could be either span-buf:z:... or span-buf:s:... depending on read mode
+                    if segment_key.startswith(b"span-buf:z:"):
+                        zset_key = segment_key
+                        set_key = segment_key.replace(b"span-buf:z:", b"span-buf:s:", 1)
+                    else:
+                        zset_key = segment_key.replace(b"span-buf:s:", b"span-buf:z:", 1)
+                        set_key = segment_key
+
+                    if write_to_zset:
+                        p.delete(b"span-buf:hrs:" + zset_key)
+                        p.delete(b"span-buf:ic:" + zset_key)
+                        p.delete(b"span-buf:ibc:" + zset_key)
+                        p.unlink(zset_key)
+                    if write_to_set:
+                        p.delete(b"span-buf:hrs:" + set_key)
+                        p.delete(b"span-buf:ic:" + set_key)
+                        p.delete(b"span-buf:ibc:" + set_key)
+                        p.unlink(set_key)
+                    p.zrem(flushed_segment.queue_key, zset_key, set_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
                     redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)

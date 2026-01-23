@@ -1058,6 +1058,8 @@ def test_dual_write() -> None:
         }
         buffer.done_flush_segments(rv)
 
+        assert_clean(buffer.client)
+
 
 @pytest.mark.parametrize("compression_level", [-1, 0])
 def test_dual_write_content_matches(compression_level) -> None:
