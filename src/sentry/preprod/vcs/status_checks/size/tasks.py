@@ -52,22 +52,22 @@ RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
     text_operator_keys={
-        "platform",
+        "platform_name",
         "git_head_ref",
         "app_id",
-        "build_configuration",
+        "build_configuration_name",
     },
     key_mappings={
-        "platform": ["platform"],
+        "platform_name": ["platform_name"],
         "git_head_ref": ["git_head_ref"],
         "app_id": ["app_id"],
-        "build_configuration": ["build_configuration"],
+        "build_configuration_name": ["build_configuration_name"],
     },
     allowed_keys={
-        "platform",
+        "platform_name",
         "git_head_ref",
         "app_id",
-        "build_configuration",
+        "build_configuration_name",
     },
 )
 
@@ -401,9 +401,9 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     Returns a dict with keys matching the filter key format:
     - git_head_ref: The git_head_ref name (from commit_comparison.head_ref)
-    - platform: "ios" or "android" (derived from artifact_type)
+    - platform_name: "ios" or "android" (derived from artifact_type)
     - app_id: The app ID (e.g., "com.example.app")
-    - build_configuration: The build configuration name
+    - build_configuration_name: The build configuration name
     """
     context: dict[str, str] = {}
 
@@ -412,19 +412,19 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     if artifact.artifact_type is not None:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            context["platform"] = "ios"
+            context["platform_name"] = "ios"
         elif artifact.artifact_type in (
             PreprodArtifact.ArtifactType.AAB,
             PreprodArtifact.ArtifactType.APK,
         ):
-            context["platform"] = "android"
+            context["platform_name"] = "android"
 
     if artifact.app_id:
         context["app_id"] = artifact.app_id
 
     if artifact.build_configuration:
         try:
-            context["build_configuration"] = artifact.build_configuration.name
+            context["build_configuration_name"] = artifact.build_configuration.name
         except Exception:
             pass
 
