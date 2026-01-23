@@ -6,15 +6,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ReleasesSortSelect} from './components/releasesSortSelect';
 import {ReleasesSelectControl} from './releasesSelectControl';
 import type {DashboardFilters} from './types';
-import {DashboardFilterKeys} from './types';
 
-type Props = {
+interface SortableReleasesFilterProps {
   selectedReleases: string[];
   sortBy: ReleasesSortByOption;
   handleChangeFilter?: (activeFilters: DashboardFilters) => void;
   isDisabled?: boolean;
-  onSortChange?: (sortBy: string) => void;
-};
+  onSortChange?: (sortBy: ReleasesSortByOption) => void;
+}
 
 export function SortableReleasesFilter({
   selectedReleases,
@@ -22,7 +21,7 @@ export function SortableReleasesFilter({
   handleChangeFilter,
   isDisabled,
   onSortChange,
-}: Props) {
+}: SortableReleasesFilterProps) {
   const organization = useOrganization();
 
   return (
@@ -30,10 +29,7 @@ export function SortableReleasesFilter({
       <ReleasesSelectControl
         sortBy={sortBy}
         handleChangeFilter={activeFilters => {
-          handleChangeFilter?.({
-            ...activeFilters,
-            [DashboardFilterKeys.RELEASE]: activeFilters[DashboardFilterKeys.RELEASE],
-          });
+          handleChangeFilter?.(activeFilters);
           trackAnalytics('dashboards2.filter.change', {
             organization,
             filter_type: 'release',

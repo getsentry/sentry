@@ -245,9 +245,7 @@ export default function FiltersBar({
             [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
           });
         }}
-        onSortChange={value => {
-          setReleaseSort(value as ReleasesSortByOption);
-        }}
+        onSortChange={setReleaseSort}
       />
       {organization.features.includes('dashboards-global-filters') && (
         <Fragment>

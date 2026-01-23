@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface ReleasesSortSelectProps {
-  onChange: (sortBy: string) => void;
+  onChange: (sortBy: ReleasesSortByOption) => void;
   sortBy: ReleasesSortByOption;
 }
 
@@ -22,7 +22,7 @@ export function ReleasesSortSelect({sortBy, onChange}: ReleasesSortSelectProps) 
     <CompactSelect
       value={sortBy}
       onChange={option => {
-        onChange(option.value);
+        onChange(option.value as ReleasesSortByOption);
       }}
       options={Object.entries(RELEASES_SORT_OPTIONS).map(([name, filter]) => {
         if (name !== ReleasesSortOption.ADOPTION) {
