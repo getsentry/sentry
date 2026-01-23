@@ -1224,7 +1224,7 @@ export default typescript.config([
   },
   {
     name: 'files/figma-code-connect',
-    files: ['**/*.figma.tsx'],
+    files: ['**/*.figma.{tsx,jsx}'],
     rules: {
       'boundaries/element-types': 'off',
     },
