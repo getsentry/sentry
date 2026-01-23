@@ -1146,67 +1146,6 @@ class DeleteGroupsTest(TestCase):
 
 
 class GetSemverReleasesTest(TestCase):
-    def _test_greatest_semver_releases_helper(self, with_build_code: bool) -> None:
-        """Test that get_semver_releases returns releases in correct semver order."""
-        release_1 = self.create_release(version="test@2.2", project=self.project)
-        release_2 = self.create_release(version="test@10.0+1000", project=self.project)
-        release_3 = self.create_release(version="test@2.2-alpha", project=self.project)
-        release_4 = self.create_release(version="test@2.2.3", project=self.project)
-        release_5 = self.create_release(version="test@2.20.3", project=self.project)
-        release_6 = self.create_release(version="test@2.20.3.3", project=self.project)
-        release_7 = self.create_release(version="test@10.0+998", project=self.project)
-        release_8 = self.create_release(version="test@10.0+x22", project=self.project)
-        release_9 = self.create_release(version="test@10.0+a23", project=self.project)
-        release_10 = self.create_release(version="test@10.0", project=self.project)
-        release_11 = self.create_release(version="test@10.0-abc", project=self.project)
-        release_12 = self.create_release(version="test@10.0+999", project=self.project)
-        # Non-semver releases that will be filtered out by filter_to_semver()
-        self.create_release(version="test@some_thing", project=self.project)
-        self.create_release(version="random_junk", project=self.project)
-
-        releases = list(get_semver_releases(self.project))
-
-        if with_build_code:
-            expected_order = [
-                release_8,  # test@10.0+x22
-                release_9,  # test@10.0+a23
-                release_2,  # test@10.0+1000
-                release_12,  # test@10.0+999
-                release_7,  # test@10.0+998
-                release_10,  # test@10.0
-                release_11,  # test@10.0-abc
-                release_6,  # test@2.20.3.3
-                release_5,  # test@2.20.3
-                release_4,  # test@2.2.3
-                release_1,  # test@2.2
-                release_3,  # test@2.2-alpha
-            ]
-
-            assert len(releases) == len(expected_order)
-            assert [r.id for r in releases] == [r.id for r in expected_order]
-        else:
-            # Without build code ordering, 10.0 releases (same semver, different build codes)
-            # are not in deterministic order. Just verify they're grouped at the top.
-            all_10_releases = {
-                release_2,
-                release_7,
-                release_8,
-                release_9,
-                release_10,
-                release_11,
-                release_12,
-            }
-
-            assert len(releases) == 12
-            assert set(releases[:7]) == all_10_releases
-            assert releases[7:] == [
-                release_6,
-                release_5,
-                release_4,
-                release_1,
-                release_3,
-            ]
-
     def test_greatest_semver_releases(self) -> None:
         """Test get_semver_releases orders releases by semver."""
         release_1 = self.create_release(version="test@2.2", project=self.project)
