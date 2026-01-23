@@ -246,6 +246,7 @@ export default typescript.config([
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
+    'figma.config.json',
     'fixtures/artifact_bundle/**/*',
     'fixtures/artifact_bundle_debug_ids/**/*',
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
