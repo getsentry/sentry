@@ -1172,14 +1172,14 @@ def test_dual_write_emits_set_metrics(emit_observability_metrics: mock.MagicMock
         assert len(zset_latency_metrics) > 0
         for metric_list in zset_latency_metrics:
             for metric_name, _ in metric_list:
-                assert not metric_name.decode("utf-8").startswith("set_")
+                assert not metric_name.decode().startswith("set_")
 
         set_call = emit_observability_metrics.call_args_list[1]
         set_latency_metrics = set_call.args[0]
         assert len(set_latency_metrics) > 0
         for metric_list in set_latency_metrics:
             for metric_name, _ in metric_list:
-                assert metric_name.decode("utf-8").startswith("set_")
+                assert metric_name.decode().startswith("set_")
 
 
 def test_read_from_set() -> None:
@@ -1233,7 +1233,7 @@ def test_read_from_set() -> None:
             for member in queue_members:
                 assert member.startswith(
                     b"span-buf:s:"
-                ), f"Expected SET key in queue, got: {member}"
+                ), f"Expected SET key in queue, got: {member.decode()}"
 
         # Verify flush works and returns SET keys
         rv = buffer.flush_segments(now=11)
