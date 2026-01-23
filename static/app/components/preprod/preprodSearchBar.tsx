@@ -14,7 +14,15 @@ interface PreprodSearchBarProps {
    * Optional list of attribute keys to show. If not provided, all attributes are shown.
    */
   allowedKeys?: string[];
-  disableHas?: boolean;
+  /**
+   * When true, free text will be marked as invalid.
+   */
+  disallowFreeText?: boolean;
+  disallowHas?: boolean;
+  /**
+   * When true, parens and logical operators (AND, OR) will be marked as invalid.
+   */
+  disallowLogicalOperators?: boolean;
   /**
    * List of attribute keys to hide from the search bar. Defaults to HIDDEN_PREPROD_ATTRIBUTES.
    */
@@ -49,7 +57,9 @@ export function PreprodSearchBar({
   onChange,
   onSearch,
   portalTarget,
-  disableHas,
+  disallowFreeText,
+  disallowHas,
+  disallowLogicalOperators,
   searchSource = 'preprod',
 }: PreprodSearchBarProps) {
   const organization = useOrganization();
@@ -89,7 +99,9 @@ export function PreprodSearchBar({
       searchSource={searchSource}
       projects={projects}
       portalTarget={portalTarget}
-      disableHas={disableHas}
+      disallowFreeText={disallowFreeText}
+      disallowHas={disallowHas}
+      disallowLogicalOperators={disallowLogicalOperators}
     />
   );
 }

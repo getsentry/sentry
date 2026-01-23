@@ -25,8 +25,10 @@ export type TraceItemSearchQueryBuilderProps = {
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
   caseInsensitive?: CaseInsensitive;
-  disableHas?: boolean;
   disabled?: boolean;
+  disallowFreeText?: boolean;
+  disallowHas?: boolean;
+  disallowLogicalOperators?: boolean;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -91,7 +93,9 @@ export function useTraceItemSearchQueryBuilderProps({
   matchKeySuggestions,
   caseInsensitive,
   onCaseInsensitiveClick,
-  disableHas,
+  disallowHas,
+  disallowFreeText,
+  disallowLogicalOperators,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -100,7 +104,7 @@ export function useTraceItemSearchQueryBuilderProps({
     numberAttributes,
     stringAttributes,
     functionTags,
-    disableHas
+    disallowHas ?? false
   );
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
@@ -129,6 +133,8 @@ export function useTraceItemSearchQueryBuilderProps({
       getSuggestedFilterKey: getSuggestedAttribute,
       getTagValues: getTraceItemAttributeValues,
       disallowUnsupportedFilters: true,
+      disallowFreeText,
+      disallowLogicalOperators,
       recentSearches: itemTypeToRecentSearches(itemType),
       namespace,
       showUnsubmittedIndicator: true,
@@ -141,6 +147,8 @@ export function useTraceItemSearchQueryBuilderProps({
     }),
     [
       caseInsensitive,
+      disallowFreeText,
+      disallowLogicalOperators,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -187,7 +195,9 @@ export function TraceItemSearchQueryBuilder({
   onCaseInsensitiveClick,
   matchKeySuggestions,
   replaceRawSearchKeys,
-  disableHas,
+  disallowHas,
+  disallowFreeText,
+  disallowLogicalOperators,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -209,7 +219,9 @@ export function TraceItemSearchQueryBuilder({
     onCaseInsensitiveClick,
     matchKeySuggestions,
     replaceRawSearchKeys,
-    disableHas,
+    disallowHas,
+    disallowFreeText,
+    disallowLogicalOperators,
   });
 
   return (
@@ -237,7 +249,7 @@ function useFilterTags(
   numberAttributes: TagCollection,
   stringAttributes: TagCollection,
   functionTags: TagCollection,
-  disableHas: boolean
+  disallowHas: boolean
 ) {
   return useMemo(() => {
     const tags: TagCollection = {
@@ -246,14 +258,14 @@ function useFilterTags(
       ...stringAttributes,
     };
 
-    if (!disableHas) {
+    if (!disallowHas) {
       tags.has = getHasTag({
         ...numberAttributes,
         ...stringAttributes,
       });
     }
     return tags;
-  }, [numberAttributes, stringAttributes, functionTags, disableHas]);
+  }, [numberAttributes, stringAttributes, functionTags, disallowHas]);
 }
 
 function useFilterKeySections(
