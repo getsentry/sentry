@@ -5,8 +5,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
-
 import {Button} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 
@@ -152,18 +150,15 @@ export const SectionGroup = styled('ul')`
   padding: 0;
 `;
 
-export function LeadWrap(props: FlexProps) {
-  return (
-    <Flex
-      justify="center"
-      align="center"
-      minWidth="1em"
-      height="1.4em"
-      pointerEvents="none"
-      {...props}
-    />
-  );
-}
+export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 1em;
+  height: 1.4em;
+  padding-bottom: 1px;
+  pointer-events: none;
+`;
 
 export const EmptyMessage = styled('p')`
   text-align: center;
