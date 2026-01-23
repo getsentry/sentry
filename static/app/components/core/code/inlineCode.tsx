@@ -25,7 +25,8 @@ export const inlineCodeStyles = (theme: Theme, props?: InlineCodeProps) => css`
   padding-inline: 0.3ch;
   margin-inline: -0.15ch;
   border-radius: ${theme.radius['2xs']};
-  border-radius: clamp(${theme.radius['2xs']}, 0.33em, ${theme.radius.lg});
+  /* 3px (2xs) at 14px font-size and 8px (lg) at 24px font */
+  border-radius: clamp(0.21em, 0.28em, 0.57em);
 
   text-box-edge: text text;
   text-box-trim: trim-both;
