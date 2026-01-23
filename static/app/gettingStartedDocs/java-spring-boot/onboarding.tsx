@@ -3,6 +3,10 @@ import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStarted
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {metricsVerify} from 'sentry/gettingStartedDocs/java/metrics';
 import {
+  getProfilingSpringPropertiesSnippet,
+  getProfilingSpringYamlSnippet,
+} from 'sentry/gettingStartedDocs/java-spring-boot/profiling';
+import {
   getGradleInstallSnippet,
   getMavenInstallSnippet,
   getVerifyJavaSnippet,
@@ -36,7 +40,7 @@ sentry.logs.enabled=true`
 # We recommend adjusting this value in production.
 sentry.traces-sample-rate=1.0`
     : ''
-}`;
+}${params.isProfilingSelected ? getProfilingSpringPropertiesSnippet() : ''}`;
 
 const getConfigurationYamlSnippet = (params: Params) => `
 sentry:
@@ -57,7 +61,7 @@ sentry:
   # We recommend adjusting this value in production.
   traces-sample-rate: 1.0`
       : ''
-  }`;
+  }${params.isProfilingSelected ? getProfilingSpringYamlSnippet() : ''}`;
 
 export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
