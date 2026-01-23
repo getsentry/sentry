@@ -72,6 +72,7 @@ def handle_issue_comment_event(
     comment = event.get("comment", {})
     comment_id = comment.get("id")
     comment_body = comment.get("body")
+    pr_number = event.get("issue", {}).get("number")
 
     if not is_pr_review_command(comment_body or ""):
         record_webhook_filtered(
@@ -87,7 +88,7 @@ def handle_issue_comment_event(
             integration=integration,
             organization_id=organization.id,
             repo=repo,
-            pr_number=str(event.get("issue", {}).get("number", "")),
+            pr_number=str(pr_number) if pr_number else None,
             comment_id=str(comment_id),
         )
 

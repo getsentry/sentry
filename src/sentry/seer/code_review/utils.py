@@ -309,9 +309,12 @@ def delete_tada_and_add_eyes_reaction(
     integration: RpcIntegration | None,
     organization_id: int,
     repo: Repository,
-    pr_number: str,
+    pr_number: str | None,
     comment_id: str | None,
 ) -> None:
+    """
+    Delete existing :tada: reaction on the PR description and add :eyes: reaction on the originating issue comment or PR description.
+    """
     if integration is None:
         record_webhook_handler_error(
             github_event,
@@ -323,27 +326,33 @@ def delete_tada_and_add_eyes_reaction(
     try:
         client = integration.get_installation(organization_id=organization_id).get_client()
 
-        # delete existing :tada: reaction on the pr description
-        try:
-            existing_reactions = client.get_issue_reactions(repo.name, pr_number)
-            for reaction in existing_reactions:
-                if (
-                    reaction.get("user", {}).get("login") == "sentry[bot]"
-                    and reaction.get("content") == GitHubReaction.HOORAY.value
-                ):
-                    if reaction.get("id"):
-                        client.delete_issue_reaction(repo.name, pr_number, str(reaction.get("id")))
+        if pr_number:
+            # delete existing :tada: reaction on the pr description
+            try:
+                existing_reactions = client.get_issue_reactions(repo.name, pr_number)
+                for reaction in existing_reactions:
+                    if (
+                        reaction.get("user", {}).get("login") == "sentry[bot]"
+                        and reaction.get("content") == GitHubReaction.HOORAY.value
+                    ):
+                        if reaction.get("id"):
+                            client.delete_issue_reaction(
+                                repo.name, pr_number, str(reaction.get("id"))
+                            )
                         break
-        except Exception:
-            # continue even if this fails
-            pass
+            except Exception:
+                # continue even if this fails
+                record_webhook_handler_error(
+                    github_event,
+                    github_event_action,
+                    CodeReviewErrorType.REACTION_FAILED,
+                )
 
         # add :eyes: on the originating issue comment or pr description
         if github_event == GithubWebhookType.PULL_REQUEST:
             client.create_issue_reaction(repo.name, pr_number, GitHubReaction.EYES)
         elif github_event == GithubWebhookType.ISSUE_COMMENT:
             client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
-
     except Exception:
         record_webhook_handler_error(
             github_event,
