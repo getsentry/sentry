@@ -29,10 +29,7 @@ class TestPassesCodeReviewBillingCheck(TestCase):
             )
 
         assert result is False
-        mock_incr.assert_called_once_with(
-            "seer.code_review.error.contributor_not_found",
-            tags={"organization_id": self.organization.id},
-        )
+        mock_incr.assert_called_once_with("seer.code_review.error.contributor_not_found")
 
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     def test_billing_check_fails_when_quota_check_returns_false(
