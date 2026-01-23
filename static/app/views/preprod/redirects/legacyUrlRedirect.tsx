@@ -8,7 +8,7 @@ import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 export default function LegacyPreprodRedirect() {
   const params = useParams<{
-    projectId: string;
+    projectId: string; // Note: Despite the name, this contains a project SLUG from the legacy URL
     artifactId?: string;
     baseArtifactId?: string;
     headArtifactId?: string;
@@ -16,18 +16,22 @@ export default function LegacyPreprodRedirect() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
+
+  // Extract slug from route param (misnamed as "projectId" in the legacy route)
+  const projectSlugFromUrl = params.projectId;
+
   const project = useProjectFromSlug({
     organization,
-    projectSlug: params.projectId,
+    projectSlug: projectSlugFromUrl,
   });
 
   useEffect(() => {
-    const {projectId, artifactId, headArtifactId, baseArtifactId} = params;
+    const {artifactId, headArtifactId, baseArtifactId} = params;
     const isInstall = location.pathname.includes('/install/');
     const isCompare = location.pathname.includes('/compare/');
 
-    // Use project ID if available, fallback to slug for backward compatibility
-    const projectParam = project?.id ?? projectId;
+    // Prefer numeric project ID, fallback to slug if project not found
+    const projectParam = project?.id ?? projectSlugFromUrl;
 
     let newPath = '';
 
@@ -47,7 +51,7 @@ export default function LegacyPreprodRedirect() {
     if (newPath) {
       navigate(newPath, {replace: true});
     }
-  }, [params, navigate, organization, location, project]);
+  }, [params, navigate, organization, location, project, projectSlugFromUrl]);
 
   return null;
 }
