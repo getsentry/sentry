@@ -41,7 +41,12 @@ from sentry.models.releases.constants import (
 )
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
+from sentry.models.releases.util import (
+    ReleaseQuerySet,
+    SemverFilter,
+    SemverVersion,
+    SemverVersionWithBuildCode,
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -98,8 +103,11 @@ class ReleaseModelManager(BaseManager["Release"]):
     def get_queryset(self) -> ReleaseQuerySet:
         return ReleaseQuerySet(self.model, using=self._db)
 
-    def annotate_prerelease_column(self):
+    def annotate_prerelease_column(self) -> ReleaseQuerySet:
         return self.get_queryset().annotate_prerelease_column()
+
+    def annotate_build_code_column(self) -> ReleaseQuerySet:
+        return self.get_queryset().annotate_build_code_column()
 
     def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
@@ -301,6 +309,18 @@ class Release(Model):
 
     SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
+    SEMVER_COLS_WITH_BUILD_CODE = [
+        "major",
+        "minor",
+        "patch",
+        "revision",
+        "prerelease_case",
+        "prerelease",
+        "build_code_case",
+        "build_number",
+        "build_code",
+    ]
+
     def __eq__(self, other: object) -> bool:
         """Make sure that specialized releases are only comparable to the same
         other specialized release.  This for instance lets us treat them
@@ -398,6 +418,27 @@ class Release(Model):
             self.revision,
             1 if self.prerelease == "" else 0,
             self.prerelease,
+        )
+
+    @property
+    def semver_tuple_with_build_code(self) -> SemverVersionWithBuildCode:
+        if self.build_number is None and self.build_code is not None:
+            build_code_case = 2
+        elif self.build_number is not None:
+            build_code_case = 1
+        else:
+            build_code_case = 0
+
+        return SemverVersionWithBuildCode(
+            self.major,
+            self.minor,
+            self.patch,
+            self.revision,
+            1 if self.prerelease == "" else 0,
+            self.prerelease,
+            build_code_case,
+            self.build_number,
+            self.build_code,
         )
 
     @classmethod

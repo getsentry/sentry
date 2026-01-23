@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from sentry_relay.processing import compare_version, parse_release
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
@@ -2027,3 +2028,46 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_filter = Release.get_unused_filter(self.cutoff_date)
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
+
+
+class ReleaseOrderBySemverTestCase(TestCase):
+    def test_compare_version_sorts_by_build_number(self):
+        """
+        Test that compare_version correctly sorts releases by build number with various formats.
+
+        DESC (largest to smallest):
+        1. alphanumeric builds (compared lexicographically)
+        2. numeric builds (compared numerically)
+        3. no build
+        """
+        # numeric builds use numerical comparison
+        v1 = parse_release("app@1.0.0+999")["version_raw"]
+        v2 = parse_release("app@1.0.0+1000")["version_raw"]
+        assert compare_version(v1, v2) == -1
+        assert compare_version(v2, v1) == 1
+
+        # alphanumeric builds use lexicographic comparison
+        v1 = parse_release("app@1.0.0+abc")["version_raw"]
+        v2 = parse_release("app@1.0.0+xyz")["version_raw"]
+        assert compare_version(v1, v2) == -1
+        assert compare_version(v2, v1) == 1
+        v1 = parse_release("app@1.0.0+z1b2c3d")["version_raw"]
+        v2 = parse_release("app@1.0.0+z9y8x7w")["version_raw"]
+        assert compare_version(v1, v2) == -1
+        assert compare_version(v2, v1) == 1
+        v1 = parse_release("app@1.0.0+build.45")["version_raw"]
+        v2 = parse_release("app@1.0.0+build.123")["version_raw"]
+        assert compare_version(v1, v2) == 1
+        assert compare_version(v2, v1) == -1
+
+        # numeric < alphanumeric
+        v1 = parse_release("app@1.0.0+999")["version_raw"]
+        v2 = parse_release("app@1.0.0+abc")["version_raw"]
+        assert compare_version(v1, v2) == -1
+        assert compare_version(v2, v1) == 1
+
+        #  no build < with build
+        v_no_build = parse_release("app@1.0.0")["version_raw"]
+        v_with_build = parse_release("app@1.0.0+123")["version_raw"]
+        assert compare_version(v_no_build, v_with_build) == -1
+        assert compare_version(v_with_build, v_no_build) == 1
