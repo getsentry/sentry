@@ -471,11 +471,11 @@ const ccd = color.categorical.dark;
 
 const CHART_PALETTE_DARK = [
   [ccd.blurple],
-  [ccd.blurple, ccd.purple],
-  [ccd.blurple, ccd.purple, ccd.pink],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
+  [ccd.blurple, ccd.indigo],
+  [ccd.blurple, ccd.indigo, ccd.pink],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
   [ccd.blurple, ccd.purple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
   [
     ccd.blurple,
@@ -845,13 +845,6 @@ const lightThemeDefinition = {
 
   ...generateThemeUtils(),
 
-  /**
-   * @deprecated do not use this.
-   */
-  level: {
-    orange: ccl.orange,
-  },
-
   chart: {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -879,13 +872,6 @@ export const darkTheme: SentryTheme = {
   }),
 
   ...generateThemeUtils(),
-
-  /**
-   * @deprecated do not use this.
-   */
-  level: {
-    orange: ccd.orange,
-  },
 
   chart: {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
