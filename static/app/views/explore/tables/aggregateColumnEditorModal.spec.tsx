@@ -267,6 +267,7 @@ describe('AggregateColumnEditorModal', () => {
 
     const options: string[] = [
       '\u2014',
+      'feature.enabled',
       'foo',
       'geo.city',
       'geo.country',
@@ -286,7 +287,7 @@ describe('AggregateColumnEditorModal', () => {
       expect(option).toHaveTextContent(options[i]!);
     });
 
-    await userEvent.click(groupByOptions[2]!);
+    await userEvent.click(groupByOptions[3]!);
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.city'},
