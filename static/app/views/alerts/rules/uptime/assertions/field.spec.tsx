@@ -435,7 +435,7 @@ describe('normalizeAssertion', () => {
     };
 
     const result = normalizeAssertion(nested);
-    expect(result.children[0].value).toBe(200);
-    expect(result.children[1].value).toBe(599);
+    expect(result.children[0]?.value).toBe(200);
+    expect(result.children[1]?.value).toBe(599);
   });
 });

@@ -9,7 +9,7 @@ import {AssertionOpGroup} from './opGroup';
  * Recursively normalizes assertion values to ensure they are valid before submission.
  * Handles NaN values (from cleared inputs) and clamps to valid HTTP status code range.
  */
-export function normalizeAssertion(op: Op): Op {
+export function normalizeAssertion<T extends Op>(op: T): T {
   switch (op.op) {
     case 'status_code_check':
       return {
