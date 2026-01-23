@@ -298,10 +298,12 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : undefined;
   const bucketSize = getBucketSize(series);
 
+  // Exclude 'byte' from the calculation because that's ambiguous
+  // and most charts want base2 by default
   const sizeBase =
     timeseriesResultsUnits &&
-    Object.values(timeseriesResultsUnits).some(unit =>
-      ABYTE_UNITS.includes(unit as string)
+    Object.values(timeseriesResultsUnits).some(
+      unit => ABYTE_UNITS.includes(unit as string) && unit !== 'byte'
     )
       ? 10
       : 2;

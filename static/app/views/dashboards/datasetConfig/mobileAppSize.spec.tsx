@@ -271,19 +271,19 @@ describe('MobileAppSizeConfig', () => {
       });
     });
 
-    it('returns byte unit for single-series aggregate', () => {
+    it('returns megabyte unit for single-series aggregate', () => {
       expect(
         MobileAppSizeConfig.getSeriesResultUnit!(singleSeriesData, singleSeriesQuery)
-      ).toEqual({'max(install_size)': 'byte'});
+      ).toEqual({'max(install_size)': 'megabyte'});
     });
 
-    it('returns byte unit for multi-series grouped data', () => {
+    it('returns megabyte unit for multi-series grouped data', () => {
       expect(
         MobileAppSizeConfig.getSeriesResultUnit!(multiSeriesData, multiSeriesQuery)
       ).toEqual({
-        'max(install_size)': 'byte',
-        'com.sentry.app,ios': 'byte',
-        'com.sentry.app,android': 'byte',
+        'max(install_size)': 'megabyte',
+        'com.sentry.app,ios': 'megabyte',
+        'com.sentry.app,android': 'megabyte',
       });
     });
   });

@@ -347,7 +347,7 @@ export const MobileAppSizeConfig: DatasetConfig<
   getSeriesResultType: (data, widgetQuery) =>
     buildSeriesResultMap(data, widgetQuery, 'size'),
   getSeriesResultUnit: (data, widgetQuery) =>
-    buildSeriesResultMap(data, widgetQuery, SizeUnit.BYTE),
+    buildSeriesResultMap(data, widgetQuery, SizeUnit.MEGABYTE),
   filterAggregateParams,
   handleOrderByReset,
 };
