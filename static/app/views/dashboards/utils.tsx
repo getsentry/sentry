@@ -138,13 +138,13 @@ export function getWidgetInterval(
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
 
+  // TODO: we need to check if the `1d` restriction is still needed for other datasets
   let interval =
     widget.widgetType === WidgetType.SPANS ||
     widget.widgetType === WidgetType.LOGS ||
     widget.widgetType === WidgetType.TRACEMETRICS ||
     widget.widgetType === WidgetType.ERRORS
-      ? // For span based widgets, we want to permit non 1d bar charts.
-        undefined
+      ? undefined
       : // Bars charts are daily totals to aligned with discover. It also makes them
         // usefully different from line/area charts until we expose the interval control, or remove it.
         widget.displayType === 'bar'
