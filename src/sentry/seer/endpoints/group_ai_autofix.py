@@ -13,6 +13,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -23,6 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.autofix_examples import AutofixExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
@@ -145,6 +147,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         },
         examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
     )
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
     def post(self, request: Request, group: Group) -> Response:
         """
         Trigger a Seer Issue Fix run for a specific issue.
@@ -234,6 +237,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         },
         examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
     )
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve the current detailed state of an issue fix process for a specific issue including:
