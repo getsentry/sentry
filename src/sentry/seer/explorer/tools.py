@@ -872,7 +872,11 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 
 
 def get_issue_and_event_response(
-    event: Event | GroupEvent, group: Group | None, organization: Organization
+    event: Event | GroupEvent,
+    group: Group | None,
+    organization: Organization,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> dict[str, Any]:
     serialized_event = serialize(event, user=None, serializer=EventSerializer())
 
@@ -891,7 +895,7 @@ def get_issue_and_event_response(
         serialized_group["issueTypeDescription"] = group.issue_type.description
 
         try:
-            tags_overview = get_all_tags_overview(group)
+            tags_overview = get_all_tags_overview(group, start, end)
         except Exception:
             logger.exception(
                 "Failed to get tags overview for issue",
@@ -1031,9 +1035,9 @@ def get_issue_and_event_details_v2(
         return None
 
     if include_issue:
-        return get_issue_and_event_response(event, group, organization)
+        return get_issue_and_event_response(event, group, organization, start_dt, end_dt)
 
-    return get_issue_and_event_response(event, None, organization)
+    return get_issue_and_event_response(event, None, organization, start_dt, end_dt)
 
 
 def get_replay_metadata(
