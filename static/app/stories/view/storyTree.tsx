@@ -138,7 +138,15 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
 > = {
   layout: {
     label: 'Layout',
-    components: ['composition', 'container', 'disclosure', 'flex', 'grid', 'stack'],
+    components: [
+      'composition',
+      'container',
+      'flex',
+      'grid',
+      'stack',
+      'surface',
+      'disclosure',
+    ],
   },
   typography: {
     label: 'Typography',
