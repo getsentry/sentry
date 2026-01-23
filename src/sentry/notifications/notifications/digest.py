@@ -118,11 +118,15 @@ class DigestNotification(ProjectNotification):
         self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         tz: tzinfo = UTC
+        clock_24_hours = False
         if recipient.is_user:
             user_options = user_option_service.get_many(
-                filter={"user_ids": [recipient.id], "keys": ["timezone"]}
+                filter={"user_ids": [recipient.id], "keys": ["timezone", "clock_24_hours"]}
             )
             user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
+            clock_24_hours = bool(
+                get_option_from_list(user_options, key="clock_24_hours", default=False)
+            )
             try:
                 tz = zoneinfo.ZoneInfo(user_tz)
             except (ValueError, zoneinfo.ZoneInfoNotFoundError):
@@ -130,6 +134,7 @@ class DigestNotification(ProjectNotification):
         return {
             **super().get_recipient_context(recipient, extra_context),
             "timezone": tz,
+            "clock_24_hours": clock_24_hours,
         }
 
     def get_context(self) -> MutableMapping[str, Any]:
