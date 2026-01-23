@@ -356,6 +356,17 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert len(response.json()["builds"]) == 4
 
+    def test_list_builds_search_by_build_id(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}&query={self.artifact2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 1
+        assert builds[0]["id"] == str(self.artifact2.id)
+
     def test_list_builds_search_too_long(self) -> None:
         response = self.client.get(
             f"{self._get_url()}?project={self.project.id}&query={'a' * 101}",
