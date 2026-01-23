@@ -2,7 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import all_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
@@ -10,7 +10,7 @@ from sentry.sentry_apps.services.region import sentry_app_region_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 
 
-@all_silo_endpoint
+@control_silo_endpoint
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
