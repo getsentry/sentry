@@ -1,7 +1,6 @@
 from collections.abc import Sequence
-from typing import Any
 
-from django.db.models import Count, Max, Min, Q
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -27,7 +26,6 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactQuerySet
 
 ERR_FEATURE_REQUIRED = "Feature {} is not enabled for the organization."
-ERR_BAD_KEY = "Key {} is unknown."
 
 search_config = SearchConfig.create_from(
     SearchConfig(),
@@ -345,89 +343,5 @@ class BuildsEndpoint(OrganizationEndpoint):
             # CodeQL complains about str(e) below but ~all handlers
             # of InvalidSearchQuery do the same as this.
             return Response({"detail": str(e)}, status=400)
-
-        return paginate(queryset)
-
-
-@region_silo_endpoint
-class BuildTagKeyValuesEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.EMERGE_TOOLS
-    publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-    }
-
-    def get(self, request: Request, organization: Organization, key: str) -> Response:
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response(
-                {"detail": ERR_FEATURE_REQUIRED.format("organizations:preprod-frontend-routes")},
-                status=403,
-            )
-
-        if key not in search_config.allowed_keys:
-            return Response(
-                {"detail": ERR_BAD_KEY.format(key)},
-                status=400,
-            )
-
-        # Some keys are synthetic/computed and don't have tag values
-        if key in ("is", "platform"):
-            return Response(
-                {"detail": f"Key {key} does not support tag value lookups."},
-                status=400,
-            )
-
-        db_key = FIELD_MAPPINGS.get(key, key)
-
-        # We create the same output format as TagValue passed to
-        # TagValueSerializer but we don't want to actually use
-        # TagValueSerializer since that calls into tagstore.
-        def row_to_tag_value(row: dict[str, Any]) -> dict[str, Any]:
-            return {
-                "count": row["count"],
-                "name": key,
-                "value": row[db_key],
-                "firstSeen": row["first_seen"],
-                "lastSeen": row["last_seen"],
-            }
-
-        paginate = lambda queryset: self.paginate(
-            order_by="-last_seen",
-            request=request,
-            queryset=queryset,
-            on_results=lambda rows: [row_to_tag_value(row) for row in rows],
-            paginator_cls=OffsetPaginator,
-        )
-
-        try:
-            params = self.get_filter_params(request, organization, date_filter_optional=True)
-        except NoProjects:
-            project_id = []
-            start = None
-            end = None
-        else:
-            project_id = params["project_id"]
-            start = params["start"]
-            end = params["end"]
-            # Builds don't have environments so we ignore environments from
-            # params on purpose.
-
-        queryset = PreprodArtifact.objects.all()
-        queryset = queryset.filter(project_id__in=project_id)
-
-        if start:
-            queryset = queryset.filter(date_added__gte=start)
-        if end:
-            queryset = queryset.filter(date_added__lte=end)
-
-        queryset = queryset.values(db_key)
-        queryset = queryset.exclude(**{f"{db_key}__isnull": True})
-        queryset = queryset.annotate_download_count()
-        queryset = queryset.annotate_installable()
-        queryset = queryset.annotate_main_size_metrics()
-        queryset = queryset.annotate(
-            count=Count("*"), first_seen=Min("date_added"), last_seen=Max("date_added")
-        )
 
         return paginate(queryset)
