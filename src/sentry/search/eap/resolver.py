@@ -720,20 +720,22 @@ class SearchResolver:
             column_type = column.proto_definition.type
             if column_type == constants.STRING:
                 if operator in constants.IN_OPERATORS:
-                    if isinstance(value, list) and all(isinstance(item, str) for item in value):
-                        return AttributeValue(val_str_array=StrArray(values=value))
-                    else:
-                        raise InvalidSearchQuery(
-                            f"{value} is not a valid value for doing an IN filter"
-                        )
+                    if isinstance(value, list):
+                        # Filter out None values from the list
+                        filtered_values = [item for item in value if item is not None]
+                        if all(isinstance(item, str) for item in filtered_values):
+                            return AttributeValue(val_str_array=StrArray(values=filtered_values))
+                    raise InvalidSearchQuery(f"{value} is not a valid value for doing an IN filter")
                 else:
                     return AttributeValue(val_str=str(value))
             elif column_type == constants.INT:
                 # The search parser will always convert a value to a float, so we need to cast back to an int
                 if operator in constants.IN_OPERATORS:
                     if isinstance(value, list):
+                        # Filter out None values from the list
+                        filtered_values = [val for val in value if val is not None]
                         return AttributeValue(
-                            val_int_array=IntArray(values=[int(val) for val in value])
+                            val_int_array=IntArray(values=[int(val) for val in filtered_values])
                         )
                     else:
                         raise InvalidSearchQuery(
@@ -744,11 +746,13 @@ class SearchResolver:
             elif column_type == constants.DOUBLE:
                 if operator in constants.IN_OPERATORS:
                     if isinstance(value, list):
+                        # Filter out None values from the list
+                        filtered_values = [val for val in value if val is not None]
                         return AttributeValue(
                             val_double_array=DoubleArray(
                                 values=[
                                     val.timestamp() if isinstance(val, datetime) else val
-                                    for val in value
+                                    for val in filtered_values
                                 ]
                             )
                         )
