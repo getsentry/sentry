@@ -845,6 +845,11 @@ const lightThemeDefinition = {
 
   ...generateThemeUtils(),
 
+  // @todo(jonasbadalic): Figure out what we're doing with orange
+  level: {
+    orange: ccl.orange,
+  },
+
   chart: {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -872,6 +877,11 @@ export const darkTheme: SentryTheme = {
   }),
 
   ...generateThemeUtils(),
+
+  // @todo(jonasbadalic): Figure out what we're doing with orange
+  level: {
+    orange: ccd.orange,
+  },
 
   chart: {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
