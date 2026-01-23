@@ -51,8 +51,7 @@ class FixEmailActionFallthroughTypeTest(TestMigrations):
 
         for action in email_actions_1:
             # Overwrite with wrong data to simulate the bug
-            action.data = {"fallthrough_type": "ActiveMembers"}
-            action.config = {}
+            action.data.update({"fallthrough_type": "ActiveMembers"})
             action.save()
 
         # Store original plugin action data for comparison
