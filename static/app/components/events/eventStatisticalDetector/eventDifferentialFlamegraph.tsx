@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -179,7 +179,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           flamegraph={differentialFlamegraph}
           canvasPoolManager={canvasPoolManager}
         />
-        <DifferentialFlamegraphContainer>
+        <Container width="100%" height="420px" position="relative">
           {props.after.isPending || props.before.isPending ? (
             <Stack justify="center" width="100%" height="100%" position="absolute">
               <LoadingIndicator />
@@ -203,7 +203,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             canvasPoolManager={canvasPoolManager}
             scheduler={scheduler}
           />
-        </DifferentialFlamegraphContainer>
+        </Container>
         <DifferentialFlamegraphExplanationBar negated={negated} />
       </StyledPanel>
 
@@ -541,7 +541,10 @@ function DifferentialFlamegraphLegend() {
   return (
     <Flex justify="between" align="center">
       <div>+</div>
-      <DifferentialFlamegraphLegendBar
+      <Container
+        margin="0 xs"
+        width="60px"
+        height="14px"
         style={{
           background: `linear-gradient(90deg, rgba(${increaseColor}) 0%, rgba(${neutralColor}) 50%, rgba(${decreaseColor}) 100%)`,
         }}
@@ -550,12 +553,6 @@ function DifferentialFlamegraphLegend() {
     </Flex>
   );
 }
-
-const DifferentialFlamegraphLegendBar = styled('div')`
-  width: 60px;
-  height: 14px;
-  margin: 0 ${space(0.5)};
-`;
 
 function DifferentialFlamegraphChangedFunctionsTitle(props: {
   onNextPageClick: (() => void) | undefined;
@@ -618,12 +615,6 @@ const ErrorMessageContainer = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   padding: ${space(2)} ${space(4)};
-`;
-
-const DifferentialFlamegraphContainer = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 420px;
 `;
 
 const StyledPanel = styled(Panel)`
