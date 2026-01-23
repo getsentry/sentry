@@ -14,23 +14,6 @@ from sentry.uptime.consumers.eap_converter import (
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 
-MOCK_ASSERTION_FAILURE_DATA = (
-    {
-        "root": {
-            "op": "and",
-            "children": [
-                {
-                    "op": "not",
-                    "operand": {
-                        "op": "json_path",
-                        "value": '$.components[?@.status == "operational"]',
-                    },
-                }
-            ],
-        }
-    },
-)
-
 
 class TestHelperFunctions(TestCase):
     def test_anyvalue_string(self) -> None:
