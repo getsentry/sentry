@@ -251,6 +251,7 @@ function ColumnEditorRow({
           numberTags={numberTags}
           onChange={onColumnChange}
           stringTags={stringTags}
+          booleanTags={booleanTags}
         />
       ) : (
         <VisualizeSelector
@@ -275,6 +276,7 @@ function ColumnEditorRow({
 }
 
 interface GroupBySelectorProps {
+  booleanTags: TagCollection;
   groupBy: GroupBy;
   groupBys: string[];
   numberTags: TagCollection;
@@ -288,11 +290,13 @@ function GroupBySelector({
   numberTags,
   onChange,
   stringTags,
+  booleanTags,
 }: GroupBySelectorProps) {
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,
+    booleanTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 
