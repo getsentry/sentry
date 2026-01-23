@@ -81,9 +81,12 @@ class DigestNotification(ProjectNotification):
             # This shouldn't be possible but adding a message just in case.
             return "Digest Report"
 
-        # Use timezone from context if available (added by get_recipient_context)
+        # Use timezone and clock format from context (added by get_recipient_context)
         timezone = context.get("timezone")
-        return get_digest_subject(context["group"], context["counts"], context["start"], timezone)
+        clock_24_hours = context.get("clock_24_hours", False)
+        return get_digest_subject(
+            context["group"], context["counts"], context["start"], timezone, clock_24_hours
+        )
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
