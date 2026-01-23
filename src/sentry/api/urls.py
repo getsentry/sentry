@@ -544,6 +544,7 @@ from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSu
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
 from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
+from sentry.seer.endpoints.seer_models import SeerModelsEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
@@ -837,7 +838,6 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
-from .endpoints.seer_models import SeerModelsEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
