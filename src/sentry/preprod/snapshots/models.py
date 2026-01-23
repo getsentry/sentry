@@ -15,7 +15,12 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 class PreprodSnapshotMetrics(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact")
+    preprod_artifact = models.OneToOneField(
+        "preprod.PreprodArtifact",
+        on_delete=models.CASCADE,
+    )
+
+    image_count = BoundedPositiveIntegerField(default=0)
 
     # Other future fields like carry forward references (selective testing),
     # history support, etc.
