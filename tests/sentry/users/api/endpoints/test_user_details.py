@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from pytest import fixture
@@ -329,7 +329,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert user.is_staff
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_is_active_changed(self, mock_audit_logger) -> None:
+    def test_audit_log_emitted_when_is_active_changed(self, mock_audit_logger: MagicMock) -> None:
         self.user.update(is_active=True)
         self.login_as(user=self.superuser, superuser=True)
 
@@ -349,7 +349,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         )
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_is_staff_changed(self, mock_audit_logger) -> None:
+    def test_audit_log_emitted_when_is_staff_changed(self, mock_audit_logger: MagicMock) -> None:
         self.user.update(is_staff=False)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
         self.login_as(user=self.superuser, superuser=True)
@@ -370,7 +370,9 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         )
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_is_superuser_changed(self, mock_audit_logger) -> None:
+    def test_audit_log_emitted_when_is_superuser_changed(
+        self, mock_audit_logger: MagicMock
+    ) -> None:
         self.user.update(is_superuser=False)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
         self.login_as(user=self.superuser, superuser=True)
@@ -391,7 +393,9 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         )
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_not_emitted_when_is_active_unchanged(self, mock_audit_logger) -> None:
+    def test_audit_log_not_emitted_when_is_active_unchanged(
+        self, mock_audit_logger: MagicMock
+    ) -> None:
         self.user.update(is_active=True)
         self.login_as(user=self.superuser, superuser=True)
 
@@ -403,7 +407,9 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         mock_audit_logger.info.assert_not_called()
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_not_emitted_for_non_privileged_fields(self, mock_audit_logger) -> None:
+    def test_audit_log_not_emitted_for_non_privileged_fields(
+        self, mock_audit_logger: MagicMock
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         # Only change name, not any privileged fields
@@ -421,7 +427,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
     def test_audit_log_emitted_when_multiple_privileged_fields_changed(
-        self, mock_audit_logger
+        self, mock_audit_logger: MagicMock
     ) -> None:
         self.user.update(is_active=True, is_staff=False)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
@@ -563,7 +569,9 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         assert user.is_staff
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_staff_changes_is_active(self, mock_audit_logger) -> None:
+    def test_audit_log_emitted_when_staff_changes_is_active(
+        self, mock_audit_logger: MagicMock
+    ) -> None:
         self.user.update(is_active=True)
         self.login_as(user=self.staff_user, staff=True)
 
@@ -583,7 +591,9 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         )
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_staff_changes_is_staff(self, mock_audit_logger) -> None:
+    def test_audit_log_emitted_when_staff_changes_is_staff(
+        self, mock_audit_logger: MagicMock
+    ) -> None:
         self.user.update(is_staff=False)
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
         self.login_as(user=self.staff_user, staff=True)
@@ -604,7 +614,9 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         )
 
     @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_staff_changes_is_superuser(self, mock_audit_logger) -> None:
+    def test_audit_log_emitted_when_staff_changes_is_superuser(
+        self, mock_audit_logger: MagicMock
+    ) -> None:
         self.user.update(is_superuser=False)
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
         self.login_as(user=self.staff_user, staff=True)
