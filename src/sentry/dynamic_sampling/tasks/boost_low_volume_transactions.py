@@ -381,6 +381,7 @@ class FetchProjectTransactionTotals:
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",
                 tags={"query_type": "totals", "metric_type": metric_type},
+                sample_rate=1,
             )
 
             count = len(data)
@@ -548,6 +549,7 @@ class FetchProjectTransactionVolumes:
                     "metric_type": metric_type,
                     "volume_type": volume_type,
                 },
+                sample_rate=1,
             )
 
             count = len(data)
