@@ -34,6 +34,12 @@ class OrgCellMappingsTest(APITestCase):
         res = self.client.get(url)
         assert res.status_code == 401
 
+    def test_get_no_allow_cookie_auth(self) -> None:
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-org-cell-mappings")
+        res = self.client.get(url)
+        assert res.status_code == 401
+
     def test_get_invalid_auth(self) -> None:
         url = reverse("sentry-api-0-org-cell-mappings")
         res = self.client.get(
