@@ -258,6 +258,7 @@ export default function MetricDetailsBody({
                   rule={rule}
                   projects={[project]}
                   timePeriod={timePeriod}
+                  selectedIncident={selectedIncident}
                   query={
                     dataset === Dataset.ERRORS
                       ? // Not using (query) AND (event.type:x) because issues doesn't support it yet

@@ -20,6 +20,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {Incident} from 'sentry/views/alerts/types';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 
@@ -31,6 +32,11 @@ interface Props {
   rule: MetricRule;
   timePeriod: TimePeriodType;
   query?: string;
+  /**
+   * When viewing a specific incident, use its actual time bounds for the issues
+   * query instead of the expanded chart range in timePeriod.
+   */
+  selectedIncident?: Incident | null;
   skipHeader?: boolean;
 }
 
@@ -40,6 +46,7 @@ export default function RelatedIssues({
   projects,
   query,
   timePeriod,
+  selectedIncident,
   skipHeader,
 }: Props) {
   const location = useLocation();
@@ -94,7 +101,10 @@ export default function RelatedIssues({
     );
   }
 
-  const {start, end} = timePeriod;
+  // Use actual incident time bounds when viewing a specific incident, otherwise
+  // use the (potentially expanded) chart time period
+  const start = selectedIncident?.dateStarted ?? timePeriod.start;
+  const end = selectedIncident?.dateClosed ?? timePeriod.end;
 
   const path = `/organizations/${organization.slug}/issues/`;
   const queryParams = {
