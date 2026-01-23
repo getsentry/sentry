@@ -39,8 +39,8 @@ const FILE_DIFF_INSIGHT_TYPES = [
 
 const GROUP_DIFF_INSIGHT_TYPES = ['duplicate_files', 'loose_images'];
 
-const UNRESOLVED_DIFF_TYPES = new Set<DiffType>(['added', 'increased']);
-const RESOLVED_DIFF_TYPES = new Set<DiffType>(['removed', 'decreased']);
+const UNRESOLVED_ITEM_TYPES = new Set<DiffType>(['added', 'increased']);
+const RESOLVED_ITEM_TYPES = new Set<DiffType>(['removed', 'decreased']);
 
 function sumDiffItems(diffItems: DiffItem[]): number {
   return diffItems.reduce((total, item) => total + item.size_diff, 0);
@@ -78,7 +78,7 @@ function filterDiffItems(
   });
 }
 
-function filterInsightByDiffTypes(
+function filterInsightByLineItemTypes(
   insight: InsightDiffItem,
   allowedTypes: Set<DiffType>,
   fallbackType: DiffType
@@ -130,9 +130,9 @@ export function InsightComparisonSection({
       }
 
       if (insight.status === 'unresolved') {
-        const unresolvedInsight = filterInsightByDiffTypes(
+        const unresolvedInsight = filterInsightByLineItemTypes(
           insight,
-          UNRESOLVED_DIFF_TYPES,
+          UNRESOLVED_ITEM_TYPES,
           'increased'
         );
         if (unresolvedInsight) {
@@ -140,9 +140,9 @@ export function InsightComparisonSection({
         }
       }
 
-      const resolvedInsight = filterInsightByDiffTypes(
+      const resolvedInsight = filterInsightByLineItemTypes(
         insight,
-        RESOLVED_DIFF_TYPES,
+        RESOLVED_ITEM_TYPES,
         'decreased'
       );
       if (resolvedInsight) {
