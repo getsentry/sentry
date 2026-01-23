@@ -42,6 +42,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
+from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
@@ -75,7 +76,6 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.entrypoints.operator import process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
@@ -375,16 +375,10 @@ def get_attributes_and_values(
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
-    stats_period, start, end = validate_date_params(stats_period, start, end)
-
-    if stats_period:
-        period = parse_stats_period(stats_period) or datetime.timedelta(days=7)
-        end_dt = datetime.datetime.now()
-        start_dt = end_dt - period
-    else:
-        # end and start should both be not None after validate_date_params
-        end_dt = datetime.datetime.fromisoformat(end or "")
-        start_dt = datetime.datetime.fromisoformat(start or "")
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=datetime.timedelta(days=7),
+    )
 
     start_time_proto = ProtobufTimestamp()
     start_time_proto.FromDatetime(start_dt)
