@@ -12,6 +12,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_date_range_from_params
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.ratelimits.config import RateLimitConfig
@@ -65,12 +66,15 @@ class GroupTagsEndpoint(GroupEndpoint):
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
+        start, end = get_date_range_from_params(request.GET, optional=True)
         tag_keys = backend.get_group_tag_keys_and_top_values(
             group,
             environment_ids,
             keys=keys,
             value_limit=value_limit,
             tenant_ids={"organization_id": group.project.organization_id},
+            start=start,
+            end=end,
         )
 
         data = serialize(tag_keys, request.user)
