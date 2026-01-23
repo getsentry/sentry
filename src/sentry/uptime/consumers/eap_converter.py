@@ -92,7 +92,7 @@ def convert_uptime_request_to_trace_item(
         attributes["status_reason_type"] = _anyvalue(status_reason["type"])
         attributes["status_reason_description"] = _anyvalue(status_reason["description"])
 
-    assertion_failure_data = result["assertion_failure_data"]
+    assertion_failure_data = result.get("assertion_failure_data")
     if assertion_failure_data is not None:
         attributes["assertion_failure_data"] = _anyvalue(json.dumps(assertion_failure_data))
 

@@ -323,8 +323,25 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert "response_body_size_bytes" not in attributes
 
     def test_convert_with_assertion_failure_data(self) -> None:
+        assertion_failure_data = (
+            {
+                "root": {
+                    "op": "and",
+                    "children": [
+                        {
+                            "op": "not",
+                            "operand": {
+                                "op": "json_path",
+                                "value": '$.components[?@.status == "operational"]',
+                            },
+                        }
+                    ],
+                }
+            },
+        )
+
         result = self._create_base_result(
-            assertion_failure_data=MOCK_ASSERTION_FAILURE_DATA,
+            assertion_failure_data=assertion_failure_data,
         )
 
         item_id = b"span-789"[:16].ljust(16, b"\x00")
@@ -334,7 +351,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
 
         attributes = trace_item.attributes
         assert attributes["assertion_failure_data"].string_value == json.dumps(
-            MOCK_ASSERTION_FAILURE_DATA
+            assertion_failure_data
         )
 
 
