@@ -184,7 +184,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         {
             **(
                 {"exception": {"type": sinfo.exception_type, "module": sinfo.exception_module}}
-                if sinfo.get_exception()
+                if sinfo.exception_type and sinfo.exception_module
                 else {}
             ),
             "frames": [
