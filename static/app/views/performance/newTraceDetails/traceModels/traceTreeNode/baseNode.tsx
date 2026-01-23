@@ -278,6 +278,9 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   get visibleChildren(): BaseNode[] {
     const queue: BaseNode[] = [];
     const visibleChildren: BaseNode[] = [];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
+
     if (this.directVisibleChildren.length > 0) {
       for (let i = this.directVisibleChildren.length - 1; i >= 0; i--) {
         queue.push(this.directVisibleChildren[i]!);
@@ -286,6 +289,12 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
     while (queue.length > 0) {
       const node = queue.pop()!;
+
+      // Cycle detection: skip already-visited nodes
+      if (visited.has(node)) {
+        continue;
+      }
+      visited.add(node);
 
       visibleChildren.push(node);
 
@@ -418,9 +427,17 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     predicate: (child: BaseNode) => boolean
   ): ChildType | null {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
 
     while (queue.length > 0) {
       const next = queue.pop()!;
+
+      // Cycle detection: skip already-visited nodes
+      if (visited.has(next)) {
+        continue;
+      }
+      visited.add(next);
 
       if (predicate(next)) {
         return next as ChildType;
@@ -440,9 +457,17 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   ): ChildType[] {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
     const results: ChildType[] = [];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
 
     while (queue.length > 0) {
       const next = queue.pop()!;
+
+      // Cycle detection: skip already-visited nodes
+      if (visited.has(next)) {
+        continue;
+      }
+      visited.add(next);
 
       if (predicate(next)) {
         results.push(next as ChildType);
@@ -459,9 +484,17 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   forEachChild(callback: (child: BaseNode) => void) {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
 
     while (queue.length > 0) {
       const next = queue.pop()!;
+
+      // Cycle detection: skip already-visited nodes
+      if (visited.has(next)) {
+        continue;
+      }
+      visited.add(next);
 
       callback(next);
 
@@ -475,8 +508,17 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   findParent<ChildType extends BaseNode = BaseNode>(
     predicate: (parent: BaseNode) => boolean
   ): ChildType | null {
+    const visited = new Set<BaseNode>();
+    visited.add(this);
+
     let current = this.parent;
     while (current) {
+      // Cycle detection: stop if we've seen this node before
+      if (visited.has(current)) {
+        break;
+      }
+      visited.add(current);
+
       if (predicate(current)) {
         return current as ChildType;
       }
