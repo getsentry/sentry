@@ -845,7 +845,9 @@ const lightThemeDefinition = {
 
   ...generateThemeUtils(),
 
-  // @todo(jonasbadalic): Figure out what we're doing with orange
+  /**
+   * @deprecated do not use this.
+   */
   level: {
     orange: ccl.orange,
   },
@@ -878,7 +880,9 @@ export const darkTheme: SentryTheme = {
 
   ...generateThemeUtils(),
 
-  // @todo(jonasbadalic): Figure out what we're doing with orange
+  /**
+   * @deprecated do not use this.
+   */
   level: {
     orange: ccd.orange,
   },
