@@ -8,6 +8,22 @@
  * This is your friend:
  * `npx eslint --inspect-config`
  */
+
+/**
+ * Import Linting Strategy
+ *
+ * This configuration uses two complementary approaches for linting imports:
+ *
+ * 1. `no-restricted-imports` - Applied to 3rd party dependencies
+ *    - Controls which external packages can be imported
+ *    - Enforces consistent usage of third-party libraries across the codebase
+ *    - Examples: restricting @testing-library/react, lodash, marked, etc.
+ *
+ * 2. `plugin/boundaries` - Applied to local module scopes
+ *    - Enforces architectural boundaries between different parts of the codebase
+ *    - Controls which internal modules can import from each other
+ *    - Examples: preventing sentry from importing getsentry, core isolation, test boundaries
+ */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import pluginQuery from '@tanstack/eslint-plugin-query';
@@ -307,14 +323,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -867,14 +875,6 @@ export default typescript.config([
         {
           patterns: [
             {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -896,14 +896,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -956,10 +948,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into gsApp',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],

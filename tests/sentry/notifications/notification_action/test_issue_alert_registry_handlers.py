@@ -563,6 +563,11 @@ class TestEmailIssueAlertHandler(BaseWorkflowTest):
             if target_identifier in ("None", "", None):
                 target_identifier = None
 
+            # Convert fallthroughType (camelCase) to fallthrough_type (snake_case)
+            # to match the Action data schema
+            if "fallthroughType" in action_data:
+                action_data["fallthrough_type"] = action_data.pop("fallthroughType")
+
             action = self.create_action(
                 type=Action.Type.EMAIL,
                 data=action_data,

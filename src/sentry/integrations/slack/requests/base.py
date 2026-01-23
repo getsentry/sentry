@@ -239,7 +239,7 @@ class SlackRequest:
         self._info("slack.request")
 
     def _error(self, key: str) -> None:
-        _logger.error(key, extra={**self.logging_data})
+        _logger.warning(key, extra={**self.logging_data})
 
     def _info(self, key: str) -> None:
         _logger.info(key, extra={**self.logging_data})
