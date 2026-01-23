@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import chunk from 'lodash/chunk';
 
 import {ReleasesSortOption} from 'sentry/constants/releases';
@@ -35,7 +35,6 @@ export function useReleases(
 ): {
   data: ReleaseWithCount[];
   isLoading: boolean;
-  onSearch: (search: string) => void;
 } {
   const organization = useOrganization();
   const {selection, isReady} = usePageFilters();
@@ -56,6 +55,8 @@ export function useReleases(
           environment: environments,
           query: searchTerm,
           sort: activeSort,
+          // flatten=1 groups releases across projects when sorting by non-date fields,
+          // flatten=0 keeps releases separate per project for date sorting
           flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
         },
       },
@@ -120,7 +121,10 @@ export function useReleases(
       })
     );
     return stats;
-    // Using metricsFetched as dep to re-compute when all queries complete
+    // We intentionally use metricsFetched (a boolean) as the dependency instead of
+    // releaseMetrics (the useQueries result) because useQueries returns an unstable
+    // reference on every render. When metricsFetched becomes true, all query data
+    // is available via the closure, making this safe.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metricsFetched]);
 
@@ -135,14 +139,8 @@ export function useReleases(
     }));
   }, [allReleases, metricsFetched, metricsStats]);
 
-  const onSearch = useCallback(() => {
-    // Search is handled by updating the searchTerm parameter
-    // which will trigger a new query
-  }, []);
-
   return {
     data: enrichedReleases,
     isLoading: !metricsFetched || releaseResults.isPending,
-    onSearch,
   };
 }

@@ -154,7 +154,7 @@ type LabelDetailsProps = {
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
-    <Flex justify="between" gap="sm" style={{minWidth: 200}}>
+    <LabelDetailsWrapper justify="between" gap="sm">
       {defined(props.eventCount) && (
         <Container>{tn('%s event', '%s events', props.eventCount)}</Container>
       )}
@@ -163,9 +163,13 @@ function LabelDetails(props: LabelDetailsProps) {
           <DateTime dateOnly year date={props.dateCreated} />
         </Container>
       )}
-    </Flex>
+    </LabelDetailsWrapper>
   );
 }
+
+const LabelDetailsWrapper = styled(Flex)`
+  min-width: 200px;
+`;
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
