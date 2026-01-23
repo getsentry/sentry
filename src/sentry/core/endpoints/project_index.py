@@ -26,7 +26,7 @@ class ProjectIndexEndpoint(Endpoint):
     }
     permission_classes = (ProjectPermission,)
 
-    @deprecated(CELL_API_DEPRECATION_DATE, suggested_api="sentry-0-api-organization-projects")
+    @deprecated(CELL_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/projects/")
     def get(self, request: Request) -> Response:
         """
         List your Projects
