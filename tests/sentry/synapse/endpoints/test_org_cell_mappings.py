@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 us_region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de_region = Region("de", 1, "https://de.testserver", RegionCategory.MULTI_TENANT)
+de_region = Region("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 region_config = (us_region, de_region)
 
 
