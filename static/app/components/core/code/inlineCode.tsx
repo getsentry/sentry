@@ -37,5 +37,6 @@ interface InlineCodeProps extends React.HTMLProps<HTMLElementTagNameMap['code']>
 }
 export function InlineCode(props: InlineCodeProps) {
   const theme = useTheme();
-  return <code css={inlineCodeStyles(theme, props)} {...props} />;
+  const {variant: _, ...domProps} = props;
+  return <code css={inlineCodeStyles(theme, props)} {...domProps} />;
 }
