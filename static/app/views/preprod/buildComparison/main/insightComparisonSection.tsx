@@ -43,7 +43,7 @@ const UNRESOLVED_DIFF_TYPES = new Set<DiffType>(['added', 'increased']);
 const RESOLVED_DIFF_TYPES = new Set<DiffType>(['removed', 'decreased']);
 
 function sumDiffItems(diffItems: DiffItem[]): number {
-  return diffItems.reduce((total, item) => total + (item.size_diff ?? 0), 0);
+  return diffItems.reduce((total, item) => total + item.size_diff, 0);
 }
 
 function filterDiffItems(
@@ -52,55 +52,37 @@ function filterDiffItems(
   fallbackType: DiffType
 ): DiffItem[] {
   return diffItems.flatMap(item => {
-    const children = Array.isArray(item.diff_items) ? item.diff_items : [];
-    const filteredChildren = children.filter(child => allowedTypes.has(child.type));
-    const hasAllowedType = allowedTypes.has(item.type);
-
-    if (children.length > 0) {
-      if (filteredChildren.length === 0) {
-        return [];
-      }
-
-      const childTypes = new Set(filteredChildren.map(child => child.type));
-      const inferredType =
-        childTypes.size === 1 ? filteredChildren[0]!.type : fallbackType;
-
-      return [
-        {
-          ...item,
-          type: inferredType,
-          size_diff: sumDiffItems(filteredChildren),
-          diff_items: filteredChildren,
-        },
-      ];
+    const children = item.diff_items ?? [];
+    if (children.length === 0) {
+      return allowedTypes.has(item.type) ? [item] : [];
     }
 
-    if (!hasAllowedType) {
+    const filteredChildren = children.filter(child => allowedTypes.has(child.type));
+    if (filteredChildren.length === 0) {
       return [];
     }
 
-    return [item];
+    const firstType = filteredChildren[0]!.type;
+    const inferredType = filteredChildren.every(child => child.type === firstType)
+      ? firstType
+      : fallbackType;
+
+    return [
+      {
+        ...item,
+        type: inferredType,
+        size_diff: sumDiffItems(filteredChildren),
+        diff_items: filteredChildren,
+      },
+    ];
   });
 }
 
-function getFilteredInsight(
+function filterInsightByDiffTypes(
   insight: InsightDiffItem,
-  tab: 'all' | InsightStatus
+  allowedTypes: Set<DiffType>,
+  fallbackType: DiffType
 ): InsightDiffItem | null {
-  if (tab === 'all') {
-    return insight;
-  }
-
-  if (tab === 'new') {
-    return insight.status === 'new' ? insight : null;
-  }
-
-  if (tab === 'unresolved' && insight.status !== 'unresolved') {
-    return null;
-  }
-
-  const allowedTypes = tab === 'unresolved' ? UNRESOLVED_DIFF_TYPES : RESOLVED_DIFF_TYPES;
-  const fallbackType = tab === 'unresolved' ? 'increased' : 'decreased';
   const filteredFileDiffs = filterDiffItems(
     insight.file_diffs,
     allowedTypes,
@@ -148,13 +130,21 @@ export function InsightComparisonSection({
       }
 
       if (insight.status === 'unresolved') {
-        const unresolvedInsight = getFilteredInsight(insight, 'unresolved');
+        const unresolvedInsight = filterInsightByDiffTypes(
+          insight,
+          UNRESOLVED_DIFF_TYPES,
+          'increased'
+        );
         if (unresolvedInsight) {
           byTab.unresolved.push(unresolvedInsight);
         }
       }
 
-      const resolvedInsight = getFilteredInsight(insight, 'resolved');
+      const resolvedInsight = filterInsightByDiffTypes(
+        insight,
+        RESOLVED_DIFF_TYPES,
+        'decreased'
+      );
       if (resolvedInsight) {
         byTab.resolved.push(resolvedInsight);
       }
