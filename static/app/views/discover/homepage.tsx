@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -22,7 +23,11 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {Results} from './results';
 
 function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
-  return [`/organizations/${organization.slug}/discover/homepage/`];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
 }
 
 function Homepage() {
