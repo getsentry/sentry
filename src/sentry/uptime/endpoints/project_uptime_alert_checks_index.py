@@ -194,6 +194,12 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             (duration_val.val_int // 1000) if duration_val and not duration_val.is_null else 0
         )
         trace_id = row_dict["sentry.trace_id"].val_str
+        assertion_failure_data_val = row_dict.get("assertion_failure_data")
+        assertion_failure_data = (
+            None
+            if not assertion_failure_data_val or assertion_failure_data_val.is_null
+            else assertion_failure_data_val.val_str
+        )
 
         return EapCheckEntry(
             uptime_check_id=uptime_check_id,
@@ -213,6 +219,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             incident_status=IncidentStatus(row_dict["incident_status"].val_int),
             environment=row_dict.get("environment", AttributeValue(val_str="")).val_str,
             region=row_dict["region"].val_str,
+            assertion_failure_data=assertion_failure_data,
         )
 
     def _extract_check_status_reason(

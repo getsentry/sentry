@@ -137,6 +137,7 @@ class EapCheckEntry:
     incident_status: IncidentStatus
     environment: str
     region: str
+    assertion_failure_data: str | None
 
 
 @dataclass(frozen=True)

@@ -154,6 +154,7 @@ class EapCheckEntrySerializerResponse(TypedDict):
     scheduledCheckTime: str
     checkStatus: SerializedCheckStatus
     checkStatusReason: CheckStatusReasonType | None
+    assertionFailureData: str | None
     httpStatusCode: int | None
     durationMs: int
     traceId: str
@@ -185,6 +186,7 @@ class EapCheckEntrySerializer(Serializer):
             "scheduledCheckTime": obj.scheduled_check_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checkStatus": check_status,
             "checkStatusReason": obj.check_status_reason,
+            "assertionFailureData": obj.assertion_failure_data,
             "httpStatusCode": obj.http_status_code,
             "durationMs": obj.duration_ms,
             "traceId": obj.trace_id,
