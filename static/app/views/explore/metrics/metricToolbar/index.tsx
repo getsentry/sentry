@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Grid} from 'sentry/components/core/layout/grid';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
@@ -34,7 +35,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
       width="100%"
       align="center"
       gap="md"
-      columns={`34px auto auto auto 1fr ${metricQueries.length > 1 ? '40px' : '0'}`}
+      columns={`34px 1fr 1fr 1fr ${metricQueries.length > 1 ? '40px' : '0'}`}
       data-test-id="metric-toolbar"
     >
       <VisualizeLabel
@@ -42,10 +43,16 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
         visualize={visualize}
         onClick={toggleVisibility}
       />
-      <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
-      <AggregateDropdown traceMetric={traceMetric} />
-      <GroupBySelector traceMetric={traceMetric} />
-      <Filter traceMetric={traceMetric} />
+      <Flex minWidth={0}>
+        <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+      </Flex>
+      <Flex gap="md" minWidth={0}>
+        <AggregateDropdown traceMetric={traceMetric} />
+        <GroupBySelector traceMetric={traceMetric} />
+      </Flex>
+      <Flex minWidth={0}>
+        <Filter traceMetric={traceMetric} />
+      </Flex>
       {metricQueries.length > 1 && <DeleteMetricButton />}
     </Grid>
   );
