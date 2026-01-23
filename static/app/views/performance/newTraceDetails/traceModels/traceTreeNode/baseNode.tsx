@@ -423,9 +423,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.children;
   }
 
-  findChild<ChildType extends BaseNode = BaseNode>(
-    predicate: (child: BaseNode) => boolean
-  ): ChildType | null {
+  /**
+   * Traverses all children using depth-first search with cycle detection.
+   * @param callback - Called for each node. Return `true` to stop traversal early.
+   */
+  private traverseChildren(callback: (node: BaseNode) => boolean | void): void {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
     const visited = new Set<BaseNode>();
     visited.add(this);
@@ -433,14 +435,13 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     while (queue.length > 0) {
       const next = queue.pop()!;
 
-      // Cycle detection: skip already-visited nodes
       if (visited.has(next)) {
         continue;
       }
       visited.add(next);
 
-      if (predicate(next)) {
-        return next as ChildType;
+      if (callback(next) === true) {
+        return;
       }
 
       const children = next.getNextTraversalNodes();
@@ -448,61 +449,36 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
         queue.push(children[i]!);
       }
     }
+  }
 
-    return null;
+  findChild<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => boolean
+  ): ChildType | null {
+    let result: ChildType | null = null;
+    this.traverseChildren(node => {
+      if (predicate(node)) {
+        result = node as ChildType;
+        return true;
+      }
+      return undefined;
+    });
+    return result;
   }
 
   findAllChildren<ChildType extends BaseNode = BaseNode>(
     predicate: (child: BaseNode) => boolean
   ): ChildType[] {
-    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
     const results: ChildType[] = [];
-    const visited = new Set<BaseNode>();
-    visited.add(this);
-
-    while (queue.length > 0) {
-      const next = queue.pop()!;
-
-      // Cycle detection: skip already-visited nodes
-      if (visited.has(next)) {
-        continue;
+    this.traverseChildren(node => {
+      if (predicate(node)) {
+        results.push(node as ChildType);
       }
-      visited.add(next);
-
-      if (predicate(next)) {
-        results.push(next as ChildType);
-      }
-
-      const children = next.getNextTraversalNodes();
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
-
+    });
     return results;
   }
 
   forEachChild(callback: (child: BaseNode) => void) {
-    const queue: BaseNode[] = [...this.getNextTraversalNodes()];
-    const visited = new Set<BaseNode>();
-    visited.add(this);
-
-    while (queue.length > 0) {
-      const next = queue.pop()!;
-
-      // Cycle detection: skip already-visited nodes
-      if (visited.has(next)) {
-        continue;
-      }
-      visited.add(next);
-
-      callback(next);
-
-      const children = next.getNextTraversalNodes();
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]!);
-      }
-    }
+    this.traverseChildren(callback);
   }
 
   findParent<ChildType extends BaseNode = BaseNode>(
