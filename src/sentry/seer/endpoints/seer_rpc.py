@@ -105,7 +105,6 @@ from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organiza
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
-from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
 from sentry.utils.seer import can_use_prevent_ai_features
 
