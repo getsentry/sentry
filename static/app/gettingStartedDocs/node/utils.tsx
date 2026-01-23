@@ -666,7 +666,6 @@ export const getNodeAgentMonitoringOnboarding = ({
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
 
-    // Mastra uses @mastra/sentry package instead of @sentry/node
     if (selected === AgentIntegration.MASTRA) {
       return [
         {
@@ -721,7 +720,6 @@ export const getNodeAgentMonitoringOnboarding = ({
       });
     }
 
-    // Mastra uses its own @mastra/sentry package with SentryExporter
     if (selected === AgentIntegration.MASTRA) {
       return [
         {
