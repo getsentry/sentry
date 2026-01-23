@@ -3,6 +3,7 @@ name: '[NOT REQUIRED] backend (selective)'
 on:
   pull_request:
     paths:
+      - 'src/sentry/issues/**'
       - 'src/sentry/preprod/**'
       - 'src/sentry/releases/**'
 
