@@ -130,12 +130,14 @@ export function useTraceMetricsSeriesQuery(
         includePrevious: _includePrevious,
         generatePathname: _generatePathname,
         period,
+        queryExtras,
         ...restParams
       } = requestData;
 
       const queryParams = {
         ...restParams,
         ...(period ? {statsPeriod: period} : {}),
+        ...queryExtras,
       };
 
       if (queryParams.start) {
