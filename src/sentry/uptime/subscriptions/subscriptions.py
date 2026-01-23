@@ -654,3 +654,25 @@ def check_url_limits(url):
         raise MaxUrlsForDomainReachedException(
             url_parts.domain, url_parts.suffix, MAX_MONITORS_PER_DOMAIN
         )
+
+
+def set_response_capture_enabled(subscription: UptimeSubscription, enabled: bool) -> None:
+    """
+    Toggle response capture for an uptime subscription.
+
+    Updates the capture_response_on_failure flag and pushes the updated config
+    to the uptime checker.
+    """
+    if subscription.capture_response_on_failure == enabled:
+        return
+
+    subscription.update(capture_response_on_failure=enabled)
+
+    if (
+        subscription.subscription_id
+        and subscription.status == UptimeSubscription.Status.ACTIVE.value
+    ):
+        transaction.on_commit(
+            lambda: update_remote_uptime_subscription.delay(subscription.id),
+            using=router.db_for_write(UptimeSubscription),
+        )
