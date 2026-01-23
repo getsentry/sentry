@@ -1,28 +1,133 @@
 /**
  * ESLint rule: use-semantic-token
  *
- * Enforces that theme.tokens.content.* tokens are only used with
- * CSS color properties (color, text-decoration-color, etc.)
+ * Enforces that theme.tokens.* tokens are only used with appropriate
+ * CSS properties based on their semantic category.
  */
 
 /**
- * Set of CSS properties that are valid for content tokens
- * @type {Set<string>}
+ * @typedef {Object} TokenRule
+ * @property {string} name - Human-readable name for error messages
+ * @property {string[]} tokenPatterns - Glob-like patterns to match token paths (e.g., 'content.*')
+ * @property {Set<string>} allowedProperties - CSS properties these tokens can be used with
  */
-const ALLOWED_COLOR_PROPERTIES = new Set([
-  'color',
-  'text-decoration-color',
-  'caret-color',
-  'column-rule-color',
-  '-webkit-text-fill-color',
-  '-webkit-text-stroke-color',
-]);
 
 /**
- * Pattern to detect theme.tokens.content.* references
- * Matches: theme.tokens.content.primary, p.theme.tokens.content.secondary, etc.
+ * Token-to-property mapping configuration.
+ * This is the SINGLE SOURCE OF TRUTH for:
+ * 1. Token detection (which patterns to match)
+ * 2. Property validation (which properties each category allows)
+ * 3. Autofix suggestions (reverse lookup: property → correct category)
+ *
+ * Pattern syntax:
+ * - 'content.*' matches tokens.content.X at any depth
+ * - 'interactive.*.content' matches leaf 'content' under interactive (e.g., interactive.chonky.embossed.accent.content)
+ * - 'interactive.*.content.*' matches nested content objects (e.g., interactive.chonky.debossed.neutral.content.primary)
+ * - 'interactive.link.*' matches all link tokens (e.g., interactive.link.neutral.rest)
+ *
+ * @type {TokenRule[]}
  */
-const CONTENT_TOKEN_PATTERN = /(?:\bp\.|^)theme\.tokens\.content\.(\w+)/;
+const TOKEN_RULES = [
+  {
+    name: 'content',
+    tokenPatterns: [
+      'content.*',
+      'interactive.*.content',
+      'interactive.*.content.*',
+      'interactive.link.*',
+    ],
+    allowedProperties: new Set([
+      'color',
+      'text-decoration-color',
+      'caret-color',
+      'column-rule-color',
+      '-webkit-text-fill-color',
+      '-webkit-text-stroke-color',
+    ]),
+  },
+];
+
+/**
+ * Check if a token path matches a glob pattern.
+ *
+ * Pattern syntax:
+ * - 'foo.*' matches 'foo.bar', 'foo.bar.baz', etc. (any depth after foo)
+ * - 'foo.*.bar' matches 'foo.X.bar', 'foo.X.Y.bar', etc. (bar at any depth under foo)
+ * - 'foo.*.bar.*' matches 'foo.X.bar.Z', 'foo.X.Y.bar.Z.W', etc.
+ *
+ * @param {string} tokenPath - e.g., 'content.primary' or 'interactive.chonky.neutral.content'
+ * @param {string} pattern - e.g., 'content.*' or 'interactive.*.content'
+ * @returns {boolean}
+ */
+function matchesTokenPattern(tokenPath, pattern) {
+  // Split pattern by '.*' to get fixed segments, filtering out empty strings
+  const segments = pattern.split('.*').filter(s => s !== '');
+
+  // If pattern ends with '.*', we need to match at least one more segment after
+  const endsWithWildcard = pattern.endsWith('.*');
+
+  // Build a regex from the pattern
+  // Each segment must appear in order, with .* meaning "one or more path segments"
+  let regexStr = '^';
+  segments.forEach((segment, index) => {
+    // Escape dots for regex
+    regexStr += segment.replace(/\./g, '\\.');
+
+    // Add wildcard matching between segments
+    if (index < segments.length - 1) {
+      // Between segments: match one or more path segments
+      regexStr += '(\\.[^.]+)+';
+    }
+  });
+
+  // If pattern ends with wildcard, add trailing wildcard match
+  if (endsWithWildcard) {
+    regexStr += '(\\.[^.]+)+';
+  }
+
+  regexStr += '$';
+
+  return new RegExp(regexStr).test(tokenPath);
+}
+
+/**
+ * Find the rule that applies to a given token path.
+ * @param {string} tokenPath
+ * @returns {TokenRule | null}
+ */
+function findRuleForToken(tokenPath) {
+  for (const rule of TOKEN_RULES) {
+    for (const pattern of rule.tokenPatterns) {
+      if (matchesTokenPattern(tokenPath, pattern)) {
+        return rule;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Build reverse mapping: property → rule name.
+ * Used for autofix suggestions.
+ * @param {TokenRule[]} rules
+ * @returns {Map<string, string>}
+ */
+function buildPropertyToRule(rules) {
+  /** @type {Map<string, string>} */
+  const result = new Map();
+  for (const rule of rules) {
+    for (const property of rule.allowedProperties) {
+      result.set(property, rule.name);
+    }
+  }
+  return result;
+}
+
+/**
+ * Derived reverse mapping: property → rule name
+ * @type {Map<string, string>}
+ */
+const PROPERTY_TO_RULE = buildPropertyToRule(TOKEN_RULES);
 
 /**
  * Convert camelCase to kebab-case
@@ -53,79 +158,128 @@ const useSemanticToken = {
     type: 'problem',
     docs: {
       description:
-        'Enforce that theme.tokens.content.* tokens are only used with CSS color properties',
+        'Enforce that theme.tokens.* tokens are only used with appropriate CSS properties',
       category: 'Best Practices',
     },
     schema: [],
     messages: {
-      invalidProperty:
-        'Content token `theme.tokens.content.{{tokenName}}` should only be used with color properties (color, text-decoration-color, etc.). Found: `{{property}}`.',
+      invalidProperty: '`{{property}}` cannot use token `{{tokenPath}}`',
+      invalidPropertyWithSuggestion:
+        '`{{property}}` cannot use token `{{tokenPath}}`. Use a `{{suggestedCategory}}` token instead.',
     },
   },
 
   create(context) {
     /**
-     * Extract content token name from a value string if it contains one
-     * @param {string} value
-     * @returns {string | null}
-     */
-    function extractContentToken(value) {
-      const match = value.match(CONTENT_TOKEN_PATTERN);
-      return match?.[1] ?? null;
-    }
-
-    /**
-     * Check if a property is a valid color property for content tokens
-     * @param {string} property
-     * @returns {boolean}
-     */
-    function isValidColorProperty(property) {
-      return ALLOWED_COLOR_PROPERTIES.has(normalizeProperty(property));
-    }
-
-    /**
-     * Validate that a content token is used with an allowed property
+     * Validate that a token is used with an allowed property for its category.
      * @param {import('estree').Node} node
      * @param {string} property
-     * @param {string} value
      * @param {import('estree').Node} [valueNode]
      */
-    function validateContentToken(node, property, value, valueNode) {
-      const tokenName = extractContentToken(value);
-      if (!tokenName) {
-        return; // Not a content token reference
+    function validateToken(node, property, valueNode) {
+      // Try to find the specific token node for precise highlighting
+      const tokenInfo = findTokenNode(valueNode || node);
+      if (!tokenInfo) {
+        return; // Not a token reference matching any rule
       }
 
       const normalizedProperty = normalizeProperty(property);
+      const rule = findRuleForToken(tokenInfo.tokenPath);
 
-      if (!isValidColorProperty(normalizedProperty)) {
-        context.report({
-          node: valueNode || node,
-          messageId: 'invalidProperty',
-          data: {
-            tokenName,
-            property: normalizedProperty,
-          },
-        });
+      if (rule && !rule.allowedProperties.has(normalizedProperty)) {
+        const suggestedCategory = PROPERTY_TO_RULE.get(normalizedProperty);
+
+        if (suggestedCategory) {
+          context.report({
+            node: tokenInfo.node,
+            messageId: 'invalidPropertyWithSuggestion',
+            data: {
+              tokenPath: tokenInfo.tokenPath,
+              property: normalizedProperty,
+              suggestedCategory,
+            },
+          });
+        } else {
+          context.report({
+            node: tokenInfo.node,
+            messageId: 'invalidProperty',
+            data: {
+              tokenPath: tokenInfo.tokenPath,
+              property: normalizedProperty,
+            },
+          });
+        }
       }
     }
 
     /**
-     * Convert AST node to source code string
+     * Find a token usage node and extract the full token path.
+     * e.g., theme.tokens.content.primary → tokenPath: 'content.primary'
+     * e.g., theme.tokens.interactive.chonky.neutral → tokenPath: 'interactive.chonky.neutral'
+     *
      * @param {any} node
-     * @returns {string | null}
+     * @returns {{node: any, tokenPath: string, tokenName: string} | null}
      */
-    function nodeToString(node) {
-      const sourceCode = context.sourceCode;
-      if (!sourceCode) {
+    function findTokenNode(node) {
+      if (!node || typeof node !== 'object') {
         return null;
       }
 
-      try {
-        return sourceCode.getText(node);
-      } catch {
-        return null;
+      // Check if this node is a MemberExpression chain that includes 'tokens'
+      if (node.type === 'MemberExpression') {
+        /** @type {string[]} */
+        const pathParts = [];
+        let current = node;
+
+        // Walk up the member expression chain, collecting property names
+        while (
+          current.type === 'MemberExpression' &&
+          current.property?.type === 'Identifier'
+        ) {
+          pathParts.unshift(current.property.name);
+          current = current.object;
+        }
+
+        // Also check if current is an identifier (the base of the chain)
+        if (current.type === 'Identifier') {
+          pathParts.unshift(current.name);
+        }
+
+        // Check if we found 'tokens' in the chain
+        const tokensIndex = pathParts.indexOf('tokens');
+        if (tokensIndex !== -1 && tokensIndex < pathParts.length - 1) {
+          const tokenPath = pathParts.slice(tokensIndex + 1).join('.');
+          const tokenName = pathParts[pathParts.length - 1];
+
+          // Only return if this token path matches any rule
+          if (findRuleForToken(tokenPath)) {
+            return {node, tokenPath, tokenName};
+          }
+        }
       }
+
+      // Recursively search in child nodes
+      for (const key of Object.keys(node)) {
+        if (key === 'parent') {
+          continue;
+        }
+        const child = node[key];
+        if (Array.isArray(child)) {
+          for (const item of child) {
+            const result = findTokenNode(item);
+            if (result) {
+              return result;
+            }
+          }
+        } else if (child && typeof child === 'object' && child.type) {
+          const result = findTokenNode(child);
+          if (result) {
+            return result;
+          }
+        }
+      }
+
+      return null;
     }
 
     /**
@@ -235,13 +389,7 @@ const useSemanticToken = {
             return;
           }
 
-          // Convert expression AST to string for pattern matching
-          const exprText = nodeToString(expr);
-          if (!exprText) {
-            return;
-          }
-
-          validateContentToken(expr, property, exprText, expr);
+          validateToken(expr, property, expr);
         }
       );
     }
@@ -270,10 +418,7 @@ const useSemanticToken = {
         }
 
         // Handle expression values (theme object references)
-        const exprText = nodeToString(node.value);
-        if (exprText) {
-          validateContentToken(node, propertyName, exprText, node.value);
-        }
+        validateToken(node, propertyName, node.value);
       },
 
       // Handle CSS template literals (styled-components, emotion)

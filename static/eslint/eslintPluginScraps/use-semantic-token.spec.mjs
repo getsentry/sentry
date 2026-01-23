@@ -132,6 +132,30 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
   }
 \`;`,
     },
+    // Interactive token with nested content - valid with color
+    {
+      code: `const Component = styled.div\`
+  color: \${p => p.theme.tokens.interactive.chonky.debossed.neutral.content.primary};
+\`;`,
+    },
+    // Interactive token with leaf content - valid with color
+    {
+      code: `const Component = styled.div\`
+  color: \${p => p.theme.tokens.interactive.chonky.embossed.accent.content};
+\`;`,
+    },
+    // Interactive link token - valid with color
+    {
+      code: `const Component = styled.div\`
+  color: \${p => p.theme.tokens.interactive.link.neutral.rest};
+\`;`,
+    },
+    // Interactive link token with text-decoration-color
+    {
+      code: `const Component = styled.div\`
+  text-decoration-color: \${p => p.theme.tokens.interactive.link.accent.hover};
+\`;`,
+    },
   ],
 
   invalid: [
@@ -143,7 +167,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'primary', property: 'background'},
+          data: {tokenPath: 'content.primary', property: 'background'},
         },
       ],
     },
@@ -155,7 +179,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'accent', property: 'border-color'},
+          data: {tokenPath: 'content.accent', property: 'border-color'},
         },
       ],
     },
@@ -165,7 +189,10 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
   fill: \${p => p.theme.tokens.content.danger};
 \`;`,
       errors: [
-        {messageId: 'invalidProperty', data: {tokenName: 'danger', property: 'fill'}},
+        {
+          messageId: 'invalidProperty',
+          data: {tokenPath: 'content.danger', property: 'fill'},
+        },
       ],
     },
     // Multiple invalid usages in one component
@@ -178,13 +205,16 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'primary', property: 'background'},
+          data: {tokenPath: 'content.primary', property: 'background'},
         },
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'accent', property: 'border-color'},
+          data: {tokenPath: 'content.accent', property: 'border-color'},
         },
-        {messageId: 'invalidProperty', data: {tokenName: 'danger', property: 'fill'}},
+        {
+          messageId: 'invalidProperty',
+          data: {tokenPath: 'content.danger', property: 'fill'},
+        },
       ],
     },
     // background-color with content token
@@ -195,7 +225,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'secondary', property: 'background-color'},
+          data: {tokenPath: 'content.secondary', property: 'background-color'},
         },
       ],
     },
@@ -205,7 +235,10 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
   stroke: \${p => p.theme.tokens.content.warning};
 \`;`,
       errors: [
-        {messageId: 'invalidProperty', data: {tokenName: 'warning', property: 'stroke'}},
+        {
+          messageId: 'invalidProperty',
+          data: {tokenPath: 'content.warning', property: 'stroke'},
+        },
       ],
     },
     // outline-color with content token
@@ -216,7 +249,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'success', property: 'outline-color'},
+          data: {tokenPath: 'content.success', property: 'outline-color'},
         },
       ],
     },
@@ -228,7 +261,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'primary', property: 'background'},
+          data: {tokenPath: 'content.primary', property: 'background'},
         },
       ],
     },
@@ -240,7 +273,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'accent', property: 'background'},
+          data: {tokenPath: 'content.accent', property: 'background'},
         },
       ],
     },
@@ -252,7 +285,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'primary', property: 'background'},
+          data: {tokenPath: 'content.primary', property: 'background'},
         },
       ],
     },
@@ -264,7 +297,49 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       errors: [
         {
           messageId: 'invalidProperty',
-          data: {tokenName: 'primary', property: 'box-shadow'},
+          data: {tokenPath: 'content.primary', property: 'box-shadow'},
+        },
+      ],
+    },
+    // Interactive nested content token with invalid property (background)
+    {
+      code: `const Component = styled.div\`
+  background: \${p => p.theme.tokens.interactive.chonky.debossed.neutral.content.primary};
+\`;`,
+      errors: [
+        {
+          messageId: 'invalidProperty',
+          data: {
+            tokenPath: 'interactive.chonky.debossed.neutral.content.primary',
+            property: 'background',
+          },
+        },
+      ],
+    },
+    // Interactive leaf content token with invalid property (border-color)
+    {
+      code: `const Component = styled.div\`
+  border-color: \${p => p.theme.tokens.interactive.chonky.embossed.accent.content};
+\`;`,
+      errors: [
+        {
+          messageId: 'invalidProperty',
+          data: {
+            tokenPath: 'interactive.chonky.embossed.accent.content',
+            property: 'border-color',
+          },
+        },
+      ],
+    },
+    // Interactive link token with invalid property (fill)
+    {
+      code: `const Component = styled.div\`
+  fill: \${p => p.theme.tokens.interactive.link.neutral.rest};
+\`;`,
+      errors: [
+        {
+          messageId: 'invalidProperty',
+          data: {tokenPath: 'interactive.link.neutral.rest', property: 'fill'},
         },
       ],
     },
