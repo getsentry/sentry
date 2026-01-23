@@ -43,7 +43,7 @@ function fieldsToDerivedMetrics(field: string): string {
  * The limit is determined by the following formula: limit < MAX_POINTS / numberOfIntervals.
  * This is to prevent the "requested intervals is too granular for per_page..." error from the backend.
  */
-export function getCustomReleaseSortLimit(
+function getCustomReleaseSortLimit(
   period: string | null,
   start?: DateString,
   end?: DateString,
