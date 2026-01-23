@@ -10,6 +10,7 @@ import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
+import {PreprodBuildsOnboarding} from 'sentry/components/preprod/preprodBuildsOnboarding';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -108,6 +109,13 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
   const showProjectColumn = selectedProjectIds.length > 1;
+  const shouldShowOnboarding =
+    builds.length === 0 &&
+    !isLoadingBuilds &&
+    !buildsError &&
+    !hasSearchQuery &&
+    selectedProjectIds.length === 1;
+
   usePreprodBuildsAnalytics({
     builds,
     cursor,
@@ -146,16 +154,23 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
 
       {buildsError && <LoadingError onRetry={refetch} />}
 
-      <PreprodBuildsTable
-        builds={builds}
-        display={activeDisplay}
-        isLoading={isLoadingBuilds}
-        error={!!buildsError}
-        pageLinks={pageLinks}
-        organizationSlug={organization.slug}
-        hasSearchQuery={hasSearchQuery}
-        showProjectColumn={showProjectColumn}
-      />
+      {shouldShowOnboarding ? (
+        <PreprodBuildsOnboarding
+          organization={organization}
+          projectId={selectedProjectIds[0]!}
+        />
+      ) : (
+        <PreprodBuildsTable
+          builds={builds}
+          display={activeDisplay}
+          isLoading={isLoadingBuilds}
+          error={!!buildsError}
+          pageLinks={pageLinks}
+          organizationSlug={organization.slug}
+          hasSearchQuery={hasSearchQuery}
+          showProjectColumn={showProjectColumn}
+        />
+      )}
     </Stack>
   );
 }
