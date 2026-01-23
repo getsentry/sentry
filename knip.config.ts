@@ -64,6 +64,8 @@ const config: KnipConfig = {
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
     // ignore eslint plugins in production
     '!static/eslint/**/*.mjs!',
+    // figma code connect files - consumed by Figma CLI, not imported by the app
+    '!static/**/*.figma.{tsx,jsx}!',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
