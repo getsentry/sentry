@@ -52,10 +52,14 @@ function useLastEditedBy({
   groupId,
   lastEditedBy: incomingLastEditedBy,
 }: Pick<GroupPriorityDropdownProps, 'groupId' | 'lastEditedBy'>) {
-  const {data} = useApiQuery<{activity: Activity[]}>([`/issues/${groupId}/activities/`], {
-    enabled: !defined(incomingLastEditedBy),
-    staleTime: 0,
-  });
+  const organization = useOrganization();
+  const {data} = useApiQuery<{activity: Activity[]}>(
+    [`/organizations/${organization.slug}/issues/${groupId}/activities/`],
+    {
+      enabled: !defined(incomingLastEditedBy),
+      staleTime: 0,
+    }
+  );
 
   const lastEditedBy = useMemo(() => {
     if (incomingLastEditedBy) {
