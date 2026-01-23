@@ -34,6 +34,19 @@ export function normalizeAssertion(op: Op): Op {
 }
 
 /**
+ * Creates an empty assertion root with no children.
+ * Used when editing monitors that have no assertions - empty children signals
+ * "edit with no assertions" vs the default assertions for new monitors.
+ */
+export function createEmptyAssertionRoot(): AndOp {
+  return {
+    op: 'and',
+    id: uniqueId(),
+    children: [],
+  };
+}
+
+/**
  * Creates a default assertion root that validates 2xx status codes (>199 AND <300)
  */
 function createDefaultAssertionRoot(): AndOp {
