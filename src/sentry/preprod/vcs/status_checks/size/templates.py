@@ -101,7 +101,7 @@ def format_status_check_messages(
         passed_artifacts = [a for a in artifacts if a.id not in failed_artifact_ids]
 
         failed_metrics_count = sum(
-            len(size_metrics_map.get(a.id, []) or [None]) for a in failed_artifacts
+            len(size_metrics_map.get(a.id, [])) or 1 for a in failed_artifacts
         )
         failed_header = ngettext(
             "## ❌ %(count)d Failed Size Check",
@@ -121,7 +121,7 @@ def format_status_check_messages(
         # Passed apps section (if any)
         if passed_artifacts:
             passed_metrics_count = sum(
-                len(size_metrics_map.get(a.id, []) or [None]) for a in passed_artifacts
+                len(size_metrics_map.get(a.id, [])) or 1 for a in passed_artifacts
             )
             passed_header = ngettext(
                 "## %(count)d Analyzed",
