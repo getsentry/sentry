@@ -6,8 +6,6 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
-from django.db import IntegrityError, router, transaction
-
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
@@ -29,7 +27,6 @@ class Log(StrEnum):
     ARTIFACT_NOT_FOUND = "preprod.webhook.check_run.artifact_not_found"
     ORGANIZATION_MISMATCH = "preprod.webhook.check_run.organization_mismatch"
     APPROVAL_ALREADY_EXISTS = "preprod.webhook.check_run.approval_already_exists"
-    APPROVAL_RACE_CONDITION = "preprod.webhook.check_run.approval_race_condition"
     APPROVALS_CREATED = "preprod.webhook.check_run.approvals_created"
 
 
@@ -131,34 +128,33 @@ def handle_preprod_check_run_event(
     github_user_info = {"github": {"id": sender.get("id"), "login": sender.get("login")}}
 
     for sibling in sibling_artifacts:
-        existing_approval = PreprodComparisonApproval.objects.filter(
+        latest_approval = (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact=sibling,
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            )
+            .order_by("-id")
+            .first()
+        )
+
+        if latest_approval:
+            existing_github_id = (latest_approval.extras or {}).get("github", {}).get("id")
+            if existing_github_id == sender.get("id"):
+                logger.info(
+                    Log.APPROVAL_ALREADY_EXISTS,
+                    extra={**extra, "sibling_artifact_id": sibling.id},
+                )
+                continue
+
+        PreprodComparisonApproval.objects.create(
             preprod_artifact=sibling,
             preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
-        ).first()
-
-        if existing_approval:
-            logger.info(
-                Log.APPROVAL_ALREADY_EXISTS,
-                extra={**extra, "sibling_artifact_id": sibling.id},
-            )
-            continue
-
-        try:
-            with transaction.atomic(router.db_for_write(PreprodComparisonApproval)):
-                PreprodComparisonApproval.objects.create(
-                    preprod_artifact=sibling,
-                    preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
-                    approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
-                    approved_at=datetime.now(timezone.utc),
-                    approved_by_id=None,
-                    extras=github_user_info,
-                )
-                approvals_created += 1
-        except IntegrityError:
-            logger.info(
-                Log.APPROVAL_RACE_CONDITION,
-                extra={**extra, "sibling_artifact_id": sibling.id},
-            )
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            approved_at=datetime.now(timezone.utc),
+            approved_by_id=None,
+            extras=github_user_info,
+        )
+        approvals_created += 1
 
     logger.info(
         Log.APPROVALS_CREATED,
