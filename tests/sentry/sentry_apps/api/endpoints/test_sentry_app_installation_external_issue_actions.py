@@ -3,8 +3,10 @@ from django.urls import reverse
 
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
+@control_silo_test
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
@@ -47,7 +49,8 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         response = self.client.post(self.url, data=data, format="json")
-        external_issue = PlatformExternalIssue.objects.get()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            external_issue = PlatformExternalIssue.objects.get()
 
         assert response.status_code == 200
         assert response.data == {
@@ -80,4 +83,5 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             response.content
             == b'{"detail":"Issue occured while trying to contact testin to link issue"}'
         )
-        assert not PlatformExternalIssue.objects.all()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.all()
