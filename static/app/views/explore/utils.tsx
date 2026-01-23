@@ -670,6 +670,8 @@ function getReplayUrlFromSavedQueryUrl({
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
     statsPeriod: savedQuery.range,
+    id: savedQuery.id,
+    title: savedQuery.name,
   };
 
   const queryString = qs.stringify(queryParams, {skipNull: true});

@@ -9,12 +9,20 @@ import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/conte
 import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {
+  getIdFromLocation,
+  getTitleFromLocation,
+  ID_KEY,
+  TITLE_KEY,
+} from 'sentry/views/explore/queryParams/savedQuery';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const REPLAY_QUERY_KEY = 'query';
 
 function getReadableQueryParamsFromLocation(location: Location): ReadableQueryParams {
   const query = getQueryFromLocation(location, REPLAY_QUERY_KEY) ?? '';
+  const id = getIdFromLocation(location, ID_KEY);
+  const title = getTitleFromLocation(location, TITLE_KEY);
 
   return new ReadableQueryParams({
     extrapolate: false,
@@ -26,6 +34,8 @@ function getReadableQueryParamsFromLocation(location: Location): ReadableQueryPa
     aggregateCursor: '',
     aggregateFields: [],
     aggregateSortBys: [],
+    id,
+    title,
   });
 }
 

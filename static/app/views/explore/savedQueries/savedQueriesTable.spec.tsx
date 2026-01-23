@@ -265,7 +265,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByText('Replays Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/replays/?end=2024-01-02T00%3A00%3A00.000&environment=production&environment=staging&project=1&project=2&query=user.email%3A%2A%40example.com&start=2024-01-01T00%3A00%3A00.000'
+      '/organizations/org-slug/explore/replays/?end=2024-01-02T00%3A00%3A00.000&environment=production&environment=staging&id=1&project=1&project=2&query=user.email%3A%2A%40example.com&start=2024-01-01T00%3A00%3A00.000&title=Replays%20Query%20Name'
     );
   });
 
@@ -295,7 +295,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByText('Recent Replays')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/replays/?environment=production&project=3&query=browser.name%3AChrome&statsPeriod=24h'
+      '/organizations/org-slug/explore/replays/?environment=production&id=2&project=3&query=browser.name%3AChrome&statsPeriod=24h&title=Recent%20Replays'
     );
   });
 
