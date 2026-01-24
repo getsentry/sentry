@@ -74,6 +74,7 @@ issue_search_config = SearchConfig.create_from(
         "date": ["event.timestamp"],
         "times_seen": ["timesSeen"],
         "sentry:dist": ["dist"],
+        "team": ["team"],
     },
 )
 parse_search_query = partial(base_parse_query, config=issue_search_config)
@@ -268,6 +269,43 @@ def convert_detector_value(
     return list(value)
 
 
+def convert_team_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Sequence[Environment] | None,
+) -> list[RpcUser | Team | None]:
+    from django.db.models.functions import Lower
+
+    if not projects:
+        return []
+
+    slugs = [v[1:] if v.startswith("#") else v for v in value]
+    if not slugs:
+        return []
+
+    slugs_lower = [s.lower() for s in slugs]
+    teams = (
+        Team.objects.annotate(slug_lower=Lower("slug"))
+        .filter(
+            slug_lower__in=slugs_lower,
+            projectteam__project__in=projects,
+        )
+        .distinct()
+    )
+
+    teams_by_slug = {team.slug.lower(): team for team in teams}
+
+    result: list[RpcUser | Team | None] = []
+    for slug in slugs:
+        team = teams_by_slug.get(slug.lower())
+        if not team:
+            raise InvalidSearchQuery(f"Invalid team '{slug}'")
+        result.append(team)
+
+    return result
+
+
 value_converters: Mapping[str, ValueConverter] = {
     "assigned_or_suggested": convert_actor_or_none_value,
     "assigned_to": convert_actor_or_none_value,
@@ -284,6 +322,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "substatus": convert_substatus_value,
     "issue.seer_actionability": convert_seer_actionability_value,
     "detector": convert_detector_value,
+    "team": convert_team_value,
 }
 
 
