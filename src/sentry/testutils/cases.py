@@ -3394,14 +3394,8 @@ def span_to_trace_item(span) -> TraceItem:
         "start_timestamp_precise",
     }:
         if field in span and span[field] is not None:
-            if field == "is_segment":
-                is_segment = span["is_segment"]
-                attributes["sentry.is_segment"] = AnyValue(
-                    double_value=float(is_segment),
-                )
-            else:
-                value = scalar_to_any_value(span[field])
-                attributes[f"sentry.{field}"] = value
+            value = scalar_to_any_value(span[field])
+            attributes[f"sentry.{field}"] = value
 
     timestamp = Timestamp()
 
