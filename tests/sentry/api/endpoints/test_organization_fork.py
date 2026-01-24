@@ -32,7 +32,6 @@ class OrganizationForkTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
         self.existing_org_owner = self.create_user(
             email="existing_org_owner@example.com",
@@ -55,7 +54,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
@@ -65,9 +64,9 @@ class OrganizationForkTest(APITestCase):
         assert response.data["step"] == Relocation.Step.UPLOADING.name
         assert response.data["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
         assert response.data["scheduledPauseAtStep"] is None
-        assert response.data["creator"]["id"] == str(self.superuser.id)
-        assert response.data["creator"]["email"] == str(self.superuser.email)
-        assert response.data["creator"]["username"] == str(self.superuser.username)
+        assert response.data["creator"]["id"] == str(self.staff_user.id)
+        assert response.data["creator"]["email"] == str(self.staff_user.email)
+        assert response.data["creator"]["username"] == str(self.staff_user.username)
         assert response.data["owner"]["id"] == str(self.existing_org_owner.id)
         assert response.data["owner"]["email"] == str(self.existing_org_owner.email)
         assert response.data["owner"]["username"] == str(self.existing_org_owner.username)
@@ -103,7 +102,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
@@ -150,7 +149,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
 
         response = self.get_success_response(self.existing_org.slug)
 
@@ -190,7 +189,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
 
         response = self.get_success_response(self.existing_org.slug)
 
@@ -217,9 +216,7 @@ class OrganizationForkTest(APITestCase):
             ),
         )
 
-    @override_options(
-        {"relocation.enabled": False, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_staff_when_feature_disabled(
         self,
@@ -269,12 +266,12 @@ class OrganizationForkTest(APITestCase):
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
-    def test_good_superuser_when_feature_disabled(
+    def test_good_staff_user_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
@@ -284,9 +281,9 @@ class OrganizationForkTest(APITestCase):
         assert response.data["step"] == Relocation.Step.UPLOADING.name
         assert response.data["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
         assert response.data["scheduledPauseAtStep"] is None
-        assert response.data["creator"]["id"] == str(self.superuser.id)
-        assert response.data["creator"]["email"] == str(self.superuser.email)
-        assert response.data["creator"]["username"] == str(self.superuser.username)
+        assert response.data["creator"]["id"] == str(self.staff_user.id)
+        assert response.data["creator"]["email"] == str(self.staff_user.email)
+        assert response.data["creator"]["username"] == str(self.staff_user.username)
         assert response.data["owner"]["id"] == str(self.existing_org_owner.id)
         assert response.data["owner"]["email"] == str(self.existing_org_owner.email)
         assert response.data["owner"]["username"] == str(self.existing_org_owner.username)
@@ -322,7 +319,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
@@ -343,7 +340,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -366,7 +363,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
 
         self.existing_org.status = OrganizationStatus.DELETION_IN_PROGRESS
         self.existing_org.save()
@@ -401,7 +398,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
@@ -424,7 +421,7 @@ class OrganizationForkTest(APITestCase):
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
@@ -452,9 +449,9 @@ class OrganizationForkTest(APITestCase):
             analytics_record_mock: Mock,
             stat=stat,
         ):
-            self.login_as(user=self.superuser, superuser=True)
+            self.login_as(user=self.staff_user, staff=True)
             Relocation.objects.create(
-                creator_id=self.superuser.id,
+                creator_id=self.staff_user.id,
                 owner_id=self.existing_org_owner.id,
                 want_org_slugs=[self.existing_org.slug],
                 status=stat.value,
@@ -509,9 +506,9 @@ class OrganizationForkTest(APITestCase):
             analytics_record_mock: Mock,
             stat=stat,
         ):
-            self.login_as(user=self.superuser, superuser=True)
+            self.login_as(user=self.staff_user, staff=True)
             existing_relocation = Relocation.objects.create(
-                creator_id=self.superuser.id,
+                creator_id=self.staff_user.id,
                 owner_id=self.existing_org_owner.id,
                 want_org_slugs=[self.existing_org.slug],
                 status=stat.value,
@@ -528,9 +525,7 @@ class OrganizationForkTest(APITestCase):
             assert uploading_start_mock.call_count == 0
             assert analytics_record_mock.call_count == 0
 
-    @override_options(
-        {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_no_throttle_for_staff(
         self,
@@ -539,7 +534,7 @@ class OrganizationForkTest(APITestCase):
     ):
         self.login_as(user=self.staff_user, staff=True)
         Relocation.objects.create(
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.existing_org_owner.id,
             want_org_slugs=["some-other-org"],
             status=Relocation.Status.SUCCESS.value,
@@ -583,14 +578,14 @@ class OrganizationForkTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
-    def test_good_no_throttle_for_superuser(
+    def test_good_no_throttle_for_staff_user(
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         Relocation.objects.create(
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.existing_org_owner.id,
             want_org_slugs=["some-other-org"],
             status=Relocation.Status.SUCCESS.value,
@@ -650,12 +645,12 @@ class OrganizationForkTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count
 
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
-    def test_bad_superuser_not_active(
+    def test_bad_staff_user_not_active(
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
     ):
-        self.login_as(user=self.superuser, superuser=False)
+        self.login_as(user=self.staff_user, staff=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 

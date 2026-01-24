@@ -21,7 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.workflow_engine.models.action import Action
@@ -173,7 +172,6 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
         self._validate_updated_published_app(response)
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff_update_published_app(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
@@ -492,7 +490,6 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).popularity == popularity
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff_can_update_popularity(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
@@ -532,7 +529,6 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert app.status == SentryAppStatus.PUBLISHED
         assert app.date_published
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff_can_publish_apps(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)

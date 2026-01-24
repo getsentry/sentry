@@ -45,12 +45,11 @@ class GetRelocationsTest(APITestCase):
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=False, is_active=True
         )
-        self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
 
         # Add 1 relocation of each status.
         common = {
-            "creator_id": self.superuser.id,
+            "creator_id": self.staff_user.id,
             "latest_task_attempts": 1,
         }
         Relocation.objects.create(
@@ -83,7 +82,7 @@ class GetRelocationsTest(APITestCase):
         Relocation.objects.create(
             uuid=UUID("1ecc8862-7a3a-4114-bbc1-b6b80eb90197"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=3),
-            owner_id=self.superuser.id,
+            owner_id=self.staff_user.id,
             status=Relocation.Status.SUCCESS.value,
             step=Relocation.Step.COMPLETED.value,
             provenance=Relocation.Provenance.SELF_HOSTED.value,
@@ -97,7 +96,7 @@ class GetRelocationsTest(APITestCase):
         Relocation.objects.create(
             uuid=UUID("8f478ea5-6250-4133-8539-2c0103f9d271"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=4),
-            owner_id=self.superuser.id,
+            owner_id=self.staff_user.id,
             status=Relocation.Status.FAILURE.value,
             failure_reason="Some failure reason",
             step=Relocation.Step.VALIDATING.value,
@@ -112,7 +111,6 @@ class GetRelocationsTest(APITestCase):
 
         self.success_uuid = Relocation.objects.get(status=Relocation.Status.SUCCESS.value)
 
-    @override_options({"staff.ga-rollout": True})
     def test_good_staff_simple(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(status_code=200)
@@ -120,13 +118,13 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 4
 
     def test_good_superuser_simple(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(status_code=200)
 
         assert len(response.data) == 4
 
     def test_good_status_in_progress(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             status=Relocation.Status.IN_PROGRESS.name, status_code=200
         )
@@ -134,15 +132,15 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data[0]["provenance"] == Relocation.Provenance.SELF_HOSTED.name
-        assert response.data[0]["creator"]["id"] == str(self.superuser.id)
-        assert response.data[0]["creator"]["email"] == str(self.superuser.email)
-        assert response.data[0]["creator"]["username"] == str(self.superuser.username)
+        assert response.data[0]["creator"]["id"] == str(self.staff_user.id)
+        assert response.data[0]["creator"]["email"] == str(self.staff_user.email)
+        assert response.data[0]["creator"]["username"] == str(self.staff_user.username)
         assert response.data[0]["owner"]["id"] == str(self.owner.id)
         assert response.data[0]["owner"]["email"] == str(self.owner.email)
         assert response.data[0]["owner"]["username"] == str(self.owner.username)
 
     def test_good_status_pause(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(status=Relocation.Status.PAUSE.name, status_code=200)
 
         assert len(response.data) == 1
@@ -150,7 +148,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
 
     def test_good_status_success(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(status=Relocation.Status.SUCCESS.name, status_code=200)
 
         assert len(response.data) == 1
@@ -158,13 +156,13 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["provenance"] == Relocation.Provenance.SELF_HOSTED.name
 
     def test_good_status_failure(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(status=Relocation.Status.FAILURE.name, status_code=200)
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
         assert response.data[0]["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
 
     def test_good_single_query_partial_uuid(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             qs_params={
                 "query": "ccef828a",
@@ -175,7 +173,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_good_single_query_full_uuid(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             qs_params={
                 "query": "af3d45ee-ce76-4de0-90c1-fc739da29523",
@@ -187,7 +185,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
 
     def test_good_single_query_org_slug(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             qs_params={
                 "query": "foo",
@@ -200,7 +198,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_good_single_query_username(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             qs_params={
                 "query": "alice",
@@ -213,7 +211,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_good_single_query_letter(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             qs_params={
                 "query": "b",
@@ -226,7 +224,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[2]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_good_multiple_queries(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             qs_params={
                 "query": "foo alice",
@@ -237,8 +235,8 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_good_superuser_but_not_enabled(self) -> None:
-        self.login_as(user=self.superuser, superuser=False)
+    def test_good_staff_user_but_not_enabled(self) -> None:
+        self.login_as(user=self.staff_user, staff=False)
         response = self.get_success_response(status_code=200)
 
         # Only show user's own relocations.
@@ -271,7 +269,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_bad_unknown_status(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_error_response(status="nonexistent", status_code=400)
 
         assert response.data.get("detail") is not None
@@ -294,8 +292,7 @@ class PostRelocationsTest(APITestCase):
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=False, is_active=True
         )
-        self.superuser = self.create_user(is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
+        self.staff_user = self.create_user(is_staff=True, is_active=True)
 
     def tmp_keys(self, tmp_dir: str) -> tuple[Path, Path]:
         (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
@@ -593,9 +590,7 @@ class PostRelocationsTest(APITestCase):
             sender=RelocationIndexEndpoint,
         )
 
-    @override_options(
-        {"relocation.enabled": False, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
     @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
     def test_good_staff_when_feature_disabled(
         self,
@@ -667,7 +662,7 @@ class PostRelocationsTest(APITestCase):
         relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
     ) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
@@ -690,9 +685,9 @@ class PostRelocationsTest(APITestCase):
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
-        assert response.data["creator"]["id"] == str(self.superuser.id)
-        assert response.data["creator"]["email"] == str(self.superuser.email)
-        assert response.data["creator"]["username"] == str(self.superuser.username)
+        assert response.data["creator"]["id"] == str(self.staff_user.id)
+        assert response.data["creator"]["email"] == str(self.staff_user.email)
+        assert response.data["creator"]["username"] == str(self.staff_user.username)
         assert response.data["owner"]["id"] == str(self.owner.id)
         assert response.data["owner"]["email"] == str(self.owner.email)
         assert response.data["owner"]["username"] == str(self.owner.username)
@@ -752,7 +747,7 @@ class PostRelocationsTest(APITestCase):
     def test_bad_expired_superuser_when_feature_disabled(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ) -> None:
-        self.login_as(user=self.owner, superuser=True)
+        self.login_as(user=self.owner, staff=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
             with open(FRESH_INSTALL_PATH, "rb") as f:
@@ -897,14 +892,14 @@ class PostRelocationsTest(APITestCase):
     ) -> None:
         self.login_as(user=self.owner, superuser=False)
         Relocation.objects.create(
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             want_org_slugs=["not-relevant-to-this-test"],
             step=Relocation.Step.COMPLETED.value,
             status=Relocation.Status.FAILURE.value,
         )
         Relocation.objects.create(
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             want_org_slugs=["not-relevant-to-this-test"],
             step=Relocation.Step.COMPLETED.value,
@@ -1024,9 +1019,7 @@ class PostRelocationsTest(APITestCase):
 
         assert relocation_link_promo_code_signal_mock.call_count == 0
 
-    @override_options(
-        {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_staff_nonexistent_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ) -> None:
@@ -1061,7 +1054,7 @@ class PostRelocationsTest(APITestCase):
     def test_bad_superuser_nonexistent_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
             with open(FRESH_INSTALL_PATH, "rb") as f:
@@ -1092,7 +1085,7 @@ class PostRelocationsTest(APITestCase):
     def test_bad_owner_not_self(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ) -> None:
-        self.login_as(user=self.owner, superuser=False)
+        self.login_as(user=self.owner, staff=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
             with open(FRESH_INSTALL_PATH, "rb") as f:
@@ -1131,7 +1124,7 @@ class PostRelocationsTest(APITestCase):
         ) -> None:
             self.login_as(user=self.owner, superuser=False)
             Relocation.objects.create(
-                creator_id=self.superuser.id,
+                creator_id=self.staff_user.id,
                 owner_id=self.owner.id,
                 want_org_slugs=["not-relevant-to-this-test"],
                 status=stat.value,
@@ -1229,9 +1222,7 @@ class PostRelocationsTest(APITestCase):
             sender=RelocationIndexEndpoint,
         )
 
-    @override_options(
-        {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_good_no_throttle_for_staff(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ) -> None:
@@ -1317,7 +1308,7 @@ class PostRelocationsTest(APITestCase):
     def test_good_no_throttle_for_superuser(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 

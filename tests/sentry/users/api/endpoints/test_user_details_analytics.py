@@ -5,7 +5,6 @@ from django.utils import timezone as django_timezone
 
 from sentry.analytics.events.user_removed import UserRemovedEvent
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
@@ -57,7 +56,6 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         assert "deactivation_datetime" in security_call[1]["context"]
         assert "scheduled_deletion_datetime" in security_call[1]["context"]
 
-    @override_options({"staff.ga-rollout": True})
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
     def test_hard_delete_records_analytics_and_security(
@@ -95,9 +93,8 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         assert "deletion_datetime" in security_call[1]["context"]
         assert "scheduled_deletion_datetime" not in security_call[1]["context"]
 
-    @override_options({"staff.ga-rollout": True})
     @mock.patch("sentry.analytics.record")
-    def test_hard_delete_timestamps_match(self, mock_analytics: mock.MagicMock) -> None:
+    def test_hard_delete_timestamps_match(self, mock_analytics):
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
         self.get_success_response(self.user.id, organizations=[], hardDelete=True, status_code=204)
 
