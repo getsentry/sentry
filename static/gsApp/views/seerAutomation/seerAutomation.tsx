@@ -19,6 +19,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import SeerRepoTable from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTable';
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
+import SeerConnectGitHubBanner from 'getsentry/views/seerAutomation/components/seerConnectGitHubBanner';
 import SeerAutomationSettings from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
@@ -62,11 +63,12 @@ export default function SeerAutomation() {
 
       <NoProjectMessage organization={organization}>
         <Stack gap="lg">
+          <SeerConnectGitHubBanner />
           <Container borderBottom="primary">
             <Tabs value={tab} onChange={setTab}>
               <TabList>
-                <TabList.Item key="settings">{t('Settings')}</TabList.Item>
-                <TabList.Item key="repos">{t('Repos')}</TabList.Item>
+                <TabList.Item key="repos">{t('Settings')}</TabList.Item>
+                <TabList.Item key="settings">{t('Repos')}</TabList.Item>
               </TabList>
             </Tabs>
           </Container>
