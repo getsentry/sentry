@@ -212,8 +212,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
-    const hasSeerUserBilling = organizations.some(organization =>
-      organization.features?.includes('seer-user-billing-launch')
+    const hasSeerUserBilling = organizations.some(
+      organization =>
+        organization.features?.includes('seer-user-billing') &&
+        organization.features?.includes('seer-user-billing-launch')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
