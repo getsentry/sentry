@@ -12,14 +12,18 @@ import getTransformedData from './getTransformedData';
 type Props = {
   data: EntryRequest['data']['data'];
   inferredContentType: EntryRequest['data']['inferredContentType'];
-  meta?: Record<any, any>;
+  meta: Record<any, any> | undefined;
 };
 
 export function getBodyContent({data, meta, inferredContentType}: Props) {
   switch (inferredContentType) {
     case 'application/json':
       return (
-        <JsonEventData data-test-id="rich-http-content-body-context-data" data={data} />
+        <JsonEventData
+          data-test-id="rich-http-content-body-context-data"
+          data={data}
+          showCopyButton
+        />
       );
     case 'application/x-www-form-urlencoded':
     case 'multipart/form-data': {
@@ -49,7 +53,7 @@ export function getBodyContent({data, meta, inferredContentType}: Props) {
     default:
       return (
         <pre data-test-id="rich-http-content-body-section-pre">
-          <StructuredEventData data={data} meta={meta} withAnnotatedText />
+          <StructuredEventData data={data} meta={meta} withAnnotatedText showCopyButton />
         </pre>
       );
   }
