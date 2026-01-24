@@ -178,10 +178,20 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.models.environment import Environment
 
         if not hasattr(self, "_environment_cache"):
-            self._environment_cache = Environment.get_for_organization_id(
-                organization_id=self.project.organization_id,
-                name=Environment.get_name_or_default(self.get_tag("environment")),
-            )
+            name = Environment.get_name_or_default(self.get_tag("environment"))
+            organization_id = self.project.organization_id
+            try:
+                self._environment_cache = Environment.get_for_organization_id(
+                    organization_id=organization_id,
+                    name=name,
+                )
+            except Environment.DoesNotExist:
+                # The Environment may not exist if this is the first event without an
+                # environment tag for this organization. Create it to avoid errors in
+                # post-processing steps that depend on get_environment().
+                self._environment_cache = Environment.objects.get_or_create(
+                    name=name, organization_id=organization_id
+                )[0]
 
         return self._environment_cache
 
