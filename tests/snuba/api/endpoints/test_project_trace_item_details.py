@@ -429,7 +429,7 @@ class ProjectTraceItemDetailsEndpointTest(
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
-            {"name": "is_transaction", "type": "float", "value": 0.0},
+            {"name": "is_transaction", "type": "bool", "value": False},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
