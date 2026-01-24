@@ -42,7 +42,7 @@ describe('groupEvents', () => {
     requests.discover = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       headers: {
-        Link: `<https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
+        Link: `<https://sentry.io/api/0/organizations/org-slug/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/organizations/org-slug/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
       },
       body: {
         data: [
