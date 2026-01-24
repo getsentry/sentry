@@ -334,6 +334,105 @@ class OptionsManager:
         record_option(key, optval)
         return optval
 
+    def get_many(self, keys: Sequence[str], silent: bool = False) -> dict[str, TAny]:
+        """
+        Fetch multiple option values efficiently in a single batch operation.
+
+        This is the batch equivalent of get(). It reduces N Redis calls to 1 Redis MGET,
+        significantly improving performance when fetching multiple options (e.g., feature flags).
+
+        Returns dict of {option_name: value} for all requested keys.
+        Missing or errored keys will have their default values.
+
+        Example:
+            >>> from sentry import options
+            >>> results = options.get_many([
+            ...     "feature.organizations:ai-insights",
+            ...     "feature.organizations:new-dashboard",
+            ...     "system.url-prefix",
+            ... ])
+            >>> print(results["feature.organizations:ai-insights"])
+        """
+        # Convert string keys to Key objects
+        key_objects = []
+        key_map = {}  # Map Key object back to original string
+
+        for key_str in keys:
+            try:
+                key_obj = self.lookup_key(key_str)
+                key_objects.append(key_obj)
+                key_map[key_obj] = key_str
+            except Exception:
+                if not silent:
+                    logger.warning(
+                        "options.get_many.lookup_error",
+                        extra={"key": key_str},
+                        exc_info=True,
+                    )
+
+        # Separate disk-prioritized keys from store keys
+        disk_keys = []
+        store_keys = []
+
+        for key_obj in key_objects:
+            if key_obj.has_any_flag({FLAG_PRIORITIZE_DISK}):
+                disk_keys.append(key_obj)
+            else:
+                store_keys.append(key_obj)
+
+        results = {}
+
+        # Handle disk-prioritized keys first
+        for key_obj in disk_keys:
+            key_str = key_map[key_obj]
+            try:
+                result = settings.SENTRY_OPTIONS[key_str]
+            except KeyError:
+                # Still need to check store for disk-prioritized keys if not on disk
+                store_keys.append(key_obj)
+            else:
+                if result is not None:
+                    results[key_str] = result
+                    record_option(key_str, result)
+
+        # Batch fetch from store (cache + database)
+        if store_keys:
+            # Filter out keys with FLAG_NOSTORE
+            fetchable_keys = [k for k in store_keys if not (k.flags & FLAG_NOSTORE)]
+
+            if fetchable_keys:
+                store_results = self.store.get_many(fetchable_keys, silent=silent)
+
+                for key_obj, value in store_results.items():
+                    key_str = key_map[key_obj]
+                    results[key_str] = value
+                    record_option(key_str, value)
+
+        # Fill in defaults for any missing keys
+        for key_obj in key_objects:
+            key_str = key_map[key_obj]
+            if key_str not in results:
+                # Some values we don't want to allow them to be configured through
+                # config files and should only exist in the datastore
+                if key_obj.has_any_flag({FLAG_STOREONLY}):
+                    optval = key_obj.default()
+                else:
+                    try:
+                        # default to the hardcoded local configuration for this key
+                        optval = settings.SENTRY_OPTIONS[key_str]
+                    except KeyError:
+                        try:
+                            optval = settings.SENTRY_DEFAULT_OPTIONS[key_str]
+                        except KeyError:
+                            optval = key_obj.default()
+
+                # Cache the default value for future requests
+                self.store.set_cache(key_obj, optval)
+                results[key_str] = optval
+                record_option(key_str, optval)
+
+        return results
+
     def delete(self, key: str):
         """
         Permanently remove the value of an option.

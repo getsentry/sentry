@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from collections.abc import Sequence
 from random import random
 from time import time
 from typing import Any
@@ -34,7 +35,7 @@ class GroupingInfo:
     order: int
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class Key:
     name: str
     default: Any
@@ -235,6 +236,169 @@ class OptionsStore:
                         CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True
                     )
         return value
+
+    def get_many_local_cache(
+        self, keys: Sequence[Key], force_grace: bool = False
+    ) -> dict[Key, Any]:
+        """
+        Attempt to fetch multiple keys from the local in-process cache.
+
+        Similar to get_local_cache but operates on multiple keys at once.
+        Only returns keys that are found and not expired.
+        """
+        results = {}
+        now = int(time())
+
+        for key in keys:
+            try:
+                value, expires, grace = self._local_cache[key.cache_key]
+            except KeyError:
+                continue
+
+            # Key is within normal expiry window
+            if now < expires:
+                results[key] = value
+                continue
+
+            # If we're able to accept within grace window, return it
+            if force_grace and now < grace:
+                results[key] = value
+                continue
+
+            # If we're outside the grace window, don't return the value
+            # Clean up expired values
+            if now > grace:
+                try:
+                    del self._local_cache[key.cache_key]
+                except KeyError:
+                    # Race condition - another thread deleted it
+                    pass
+
+        return results
+
+    def get_many_cache(self, keys: Sequence[Key], silent: bool = False) -> dict[Key, Any]:
+        """
+        Fetch multiple keys from cache (local → Redis).
+        Returns dict of {Key: value} for found keys only.
+
+        This is the batch equivalent of get_cache().
+        """
+        # First check local cache for all keys
+        results = self.get_many_local_cache(keys)
+        found_keys = set(results.keys())
+
+        # Find keys not in local cache
+        remaining_keys = [k for k in keys if k not in found_keys]
+
+        if not remaining_keys or self.cache is None:
+            return results
+
+        # Batch fetch from Redis using Django cache's get_many
+        cache_keys_to_key = {k.cache_key: k for k in remaining_keys}
+
+        try:
+            cache_results = self.cache.get_many(cache_keys_to_key.keys())
+
+            for cache_key, value in cache_results.items():
+                if value is not None:
+                    key = cache_keys_to_key[cache_key]
+                    results[key] = value
+
+                    # Populate local cache for future requests
+                    if key.ttl > 0:
+                        self._local_cache[cache_key] = _make_cache_value(key, value)
+
+        except Exception:
+            if not silent:
+                key_names = ", ".join(k.name for k in remaining_keys)
+                logger.warning(
+                    CACHE_FETCH_ERR,
+                    key_names,
+                    extra={"keys": [k.name for k in remaining_keys]},
+                    exc_info=True,
+                )
+
+        return results
+
+    def get_many(self, keys: Sequence[Key], silent: bool = False) -> dict[Key, Any]:
+        """
+        Fetch multiple option values with cache → database fallthrough.
+
+        This is the batch equivalent of get(). It follows the same fallthrough pattern:
+        1. Check local cache
+        2. Check Redis cache
+        3. Check database
+        4. Return stale local cache as last resort
+
+        Returns dict of {Key: value} for all keys that were found in any tier.
+        Keys not found anywhere will not be in the returned dict.
+        """
+        # Try cache first (local + Redis)
+        results = self.get_many_cache(keys, silent=silent)
+        found_keys = set(results.keys())
+
+        # Find keys not in cache
+        remaining_keys = [k for k in keys if k not in found_keys]
+
+        if not remaining_keys:
+            return results
+
+        should_log = random() < LOGGING_SAMPLE_RATE
+        if should_log:
+            logger.info(
+                "sentry_options_store.cache_miss_batch",
+                extra={
+                    "keys": [k.name for k in remaining_keys],
+                    "count": len(remaining_keys),
+                    "cache_configured": self.cache is not None,
+                },
+            )
+
+        # Batch database lookup for remaining keys
+        try:
+            db_key_names = {k.name: k for k in remaining_keys}
+
+            # Use filter with IN query to fetch multiple keys at once
+            with in_test_hide_transaction_boundary():
+                db_results = self.model.objects.filter(key__in=db_key_names.keys()).values_list(
+                    "key", "value"
+                )
+
+            for key_name, value in db_results:
+                key = db_key_names[key_name]
+                results[key] = value
+
+                # Populate cache for future requests
+                try:
+                    self.set_cache(key, value)
+                except Exception:
+                    if not silent:
+                        logger.warning(
+                            CACHE_UPDATE_ERR,
+                            key.name,
+                            extra={"key": key.name},
+                            exc_info=True,
+                        )
+
+        except (ProgrammingError, OperationalError):
+            # Database errors - skip database results
+            pass
+        except Exception:
+            if settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS:
+                raise
+            elif not silent:
+                logger.exception(
+                    "option.failed-lookup-batch",
+                    extra={"keys": [k.name for k in remaining_keys]},
+                )
+
+        # As a last ditch effort for any remaining keys, check stale local cache
+        still_missing = [k for k in remaining_keys if k not in results]
+        if still_missing:
+            grace_results = self.get_many_local_cache(still_missing, force_grace=True)
+            results.update(grace_results)
+
+        return results
 
     def get_last_update_channel(self, key) -> UpdateChannel | None:
         """

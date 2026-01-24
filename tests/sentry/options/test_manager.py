@@ -401,3 +401,128 @@ class OptionsManagerTest(TestCase):
         assert opt.has_any_flag({FLAG_NOSTORE})
         assert opt.has_any_flag({FLAG_NOSTORE, FLAG_REQUIRED})
         assert not opt.has_any_flag({FLAG_REQUIRED})
+
+    def test_get_many_basic(self) -> None:
+        """Test get_many with multiple registered options"""
+        self.manager.register("option1", default="default1")
+        self.manager.register("option2", default="default2")
+        self.manager.register("option3", default="default3")
+
+        # Set some values
+        self.manager.set("option1", "value1")
+        self.manager.set("option2", "value2")
+        # option3 uses default
+
+        results = self.manager.get_many(["option1", "option2", "option3"])
+
+        assert len(results) == 3
+        assert results["option1"] == "value1"
+        assert results["option2"] == "value2"
+        assert results["option3"] == "default3"
+
+    def test_get_many_with_defaults(self) -> None:
+        """Test get_many returns defaults for unset options"""
+        self.manager.register("opt_a", default="default_a")
+        self.manager.register("opt_b", default="default_b")
+
+        # Don't set any values - should return defaults
+        results = self.manager.get_many(["opt_a", "opt_b"])
+
+        assert results["opt_a"] == "default_a"
+        assert results["opt_b"] == "default_b"
+
+    def test_get_many_with_config_fallback(self) -> None:
+        """Test get_many falls back to SENTRY_OPTIONS config"""
+        self.manager.register("config_opt1")
+        self.manager.register("config_opt2")
+
+        with self.settings(
+            SENTRY_OPTIONS={"config_opt1": "from_config", "config_opt2": "also_config"}
+        ):
+            results = self.manager.get_many(["config_opt1", "config_opt2"])
+
+            assert results["config_opt1"] == "from_config"
+            assert results["config_opt2"] == "also_config"
+
+    def test_get_many_prioritize_disk(self) -> None:
+        """Test get_many with FLAG_PRIORITIZE_DISK options"""
+        self.manager.register("disk_opt1", flags=FLAG_PRIORITIZE_DISK)
+        self.manager.register("disk_opt2", flags=FLAG_PRIORITIZE_DISK)
+
+        # Set values in store
+        self.manager.set("disk_opt1", "store_value1")
+        self.manager.set("disk_opt2", "store_value2")
+
+        # But configure disk values
+        with self.settings(SENTRY_OPTIONS={"disk_opt1": "disk_value1", "disk_opt2": "disk_value2"}):
+            results = self.manager.get_many(["disk_opt1", "disk_opt2"])
+
+            # Should prefer disk values over store
+            assert results["disk_opt1"] == "disk_value1"
+            assert results["disk_opt2"] == "disk_value2"
+
+    def test_get_many_nostore_flag(self) -> None:
+        """Test get_many with FLAG_NOSTORE options"""
+        self.manager.register("nostore_opt", flags=FLAG_NOSTORE, default="nostore_default")
+
+        with self.settings(SENTRY_OPTIONS={"nostore_opt": "from_config"}):
+            results = self.manager.get_many(["nostore_opt"])
+
+            # Should get from config, not attempt store fetch
+            assert results["nostore_opt"] == "from_config"
+
+    def test_get_many_storeonly_flag(self) -> None:
+        """Test get_many with FLAG_STOREONLY options"""
+        self.manager.register("storeonly_opt", flags=FLAG_STOREONLY, default="storeonly_default")
+
+        # Even with config set, should ignore it
+        with self.settings(SENTRY_OPTIONS={"storeonly_opt": "from_config"}):
+            results = self.manager.get_many(["storeonly_opt"])
+
+            # Should use default, not config
+            assert results["storeonly_opt"] == "storeonly_default"
+
+    def test_get_many_empty_list(self) -> None:
+        """Test get_many with empty list"""
+        results = self.manager.get_many([])
+        assert results == {}
+
+    def test_get_many_mixed_flags(self) -> None:
+        """Test get_many with mixed flag combinations"""
+        self.manager.register("normal_opt", default="normal_default")
+        self.manager.register("disk_opt", flags=FLAG_PRIORITIZE_DISK, default="disk_default")
+        self.manager.register("nostore_opt", flags=FLAG_NOSTORE, default="nostore_default")
+
+        # Set values
+        self.manager.set("normal_opt", "normal_value")
+
+        with self.settings(
+            SENTRY_OPTIONS={
+                "disk_opt": "disk_config",
+                "nostore_opt": "nostore_config",
+            }
+        ):
+            results = self.manager.get_many(["normal_opt", "disk_opt", "nostore_opt"])
+
+            assert results["normal_opt"] == "normal_value"  # From store
+            assert results["disk_opt"] == "disk_config"  # From config (prioritized)
+            assert results["nostore_opt"] == "nostore_config"  # From config (nostore)
+
+    def test_get_many_performance(self) -> None:
+        """Test get_many makes single batch call to store"""
+        # Register multiple options
+        option_names = [f"perf_opt_{i}" for i in range(10)]
+        for name in option_names:
+            self.manager.register(name, default=f"default_{name}")
+            self.manager.set(name, f"value_{name}")
+
+        # Mock store.get_many to verify it's called once
+        with patch.object(self.store, "get_many", wraps=self.store.get_many) as mock_get_many:
+            results = self.manager.get_many(option_names)
+
+            # Should call store.get_many exactly once (batch operation)
+            assert mock_get_many.call_count == 1
+
+            # Verify all values returned correctly
+            for name in option_names:
+                assert results[name] == f"value_{name}"
