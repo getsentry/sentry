@@ -13,7 +13,7 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
-from sentry.auth.staff import has_staff_option, is_active_staff
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.demo_mode.utils import get_readonly_scopes, is_demo_mode_enabled, is_demo_user
@@ -67,20 +67,12 @@ class StaffPermission(BasePermission):
         return is_active_staff(request)
 
 
-# NOTE(schew2381): This is a temporary permission that does NOT perform an OR
-# between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
-# if the option is enabled for the user, and otherwise checks SuperuserPermission. We
-# need this to handle the transition for endpoints that will only be accessible to
-# staff but not superuser, that currently use SuperuserPermission. Once staff is
-# released to the everyone, we can delete this permission and use StaffPermission
+# NOTE(schew2381): This permission class is deprecated and should be replaced with
+# StaffPermission. It's kept temporarily for backwards compatibility during the
+# transition period. Now that staff is GA, this always uses StaffPermission.
 class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
-        enforce_staff_permission = has_staff_option(request.user)
-
-        if enforce_staff_permission:
-            return StaffPermission().has_permission(request, view)
-
-        return SuperuserPermission().has_permission(request, view)
+        return StaffPermission().has_permission(request, view)
 
 
 class ScopedPermission(BasePermission):

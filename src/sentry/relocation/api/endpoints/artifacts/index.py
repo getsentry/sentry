@@ -7,10 +7,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.exceptions import ResourceDoesNotExist, StaffRequired, SuperuserRequired
+from sentry.api.exceptions import ResourceDoesNotExist, StaffRequired
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.auth.elevated_mode import has_elevated_mode
-from sentry.auth.staff import has_staff_option
 from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocation import Relocation
 
@@ -42,12 +41,9 @@ class RelocationArtifactIndexEndpoint(Endpoint):
 
         logger.info("relocations.artifact.index.get.start", extra={"caller": request.user.id})
 
-        # TODO(schew2381): Remove the superuser reference below after feature flag is removed.
-        # Must be superuser/staff AND have a `UserPermission` of `relocation.admin` to see access!
+        # Must be staff AND have a `UserPermission` of `relocation.admin` to see access!
         if not has_elevated_mode(request):
-            if has_staff_option(request.user):
-                raise StaffRequired
-            raise SuperuserRequired
+            raise StaffRequired
 
         if not request.access.has_permission("relocation.admin"):
             raise PermissionDenied(ERR_NEED_RELOCATION_ADMIN)

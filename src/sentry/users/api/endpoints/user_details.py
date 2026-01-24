@@ -181,7 +181,7 @@ class UserSerializer(BaseUserSerializer):
         return super().validate(attrs)
 
 
-class SuperuserUserSerializer(BaseUserSerializer):
+class StaffSerializer(BaseUserSerializer):
     is_active = serializers.BooleanField()
 
     class Meta:
@@ -217,7 +217,7 @@ class SuperuserUserSerializer(BaseUserSerializer):
         return user
 
 
-class PrivilegedUserSerializer(SuperuserUserSerializer):
+class PrivilegedUserSerializer(StaffSerializer):
     is_staff = serializers.BooleanField()
     is_superuser = serializers.BooleanField()
 
@@ -308,8 +308,7 @@ class UserDetailsEndpoint(UserEndpoint):
         # so we can keep this as is_active_superuser. Once the feature flag is
         # removed and we only check is_active_staff, we can remove this comment.
         elif has_elevated_mode(request):
-            # TODO(schew2381): Rename to staff serializer
-            serializer_cls = SuperuserUserSerializer
+            serializer_cls = StaffSerializer
         else:
             serializer_cls = UserSerializer
         serializer = serializer_cls(

@@ -13,8 +13,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.u2f import U2fInterface, decode_credential_id
-from sentry.auth.staff import has_staff_option, is_active_staff
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.staff import is_active_staff
 from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.users.api.serializers.authenticator import get_interface_serializer
@@ -189,12 +188,8 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # We should only be able to delete the last auth method through the
-        # _admin portal, which is indicated by staff. After the option is
-        # removed, this will only check for is_active_staff.
-        if has_staff_option(request.user):
-            check_remaining_auth = not is_active_staff(request)
-        else:
-            check_remaining_auth = not is_active_superuser(request)
+        # _admin portal, which is indicated by staff.
+        check_remaining_auth = not is_active_staff(request)
 
         if check_remaining_auth:
             # if the user's organization requires 2fa,

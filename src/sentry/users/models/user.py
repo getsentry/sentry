@@ -509,7 +509,7 @@ class User(Model, AbstractBaseUser):
         def do_write() -> tuple[int, ImportKind]:
             from sentry.users.api.endpoints.user_details import (
                 BaseUserSerializer,
-                SuperuserUserSerializer,
+                StaffSerializer,
                 UserSerializer,
             )
             from sentry.users.services.lost_password_hash.impl import (
@@ -520,7 +520,7 @@ class User(Model, AbstractBaseUser):
             if scope not in {ImportScope.Config, ImportScope.Global}:
                 serializer_cls = UserSerializer
             else:
-                serializer_cls = SuperuserUserSerializer
+                serializer_cls = StaffSerializer
 
             serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
             serializer_user.is_valid(raise_exception=True)

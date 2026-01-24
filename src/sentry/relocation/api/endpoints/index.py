@@ -93,9 +93,7 @@ class RelocationsPostSerializer(serializers.Serializer):
 def validate_new_relocation_request(
     request: Request, owner_username: str, org_slugs: list[str], file_size: int
 ) -> Response | None:
-    # TODO(schew2381): Remove all superuser references in function after feature flag is removed.
-
-    # We only honor the `relocation.enabled` flag for non-superusers/staff.
+    # We only honor the `relocation.enabled` flag for non-staff.
     elevated_user = has_elevated_mode(request)
     if not options.get("relocation.enabled") and not elevated_user:
         return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
@@ -103,7 +101,7 @@ def validate_new_relocation_request(
     if not request.user.is_authenticated:
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    # Only superuser/staff can start relocations for other users.
+    # Only staff can start relocations for other users.
     creator = user_service.get_user(user_id=request.user.id)
     if creator is None:
         raise RuntimeError("Could not ascertain request user's username")
@@ -121,7 +119,7 @@ def validate_new_relocation_request(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    # Regular users may be throttled, but superuser/staff never are.
+    # Regular users may be throttled, but staff never are.
     relocation_size_category = get_relocation_size_category(file_size)
     if not elevated_user and should_throttle_relocation(relocation_size_category):
         return Response(
@@ -185,8 +183,7 @@ class RelocationIndexEndpoint(Endpoint):
 
         queryset = Relocation.objects.all()
 
-        # TODO(schew2381): Remove the superuser reference below after feature flag is removed.
-        # Non-superuser/staff can only see their own relocations.
+        # Non-staff can only see their own relocations.
         if not has_elevated_mode(request):
             queryset = queryset.filter(owner_id=request.user.id)
 
