@@ -4,7 +4,7 @@ import importlib.metadata
 import logging
 import os
 import sys
-from typing import IO, Any, cast
+from typing import IO, Any
 
 import click
 from django.conf import settings
@@ -503,11 +503,12 @@ def bind_cache_to_option_store() -> None:
 
     # Prefer the 'options' cache profile if defined.
     # Use a ConnectionProxy as caches['options'] performs
-    # poorly in threaded contexts. We cast because
-    # django's types are lies.
-    backend = cast(ConnectionProxy, default_cache)
+    # poorly in threaded contexts.
+    # We type ignore because django's types are lies and default_cache
+    # is ConnectionProxy.
+    backend = default_cache
     if "options" in settings.CACHES:
-        backend = ConnectionProxy(caches, "options")
+        backend = ConnectionProxy(caches, "options")  # type: ignore[assignment]
     default_store.set_cache_impl(backend)
 
 
