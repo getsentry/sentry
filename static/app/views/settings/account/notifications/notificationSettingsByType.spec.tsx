@@ -326,6 +326,7 @@ describe('NotificationSettingsByType', () => {
         'continuous-profiling-billing',
         'seer-billing',
         'logs-billing',
+        'seer-user-billing',
         'seer-user-billing-launch',
       ],
     });
