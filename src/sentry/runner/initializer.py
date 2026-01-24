@@ -4,7 +4,7 @@ import importlib.metadata
 import logging
 import os
 import sys
-from typing import IO, Any
+from typing import IO, Any, cast
 
 import click
 from django.conf import settings
@@ -497,13 +497,17 @@ def bind_cache_to_option_store() -> None:
     # continuing to initialize the remainder of the application.
     from django.core.cache import cache as default_cache
     from django.core.cache import caches
+    from django.utils.connection import ConnectionProxy
 
     from sentry.options import default_store
 
-    # Prefer the 'options' cache profile if defined, otherwise use default
-    backend = default_cache
+    # Prefer the 'options' cache profile if defined.
+    # Use a ConnectionProxy as caches['options'] performs
+    # poorly in threaded contexts. We cast because
+    # django's types are lies.
+    backend = cast(ConnectionProxy, default_cache)
     if "options" in settings.CACHES:
-        backend = caches["options"]
+        backend = ConnectionProxy(caches, "options")
     default_store.set_cache_impl(backend)
 
 
