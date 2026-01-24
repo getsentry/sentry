@@ -80,34 +80,30 @@ export function ProfilePreviewSection({
         projectSlug={project.slug}
         profileMeta={profileMeta}
       >
-        <InterimSection
-          type={SectionKey.PROFILE_PREVIEW}
-          title={
-            <span>
-              {sectionTitle}
-              &nbsp;
-              <QuestionTooltip
-                position="bottom"
-                size="sm"
-                title={t('This shows you a profile around the time of this event.')}
-              />
-            </span>
-          }
-          initialCollapse
-          actions={
-            <ProfileContext.Consumer>
-              {profiles =>
+        <ProfileContext.Consumer>
+          {profiles => (
+            <InterimSection
+              type={SectionKey.PROFILE_PREVIEW}
+              title={
+                <span>
+                  {sectionTitle}
+                  &nbsp;
+                  <QuestionTooltip
+                    position="bottom"
+                    size="sm"
+                    title={t('This shows you a profile around the time of this event.')}
+                  />
+                </span>
+              }
+              initialCollapse
+              actions={
                 profiles?.type === 'resolved' && openTarget ? (
                   <LinkButton size="xs" to={openTarget}>
                     {t('Open in Profiling')}
                   </LinkButton>
                 ) : null
               }
-            </ProfileContext.Consumer>
-          }
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
+            >
               <ProfileGroupProvider
                 type={viewMode === 'timeline' ? 'flamechart' : 'flamegraph'}
                 input={profiles?.type === 'resolved' ? profiles.data : null}
@@ -121,9 +117,9 @@ export function ProfilePreviewSection({
                   />
                 </FlamegraphThemeProvider>
               </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </InterimSection>
+            </InterimSection>
+          )}
+        </ProfileContext.Consumer>
       </ProfilesProvider>
     </ErrorBoundary>
   );
