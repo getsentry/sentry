@@ -223,6 +223,9 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
+        <ErrorBoundary customComponent={null}>
+          <Hook name="sidebar:seer-config-reminder" organization={organization} />
+        </ErrorBoundary>
         <PrimaryNavigationHelp />
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationWhatsNew />
