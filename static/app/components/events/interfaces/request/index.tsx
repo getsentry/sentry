@@ -1,8 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
-
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
@@ -18,13 +16,12 @@ import {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import Truncate from 'sentry/components/truncate';
-import {IconCopy, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -46,43 +43,6 @@ interface RequestBodyProps extends RequestProps {
 
 type View = 'formatted' | 'curl';
 
-function getRequestBodyCopyText(data: EntryRequest['data']): string | null {
-  if (!defined(data.data)) {
-    return null;
-  }
-
-  if (typeof data.data === 'string') {
-    return data.data;
-  }
-
-  try {
-    return JSON.stringify(data.data, null, 2);
-  } catch {
-    return null;
-  }
-}
-
-function RequestBodyTitle({data}: {data: EntryRequest['data']}) {
-  const {copy} = useCopyToClipboard();
-  const copyText = getRequestBodyCopyText(data);
-  return (
-    <Flex as="span" align="center" gap="xs" justify="between" width="100%">
-      <span>{t('Body')}</span>
-      {copyText !== null && (
-        <Button
-          borderless
-          size="zero"
-          onClick={() => {
-            copy(copyText);
-          }}
-          icon={<IconCopy variant="muted" size="xs" />}
-          aria-label={t('Copy body to clipboard')}
-        />
-      )}
-    </Flex>
-  );
-}
-
 function RequestBodySection({data, event, meta}: RequestBodyProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
@@ -90,12 +50,10 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
     return null;
   }
 
-  const bodyTitle = <RequestBodyTitle data={data} />;
-
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
     return hasStreamlinedUI ? (
       <RequestCardPanel>
-        <KeyValueData.Title>{bodyTitle}</KeyValueData.Title>
+        <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
       </RequestCardPanel>
     ) : (
@@ -111,7 +69,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
     });
     return (
       <RequestCardPanel>
-        <KeyValueData.Title>{bodyTitle}</KeyValueData.Title>
+        <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
         {contentBody}
       </RequestCardPanel>
     );
@@ -122,7 +80,6 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
       data={data.data}
       inferredContentType={data.inferredContentType}
       meta={meta?.data}
-      title={bodyTitle}
     />
   );
 }
