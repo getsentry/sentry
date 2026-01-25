@@ -276,9 +276,15 @@ export function Onboarding() {
 
   const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
 
-  // Clean up runtime parameter from URL when switching to non-fullstack platform
+  // Clean up runtime parameter from URL when switching
+  // to non-fullstack platform or when MANUAL integration is selected
   useEffect(() => {
-    if (!isFullStackJsPlatform && location.query.runtime) {
+    const shouldCleanRuntime =
+      (!isFullStackJsPlatform ||
+        location.query.integration === AgentIntegration.MANUAL) &&
+      location.query.runtime;
+
+    if (shouldCleanRuntime) {
       const {runtime, ...restQuery} = location.query;
       navigate({
         pathname: location.pathname,
