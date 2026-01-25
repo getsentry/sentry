@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "playwright-extension": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--extension"]
+    },
     "sentry": {
       "type": "http",
       "url": "https://mcp.sentry.dev/mcp"
