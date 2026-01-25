@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from django.db import IntegrityError
@@ -50,7 +52,8 @@ from sentry.models.release import (
 )
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import SemverFilter
+from sentry.models.releases.util import ReleaseQuerySet, SemverFilter
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.search.events.constants import (
@@ -69,6 +72,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.pagination_factory import PaginatorLike
 from sentry.utils.sdk import bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -148,9 +152,19 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
             negated = search_filter.operator == "!="
+            package_value = search_filter.value.raw_value
+            # SemverFilter expects package as str | Sequence[str] | None
+            # Handle both str and any Sequence type (list, tuple, etc.)
+            final_package: str | list[str]
+            if isinstance(package_value, str):
+                final_package = package_value
+            elif isinstance(package_value, Sequence):
+                # Sequence includes list, tuple, and other sequence types
+                final_package = [str(v) for v in package_value]
+            else:
+                final_package = str(package_value)
             queryset = queryset.filter_by_semver(
-                organization.id,
-                SemverFilter("exact", [], search_filter.value.raw_value, negated),
+                organization.id, SemverFilter("exact", [], final_package, negated)
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
@@ -307,7 +321,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         ]
     )
 
-    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
+    # Since we are not trying to override the top-levelget_projects function, we need to type ignore the override
+    def get_projects(  # type: ignore[override]
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+    ) -> list[Project]:
         return super().get_projects(
             request,
             organization,
@@ -344,8 +365,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
 
-        paginator_cls = OffsetPaginator
-        paginator_kwargs = {}
+        paginator_cls: type[PaginatorLike] = OffsetPaginator
+        paginator_kwargs: dict[str, Any] = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -395,17 +416,17 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         elif sort == "semver":
             queryset = queryset.annotate_prerelease_column()
 
-            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
+            order_by_list = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
-            order_by.append(F("date_added").desc())
-            paginator_kwargs["order_by"] = order_by
+            order_by_list.append(F("date_added").desc())
+            paginator_kwargs["order_by"] = order_by_list
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
-            queryset = queryset.order_by(order_by)
-            paginator_kwargs["order_by"] = order_by
+            order_by_expr = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(order_by_expr)
+            paginator_kwargs["order_by"] = order_by_expr
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
@@ -413,7 +434,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-            def qs_load_func(queryset, total_offset, qs_offset, limit):
+            def qs_load_func(
+                queryset: ReleaseQuerySet, total_offset: int, qs_offset: int, limit: int
+            ) -> list[Release]:
                 # We want to fetch at least total_offset + limit releases to check, to make sure
                 # we're not fetching only releases that were on previous pages.
                 release_versions = list(
@@ -436,12 +459,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     rv for rv in release_versions if rv not in releases_with_session_data
                 ]
 
-                results = list(
-                    Release.objects.filter(
-                        organization_id=organization.id,
-                        version__in=valid_versions,
-                    ).order_by_recent()[qs_offset : qs_offset + limit]
+                # Use get_queryset() to preserve ReleaseQuerySet type through filter chain
+                release_queryset = Release.objects.get_queryset().filter(
+                    organization_id=organization.id,
+                    version__in=valid_versions,
                 )
+                results = list(release_queryset.order_by_recent()[qs_offset : qs_offset + limit])
                 return results
 
             paginator_cls = ReleasesMergingOffsetPaginator
@@ -513,8 +536,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if health_stat not in ("sessions", "users"):
             raise ParseError(detail="invalid healthStat")
 
-        paginator_cls = OffsetPaginator
-        paginator_kwargs = {}
+        paginator_cls: type[PaginatorLike] = OffsetPaginator
+        paginator_kwargs: dict[str, Any] = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -567,17 +590,17 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         elif sort == "semver":
             queryset = queryset.annotate_prerelease_column()
 
-            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
+            order_by_list = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
-            order_by.append(F("date_added").desc())
-            paginator_kwargs["order_by"] = order_by
+            order_by_list.append(F("date_added").desc())
+            paginator_kwargs["order_by"] = order_by_list
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
-            queryset = queryset.order_by(order_by)
-            paginator_kwargs["order_by"] = order_by
+            order_by_expr = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(order_by_expr)
+            paginator_kwargs["order_by"] = order_by_expr
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
@@ -585,7 +608,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-            def qs_load_func(queryset, total_offset, qs_offset, limit):
+            def qs_load_func(
+                queryset: ReleaseQuerySet, total_offset: int, qs_offset: int, limit: int
+            ) -> list[Release]:
                 # We want to fetch at least total_offset + limit releases to check, to make sure
                 # we're not fetching only releases that were on previous pages.
                 release_versions = list(
@@ -608,11 +633,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     rv for rv in release_versions if rv not in releases_with_session_data
                 ]
 
-                results = list(
-                    Release.objects.filter(
-                        organization_id=organization.id,
-                        version__in=valid_versions,
-                    ).order_by_recent()[qs_offset : qs_offset + limit]
+                release_queryset = Release.objects.filter(
+                    organization_id=organization.id,
+                    version__in=valid_versions,
+                )
+                # Filter returns ReleaseQuerySet due to custom manager
+                results: list[Release] = list(
+                    release_queryset.order_by_recent()[qs_offset : qs_offset + limit]  # type: ignore[attr-defined]
                 )
                 return results
 
@@ -949,15 +976,24 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         self.queryset_load_func = queryset_load_func
         self.project_ids = project_ids
 
-    def get_result(self, limit=100, cursor=None):
+    def get_result(
+        self,
+        limit: int = 100,
+        cursor: Cursor | None = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
+    ) -> CursorResult[Release]:
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
         limit = min(limit, self.max_limit)
 
         page = cursor.offset
-        offset = cursor.offset * cursor.value
-        limit = cursor.value or limit
+        # cursor.value is CursorValue (float | int | str), convert to int for arithmetic
+        cursor_value = int(cursor.value) if cursor.value else 0
+        offset = cursor.offset * cursor_value
+        limit = cursor_value or limit
 
         if self.max_offset is not None and offset >= self.max_offset:
             raise BadPaginationError("Pagination offset too large")
