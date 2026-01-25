@@ -116,7 +116,7 @@ function OurlogsSectionContent({
             freeze={traceId ? {traceId} : undefined}
           >
             <LogsPageDataProvider disabled={!traceId}>
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <TraceItemAttributeProvider dataset={TraceItemDataset.LOGS} enabled>
                 <OurlogsDrawer
                   group={group}
                   event={event}

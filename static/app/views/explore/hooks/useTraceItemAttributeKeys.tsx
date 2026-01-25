@@ -20,7 +20,7 @@ interface UseTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps 
 export function useTraceItemAttributeKeys({
   enabled,
   type,
-  traceItemType,
+  dataset,
   projects,
   query,
   search,
@@ -33,13 +33,13 @@ export function useTraceItemAttributeKeys({
 
   const queryOptions = useMemo(() => {
     return makeTraceItemAttributeKeysQueryOptions({
-      traceItemType,
+      dataset,
       type,
       datetime: selection.datetime,
       projectIds,
       query,
     });
-  }, [selection, traceItemType, type, projectIds, query]);
+  }, [selection, dataset, type, projectIds, query]);
 
   const queryKey = useMemo(
     () => ['use-trace-item-attribute-keys', queryOptions],
@@ -47,7 +47,7 @@ export function useTraceItemAttributeKeys({
   );
 
   const getTraceItemAttributeKeys = useGetTraceItemAttributeKeys({
-    traceItemType,
+    dataset,
     type,
     projectIds,
     query,

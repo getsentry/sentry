@@ -114,7 +114,7 @@ function SpansTabTourTrigger() {
 
 function ExploreTagsProvider({children}: SpansTabContextProps) {
   return (
-    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+    <TraceItemAttributeProvider dataset={TraceItemDataset.SPANS} enabled>
       {children}
     </TraceItemAttributeProvider>
   );

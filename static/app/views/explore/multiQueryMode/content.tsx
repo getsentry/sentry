@@ -221,7 +221,7 @@ export function MultiQueryModeContent() {
 
   return (
     <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+      <TraceItemAttributeProvider dataset={TraceItemDataset.SPANS} enabled>
         <Content datePageFilterProps={datePageFilterProps} />
       </TraceItemAttributeProvider>
     </PageFiltersContainer>

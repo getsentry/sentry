@@ -113,7 +113,7 @@ function PageWithProviders() {
       analyticEventName="insight.page_loads.agent_models"
       maxPickableDays={datePageFilterProps.maxPickableDays}
     >
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+      <TraceItemAttributeProvider dataset={TraceItemDataset.SPANS} enabled>
         <AgentModelsLandingPage datePageFilterProps={datePageFilterProps} />
       </TraceItemAttributeProvider>
     </ModulePageProviders>

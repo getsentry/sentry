@@ -103,7 +103,7 @@ function PageWithProviders() {
       analyticEventName="insight.page_loads.mcp_tools"
       maxPickableDays={datePageFilterProps.maxPickableDays}
     >
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+      <TraceItemAttributeProvider dataset={TraceItemDataset.SPANS} enabled>
         <McpToolsLandingPage datePageFilterProps={datePageFilterProps} />
       </TraceItemAttributeProvider>
     </ModulePageProviders>

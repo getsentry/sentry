@@ -19,15 +19,15 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface UseTraceItemAttributeKeysProps {
+  dataset: TraceItemDataset;
   projectIds: number[];
-  traceItemType: TraceItemDataset;
   type: 'string' | 'number';
   options?: Partial<UseApiQueryOptions<Tag[]>>;
 }
 
 function useTraceItemAttributeKeys({
   type,
-  traceItemType,
+  dataset,
   projectIds,
   options,
 }: UseTraceItemAttributeKeysProps) {
@@ -39,7 +39,7 @@ function useTraceItemAttributeKeys({
       }),
       {
         query: makeTraceItemAttributeKeysQueryOptions({
-          traceItemType,
+          dataset,
           type,
           datetime: {
             period: '14d',
@@ -74,11 +74,11 @@ function useTraceItemAttributeKeys({
 }
 
 export function useTraceItemNumberAttributes({
-  traceItemType,
+  dataset,
   projectIds,
 }: {
+  dataset: TraceItemDataset;
   projectIds: number[];
-  traceItemType: TraceItemDataset;
 }) {
   const {
     attributes: numberAttributes,
@@ -86,18 +86,18 @@ export function useTraceItemNumberAttributes({
     error,
   } = useTraceItemAttributeKeys({
     type: 'number',
-    traceItemType,
+    dataset,
     projectIds,
   });
 
   const allNumberAttributes = useMemo((): TagCollection => {
-    const measurements = getDefaultNumberAttributes(traceItemType).map(measurement => [
+    const measurements = getDefaultNumberAttributes(dataset).map(measurement => [
       measurement,
       {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
     ]);
 
     return {...numberAttributes, ...Object.fromEntries(measurements)};
-  }, [numberAttributes, traceItemType]);
+  }, [numberAttributes, dataset]);
 
   return {
     attributes: allNumberAttributes,
@@ -107,11 +107,11 @@ export function useTraceItemNumberAttributes({
 }
 
 export function useTraceItemStringAttributes({
-  traceItemType,
+  dataset,
   projectIds,
 }: {
+  dataset: TraceItemDataset;
   projectIds: number[];
-  traceItemType: TraceItemDataset;
 }) {
   const {
     attributes: stringAttributes,
@@ -119,18 +119,18 @@ export function useTraceItemStringAttributes({
     error,
   } = useTraceItemAttributeKeys({
     type: 'string',
-    traceItemType,
+    dataset,
     projectIds,
   });
 
   const allStringAttributes = useMemo((): TagCollection => {
-    const tags = getDefaultStringAttributes(traceItemType).map(tag => [
+    const tags = getDefaultStringAttributes(dataset).map(tag => [
       tag,
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
 
     return {...stringAttributes, ...Object.fromEntries(tags)};
-  }, [stringAttributes, traceItemType]);
+  }, [stringAttributes, dataset]);
 
   return {
     attributes: allStringAttributes,

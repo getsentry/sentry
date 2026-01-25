@@ -193,7 +193,7 @@ function PageWithProviders() {
 
   return (
     <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+      <TraceItemAttributeProvider dataset={TraceItemDataset.SPANS} enabled>
         <AgentsOverviewPage datePageFilterProps={datePageFilterProps} />
       </TraceItemAttributeProvider>
     </DomainOverviewPageProviders>

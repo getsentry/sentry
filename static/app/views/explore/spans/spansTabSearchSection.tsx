@@ -306,7 +306,7 @@ function SpansTabCrossEventSearchBars() {
             />
           </SearchQueryBuilderProvider>
         ) : (
-          <TraceItemAttributeProvider traceItemType={traceItemType} enabled>
+          <TraceItemAttributeProvider dataset={traceItemType} enabled>
             <SpansTabCrossEventSearchBar
               index={index}
               query={crossEvent.query}

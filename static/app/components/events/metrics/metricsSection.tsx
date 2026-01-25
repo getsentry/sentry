@@ -107,10 +107,7 @@ function MetricsSectionContent({
       openDrawer(
         () => (
           <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-            <TraceItemAttributeProvider
-              traceItemType={TraceItemDataset.TRACEMETRICS}
-              enabled
-            >
+            <TraceItemAttributeProvider dataset={TraceItemDataset.TRACEMETRICS} enabled>
               <MetricsDrawer group={group} event={event} project={project} />
             </TraceItemAttributeProvider>
           </TraceViewMetricsProviderWrapper>

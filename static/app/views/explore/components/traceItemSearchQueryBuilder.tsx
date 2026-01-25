@@ -108,7 +108,7 @@ export function useTraceItemSearchQueryBuilderProps({
   );
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
-    traceItemType: itemType,
+    dataset: itemType,
     type: 'string',
     projectIds: projects,
   });
