@@ -173,6 +173,18 @@ describe('sortCategories', () => {
         prepaid: 0,
         order: 16,
       }),
+      MetricHistoryFixture({
+        category: DataCategory.SIZE_ANALYSIS,
+        reserved: 100,
+        prepaid: 100,
+        order: 17,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.INSTALLABLE_BUILD,
+        reserved: 25000,
+        prepaid: 25000,
+        order: 18,
+      }),
     ]);
   });
 
@@ -258,6 +270,24 @@ describe('sortCategories', () => {
           reserved: 0,
           prepaid: 0,
           order: 16,
+        }),
+      ],
+      [
+        'sizeAnalyses',
+        MetricHistoryFixture({
+          category: DataCategory.SIZE_ANALYSIS,
+          reserved: 100,
+          prepaid: 100,
+          order: 17,
+        }),
+      ],
+      [
+        'installableBuilds',
+        MetricHistoryFixture({
+          category: DataCategory.INSTALLABLE_BUILD,
+          reserved: 25000,
+          prepaid: 25000,
+          order: 18,
         }),
       ],
     ]);
