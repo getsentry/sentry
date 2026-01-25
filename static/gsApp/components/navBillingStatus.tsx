@@ -8,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -38,6 +39,57 @@ const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
   size: 'xs',
 };
 
+/**
+ * Emerge categories (SIZE_ANALYSIS, INSTALLABLE_BUILD) don't have PAYG (on-demand)
+ * available, so they need special handling with a "Contact Sales" CTA instead of
+ * the standard AddEventsCTA.
+ */
+const EMERGE_CATEGORIES = [
+  DataCategory.SIZE_ANALYSIS,
+  DataCategory.INSTALLABLE_BUILD,
+] as const;
+
+function isEmergeCategory(category: DataCategory): boolean {
+  return EMERGE_CATEGORIES.includes(category as (typeof EMERGE_CATEGORIES)[number]);
+}
+
+function getEmergeSubheader(emergeCategories: DataCategory[]): string {
+  const hasSizeAnalysis = emergeCategories.includes(DataCategory.SIZE_ANALYSIS);
+  const hasInstallableBuild = emergeCategories.includes(DataCategory.INSTALLABLE_BUILD);
+
+  if (hasSizeAnalysis && hasInstallableBuild) {
+    return t('Size Analysis & Build Distribution - Quota Exceeded');
+  }
+  if (hasSizeAnalysis) {
+    return t('Size Analysis Builds - Quota Exceeded');
+  }
+  return t('Build Distribution - Quota Exceeded');
+}
+
+function getEmergeBodyCopy(
+  emergeCategories: DataCategory[],
+  subscription: Subscription
+): string {
+  const hasSizeAnalysis = emergeCategories.includes(DataCategory.SIZE_ANALYSIS);
+  const hasInstallableBuild = emergeCategories.includes(DataCategory.INSTALLABLE_BUILD);
+
+  if (hasSizeAnalysis && hasInstallableBuild) {
+    return t(
+      'Your organization has used your full quota of Size Analysis builds and Build Distribution installs this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:'
+    );
+  }
+  if (hasSizeAnalysis) {
+    const quota = subscription.categories.sizeAnalyses?.reserved ?? 100;
+    return t(
+      'Your organization has used your full quota of %s Size Analysis builds uploaded this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:',
+      quota
+    );
+  }
+  return t(
+    'Your organization has used your full quota of Build Distribution installs this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:'
+  );
+}
+
 function QuotaExceededContent({
   exceededCategories,
   subscription,
@@ -57,9 +109,13 @@ function QuotaExceededContent({
   organization: Organization;
   subscription: Subscription;
 }) {
+  // Separate Emerge categories from other categories
+  const emergeCategories = exceededCategories.filter(isEmergeCategory);
+  const otherCategories = exceededCategories.filter(cat => !isEmergeCategory(cat));
+
   const seatCategories: DataCategory[] = [];
   const usageCategories: DataCategory[] = [];
-  const eventTypes: EventType[] = exceededCategories.map(category => {
+  const eventTypes: EventType[] = otherCategories.map(category => {
     const categoryInfo = getCategoryInfoFromPlural(category);
     if (categoryInfo?.tallyType === 'seat') {
       seatCategories.push(category);
@@ -68,6 +124,14 @@ function QuotaExceededContent({
     }
     return (categoryInfo?.name ?? category) as EventType;
   });
+
+  // Get event types for Emerge categories (for analytics/dismiss)
+  const emergeEventTypes: EventType[] = emergeCategories.map(category => {
+    const categoryInfo = getCategoryInfoFromPlural(category);
+    return (categoryInfo?.name ?? category) as EventType;
+  });
+
+  const allEventTypes = [...eventTypes, ...emergeEventTypes];
 
   const usageCategoryList = listDisplayNames({
     plan: subscription.planDetails,
@@ -80,6 +144,134 @@ function QuotaExceededContent({
     hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
 
+  // If ONLY Emerge categories are exceeded, show Emerge-specific content
+  if (emergeCategories.length > 0 && otherCategories.length === 0) {
+    return (
+      <Container>
+        <Header>
+          <HeaderTitle>{t('Billing Status')}</HeaderTitle>
+        </Header>
+        <Body>
+          <Title>{getEmergeSubheader(emergeCategories)}</Title>
+          <Description>{getEmergeBodyCopy(emergeCategories, subscription)}</Description>
+          <Flex justify="between" align="center">
+            <LinkButton
+              priority="primary"
+              href="mailto:sales@sentry.io"
+              external
+              size="xs"
+            >
+              {t('Contact Sales')}
+            </LinkButton>
+            {!isDismissed && (
+              <Button
+                aria-label={t('Dismiss alert for the rest of the billing cycle')}
+                onClick={() =>
+                  onClick({
+                    eventTypes: emergeEventTypes,
+                    isManual: true,
+                  })
+                }
+                {...COMMON_BUTTON_PROPS}
+              >
+                {t('Dismiss')}
+              </Button>
+            )}
+          </Flex>
+        </Body>
+      </Container>
+    );
+  }
+
+  // If BOTH Emerge and other categories are exceeded, show both sections
+  if (emergeCategories.length > 0 && otherCategories.length > 0) {
+    return (
+      <Container>
+        <Header>
+          <HeaderTitle>{t('Billing Status')}</HeaderTitle>
+        </Header>
+        <Body>
+          {/* Emerge categories section */}
+          <Title>{getEmergeSubheader(emergeCategories)}</Title>
+          <Description>{getEmergeBodyCopy(emergeCategories, subscription)}</Description>
+          <Flex justify="start" align="center">
+            <LinkButton
+              priority="primary"
+              href="mailto:sales@sentry.io"
+              external
+              size="xs"
+            >
+              {t('Contact Sales')}
+            </LinkButton>
+          </Flex>
+
+          {/* Standard categories section */}
+          <Title>
+            {otherCategories.length === 1
+              ? tct('[category] Quota Exceeded', {
+                  category: getSingularCategoryName({
+                    plan: subscription.planDetails,
+                    category: otherCategories[0]!,
+                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                    title: true,
+                  }),
+                })
+              : t('Additional Quotas Exceeded')}
+          </Title>
+          {usageCategories.length > 0 && (
+            <Description>
+              {tct(
+                'You have used up your quota for [usageCategoryList]. Monitoring and new data [descriptor]are paused until your quota resets.',
+                {
+                  usageCategoryList,
+                  descriptor: usageCategories.length > 1 ? t('for these features ') : '',
+                }
+              )}
+            </Description>
+          )}
+          {seatCategories.length > 0 && (
+            <Description>
+              {tct(
+                '[prefix] reached your quota for [seatCategoryList]. Existing monitors remain active, but you cannot add new ones until your quota resets.',
+                {
+                  prefix: usageCategories.length > 0 ? t('You have also') : t('You have'),
+                  seatCategoryList,
+                }
+              )}
+            </Description>
+          )}
+          <Flex justify="between" align="center">
+            <AddEventsCTA
+              organization={organization}
+              subscription={subscription}
+              buttonProps={COMMON_BUTTON_PROPS}
+              eventTypes={eventTypes}
+              notificationType="overage_critical"
+              referrer={`overage-alert-${eventTypes.join('-')}`}
+              source="nav-quota-overage"
+              handleRequestSent={() => onClick({eventTypes: allEventTypes})}
+            />
+            {!isDismissed && (
+              <Button
+                aria-label={t('Dismiss alert for the rest of the billing cycle')}
+                onClick={() =>
+                  onClick({
+                    eventTypes: allEventTypes,
+                    isManual: true,
+                  })
+                }
+                {...COMMON_BUTTON_PROPS}
+              >
+                {t('Dismiss')}
+              </Button>
+            )}
+          </Flex>
+        </Body>
+      </Container>
+    );
+  }
+
+  // Standard content for non-Emerge categories only
   return (
     <Container>
       <Header>
