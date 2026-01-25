@@ -349,15 +349,14 @@ export function Onboarding() {
   };
 
   const introduction = agentMonitoringDocs.introduction?.(docParams);
+  const integration = selectedPlatformOptions.integration;
+  const runtime = selectedPlatformOptions.runtime;
 
   const steps = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
     ...(agentMonitoringDocs.verify?.(docParams) || []),
   ];
-
-  const integration = selectedPlatformOptions.integration;
-  const runtime = selectedPlatformOptions.runtime;
 
   return (
     <OnboardingPanel project={project}>
