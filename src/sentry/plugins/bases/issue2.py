@@ -133,6 +133,14 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
 
         return getattr(self.plugin, self.view_method_name)(request, group, *args, **kwargs)
 
+    @deprecated(CELL_API_DEPRECATION_DATE)
+    def get(self, request: Request, group, *args, **kwargs) -> Response:
+        return self._handle(request, group, *args, **kwargs)
+
+    @deprecated(CELL_API_DEPRECATION_DATE)
+    def post(self, request: Request, group, *args, **kwargs) -> Response:
+        return self._handle(request, group, *args, **kwargs)
+
 
 class IssueTrackingPlugin2(Plugin):
     auth_provider: str | None = None
