@@ -103,6 +103,48 @@ export function getAgentMonitoringInstallStep(
     packageName?: `@sentry/${string}`;
   } = {}
 ): OnboardingStep[] {
+  const selected =
+    (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
+
+  if (selected === AgentIntegration.MASTRA) {
+    return [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'Install the [code:@mastra/sentry] package to enable Sentry integration with Mastra.',
+              {
+                code: <code />,
+              }
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'npm',
+                language: 'bash',
+                code: 'npm install @mastra/sentry',
+              },
+              {
+                label: 'yarn',
+                language: 'bash',
+                code: 'yarn add @mastra/sentry',
+              },
+              {
+                label: 'pnpm',
+                language: 'bash',
+                code: 'pnpm add @mastra/sentry',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+  }
+
   return [
     {
       type: StepType.INSTALL,
@@ -653,9 +695,42 @@ const response = await client.responses.create({
   return [];
 };
 
-/**
- * Returns server-side configuration content for Node.js agent monitoring.
- */
+export const vercelAiExtraInstrumentation: ContentBlock[] = [
+  {
+    type: 'text',
+    text: tct(
+      'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+      {
+        code: <code />,
+        link: (
+          <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+        ),
+      }
+    ),
+  },
+  {
+    type: 'code',
+    tabs: [
+      {
+        label: 'JavaScript',
+        language: 'javascript',
+        code: `const { generateText } = require('ai');
+const { openai } = require('@ai-sdk/openai');
+
+const result = await generateText({
+model: openai("gpt-4o"),
+prompt: "Tell me a joke",
+experimental_telemetry: {
+isEnabled: true,
+recordInputs: true,
+recordOutputs: true,
+},
+});`,
+      },
+    ],
+  },
+];
+
 export function getServerSideAgentMonitoringConfig({
   params,
   integration,
@@ -669,7 +744,50 @@ export function getServerSideAgentMonitoringConfig({
   configFileName?: string;
   importMode?: 'esm' | 'cjs' | 'esm-only';
 }): ContentBlock[] {
-  const content: ContentBlock[] = [
+  if (integration === AgentIntegration.MASTRA) {
+    return [
+      {
+        type: 'text',
+        text: tct(
+          'Configure Mastra to use Sentry by adding the [code:SentryExporter] to your Mastra observability config. For more details, see the [link:@mastra/sentry package].',
+          {
+            code: <code />,
+            link: <ExternalLink href="https://www.npmjs.com/package/@mastra/sentry" />,
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `import { Mastra } from '@mastra/core';
+import { SentryExporter } from '@mastra/sentry';
+
+const mastra = new Mastra({
+// ... your existing config
+observability: {
+configs: {
+sentry: {
+  serviceName: 'my-service',
+  exporters: [
+    new SentryExporter({
+      dsn: '${params.dsn.public}',
+      tracesSampleRate: 1.0,
+    }),
+  ],
+},
+},
+},
+});`,
+          },
+        ],
+      },
+    ];
+  }
+
+  return [
     {
       type: 'text',
       text: tct(
@@ -698,210 +816,8 @@ Sentry.init({
         },
       ],
     },
+    ...(integration === AgentIntegration.VERCEL_AI ? vercelAiExtraInstrumentation : []),
   ];
-
-  return content;
-}
-
-/**
- * Returns server-side example code blocks for the selected AI integration.
- * Used in both configure and verify steps.
- */
-export function getServerSideAgentMonitoringExamples(
-  integration: AgentIntegration
-): ContentBlock[] {
-  if (integration === AgentIntegration.ANTHROPIC) {
-    return [
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `const Anthropic = require("@anthropic-ai/sdk");
-const anthropic = new Anthropic();
-
-const msg = await anthropic.messages.create({
-  model: "claude-3-5-sonnet",
-  messages: [{role: "user", content: "Tell me a joke"}],
-});`,
-          },
-        ],
-      },
-    ];
-  }
-
-  if (integration === AgentIntegration.OPENAI) {
-    return [
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `const OpenAI = require("openai");
-const client = new OpenAI();
-
-const response = await client.responses.create({
-  model: "gpt-4o-mini",
-  input: "Tell me a joke",
-});`,
-          },
-        ],
-      },
-    ];
-  }
-
-  if (integration === AgentIntegration.GOOGLE_GENAI) {
-    return [
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `const GoogleGenAI = require("@google/genai").GoogleGenAI;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
-const response = await ai.models.generateContent({
-  model: 'gemini-2.5-flash-lite',
-  contents: 'Why is the sky blue?',
-});`,
-          },
-        ],
-      },
-    ];
-  }
-
-  if (integration === AgentIntegration.LANGCHAIN) {
-    return [
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `const { ChatOpenAI } = require("@langchain/openai");
-const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
-
-const chatModel = new ChatOpenAI({
-  modelName: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const messages = [
-  new SystemMessage("You are a helpful assistant."),
-  new HumanMessage("Tell me a joke"),
-];
-
-const response = await chatModel.invoke(messages);
-const text = response.content;`,
-          },
-        ],
-      },
-    ];
-  }
-
-  if (integration === AgentIntegration.LANGGRAPH) {
-    return [
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `const { ChatOpenAI } = require("@langchain/openai");
-const { createReactAgent } = require("@langchain/langgraph/prebuilt");
-const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
-
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const agent = createReactAgent({ llm, tools: [] });
-
-const result = await agent.invoke({
-  messages: [
-    new SystemMessage("You are a helpful assistant."),
-    new HumanMessage("Tell me a joke")
-  ],
-});
-
-const messages = result.messages;
-const lastMessage = messages[messages.length - 1];
-const text = lastMessage.content;`,
-          },
-        ],
-      },
-    ];
-  }
-
-  if (integration === AgentIntegration.VERCEL_AI) {
-    return [
-      {
-        type: 'text',
-        text: tct(
-          'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
-          {
-            code: <code />,
-            link: (
-              <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
-            ),
-          }
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `const { generateText } = require('ai');
-const { openai } = require('@ai-sdk/openai');
-
-const result = await generateText({
-  model: openai("gpt-4o"),
-  prompt: "Tell me a joke",
-  experimental_telemetry: {
-    isEnabled: true,
-    recordInputs: true,
-    recordOutputs: true,
-  },
-});`,
-          },
-        ],
-      },
-    ];
-  }
-
-  if (integration === AgentIntegration.MASTRA) {
-    return [
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `import { Agent } from '@mastra/core/agent';
-
-// This agent needs to be registered in your Mastra config
-const agent = new Agent({
-  id: 'my-agent',
-  name: 'My Agent',
-  instructions: 'You are a helpful assistant',
-  model: 'openai/gpt-4o',
-});
-
-const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
-          },
-        ],
-      },
-    ];
-  }
-
-  return [];
 }
 
 export const getNodeAgentMonitoringOnboarding = ({
@@ -913,53 +829,10 @@ export const getNodeAgentMonitoringOnboarding = ({
   importMode?: 'esm' | 'cjs' | 'esm-only';
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
-  install: params => {
-    const selected =
-      (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
-
-    if (selected === AgentIntegration.MASTRA) {
-      return [
-        {
-          type: StepType.INSTALL,
-          content: [
-            {
-              type: 'text',
-              text: tct(
-                'Install the [code:@mastra/sentry] package to enable Sentry integration with Mastra.',
-                {
-                  code: <code />,
-                }
-              ),
-            },
-            {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'npm',
-                  language: 'bash',
-                  code: 'npm install @mastra/sentry',
-                },
-                {
-                  label: 'yarn',
-                  language: 'bash',
-                  code: 'yarn add @mastra/sentry',
-                },
-                {
-                  label: 'pnpm',
-                  language: 'bash',
-                  code: 'pnpm add @mastra/sentry',
-                },
-              ],
-            },
-          ],
-        },
-      ];
-    }
-
-    return getAgentMonitoringInstallStep(params, {
+  install: params =>
+    getAgentMonitoringInstallStep(params, {
       packageName,
-    });
-  },
+    }),
   configure: params => {
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
@@ -971,81 +844,16 @@ export const getNodeAgentMonitoringOnboarding = ({
       });
     }
 
-    if (selected === AgentIntegration.MASTRA) {
-      return [
-        {
-          title: t('Configure'),
-          content: [
-            {
-              type: 'text',
-              text: tct(
-                'Configure Mastra to use Sentry by adding the [code:SentryExporter] to your Mastra observability config. For more details, see the [link:@mastra/sentry package].',
-                {
-                  code: <code />,
-                  link: (
-                    <ExternalLink href="https://www.npmjs.com/package/@mastra/sentry" />
-                  ),
-                }
-              ),
-            },
-            {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'JavaScript',
-                  language: 'javascript',
-                  code: `import { Mastra } from '@mastra/core';
-import { SentryExporter } from '@mastra/sentry';
-
-const mastra = new Mastra({
-  // ... your existing config
-  observability: {
-    configs: {
-      sentry: {
-        serviceName: 'my-service',
-        exporters: [
-          new SentryExporter({
-            dsn: '${params.dsn.public}',
-            tracesSampleRate: 1.0,
-          }),
-        ],
-      },
-    },
-  },
-});`,
-                },
-              ],
-            },
-          ],
-        },
-      ];
-    }
-
-    const isNodeOrMetaPlatform =
-      params.platformKey.startsWith('node') ||
-      javascriptMetaFrameworks.includes(params.platformKey);
-
-    const serverSideContent = getServerSideAgentMonitoringConfig({
-      params,
-      integration: selected,
-      packageName,
-      importMode,
-      configFileName,
-    });
-
     return [
       {
         title: t('Configure'),
-        content: isNodeOrMetaPlatform
-          ? serverSideContent
-          : [
-              ...serverSideContent,
-              ...getBrowserAgentMonitoringOnboardingConfiguration({
-                integration: selected,
-                packageName,
-                importMode,
-              }),
-            ],
+        content: getServerSideAgentMonitoringConfig({
+          params,
+          integration: selected,
+          packageName,
+          importMode,
+          configFileName,
+        }),
       },
     ];
   },
@@ -1073,8 +881,147 @@ const mastra = new Mastra({
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
 
-    // Add integration-specific example code
-    content.push(...getServerSideAgentMonitoringExamples(selected));
+    if (selected === AgentIntegration.ANTHROPIC) {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const Anthropic = require("@anthropic-ai/sdk");
+const client = new Anthropic();
+
+const msg = await client.messages.create({
+  messages: [{role: "user", content: "Tell me a joke"}],
+  model: "claude-sonnet-4-5-20250929",
+});
+`,
+          },
+        ],
+      });
+    }
+    if (selected === AgentIntegration.OPENAI) {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const OpenAI = require("openai");
+const client = new OpenAI();
+
+const response = await client.responses.create({
+  model: "gpt-4o-mini",
+  input: "Tell me a joke",
+});`,
+          },
+        ],
+      });
+    }
+    if (selected === AgentIntegration.GOOGLE_GENAI) {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const GoogleGenAI = require("@google/genai").GoogleGenAI;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
+const response = await ai.models.generateContent({
+  model: 'gemini-2.5-flash-lite',
+  contents: 'Why is the sky blue?',
+});`,
+          },
+        ],
+      });
+    }
+    if (selected === AgentIntegration.LANGCHAIN) {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const { ChatOpenAI } = require("@langchain/openai");
+const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+
+const chatModel = new ChatOpenAI({
+  modelName: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const messages = [
+  new SystemMessage("You are a helpful assistant."),
+  new HumanMessage("Tell me a joke"),
+];
+
+const response = await chatModel.invoke(messages);
+const text = response.content;`,
+          },
+        ],
+      });
+    }
+    if (selected === AgentIntegration.LANGGRAPH) {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const { ChatOpenAI } = require("@langchain/openai");
+const { createReactAgent } = require("@langchain/langgraph/prebuilt");
+const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+
+const llm = new ChatOpenAI({
+  modelName: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const agent = createReactAgent({ llm, tools: [] });
+
+const result = await agent.invoke({
+  messages: [
+    new SystemMessage("You are a helpful assistant."),
+    new HumanMessage("Tell me a joke")
+  ],
+});
+
+const messages = result.messages;
+const lastMessage = messages[messages.length - 1];
+const text = lastMessage.content;`,
+          },
+        ],
+      });
+    }
+    if (selected === AgentIntegration.MASTRA) {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `import { Agent } from '@mastra/core/agent';
+
+// This agent needs to be registered in your Mastra config
+const agent = new Agent({
+  id: 'my-agent',
+  name: 'My Agent',
+  instructions: 'You are a helpful assistant',
+  model: 'openai/gpt-4o',
+});
+
+const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
+          },
+        ],
+      });
+    }
 
     return [
       {

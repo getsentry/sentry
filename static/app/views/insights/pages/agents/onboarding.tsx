@@ -282,11 +282,12 @@ export function Onboarding() {
   const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
 
   // Clean up runtime parameter from URL when switching
-  // to non-fullstack platform or when MANUAL integration is selected
+  // to non-fullstack platform or when MANUAL/MASTRA integration is selected
   useEffect(() => {
     const shouldCleanRuntime =
       (!isFullStackJsPlatform ||
-        location.query.integration === AgentIntegration.MANUAL) &&
+        location.query.integration === AgentIntegration.MANUAL ||
+        location.query.integration === AgentIntegration.MASTRA) &&
       location.query.runtime;
 
     if (shouldCleanRuntime) {
@@ -363,12 +364,14 @@ export function Onboarding() {
       <SetupTitle project={project} />
       <OptionsWrapper>
         <PlatformOptionDropdown platformOptions={integrationOptions} />
-        {isFullStackJsPlatform && integration !== AgentIntegration.MANUAL && (
-          <Fragment>
-            {t('on')}
-            <PlatformOptionsControl platformOptions={runtimeOptions} />
-          </Fragment>
-        )}
+        {isFullStackJsPlatform &&
+          integration !== AgentIntegration.MANUAL &&
+          integration !== AgentIntegration.MASTRA && (
+            <Fragment>
+              {t('on')}
+              <PlatformOptionsControl platformOptions={runtimeOptions} />
+            </Fragment>
+          )}
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       {/* Force remount when integration or runtime changes */}

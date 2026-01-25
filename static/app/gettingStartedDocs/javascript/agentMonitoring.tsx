@@ -12,6 +12,7 @@ import {
   getAgentMonitoringManualConfigStep,
   getImport,
   getServerSideAgentMonitoringConfig,
+  vercelAiExtraInstrumentation,
 } from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
@@ -294,17 +295,48 @@ const response = await client.responses.create({
   return initConfig;
 }
 
-const verifyStep: OnboardingStep[] = [
-  {
-    type: StepType.VERIFY,
-    content: [
-      {
-        type: 'text',
-        text: t('Verify that your instrumentation works by simply calling your LLM.'),
-      },
-    ],
-  },
-];
+function getVerifyStep(params: DocsParams): OnboardingStep[] {
+  const integration =
+    (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
+
+  return [
+    {
+      type: StepType.VERIFY,
+      content:
+        integration === AgentIntegration.MASTRA
+          ? [
+              {
+                type: 'code',
+                tabs: [
+                  {
+                    label: 'JavaScript',
+                    language: 'javascript',
+                    code: `import { Agent } from '@mastra/core/agent';
+
+    // This agent needs to be registered in your Mastra config
+    const agent = new Agent({
+      id: 'my-agent',
+      name: 'My Agent',
+      instructions: 'You are a helpful assistant',
+      model: 'openai/gpt-4o',
+    });
+
+    const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
+                  },
+                ],
+              },
+            ]
+          : [
+              {
+                type: 'text',
+                text: t(
+                  'Verify that your instrumentation works by simply calling your LLM.'
+                ),
+              },
+            ],
+    },
+  ];
+}
 
 /**
  * Browser-only agent monitoring configuration.
@@ -344,7 +376,7 @@ export function agentMonitoring({
         },
       ];
     },
-    verify: () => verifyStep,
+    verify: params => getVerifyStep(params),
   };
 }
 
@@ -370,9 +402,25 @@ export function agentMonitoringFullStack({
         });
       }
 
+      const serverSideConfig = getServerSideAgentMonitoringConfig({
+        params,
+        integration: selected,
+        packageName,
+        configFileName,
+      });
+
+      if (selected === AgentIntegration.MASTRA) {
+        return [
+          {
+            title: t('Configure'),
+            content: serverSideConfig,
+          },
+        ];
+      }
+
       const runtime = params.platformOptions?.runtime ?? Runtime.NODE_JS;
 
-      const clientSideStep = {
+      const clientSideConfig = {
         title: t('Configure Client-Side'),
         content: getClientSideConfig({
           integration: selected,
@@ -380,6 +428,45 @@ export function agentMonitoringFullStack({
           params,
         }),
       };
+
+      if (selected === AgentIntegration.VERCEL_AI) {
+        return [
+          {
+            title: t('Configure'),
+            content:
+              runtime === Runtime.OTHER
+                ? [
+                    {
+                      type: 'alert',
+                      alertType: 'info',
+                      showIcon: false,
+                      text: tct(
+                        'For the Edge runtime, you need to manually enable it by passing [code:Sentry.vercelAIIntegration()] to [code:Sentry.init] in your [code:sentry.edge.config.js] file:',
+                        {
+                          code: <code />,
+                        }
+                      ),
+                    },
+                    {
+                      type: 'code',
+                      tabs: [
+                        {
+                          label: 'JavaScript',
+                          filename: 'sentry.edge.config.(js|ts)',
+                          language: 'javascript',
+                          code: `Sentry.init({
+                            dsn: '${params.dsn.public}',
+                            integrations: [Sentry.vercelAIIntegration()],
+                          });`,
+                        },
+                      ],
+                    },
+                    ...vercelAiExtraInstrumentation,
+                  ]
+                : serverSideConfig,
+          },
+        ];
+      }
 
       if (runtime === Runtime.OTHER) {
         return [
@@ -394,7 +481,7 @@ export function agentMonitoringFullStack({
                   'For other runtimes, like the Browser, the instrumentation needs to be manually enabled.'
                 ),
               },
-              ...clientSideStep.content,
+              ...clientSideConfig.content,
             ],
           },
         ];
@@ -403,19 +490,14 @@ export function agentMonitoringFullStack({
       return [
         {
           title: t('Configure Server-Side'),
-          content: getServerSideAgentMonitoringConfig({
-            params,
-            integration: selected,
-            packageName,
-            configFileName,
-          }),
+          content: serverSideConfig,
         },
         {
-          ...clientSideStep,
+          ...clientSideConfig,
           showOptionalLabel: true,
         },
       ];
     },
-    verify: () => verifyStep,
+    verify: params => getVerifyStep(params),
   };
 }
