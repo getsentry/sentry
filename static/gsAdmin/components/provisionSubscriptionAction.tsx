@@ -42,8 +42,8 @@ import {
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
+  getCategoryUnitSuffix,
   getPlanCategoryName,
-  isByteCategory,
 } from 'getsentry/utils/dataCategory';
 
 const CPE_DECIMAL_PRECISION = 8;
@@ -836,7 +836,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         title: true,
                         hadCustomDynamicSampling: isAm3Ds,
                       });
-                      const suffix = isByteCategory(category) ? ' (in GB)' : '';
+                      const suffix = getCategoryUnitSuffix(category);
                       const capitalizedApiName = this.capitalizeForApiName(
                         categoryInfo.plural
                       );
