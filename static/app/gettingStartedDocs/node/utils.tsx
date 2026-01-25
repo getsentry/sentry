@@ -4,6 +4,7 @@ import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
@@ -89,7 +90,98 @@ export function getInstallCodeBlock(
   };
 }
 
-function getImport(
+/**
+ * Returns the install step for agent monitoring with the minimum SDK version requirement.
+ */
+export function getAgentMonitoringInstallStep(
+  params: DocsParams,
+  {
+    packageName = '@sentry/node',
+    minVersion = '10.28.0',
+  }: {
+    minVersion?: string;
+    packageName?: `@sentry/${string}`;
+  } = {}
+): OnboardingStep[] {
+  return [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
+            {
+              minVersion: <code>{minVersion}</code>,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          packageName,
+        }),
+      ],
+    },
+  ];
+}
+
+export function getAgentMonitoringManualConfigStep(
+  params: DocsParams,
+  {
+    packageName = '@sentry/node',
+    importMode,
+  }: {
+    importMode?: 'esm' | 'cjs' | 'esm-only';
+    packageName?: `@sentry/${string}`;
+  } = {}
+): OnboardingStep[] {
+  return [
+    {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: t('Initialize the Sentry SDK in the entry point of your application.'),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `${getImport(packageName, importMode).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  // Add data like inputs and responses to/from LLMs and tools;
+  // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: <CopyLLMPromptButton />,
+        },
+      ],
+    },
+  ];
+}
+
+export function getImport(
   packageName: `@sentry/${string}`,
   importMode?: 'esm' | 'cjs' | 'esm-only'
 ): string[] {
@@ -561,89 +653,203 @@ const response = await client.responses.create({
   return [];
 };
 
-export const getNodeAgentMonitoringOnboarding = ({
-  packageName = '@sentry/node',
-  configFileName,
+/**
+ * Returns server-side configuration content for Node.js agent monitoring.
+ */
+export function getServerSideAgentMonitoringConfig({
+  params,
+  integration,
+  packageName,
   importMode,
+  configFileName,
 }: {
+  integration: AgentIntegration;
+  packageName: `@sentry/${string}`;
+  params: DocsParams;
   configFileName?: string;
   importMode?: 'esm' | 'cjs' | 'esm-only';
-  packageName?: `@sentry/${string}`;
-} = {}): OnboardingConfig => ({
-  install: params => [
+}): ContentBlock[] {
+  const content: ContentBlock[] = [
     {
-      type: StepType.INSTALL,
-      content: [
+      type: 'text',
+      text: tct(
+        'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
         {
-          type: 'text',
-          text: tct(
-            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.28.0].',
-            {
-              code: <code />,
-            }
-          ),
+          integration: AGENT_INTEGRATION_LABELS[integration] ?? integration,
+        }
+      ),
+    },
+    {
+      type: 'code',
+      tabs: [
+        {
+          label: configFileName ?? 'JavaScript',
+          language: 'javascript',
+          code: `${getImport(packageName, importMode).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  // Add data like inputs and responses to/from LLMs and tools;
+  // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
+  sendDefaultPii: true,
+});`,
         },
-        getInstallCodeBlock(params, {
-          packageName,
-        }),
       ],
     },
+  ];
+
+  // // Add integration-specific examples
+  // const examples = getServerSideAgentMonitoringExamples(integration);
+  // if (examples.length > 0) {
+  //   content.push({
+  //     type: 'text',
+  //     text: t('Example usage:'),
+  //   });
+  //   content.push(...examples);
+  // }
+
+  return content;
+}
+
+/**
+ * Returns server-side example code blocks for the selected AI integration.
+ * Used in both configure and verify steps.
+ */
+export function getServerSideAgentMonitoringExamples(
+  integration: AgentIntegration
+): ContentBlock[] {
+  if (integration === AgentIntegration.ANTHROPIC) {
+    return [
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `const Anthropic = require("@anthropic-ai/sdk");
+const anthropic = new Anthropic();
+
+const msg = await anthropic.messages.create({
+  model: "claude-3-5-sonnet",
+  messages: [{role: "user", content: "Tell me a joke"}],
+});`,
+          },
+        ],
+      },
+    ];
+  }
+
+  if (integration === AgentIntegration.OPENAI) {
+    return [
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `const OpenAI = require("openai");
+const client = new OpenAI();
+
+const response = await client.responses.create({
+  model: "gpt-4o-mini",
+  input: "Tell me a joke",
+});`,
+          },
+        ],
+      },
+    ];
+  }
+
+  if (integration === AgentIntegration.GOOGLE_GENAI) {
+    return [
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `const GoogleGenAI = require("@google/genai").GoogleGenAI;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
+const response = await ai.models.generateContent({
+  model: 'gemini-2.0-flash-001',
+  contents: 'Why is the sky blue?',
+});`,
+          },
+        ],
+      },
+    ];
+  }
+
+  if (integration === AgentIntegration.LANGCHAIN) {
+    return [
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `const { ChatOpenAI } = require("@langchain/openai");
+const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+
+const chatModel = new ChatOpenAI({
+  modelName: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const messages = [
+  new SystemMessage("You are a helpful assistant."),
+  new HumanMessage("Tell me a joke"),
+];
+
+const response = await chatModel.invoke(messages);
+const text = response.content;`,
+          },
+        ],
+      },
+    ];
+  }
+
+  if (integration === AgentIntegration.LANGGRAPH) {
+    return [
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `const { ChatOpenAI } = require("@langchain/openai");
+const { createReactAgent } = require("@langchain/langgraph/prebuilt");
+const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+
+const llm = new ChatOpenAI({
+  modelName: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const agent = createReactAgent({ llm, tools: [] });
+
+const result = await agent.invoke({
+  messages: [
+    new SystemMessage("You are a helpful assistant."),
+    new HumanMessage("Tell me a joke")
   ],
-  configure: params => {
-    const selected =
-      (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
+});
 
-    if (selected === AgentIntegration.MANUAL) {
-      return [
-        {
-          title: t('Configure'),
-          content: [
-            {
-              type: 'text',
-              text: t(
-                'Initialize the Sentry SDK in the entry point of your application.'
-              ),
-            },
-            {
-              type: 'code',
-              tabs: [
-                {
-                  label: 'JavaScript',
-                  language: 'javascript',
-                  code: `${getImport(packageName, importMode).join('\n')}
+const messages = result.messages;
+const lastMessage = messages[messages.length - 1];
+const text = lastMessage.content;`,
+          },
+        ],
+      },
+    ];
+  }
 
-      Sentry.init({
-        dsn: "${params.dsn.public}",
-        tracesSampleRate: 1.0,
-      });`,
-                },
-              ],
-            },
-            {
-              type: 'text',
-              text: tct(
-                'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-                  ),
-                }
-              ),
-            },
-            {
-              type: 'custom',
-              content: <CopyLLMPromptButton />,
-            },
-          ],
-        },
-      ];
-    }
-
-    const isNodeOrMetaPlatform =
-      params.platformKey.startsWith('node') ||
-      javascriptMetaFrameworks.includes(params.platformKey);
-
-    const vercelAiExtraInstrumentation: ContentBlock[] = [
+  if (integration === AgentIntegration.VERCEL_AI) {
+    return [
       {
         type: 'text',
         text: tct(
@@ -678,49 +884,54 @@ const result = await generateText({
         ],
       },
     ];
+  }
 
-    const nonManualContent: ContentBlock[] = [
-      {
-        type: 'text',
-        text: isNodeOrMetaPlatform
-          ? tct(
-              'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
-              {
-                integration:
-                  AGENT_INTEGRATION_LABELS[selected as AgentIntegration] ?? selected,
-              }
-            )
-          : t('Import and initialize the Sentry SDK:'),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: configFileName ? configFileName : 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
+  return [];
+}
 
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  // Add data like inputs and responses to/from LLMs and tools;
-  // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
-  sendDefaultPii: true,
-});`,
-          },
-        ],
-      },
-      ...(selected === AgentIntegration.VERCEL_AI ? vercelAiExtraInstrumentation : []),
-    ];
+export const getNodeAgentMonitoringOnboarding = ({
+  packageName = '@sentry/node',
+  configFileName,
+  importMode,
+}: {
+  configFileName?: string;
+  importMode?: 'esm' | 'cjs' | 'esm-only';
+  packageName?: `@sentry/${string}`;
+} = {}): OnboardingConfig => ({
+  install: params =>
+    getAgentMonitoringInstallStep(params, {
+      packageName,
+    }),
+  configure: params => {
+    const selected =
+      (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
+
+    if (selected === AgentIntegration.MANUAL) {
+      return getAgentMonitoringManualConfigStep(params, {
+        packageName,
+        importMode,
+      });
+    }
+
+    const isNodeOrMetaPlatform =
+      params.platformKey.startsWith('node') ||
+      javascriptMetaFrameworks.includes(params.platformKey);
+
+    const serverSideContent = getServerSideAgentMonitoringConfig({
+      params,
+      integration: selected,
+      packageName,
+      importMode,
+      configFileName,
+    });
 
     return [
       {
         title: t('Configure'),
         content: isNodeOrMetaPlatform
-          ? nonManualContent
+          ? serverSideContent
           : [
-              ...nonManualContent,
+              ...serverSideContent,
               ...getBrowserAgentMonitoringOnboardingConfiguration({
                 integration: selected,
                 packageName,
@@ -754,124 +965,8 @@ Sentry.init({
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
 
-    if (selected === AgentIntegration.ANTHROPIC) {
-      content.push({
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `
-const Anthropic = require("anthropic");
-const anthropic = new Anthropic();
-
-const msg = await anthropic.messages.create({
-model: "claude-3-5-sonnet",
-messages: [{role: "user", content: "Tell me a joke"}],
-});`,
-          },
-        ],
-      });
-    }
-    if (selected === AgentIntegration.OPENAI) {
-      content.push({
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `
-const OpenAI = require("openai");
-const client = new OpenAI();
-
-const response = await client.responses.create({
-  model: "gpt-4o-mini",
-  input: "Tell me a joke",
-});`,
-          },
-        ],
-      });
-    }
-    if (selected === AgentIntegration.GOOGLE_GENAI) {
-      content.push({
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `
-const GoogleGenAI = require("@google/genai").GoogleGenAI;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
-const response = await ai.models.generateContent({
-  model: 'gemini-2.0-flash-001',
-  contents: 'Why is the sky blue?',
-});`,
-          },
-        ],
-      });
-    }
-    if (selected === AgentIntegration.LANGCHAIN) {
-      content.push({
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `
-const { ChatOpenAI } = require("@langchain/openai");
-const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
-
-const chatModel = new ChatOpenAI({
-  modelName: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const messages = [
-  new SystemMessage("You are a helpful assistant."),
-  new HumanMessage("Tell me a joke"),
-];
-
-const response = await chatModel.invoke(messages);
-const text = response.content;`,
-          },
-        ],
-      });
-    }
-    if (selected === AgentIntegration.LANGGRAPH) {
-      content.push({
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `
-const { ChatOpenAI } = require("@langchain/openai");
-const { createReactAgent } = require("@langchain/langgraph/prebuilt");
-const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
-
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const agent = createReactAgent({ llm, tools: [] });
-
-const result = await agent.invoke({
-  messages: [
-    new SystemMessage("You are a helpful assistant."),
-    new HumanMessage("Tell me a joke")
-  ],
-});
-
-const messages = result.messages;
-const lastMessage = messages[messages.length - 1];
-const text = lastMessage.content;`,
-          },
-        ],
-      });
-    }
+    // Add integration-specific example code
+    content.push(...getServerSideAgentMonitoringExamples(selected));
 
     return [
       {

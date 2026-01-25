@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
@@ -19,11 +19,17 @@ import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/t
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import {
+  PlatformOptionsControl,
+  useUrlPlatformOptions,
+} from 'sentry/components/onboarding/platformOptionsControl';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
+import {
+  agentMonitoringPlatforms,
+  javascriptMetaFrameworks,
+} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -33,11 +39,17 @@ import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  Runtime,
+  RUNTIME_LABELS,
+} from 'sentry/views/insights/pages/agents/utils/javascriptRuntimes';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
@@ -47,18 +59,6 @@ import {
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from './utils/agentIntegrations';
-
-// Full-stack JS frameworks that support Vercel AI SDK (they have server-side capabilities)
-const fullStackJsPlatforms = [
-  'javascript-astro',
-  'javascript-nextjs',
-  'javascript-nuxt',
-  'javascript-react-router',
-  'javascript-remix',
-  'javascript-solidstart',
-  'javascript-sveltekit',
-  'javascript-tanstackstart-react',
-];
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -142,6 +142,7 @@ function StepRenderer({
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
+      optional={step.showOptionalLabel}
     >
       <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
       <GuidedSteps.ButtonWrapper>
@@ -217,6 +218,8 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -231,7 +234,9 @@ export function Onboarding() {
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  const isFullStackJsPlatform = fullStackJsPlatforms.includes(project?.platform ?? '');
+  const isFullStackJsPlatform = javascriptMetaFrameworks.includes(
+    project?.platform ?? 'other'
+  );
   const hasVercelAI = isNodePlatform || isFullStackJsPlatform;
 
   const integrationOptions = {
@@ -253,7 +258,34 @@ export function Onboarding() {
           })),
     },
   };
-  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+
+  const runtimeOptions = {
+    runtime: {
+      label: t('Runtime'),
+      items: [
+        {label: RUNTIME_LABELS[Runtime.NODE_JS], value: Runtime.NODE_JS},
+        {label: RUNTIME_LABELS[Runtime.OTHER], value: Runtime.OTHER},
+      ],
+    },
+  };
+
+  const platformOptions = {
+    ...integrationOptions,
+    ...runtimeOptions,
+  };
+
+  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
+
+  // Clean up runtime parameter from URL when switching to non-fullstack platform
+  useEffect(() => {
+    if (!isFullStackJsPlatform && location.query.runtime) {
+      const {runtime, ...restQuery} = location.query;
+      navigate({
+        pathname: location.pathname,
+        query: restQuery,
+      });
+    }
+  }, [isFullStackJsPlatform, location.pathname, location.query, navigate]);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -313,20 +345,30 @@ export function Onboarding() {
     ...(agentMonitoringDocs.verify?.(docParams) || []),
   ];
 
+  const integration = selectedPlatformOptions.integration;
+  const runtime = selectedPlatformOptions.runtime;
+
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <OptionsWrapper>
         <PlatformOptionDropdown platformOptions={integrationOptions} />
+        {isFullStackJsPlatform && integration !== AgentIntegration.MANUAL && (
+          <Fragment>
+            {t('on')}
+            <PlatformOptionsControl platformOptions={runtimeOptions} />
+          </Fragment>
+        )}
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <GuidedSteps>
+      {/* Force remount when integration or runtime changes */}
+      <GuidedSteps key={runtime ? `${integration}-${runtime}` : integration}>
         {steps
-          // Only show non-optional steps
+          // Only show non-collapsible steps
           .filter(step => !step.collapsible)
           .map((step, index) => (
             <StepRenderer
-              key={index}
+              key={step.title || step.type}
               project={project}
               step={step}
               isLastStep={index === steps.length - 1}
