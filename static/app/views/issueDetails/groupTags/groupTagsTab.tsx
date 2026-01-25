@@ -180,7 +180,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const TagHeading = styled('h5')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: 0;
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
@@ -227,7 +227,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
 
 const TagBarLabel = styled('div')`
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   position: relative;
   flex-grow: 1;
   display: block;
@@ -238,7 +238,7 @@ const TagBarLabel = styled('div')`
 `;
 
 const TagBarCount = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   position: relative;
   padding-left: ${space(2)};
   padding-right: ${space(1)};

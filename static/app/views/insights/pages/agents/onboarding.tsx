@@ -60,6 +60,11 @@ import {
   PYTHON_AGENT_INTEGRATIONS,
 } from './utils/agentIntegrations';
 
+const serverSideNodeIntegrations = new Set([
+  AgentIntegration.VERCEL_AI,
+  AgentIntegration.MASTRA,
+]);
+
 function useOnboardingProject() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -237,7 +242,7 @@ export function Onboarding() {
   const isFullStackJsPlatform = javascriptMetaFrameworks.includes(
     project?.platform ?? 'other'
   );
-  const hasVercelAI = isNodePlatform || isFullStackJsPlatform;
+  const hasServerSideNode = isNodePlatform || isFullStackJsPlatform;
 
   const integrationOptions = {
     integration: {
@@ -247,10 +252,10 @@ export function Onboarding() {
             label: AGENT_INTEGRATION_LABELS[integration],
             value: integration,
           }))
-        : (hasVercelAI
+        : (hasServerSideNode
             ? NODE_AGENT_INTEGRATIONS
             : NODE_AGENT_INTEGRATIONS.filter(
-                integration => integration !== AgentIntegration.VERCEL_AI
+                integration => !serverSideNodeIntegrations.has(integration)
               )
           ).map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
@@ -285,7 +290,7 @@ export function Onboarding() {
       location.query.runtime;
 
     if (shouldCleanRuntime) {
-      const {runtime, ...restQuery} = location.query;
+      const {runtime: _runtime, ...restQuery} = location.query;
       navigate({
         pathname: location.pathname,
         query: restQuery,
@@ -458,7 +463,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   z-index: 10;
   gap: ${p => p.theme.space.md};
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
   padding-right: ${p => p.theme.space['3xl']};
 `;
@@ -478,7 +483,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BulletList = styled('ul')`
@@ -508,8 +513,8 @@ const HeaderText = styled('div')`
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${p => p.theme.space.md};
 `;
 
@@ -583,8 +588,8 @@ const DescriptionWrapper = styled('div')`
   && > h4,
   && > h5,
   && > h6 {
-    font-size: ${p => p.theme.fontSize.xl};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.xl};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     line-height: 34px;
   }
 

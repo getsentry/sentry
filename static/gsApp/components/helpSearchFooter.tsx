@@ -43,7 +43,7 @@ const Container = styled('div')`
   padding: ${space(2)};
   background: ${p => p.theme.tokens.background.primary};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 export default HelpSearchFooter;

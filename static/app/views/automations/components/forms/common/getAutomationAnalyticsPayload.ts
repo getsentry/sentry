@@ -1,6 +1,11 @@
 import type {NewAutomation} from 'sentry/types/workflowEngine/automations';
 
-export function getAutomationAnalyticsPayload(automation: NewAutomation): {
+export function getAutomationAnalyticsPayload(
+  automation: Pick<
+    NewAutomation,
+    'config' | 'environment' | 'detectorIds' | 'triggers' | 'actionFilters'
+  >
+): {
   actions_count: number;
   detectors_count: number;
   environment: string | null;
