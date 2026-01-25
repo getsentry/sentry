@@ -437,9 +437,7 @@ export function agentMonitoringFullStack({
               runtime === Runtime.OTHER
                 ? [
                     {
-                      type: 'alert',
-                      alertType: 'info',
-                      showIcon: false,
+                      type: 'text',
                       text: tct(
                         'For the Edge runtime, you need to manually add [code:Sentry.vercelAIIntegration()] to [code:Sentry.init] in your [code:sentry.edge.config.js] file:',
                         {
@@ -474,9 +472,7 @@ export function agentMonitoringFullStack({
             title: t('Configure'),
             content: [
               {
-                type: 'alert',
-                alertType: 'info',
-                showIcon: false,
+                type: 'text',
                 text: t(
                   'For other runtimes, like the Browser, the instrumentation needs to be manually enabled.'
                 ),
