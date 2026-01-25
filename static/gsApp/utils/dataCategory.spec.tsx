@@ -454,7 +454,7 @@ describe('listDisplayNames', () => {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, spans, uptime monitors, and logs'
+      'errors, replays, attachments, cron monitors, spans, uptime monitors, logs, size analysis builds, and build distribution installs'
     );
   });
 
@@ -466,7 +466,7 @@ describe('listDisplayNames', () => {
         hadCustomDynamicSampling: true,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, and stored spans'
+      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, size analysis builds, build distribution installs, and stored spans'
     );
   });
 });
