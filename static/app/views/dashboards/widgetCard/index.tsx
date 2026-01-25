@@ -352,6 +352,7 @@ function WidgetCard(props: Props) {
               renderErrorMessage={renderErrorMessage}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
+              widgetLegendState={widgetLegendState}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
