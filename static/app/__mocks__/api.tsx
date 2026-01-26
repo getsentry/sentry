@@ -220,6 +220,7 @@ class Client implements ApiNamespace.Client {
           resolve(includeAllArgs ? [data, ...args] : data);
         },
         error: (error, ..._args) => {
+          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
           reject(error);
         },
       });
