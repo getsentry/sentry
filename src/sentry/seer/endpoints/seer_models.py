@@ -14,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.ratelimits.config import RateLimitConfig
@@ -66,6 +67,9 @@ class SeerModelsEndpoint(Endpoint):
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-seer-models"])
     @extend_schema(
         operation_id="List Seer AI Models",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
         responses={
             200: inline_sentry_response_serializer("SeerModelsResponse", SeerModelsResponse),
         },
