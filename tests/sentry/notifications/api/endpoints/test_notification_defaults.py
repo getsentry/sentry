@@ -35,5 +35,6 @@ class NotificationDefaultTest(APITestCase):
                 "workflow": "subscribe_only",
                 "brokenMonitors": "always",
                 "quotaSeerUsers": "always",
+                "quotaSizeAnalysis": "always",
             },
         }

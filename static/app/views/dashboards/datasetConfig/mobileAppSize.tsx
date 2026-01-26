@@ -169,9 +169,14 @@ function MobileAppSizeSearchBar({
   WidgetBuilderSearchBarProps,
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
+  const {
+    selection: {projects},
+  } = usePageFilters();
+
   return (
     <PreprodSearchBar
       initialQuery={widgetQuery.conditions}
+      projects={projects}
       onSearch={onSearch}
       portalTarget={portalTarget}
       searchSource="dashboards"
