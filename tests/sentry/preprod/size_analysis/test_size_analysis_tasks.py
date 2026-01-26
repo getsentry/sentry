@@ -787,6 +787,7 @@ class RunSizeAnalysisComparisonTest(TestCase):
             "download_size": 1000,
             "install_size": 2000,
             "insights": {
+                "platform": "apple",
                 "image_optimization": {
                     "total_savings": 1200,
                     "optimizable_files": [
