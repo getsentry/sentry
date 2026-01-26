@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import React, {useCallback, useMemo, useRef} from 'react';
 import {useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -52,15 +52,14 @@ function applyDashboardFilters(
 
 const EMPTY_ARRAY: any[] = [];
 
-export function useReleasesSeriesQuery(
-  params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
-): HookWidgetQueryResult {
+export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQueryResult {
   const {
     widget,
     organization,
     pageFilters,
     enabled,
     dashboardFilters,
+    afterFetchData,
     skipDashboardFilterParens,
   } = params;
 
@@ -76,40 +75,52 @@ export function useReleasesSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
+  // Track validation errors from getReleasesRequestData
+  const [validationError, setValidationError] = React.useState<string | undefined>();
+
   const queryKeys = useMemo(() => {
-    return filteredWidget.queries.map((query, queryIndex) => {
-      const {datetime} = pageFilters;
-      const {start, end, period} = datetime;
+    try {
+      setValidationError(undefined);
+      return filteredWidget.queries.map((query, queryIndex) => {
+        const {datetime} = pageFilters;
+        const {start, end, period} = datetime;
 
-      const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
-      const includeTotals = query.columns.length > 0 ? 1 : 0;
-      const interval = getWidgetInterval(
-        filteredWidget,
-        {start, end, period},
-        '5m',
-        // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-        isCustomReleaseSorting ? 'medium' : undefined
-      );
+        const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
+        const includeTotals = query.columns.length > 0 ? 1 : 0;
+        const interval = getWidgetInterval(
+          filteredWidget,
+          {start, end, period},
+          '5m',
+          // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+          isCustomReleaseSorting ? 'medium' : undefined
+        );
 
-      const requestData = getReleasesRequestData(
-        1, // includeSeries
-        includeTotals,
-        query,
-        organization,
-        pageFilters,
-        interval,
-        filteredWidget.limit
-      );
+        const requestData = getReleasesRequestData(
+          1, // includeSeries
+          includeTotals,
+          query,
+          organization,
+          pageFilters,
+          interval,
+          filteredWidget.limit
+        );
 
-      return {
-        queryKey: [
-          `/organizations/${organization.slug}/sessions/`,
-          {method: 'GET' as const, query: requestData},
-        ],
-        queryIndex,
-        useSessionAPI: requestData.useSessionAPI,
-      };
-    });
+        return {
+          queryKey: [
+            `/organizations/${organization.slug}/sessions/`,
+            {method: 'GET' as const, query: requestData},
+          ],
+          queryIndex,
+          useSessionAPI: requestData.useSessionAPI,
+        };
+      });
+    } catch (error) {
+      // Catch synchronous errors from getReleasesRequestData (e.g., date validation)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setValidationError(errorMessage);
+      // Return empty array to prevent queries from running
+      return [];
+    }
   }, [filteredWidget, organization, pageFilters]);
 
   const createQueryFn = useCallback(
@@ -164,6 +175,14 @@ export function useReleasesSeriesQuery(
   });
 
   const transformedData = (() => {
+    if (validationError) {
+      return {
+        loading: false,
+        errorMessage: validationError,
+        rawData: EMPTY_ARRAY,
+      };
+    }
+
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
     const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
@@ -192,6 +211,10 @@ export function useReleasesSeriesQuery(
 
       const responseData = q.data[0];
       rawData[requestIndex] = responseData;
+
+      if (afterFetchData) {
+        afterFetchData(responseData);
+      }
 
       const transformedResult = ReleasesConfig.transformSeries?.(
         responseData,
@@ -233,9 +256,7 @@ export function useReleasesSeriesQuery(
   return transformedData;
 }
 
-export function useReleasesTableQuery(
-  params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
-): HookWidgetQueryResult {
+export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQueryResult {
   const {
     widget,
     organization,
@@ -244,6 +265,7 @@ export function useReleasesTableQuery(
     cursor,
     limit,
     dashboardFilters,
+    afterFetchData,
     skipDashboardFilterParens,
   } = params;
 
@@ -259,28 +281,37 @@ export function useReleasesTableQuery(
     'visibility-dashboards-async-queue'
   );
 
-  const queryKeys = useMemo(() => {
-    return filteredWidget.queries.map((query, queryIndex) => {
-      const requestData = getReleasesRequestData(
-        0, // includeSeries
-        1, // includeTotals
-        query,
-        organization,
-        pageFilters,
-        undefined, // interval
-        limit ?? filteredWidget.limit,
-        cursor
-      );
+  const [validationError, setValidationError] = React.useState<string | undefined>();
 
-      return {
-        queryKey: [
-          `/organizations/${organization.slug}/sessions/`,
-          {method: 'GET' as const, query: requestData},
-        ],
-        queryIndex,
-        useSessionAPI: requestData.useSessionAPI,
-      };
-    });
+  const queryKeys = useMemo(() => {
+    try {
+      setValidationError(undefined);
+      return filteredWidget.queries.map((query, queryIndex) => {
+        const requestData = getReleasesRequestData(
+          0, // includeSeries
+          1, // includeTotals
+          query,
+          organization,
+          pageFilters,
+          undefined, // interval
+          limit ?? filteredWidget.limit,
+          cursor
+        );
+
+        return {
+          queryKey: [
+            `/organizations/${organization.slug}/sessions/`,
+            {method: 'GET' as const, query: requestData},
+          ],
+          queryIndex,
+          useSessionAPI: requestData.useSessionAPI,
+        };
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setValidationError(errorMessage);
+      return [];
+    }
   }, [filteredWidget, organization, pageFilters, limit, cursor]);
 
   const createQueryFn = useCallback(
@@ -335,6 +366,14 @@ export function useReleasesTableQuery(
   });
 
   const transformedData = (() => {
+    if (validationError) {
+      return {
+        loading: false,
+        errorMessage: validationError,
+        rawData: EMPTY_ARRAY,
+      };
+    }
+
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
     const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
@@ -365,6 +404,10 @@ export function useReleasesTableQuery(
       const responseData = q.data[0];
       const responseMeta = q.data[2];
       rawData[i] = responseData;
+
+      if (afterFetchData) {
+        afterFetchData(responseData);
+      }
 
       const tableData = ReleasesConfig.transformTable?.(
         responseData,

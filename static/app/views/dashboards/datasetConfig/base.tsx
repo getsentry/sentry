@@ -88,6 +88,11 @@ export type WidgetQueryParams = {
    */
   widget: Widget;
   /**
+   * Optional callback to transform data before it's processed.
+   * Used for custom sorting or data manipulation (e.g., release ordering).
+   */
+  afterFetchData?: (data: any) => void;
+  /**
    * Optional pagination cursor.
    */
   cursor?: string;
