@@ -68,7 +68,7 @@ def _find_relocation_transfer(
         )
 
     # Garbage collect expired transfers. Because relocations are
-    # expected to complete in 1 hour we should purge transfers older than
+    # expected to complete in 80min we should purge transfers older than
     # that.
     now = timezone.now()
     expired = model_cls.objects.filter(date_added__lte=now - MAX_AGE)
