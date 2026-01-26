@@ -326,7 +326,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
     @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=10)
     def test_apply_impersonation_limits_selects_smaller_limit(self) -> None:
-        """Test that _apply_impersonation_limits selects the smaller API limit over SENTRY_IMPERSONATION_RATE_LIMIT"""
+        """Test that _apply_impersonation_limits selects the smaller limit and concurrent_limit"""
         middleware = RatelimitMiddleware(lambda request: sentinel.response)
 
         api_config = RateLimitConfig(
@@ -342,25 +342,21 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
         result = middleware._apply_impersonation_limits(api_config)
 
-        # Should use API's limit (5) since it's smaller than impersonation_limit (10)
+        # GET/USER: limit=5 (normalized to 5/s) vs impersonation=10 -> use 5
+        # concurrent_limit: min(3, 10) -> use 3
         user_limit = result.get_rate_limit("GET", RateLimitCategory.USER)
-        assert (
-            user_limit.limit == 5
-        ), "Should use API's smaller limit (5) instead of impersonation_limit (10)"
-        assert (
-            user_limit.concurrent_limit == 3
-        ), "Should use API's smaller concurrent_limit (3) instead of impersonation_limit (10)"
+        assert user_limit.limit == 5, "Should use API's smaller limit (5)"
+        assert user_limit.concurrent_limit == 3, "Should use min(3, 10) = 3"
         assert user_limit.window == 1, "Should always be one second"
 
-        # Should use impersonation limit (10) since it's smaller
+        # POST/IP: limit=20 (normalized to 20/s) vs impersonation=10 -> use 10
+        # concurrent_limit: min(15, 10) -> use 10
         ip_limit = result.get_rate_limit("POST", RateLimitCategory.IP)
-        assert ip_limit.limit == 10, "Should use impersonation limit (10) since it's smaller"
-        assert (
-            ip_limit.concurrent_limit == 10
-        ), "Should use impersonation limit (10) since it's smaller"
+        assert ip_limit.limit == 10, "Should use impersonation limit (10)"
+        assert ip_limit.concurrent_limit == 10, "Should use min(15, 10) = 10"
         assert ip_limit.window == 1, "Should always be one second"
 
-    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
+    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=2)
     @patch("sentry.middleware.ratelimit.above_rate_limit_check")
     def test_impersonation_uses_normalized_rate_limit(
         self, rate_limit_check_mock: MagicMock
@@ -372,18 +368,19 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         rate_limit_check_mock.return_value = RateLimitMeta(
             rate_limit_type=RateLimitType.NOT_LIMITED,
             current=0,
-            remaining=1,
-            limit=1,
+            remaining=2,
+            limit=2,
             window=1,
             group="default",
             reset_time=0,
-            concurrent_limit=1,
+            concurrent_limit=2,
             concurrent_requests=0,
         )
 
-        # Create endpoint with 100 requests/60 seconds (1.66 per second)
-        # Impersonation limit is 1 request/1 second (1 per second)
-        # Should use 1 per second (impersonation limit is smaller after normalization)
+        # Create endpoint with 100 requests/60 seconds (1.66... per second, ceil to 2)
+        # Impersonation limit is 2 requests/1 second (2 per second)
+        # After ceiling normalization: ceil(100/60) = ceil(1.66) = 2
+        # Should use 2 per second (both equal after normalization)
         class TestEndpointWithRate(Endpoint):
             enforce_rate_limit = True
             rate_limits = RateLimitConfig(
@@ -414,8 +411,8 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         call_args = rate_limit_check_mock.call_args
         rate_limit_arg = call_args[0][1]  # Second positional argument is the RateLimit
 
-        # Should have normalized to 1 request per 1 second (impersonation limit)
-        assert rate_limit_arg.limit == 1
+        # Should have normalized to 2 requests per 1 second (ceil(100/60) = 2)
+        assert rate_limit_arg.limit == 2
         assert rate_limit_arg.window == 1
 
 

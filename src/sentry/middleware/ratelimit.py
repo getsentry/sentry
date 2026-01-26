@@ -84,12 +84,7 @@ class RatelimitMiddleware:
                     min_limit = impersonation_limit
 
                 if api_rate_limit.concurrent_limit:
-                    min_concurrent_limit = _normalize_and_min_limit(
-                        api_rate_limit.concurrent_limit,
-                        api_rate_limit.window,
-                        impersonation_limit,
-                        1,
-                    )
+                    min_concurrent_limit = min(api_rate_limit.concurrent_limit, impersonation_limit)
                 else:
                     min_concurrent_limit = impersonation_limit
 
