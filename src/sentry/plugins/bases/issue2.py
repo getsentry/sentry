@@ -14,8 +14,10 @@ from sentry import analytics
 from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 
 # api compat
@@ -34,6 +36,50 @@ if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
 
+# Plugin endpoints deprecated for cellularization - only non-org-scoped URLs
+DEPRECATED_PLUGIN_URL_NAMES = [
+    # Asana
+    "sentry-api-0-plugins-asana-create",
+    "sentry-api-0-plugins-asana-link",
+    "sentry-api-0-plugins-asana-unlink",
+    "sentry-api-0-plugins-asana-autocomplete",
+    # Bitbucket
+    "sentry-api-0-plugins-bitbucket-create",
+    "sentry-api-0-plugins-bitbucket-link",
+    "sentry-api-0-plugins-bitbucket-unlink",
+    "sentry-api-0-plugins-bitbucket-autocomplete",
+    # GitHub
+    "sentry-api-0-plugins-github-create",
+    "sentry-api-0-plugins-github-link",
+    "sentry-api-0-plugins-github-unlink",
+    "sentry-api-0-plugins-github-autocomplete",
+    # GitLab
+    "sentry-api-0-plugins-gitlab-create",
+    "sentry-api-0-plugins-gitlab-link",
+    "sentry-api-0-plugins-gitlab-unlink",
+    # IssueTrackingPlugin2 (base)
+    "sentry-api-0-plugins-issuetrackingplugin2-create",
+    "sentry-api-0-plugins-issuetrackingplugin2-link",
+    "sentry-api-0-plugins-issuetrackingplugin2-unlink",
+    # Jira
+    "sentry-api-0-plugins-jira-create",
+    "sentry-api-0-plugins-jira-link",
+    "sentry-api-0-plugins-jira-unlink",
+    "sentry-api-0-plugins-jira-autocomplete",
+    # Pivotal
+    "sentry-api-0-plugins-pivotal-create",
+    "sentry-api-0-plugins-pivotal-link",
+    "sentry-api-0-plugins-pivotal-unlink",
+    "sentry-api-0-plugins-pivotal-autocomplete",
+    # Trello
+    "sentry-api-0-plugins-trello-create",
+    "sentry-api-0-plugins-trello-link",
+    "sentry-api-0-plugins-trello-unlink",
+    "sentry-api-0-plugins-trello-autocomplete",
+    "sentry-api-0-plugins-trello-options",
+]
+
+
 @region_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
     publish_status = {
@@ -47,9 +93,11 @@ class PluginGroupEndpoint(GroupEndpoint):
 
         return self.view(request, group, *args, **kwargs)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=DEPRECATED_PLUGIN_URL_NAMES)
     def get(self, request: Request, group, *args, **kwargs) -> Response:
         return self._handle(request, group, *args, **kwargs)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=DEPRECATED_PLUGIN_URL_NAMES)
     def post(self, request: Request, group, *args, **kwargs) -> Response:
         return self._handle(request, group, *args, **kwargs)
 

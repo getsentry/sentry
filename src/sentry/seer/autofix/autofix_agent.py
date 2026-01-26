@@ -286,7 +286,9 @@ def generate_autofix_handoff_prompt(
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
-    integration_id: int,
+    integration_id: int | None = None,
+    provider: str | None = None,
+    user_id: int | None = None,
 ) -> dict[str, list]:
     """
     Trigger a coding agent handoff for an existing Explorer-based autofix run.
@@ -298,6 +300,8 @@ def trigger_coding_agent_handoff(
         group: The Sentry group (issue)
         run_id: The existing Explorer run ID
         integration_id: The coding agent integration ID (e.g., Cursor)
+        provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
+        user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -337,15 +341,15 @@ def trigger_coding_agent_handoff(
     )
     state = client.get_run(run_id)
 
-    short_id = None
-    if auto_create_pr:
-        short_id = group.qualified_short_id
+    short_id = group.qualified_short_id
 
     prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
 
     return client.launch_coding_agents(
         run_id=run_id,
         integration_id=integration_id,
+        provider=provider,
+        user_id=user_id,
         prompt=prompt,
         repos=repos,
         branch_name_base=group.title or "seer",

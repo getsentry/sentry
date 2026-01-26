@@ -14,6 +14,12 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    CONDITION_GROUP_HELP_TEXT,
+    DATA_SOURCES_HELP_TEXT,
+    DETECTOR_CONFIG_HELP_TEXT,
+    OWNER_HELP_TEXT,
+)
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
@@ -30,7 +36,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.detector import enforce_config_schema
-from sentry.workflow_engine.types import DataConditionType
+from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
 
 
 @dataclass(frozen=True)
@@ -50,14 +56,35 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     name = serializers.CharField(
         required=True,
         max_length=200,
-        help_text="Name of the monitor",
+        help_text="Name of the monitor.",
     )
-    type = serializers.CharField()
-    config = serializers.JSONField(default=dict)
-    owner = OwnerActorField(required=False, allow_null=True)
-    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    enabled = serializers.BooleanField(required=False)
-    condition_group = BaseDataConditionGroupValidator(required=False)
+    type = serializers.CharField(help_text="The type of monitor - `metric_issue`.")
+    data_sources = serializers.ListField(
+        required=False,
+        help_text=DATA_SOURCES_HELP_TEXT,
+    )
+    config = serializers.JSONField(
+        default=dict,
+        help_text=DETECTOR_CONFIG_HELP_TEXT,
+    )
+    condition_group = BaseDataConditionGroupValidator(
+        required=False,
+        help_text=CONDITION_GROUP_HELP_TEXT,
+    )
+    owner = OwnerActorField(
+        required=False,
+        allow_null=True,
+        help_text=OWNER_HELP_TEXT,
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="A description of the monitor. Will be used in the resulting issue.",
+    )
+    enabled = serializers.BooleanField(
+        required=False, help_text="Set to False if you want to disable the monitor."
+    )
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = grouptype.registry.get_by_slug(value)
@@ -75,13 +102,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         return type
 
     @property
-    def data_sources(self) -> serializers.ListField:
-        # TODO - improve typing here to enforce that the child is the correct type
-        # otherwise, can look at creating a custom field.
-        # This should be a list of `BaseDataSourceValidator`s
-        raise NotImplementedError
-
-    @property
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
 
@@ -93,6 +113,28 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             raise serializers.ValidationError(
                 "Only one data source is allowed for this detector type."
             )
+        return value
+
+    def validate_condition_group(self, value: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate that all conditions have valid detector priority levels as their condition_result.
+        """
+        conditions = value.get("conditions", [])
+        for condition in conditions:
+            condition_result = condition.get("condition_result")
+
+            if not isinstance(condition_result, int):
+                raise serializers.ValidationError(
+                    "condition_result must be an integer corresponding to a valid detector priority level"
+                )
+
+            try:
+                DetectorPriorityLevel(condition_result)
+            except ValueError:
+                raise serializers.ValidationError(
+                    f"Invalid detector priority level: {condition_result}"
+                )
+
         return value
 
     def get_quota(self) -> DetectorQuota:

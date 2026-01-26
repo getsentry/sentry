@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Radio} from 'sentry/components/core/radio';
@@ -232,7 +234,9 @@ function InnerContent(
               });
               onChangeAggregateColumn(opt.value);
             }}
-            triggerProps={{prefix: t('X-Axis')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('X-Axis')} />
+            )}
           />
         </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />
@@ -309,7 +313,7 @@ function TagsSideBar(props: {
 const RadioLabel = styled('label')`
   cursor: pointer;
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;

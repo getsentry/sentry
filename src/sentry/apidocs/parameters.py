@@ -423,7 +423,7 @@ class DetectorParams:
         location="path",
         required=True,
         type=int,
-        description="The ID of the detector you'd like to query.",
+        description="The ID of the monitor you'd like to query.",
     )
 
     QUERY = OpenApiParameter(
@@ -431,7 +431,7 @@ class DetectorParams:
         location="query",
         required=False,
         type=str,
-        description="An optional search query for filtering detectors.",
+        description="An optional search query for filtering monitors.",
     )
 
     SORT = OpenApiParameter(
@@ -457,7 +457,7 @@ Prefix with `-` to sort in descending order.
         location="query",
         required=False,
         type=int,
-        description="The ID of the detector you'd like to query.",
+        description="The ID of the monitor you'd like to query.",
         many=True,
     )
 
@@ -467,7 +467,7 @@ Prefix with `-` to sort in descending order.
         required=False,
         type=str,
         many=True,
-        description="Filter by detector type(s). Can be specified multiple times.",
+        description="Filter by monitor type(s). Can be specified multiple times.",
     )
 
 
@@ -477,7 +477,7 @@ class WorkflowParams:
         location="path",
         required=True,
         type=int,
-        description="The ID of the workflow you'd like to query.",
+        description="The ID of the alert you'd like to query.",
     )
 
     QUERY = OpenApiParameter(
@@ -485,7 +485,7 @@ class WorkflowParams:
         location="query",
         required=False,
         type=str,
-        description="An optional search query for filtering workflows.",
+        description="An optional search query for filtering alerts.",
     )
 
     SORT_BY = OpenApiParameter(
@@ -502,6 +502,7 @@ Available fields are:
 - `dateUpdated`
 - `connectedDetectors`
 - `actions`
+- `priorityDetector`
 
 Prefix with `-` to sort in descending order.
     """,
@@ -511,7 +512,7 @@ Prefix with `-` to sort in descending order.
         location="query",
         required=False,
         type=int,
-        description="The ID of the workflow you'd like to query.",
+        description="The ID of the alert you'd like to query.",
         many=True,
     )
 

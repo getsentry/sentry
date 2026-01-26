@@ -245,10 +245,10 @@ const IdentityText = styled('div')<{isSingleLine?: boolean}>`
   margin-left: ${space(1.5)};
 `;
 const IdentityName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 const IdentityDateTime = styled(DateTime)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

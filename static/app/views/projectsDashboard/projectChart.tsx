@@ -163,7 +163,7 @@ export function ProjectChart({
         showMaxLabel: true,
         showMinLabel: false,
         color: theme.tokens.content.secondary,
-        fontFamily: theme.text.family,
+        fontFamily: theme.font.family.sans,
         inside: true,
         lineHeight: 12,
         formatter: (value: number) => axisLabelFormatter(value, 'number', true),

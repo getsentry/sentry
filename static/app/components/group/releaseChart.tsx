@@ -216,7 +216,7 @@ function GroupReleaseChart(props: Props) {
 
 const EventNumber = styled('div')`
   line-height: 1;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 export default GroupReleaseChart;

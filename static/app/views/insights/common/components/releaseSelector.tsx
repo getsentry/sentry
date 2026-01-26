@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -38,10 +39,10 @@ type Props = {
   allOptionTitle: string;
   onChange: (selectedOption: SelectOption<SelectKey>) => void;
   sortBy: ReleasesSortByOption;
+  triggerLabel: string;
+  triggerLabelPrefix: string;
   selectorName?: string;
   selectorValue?: string;
-  triggerLabel?: string;
-  triggerLabelPrefix?: string;
 };
 
 function SingleReleaseSelector({
@@ -105,13 +106,17 @@ function SingleReleaseSelector({
 
   return (
     <StyledCompactSelect
-      triggerProps={{
-        icon: <IconReleases />,
-        title: selectorValue,
-        prefix: triggerLabelPrefix,
-        children: triggerLabel,
-        'aria-label': t('Filter Release'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconReleases />}
+          title={selectorValue}
+          prefix={triggerLabelPrefix}
+          aria-label={t('Filter Release')}
+        >
+          {triggerLabel}
+        </OverlayTrigger.Button>
+      )}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
