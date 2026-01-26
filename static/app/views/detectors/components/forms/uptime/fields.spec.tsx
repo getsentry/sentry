@@ -277,7 +277,15 @@ describe('uptimeSavedDetectorToFormData', () => {
       url: 'https://example.com',
       headers: [],
       body: '',
-      assertion: null,
+      // Uses empty assertion structure (not null) for consistency with the main case.
+      // null would cause a crash in getValue when accessing value.root.children.length
+      assertion: {
+        root: {
+          op: 'and',
+          children: [],
+          id: expect.any(String),
+        },
+      },
     });
   });
 
