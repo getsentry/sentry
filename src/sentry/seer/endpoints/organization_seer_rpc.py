@@ -52,7 +52,7 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
-    get_attribute_breakdown_comparison,
+    get_comparative_attribute_distributions,
     get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -108,7 +108,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_log_attributes_for_trace": map_org_id_param(get_log_attributes_for_trace),
     "get_metric_attributes_for_trace": map_org_id_param(get_metric_attributes_for_trace),
     "get_issues_stats": map_org_id_param(get_issues_stats),
-    "get_attribute_breakdown_comparison": get_attribute_breakdown_comparison,
+    "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
 }
 
 

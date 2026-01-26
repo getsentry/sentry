@@ -11,11 +11,14 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Req
 from sentry import eventstore, features, quotas
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
+from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
+    query_attribute_distributions,
+)
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.api.utils import default_start_end_dates
+from sentry.api.utils import default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
@@ -1616,36 +1619,48 @@ def get_baseline_tag_distribution(
     return {"baseline_tag_distribution": baseline_distribution}
 
 
-def get_attribute_breakdown_comparison(
+def get_comparative_attribute_distributions(
     *,
     organization_id: int,
-    dataset: str,
-    aggregate_function: str,
     range_start: str,
     range_end: str,
-    query: str | None = "",
-    project_ids: list[int] | None = None,
-    project_slugs: list[str] | None = None,
     start: str | None = None,
     end: str | None = None,
     stats_period: str | None = None,
+    aggregate_function: str = "count(span.duration)",
+    above: bool = True,
+    query: str | None = "",
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
 ) -> dict[str, Any] | None:
     """
-    Fetch ranked attribute breakdowns for a selected time range (minute precision) vs baseline.
-    The selected range should be smaller and within the larger range provided by start/end/stats_period (default 7d). This is not validated.
+    Fetch span attribute distributions for a selected time range (minute precision) compared to a baseline (defined by start/end/stats_period params).
+    The selected range should be smaller and within the larger range. This is not validated.
 
-    Mirrors the frontend useAttributeBreakdownComparison hook by building two queries
-    (selected window and baseline) and forwarding them to /trace-items/attributes/ranked/.
+    Optional args unique to this endpoint:
+    - aggregate_function: An aggregate function to used to filter the outlier cohort
+    - above: Whether to filter above or below the function value (above for spikes, below for dips)
+    - query: Additional base query to filter both cohorts
+
+    Outputs attribute distribution data (list of (attribute_name, label, value) tuples) for Seer analysis.
     """
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
+    # Parse inner date filter (outlier cohort)
+    range_start_dt, range_end_dt = get_date_range_from_params(
+        {"start": range_start, "end": range_end}
     )
-
-    range_start_dt = datetime.fromisoformat(range_start)
-    range_end_dt = datetime.fromisoformat(range_end)
     if (range_start_dt.timestamp() // 60) >= (range_end_dt.timestamp() // 60):
         raise ValueError("range_start must be before range_end (minute precision)")
+
+    # Parse outer date filter (baseline cohort)
+    # Default to [range_start - 1 minute, now] (explicit filter is recommended)
+    default_stats_period = (
+        datetime.now(range_start_dt.tzinfo) - range_start_dt + timedelta(minutes=1)
+    )
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "stats_period": stats_period},
+        default_stats_period=default_stats_period,
+    )
 
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -1656,11 +1671,16 @@ def get_attribute_breakdown_comparison(
         )
         return {"rankedAttributes": []}
 
-    if not project_ids and not project_slugs:
-        project_ids = [ALL_ACCESS_PROJECT_ID]
-    # Note if both project_ids and project_slugs are provided, the API request will 400.
+    projects = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"id__in": project_ids} if bool(project_ids) else {}),
+            **({"slug__in": project_slugs} if bool(project_slugs) else {}),
+        )
+    )
 
-    # Build the suspect query by adding a time filter (minute precision).
+    # Build the cohort queries by adding a time filter for cohort 1 (minute precision).
     base_query = (query or "").strip()
     range_start_str = range_start_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
     range_end_str = range_end_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
@@ -1671,28 +1691,27 @@ def get_attribute_breakdown_comparison(
     )
     query_2 = base_query
 
-    params: dict[str, Any] = {
-        "project": project_ids,
-        "projectSlug": project_slugs,
-        "dataset": dataset,
-        "function": aggregate_function,
-        "query_1": query_1,
-        "query_2": query_2,
-        "above": 1,
-        "start": start,
-        "end": end,
-        "statsPeriod": stats_period,
-        "sampling": sampling_mode,
-        "referrer": Referrer.SEER_EXPLORER_TOOLS,
-    }
-
-    params = {k: v for k, v in params.items() if v is not None}
-
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/trace-items/attributes/ranked/",
-        params=params,
+    # Query for and compute the two attribute distributions.
+    snuba_params = SnubaParams(
+        start=start_dt,
+        end=end_dt,
+        projects=projects,
+        organization=organization,
+        sampling_mode=sampling_mode,
     )
 
-    return cast(dict[str, Any], resp.data)
+    distributions_result = query_attribute_distributions(
+        snuba_params=snuba_params,
+        function_string=aggregate_function,
+        above=above,
+        query_1=query_1,
+        query_2=query_2,
+    )
+
+    return {
+        "baseline_distribution": distributions_result["cohort_2_distribution"],
+        "total_baseline": distributions_result["total_cohort_2"],
+        "outliers_distribution": distributions_result["cohort_1_distribution"],
+        "total_outliers": distributions_result["total_cohort_1"],
+        "outliers_function_value": distributions_result["cohort_1_function_value"],
+    }
