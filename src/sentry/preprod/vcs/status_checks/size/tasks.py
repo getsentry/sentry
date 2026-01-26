@@ -28,7 +28,11 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
@@ -163,6 +167,7 @@ def create_preprod_status_check_task(
         return
 
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]] = {}
+    approvals_map: dict[int, PreprodComparisonApproval] = {}
     if all_artifacts:
         artifact_ids = [artifact.id for artifact in all_artifacts]
         size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -174,15 +179,32 @@ def create_preprod_status_check_task(
                 size_metrics_map[metrics.preprod_artifact_id] = []
             size_metrics_map[metrics.preprod_artifact_id].append(metrics)
 
+        approval_qs = PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=artifact_ids,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        for approval in approval_qs:
+            approvals_map[approval.preprod_artifact_id] = approval
+
     rules = _get_status_check_rules(preprod_artifact.project)
     base_size_metrics_map = _fetch_base_size_metrics(all_artifacts, preprod_artifact.project)
 
     status, triggered_rules = _compute_overall_status(
-        all_artifacts, size_metrics_map, rules=rules, base_size_metrics_map=base_size_metrics_map
+        all_artifacts,
+        size_metrics_map,
+        rules=rules,
+        base_size_metrics_map=base_size_metrics_map,
+        approvals_map=approvals_map,
     )
 
     title, subtitle, summary = format_status_check_messages(
-        all_artifacts, size_metrics_map, status, preprod_artifact.project, triggered_rules
+        all_artifacts,
+        size_metrics_map,
+        status,
+        preprod_artifact.project,
+        triggered_rules,
+        approvals_map,
     )
 
     target_url = get_preprod_artifact_url(preprod_artifact)
@@ -211,6 +233,7 @@ def create_preprod_status_check_task(
             target_url=target_url,
             started_at=preprod_artifact.date_added,
             completed_at=completed_at,
+            include_approve_action=bool(triggered_rules),
         )
     except Exception as e:
         extra: dict[str, Any] = {
@@ -580,6 +603,7 @@ def _compute_overall_status(
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
     base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[StatusCheckStatus, list[TriggeredRule]]:
     triggered_rules: list[TriggeredRule] = []
 
@@ -609,6 +633,9 @@ def _compute_overall_status(
 
         if rules:
             for artifact in artifacts:
+                if approvals_map and artifact.id in approvals_map:
+                    continue
+
                 context = _get_artifact_filter_context(artifact)
                 size_metrics_list = size_metrics_map.get(artifact.id, [])
 
@@ -777,6 +804,7 @@ class _StatusCheckProvider(ABC):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
+        include_approve_action: bool = False,
     ) -> str | None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
@@ -796,6 +824,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
+        include_approve_action: bool = False,
     ) -> str | None:
         with self._create_scm_interaction_event().capture() as lifecycle:
             mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
@@ -871,6 +900,15 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     "GitHub API rejects completed_at=null when status is 'completed'. "
                     "Omit completed_at entirely instead of setting it to None."
                 )
+
+            if include_approve_action:
+                check_data["actions"] = [
+                    {
+                        "label": "Approve",
+                        "description": "Approve size changes for this PR",
+                        "identifier": APPROVE_SIZE_ACTION_IDENTIFIER,
+                    }
+                ]
 
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)
