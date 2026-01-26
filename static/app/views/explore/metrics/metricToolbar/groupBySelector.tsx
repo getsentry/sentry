@@ -80,7 +80,11 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
       multiple
       searchable
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={t('Group by')} />
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Group by')}
+          style={{width: '100%'}}
+        />
       )}
       options={enabledOptions}
       value={[...groupBys]}
@@ -89,6 +93,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
       onChange={selectedOptions => {
         setGroupBys(selectedOptions.map(option => option.value));
       }}
+      style={{width: '100%'}}
     />
   );
 }
