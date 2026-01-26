@@ -22,7 +22,6 @@ interface OpenPeriodDisplayData {
   end: React.ReactNode;
   eventId: React.ReactNode;
   start: React.ReactNode;
-  title: React.ReactNode;
 }
 
 // TODO(snigdha): make this work for the old UI
@@ -54,7 +53,6 @@ function IssueOpenPeriodsList() {
     const endDate = period.end ? new Date(period.end) : undefined;
 
     return {
-      title: <DateTime date={startDate} />,
       eventId: period.eventId ? (
         <Link
           to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${period.eventId}/`}
