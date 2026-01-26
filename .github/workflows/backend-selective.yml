@@ -3,7 +3,9 @@ name: '[NOT REQUIRED] backend (selective)'
 on:
   pull_request:
     paths:
+      - 'src/sentry/issues/**'
       - 'src/sentry/preprod/**'
+      - 'src/sentry/releases/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -133,7 +135,9 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | tr '\n' ' ')
+          # Use triple-dot syntax to find the merge-base first, so we only get
+          # changes introduced in this PR, not changes merged to master since branching
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | tr '\n' ' ')
           echo "Changed files: $CHANGED_FILES"
           echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
 
@@ -235,12 +239,9 @@ jobs:
 
       - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
-        run: |
-          if [[ "${{ needs.prepare-selective-tests.outputs.has-selected-tests }}" == "true" ]]; then
-            make test-backend-ci-selective SELECTED_TESTS_FILE=.artifacts/selected-tests.txt
-          else
-            make test-python-ci
-          fi
+        env:
+          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+        run: make test-python-ci
 
       - name: Inspect failure
         if: failure()

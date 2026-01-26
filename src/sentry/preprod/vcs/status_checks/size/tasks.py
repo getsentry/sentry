@@ -31,7 +31,7 @@ from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
@@ -52,22 +52,22 @@ RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
     text_operator_keys={
-        "platform",
+        "platform_name",
         "git_head_ref",
         "app_id",
-        "build_configuration",
+        "build_configuration_name",
     },
     key_mappings={
-        "platform": ["platform"],
+        "platform_name": ["platform_name"],
         "git_head_ref": ["git_head_ref"],
         "app_id": ["app_id"],
-        "build_configuration": ["build_configuration"],
+        "build_configuration_name": ["build_configuration_name"],
     },
     allowed_keys={
-        "platform",
+        "platform_name",
         "git_head_ref",
         "app_id",
-        "build_configuration",
+        "build_configuration_name",
     },
 )
 
@@ -83,9 +83,9 @@ def create_preprod_status_check_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
 ) -> None:
     try:
-        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.get(
-            id=preprod_artifact_id
-        )
+        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
+            "mobile_app_info"
+        ).get(id=preprod_artifact_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.status_checks.create.artifact_not_found",
@@ -185,6 +185,13 @@ def create_preprod_status_check_task(
 
     completed_at: datetime | None = None
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
+        completed_at = preprod_artifact.date_updated
+
+    # Convert in-progress and failure to neutral to avoid blocking PR merges:
+    # - IN_PROGRESS: Can get stuck due to GitHub API rate limiting
+    # - FAILURE: No approval flow exists yet to allow users to merge despite failures
+    if status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
+        status = StatusCheckStatus.NEUTRAL
         completed_at = preprod_artifact.date_updated
 
     try:
@@ -394,9 +401,9 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     Returns a dict with keys matching the filter key format:
     - git_head_ref: The git_head_ref name (from commit_comparison.head_ref)
-    - platform: "ios" or "android" (derived from artifact_type)
+    - platform_name: "ios" or "android" (derived from artifact_type)
     - app_id: The app ID (e.g., "com.example.app")
-    - build_configuration: The build configuration name
+    - build_configuration_name: The build configuration name
     """
     context: dict[str, str] = {}
 
@@ -405,19 +412,19 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     if artifact.artifact_type is not None:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            context["platform"] = "ios"
+            context["platform_name"] = "ios"
         elif artifact.artifact_type in (
             PreprodArtifact.ArtifactType.AAB,
             PreprodArtifact.ArtifactType.APK,
         ):
-            context["platform"] = "android"
+            context["platform_name"] = "android"
 
     if artifact.app_id:
         context["app_id"] = artifact.app_id
 
     if artifact.build_configuration:
         try:
-            context["build_configuration"] = artifact.build_configuration.name
+            context["build_configuration_name"] = artifact.build_configuration.name
         except Exception:
             pass
 
@@ -569,8 +576,8 @@ def _compute_overall_status(
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
     base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
-) -> tuple[StatusCheckStatus, list[StatusCheckRule]]:
-    triggered_rules: list[StatusCheckRule] = []
+) -> tuple[StatusCheckStatus, list[TriggeredRule]]:
+    triggered_rules: list[TriggeredRule] = []
 
     if not artifacts:
         raise ValueError("Cannot compute status for empty artifact list")
@@ -626,7 +633,14 @@ def _compute_overall_status(
                                     "threshold": rule.value,
                                 },
                             )
-                            triggered_rules.append(rule)
+                            triggered_rules.append(
+                                TriggeredRule(
+                                    rule=rule,
+                                    artifact_id=artifact.id,
+                                    app_id=artifact.app_id,
+                                    platform=artifact.get_platform_label(),
+                                )
+                            )
 
         if triggered_rules:
             return StatusCheckStatus.FAILURE, triggered_rules
@@ -846,6 +860,13 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                         "preprod.status_checks.create.invalid_target_url",
                         extra={"target_url": target_url},
                     )
+
+            # GitHub rejects completed_at=null when status is "completed" with a 422
+            if mapped_status == GitHubCheckStatus.COMPLETED and completed_at is None:
+                raise ValueError(
+                    "GitHub API rejects completed_at=null when status is 'completed'. "
+                    "Omit completed_at entirely instead of setting it to None."
+                )
 
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)

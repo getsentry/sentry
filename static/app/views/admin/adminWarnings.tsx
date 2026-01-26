@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
@@ -10,9 +11,12 @@ type Data = {
 };
 
 function AdminWarnings() {
-  const {data, isPending, isError} = useApiQuery<Data>(['/internal/warnings/'], {
-    staleTime: 0,
-  });
+  const {data, isPending, isError} = useApiQuery<Data>(
+    [getApiUrl('/internal/warnings/')],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;

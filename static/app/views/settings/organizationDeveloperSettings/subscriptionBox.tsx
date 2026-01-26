@@ -102,13 +102,13 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
 `;
 
 const SubscriptionDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SubscriptionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1;
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;

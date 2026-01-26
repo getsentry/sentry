@@ -9,6 +9,7 @@ import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -40,7 +41,17 @@ export default function MessagingIntegrationAlertRule({
   const organization = useOrganization();
 
   const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
-    [`/organizations/${organization.slug}/integrations/${integration?.id}/channels/`],
+    [
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            integrationId: integration?.id!,
+          },
+        }
+      ),
+    ],
     {
       staleTime: Infinity,
       enabled: !!provider && !!integration?.id,

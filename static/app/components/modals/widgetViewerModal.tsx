@@ -911,6 +911,9 @@ function OpenButton({
       openLabel = t('Open in Explore');
       path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       break;
+    case WidgetType.PREPROD_APP_SIZE:
+      // Mobile app size widgets are not integrated with Explore or Discover
+      return null;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');

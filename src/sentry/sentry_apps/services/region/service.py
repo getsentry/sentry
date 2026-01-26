@@ -6,6 +6,7 @@
 import abc
 from typing import Any
 
+from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationIdAttribute
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation
@@ -107,8 +108,12 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
+        auth_context: AuthenticationContext,
     ) -> RpcServiceHookProjectsResult:
-        """Returns the project IDs associated with an installation's service hook."""
+        """
+        Returns the service hook projects associated with an installation.
+        Validates that the caller has access to all required projects.
+        """
         pass
 
     @regional_rpc_method(ByOrganizationId())
@@ -118,9 +123,14 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
-        project_ids: list[int],
+        project_identifiers: list[int | str],
+        auth_context: AuthenticationContext,
     ) -> RpcServiceHookProjectsResult:
-        """Replaces all service hook projects with the given project IDs."""
+        """
+        Replaces all service hook projects with the given project identifiers (either ID or slug).
+        Accepts both due to a compatibility requirement with an active endpoint.
+        Validates that the caller has access to all required projects.
+        """
         pass
 
     @regional_rpc_method(ByOrganizationId())
@@ -130,8 +140,12 @@ class SentryAppRegionService(RpcService):
         *,
         organization_id: int,
         installation: RpcSentryAppInstallation,
+        auth_context: AuthenticationContext,
     ) -> RpcEmptyResult:
-        """Deletes all service hook projects for an installation."""
+        """
+        Deletes service hook projects for an installation.
+        Validates that the caller has access to all required projects.
+        """
         pass
 
     @regional_rpc_method(

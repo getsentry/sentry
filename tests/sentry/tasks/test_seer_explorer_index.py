@@ -105,9 +105,13 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             assert active_project.id in project_ids
         assert inactive_project.id not in project_ids
 
+    @freeze_time("2024-01-15 12:00:00")
     def test_returns_empty_without_feature_flag(self):
         org = self.create_organization()
-        self.create_project(organization=org)
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
 
         PromptsActivity.objects.create(
             organization_id=org.id,
@@ -116,7 +120,17 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             feature="seer_autofix_setup_acknowledged",
         )
 
-        result = list(get_seer_explorer_enabled_projects())
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
+            }
+        ):
+            with mock.patch(
+                "sentry.tasks.seer_explorer_index.in_rollout_group", return_value=False
+            ):
+                result = list(get_seer_explorer_enabled_projects())
+
         assert len(result) == 0
 
     def test_excludes_projects_with_hide_ai_features(self):
@@ -221,6 +235,116 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             assert project2.id in project_ids
         else:
             assert project2.id not in project_ids
+
+    @freeze_time("2024-01-15 12:00:00")
+    def test_excludes_projects_without_seer_billing_plan(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+            }
+        ):
+            result = list(get_seer_explorer_enabled_projects())
+
+        assert len(result) == 0
+        assert project.id not in [p[0] for p in result]
+
+    @freeze_time("2024-01-15 12:00:00")
+    def test_includes_projects_with_legacy_seer_plan_via_rollout(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seer-added": [org.slug],
+            }
+        ):
+            with mock.patch("sentry.tasks.seer_explorer_index.in_rollout_group", return_value=True):
+                result = list(get_seer_explorer_enabled_projects())
+
+        project_ids = [p[0] for p in result]
+        if project.id % 23 == 12:
+            assert project.id in project_ids
+
+    @freeze_time("2024-01-15 12:00:00")
+    def test_includes_projects_with_seat_based_plan_via_rollout(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
+            }
+        ):
+            with mock.patch("sentry.tasks.seer_explorer_index.in_rollout_group", return_value=True):
+                result = list(get_seer_explorer_enabled_projects())
+
+        project_ids = [p[0] for p in result]
+        if project.id % 23 == 12:
+            assert project.id in project_ids
+
+    @freeze_time("2024-01-15 12:00:00")
+    def test_excludes_projects_with_billing_plan_not_in_rollout(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        project.flags.has_transactions = True
+        project.save()
+
+        PromptsActivity.objects.create(
+            organization_id=org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature="seer_autofix_setup_acknowledged",
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
+            }
+        ):
+            with mock.patch(
+                "sentry.tasks.seer_explorer_index.in_rollout_group", return_value=False
+            ):
+                result = list(get_seer_explorer_enabled_projects())
+
+        assert len(result) == 0
+        assert project.id not in [p[0] for p in result]
 
 
 @django_db_all

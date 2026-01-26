@@ -167,13 +167,14 @@ class SentryAppUpdater:
             self.sentry_app.author = self.author
 
     def _update_status(self, user: User | RpcUser) -> None:
-        if self.status is not None:
-            if _is_elevated_user(user):
-                if self.status == SentryAppStatus.PUBLISHED_STR:
-                    self.sentry_app.status = SentryAppStatus.PUBLISHED
-                    self.sentry_app.date_published = timezone.now()
-                if self.status == SentryAppStatus.UNPUBLISHED_STR:
-                    self.sentry_app.status = SentryAppStatus.UNPUBLISHED
+        # All status changes require elevated permissions (superuser/staff).
+        # The publish request endpoint handles its own status change directly.
+        if self.status is not None and _is_elevated_user(user):
+            if self.status == SentryAppStatus.PUBLISHED_STR:
+                self.sentry_app.status = SentryAppStatus.PUBLISHED
+                self.sentry_app.date_published = timezone.now()
+            if self.status == SentryAppStatus.UNPUBLISHED_STR:
+                self.sentry_app.status = SentryAppStatus.UNPUBLISHED
             if self.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR:
                 self.sentry_app.status = SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
 

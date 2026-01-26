@@ -20,6 +20,7 @@ import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Theme} from 'sentry/utils/theme';
+import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -481,4 +482,14 @@ export async function openInsightInfoModal(options: InsightInfoModalOptions) {
   );
 
   openModal(deps => <InsightInfoModal {...deps} {...options} />);
+}
+
+export async function openAttributeBreakdownViewerModal(
+  options: AttributeBreakdownViewerModalOptions
+) {
+  const {default: Modal, modalCss} = await import(
+    'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal'
+  );
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

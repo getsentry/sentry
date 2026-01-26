@@ -6,9 +6,8 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -16,30 +15,11 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 import {useFeatureFilter} from './useFeatureFilter';
 
-const FILTER_KEYS: TagCollection = {
-  platform: {key: 'platform', name: 'Platform'},
-  app_id: {key: 'app_id', name: 'App ID'},
-  build_configuration: {
-    key: 'build_configuration',
-    name: 'Build Configuration',
-  },
-  git_head_ref: {key: 'git_head_ref', name: 'Branch'},
-};
-
-const getTagValues = (
-  tag: {key: string; name: string},
-  _searchQuery: string
-): Promise<string[]> => {
-  if (tag.key === 'platform') {
-    return Promise.resolve(['android', 'ios']);
-  }
-  return Promise.resolve([]);
-};
-
 const EXAMPLE_BUILDS_COUNT = 5;
 
 interface FeatureFilterProps {
-  settingsKey: string;
+  settingsReadKey: string;
+  settingsWriteKey: string;
   successMessage: string;
   title: string;
   children?: React.ReactNode;
@@ -48,17 +28,28 @@ interface FeatureFilterProps {
 export function FeatureFilter({
   title,
   successMessage,
-  settingsKey,
+  settingsReadKey,
+  settingsWriteKey,
   children,
 }: FeatureFilterProps) {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const [query, setQuery] = useFeatureFilter(project, settingsKey, successMessage);
+  const [query, setQuery] = useFeatureFilter(
+    project,
+    settingsReadKey,
+    settingsWriteKey,
+    successMessage
+  );
   const [localQuery, setLocalQuery] = useState(query);
 
-  const handleQueryChange = useCallback((newQuery: string) => {
-    setLocalQuery(newQuery);
-  }, []);
+  const handleQueryChange = useCallback(
+    (newQuery: string, state: {queryIsValid: boolean}) => {
+      if (state.queryIsValid) {
+        setLocalQuery(newQuery);
+      }
+    },
+    []
+  );
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -97,16 +88,13 @@ export function FeatureFilter({
             )}
           </Text>
 
-          <SearchQueryBuilder
-            filterKeys={FILTER_KEYS}
-            getTagValues={getTagValues}
+          <PreprodSearchBar
             initialQuery={localQuery}
+            projects={[Number(project.id)]}
             onChange={handleQueryChange}
             onSearch={handleSearch}
             searchSource="preprod_feature_filter"
-            disallowFreeText
             disallowLogicalOperators
-            placeholder={t('Add build filters...')}
             portalTarget={document.body}
           />
 

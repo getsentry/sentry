@@ -725,6 +725,6 @@ const Currency = styled('div')`
     padding: 9px ${p => p.theme.space.lg};
     content: '$';
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;

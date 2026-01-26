@@ -314,7 +314,7 @@ const IntegrationDescription = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
   margin-bottom: ${space(0.5)};
 `;
@@ -370,7 +370,7 @@ const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 12px;
 `;
 
