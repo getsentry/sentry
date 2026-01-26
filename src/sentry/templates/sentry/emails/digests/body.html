@@ -24,14 +24,26 @@
 
 <div class="container" style="padding-top: 30px;">
   <h2>{{ counts|length }} new alert{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.slug }}</a></h2>
-  {% if timezone %}
-    {% with start=start|timezone:timezone|date:"N j, Y, P e" end=end|timezone:timezone|date:"N j, Y, P e" %}
-      <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
-    {% endwith %}
+  {% if clock_24_hours %}
+    {% if timezone %}
+      {% with start=start|timezone:timezone|date:"N j, Y, H:i e" end=end|timezone:timezone|date:"N j, Y, H:i e" %}
+        <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
+      {% endwith %}
+    {% else %}
+      {% with start=start|date:"N j, Y, H:i e" end=end|date:"N j, Y, H:i e" %}
+        <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
+      {% endwith %}
+    {% endif %}
   {% else %}
-    {% with start=start|date:"N j, Y, P e" end=end|date:"N j, Y, P e" %}
-      <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
-    {% endwith %}
+    {% if timezone %}
+      {% with start=start|timezone:timezone|date:"N j, Y, P e" end=end|timezone:timezone|date:"N j, Y, P e" %}
+        <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
+      {% endwith %}
+    {% else %}
+      {% with start=start|date:"N j, Y, P e" end=end|date:"N j, Y, P e" %}
+        <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
+      {% endwith %}
+    {% endif %}
   {% endif %}
 </div>
 
@@ -62,11 +74,13 @@
                   <td class="event-detail">
                       {% include "sentry/emails/_group.html" %}
                       <div>
-                        {% if timezone %}
-                          <small>{{ records.0.datetime|timezone:timezone|date:"N j, Y, g:i:s a e" }}</small>
-                        {% else %}
-                          <small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
-                        {% endif %}
+                        <small>
+                          {% if clock_24_hours %}
+                            {% if timezone %}{{ records.0.datetime|timezone:timezone|date:"N j, Y, H:i:s e" }}{% else %}{{ records.0.datetime|date:"N j, Y, H:i:s e" }}{% endif %}
+                          {% else %}
+                            {% if timezone %}{{ records.0.datetime|timezone:timezone|date:"N j, Y, g:i:s a e" }}{% else %}{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}{% endif %}
+                          {% endif %}
+                        </small>
                         {% if show_replay_links and group.has_replays %}
                           <span class="replay-link">
                             <a href="{{ group.get_absolute_url }}replays?referrer=alert_email">

@@ -554,13 +554,13 @@ export function GraphicsColors() {
 
 export function ShadowColors() {
   const theme = useTheme();
-  const sh = theme.tokens.shadow;
   const groups = [
     {
       label: 'elevation',
       tokens: {
-        elevationLow: sh.elevationLow,
-        elevationMedium: sh.elevationMedium,
+        low: theme.shadow.low,
+        medium: theme.shadow.medium,
+        high: theme.shadow.high,
       },
     },
   ];
@@ -575,11 +575,11 @@ export function ShadowColors() {
             boxSizing: 'border-box',
             width: '40px',
             height: '40px',
-            background: theme.tokens.background.primary,
-            boxShadow: `0 4px 8px ${value}`,
+            background: theme.tokens.background.overlay,
+            boxShadow: value,
           }}
-          border="muted"
-          radius="sm"
+          border="primary"
+          radius="md"
         />
       )}
     />
