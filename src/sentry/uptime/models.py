@@ -94,9 +94,13 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
+
     # Whether to capture response body and headers on check failures.
     # Used for debugging - can be disabled after first capture to reduce bandwidth.
     capture_response_on_failure = models.BooleanField(default=True, db_default=True)
+
+    # runtime assertion executed by the checker against the response body
+    assertion = models.JSONField(null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
