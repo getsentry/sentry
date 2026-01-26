@@ -62,6 +62,10 @@ export enum CheckStatusReason {
   TLS_ERROR = 'tls_error',
   CONNECTION_ERROR = 'connection_error',
   REDIRECT_ERROR = 'redirect_error',
+  MISS_PRODUCED = 'miss_produced',
+  MISS_BACKFILL = 'miss_backfill',
+  ASSERTION_COMPILATION_ERROR = 'assertion_compilation_error',
+  ASSERTION_EVALUATION_ERROR = 'assertion_evaluation_error',
 }
 
 export enum CheckStatus {
