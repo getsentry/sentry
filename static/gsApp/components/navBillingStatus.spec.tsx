@@ -442,7 +442,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     assertLocalStorageStateAfterAutoOpen();
   });
 
-  describe('Emerge categories', () => {
+  describe('PAYG ineligible categories', () => {
     it('should render Size Analysis quota exceeded with Contact Sales CTA', async () => {
       const newSub = SubscriptionFixture({
         organization,
@@ -543,12 +543,12 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       );
     });
 
-    it('should render both Emerge categories exceeded', async () => {
+    it('should render both PAYG ineligible categories exceeded', async () => {
       const newSub = SubscriptionFixture({
         organization,
         plan: 'am3_business',
       });
-      // Add both Emerge categories with usageExceeded
+      // Add both PAYG ineligible categories with usageExceeded
       newSub.categories.sizeAnalyses = MetricHistoryFixture({
         category: DataCategory.SIZE_ANALYSIS,
         reserved: 100,
@@ -599,7 +599,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       );
     });
 
-    it('should render mixed Emerge and other categories exceeded', async () => {
+    it('should render mixed PAYG ineligible and other categories exceeded', async () => {
       const newSub = SubscriptionFixture({
         organization,
         plan: 'am3_business',
@@ -632,7 +632,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
 
       await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
 
-      // Should show Emerge section
+      // Should show PAYG ineligible section
       expect(
         await screen.findByText('Size Analysis Builds - Quota Exceeded')
       ).toBeInTheDocument();

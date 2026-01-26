@@ -40,22 +40,29 @@ const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
 };
 
 /**
- * Emerge categories (SIZE_ANALYSIS, INSTALLABLE_BUILD) don't have PAYG (on-demand)
- * available, so they need special handling with a "Contact Sales" CTA instead of
- * the standard AddEventsCTA.
+ * Categories that are ineligible for PAYG (pay-as-you-go/on-demand) billing.
+ * These require special handling with a "Contact Sales" CTA instead of the
+ * standard AddEventsCTA, as customers cannot purchase additional quota
+ * through self-serve.
+ *
+ * Currently includes: SIZE_ANALYSIS, INSTALLABLE_BUILD
  */
-const EMERGE_CATEGORIES = [
+const PAYG_INELIGIBLE_CATEGORIES = [
   DataCategory.SIZE_ANALYSIS,
   DataCategory.INSTALLABLE_BUILD,
 ] as const;
 
-function isEmergeCategory(category: DataCategory): boolean {
-  return EMERGE_CATEGORIES.includes(category as (typeof EMERGE_CATEGORIES)[number]);
+function isPaygIneligibleCategory(category: DataCategory): boolean {
+  return PAYG_INELIGIBLE_CATEGORIES.includes(
+    category as (typeof PAYG_INELIGIBLE_CATEGORIES)[number]
+  );
 }
 
-function getEmergeSubheader(emergeCategories: DataCategory[]): string {
-  const hasSizeAnalysis = emergeCategories.includes(DataCategory.SIZE_ANALYSIS);
-  const hasInstallableBuild = emergeCategories.includes(DataCategory.INSTALLABLE_BUILD);
+function getPaygIneligibleSubheader(paygIneligibleCategories: DataCategory[]): string {
+  const hasSizeAnalysis = paygIneligibleCategories.includes(DataCategory.SIZE_ANALYSIS);
+  const hasInstallableBuild = paygIneligibleCategories.includes(
+    DataCategory.INSTALLABLE_BUILD
+  );
 
   if (hasSizeAnalysis && hasInstallableBuild) {
     return t('Size Analysis & Build Distribution - Quota Exceeded');
@@ -66,9 +73,11 @@ function getEmergeSubheader(emergeCategories: DataCategory[]): string {
   return t('Build Distribution - Quota Exceeded');
 }
 
-function getEmergeBodyCopy(emergeCategories: DataCategory[]): string {
-  const hasSizeAnalysis = emergeCategories.includes(DataCategory.SIZE_ANALYSIS);
-  const hasInstallableBuild = emergeCategories.includes(DataCategory.INSTALLABLE_BUILD);
+function getPaygIneligibleBodyCopy(paygIneligibleCategories: DataCategory[]): string {
+  const hasSizeAnalysis = paygIneligibleCategories.includes(DataCategory.SIZE_ANALYSIS);
+  const hasInstallableBuild = paygIneligibleCategories.includes(
+    DataCategory.INSTALLABLE_BUILD
+  );
 
   if (hasSizeAnalysis && hasInstallableBuild) {
     return t(
@@ -104,9 +113,11 @@ function QuotaExceededContent({
   organization: Organization;
   subscription: Subscription;
 }) {
-  // Separate Emerge categories from other categories
-  const emergeCategories = exceededCategories.filter(isEmergeCategory);
-  const otherCategories = exceededCategories.filter(cat => !isEmergeCategory(cat));
+  // Separate PAYG-ineligible categories from other categories
+  const paygIneligibleCategories = exceededCategories.filter(isPaygIneligibleCategory);
+  const otherCategories = exceededCategories.filter(
+    cat => !isPaygIneligibleCategory(cat)
+  );
 
   const seatCategories: DataCategory[] = [];
   const usageCategories: DataCategory[] = [];
@@ -120,13 +131,13 @@ function QuotaExceededContent({
     return (categoryInfo?.name ?? category) as EventType;
   });
 
-  // Get event types for Emerge categories (for analytics/dismiss)
-  const emergeEventTypes: EventType[] = emergeCategories.map(category => {
+  // Get event types for PAYG-ineligible categories (for analytics/dismiss)
+  const paygIneligibleEventTypes: EventType[] = paygIneligibleCategories.map(category => {
     const categoryInfo = getCategoryInfoFromPlural(category);
     return (categoryInfo?.name ?? category) as EventType;
   });
 
-  const allEventTypes = [...eventTypes, ...emergeEventTypes];
+  const allEventTypes = [...eventTypes, ...paygIneligibleEventTypes];
 
   const usageCategoryList = listDisplayNames({
     plan: subscription.planDetails,
@@ -139,16 +150,16 @@ function QuotaExceededContent({
     hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
 
-  // If ONLY Emerge categories are exceeded, show Emerge-specific content
-  if (emergeCategories.length > 0 && otherCategories.length === 0) {
+  // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
+  if (paygIneligibleCategories.length > 0 && otherCategories.length === 0) {
     return (
       <Container>
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
         <Body>
-          <Title>{getEmergeSubheader(emergeCategories)}</Title>
-          <Description>{getEmergeBodyCopy(emergeCategories)}</Description>
+          <Title>{getPaygIneligibleSubheader(paygIneligibleCategories)}</Title>
+          <Description>{getPaygIneligibleBodyCopy(paygIneligibleCategories)}</Description>
           <Flex justify="between" align="center">
             <LinkButton
               priority="primary"
@@ -163,7 +174,7 @@ function QuotaExceededContent({
                 aria-label={t('Dismiss alert for the rest of the billing cycle')}
                 onClick={() =>
                   onClick({
-                    eventTypes: emergeEventTypes,
+                    eventTypes: paygIneligibleEventTypes,
                     isManual: true,
                   })
                 }
@@ -178,17 +189,17 @@ function QuotaExceededContent({
     );
   }
 
-  // If BOTH Emerge and other categories are exceeded, show both sections
-  if (emergeCategories.length > 0 && otherCategories.length > 0) {
+  // If BOTH PAYG-ineligible and other categories are exceeded, show both sections
+  if (paygIneligibleCategories.length > 0 && otherCategories.length > 0) {
     return (
       <Container>
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
         <Body>
-          {/* Emerge categories section */}
-          <Title>{getEmergeSubheader(emergeCategories)}</Title>
-          <Description>{getEmergeBodyCopy(emergeCategories)}</Description>
+          {/* PAYG-ineligible categories section */}
+          <Title>{getPaygIneligibleSubheader(paygIneligibleCategories)}</Title>
+          <Description>{getPaygIneligibleBodyCopy(paygIneligibleCategories)}</Description>
           <Flex justify="start" align="center">
             <LinkButton
               priority="primary"
@@ -266,7 +277,7 @@ function QuotaExceededContent({
     );
   }
 
-  // Standard content for non-Emerge categories only
+  // Standard content for PAYG-eligible categories only
   return (
     <Container>
       <Header>
