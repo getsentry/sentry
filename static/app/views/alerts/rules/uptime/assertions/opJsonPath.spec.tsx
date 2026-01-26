@@ -2,6 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {JsonPathOp} from 'sentry/views/alerts/rules/uptime/types';
 
+import {AssertionsDndContext} from './dragDrop';
 import {AssertionOpJsonPath} from './opJsonPath';
 
 describe('AssertionOpJsonPath', () => {
@@ -74,5 +75,19 @@ describe('AssertionOpJsonPath', () => {
     const link = await screen.findByRole('link', {name: 'JSON Path RFC'});
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', 'https://www.rfc-editor.org/rfc/rfc9535.html');
+  });
+
+  it('renders drag handle for reordering', () => {
+    render(
+      <AssertionsDndContext>
+        <AssertionOpJsonPath
+          value={{id: 'test-id-1', op, value: '$.data.status'}}
+          onChange={mockOnChange}
+          onRemove={mockOnRemove}
+        />
+      </AssertionsDndContext>
+    );
+
+    expect(screen.getByRole('button', {name: 'Reorder assertion'})).toBeInTheDocument();
   });
 });

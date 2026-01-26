@@ -17,7 +17,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -472,7 +472,7 @@ export function Control({
 
   return (
     <ControlContext value={contextValue}>
-      <ControlWrap {...wrapperProps}>
+      <Container width="max-content" position="relative" {...wrapperProps}>
         {trigger ? (
           trigger(mergedTriggerProps, overlayIsOpen)
         ) : (
@@ -553,15 +553,10 @@ export function Control({
             </StyledOverlay>
           )}
         </StyledPositionWrapper>
-      </ControlWrap>
+      </Container>
     </ControlContext>
   );
 }
-
-const ControlWrap = styled('div')`
-  position: relative;
-  width: max-content;
-`;
 
 export const TriggerLabel = styled('span')`
   display: block;
@@ -598,7 +593,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   line-height: ${p => p.theme.font.lineHeight.comfortable};
   z-index: 2;
 
-  font-size: ${p => (p.size === 'xs' ? p.theme.fontSize.xs : p.theme.fontSize.sm)};
+  font-size: ${p => (p.size === 'xs' ? p.theme.font.size.xs : p.theme.font.size.sm)};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
