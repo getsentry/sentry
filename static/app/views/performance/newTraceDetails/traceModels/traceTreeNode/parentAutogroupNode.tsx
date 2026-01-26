@@ -57,6 +57,7 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     // Only add the tail if we actually reached it (no cycle detected).
     // If a cycle was detected, we return partial segments rather than risk an infinite loop.
     // This results in incomplete but safe rendering of the autogrouped spans.
+    // We prefer a truncated bar to a hung UI when trace data is malformed.
     if (start === this.tail) {
       children.push(this.tail);
     }

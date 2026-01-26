@@ -270,7 +270,8 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
         continue;
       }
 
-      // Check for cycle: trace the parent chain to detect if it would create a cycle
+      // Check for cycle: trace the parent chain to detect if it would create a cycle.
+      // If we loop back to the current span, attach it to the transaction root instead.
       let hasCycle = false;
       const ancestorChain = new Set<string>([span.value.span_id]);
       let currentParentId: string | null | undefined = span.value.parent_span_id;

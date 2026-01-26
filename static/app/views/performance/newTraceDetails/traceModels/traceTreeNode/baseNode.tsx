@@ -424,6 +424,13 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   /**
+   * Cycle Detection Strategy
+   *
+   * Traversals track visited nodes to prevent infinite loops when trace data
+   * contains circular references (for example, a parent_span_id chain that
+   * loops back to an ancestor). When a cycle is detected, the node is skipped
+   * so the UI can render the remaining subtree safely.
+   *
    * Traverses all children using depth-first search with cycle detection.
    * @param callback - Called for each node. Return `true` to stop traversal early.
    */
