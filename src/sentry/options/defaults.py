@@ -2276,6 +2276,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of organization IDs that should be using span metrics for sliding window org.
+register(
+    "dynamic-sampling.sliding_window_org.span-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using span metrics for recalibrate orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.span-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # === Hybrid cloud subsystem options ===
 # UI rollout
