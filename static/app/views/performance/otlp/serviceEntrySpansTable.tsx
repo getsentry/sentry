@@ -15,7 +15,6 @@ import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {parseCursor} from 'sentry/utils/cursor';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -66,7 +65,6 @@ export function ServiceEntrySpansTable({
   const navigate = useNavigate();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
-  const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR]);
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
@@ -105,9 +103,6 @@ export function ServiceEntrySpansTable({
       query: {...query, [SERVICE_ENTRY_SPANS_CURSOR]: _cursor},
     });
   };
-
-  const cursorOffset = parseCursor(cursor)?.offset ?? 0;
-  const totalNumSamples = cursorOffset;
 
   const handleViewSampledEvents = () => {
     if (!projectSlug) {
