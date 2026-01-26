@@ -37,7 +37,7 @@ function WrapToggle() {
 
   return (
     <Fragment>
-      |{' '}
+      |
       <Container as="span" marginLeft="xs">
         {wrapValue ? 'Wrap' : 'No Wrap'}
       </Container>
