@@ -802,8 +802,6 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/builds/"
 
         expected = f"""\
-## 2 Apps Analyzed
-
 ### Android Builds
 
 | Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
@@ -1132,7 +1130,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         )
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
@@ -1145,8 +1143,6 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 `com.example.app` (Android)
 - **Download Size - Total Size** ≥ **52.4 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1227,7 +1223,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/builds/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
@@ -1242,8 +1238,6 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 - **Download Size - Total Size** ≥ **52.4 MB**
 - **Install Size - Absolute Diff** ≥ **10.5 MB**
 - **Download Size - Relative Diff** ≥ **5.0%**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1334,7 +1328,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/builds/?expanded=rule-1&expanded=rule-2"
 
         expected = f"""\
-## ❌ 2 Apps Failed Size Checks
+## ❌ 2 Failed Size Checks
 
 ### iOS Builds
 
@@ -1355,8 +1349,6 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 - **Download Size - Total Size** ≥ **52.4 MB**
 `com.example.app2` (Android)
 - **Install Size - Total Size** ≥ **104.9 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1439,7 +1431,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         )
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
@@ -1452,11 +1444,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 `com.example.failed` (Android)
 - **Download Size - Total Size** ≥ **52.4 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
-## 1 App Analyzed
+## 1 Analyzed
 
 ### Android Builds
 

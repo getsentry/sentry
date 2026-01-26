@@ -5,7 +5,11 @@ from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.project import Project
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.types import TriggeredRule
 
@@ -18,6 +22,7 @@ def format_status_check_messages(
     overall_status: StatusCheckStatus,
     project: Project,
     triggered_rules: list[TriggeredRule] | None = None,
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[str, str, str]:
     """
     Args:
@@ -26,6 +31,7 @@ def format_status_check_messages(
         overall_status: The overall status of the check
         project: The project associated with the artifacts
         triggered_rules: List of triggered rules with artifact associations
+        approvals_map: Dict mapping artifact_id to PreprodComparisonApproval
 
     Returns:
         tuple: (title, subtitle, summary)
@@ -94,30 +100,38 @@ def format_status_check_messages(
         failed_artifacts = [a for a in artifacts if a.id in failed_artifact_ids]
         passed_artifacts = [a for a in artifacts if a.id not in failed_artifact_ids]
 
-        failed_count = len(failed_artifact_ids)
+        failed_metrics_count = sum(
+            len(size_metrics_map.get(a.id, [])) or 1 for a in failed_artifacts
+        )
         failed_header = ngettext(
-            "## ❌ %(count)d App Failed Size Checks",
-            "## ❌ %(count)d Apps Failed Size Checks",
-            failed_count,
-        ) % {"count": failed_count}
+            "## ❌ %(count)d Failed Size Check",
+            "## ❌ %(count)d Failed Size Checks",
+            failed_metrics_count,
+        ) % {"count": failed_metrics_count}
 
         summary_parts = []
 
         # Failed apps section
         summary_parts.append(failed_header)
-        summary_parts.append(_format_artifact_summary(failed_artifacts, size_metrics_map))
+        summary_parts.append(
+            _format_artifact_summary(failed_artifacts, size_metrics_map, approvals_map)
+        )
         summary_parts.append(_format_failed_checks_details(triggered_rules, settings_url))
 
         # Passed apps section (if any)
         if passed_artifacts:
-            passed_count = len(passed_artifacts)
+            passed_metrics_count = sum(
+                len(size_metrics_map.get(a.id, [])) or 1 for a in passed_artifacts
+            )
             passed_header = ngettext(
-                "## %(count)d App Analyzed",
-                "## %(count)d Apps Analyzed",
-                passed_count,
-            ) % {"count": passed_count}
+                "## %(count)d Analyzed",
+                "## %(count)d Analyzed",
+                passed_metrics_count,
+            ) % {"count": passed_metrics_count}
             summary_parts.append(passed_header)
-            summary_parts.append(_format_artifact_summary(passed_artifacts, size_metrics_map))
+            summary_parts.append(
+                _format_artifact_summary(passed_artifacts, size_metrics_map, approvals_map)
+            )
 
         # Footer link
         summary_parts.append(_format_configure_link(project, settings_url))
@@ -132,24 +146,7 @@ def format_status_check_messages(
     else:
         # Success or in-progress
         summary_parts = []
-
-        if analyzed_count > 0:
-            analyzed_header = ngettext(
-                "## %(count)d App Analyzed",
-                "## %(count)d Apps Analyzed",
-                analyzed_count,
-            ) % {"count": analyzed_count}
-            summary_parts.append(analyzed_header)
-        else:
-            # All apps still processing
-            processing_header = ngettext(
-                "## %(count)d App Processing",
-                "## %(count)d Apps Processing",
-                processing_count,
-            ) % {"count": processing_count}
-            summary_parts.append(processing_header)
-
-        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map))
+        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map, approvals_map))
         summary_parts.append(_format_configure_link(project, settings_url))
 
         summary = "\n\n".join(summary_parts)
@@ -160,6 +157,7 @@ def format_status_check_messages(
 def _format_artifact_summary(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> str:
     """Format summary for artifacts with size data."""
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
@@ -229,10 +227,13 @@ def _format_artifact_summary(
             f"{artifact.build_configuration.name or '--'}" if artifact.build_configuration else "--"
         )
 
-        # TODO(preprod): Add approval text once we have it
-        na_text = str(_("N/A"))
+        approval = approvals_map.get(artifact.id) if approvals_map else None
+        if approval:
+            approval_text = "✅ Approved"
+        else:
+            approval_text = str(_("N/A"))
 
-        row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} | {na_text} |"
+        row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} | {approval_text} |"
 
         group_key = "android" if artifact.is_android() else "ios"
         grouped_rows[group_key].append(row)
@@ -335,8 +336,6 @@ def _format_failed_checks_details(
             details_content.append(
                 f"- **{metric_display} - {measurement_display}** ≥ **{threshold_display}**"
             )
-
-    details_content.append(f"\n⚙️ [Configure status check rules]({settings_url})")
 
     return (
         f"<details>\n"
