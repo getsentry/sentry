@@ -479,7 +479,9 @@ def _call_autofix(
     return response.json().get("run_id")
 
 
-def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
+def get_all_tags_overview(
+    group: Group, start: datetime | None = None, end: datetime | None = None
+) -> dict[str, Any] | None:
     """
     Get high-level overview of all tags for an issue.
     Returns aggregated tag data with percentages for all tags.
@@ -490,6 +492,8 @@ def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
         keys=None,  # Get all tags
         value_limit=3,  # Get top 3 values per tag
         tenant_ids={"organization_id": group.project.organization_id},
+        start=start,
+        end=end,
     )
 
     all_tags: list[dict] = []

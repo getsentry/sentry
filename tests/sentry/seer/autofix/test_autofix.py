@@ -784,6 +784,31 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
         assert staging_val["count"] == 1
         assert staging_val["percentage"] == "25%"
 
+    def test_get_all_tags_overview_respects_time_range(self) -> None:
+        """Only include tag counts for events within the provided time window (event 2 and 3)"""
+        now = before_now(minutes=0)
+        start = now - timedelta(minutes=3, seconds=30)
+        end = now - timedelta(minutes=1, seconds=30)
+
+        result = get_all_tags_overview(self.group, start=start, end=end)
+
+        assert result is not None
+        tags = {tag["key"]: tag for tag in result["tags_overview"]}
+
+        env_tag = tags["environment"]
+        assert env_tag["total_values"] == 2  # events ~2m and ~3m ago
+        env_values = {val["value"]: val for val in env_tag["top_values"]}
+        assert set(env_values.keys()) == {"production", "staging"}
+        assert env_values["production"]["count"] == 1
+        assert env_values["staging"]["count"] == 1
+
+        user_tag = tags["user_role"]
+        assert user_tag["total_values"] == 2
+        user_values = {val["value"]: val for val in user_tag["top_values"]}
+        assert set(user_values.keys()) == {"admin", "user"}
+        assert user_values["admin"]["count"] == 1
+        assert user_values["user"]["count"] == 1
+
 
 @requires_snuba
 @pytest.mark.django_db
