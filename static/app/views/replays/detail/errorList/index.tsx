@@ -3,7 +3,7 @@ import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import Placeholder from 'sentry/components/placeholder';
@@ -132,7 +132,7 @@ export default function ErrorList() {
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
-          <Container height="100%" overflow="hidden" position="relative">
+          <Grid height="100%" overflow="hidden" position="relative">
             <AutoSizer onResize={onWrapperResize}>
               {({height, width}) => (
                 <MultiGrid
@@ -176,7 +176,7 @@ export default function ErrorList() {
                 tableHeaderHeight={HEADER_HEIGHT}
               />
             ) : null}
-          </Container>
+          </Grid>
         ) : (
           <Placeholder height="100%" />
         )}

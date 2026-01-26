@@ -1,13 +1,7 @@
-import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-export function SplitPanel(props: ContainerProps<'div'>) {
+export function SplitPanel(props: GridProps) {
   return (
-    <Container
-      width="100%"
-      height="100%"
-      overflow="auto"
-      position="relative"
-      {...props}
-    />
+    <Grid width="100%" height="100%" overflow="auto" position="relative" {...props} />
   );
 }

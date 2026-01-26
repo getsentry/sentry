@@ -1,5 +1,5 @@
-import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-export function OverflowHidden(props: ContainerProps<'div'>) {
-  return <Container height="100%" overflow="hidden" position="relative" {...props} />;
+export function OverflowHidden(props: GridProps<'div'>) {
+  return <Grid height="100%" overflow="hidden" position="relative" {...props} />;
 }
