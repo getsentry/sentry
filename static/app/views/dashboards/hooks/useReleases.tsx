@@ -22,12 +22,19 @@ export type ReleaseWithCount = Release & {
   count?: number;
 };
 
+// Maximum releases per event count query to avoid overly long query strings
+const RELEASES_PER_CHUNK = 10;
+
 /**
  * Hook to fetch releases for dashboard filtering.
  *
- * This is similar to the Insights version (static/app/views/insights/common/queries/useReleases.tsx)
- * but simplified for general dashboard use - it doesn't include the mobile-specific metrics queries
- * that the Insights version uses for event counts.
+ * Fetches releases from the releases API and optionally enriches them with
+ * event counts from the spans dataset. Event counts are lazy-loaded only
+ * when the dropdown is open to reduce API calls.
+ *
+ * @param searchTerm - Filter releases by version name
+ * @param sortBy - Sort order for releases (date, sessions, users, etc.)
+ * @param eventCountsEnabled - Whether to fetch event counts (enables lazy loading)
  *
  * @tested_via ReleasesSelectControl component tests (releasesSelectControl.spec.tsx)
  */
@@ -73,9 +80,8 @@ export function useReleases(
 
   const allReleases = useMemo(() => releaseResults.data ?? [], [releaseResults.data]);
 
-  // Fetch event counts for releases
   const chunks = useMemo(
-    () => (allReleases.length ? chunk(allReleases, 10) : []),
+    () => (allReleases.length ? chunk(allReleases, RELEASES_PER_CHUNK) : []),
     [allReleases]
   );
 
@@ -91,8 +97,11 @@ export function useReleases(
       }
       const stats: Record<string, {count: number}> = {};
       results.forEach(result =>
-        result.data?.[0]?.data?.forEach(release => {
-          stats[release.release!] = {count: release['count()'] as number};
+        result.data?.[0]?.data?.forEach(row => {
+          const releaseVersion = row.release;
+          if (typeof releaseVersion === 'string') {
+            stats[releaseVersion] = {count: row['count()'] as number};
+          }
         })
       );
       return {metricsStats: stats, metricsFetched: true};
@@ -109,9 +118,7 @@ export function useReleases(
         {
           query: {
             field: ['release', 'count()'],
-            query: escapeFilterValue(
-              `release:[${releaseChunk.map(r => `"${r.version}"`).join()}]`
-            ),
+            query: `release:[${releaseChunk.map(r => `"${escapeFilterValue(r.version)}"`).join(',')}]`,
             dataset: DiscoverDatasets.SPANS,
             project: projects,
             environment: environments,
