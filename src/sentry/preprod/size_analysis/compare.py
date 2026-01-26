@@ -17,6 +17,8 @@ from sentry.preprod.size_analysis.insight_models import (
     OptimizableImageFile,
     StripBinaryFileInfo,
     StripBinaryInsightResult,
+    VideoCompressionFileSavingsResult,
+    VideoCompressionInsightResult,
 )
 from sentry.preprod.size_analysis.models import (
     ComparisonResults,
@@ -553,7 +555,6 @@ def _compare_groups(
 def _compare_optimizable_images(
     head_files: list[OptimizableImageFile], base_files: list[OptimizableImageFile]
 ) -> list[DiffItem]:
-    """Compare optimizable image files between head and base builds."""
     diff_items = []
 
     head_files_dict = {f.file_path: f for f in head_files}
@@ -619,12 +620,76 @@ def _compare_optimizable_images(
 def _compare_strip_binary_files(
     head_files: list[StripBinaryFileInfo], base_files: list[StripBinaryFileInfo]
 ) -> list[DiffItem]:
-    """Compare strip binary files between head and base builds."""
     diff_items = []
 
     head_files_dict = {f.file_path: f for f in head_files}
     base_files_dict = {f.file_path: f for f in base_files}
 
+    all_paths = set(head_files_dict.keys()) | set(base_files_dict.keys())
+
+    for path in sorted(all_paths):
+        head_file = head_files_dict.get(path)
+        base_file = base_files_dict.get(path)
+
+        if head_file and base_file:
+            # File exists in both - check for savings change
+            size_diff = head_file.total_savings - base_file.total_savings
+
+            # Skip files with no savings change
+            if size_diff == 0:
+                continue
+
+            diff_type = DiffType.INCREASED if size_diff > 0 else DiffType.DECREASED
+
+            diff_items.append(
+                DiffItem(
+                    size_diff=size_diff,
+                    head_size=head_file.total_savings,
+                    base_size=base_file.total_savings,
+                    path=path,
+                    item_type=None,
+                    type=diff_type,
+                    diff_items=None,
+                )
+            )
+        elif head_file:
+            # File added in head
+            diff_items.append(
+                DiffItem(
+                    size_diff=head_file.total_savings,
+                    head_size=head_file.total_savings,
+                    base_size=None,
+                    path=path,
+                    item_type=None,
+                    type=DiffType.ADDED,
+                    diff_items=None,
+                )
+            )
+        elif base_file:
+            # File removed from head
+            diff_items.append(
+                DiffItem(
+                    size_diff=-base_file.total_savings,
+                    head_size=None,
+                    base_size=base_file.total_savings,
+                    path=path,
+                    item_type=None,
+                    type=DiffType.REMOVED,
+                    diff_items=None,
+                )
+            )
+
+    return diff_items
+
+
+def _compare_video_compression_files(
+    head_files: list[VideoCompressionFileSavingsResult],
+    base_files: list[VideoCompressionFileSavingsResult],
+) -> list[DiffItem]:
+    diff_items = []
+
+    head_files_dict = {f.file_path: f for f in head_files}
+    base_files_dict = {f.file_path: f for f in base_files}
     all_paths = set(head_files_dict.keys()) | set(base_files_dict.keys())
 
     for path in sorted(all_paths):
@@ -710,6 +775,11 @@ def _diff_insight(
         base_strip_binary_files = (
             base_insight.files if isinstance(base_insight, StripBinaryInsightResult) else []
         )
+
+        head_video_compression_files = []
+        base_video_compression_files = (
+            base_insight.files if isinstance(base_insight, VideoCompressionInsightResult) else []
+        )
     elif base_insight is None:
         # Should never happen, but here for mypy passing
         assert head_insight is not None
@@ -730,6 +800,11 @@ def _diff_insight(
             head_insight.files if isinstance(head_insight, StripBinaryInsightResult) else []
         )
         base_strip_binary_files = []
+
+        head_video_compression_files = (
+            head_insight.files if isinstance(head_insight, VideoCompressionInsightResult) else []
+        )
+        base_video_compression_files = []
     else:
         status = "unresolved"
         # Unresolved insight - compare both
@@ -755,6 +830,13 @@ def _diff_insight(
             base_insight.files if isinstance(base_insight, StripBinaryInsightResult) else []
         )
 
+        head_video_compression_files = (
+            head_insight.files if isinstance(head_insight, VideoCompressionInsightResult) else []
+        )
+        base_video_compression_files = (
+            base_insight.files if isinstance(base_insight, VideoCompressionInsightResult) else []
+        )
+
     file_diffs: list[DiffItem] = []
     group_diffs: list[DiffItem] = []
 
@@ -775,6 +857,13 @@ def _diff_insight(
             return None
     elif head_strip_binary_files or base_strip_binary_files:
         file_diffs = _compare_strip_binary_files(head_strip_binary_files, base_strip_binary_files)
+        # If no file diffs, we don't want to show an irrelevant insight diff item
+        if len(file_diffs) == 0:
+            return None
+    elif head_video_compression_files or base_video_compression_files:
+        file_diffs = _compare_video_compression_files(
+            head_video_compression_files, base_video_compression_files
+        )
         # If no file diffs, we don't want to show an irrelevant insight diff item
         if len(file_diffs) == 0:
             return None
