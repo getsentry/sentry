@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -556,12 +558,12 @@ function StreamGroup({
           </CountTooltipContent>
         }
       >
-        <CountsWrapper>
+        <Stack position="relative">
           <PrimaryCount value={primaryCount} />
           {secondaryCount !== undefined && useFilteredStats && (
             <SecondaryCount value={secondaryCount} />
           )}
-        </CountsWrapper>
+        </Stack>
       </Tooltip>
     </GuideAnchor>
   );
@@ -596,12 +598,12 @@ function StreamGroup({
         </CountTooltipContent>
       }
     >
-      <CountsWrapper>
+      <Stack position="relative">
         <PrimaryCount value={primaryUserCount} />
         {secondaryUserCount !== undefined && useFilteredStats && (
           <SecondaryCount value={secondaryUserCount} />
         )}
-      </CountsWrapper>
+      </Stack>
     </Tooltip>
   );
 
@@ -853,7 +855,7 @@ export const GroupSummary = styled('div')<{canSelect: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: auto;
 `;
 
@@ -872,14 +874,8 @@ const CheckboxWithBackground = styled(Checkbox)`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
-const CountsWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-`;
-
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   justify-content: right;
   margin-bottom: ${space(0.25)};
@@ -887,7 +883,7 @@ const PrimaryCount = styled(Count)`
 `;
 
 const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: flex;
   justify-content: right;
   color: ${p => p.theme.tokens.content.secondary};
@@ -906,12 +902,12 @@ const CountTooltipContent = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)} ${space(3)};
   text-align: left;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
 
   h4 {
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${space(0.25)};

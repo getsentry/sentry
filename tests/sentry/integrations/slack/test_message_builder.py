@@ -341,7 +341,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_build_group_block_noa(self) -> None:
-        rule = self.create_project_rule(project=self.project, action_data=[{"legacy_rule_id": 123}])
+        rule = self.create_project_rule(project=self.project)
+
         release = self.create_release(project=self.project)
         event = self.store_event(
             data={
@@ -367,7 +368,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             rule=rule,
-            legacy_rule_id=123,
+            legacy_rule_id=rule.data["actions"][0]["legacy_rule_id"],
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
@@ -1138,6 +1139,160 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         blocks = SlackIssuesMessageBuilder(group).build()
         assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
+
+    @with_feature("organizations:slack-compact-alerts")
+    def test_compact_alerts_basic_layout(self) -> None:
+        """
+        Test that with the slack-compact-alerts flag enabled, the message uses a compact layout:
+        - No divider at the end
+        - Context block includes stats
+        """
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        group.type = ErrorGroupType.type_id
+        group.save()
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
+        blocks = SlackIssuesMessageBuilder(group).build()
+
+        assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
+        assert blocks["blocks"][-1]["type"] != "divider"
+
+    @with_feature("organizations:slack-compact-alerts")
+    @override_options({"alerts.issue_summary_timeout": 5})
+    @with_feature({"organizations:gen-ai-features"})
+    @patch(
+        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    def test_compact_alerts_with_ai_summary(self, mock_get_seer_org_acknowledgement) -> None:
+        """
+        Test that with the slack-compact-alerts flag enabled and AI summary available:
+        - Title uses build_attachment_title() (not AI headline)
+        - Issue summary appears after action buttons as context with "Initial Guess:" prefix
+        """
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        group.type = ErrorGroupType.type_id
+        group.save()
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
+
+        mock_summary = {
+            "headline": "Custom AI Title",
+            "whatsWrong": "This is what's wrong with the issue",
+            "trace": "This is trace information",
+            "possibleCause": "This is a possible cause",
+        }
+        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
+        serializer_path = "sentry.api.serializers.models.event.EventSerializer.serialize"
+        serializer_mock = Mock(return_value={})
+
+        with (
+            patch(patch_path) as mock_get_summary,
+            patch(serializer_path, serializer_mock),
+        ):
+            mock_get_summary.return_value = (mock_summary, 200)
+
+            blocks = SlackIssuesMessageBuilder(group).build()
+
+            title_block = blocks["blocks"][0]["text"]["text"]
+            assert "IntegrationError" in title_block
+            assert "Custom AI Title" not in title_block
+
+            found_initial_guess = False
+            for block in blocks["blocks"]:
+                if block.get("type") == "context":
+                    elements = block.get("elements", [])
+                    for element in elements:
+                        if "Initial Guess" in element.get("text", ""):
+                            found_initial_guess = True
+                            assert "This is a possible cause" in element["text"]
+                            break
+
+            assert found_initial_guess, "Initial Guess context block not found"
+            assert blocks["blocks"][-1]["type"] != "divider"
+
+    @with_feature("organizations:slack-compact-alerts")
+    def test_compact_alerts_context_includes_suggested_assignees(self) -> None:
+        """
+        Test that with compact alerts, suggested assignees are included in the context block
+        rather than in a separate block.
+        """
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Hello world",
+                "fingerprint": ["group-1"],
+                "level": "error",
+                "stacktrace": {"frames": [{"filename": "foo.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+
+        # Set up ownership to create suggested assignees
+        rule = Rule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        ProjectOwnership.objects.create(project_id=self.project.id, schema=dump_schema([rule]))
+
+        blocks = SlackIssuesMessageBuilder(group, event).build()
+
+        found_suggested_in_context = False
+        found_old_suggested_assignees = False
+        for block in blocks["blocks"]:
+            if block.get("type") == "context":
+                elements = block.get("elements", [])
+                for element in elements:
+                    text = element.get("text", "")
+                    if "Suggested:" in text:
+                        found_suggested_in_context = True
+                    if "Suggested Assignees:" in text:
+                        found_old_suggested_assignees = True
+
+        assert found_suggested_in_context, "Suggested assignees should be in context block"
+        assert (
+            not found_old_suggested_assignees
+        ), "Old 'Suggested Assignees:' format should not appear"
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):

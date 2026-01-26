@@ -1,3 +1,5 @@
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 
@@ -23,7 +25,13 @@ function ReleasesDropdown({label: prefix, options, selected, onSelect}: Props) {
       options={mappedOptions}
       onChange={opt => onSelect(opt.value)}
       value={selected}
-      triggerProps={{prefix, style: {width: '100%'}}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={prefix}
+          style={{width: '100%'}}
+        />
+      )}
     />
   );
 }

@@ -98,6 +98,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
+        assert detector.detector_handler is not None
         detector_occurrence, event_data = build_mock_occurrence_and_event(
             detector.detector_handler, None, PriorityLevel.HIGH
         )
@@ -137,6 +138,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
 
+        assert detector.detector_handler is not None
         detector_occurrence_1, _ = build_mock_occurrence_and_event(
             detector.detector_handler, "group_1", PriorityLevel.HIGH
         )
@@ -158,6 +160,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             event_data_1,
         )
 
+        assert detector.detector_handler is not None
         detector_occurrence_2, _ = build_mock_occurrence_and_event(
             detector.detector_handler, "group_2", PriorityLevel.HIGH
         )
@@ -245,6 +248,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
+        assert detector.detector_handler is not None
         detector_occurrence, event_data = build_mock_occurrence_and_event(
             detector.detector_handler, None, PriorityLevel.HIGH
         )
@@ -301,6 +305,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         process_detectors(data_packet, [detector])
 
+        assert detector.detector_handler is not None
         build_mock_occurrence_and_event(detector.detector_handler, None, PriorityLevel.HIGH)
 
         data_packet = DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}})
@@ -944,7 +949,7 @@ class TestGetDetectorsForEvent(TestCase):
         assert result.detectors == {self.issue_stream_detector}
 
         # assert no exception is logged
-        mock_logger.exception.assert_called_once()
+        mock_logger.exception.assert_not_called()
 
     def test_no_detectors(self) -> None:
         self.issue_stream_detector.delete()
@@ -1024,32 +1029,8 @@ class TestGetPreferredDetector(TestCase):
 
         assert result == self.detector
 
-    def test_no_detector_id(self) -> None:
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            project_id=1,
-            event_id="asdf",
-            fingerprint=["asdf"],
-            issue_title="title",
-            subtitle="subtitle",
-            resource_id=None,
-            evidence_data={},
-            evidence_display=[],
-            type=MetricIssue,
-            detection_time=timezone.now(),
-            level="error",
-            culprit="",
-        )
-
-        group_event = GroupEvent.from_event(self.event, self.group)
-        group_event.occurrence = occurrence
-
-        event_data = WorkflowEventData(event=group_event, group=self.group)
-
-        with pytest.raises(Detector.DoesNotExist):
-            get_preferred_detector(event_data)
-
-    def test_errors_on_no_detector(self) -> None:
+    def test_issue_stream_detector_fallback(self) -> None:
+        # falls back to issue stream
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=self.project.id,
@@ -1072,8 +1053,8 @@ class TestGetPreferredDetector(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        with pytest.raises(Detector.DoesNotExist):
-            get_preferred_detector(event_data)
+        detector = get_preferred_detector(event_data)
+        assert detector == Detector.get_issue_stream_detector_for_project(self.project.id)
 
 
 class TestAssociateNewGroupWithDetector(TestCase):

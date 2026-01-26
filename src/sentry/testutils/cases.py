@@ -3337,12 +3337,12 @@ class _OptionalOurLogData(TypedDict, total=False):
 def scalar_to_any_value(value: Any) -> AnyValue:
     if isinstance(value, str):
         return AnyValue(string_value=value)
+    if isinstance(value, bool):
+        return AnyValue(bool_value=value)
     if isinstance(value, int):
         return AnyValue(int_value=value)
     if isinstance(value, float):
         return AnyValue(double_value=value)
-    if isinstance(value, bool):
-        return AnyValue(bool_value=value)
     if isinstance(value, dict):
         return AnyValue(**value)
     raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
@@ -3394,14 +3394,8 @@ def span_to_trace_item(span) -> TraceItem:
         "start_timestamp_precise",
     }:
         if field in span and span[field] is not None:
-            if field == "is_segment":
-                is_segment = span["is_segment"]
-                attributes["sentry.is_segment"] = AnyValue(
-                    double_value=float(is_segment),
-                )
-            else:
-                value = scalar_to_any_value(span[field])
-                attributes[f"sentry.{field}"] = value
+            value = scalar_to_any_value(span[field])
+            attributes[f"sentry.{field}"] = value
 
     timestamp = Timestamp()
 

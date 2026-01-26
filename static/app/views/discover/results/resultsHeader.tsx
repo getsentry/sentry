@@ -211,8 +211,8 @@ class ResultsHeader extends Component<Props, State> {
 }
 
 const Subtitle = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   margin: ${space(0.5)} 0 0 0;
 `;

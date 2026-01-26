@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/core/button';
@@ -278,9 +280,9 @@ function SortDropdown() {
   return (
     <CompactSelect
       value={sort}
-      triggerProps={{
-        icon: <IconSort />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} icon={<IconSort />} />
+      )}
       onChange={newSort => {
         trackAnalytics('issue_views.table.sort_changed', {
           organization,
@@ -485,13 +487,13 @@ const Banner = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerText = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   flex-shrink: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -522,7 +524,7 @@ const TableHeading = styled('h2')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
 `;

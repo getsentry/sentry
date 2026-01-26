@@ -143,7 +143,7 @@ function ReleaseAdoption({
     max: 100,
     axisLabel: {
       formatter: (value: number) => `${value}%`,
-      color: theme.tokens.content.muted,
+      color: theme.tokens.content.secondary,
     },
   };
 
@@ -353,7 +353,7 @@ const TooltipWrapper = styled('span')`
 const AdoptionEnvironment = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   margin-left: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const RelativeBox = styled('div')`

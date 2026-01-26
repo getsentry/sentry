@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.testutils.cases import TestMigrations
@@ -9,7 +11,7 @@ class RenameErrorDetectorsTest(TestMigrations):
     migrate_from = "0068_migrate_anomaly_detection_alerts"
     migrate_to = "0069_rename_error_detectors"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: Any) -> None:
         self.project = self.create_project()
 
         self.detector = self.create_detector(

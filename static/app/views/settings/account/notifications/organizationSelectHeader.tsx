@@ -53,5 +53,5 @@ export function OrganizationSelectHeader({
 // Resetting styles because its in a panel header
 const StyledSelectControl = styled(Select)`
   text-transform: initial;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

@@ -57,8 +57,8 @@ function GroupStatusChart({
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
     const marklineColor = theme.colors.gray400;
-    const marklineLabelColor = theme.tokens.content.muted;
-    const chartColor = theme.tokens.graphics.muted;
+    const marklineLabelColor = theme.tokens.content.secondary;
+    const chartColor = theme.tokens.graphics.neutral.moderate;
 
     const markLine = MarkLine({
       silent: true,
@@ -158,6 +158,6 @@ const ChartAnimationWrapper = styled('div')`
 `;
 
 const GraphText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;

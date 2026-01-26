@@ -3,10 +3,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
-import {
-  SelectTrigger,
-  type SelectTriggerProps,
-} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
@@ -142,7 +139,7 @@ export interface TimeRangeSelectorProps
    */
   start?: DateString;
   trigger?: (
-    props: SelectTriggerProps & {
+    props: TriggerProps & {
       desynced?: boolean;
     },
     isOpen: boolean
@@ -499,16 +496,16 @@ export function TimeRangeSelector({
 export function TimeRangeSelectTrigger({
   desynced,
   ...props
-}: SelectTriggerProps & {
+}: TriggerProps & {
   desynced?: boolean;
 }) {
   return (
-    <SelectTrigger.Button {...props}>
+    <OverlayTrigger.Button {...props}>
       <TriggerLabelWrap>
         <TriggerLabel>{props.children}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator />}
       </TriggerLabelWrap>
-    </SelectTrigger.Button>
+    </OverlayTrigger.Button>
   );
 }
 
@@ -553,10 +550,10 @@ const FooterMessage = styled('p')`
   padding: ${space(0.75)} ${space(1)};
   margin: ${space(0.5)} 0;
   border-radius: ${p => p.theme.radius.md};
-  border: solid 1px ${p => p.theme.alert.warning.border};
-  background: ${p => p.theme.alert.warning.backgroundLight};
+  border: solid 1px ${p => p.theme.colors.yellow200};
+  background: ${p => p.theme.colors.yellow100};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const FooterWrap = styled('div')`

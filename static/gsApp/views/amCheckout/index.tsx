@@ -432,11 +432,7 @@ function AMCheckout(props: Props) {
           }, {} as CheckoutAddOns),
       };
 
-      if (
-        isNewPayingCustomer(subscription, organization) &&
-        checkoutTier === PlanTier.AM3
-      ) {
-        // TODO(isabella): Test if this behavior works as expected on older tiers
+      if (isNewPayingCustomer(subscription, organization)) {
         data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
           ? PAYG_BUSINESS_DEFAULT
           : PAYG_TEAM_DEFAULT;
@@ -448,14 +444,7 @@ function AMCheckout(props: Props) {
 
       return getValidData(initialPlan, data);
     },
-    [
-      subscription,
-      checkoutTier,
-      organization,
-      getInitialPlan,
-      canComparePrices,
-      getValidData,
-    ]
+    [subscription, organization, getInitialPlan, canComparePrices, getValidData]
   );
 
   const getFormDataForPreview = useCallback((data: CheckoutFormData) => {
@@ -871,7 +860,7 @@ const CheckoutHeader = styled('header')`
 `;
 
 const OrgSlug = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   text-wrap: nowrap;

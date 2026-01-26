@@ -46,7 +46,7 @@ export function FeatureOverview() {
       <Text variant="muted" size="md">
         {t('AI Code Review helps you ship better code with new features:')}
       </Text>
-      <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
+      <Container as="ul" margin="0" style={{fontSize: '12px'}}>
         <li>
           <Text variant="muted" size="sm">
             {tct(
@@ -122,11 +122,13 @@ export default function PreventAIOnboarding() {
           <Text variant="primary" size="md">
             {t('AI Code Review is an AI agent that automates tasks in your PR:')}
           </Text>
-          <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
+          <Container as="ul" margin="0">
             <Container as="li">
-              {t(
-                'It reviews your pull requests, predicting errors and suggesting code fixes.'
-              )}
+              <Text size="sm">
+                {t(
+                  'It reviews your pull requests, predicting errors and suggesting code fixes.'
+                )}
+              </Text>
             </Container>
           </Container>
         </Flex>
@@ -140,12 +142,7 @@ export default function PreventAIOnboarding() {
         maxWidth="1000px"
       >
         <Flex direction="column" gap="2xl" maxWidth="600px">
-          <Flex
-            direction="column"
-            gap="lg"
-            padding="0 0 xl 0"
-            style={{borderBottom: `1px solid ${theme.tokens.border.primary}`}}
-          >
+          <Flex direction="column" gap="lg" padding="0 0 xl 0" borderBottom="primary">
             <Heading as="h1">{t('Setup AI Code Review')}</Heading>
             <Text variant="primary" size="sm">
               {t(
@@ -162,12 +159,12 @@ export default function PreventAIOnboarding() {
                 {
                   enablePreventAI: (
                     <Text italic variant="muted" size="md">
-                      Enable AI Code Review
+                      {t('Enable AI Code Review')}
                     </Text>
                   ),
                   showGenerativeAI: (
                     <Text italic variant="muted" size="md">
-                      Show Generative AI Features
+                      {t('Show Generative AI Features')}
                     </Text>
                   ),
                   organizationSettingsLink: (
@@ -223,9 +220,7 @@ export default function PreventAIOnboarding() {
           <Text variant="muted" size="xs">
             <Flex gap="sm" justify="center">
               <IconInfo size="xs" />
-              {t(
-                `This page will remain visible after the app is installed. Reviewer Configuration and Usage Stats are coming soon.`
-              )}
+              {t('This page will remain visible after the app is installed.')}
             </Flex>
           </Text>
         </Flex>
@@ -254,7 +249,7 @@ const StepNumber = styled('div')`
   background-color: ${p => p.theme.tokens.background.accent.vibrant};
   color: ${p => p.theme.tokens.content.onVibrant.light};
   border-radius: 50%;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
 `;
 

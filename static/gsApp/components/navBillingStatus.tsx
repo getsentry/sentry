@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
@@ -118,7 +120,7 @@ function QuotaExceededContent({
             )}
           </Description>
         )}
-        <ActionContainer>
+        <Flex justify="between" align="center">
           <AddEventsCTA
             organization={organization}
             subscription={subscription}
@@ -143,7 +145,7 @@ function QuotaExceededContent({
               {t('Dismiss')}
             </Button>
           )}
-        </ActionContainer>
+        </Flex>
       </Body>
     </Container>
   );
@@ -342,18 +344,18 @@ const Header = styled('div')`
 `;
 
 const HeaderTitle = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: 0;
 `;
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: 0;
 `;
 
 const Body = styled('div')`
   margin: ${p => p.theme.space.xl};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
@@ -361,10 +363,4 @@ const Body = styled('div')`
 
 const Description = styled('div')`
   text-wrap: pretty;
-`;
-const ActionContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
 `;

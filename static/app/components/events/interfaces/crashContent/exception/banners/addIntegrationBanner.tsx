@@ -65,9 +65,9 @@ const StacktraceIntegrationBannerWrapper = styled('div')`
 `;
 
 const IntegationBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const IntegationBannerDescription = styled('div')`
@@ -80,7 +80,7 @@ const CloseBannerButton = styled(Button)`
   display: block;
   top: ${space(2)};
   right: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;
