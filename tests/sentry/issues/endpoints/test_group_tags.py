@@ -161,7 +161,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         end_str = before_now(days=0).isoformat().split("+00:00")[0].strip("Z")
 
         for query in [f"?start={start_str}&end={end_str}", "?statsPeriod=1d"]:
-            url = f"/api/0/issues/{event1.group.id}/tags/{query}"
+            url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/{query}"
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert len(response.data) == 3
@@ -180,7 +180,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         # Test a range with no events.
         start_str = before_now(days=9).isoformat().split("+00:00")[0].strip("Z")
         end_str = before_now(days=7).isoformat().split("+00:00")[0].strip("Z")
-        url = f"/api/0/issues/{event1.group.id}/tags/?start={start_str}&end={end_str}"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/?start={start_str}&end={end_str}"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
