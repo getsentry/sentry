@@ -613,7 +613,7 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_release,
         )
 
-        result = _fetch_base_size_metrics([head_artifact], self.project)
+        result = _fetch_base_size_metrics([head_artifact])
 
         assert head_artifact.id in result
         assert result[head_artifact.id].id == base_metrics.id
@@ -662,7 +662,7 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_debug,
         )
 
-        result = _fetch_base_size_metrics([head_artifact], self.project)
+        result = _fetch_base_size_metrics([head_artifact])
 
         assert result == {}
 
@@ -723,7 +723,7 @@ class StatusCheckFiltersTest(TestCase):
             )
         }
 
-        base_size_metrics_map = _fetch_base_size_metrics([head_artifact], self.project)
+        base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
 
         rule = StatusCheckRule(
             id="rule1",
