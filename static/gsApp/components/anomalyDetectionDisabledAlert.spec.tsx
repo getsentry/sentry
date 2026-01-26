@@ -3,16 +3,16 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AnomalyDetectionDisabledAlertMessage} from './anomalyDetectionDisabledAlert';
+import {AnomalyDetectionDisabledAlert} from './anomalyDetectionDisabledAlert';
 
-describe('AnomalyDetectionDisabledAlertMessage', () => {
+describe('AnomalyDetectionDisabledAlert', () => {
   it('shows upgrade message for anomaly detector without feature', () => {
     const orgWithoutFeature = OrganizationFixture({features: []});
     const anomalyDetector = MetricDetectorFixture({
       config: {detectionType: 'dynamic'},
     });
 
-    render(<AnomalyDetectionDisabledAlertMessage detector={anomalyDetector} />, {
+    render(<AnomalyDetectionDisabledAlert detector={anomalyDetector} />, {
       organization: orgWithoutFeature,
     });
 
@@ -30,7 +30,7 @@ describe('AnomalyDetectionDisabledAlertMessage', () => {
     });
 
     const {container} = render(
-      <AnomalyDetectionDisabledAlertMessage detector={thresholdDetector} />,
+      <AnomalyDetectionDisabledAlert detector={thresholdDetector} />,
       {
         organization: orgWithoutFeature,
       }
@@ -48,7 +48,7 @@ describe('AnomalyDetectionDisabledAlertMessage', () => {
     });
 
     const {container} = render(
-      <AnomalyDetectionDisabledAlertMessage detector={anomalyDetector} />,
+      <AnomalyDetectionDisabledAlert detector={anomalyDetector} />,
       {
         organization: orgWithFeature,
       }

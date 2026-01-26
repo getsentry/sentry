@@ -7,7 +7,8 @@ import type {Hooks} from 'sentry/types/hooks';
 
 import AiSetupConfiguration from 'getsentry/components/ai/aiSetupConfiguration';
 import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
-import {AnomalyDetectionDisabledAlertMessage} from 'getsentry/components/anomalyDetectionDisabledAlert';
+import {AnomalyDetectionDisableAction} from 'getsentry/components/anomalyDetectionDisableAction';
+import {AnomalyDetectionDisabledAlert} from 'getsentry/components/anomalyDetectionDisabledAlert';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import DashboardBanner from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
@@ -254,7 +255,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:scm-multi-org-install-button': () => GithubInstallationSelectInstallButton,
   'component:metric-alert-quota-message': MetricAlertQuotaMessage,
   'component:metric-alert-quota-icon': MetricAlertQuotaIcon,
-  'component:disabled-detector-alert-message': AnomalyDetectionDisabledAlertMessage,
+  'component:disabled-detector-action': AnomalyDetectionDisableAction,
+  'component:disabled-detector-alert': AnomalyDetectionDisabledAlert,
 
   /**
    * Augment disable feature hooks for augmenting with upsell interfaces

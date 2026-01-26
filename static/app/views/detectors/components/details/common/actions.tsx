@@ -1,10 +1,11 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import Hook from 'sentry/components/hook';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -24,7 +25,6 @@ import {
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function DisableDetectorAction({detector}: {detector: Detector}) {
-  const organization = useOrganization();
   const {mutate: updateDetector, isPending: isUpdating} = useUpdateDetector();
 
   const toggleDisabled = useCallback(() => {
@@ -51,29 +51,18 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
     return null;
   }
 
-  // Check if this is an anomaly detection detector without the required feature
-  const isAnomalyDetector =
-    detector.type === 'metric_issue' &&
-    'config' in detector &&
-    (detector as any).config?.detectionType === 'dynamic';
-  const hasAnomalyDetectionFeature = organization.features.includes(
-    'anomaly-detection-alerts'
-  );
-  const requiresUpgrade = isAnomalyDetector && !hasAnomalyDetectionFeature;
-
-  // If it's an anomaly detector without the feature, disable the Enable button
-  const isButtonDisabled = isUpdating || (requiresUpgrade && !detector.enabled);
-  const tooltipText =
-    requiresUpgrade && !detector.enabled
-      ? t('Anomaly detection is only available on Business and Enterprise plans')
-      : undefined;
-
   return (
-    <Tooltip title={tooltipText} disabled={!tooltipText}>
-      <Button size="sm" onClick={toggleDisabled} disabled={isButtonDisabled}>
-        {detector.enabled ? t('Disable') : t('Enable')}
-      </Button>
-    </Tooltip>
+    <Hook name="component:disabled-detector-action" detector={detector}>
+      {({hooks}) =>
+        hooks.length > 0 ? (
+          <Fragment>{hooks as React.ReactNode}</Fragment>
+        ) : (
+          <Button size="sm" onClick={toggleDisabled} disabled={isUpdating}>
+            {detector.enabled ? t('Disable') : t('Enable')}
+          </Button>
+        )
+      }
+    </Hook>
   );
 }
 
