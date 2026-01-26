@@ -15,11 +15,11 @@ class Geo(Interface):
     """
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         data = {
             "country_code": data.get("country_code"),
             "city": data.get("city"),
             "region": data.get("region"),
         }
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
