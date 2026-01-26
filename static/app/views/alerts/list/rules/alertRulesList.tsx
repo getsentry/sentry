@@ -7,6 +7,7 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {Alert} from 'sentry/components/core/alert/alert';
 import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -177,6 +178,7 @@ export default function AlertRulesList() {
   };
 
   const hasEditAccess = organization.access.includes('alerts:write');
+  const hasIncidentsFeature = organization.features.includes('incidents');
 
   const ruleList = ruleListResponse.filter(defined);
   const projectsFromResults = uniq(
@@ -210,6 +212,11 @@ export default function AlertRulesList() {
         <Layout.Body>
           <Layout.Main width="full">
             <DataConsentBanner source="alerts" />
+            {!hasIncidentsFeature && (
+              <Alert variant="warning" system>
+                Placeholder Text
+              </Alert>
+            )}
             <FilterBar
               location={location}
               onChangeFilter={handleChangeFilter}
