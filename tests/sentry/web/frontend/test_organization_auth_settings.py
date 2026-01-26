@@ -814,26 +814,8 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
 
 
 @control_silo_test
-class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
+class OrganizationAuthSettingsScimTokenMaskingTest(OrganizationAuthSettingsTest):
     """Tests for SCIM token masking security feature."""
-
-    def create_org_and_auth_provider(self, provider_name="dummy"):
-        self.user.update(is_managed=True)
-        with assume_test_silo_mode(SiloMode.REGION):
-            organization = self.create_organization(name="foo", owner=self.user)
-
-        auth_provider = AuthProvider.objects.create(
-            organization_id=organization.id, provider=provider_name
-        )
-        AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
-        return organization, auth_provider
-
-    def create_om_and_link_sso(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
-            om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
-            setattr(om.flags, "sso:linked", True)
-            om.save()
-        return om
 
     def test_scim_token_visible_immediately_after_creation(self):
         """Test that SCIM token is fully visible within 5 minutes of creation."""
