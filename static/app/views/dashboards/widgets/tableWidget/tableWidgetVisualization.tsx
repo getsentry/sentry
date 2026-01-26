@@ -70,7 +70,7 @@ interface TableWidgetVisualizationProps {
   /**
    * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
    */
-  allowedCellActions?: Actions[];
+  allowedCellActions?: Actions[] | GetAllowedCellActionsFn;
   /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
@@ -85,10 +85,6 @@ interface TableWidgetVisualizationProps {
    * If true, removes the borders of the sides and bottom of the table
    */
   frameless?: boolean;
-  /**
-   * If provided, returns a list of cell actions per cell. This overrides `allowedCellActions`. The function receives the full cell info, including the column type.
-   */
-  getAllowedCellActions?: GetAllowedCellActionsFn;
   /**
    * A function that returns a field renderer that can be used to render that field given the data and meta. A field renderer is a function that accepts a data row, and a baggage object, and returns a React node or `undefined`, and can be rendered as a table cell.
    * @param fieldName The name of the field to render
@@ -163,7 +159,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     resizable = true,
     onTriggerCellAction,
     allowedCellActions = ALLOWED_CELL_ACTIONS,
-    getAllowedCellActions,
   } = props;
 
   const theme = useTheme();
@@ -284,14 +279,15 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const cell = valueRenderer(dataRow, baggage);
 
           const column = columnOrder[columnIndex]!;
-          const cellAllowedActions = getAllowedCellActions
-            ? getAllowedCellActions({
-                column,
-                dataRow,
-                columnIndex,
-                rowIndex,
-              })
-            : allowedCellActions;
+          const cellAllowedActions =
+            typeof allowedCellActions === 'function'
+              ? allowedCellActions({
+                  column,
+                  dataRow,
+                  columnIndex,
+                  rowIndex,
+                })
+              : allowedCellActions;
           const formattedColumn = {
             key: column.key,
             name: column.key,

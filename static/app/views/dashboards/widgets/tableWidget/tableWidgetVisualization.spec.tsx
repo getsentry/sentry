@@ -289,17 +289,17 @@ describe('TableWidgetVisualization', () => {
       await screen.findByText('Add to filter');
     });
 
-    it('Calls getAllowedCellActions with correct cellInfo', () => {
-      const getAllowedCellActions = jest.fn(() => [Actions.ADD]);
+    it('Calls allowedCellActions with correct cellInfo', () => {
+      const allowedCellActions = jest.fn(() => [Actions.ADD]);
 
       render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          getAllowedCellActions={getAllowedCellActions}
+          allowedCellActions={allowedCellActions}
         />
       );
 
-      expect(getAllowedCellActions).toHaveBeenCalledWith(
+      expect(allowedCellActions).toHaveBeenCalledWith(
         expect.objectContaining({
           column: expect.objectContaining({key: 'http.request_method'}),
           dataRow: expect.objectContaining(sampleHTTPRequestTableData.data[0]!),
@@ -309,15 +309,15 @@ describe('TableWidgetVisualization', () => {
       );
     });
 
-    it('Renders per-cell actions from getAllowedCellActions', async () => {
-      const getAllowedCellActions = jest.fn(({column}: {column: TabularColumn}) =>
+    it('Renders per-cell actions from allowedCellActions', async () => {
+      const allowedCellActions = jest.fn(({column}: {column: TabularColumn}) =>
         column.type === 'integer' ? [Actions.SHOW_GREATER_THAN] : [Actions.ADD]
       );
 
       render(
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
-          getAllowedCellActions={getAllowedCellActions}
+          allowedCellActions={allowedCellActions}
         />
       );
 
