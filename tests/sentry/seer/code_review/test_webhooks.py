@@ -558,7 +558,6 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number=None,
             comment_id="123456",
-            extra={},
         )
 
         self.mock_client.delete_issue_reaction.assert_not_called()
@@ -607,7 +606,6 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id="123456",
-            extra={},
         )
 
         assert self.mock_client.delete_issue_reaction.call_count == 2
