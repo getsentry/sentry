@@ -13,3 +13,5 @@ artifactProvider:
   name: none
 targets:
   - name: github
+versioning:
+  policy: calver
