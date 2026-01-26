@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
@@ -35,6 +35,23 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 
 
+def _partition_orgs_by_span_metric_option(
+    org_ids: list[int],
+) -> tuple[list[int], list[int]]:
+    """
+    Partitions organization IDs based on the span metric option.
+
+    Returns:
+        A tuple of (span_metric_orgs, transaction_metric_orgs)
+    """
+    span_metric_org_ids = set(
+        options.get("dynamic-sampling.recalibrate_orgs.span-metric-orgs") or []
+    )
+    span_orgs = [org_id for org_id in org_ids if org_id in span_metric_org_ids]
+    transaction_orgs = [org_id for org_id in org_ids if org_id not in span_metric_org_ids]
+    return span_orgs, transaction_orgs
+
+
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_orgs",
     namespace=telemetry_experience_tasks,
@@ -44,13 +61,35 @@ from sentry.taskworker.retry import Retry
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
-    for org_volumes in GetActiveOrgsVolumes():
+    # Process orgs using transaction metrics (default)
+    _process_orgs_volumes(use_span_metric=False)
+    # Process orgs using span metrics (opted-in via option)
+    _process_orgs_volumes(use_span_metric=True)
+
+
+def _process_orgs_volumes(use_span_metric: bool) -> None:
+    """
+    Process organization volumes for recalibration.
+
+    Args:
+        use_span_metric: Whether to use span metrics instead of transaction metrics.
+    """
+    for org_volumes in GetActiveOrgsVolumes(use_span_metric=use_span_metric):
+        # Filter to only orgs that match the metric type based on option
+        org_ids = [v.org_id for v in org_volumes]
+        span_orgs, transaction_orgs = _partition_orgs_by_span_metric_option(org_ids)
+        target_orgs = set(span_orgs if use_span_metric else transaction_orgs)
+
+        filtered_volumes = [v for v in org_volumes if v.org_id in target_orgs]
+        if not filtered_volumes:
+            continue
+
         modes = OrganizationOption.objects.get_value_bulk_id(
-            [v.org_id for v in org_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
+            [v.org_id for v in filtered_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
         )
         orgs_batch = []
         projects_batch = []
-        for org_volume in org_volumes:
+        for org_volume in filtered_volumes:
             if not org_volume.is_valid_for_recalibration():
                 continue
             if modes[org_volume.org_id] == DynamicSamplingMode.PROJECT:
