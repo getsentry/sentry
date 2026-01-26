@@ -56,6 +56,7 @@ export function Button({
           display="flex"
           align="center"
           justify="center"
+          whiteSpace="nowrap"
         >
           {props.icon && (
             <Flex
