@@ -3,6 +3,11 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.customers.history import (
+    CustomerHistoryCurrentEndpoint,
+    CustomerHistoryDetailEndpoint,
+    CustomerHistoryEndpoint,
+)
 from sentry.api.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
@@ -3800,6 +3805,23 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
+    ),
+    # Customer Billing History
+    # Fixes SENTRY-3B06: Gracefully handle historical billing data with obsolete tier configurations
+    re_path(
+        r"^customers/(?P<organization_id_or_slug>[^/]+)/history/$",
+        CustomerHistoryEndpoint.as_view(),
+        name="sentry-api-0-customer-history",
+    ),
+    re_path(
+        r"^customers/(?P<organization_id_or_slug>[^/]+)/history/current/$",
+        CustomerHistoryCurrentEndpoint.as_view(),
+        name="sentry-api-0-customer-history-current",
+    ),
+    re_path(
+        r"^customers/(?P<organization_id_or_slug>[^/]+)/history/(?P<history_id>[^/]+)/$",
+        CustomerHistoryDetailEndpoint.as_view(),
+        name="sentry-api-0-customer-history-detail",
     ),
     # Catch all
     re_path(
