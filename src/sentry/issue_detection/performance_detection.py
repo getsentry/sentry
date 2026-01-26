@@ -305,7 +305,6 @@ def get_detection_settings(
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
             "minimum_span_duration": 100,  # ms
-            "organization": organization,
             "filtered_paths": settings["large_http_payload_filtered_paths"],
         },
         DetectorType.HTTP_OVERHEAD: {
@@ -361,7 +360,7 @@ def _detect_performance_problems(
 
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
-            detector_class(detection_settings, data)
+            detector_class(detection_settings, data, organization)
             for detector_class in DETECTOR_CLASSES
             if detector_class.is_detection_allowed_for_system()
         ]
