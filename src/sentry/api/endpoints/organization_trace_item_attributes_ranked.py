@@ -40,6 +40,116 @@ logger = logging.getLogger(__name__)
 PARALLELIZATION_FACTOR = 2
 
 
+@region_silo_endpoint
+class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.DATA_BROWSING
+
+    def get(self, request: Request, organization: Organization) -> Response:
+
+        if not features.has(
+            "organizations:performance-spans-suspect-attributes", organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        try:
+            snuba_params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response({"rankedAttributes": []})
+
+        function_string = request.GET.get("function", "count(span.duration)")
+        above = request.GET.get("above") == "1"
+        query_1 = request.GET.get("query_1", "")  # Suspect query
+        query_2 = request.GET.get("query_2", "")  # Query for all the spans with the base query
+
+        if query_1 == query_2:
+            return Response({"rankedAttributes": []})
+
+        distributions_result = query_attribute_distributions(
+            snuba_params=snuba_params,
+            function_string=function_string,
+            above=above,
+            query_1=query_1,
+            query_2=query_2,
+        )
+
+        cohort_2_distribution = distributions_result["cohort_2_distribution"]
+        cohort_2_distribution_map = distributions_result["cohort_2_distribution_map"]
+        total_baseline = distributions_result["total_cohort_2"]
+
+        cohort_1_distribution = distributions_result["cohort_1_distribution"]
+        cohort_1_distribution_map = distributions_result["cohort_1_distribution_map"]
+        total_outliers = distributions_result["total_cohort_1"]
+        function_value = distributions_result["cohort_1_function_value"]
+
+        ranked_distribution: dict[str, Any] = {
+            "rankedAttributes": [],
+            "rankingInfo": {
+                "function": function_string,
+                "value": function_value if function_value else "N/A",
+                "above": above,
+            },
+            "cohort1Total": total_outliers,
+            "cohort2Total": total_baseline,
+        }
+
+        # If baseline is empty or negative, comparison is not meaningful
+        if total_baseline <= 0:
+            logger.warning("total_baseline is <= 0 (%s). Returning empty response", total_baseline)
+            return Response(ranked_distribution)
+
+        logger.info(
+            "compare_distributions params: baseline=%s, outliers=%s, total_outliers=%s, total_baseline=%s, config=%s, meta=%s",
+            cohort_2_distribution,
+            cohort_1_distribution,
+            total_outliers,
+            total_baseline,
+            {"topKAttributes": 75, "topKBuckets": 75},
+            {"referrer": Referrer.API_TRACE_EXPLORER_STATS.value},
+        )
+
+        scored_attrs_rrr = compare_distributions(
+            baseline=cohort_2_distribution,
+            outliers=cohort_1_distribution,
+            total_outliers=total_outliers,
+            total_baseline=total_baseline,
+            config={
+                "topKAttributes": 75,
+                "topKBuckets": 75,
+            },
+            meta={
+                "referrer": Referrer.API_TRACE_EXPLORER_STATS.value,
+            },
+        )
+        logger.info("scored_attrs_rrr: %s", scored_attrs_rrr)
+
+        rrr_results = scored_attrs_rrr.get("results", [])
+
+        for i, (attr, _) in enumerate(rrr_results):
+            public_alias, _, _ = translate_internal_to_public_alias(
+                attr, "string", SupportedTraceItemType.SPANS
+            )
+            if public_alias is None:
+                public_alias = attr
+
+            if not public_alias.startswith("tags[") and (
+                not public_alias.startswith("sentry.")
+                or public_alias == "sentry.normalized_description"
+            ):
+                distribution = {
+                    "attributeName": public_alias,
+                    "cohort1": cohort_1_distribution_map.get(attr),
+                    "cohort2": cohort_2_distribution_map.get(attr),
+                    # TODO(aayush-se): Remove order field once frontend stops using it
+                    "order": {"rrr": i},
+                }
+                ranked_distribution["rankedAttributes"].append(distribution)
+
+        return Response(ranked_distribution)
+
+
 class AttributeDistributionsResponse(TypedDict):
     """
     Response structure for query_attribute_distributions.
@@ -320,113 +430,3 @@ def query_attribute_distributions(
         total_cohort_1=total_outliers,
         cohort_1_function_value=function_value,
     )
-
-
-@region_silo_endpoint
-class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-    owner = ApiOwner.DATA_BROWSING
-
-    def get(self, request: Request, organization: Organization) -> Response:
-
-        if not features.has(
-            "organizations:performance-spans-suspect-attributes", organization, actor=request.user
-        ):
-            return Response(status=404)
-
-        try:
-            snuba_params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response({"rankedAttributes": []})
-
-        function_string = request.GET.get("function", "count(span.duration)")
-        above = request.GET.get("above") == "1"
-        query_1 = request.GET.get("query_1", "")  # Suspect query
-        query_2 = request.GET.get("query_2", "")  # Query for all the spans with the base query
-
-        if query_1 == query_2:
-            return Response({"rankedAttributes": []})
-
-        distributions_result = query_attribute_distributions(
-            snuba_params=snuba_params,
-            function_string=function_string,
-            above=above,
-            query_1=query_1,
-            query_2=query_2,
-        )
-
-        cohort_2_distribution = distributions_result["cohort_2_distribution"]
-        cohort_2_distribution_map = distributions_result["cohort_2_distribution_map"]
-        total_baseline = distributions_result["total_cohort_2"]
-
-        cohort_1_distribution = distributions_result["cohort_1_distribution"]
-        cohort_1_distribution_map = distributions_result["cohort_1_distribution_map"]
-        total_outliers = distributions_result["total_cohort_1"]
-        function_value = distributions_result["cohort_1_function_value"]
-
-        ranked_distribution: dict[str, Any] = {
-            "rankedAttributes": [],
-            "rankingInfo": {
-                "function": function_string,
-                "value": function_value if function_value else "N/A",
-                "above": above,
-            },
-            "cohort1Total": total_outliers,
-            "cohort2Total": total_baseline,
-        }
-
-        # If baseline is empty or negative, comparison is not meaningful
-        if total_baseline <= 0:
-            logger.warning("total_baseline is <= 0 (%s). Returning empty response", total_baseline)
-            return Response(ranked_distribution)
-
-        logger.info(
-            "compare_distributions params: baseline=%s, outliers=%s, total_outliers=%s, total_baseline=%s, config=%s, meta=%s",
-            cohort_2_distribution,
-            cohort_1_distribution,
-            total_outliers,
-            total_baseline,
-            {"topKAttributes": 75, "topKBuckets": 75},
-            {"referrer": Referrer.API_TRACE_EXPLORER_STATS.value},
-        )
-
-        scored_attrs_rrr = compare_distributions(
-            baseline=cohort_2_distribution,
-            outliers=cohort_1_distribution,
-            total_outliers=total_outliers,
-            total_baseline=total_baseline,
-            config={
-                "topKAttributes": 75,
-                "topKBuckets": 75,
-            },
-            meta={
-                "referrer": Referrer.API_TRACE_EXPLORER_STATS.value,
-            },
-        )
-        logger.info("scored_attrs_rrr: %s", scored_attrs_rrr)
-
-        rrr_results = scored_attrs_rrr.get("results", [])
-
-        for i, (attr, _) in enumerate(rrr_results):
-            public_alias, _, _ = translate_internal_to_public_alias(
-                attr, "string", SupportedTraceItemType.SPANS
-            )
-            if public_alias is None:
-                public_alias = attr
-
-            if not public_alias.startswith("tags[") and (
-                not public_alias.startswith("sentry.")
-                or public_alias == "sentry.normalized_description"
-            ):
-                distribution = {
-                    "attributeName": public_alias,
-                    "cohort1": cohort_1_distribution_map.get(attr),
-                    "cohort2": cohort_2_distribution_map.get(attr),
-                    # TODO(aayush-se): Remove order field once frontend stops using it
-                    "order": {"rrr": i},
-                }
-                ranked_distribution["rankedAttributes"].append(distribution)
-
-        return Response(ranked_distribution)
