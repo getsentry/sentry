@@ -23,7 +23,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha
+from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_eyes_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,12 @@ ACTIONS_REQUIRING_TRIGGER_CHECK: dict[PullRequestAction, CodeReviewTrigger] = {
     PullRequestAction.OPENED: CodeReviewTrigger.ON_READY_FOR_REVIEW,
     PullRequestAction.READY_FOR_REVIEW: CodeReviewTrigger.ON_READY_FOR_REVIEW,
     PullRequestAction.SYNCHRONIZE: CodeReviewTrigger.ON_NEW_COMMIT,
+}
+
+ACTIONS_ELIGIBLE_FOR_EYES_REACTION: set[PullRequestAction] = {
+    PullRequestAction.OPENED,
+    PullRequestAction.READY_FOR_REVIEW,
+    PullRequestAction.SYNCHRONIZE,
 }
 
 
@@ -140,6 +146,18 @@ def handle_pull_request_event(
     # even if the PR was converted to draft before closing
     if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
         return
+
+    pr_number = pull_request.get("number")
+    if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
+        delete_existing_reactions_and_add_eyes_reaction(
+            github_event=github_event,
+            github_event_action=action_value,
+            integration=integration,
+            organization_id=organization.id,
+            repo=repo,
+            pr_number=str(pr_number),
+            comment_id=None,
+        )
 
     from .task import schedule_task
 
