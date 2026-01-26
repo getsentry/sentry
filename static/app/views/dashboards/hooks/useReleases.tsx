@@ -1,6 +1,8 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
+import type {UseQueryResult} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
+import type {ApiResult} from 'sentry/api';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {Release} from 'sentry/types/release';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -76,7 +78,29 @@ export function useReleases(
     () => (allReleases.length ? chunk(allReleases, 10) : []),
     [allReleases]
   );
-  const releaseMetrics = useQueries({
+
+  // Combine function for useQueries - extracts metrics stats from query results.
+  // Wrapped in useCallback to maintain referential stability.
+  // The result is structurally shared by TanStack Query, so it won't change
+  // reference unless the underlying data changes.
+  const combineMetricsResults = useCallback(
+    (results: Array<UseQueryResult<ApiResult<TableData>, Error>>) => {
+      const isFetched = results.every(result => result.isFetched);
+      if (!isFetched) {
+        return {metricsStats: {}, metricsFetched: false};
+      }
+      const stats: Record<string, {count: number}> = {};
+      results.forEach(result =>
+        result.data?.[0]?.data?.forEach(release => {
+          stats[release.release!] = {count: release['count()'] as number};
+        })
+      );
+      return {metricsStats: stats, metricsFetched: true};
+    },
+    []
+  );
+
+  const {metricsStats, metricsFetched} = useQueries({
     queries: chunks.map(releaseChunk => {
       const queryKey: ApiQueryKey = [
         getApiUrl('/organizations/$organizationIdOrSlug/events/', {
@@ -106,31 +130,8 @@ export function useReleases(
         retry: false,
       };
     }),
+    combine: combineMetricsResults,
   });
-
-  const metricsFetched = releaseMetrics.every(result => result.isFetched);
-
-  // Create a map of release version to event counts
-  const metricsStats: Record<string, {count: number}> = useMemo(() => {
-    if (!metricsFetched) {
-      return {};
-    }
-    const stats: Record<string, {count: number}> = {};
-    releaseMetrics.forEach(result =>
-      result.data?.[0]?.data?.forEach(release => {
-        stats[release.release!] = {count: release['count()'] as number};
-      })
-    );
-    return stats;
-    // We use metricsFetched (a boolean) and allReleases as dependencies.
-    // metricsFetched triggers recomputation when queries complete.
-    // allReleases ensures we recompute when the release list changes (e.g., sort changes),
-    // which invalidates any cached metrics data from the previous release list.
-    // We intentionally exclude releaseMetrics because useQueries returns an unstable
-    // reference on every render - when metricsFetched becomes true, the query data
-    // is available via the closure.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metricsFetched, allReleases]);
 
   // Enrich releases with event counts
   const enrichedReleases: ReleaseWithCount[] = useMemo(() => {
