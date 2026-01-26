@@ -290,7 +290,7 @@
       "timestamp": 1668493711.088,
       "start_timestamp": 1668493710.114,
       "exclusive_time": 973.999977,
-      "description": "GET /api/0/issues/1888481/events/latest/",
+      "description": "GET /api/0/organizations/sentry/issues/1888481/events/latest/",
       "op": "http.client",
       "span_id": "bc55065b3853322b",
       "parent_span_id": "9e4e36110481b5b5",
@@ -300,7 +300,7 @@
       "data": {
         "http.method": "GET",
         "type": "fetch",
-        "url": "/api/0/issues/1888481/events/latest/"
+        "url": "/api/0/organizations/sentry/issues/1888481/events/latest/"
       },
       "hash": "c58f380a0f7b350c"
     },
@@ -308,7 +308,7 @@
       "timestamp": 1668493711.184,
       "start_timestamp": 1668493710.114,
       "exclusive_time": 1069.999933,
-      "description": "GET /api/0/issues/1888481/?collapse=release&expand=inbox&expand=owners",
+      "description": "GET /api/0/organizations/sentry/issues/1888481/?collapse=release&expand=inbox&expand=owners",
       "op": "http.client",
       "span_id": "9b6b3ef45966f889",
       "parent_span_id": "9e4e36110481b5b5",
@@ -318,7 +318,7 @@
       "data": {
         "http.method": "GET",
         "type": "fetch",
-        "url": "/api/0/issues/1888481/?collapse=release&expand=inbox&expand=owners"
+        "url": "/api/0/organizations/sentry/issues/1888481/?collapse=release&expand=inbox&expand=owners"
       },
       "hash": "33a59c92255fb9b2"
     },
@@ -326,7 +326,7 @@
       "timestamp": 1668493712.155,
       "start_timestamp": 1668493711.185,
       "exclusive_time": 970.000029,
-      "description": "GET /api/0/issues/1888481/first-last-release/",
+      "description": "GET /api/0/organizations/sentry/issues/1888481/first-last-release/",
       "op": "http.client",
       "span_id": "ba64ba12169d40a1",
       "parent_span_id": "9e4e36110481b5b5",
@@ -336,7 +336,7 @@
       "data": {
         "http.method": "GET",
         "type": "fetch",
-        "url": "/api/0/issues/1888481/first-last-release/"
+        "url": "/api/0/organizations/sentry/issues/1888481/first-last-release/"
       },
       "hash": "d6c4b0be9dea3bdb"
     },
@@ -724,7 +724,7 @@
       "timestamp": 1668493713.055,
       "start_timestamp": 1668493711.679,
       "exclusive_time": 1376.000166,
-      "description": "GET /api/0/issues/1888481/current-release/",
+      "description": "GET /api/0/organizations/sentry/issues/1888481/current-release/",
       "op": "http.client",
       "span_id": "8a69b65d237b1fd8",
       "parent_span_id": "9e4e36110481b5b5",
@@ -734,7 +734,7 @@
       "data": {
         "http.method": "GET",
         "type": "fetch",
-        "url": "/api/0/issues/1888481/current-release/"
+        "url": "/api/0/organizations/sentry/issues/1888481/current-release/"
       },
       "hash": "245e377ff621dfc4"
     },
@@ -742,7 +742,7 @@
       "timestamp": 1668493712.796,
       "start_timestamp": 1668493711.68,
       "exclusive_time": 1115.999937,
-      "description": "GET /api/0/issues/1888481/tags/?key=browser&key=browser.name&key=client_os&key=client_os.name&key=device&key=device.family&key=environment&key=level&key=python_version&key=release&key=request_id&key=server_name&key=site&key=transaction&key=url&key=user",
+      "description": "GET /api/0/organizations/sentry/issues/1888481/tags/?key=browser&key=browser.name&key=client_os&key=client_os.name&key=device&key=device.family&key=environment&key=level&key=python_version&key=release&key=request_id&key=server_name&key=site&key=transaction&key=url&key=user",
       "op": "http.client",
       "span_id": "910d93d2ee3eb3e1",
       "parent_span_id": "9e4e36110481b5b5",
@@ -752,7 +752,7 @@
       "data": {
         "http.method": "GET",
         "type": "fetch",
-        "url": "/api/0/issues/1888481/tags/?key=browser&key=browser.name&key=client_os&key=client_os.name&key=device&key=device.family&key=environment&key=level&key=python_version&key=release&key=request_id&key=server_name&key=site&key=transaction&key=url&key=user"
+        "url": "/api/0/organizations/sentry/issues/1888481/tags/?key=browser&key=browser.name&key=client_os&key=client_os.name&key=device&key=device.family&key=environment&key=level&key=python_version&key=release&key=request_id&key=server_name&key=site&key=transaction&key=url&key=user"
       },
       "hash": "17e3d366fc65c87e"
     },
