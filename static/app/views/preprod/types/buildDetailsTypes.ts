@@ -95,13 +95,23 @@ export function isSizeInfoCompleted(
   return sizeInfo?.state === BuildDetailsSizeAnalysisState.COMPLETED;
 }
 
-export function isSizeInfoProcessing(
+export function isSizeInfoPendingOrProcessing(
   sizeInfo: BuildDetailsSizeInfo | undefined
 ): boolean {
   return (
     sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING ||
     sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING
   );
+}
+
+export function isSizeInfoPending(sizeInfo: BuildDetailsSizeInfo | undefined): boolean {
+  return sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING;
+}
+
+export function isSizeInfoProcessing(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): boolean {
+  return sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING;
 }
 
 export function getMainArtifactSizeMetric(
