@@ -9,13 +9,19 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 interface ReleasesSortSelectProps {
   onChange: (sortBy: ReleasesSortOption) => void;
   sortBy: ReleasesSortOption;
+  disabled?: boolean;
 }
 
-export function ReleasesSortSelect({sortBy, onChange}: ReleasesSortSelectProps) {
+export function ReleasesSortSelect({
+  sortBy,
+  onChange,
+  disabled,
+}: ReleasesSortSelectProps) {
   const {selection} = usePageFilters();
   const {environments} = selection;
   return (
     <CompactSelect
+      disabled={disabled}
       value={sortBy}
       onChange={option => {
         onChange(option.value);

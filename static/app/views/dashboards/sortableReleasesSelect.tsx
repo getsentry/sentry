@@ -47,6 +47,7 @@ export function SortableReleasesSelect({
             filter_type: 'release_sort',
           });
         }}
+        disabled={isDisabled}
       />
     </PageFilterBar>
   );
