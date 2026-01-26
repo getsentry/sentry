@@ -143,21 +143,21 @@ def partition_by_measure(
         )
         return {SamplingMeasure.TRANSACTIONS: sorted(filtered_org_ids)}
 
-    span_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
-    span_org_ids = span_org_ids & filtered_org_ids
-    transactions_org_ids = filtered_org_ids - span_org_ids
+    segment_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
+    segment_org_ids = segment_org_ids & filtered_org_ids
+    transactions_org_ids = filtered_org_ids - segment_org_ids
 
     logger.info(
         "dynamic_sampling.partition_by_measure.options_check",
-        extra={"span_org_ids": span_org_ids},
+        extra={"segment_org_ids": segment_org_ids},
     )
 
-    metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(span_org_ids))
+    metrics.incr("dynamic_sampling.partition_by_measure.segments", amount=len(segment_org_ids))
     metrics.incr(
         "dynamic_sampling.partition_by_measure.transactions", amount=len(transactions_org_ids)
     )
     return {
-        SamplingMeasure.SPANS: sorted(span_org_ids),
+        SamplingMeasure.SEGMENTS: sorted(segment_org_ids),
         SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
     }
 
@@ -309,12 +309,19 @@ def query_project_counts_by_org(
     )
     decision_string_id = indexer.resolve_shared_org("decision")
     decision_tag = f"tags_raw[{decision_string_id}]"
-    if measure == SamplingMeasure.SPANS:
+    if measure == SamplingMeasure.SEGMENTS:
+        # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
         is_segment_string_id = indexer.resolve_shared_org("is_segment")
         is_segment_tag = f"tags_raw[{is_segment_string_id}]"
         metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
         use_case_id = UseCaseID.SPANS
+    elif measure == SamplingMeasure.SPANS:
+        # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
+        is_segment_tag = None
+        metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        use_case_id = UseCaseID.SPANS
     elif measure == SamplingMeasure.TRANSACTIONS:
+        # TRANSACTIONS: TransactionMRI without is_segment filter (legacy)
         is_segment_tag = None
         metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
         use_case_id = UseCaseID.TRANSACTIONS
