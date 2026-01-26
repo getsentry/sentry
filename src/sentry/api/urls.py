@@ -452,7 +452,6 @@ from sentry.preprod.api.endpoints import urls as preprod_urls
 from sentry.prevent.endpoints.organization_github_repos import (
     OrganizationPreventGitHubReposEndpoint,
 )
-from sentry.prevent.endpoints.pr_review_github_config import OrganizationPreventGitHubConfigEndpoint
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
 )
@@ -1178,11 +1177,6 @@ PREVENT_URLS = [
         name="sentry-api-0-repositories-sync",
     ),
     # Prevent AI endpoints
-    re_path(
-        r"^ai/github/config/(?P<git_organization_name>[^/]+)/$",
-        OrganizationPreventGitHubConfigEndpoint.as_view(),
-        name="sentry-api-0-organization-prevent-github-config",
-    ),
     re_path(
         r"^ai/github/repos/$",
         OrganizationPreventGitHubReposEndpoint.as_view(),
