@@ -58,8 +58,9 @@ const setupMediaQueries = (
 
 describe('useResponsivePropValue', () => {
   it('returns identity for non-responsive values', () => {
-    const {result} = renderHook(() => useResponsivePropValue('hello'), {
+    const {result} = renderHook(useResponsivePropValue, {
       wrapper: createWrapper(),
+      initialProps: 'hello',
     });
 
     expect(result.current).toBe('hello');
@@ -79,8 +80,9 @@ describe('useResponsivePropValue', () => {
       md: 'medium',
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
+    const {result} = renderHook(useResponsivePropValue, {
       wrapper: createWrapper(),
+      initialProps: responsiveValue,
     });
 
     expect(result.current).toBe('medium');
@@ -99,8 +101,9 @@ describe('useResponsivePropValue', () => {
       md: 'medium',
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
+    const {result} = renderHook(useResponsivePropValue, {
       wrapper: createWrapper(),
+      initialProps: responsiveValue,
     });
 
     expect(result.current).toBe('medium');
@@ -117,8 +120,9 @@ describe('useResponsivePropValue', () => {
       sm: 'small',
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
+    const {result} = renderHook(useResponsivePropValue, {
       wrapper: createWrapper(),
+      initialProps: responsiveValue,
     });
 
     expect(result.current).toBe('small');
@@ -138,8 +142,9 @@ describe('useResponsivePropValue', () => {
       lg: 'large',
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
+    const {result} = renderHook(useResponsivePropValue, {
       wrapper: createWrapper(),
+      initialProps: responsiveValue,
     });
 
     expect(result.current).toBe('small');
@@ -159,8 +164,9 @@ describe('useResponsivePropValue', () => {
       lg: undefined,
     };
 
-    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
+    const {result} = renderHook(useResponsivePropValue, {
       wrapper: createWrapper(),
+      initialProps: responsiveValue,
     });
 
     expect(result.current).toBe('medium');
@@ -169,8 +175,9 @@ describe('useResponsivePropValue', () => {
 
   it('throws an error when no breakpoints are defined in responsive prop', () => {
     expect(() =>
-      renderHook(() => useResponsivePropValue({}), {
+      renderHook(useResponsivePropValue, {
         wrapper: createWrapper(),
+        initialProps: {},
       })
     ).toThrow('Responsive prop must contain at least one breakpoint');
   });
@@ -189,7 +196,7 @@ describe('useActiveBreakpoint', () => {
       xl: false,
     });
 
-    const {result} = renderHook(() => useActiveBreakpoint(), {
+    const {result} = renderHook(useActiveBreakpoint, {
       wrapper: createWrapper(),
     });
 
@@ -206,7 +213,7 @@ describe('useActiveBreakpoint', () => {
       xl: false,
     });
 
-    const {result} = renderHook(() => useActiveBreakpoint(), {
+    const {result} = renderHook(useActiveBreakpoint, {
       wrapper: createWrapper(),
     });
 
@@ -218,7 +225,7 @@ describe('useActiveBreakpoint', () => {
     const matchMediaSpy = jest.fn(() => mockMatchMedia(false));
     window.matchMedia = matchMediaSpy;
 
-    renderHook(() => useActiveBreakpoint(), {
+    renderHook(useActiveBreakpoint, {
       wrapper: createWrapper(),
     });
 
@@ -243,7 +250,7 @@ describe('useActiveBreakpoint', () => {
       xl: true,
     });
 
-    const {result} = renderHook(() => useActiveBreakpoint(), {
+    const {result} = renderHook(useActiveBreakpoint, {
       wrapper: createWrapper(),
     });
 
@@ -284,12 +291,10 @@ describe('useActiveBreakpoint', () => {
       return mockQuery;
     });
 
-    const {result} = renderHook(
-      () => useResponsivePropValue({xs: 'small', md: 'medium', lg: 'large'}),
-      {
-        wrapper: createWrapper(),
-      }
-    );
+    const {result} = renderHook(useResponsivePropValue, {
+      wrapper: createWrapper(),
+      initialProps: {xs: 'small', md: 'medium', lg: 'large'},
+    });
 
     // Initially query matches 'medium'
     expect(result.current).toBe('medium');
@@ -335,12 +340,10 @@ describe('useActiveBreakpoint', () => {
       dispatchEvent: jest.fn(),
     }));
 
-    const {unmount} = renderHook(
-      () => useResponsivePropValue({xs: 'small', md: 'medium'}),
-      {
-        wrapper: createWrapper(),
-      }
-    );
+    const {unmount} = renderHook(useResponsivePropValue, {
+      wrapper: createWrapper(),
+      initialProps: {xs: 'small', md: 'medium'},
+    });
 
     // Sets up listeners for all breakpoints
     expect(addEventListener).toHaveBeenCalledTimes(Object.keys(theme.breakpoints).length);

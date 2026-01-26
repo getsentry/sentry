@@ -33,15 +33,14 @@ const contextWrapper = () => {
 
 describe('useTraceTree', () => {
   it('returns tree for error case', async () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
-          trace: getMockedTraceResults('error'),
-          traceSlug: 'test-trace',
-          replay: null,
-        }),
-      {additionalWrapper: contextWrapper()}
-    );
+    const {result} = renderHookWithProviders(useTraceTree, {
+      additionalWrapper: contextWrapper(),
+      initialProps: {
+        trace: getMockedTraceResults('error'),
+        traceSlug: 'test-trace',
+        replay: null,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.type).toBe('error');
@@ -49,15 +48,14 @@ describe('useTraceTree', () => {
   });
 
   it('returns tree for loading case', async () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
-          trace: getMockedTraceResults('pending'),
-          traceSlug: 'test-trace',
-          replay: null,
-        }),
-      {additionalWrapper: contextWrapper()}
-    );
+    const {result} = renderHookWithProviders(useTraceTree, {
+      additionalWrapper: contextWrapper(),
+      initialProps: {
+        trace: getMockedTraceResults('pending'),
+        traceSlug: 'test-trace',
+        replay: null,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.type).toBe('loading');
@@ -65,18 +63,17 @@ describe('useTraceTree', () => {
   });
 
   it('returns tree for empty success case', async () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
-          trace: getMockedTraceResults('success', {
-            transactions: [],
-            orphan_errors: [],
-          }),
-          traceSlug: 'test-trace',
-          replay: null,
+    const {result} = renderHookWithProviders(useTraceTree, {
+      additionalWrapper: contextWrapper(),
+      initialProps: {
+        trace: getMockedTraceResults('success', {
+          transactions: [],
+          orphan_errors: [],
         }),
-      {additionalWrapper: contextWrapper()}
-    );
+        traceSlug: 'test-trace',
+        replay: null,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.type).toBe('empty');
@@ -119,15 +116,14 @@ describe('useTraceTree', () => {
       ],
     };
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
-          trace: getMockedTraceResults('success', mockedTrace),
-          traceSlug: 'test-trace',
-          replay: null,
-        }),
-      {additionalWrapper: contextWrapper()}
-    );
+    const {result} = renderHookWithProviders(useTraceTree, {
+      additionalWrapper: contextWrapper(),
+      initialProps: {
+        trace: getMockedTraceResults('success', mockedTrace),
+        traceSlug: 'test-trace',
+        replay: null,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.type).toBe('trace');

@@ -29,7 +29,7 @@ describe('useMutateOnboardingTasks', () => {
       body: testTask,
     });
 
-    const {result} = renderHookWithProviders(() => useMutateOnboardingTasks(), {
+    const {result} = renderHookWithProviders(useMutateOnboardingTasks, {
       organization,
     });
 

@@ -16,7 +16,7 @@ function Wrapper({children}: {children: ReactNode}) {
 
 describe('MultiMetricsQueryParamsProvider', () => {
   it('sets defaults', () => {
-    const {result} = renderHookWithProviders(() => useMultiMetricsQueryParams(), {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
       additionalWrapper: Wrapper,
     });
 
@@ -44,7 +44,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
   });
 
   it('updates to compatible aggregate when changing metrics', () => {
-    const {result} = renderHookWithProviders(() => useMultiMetricsQueryParams(), {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
       additionalWrapper: Wrapper,
     });
 
@@ -82,7 +82,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
   });
 
   it('updates incompatible aggregate when changing metrics', () => {
-    const {result} = renderHookWithProviders(() => useMultiMetricsQueryParams(), {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
       additionalWrapper: Wrapper,
     });
 

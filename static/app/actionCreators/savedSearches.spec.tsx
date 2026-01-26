@@ -35,14 +35,13 @@ describe('useFetchRecentSearches', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useFetchRecentSearches({
-          savedSearchType: SavedSearchType.TRACEMETRIC,
-          namespace,
-        }),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useFetchRecentSearches, {
+      organization,
+      initialProps: {
+        savedSearchType: SavedSearchType.TRACEMETRIC,
+        namespace,
+      },
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

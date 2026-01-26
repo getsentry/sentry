@@ -11,7 +11,7 @@ describe('useEventQuery', () => {
   it('filters issue tokens from event queries', () => {
     const validQuery = `${tagKey}:${tagValue} device.family:[iphone,pixel]`;
 
-    const {result: onlyIssueTokens} = renderHookWithProviders(() => useEventQuery(), {
+    const {result: onlyIssueTokens} = renderHookWithProviders(useEventQuery, {
       initialRouterConfig: {
         location: {
           pathname: '/issues/1234/',
@@ -22,7 +22,7 @@ describe('useEventQuery', () => {
     });
     expect(onlyIssueTokens.current).toBe('');
 
-    const {result: combinedTokens} = renderHookWithProviders(() => useEventQuery(), {
+    const {result: combinedTokens} = renderHookWithProviders(useEventQuery, {
       initialRouterConfig: {
         location: {
           pathname: '/issues/1234/',
@@ -33,7 +33,7 @@ describe('useEventQuery', () => {
     });
     expect(combinedTokens.current).toBe(validQuery);
 
-    const {result: onlyEventTokens} = renderHookWithProviders(() => useEventQuery(), {
+    const {result: onlyEventTokens} = renderHookWithProviders(useEventQuery, {
       initialRouterConfig: {
         location: {
           pathname: '/issues/1234/',

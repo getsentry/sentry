@@ -86,7 +86,7 @@ describe('useBlockNavigation', () => {
 
   describe('Arrow Key Navigation', () => {
     it('moves from input to last block on ArrowUp', () => {
-      renderHook(() => useBlockNavigation(defaultProps));
+      renderHook(useBlockNavigation, {initialProps: defaultProps});
 
       // Simulate ArrowUp keydown
       const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
@@ -102,7 +102,7 @@ describe('useBlockNavigation', () => {
 
     it('moves up through blocks on ArrowUp', () => {
       const props = {...defaultProps, focusedBlockIndex: 2};
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(event);
@@ -116,7 +116,7 @@ describe('useBlockNavigation', () => {
 
     it('does not move up from first block', () => {
       const props = {...defaultProps, focusedBlockIndex: 0};
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(event);
@@ -127,7 +127,7 @@ describe('useBlockNavigation', () => {
 
     it('moves down through blocks on ArrowDown', () => {
       const props = {...defaultProps, focusedBlockIndex: 0};
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowDown'});
       document.dispatchEvent(event);
@@ -141,7 +141,7 @@ describe('useBlockNavigation', () => {
 
     it('moves from last block to input on ArrowDown', () => {
       const props = {...defaultProps, focusedBlockIndex: 2};
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowDown'});
       document.dispatchEvent(event);
@@ -155,7 +155,7 @@ describe('useBlockNavigation', () => {
     });
 
     it('does nothing on ArrowDown when already at input', () => {
-      renderHook(() => useBlockNavigation(defaultProps));
+      renderHook(useBlockNavigation, {initialProps: defaultProps});
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowDown'});
       document.dispatchEvent(event);
@@ -167,7 +167,7 @@ describe('useBlockNavigation', () => {
   describe('Tab Navigation', () => {
     it('always returns to input on Tab', () => {
       const props = {...defaultProps, focusedBlockIndex: 1};
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'Tab'});
       document.dispatchEvent(event);
@@ -181,7 +181,7 @@ describe('useBlockNavigation', () => {
     });
 
     it('focuses textarea even when already at input', () => {
-      renderHook(() => useBlockNavigation(defaultProps));
+      renderHook(useBlockNavigation, {initialProps: defaultProps});
 
       const event = new KeyboardEvent('keydown', {key: 'Tab'});
       document.dispatchEvent(event);
@@ -194,7 +194,7 @@ describe('useBlockNavigation', () => {
   describe('Panel State Control', () => {
     it('ignores keyboard events when panel is closed', () => {
       const props = {...defaultProps, isOpen: false};
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(event);
@@ -204,7 +204,7 @@ describe('useBlockNavigation', () => {
 
     it('responds to keyboard events when panel is open', () => {
       const props = {...defaultProps, isOpen: true};
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'Tab'});
       document.dispatchEvent(event);
@@ -220,7 +220,7 @@ describe('useBlockNavigation', () => {
         blocks: [],
         blockRefs: {current: []},
       };
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(event);
@@ -237,7 +237,7 @@ describe('useBlockNavigation', () => {
         blocks: singleBlock,
         blockRefs: {current: [createMockElement()]},
       };
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       // ArrowUp from input should go to block 0
       const arrowUpEvent = new KeyboardEvent('keydown', {key: 'ArrowUp'});
@@ -246,7 +246,7 @@ describe('useBlockNavigation', () => {
 
       // ArrowDown from block 0 should go to input
       const propsAtBlock0 = {...props, focusedBlockIndex: 0};
-      renderHook(() => useBlockNavigation(propsAtBlock0));
+      renderHook(useBlockNavigation, {initialProps: propsAtBlock0});
 
       const arrowDownEvent = new KeyboardEvent('keydown', {key: 'ArrowDown'});
       document.dispatchEvent(arrowDownEvent);
@@ -257,7 +257,7 @@ describe('useBlockNavigation', () => {
   describe('Event Cleanup', () => {
     it('removes event listener on unmount', () => {
       const removeEventListenerSpy = jest.spyOn(document, 'removeEventListener');
-      const {unmount} = renderHook(() => useBlockNavigation(defaultProps));
+      const {unmount} = renderHook(useBlockNavigation, {initialProps: defaultProps});
 
       unmount();
 
@@ -298,7 +298,7 @@ describe('useBlockNavigation', () => {
         ...defaultProps,
         blockRefs: {current: [null, testElement2, testElement3]},
       };
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(event);
@@ -313,7 +313,7 @@ describe('useBlockNavigation', () => {
 
     it('handles null textarea ref gracefully', () => {
       const props = {...defaultProps, textareaRef: {current: null}};
-      renderHook(() => useBlockNavigation(props));
+      renderHook(useBlockNavigation, {initialProps: props});
 
       const event = new KeyboardEvent('keydown', {key: 'Tab'});
       document.dispatchEvent(event);

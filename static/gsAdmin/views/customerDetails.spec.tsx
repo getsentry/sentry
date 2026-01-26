@@ -690,22 +690,16 @@ describe('Customer Details', () => {
     MockApiClient.clearMockResponses();
   });
 
+  function populateChartData() {
+    const series = useSeries();
+    return populateChartData(data.intervals, data.groups, series);
+  }
   it('populates chart data', () => {
     setUpMocks(organization);
 
     const data = StatsBillingPeriodFixture();
 
-    const {result: chartData} = renderHook(
-      () => {
-        const series = useSeries();
-        return populateChartData(data.intervals, data.groups, series);
-      },
-      {
-        wrapper: ({children}) => {
-          return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
-        },
-      }
-    );
+    const {result: chartData} = render(<populateChartData />);
 
     expect(chartData.current).toEqual([
       {
