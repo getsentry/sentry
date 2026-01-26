@@ -229,7 +229,7 @@ const BodyCell = memo(function BodyCell({
     case 'tokensAndCost':
       return (
         <TextAlignRight>
-          <Count value={dataRow.totalTokens} /> / <LLMCosts cost={dataRow.toolCalls} />
+          <Count value={dataRow.totalTokens} /> / <LLMCosts cost={dataRow.totalCost} />
         </TextAlignRight>
       );
     case 'timestamp':
