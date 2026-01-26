@@ -830,7 +830,6 @@ from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay import (
     RelayDetailsEndpoint,
     RelayHealthCheck,
-    RelayIndexEndpoint,
     RelayProjectConfigsEndpoint,
     RelayPublicKeysEndpoint,
     RelayRegisterChallengeEndpoint,
@@ -1094,11 +1093,6 @@ RELOCATION_URLS = [
 ]
 
 RELAY_URLS = [
-    re_path(
-        r"^$",
-        RelayIndexEndpoint.as_view(),
-        name="sentry-api-0-relays-index",
-    ),
     re_path(
         r"^register/challenge/$",
         RelayRegisterChallengeEndpoint.as_view(),
