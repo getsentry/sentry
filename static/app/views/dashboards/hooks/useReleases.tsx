@@ -122,12 +122,15 @@ export function useReleases(
       })
     );
     return stats;
-    // We intentionally use metricsFetched (a boolean) as the dependency instead of
-    // releaseMetrics (the useQueries result) because useQueries returns an unstable
-    // reference on every render. When metricsFetched becomes true, all query data
-    // is available via the closure, making this safe.
+    // We use metricsFetched (a boolean) and allReleases as dependencies.
+    // metricsFetched triggers recomputation when queries complete.
+    // allReleases ensures we recompute when the release list changes (e.g., sort changes),
+    // which invalidates any cached metrics data from the previous release list.
+    // We intentionally exclude releaseMetrics because useQueries returns an unstable
+    // reference on every render - when metricsFetched becomes true, the query data
+    // is available via the closure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metricsFetched]);
+  }, [metricsFetched, allReleases]);
 
   // Enrich releases with event counts
   const enrichedReleases: ReleaseWithCount[] = useMemo(() => {
