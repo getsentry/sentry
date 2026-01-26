@@ -1233,6 +1233,9 @@ describe('Modals -> WidgetViewerModal', () => {
 
     it('renders table header and body', async () => {
       await renderModal({initialData, widget: mockWidget});
+      await waitFor(() => {
+        expect(metricsMock).toHaveBeenCalled();
+      });
       expect(await screen.findByText('release')).toBeInTheDocument();
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
       expect(screen.getByText('sum(session)')).toBeInTheDocument();
