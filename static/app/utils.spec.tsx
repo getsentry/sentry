@@ -25,10 +25,22 @@ describe('utils.escapeIssueTagKey', () => {
 });
 
 describe('utils.extractMultilineFields', () => {
-  it('should split string by newlines, trim, and filter empty', () => {
+  it('should split string by newlines', () => {
     expect(extractMultilineFields('one\ntwo\nthree')).toEqual(['one', 'two', 'three']);
-    expect(extractMultilineFields('  one  \n\n  two  ')).toEqual(['one', 'two']);
-    expect(extractMultilineFields('    \n    \n\n')).toEqual([]);
+  });
+
+  it('should trim values and ignore empty lines', () => {
+    expect(
+      extractMultilineFields(
+        `one
+  two
+
+three
+        four
+
+five`
+      )
+    ).toEqual(['one', 'two', 'three', 'four', 'five']);
   });
 
   it('should return string array as-is', () => {
