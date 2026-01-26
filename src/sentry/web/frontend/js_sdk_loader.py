@@ -31,6 +31,7 @@ class SdkConfig(TypedDict):
     replaysOnErrorSampleRate: NotRequired[float]
     debug: NotRequired[bool]
     autoInjectFeedback: NotRequired[bool]
+    enableLogs: NotRequired[bool]
 
 
 class LoaderInternalConfig(TypedDict):
@@ -203,6 +204,9 @@ class JavaScriptSdkLoader(View):
         # Although this is not a top-level SDK option we pass this flag so we can auto-add the integration in the loader template later
         if loader_config["hasFeedback"]:
             config["autoInjectFeedback"] = True
+
+        if loader_config["hasLogsAndMetrics"]:
+            config["enableLogs"] = True
 
         return (
             {

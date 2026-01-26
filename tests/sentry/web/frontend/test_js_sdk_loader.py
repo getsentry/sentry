@@ -465,7 +465,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/10.0.0/bundle.tracing.logs.metrics.min.js",
-                {"dsn": dsn, "tracesSampleRate": 1},
+                {"dsn": dsn, "tracesSampleRate": 1, "enableLogs": True},
             ),
             # Logs and metrics with performance (same as above, tracing already included)
             (
@@ -476,7 +476,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/10.0.0/bundle.tracing.logs.metrics.min.js",
-                {"dsn": dsn, "tracesSampleRate": 1},
+                {"dsn": dsn, "tracesSampleRate": 1, "enableLogs": True},
             ),
             # Logs and metrics with debug
             (
@@ -487,7 +487,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/10.0.0/bundle.tracing.logs.metrics.debug.min.js",
-                {"dsn": dsn, "tracesSampleRate": 1, "debug": True},
+                {"dsn": dsn, "tracesSampleRate": 1, "debug": True, "enableLogs": True},
             ),
             # Logs and metrics with replay (should use full bundle)
             (
@@ -503,6 +503,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
+                    "enableLogs": True,
                 },
             ),
             # Logs and metrics with feedback (should use full bundle)
@@ -519,6 +520,8 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
+                    "autoInjectFeedback": True,
+                    "enableLogs": True,
                 },
             ),
             # Logs and metrics with replay and feedback (full bundle)
@@ -536,6 +539,8 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
+                    "autoInjectFeedback": True,
+                    "enableLogs": True,
                 },
             ),
             # Logs and metrics with all features
@@ -556,6 +561,8 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
                     "debug": True,
+                    "autoInjectFeedback": True,
+                    "enableLogs": True,
                 },
             ),
         ]:
