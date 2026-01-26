@@ -258,7 +258,7 @@ def _launch_agents_for_repos(
         )
 
     short_id = None
-    if autofix_state and auto_create_pr:
+    if autofix_state:
         short_id = autofix_state.request.issue.get("short_id")
 
     prompt = get_coding_agent_prompt(run_id, trigger_source, instruction, short_id)
