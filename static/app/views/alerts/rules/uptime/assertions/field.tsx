@@ -103,6 +103,10 @@ export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
       // getData only works for save-on-blur; getValue is used by getTransformedData()
       // which is called during full form submission via saveForm().
       getValue={(value: Assertion) => {
+        // Handle edge cases where FormField may pass undefined/null/empty string
+        if (!value?.root) {
+          return null;
+        }
         // Empty children = user deleted all assertions or editing monitor with no assertions
         if (value.root.children.length === 0) {
           return null;
