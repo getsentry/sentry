@@ -783,3 +783,80 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                             "id": 1004,
                         }
                     ]
+
+
+@freeze_time(MOCK_DATETIME)
+class TestSlidingWindowOrgSpanMetric(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    """
+    Tests for sliding_window_org with span metric option.
+    """
+
+    @property
+    def now(self):
+        return MOCK_DATETIME
+
+    @staticmethod
+    def old_date():
+        return MOCK_DATETIME - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+
+    def create_old_organization(self, name):
+        return self.create_organization(name=name, date_added=self.old_date())
+
+    @with_feature("organizations:dynamic-sampling")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    def test_sliding_window_org_with_span_metric_option(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+    ):
+        """
+        Test that orgs in the span-metric-orgs option use span metrics.
+        """
+        extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
+        get_transaction_sampling_tier_for_volume.return_value = (1000000, 0.5)
+
+        org1 = self.create_old_organization("test-org-1")
+        org2 = self.create_old_organization("test-org-2")
+
+        proj1 = self.create_project(name="proj1", organization=org1, date_added=self.old_date())
+        proj2 = self.create_project(name="proj2", organization=org2, date_added=self.old_date())
+
+        # Store span metrics with is_segment=true for org1
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=100,
+            project_id=proj1.id,
+            org_id=org1.id,
+        )
+
+        # Store transaction metrics for org2
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep"},
+            minutes_before_now=30,
+            value=100,
+            project_id=proj2.id,
+            org_id=org2.id,
+        )
+
+        redis_client = get_redis_client_for_ds()
+
+        # Enable span metrics for org1 only
+        with self.options({"dynamic-sampling.sliding_window_org.span-metric-orgs": [org1.id]}):
+            with self.tasks():
+                sliding_window_org()
+
+        # Both orgs should have a sliding window sample rate set
+        cache_key1 = generate_sliding_window_org_cache_key(org1.id)
+        cache_key2 = generate_sliding_window_org_cache_key(org2.id)
+
+        val1 = redis_client.get(cache_key1)
+        val2 = redis_client.get(cache_key2)
+
+        # org1 uses span metrics, org2 uses transaction metrics
+        # Both should get sample rates based on their respective metrics
+        assert val1 is not None
+        assert val2 is not None
