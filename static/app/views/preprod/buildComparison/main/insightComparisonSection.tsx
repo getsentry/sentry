@@ -35,6 +35,7 @@ const FILE_DIFF_INSIGHT_TYPES = [
   'multiple_native_library_archs',
   'video_compression',
   'image_optimization',
+  'strip_binary',
 ];
 
 const GROUP_DIFF_INSIGHT_TYPES = ['duplicate_files', 'loose_images'];
