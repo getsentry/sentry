@@ -13,11 +13,12 @@ class WebhookFilteredReason(StrEnum):
     """Webhook-specific reasons why a webhook was filtered out."""
 
     NOT_REVIEW_COMMAND = "not_review_command"  # issue_comment not @sentry review
-    UNSUPPORTED_ACTION = (
-        "unsupported_action"  # Not a supported action, e.g., check_run not rerequested
-    )
+    NOT_PR_COMMENT = "not_pr_comment"  # issue_comment not on a PR
+    # Not a supported action, e.g., check_run not rerequested
+    UNSUPPORTED_ACTION = "unsupported_action"
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
+    TRIGGER_DISABLED = "trigger_disabled"  # Trigger not enabled in repo settings
 
 
 CodeReviewFilteredReason = WebhookFilteredReason | PreflightDenialReason
@@ -37,7 +38,6 @@ class CodeReviewErrorType(StrEnum):
     # Errors from pull_request webhook
     MISSING_PULL_REQUEST = "missing_pull_request"
     UNSUPPORTED_ACTION = "unsupported_action"
-    DRAFT_PR = "draft_pr"
 
     # Errors from issue_comment webhook
     MISSING_INTEGRATION = "missing_integration"

@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {logout} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -12,6 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
@@ -52,7 +55,7 @@ function AcceptActions({
           )}
         </p>
       )}
-      <Actions>
+      <Flex justify="between" align="center" marginBottom="2xl">
         <ActionsLeft>
           {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
             <LinkButton
@@ -74,7 +77,7 @@ function AcceptActions({
             {t('Join the %s organization', inviteDetails.orgSlug)}
           </Button>
         </ActionsLeft>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
@@ -117,7 +120,7 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
           {orgSlug: inviteDetails.orgSlug}
         )}
       </p>
-      <Actions>
+      <Flex justify="between" align="center" marginBottom="2xl">
         <LinkButton
           external
           priority="primary"
@@ -125,7 +128,7 @@ function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
         >
           {t('Configure Two-Factor Auth')}
         </LinkButton>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
@@ -166,7 +169,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
         </p>
       )}
 
-      <Actions>
+      <Flex justify="between" align="center" marginBottom="2xl">
         <ActionsLeft>
           {inviteDetails.hasAuthProvider && (
             <LinkButton
@@ -196,7 +199,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
             {t('Login using an existing account')}
           </ExternalLink>
         )}
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
@@ -213,8 +216,20 @@ function AcceptOrganizationInvite() {
     isError,
   } = useApiQuery<InviteDetails>(
     orgSlug
-      ? [`/accept-invite/${orgSlug}/${params.memberId}/${params.token}/`]
-      : [`/accept-invite/${params.memberId}/${params.token}/`],
+      ? [
+          getApiUrl('/accept-invite/$organizationIdOrSlug/$memberId/$token/', {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              memberId: params.memberId,
+              token: params.token,
+            },
+          }),
+        ]
+      : [
+          getApiUrl('/accept-invite/$memberId/$token/', {
+            path: {memberId: params.memberId, token: params.token},
+          }),
+        ],
     {
       staleTime: Infinity,
       retry: false,
@@ -307,12 +322,6 @@ function AcceptOrganizationInvite() {
   );
 }
 
-const Actions = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(3)};
-`;
 const ActionsLeft = styled('span')`
   > a {
     margin-right: ${space(1)};

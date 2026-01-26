@@ -111,9 +111,9 @@ const ActionsWrapper = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerDescription = styled('div')`
@@ -125,7 +125,7 @@ const CloseDropdownMenu = styled(DropdownMenu)`
   display: block;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;

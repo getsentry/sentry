@@ -165,8 +165,8 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  background-color: ${p => p.theme.colors.surface500};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  background-color: ${p => p.theme.tokens.background.primary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   overflow: hidden;
 
@@ -194,7 +194,7 @@ const OptionInfo = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   background-color: ${p => p.theme.tokens.background.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Visualization = styled('div')`

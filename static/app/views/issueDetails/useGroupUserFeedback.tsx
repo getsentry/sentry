@@ -1,4 +1,5 @@
 import type {UserReport} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -13,7 +14,12 @@ export function useGroupUserFeedback({groupId, query}: UseGroupUserFeedbackProps
   const organization = useOrganization();
 
   return useApiQuery<UserReport[]>(
-    [`/organizations/${organization.slug}/issues/${groupId}/user-reports/`, {query}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/user-reports/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+      }),
+      {query},
+    ],
     {
       staleTime: 0,
     }

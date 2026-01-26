@@ -7,6 +7,7 @@ import {AutomateSection} from 'sentry/views/detectors/components/forms/automateS
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
+import type {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
@@ -14,9 +15,13 @@ import {
   uptimeFormDataToEndpointPayload,
   uptimeSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
+import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
+
+const ENVIRONMENT_CONFIG: React.ComponentProps<typeof DetectorBaseFields>['environment'] =
+  {includeAllEnvironments: false, fieldProps: {required: true}};
 
 function UptimeDetectorForm() {
   const theme = useTheme();
@@ -42,6 +47,7 @@ function UptimeDetectorForm() {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
+      <PreviewSection />
       <UptimeDetectorFormDetectSection />
       <UptimeDetectorVerificationSection />
       <UptimeDetectorResolveSection />
@@ -58,7 +64,7 @@ export function NewUptimeDetectorForm() {
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       initialFormData={{}}
-      envFieldProps={{required: true}}
+      environment={ENVIRONMENT_CONFIG}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -71,7 +77,7 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
       detector={detector}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
-      envFieldProps={{required: true}}
+      environment={ENVIRONMENT_CONFIG}
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>

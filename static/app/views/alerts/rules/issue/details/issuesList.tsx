@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -43,7 +44,16 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
     error,
   } = useApiQuery<GroupHistory[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/group-history/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/group-history/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            ruleId: rule.id,
+          },
+        }
+      ),
       {
         query: {
           per_page: 10,
@@ -131,7 +141,7 @@ export default AlertRuleIssuesList;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1.5)};
 
   ${p =>

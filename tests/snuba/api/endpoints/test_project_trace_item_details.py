@@ -75,7 +75,7 @@ class ProjectTraceItemDetailsEndpointTest(
 
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data["attributes"] == [
-            {"name": "bool_attr", "type": "bool", "value": True},
+            {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
             {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
             {
                 "name": "observed_timestamp",
@@ -131,7 +131,7 @@ class ProjectTraceItemDetailsEndpointTest(
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
-                {"name": "bool_attr", "type": "bool", "value": True},
+                {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
                 {
                     "name": "observed_timestamp",
@@ -183,9 +183,9 @@ class ProjectTraceItemDetailsEndpointTest(
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
+            {"name": "is_transaction", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "http.response_content_length", "type": "float", "value": 100.0},
-            {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
@@ -254,9 +254,9 @@ class ProjectTraceItemDetailsEndpointTest(
         )
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
+            {"name": "is_transaction", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "http.response.body.size", "type": "float", "value": 100.0},
-            {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
@@ -331,7 +331,7 @@ class ProjectTraceItemDetailsEndpointTest(
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
-                {"name": "bool_attr", "type": "bool", "value": True},
+                {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
                 {
                     "name": "observed_timestamp",
@@ -429,7 +429,7 @@ class ProjectTraceItemDetailsEndpointTest(
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
-            {"name": "is_transaction", "type": "float", "value": 0.0},
+            {"name": "is_transaction", "type": "bool", "value": False},
             {
                 "name": "precise.finish_ts",
                 "type": "float",

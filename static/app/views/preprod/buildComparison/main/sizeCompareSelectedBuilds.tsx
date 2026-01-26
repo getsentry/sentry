@@ -10,8 +10,9 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
@@ -33,7 +34,7 @@ function BuildButton({
   projectType,
 }: BuildButtonProps) {
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
+  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
@@ -200,7 +201,7 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
+  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const platform = headBuildDetails.app_info?.platform ?? null;
   const project = ProjectsStore.getBySlug(projectId);
   const projectType = project?.platform ?? null;

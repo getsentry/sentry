@@ -1520,6 +1520,15 @@ describe('Dashboards > Detail', () => {
             version: 'sentry-android-shop@1.2.0',
           }),
         ],
+        match: [
+          MockApiClient.matchQuery({
+            project: [],
+            per_page: 50,
+            environment: [],
+            query: undefined,
+            sort: 'date',
+          }),
+        ],
       });
       // Mocked search results
       MockApiClient.addMockResponse({
@@ -1531,7 +1540,15 @@ describe('Dashboards > Detail', () => {
             version: 'search-result',
           }),
         ],
-        match: [MockApiClient.matchData({query: 's'})],
+        match: [
+          MockApiClient.matchQuery({
+            project: [],
+            per_page: 50,
+            environment: [],
+            query: 's',
+            sort: 'date',
+          }),
+        ],
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({

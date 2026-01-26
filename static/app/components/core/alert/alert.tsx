@@ -187,7 +187,7 @@ const StyledExpandContainer = styled('div')<{
   showIcon: boolean;
   showTrailingItems: boolean;
 }>`
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
 
   grid-column: 1 / -1;

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -178,13 +178,13 @@ export function RepoSelector() {
           : t('Select Repo');
 
         return (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             icon={<IconRepository />}
             data-test-id="page-filter-prevent-repository-selector"
             {...triggerProps}
           >
             <TriggerLabel>{defaultLabel}</TriggerLabel>
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         );
       }}
     />
@@ -202,7 +202,7 @@ const TriggerLabel = styled('span')`
 
 const Syncbutton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};

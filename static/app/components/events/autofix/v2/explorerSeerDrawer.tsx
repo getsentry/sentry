@@ -42,10 +42,12 @@ import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import {readStorageValue} from 'sentry/utils/useSessionStorage';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 interface ExplorerSeerDrawerProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -60,10 +62,10 @@ interface ExplorerSeerDrawerProps {
 const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
   {
     label: (
-      <CrumbContainer>
+      <Flex align="center" gap="md">
         <ProjectAvatar project={project} />
         <ShortId>{group.shortId}</ShortId>
-      </CrumbContainer>
+      </Flex>
     ),
   },
   {label: getShortEventId(event.id)},
@@ -92,10 +94,10 @@ function DrawerNavigator({
 }: DrawerNavigatorProps) {
   return (
     <SeerDrawerNavigator>
-      <HeaderContainer>
+      <Flex align="center" gap="sm">
         <Header>{t('Seer')}</Header>
         <IconSeer animation={iconAnimation} size="md" />
-      </HeaderContainer>
+      </Flex>
       <ButtonWrapper>
         <AutofixFeedback iconOnly />
 
@@ -153,6 +155,12 @@ export function ExplorerSeerDrawer({
     reset,
     triggerCodingAgentHandoff,
   } = useExplorerAutofix(group.id);
+
+  // Check if the explorer panel is already open with this run
+  const {isOpen: isExplorerPanelOpen} = useExplorerPanel();
+  const explorerRunId = readStorageValue<number | null>('seer-explorer-run-id', null);
+  const isChatAlreadyOpen =
+    isExplorerPanelOpen && !!runState?.run_id && explorerRunId === runState.run_id;
 
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
@@ -386,7 +394,7 @@ export function ExplorerSeerDrawer({
 
           {/* Status card when processing */}
           <AnimatePresence initial={false}>
-            {runState.status === 'processing' && (
+            {runState.status === 'processing' && !isChatAlreadyOpen && (
               <ExplorerStatusCard
                 key="status_card"
                 status={runState.status}
@@ -405,6 +413,7 @@ export function ExplorerSeerDrawer({
               hasCodingAgents={
                 codingAgents !== undefined && Object.keys(codingAgents).length > 0
               }
+              isChatAlreadyOpen={isChatAlreadyOpen}
               onStartStep={handleStartStep}
               onCodingAgentHandoff={handleCodingAgentHandoff}
               onOpenChat={handleOpenChat}
@@ -453,15 +462,9 @@ const SeerDrawerBody = styled(DrawerBody)`
   }
 `;
 
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
-
 const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
 `;
 
@@ -470,15 +473,9 @@ const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   padding: 0;
 `;
 
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
 const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

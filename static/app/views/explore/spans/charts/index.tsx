@@ -2,6 +2,7 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -225,12 +226,15 @@ function Chart({
     <Fragment>
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
-          triggerProps={{
-            icon: <IconGraph type={chartIcon} />,
-            borderless: true,
-            showChevron: false,
-            size: 'xs',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconGraph type={chartIcon} />}
+              borderless
+              showChevron={false}
+              size="xs"
+            />
+          )}
           value={chartType}
           menuTitle="Type"
           options={EXPLORE_CHART_TYPE_OPTIONS}
@@ -241,12 +245,15 @@ function Chart({
         <CompactSelect
           value={interval}
           onChange={option => setInterval(option.value)}
-          triggerProps={{
-            icon: <IconClock />,
-            borderless: true,
-            showChevron: false,
-            size: 'xs',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconClock />}
+              borderless
+              showChevron={false}
+              size="xs"
+            />
+          )}
           menuTitle="Interval"
           options={intervalOptions}
         />

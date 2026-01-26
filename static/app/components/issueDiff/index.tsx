@@ -44,24 +44,32 @@ export function IssueDiff({
   const newestFirst = isStacktraceNewestFirst();
 
   const baseLatestQuery = useQuery({
-    ...apiOptions.as<{eventID: string}>()('/issues/$issueId/events/$eventId/', {
-      path: {
-        issueId: baseIssueId,
-        eventId: 'latest',
-      },
-      staleTime: 60_000,
-    }),
+    ...apiOptions.as<{eventID: string}>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: baseIssueId,
+          eventId: 'latest',
+        },
+        staleTime: 60_000,
+      }
+    ),
     enabled: baseEventId === 'latest',
   });
 
   const targetLatestQuery = useQuery({
-    ...apiOptions.as<{eventID: string}>()('/issues/$issueId/events/$eventId/', {
-      path: {
-        issueId: targetIssueId,
-        eventId: 'latest',
-      },
-      staleTime: 60_000,
-    }),
+    ...apiOptions.as<{eventID: string}>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: targetIssueId,
+          eventId: 'latest',
+        },
+        staleTime: 60_000,
+      }
+    ),
     enabled: targetEventId === 'latest',
   });
 
@@ -71,24 +79,32 @@ export function IssueDiff({
     targetEventId === 'latest' ? targetLatestQuery.data?.eventID : targetEventId;
 
   const baseEventQuery = useQuery({
-    ...apiOptions.as<Event>()('/issues/$issueId/events/$eventId/', {
-      path: {
-        issueId: baseIssueId,
-        eventId: resolvedBaseEventId ?? '',
-      },
-      staleTime: 60_000,
-    }),
+    ...apiOptions.as<Event>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: baseIssueId,
+          eventId: resolvedBaseEventId ?? '',
+        },
+        staleTime: 60_000,
+      }
+    ),
     enabled: Boolean(resolvedBaseEventId),
   });
 
   const targetEventQuery = useQuery({
-    ...apiOptions.as<Event>()('/issues/$issueId/events/$eventId/', {
-      path: {
-        issueId: targetIssueId,
-        eventId: resolvedTargetEventId ?? '',
-      },
-      staleTime: 60_000,
-    }),
+    ...apiOptions.as<Event>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: targetIssueId,
+          eventId: resolvedTargetEventId ?? '',
+        },
+        staleTime: 60_000,
+      }
+    ),
     enabled: Boolean(resolvedTargetEventId),
   });
 

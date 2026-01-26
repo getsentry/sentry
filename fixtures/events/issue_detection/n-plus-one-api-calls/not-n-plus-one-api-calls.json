@@ -70,7 +70,11 @@
       "trace_id": "98be611cb95e24f72813487f12922a01",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/organizations/?member=1"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/?member=1"
+      },
       "hash": "cbc1d1c7a6500a75"
     },
     {
@@ -141,7 +145,11 @@
       "trace_id": "98be611cb95e24f72813487f12922a01",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/subscriptions/sentry/"
+      },
       "hash": "d09dea4693554039"
     },
     {
@@ -698,7 +706,7 @@
       "timestamp": 1668493712.796,
       "start_timestamp": 1668493711.677,
       "exclusive_time": 1118.999958,
-      "description": "GET /api/0/issues/1888481/?collapse=release",
+      "description": "GET /api/0/organizations/sentry/issues/1888481/?collapse=release",
       "op": "http.client",
       "span_id": "895caf36a21300a2",
       "parent_span_id": "9e4e36110481b5b5",
@@ -708,7 +716,7 @@
       "data": {
         "http.method": "GET",
         "type": "fetch",
-        "url": "/api/0/issues/1888481/?collapse=release"
+        "url": "/api/0/organizations/sentry/issues/1888481/?collapse=release"
       },
       "hash": "33a59c92255fb9b2"
     },
