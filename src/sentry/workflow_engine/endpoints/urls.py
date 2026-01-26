@@ -19,17 +19,6 @@ from .organization_workflow_group_history import OrganizationWorkflowGroupHistor
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
 from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
 
-# TODO @saponifi3d - Add the remaining API endpoints
-
-# Remaining Detector Endpoints
-#   - GET /detector w/ filters
-
-# Remaining Workflows Endpoints
-# - GET /workflow w/ filters
-# - POST /workflow
-# - PUT /workflow/:id
-# - DELETE /workflow/:id
-
 organization_urlpatterns = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/(?P<detector_id>\d+)/$",
