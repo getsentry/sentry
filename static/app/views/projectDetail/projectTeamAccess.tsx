@@ -34,9 +34,11 @@ function ProjectTeamAccess({organization, project}: Props) {
         <LinkButton
           to={settingsLink}
           disabled={!hasEditPermissions}
-          title={
-            hasEditPermissions ? undefined : t('You do not have permission to do this')
-          }
+          tooltipProps={{
+            title: hasEditPermissions
+              ? undefined
+              : t('You do not have permission to do this'),
+          }}
           priority="primary"
           size="sm"
         >

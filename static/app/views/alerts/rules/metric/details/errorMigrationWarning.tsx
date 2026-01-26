@@ -120,7 +120,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
               icon={<IconClose />}
               onClick={dismissPrompt}
               aria-label={t('Dismiss Alert')}
-              title={t('Dismiss Alert')}
+              tooltipProps={{title: t('Dismiss Alert')}}
             />
           </ButtonBar>
         }

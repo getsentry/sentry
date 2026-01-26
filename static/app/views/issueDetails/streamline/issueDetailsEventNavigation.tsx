@@ -123,7 +123,7 @@ export function IssueDetailsEventNavigation({
       <Navigation>
         <LinkButton
           aria-label={t('Previous Event')}
-          title={t('Previous Event')}
+          tooltipProps={{title: t('Previous Event')}}
           borderless
           size="xs"
           icon={<IconChevron direction="left" />}
@@ -147,7 +147,7 @@ export function IssueDetailsEventNavigation({
         />
         <LinkButton
           aria-label={t('Next Event')}
-          title={t('Next Event')}
+          tooltipProps={{title: t('Next Event')}}
           borderless
           size="xs"
           icon={<IconChevron direction="right" />}

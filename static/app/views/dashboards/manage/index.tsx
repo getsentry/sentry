@@ -610,9 +610,9 @@ function ManageDashboards() {
                             disabled={
                               hasReachedDashboardLimit || isLoadingDashboardsLimit
                             }
-                            title={limitMessage}
                             tooltipProps={{
                               isHoverable: true,
+                              title: limitMessage,
                             }}
                           >
                             {t('Create Dashboard')}

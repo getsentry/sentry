@@ -145,7 +145,9 @@ export function StreamlinedExternalIssueList({
                       size="zero"
                       icon={integration.displayIcon}
                       disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
+                      tooltipProps={{
+                        title: integration.disabled ? integration.disabledText : undefined,
+                      }}
                       onClick={() => {
                         action.onClick();
                         trackAnalytics('feedback.details-integration-issue-clicked', {
@@ -162,7 +164,9 @@ export function StreamlinedExternalIssueList({
                     <IssueActionButton
                       {...sharedButtonProps}
                       disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
+                      tooltipProps={{
+                        title: integration.disabled ? integration.disabledText : undefined,
+                      }}
                       onClick={() => {
                         action.onClick();
                         trackAnalytics('feedback.details-integration-issue-clicked', {

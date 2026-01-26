@@ -52,7 +52,7 @@ export function SampleDataAlert({query}: {query?: string}) {
             icon={<IconClose />}
             onClick={dismiss}
             aria-label={t('Dismiss Alert')}
-            title={t('Dismiss Alert')}
+            tooltipProps={{title: t('Dismiss Alert')}}
           />
         </AlertContent>
       </Alert>

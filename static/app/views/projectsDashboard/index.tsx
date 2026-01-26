@@ -244,9 +244,11 @@ function Dashboard() {
             <LinkButton
               size="sm"
               icon={<IconUser />}
-              title={
-                canJoinTeam ? undefined : t('You do not have permission to join a team.')
-              }
+              tooltipProps={{
+                title: canJoinTeam
+                  ? undefined
+                  : t('You do not have permission to join a team.'),
+              }}
               disabled={!canJoinTeam}
               to={`/settings/${organization.slug}/teams/`}
               data-test-id="join-team"
@@ -257,11 +259,11 @@ function Dashboard() {
               size="sm"
               priority="primary"
               disabled={!canUserCreateProject}
-              title={
-                canUserCreateProject
+              tooltipProps={{
+                title: canUserCreateProject
                   ? undefined
-                  : t('You do not have permission to create projects')
-              }
+                  : t('You do not have permission to create projects'),
+              }}
               to={makeProjectsPathname({
                 path: '/new/',
                 organization,

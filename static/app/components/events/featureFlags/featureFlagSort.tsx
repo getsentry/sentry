@@ -41,7 +41,7 @@ export default function FeatureFlagSort({
           aria-label={t('Sort Flags')}
           size="xs"
           icon={<IconSort />}
-          title={t('Sort Flags')}
+          tooltipProps={{title: t('Sort Flags')}}
         />
       )}
     >

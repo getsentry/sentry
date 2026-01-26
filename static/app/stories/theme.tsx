@@ -20,7 +20,7 @@ export function ThemeSwitcher() {
       onClick={handleClick}
       icon={<IconMoon />}
       aria-label={isDark ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
-      title={isDark ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
+      tooltipProps={{title: isDark ? t('Switch to Light Mode') : t('Switch to Dark Mode')}}
     />
   );
 }

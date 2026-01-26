@@ -151,7 +151,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             </div>
             {isHovered && (
               <Button
-                title={t('Copy link to replay at current timestamp')}
+                tooltipProps={{title: t('Copy link to replay at current timestamp')}}
                 aria-label={t('Copy link to replay at current timestamp')}
                 onClick={() =>
                   copy(replayUrlWithTimestamp, {
@@ -166,7 +166,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
           </Flex>
           {shouldShowRefreshButton ? (
             <Button
-              title={t('Replay is outdated. Refresh for latest activity.')}
+              tooltipProps={{title: t('Replay is outdated. Refresh for latest activity.')}}
               data-test-id="refresh-button"
               size="zero"
               priority="link"

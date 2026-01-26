@@ -132,7 +132,7 @@ export function OverviewRow({
             size="xs"
             onToggleStatus={status => onToggleStatus(monitor, status)}
             disabled={!canDisable}
-            title={canDisable ? undefined : permissionTooltipText}
+            tooltipProps={{title: canDisable ? undefined : permissionTooltipText}}
           />
         )}
       </DetailsActions>

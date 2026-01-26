@@ -25,7 +25,7 @@ export function NewDetectorFooter({maxWidth, disabledCreate}: NewDetectorFooterP
         priority="primary"
         type="submit"
         disabled={!!disabledCreate}
-        title={disabledCreate}
+        tooltipProps={{title: disabledCreate}}
       >
         {t('Create Monitor')}
       </Button>

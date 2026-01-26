@@ -172,9 +172,9 @@ function Controls({
               }}
               priority="primary"
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              title={limitMessage}
               tooltipProps={{
                 isHoverable: true,
+                title: limitMessage,
               }}
             >
               {t('Add Dashboard')}
@@ -243,7 +243,7 @@ function Controls({
           }}
           icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
           disabled={isDisabled}
-          title={toolTipMessage}
+          tooltipProps={{title: toolTipMessage}}
           priority="default"
           size="sm"
         />
@@ -364,7 +364,7 @@ function Controls({
                         }}
                         icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}
                         disabled={isLoading || hasReachedDashboardLimit}
-                        title={limitMessage}
+                        tooltipProps={{title: limitMessage}}
                         priority="default"
                         size="sm"
                       >

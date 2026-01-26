@@ -738,7 +738,7 @@ function TotalSummary({
               priority="danger"
               onClick={() => onSubmit(true)}
               disabled={buttonDisabled || previewDataLoading}
-              title={buttonDisabled ? buttonDisabledText : undefined}
+              tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
               icon={<IconLightning />}
             >
               {isSubmitting ? t('Checking out...') : t('Migrate Now')}
@@ -749,7 +749,7 @@ function TotalSummary({
             priority="primary"
             onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
-            title={buttonDisabled ? buttonDisabledText : undefined}
+            tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
             icon={<IconLock locked />}
           >
             {isSubmitting ? t('Checking out...') : buttonText}

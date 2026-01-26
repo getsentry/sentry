@@ -499,7 +499,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             onClick={openShareModal}
             icon={<IconUpload />}
             aria-label={t('Share')}
-            title={t('Share Issue')}
+            tooltipProps={{title: t('Share Issue')}}
             disabled={disabled}
             analyticsEventKey="issue_details.share_action_clicked"
             analyticsEventName="Issue Details: Share Action Clicked"
@@ -628,13 +628,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           {isResolved || isIgnored ? (
             <Button
               priority="primary"
-              title={
-                isAutoResolved
+              tooltipProps={{
+                title: isAutoResolved
                   ? t(
                       'This event is resolved due to the Auto Resolve configuration for this project'
                     )
-                  : t('Change status to unresolved')
-              }
+                  : t('Change status to unresolved'),
+              }}
               size="sm"
               disabled={disabled || isAutoResolved || !resolveCap.enabled}
               onClick={() =>

@@ -218,7 +218,7 @@ function AvatarChooser({
     <AvatarActions>
       <Button
         aria-label={t('Replace image')}
-        title={t('Replace image')}
+        tooltipProps={{title: t('Replace image')}}
         size="zero"
         borderless
         icon={<IconUpload />}
@@ -236,7 +236,7 @@ function AvatarChooser({
         borderless
         icon={<IconOpen />}
         aria-label={t('Go to gravatar.com')}
-        title={t('Visit gravatar.com to upload your Gravatar to be used on Sentry.')}
+        tooltipProps={{title: t('Visit gravatar.com to upload your Gravatar to be used on Sentry.')}}
       />
     </AvatarActions>
   );

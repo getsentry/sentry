@@ -56,7 +56,7 @@ export function DataForwarderRow({
           </LinkButton>
           <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
             <Button
-              title={t('Delete Data Forwarder')}
+              tooltipProps={{title: t('Delete Data Forwarder')}}
               aria-label={t('Delete Data Forwarder')}
               icon={<IconDelete />}
               // Deletions are always permitted, even if you lose the feature.

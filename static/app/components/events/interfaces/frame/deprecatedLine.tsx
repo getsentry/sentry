@@ -274,9 +274,9 @@ function DeprecatedLine({
                 <SourceMapDebuggerModalButton
                   size="zero"
                   priority="default"
-                  title={t(
+                  tooltipProps={{title: t(
                     'Click to learn how to show the original source code for this stack frame.'
-                  )}
+                  )}}
                   onClick={e => {
                     e.stopPropagation();
 

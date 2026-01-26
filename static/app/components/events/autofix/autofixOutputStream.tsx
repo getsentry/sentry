@@ -161,7 +161,7 @@ function ActiveLogDisplay({
           size="xs"
           borderless
           aria-label={t('Retry step')}
-          title={t('Retry step')}
+          tooltipProps={{title: t('Retry step')}}
           onClick={() =>
             refreshStep({
               message: '',

@@ -99,7 +99,9 @@ function Device(props: DeviceProps) {
               size="sm"
               priority="danger"
               icon={<IconDelete />}
-              title={isLastDevice ? t('Can not remove last U2F device') : undefined}
+              tooltipProps={{
+                title: isLastDevice ? t('Can not remove last U2F device') : undefined,
+              }}
             />
           </Confirm>
         </ButtonBar>
@@ -133,7 +135,7 @@ function Device(props: DeviceProps) {
         </Button>
         <Button
           size="sm"
-          title={t('Cancel Rename')}
+          tooltipProps={{title: t('Cancel Rename')}}
           aria-label={t('Cancel Rename')}
           icon={<IconClose />}
           onClick={() => {

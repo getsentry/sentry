@@ -288,7 +288,7 @@ export function AutofixSummary({
                           size="xs"
                           text={card.copyText}
                           borderless
-                          title={card.copyTitle}
+                          tooltipProps={{title: card.copyTitle}}
                           onClick={e => {
                             e.stopPropagation();
                           }}

@@ -326,7 +326,7 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      title="Copy plan as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy plan as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
@@ -553,7 +553,7 @@ function AutofixSolutionDisplay({
           <Button
             size="zero"
             borderless
-            title={t('Chat with Seer')}
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
             analyticsEventKey="autofix.solution.chat"
@@ -660,7 +660,7 @@ function AutofixSolutionDisplay({
               analyticsParams={{
                 instruction_provided: hasInstructions,
               }}
-              title={t('Implement this solution in code with Seer')}
+              tooltipProps={{title: t('Implement this solution in code with Seer')}}
             >
               {t('Code It Up')}
             </Button>

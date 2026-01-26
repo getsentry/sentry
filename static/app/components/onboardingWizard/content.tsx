@@ -298,7 +298,7 @@ function Task({task, hidePanel}: TaskProps) {
               }}
               size="zero"
               borderless
-              title={t('Skip Task')}
+              tooltipProps={{title: t('Skip Task')}}
             />
           ) : undefined
         }

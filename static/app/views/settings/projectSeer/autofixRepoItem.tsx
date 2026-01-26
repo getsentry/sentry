@@ -182,7 +182,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                             setIsDirty(true);
                           }}
                           aria-label={t('Clear branch and use default')}
-                          title={t('Clear branch and use default')}
+                          tooltipProps={{title: t('Clear branch and use default')}}
                         />
                       </InputGroup.TrailingItems>
                     )}
@@ -262,7 +262,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                         icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
-                        title={t('Remove override')}
+                        tooltipProps={{title: t('Remove override')}}
                       />
                     </BranchOverrideItem>
                   ))}

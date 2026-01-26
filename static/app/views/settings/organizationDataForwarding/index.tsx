@@ -75,11 +75,12 @@ export default function OrganizationDataForwarding() {
                       });
                     }}
                     disabled={!canCreateForwarder || !hasFeature}
-                    title={
-                      canCreateForwarder || !hasFeature
-                        ? undefined
-                        : t('Maximum data forwarders configured.')
-                    }
+                    tooltipProps={{
+                      title:
+                        canCreateForwarder || !hasFeature
+                          ? undefined
+                          : t('Maximum data forwarders configured.'),
+                    }}
                   >
                     {t('Setup a new Forwarder')}
                   </LinkButton>

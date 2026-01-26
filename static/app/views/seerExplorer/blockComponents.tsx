@@ -319,13 +319,13 @@ function BlockComponent({
         disabled={feedbackSubmitted}
         priority="transparent"
         size="xs"
-        title={
-          feedbackSubmitted
+        tooltipProps={{
+          title: feedbackSubmitted
             ? t('Feedback submitted')
             : type === 'positive'
               ? t('I like this response')
-              : t("I don't like this response")
-        }
+              : t("I don't like this response"),
+        }}
         onClick={e => {
           e.stopPropagation();
           trackThumbsFeedback(type);
@@ -488,7 +488,7 @@ function BlockComponent({
               size="xs"
               priority="transparent"
               onClick={handleDeleteClick}
-              title="Restart conversation from here"
+              tooltipProps={{title: 'Restart conversation from here'}}
             >
               <FlippedReturnIcon />
             </Button>

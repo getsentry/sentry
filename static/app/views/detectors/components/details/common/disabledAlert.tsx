@@ -42,9 +42,11 @@ export function DisabledAlert({detector, message}: DisabledAlertProps) {
             onClick={handleEnable}
             disabled={isEnabling || !canEdit}
             aria-label={t('Enable')}
-            title={
-              canEdit ? undefined : t('You do not have permission to enable this monitor')
-            }
+            tooltipProps={{
+              title: canEdit
+                ? undefined
+                : t('You do not have permission to enable this monitor'),
+            }}
           >
             {t('Enable')}
           </Button>

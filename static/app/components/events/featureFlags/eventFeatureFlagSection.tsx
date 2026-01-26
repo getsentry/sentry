@@ -255,7 +255,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             aria-label={t('Open Feature Flag Search')}
             icon={<IconSearch size="xs" />}
             size="xs"
-            title={t('Open Search')}
+            tooltipProps={{title: t('Open Search')}}
             onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
           />
           <FeatureFlagSort

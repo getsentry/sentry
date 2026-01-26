@@ -259,9 +259,9 @@ function ActionButtons({
     <ButtonRow>
       <Button
         disabled
-        title={t(
-          'Only members with the role “Owner” or “Billing” can manage subscriptions'
-        )}
+        tooltipProps={{title: t(
+          'Only members with the role "Owner" or "Billing" can manage subscriptions'
+        )}}
       >
         {t('Manage Subscription')}
       </Button>

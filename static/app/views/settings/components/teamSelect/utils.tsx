@@ -98,11 +98,11 @@ export function DropdownAddTeam({
       menuHeaderTrailingItems={({closeOverlay}) => {
         return (
           <Button
-            title={
-              canCreateTeam
+            tooltipProps={{
+              title: canCreateTeam
                 ? undefined
-                : t('You must be a Org Owner/Manager to create teams')
-            }
+                : t('You must be a Org Owner/Manager to create teams'),
+            }}
             borderless
             priority="link"
             size="xs"

@@ -38,11 +38,9 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
     </td>,
     <td key="actions" data-test-id="revision-actions">
       <Button
-        title={
-          policy.version === row.version
+        tooltipProps={{title: policy.version === row.version
             ? 'This is already the current version'
-            : 'Make this the active version of this policy.'
-        }
+            : 'Make this the active version of this policy.'}}
         disabled={policy.version === row.version}
         onClick={() => onUpdate({current: true}, row.version)}
       >

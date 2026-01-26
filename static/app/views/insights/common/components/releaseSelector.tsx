@@ -110,7 +110,7 @@ function SingleReleaseSelector({
         <OverlayTrigger.Button
           {...triggerProps}
           icon={<IconReleases />}
-          title={selectorValue}
+          tooltipProps={{title: selectorValue}}
           prefix={triggerLabelPrefix}
           aria-label={t('Filter Release')}
         >

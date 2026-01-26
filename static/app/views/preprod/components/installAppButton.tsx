@@ -46,7 +46,7 @@ export function InstallAppButton({
         onClick={handleClick}
         priority="transparent"
         size="zero"
-        title={t('Install')}
+        tooltipProps={{title: t('Install')}}
       />
     );
   }

@@ -148,7 +148,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
           icon={<IconRefresh />}
           onClick={() => reset()}
           aria-label={t('Start over')}
-          title={t('Start over')}
+          tooltipProps={{title: t('Start over')}}
         />
       }
     >
