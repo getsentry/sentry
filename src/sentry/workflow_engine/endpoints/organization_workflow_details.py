@@ -60,6 +60,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     )
     def get(self, request: Request, organization: Organization, workflow: Workflow):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Returns an alert.
         """
         serialized_workflow = serialize(
@@ -87,6 +89,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     )
     def put(self, request: Request, organization: Organization, workflow: Workflow):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Updates an alert.
         """
         validator = WorkflowValidator(
@@ -151,6 +155,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     )
     def delete(self, request: Request, organization: Organization, workflow: Workflow):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Deletes an alert.
         """
         RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
