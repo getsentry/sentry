@@ -342,6 +342,18 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
     def test_create_preprod_status_check_task_multiple_artifacts_same_commit(self):
         """Test task handles multiple artifacts for the same commit (monorepo scenario)."""
+        # Create base commit comparison (represents the previous commit)
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="main~1",
+        )
+
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="a" * 40,
@@ -354,8 +366,29 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
         # Create multiple artifacts for the same commit (monorepo scenario)
+        # Also create corresponding base artifacts to exercise _fetch_base_size_metrics batching
         artifacts = []
         for i in range(3):
+            # Create base artifact for comparison
+            base_artifact = Factories.create_preprod_artifact(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                app_id=f"com.example.app{i}",
+                build_version="0.9.0",
+                build_number=i,
+                commit_comparison=base_commit_comparison,
+            )
+            PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=base_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=900 * 1024,
+                max_download_size=900 * 1024,
+                min_install_size=1800 * 1024,
+                max_install_size=1800 * 1024,
+            )
+
+            # Create head artifact
             artifact = Factories.create_preprod_artifact(
                 project=self.project,
                 state=PreprodArtifact.ArtifactState.PROCESSED,

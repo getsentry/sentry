@@ -188,7 +188,7 @@ def create_preprod_status_check_task(
             approvals_map[approval.preprod_artifact_id] = approval
 
     rules = _get_status_check_rules(preprod_artifact.project)
-    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts, preprod_artifact.project)
+    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
 
     status, triggered_rules = _compute_overall_status(
         all_artifacts,
@@ -387,37 +387,26 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
 
 
 def _fetch_base_size_metrics(
-    artifacts: list[PreprodArtifact], project: Project
+    artifacts: list[PreprodArtifact],
 ) -> dict[int, PreprodArtifactSizeMetrics]:
-    """
-    Fetch base artifact main size metrics for size comparison in absolute_diff rules.
+    """Fetch base artifact size metrics for head artifacts."""
+    if not artifacts:
+        return {}
 
-    Returns a map of {head_artifact_id: base_main_size_metrics} for artifacts that have
-    base artifacts with matching build configurations. Only returns the main artifact metrics.
-    """
-    base_artifact_map: dict[int, PreprodArtifact] = {}
-
-    for artifact in artifacts:
-        base_artifact = artifact.get_base_artifact_for_commit().first()
-        if base_artifact:
-            base_artifact_map[artifact.id] = base_artifact
-
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(artifacts)
     if not base_artifact_map:
         return {}
 
-    base_artifact_ids = list(base_artifact_map.values())
     base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact_id__in=[ba.id for ba in base_artifact_ids],
-        preprod_artifact__project__organization_id=project.organization_id,
+        preprod_artifact_id__in=[ba.id for ba in base_artifact_map.values()],
         metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-    ).select_related("preprod_artifact")
+    )
 
     result: dict[int, PreprodArtifactSizeMetrics] = {}
-    for head_artifact_id, base_artifact in base_artifact_map.items():
-        for metrics in base_size_metrics_qs:
-            if metrics.preprod_artifact_id == base_artifact.id:
+    for metrics in base_size_metrics_qs:
+        for head_artifact_id, base_artifact in base_artifact_map.items():
+            if base_artifact.id == metrics.preprod_artifact_id:
                 result[head_artifact_id] = metrics
-                break
 
     return result
 
