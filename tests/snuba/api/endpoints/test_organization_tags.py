@@ -470,7 +470,8 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         data.sort(key=lambda val: val["name"])
         assert data == [
             {"name": "Level", "key": "level", "totalValues": 1},
-            {"name": "Status", "key": "status", "totalValues": 1},
+            {"key": "project", "name": "Project", "totalValues": 1},
+            {"name": "Tags[Status]", "key": "tags[status]", "totalValues": 1},
         ]
 
 
