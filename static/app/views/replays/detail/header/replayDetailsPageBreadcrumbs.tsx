@@ -88,49 +88,47 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     label: replayRecord ? (
       <Flex>
         <Flex align="center" gap="sm">
-          {organization.features.includes('replay-playlist-view') && (
-            <div>
-              <LinkButton
-                size="zero"
-                borderless
-                icon={<IconChevron direction="left" size="xs" />}
-                disabled={!previousReplay}
-                to={{
-                  pathname: previousReplay
-                    ? makeReplaysPathname({
-                        path: `/${previousReplay.id}/`,
-                        organization,
-                      })
-                    : undefined,
-                  query: initialLocation.current.query,
-                }}
-                onClick={() =>
-                  trackAnalytics('replay.details-playlist-clicked', {
-                    direction: 'previous',
-                    organization,
-                  })
-                }
-              />
-              <LinkButton
-                size="zero"
-                borderless
-                icon={<IconChevron direction="right" size="xs" />}
-                disabled={!nextReplay}
-                to={{
-                  pathname: nextReplay
-                    ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
-                    : undefined,
-                  query: initialLocation.current.query,
-                }}
-                onClick={() =>
-                  trackAnalytics('replay.details-playlist-clicked', {
-                    direction: 'next',
-                    organization,
-                  })
-                }
-              />
-            </div>
-          )}
+          <div>
+            <LinkButton
+              size="zero"
+              borderless
+              icon={<IconChevron direction="left" size="xs" />}
+              disabled={!previousReplay}
+              to={{
+                pathname: previousReplay
+                  ? makeReplaysPathname({
+                      path: `/${previousReplay.id}/`,
+                      organization,
+                    })
+                  : undefined,
+                query: initialLocation.current.query,
+              }}
+              onClick={() =>
+                trackAnalytics('replay.details-playlist-clicked', {
+                  direction: 'previous',
+                  organization,
+                })
+              }
+            />
+            <LinkButton
+              size="zero"
+              borderless
+              icon={<IconChevron direction="right" size="xs" />}
+              disabled={!nextReplay}
+              to={{
+                pathname: nextReplay
+                  ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
+                  : undefined,
+                query: initialLocation.current.query,
+              }}
+              onClick={() =>
+                trackAnalytics('replay.details-playlist-clicked', {
+                  direction: 'next',
+                  organization,
+                })
+              }
+            />
+          </div>
           <Flex
             align="center"
             gap="xs"
