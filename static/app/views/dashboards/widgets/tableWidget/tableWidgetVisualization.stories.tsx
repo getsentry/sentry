@@ -394,6 +394,8 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
         <p>
           To customize actions per cell, use <code>allowedCellActions</code> as a
           function. This function receives the full cell info, including the column type.
+          There are also default actions defined in <code>ALLOWED_CELL_ACTIONS</code>,
+          it's recommended to use them as a base.
         </p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
