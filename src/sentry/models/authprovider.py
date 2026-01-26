@@ -241,12 +241,10 @@ def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> s
 
 class ScimTokenDisplay:
     """
-    Represents a SCIM token for display purposes, with masking support.
+    Represents a SCIM token for display purposes.
 
-    If the token was created more than 5 minutes ago, only the last 4 characters
-    are shown. This prevents unauthorized access to sensitive tokens by users
-    who can view the SSO settings page but shouldn't have access to tokens
-    created by other users.
+    If the token was created more than TOKEN_VISIBILITY_WINDOW_MINUTES minutes ago,
+    is_visible will be False and only the last 4 characters should be shown.
     """
 
     TOKEN_VISIBILITY_WINDOW_MINUTES = 5
@@ -260,15 +258,6 @@ class ScimTokenDisplay:
         self.token = token
         self.token_last_characters = token_last_characters
         self.is_visible = is_visible
-
-    @property
-    def display_value(self) -> str | None:
-        """Returns the token value appropriate for display."""
-        if self.token is None:
-            return None
-        if self.is_visible:
-            return self.token
-        return f"***...{self.token_last_characters}" if self.token_last_characters else "***"
 
 
 def get_scim_token_for_display(
@@ -296,13 +285,12 @@ def get_scim_token_for_display(
     if token_info is None:
         return None
 
-    # Token is visible only within the first 5 minutes of creation
     is_visible = (
         timezone.now() - token_info.date_added
     ).total_seconds() < ScimTokenDisplay.TOKEN_VISIBILITY_WINDOW_MINUTES * 60
 
     return ScimTokenDisplay(
-        token=token_info.token,
+        token=token_info.token if is_visible else None,
         token_last_characters=token_info.token_last_characters,
         is_visible=is_visible,
     )

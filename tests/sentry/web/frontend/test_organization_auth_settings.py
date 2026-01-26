@@ -869,9 +869,6 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
             assert scim_token_display is not None
             assert scim_token_display.is_visible is True
             assert scim_token_display.token is not None
-            # Token should be fully visible (not masked)
-            assert scim_token_display.display_value == scim_token_display.token
-            assert "***" not in scim_token_display.display_value
 
     def test_scim_token_masked_after_visibility_window(self):
         """Test that SCIM token is masked after 5 minutes."""
@@ -927,7 +924,8 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
             scim_token_display = resp.context["scim_token_display"]
             assert scim_token_display is not None
             assert scim_token_display.is_visible is False
-            # Token should be masked
-            assert "***" in scim_token_display.display_value
-            # Should show last 4 characters
-            assert scim_token_display.token_last_characters in scim_token_display.display_value
+            # Defense-in-depth: full token is not stored when masked
+            assert scim_token_display.token is None
+            # Only last 4 characters are available for display
+            assert scim_token_display.token_last_characters is not None
+            assert len(scim_token_display.token_last_characters) == 4

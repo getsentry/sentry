@@ -74,10 +74,10 @@
       <div class="box-content with-padding">
         <b>Auth Token:</b>
         {% if scim_token_display.is_visible %}
-        <pre>{{ scim_token_display.display_value }}</pre>
+        <pre>{{ scim_token_display.token }}</pre>
         <p class="help-block">Your token is only available briefly after creation. Make sure to save this value!</p>
         {% else %}
-        <pre><em>hidden</em></pre>
+        <pre>************{{ scim_token_display.token_last_characters }}</pre>
         <p class="help-block">To generate a new token, disable and re-enable SCIM.</p>
         {% endif %}
         <b>SCIM URL:</b>
