@@ -3,7 +3,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {IconArrow} from 'sentry/icons';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -281,6 +287,51 @@ describe('TableWidgetVisualization', () => {
       const $cell = screen.getAllByRole('button')[0]!;
       await userEvent.click($cell);
       await screen.findByText('Add to filter');
+    });
+
+    it('Calls allowedCellActions with correct cellInfo', () => {
+      const allowedCellActions = jest.fn(() => [Actions.ADD]);
+
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={allowedCellActions}
+        />
+      );
+
+      expect(allowedCellActions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          column: expect.objectContaining({key: 'http.request_method'}),
+          dataRow: expect.objectContaining(sampleHTTPRequestTableData.data[0]!),
+          columnIndex: 0,
+          rowIndex: 0,
+        })
+      );
+    });
+
+    it('Renders per-cell actions from allowedCellActions', async () => {
+      const allowedCellActions = jest.fn(({column}: {column: TabularColumn}) =>
+        column.type === 'integer' ? [Actions.SHOW_GREATER_THAN] : [Actions.ADD]
+      );
+
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={allowedCellActions}
+        />
+      );
+
+      const cells = screen.getAllByRole('cell');
+      const stringCellTrigger = within(cells[0]!).getByRole('button');
+      await userEvent.click(stringCellTrigger);
+      expect(await screen.findByText('Add to filter')).toBeInTheDocument();
+      expect(screen.queryByText('Show values greater than')).not.toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+
+      const numberCellTrigger = within(cells[1]!).getByRole('button');
+      await userEvent.click(numberCellTrigger);
+      expect(await screen.findByText('Show values greater than')).toBeInTheDocument();
+      expect(screen.queryByText('Add to filter')).not.toBeInTheDocument();
     });
 
     it('Uses onTriggerCellAction if supplied on action click', async () => {
