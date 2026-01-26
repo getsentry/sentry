@@ -21,7 +21,9 @@ from snuba_sdk import (
 
 from sentry import quotas
 from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    extrapolate_monthly_volume,
+)
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID

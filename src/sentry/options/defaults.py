@@ -2276,6 +2276,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of organization IDs that should be using span metrics for recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.span-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # === Hybrid cloud subsystem options ===
 # UI rollout

@@ -654,10 +654,14 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     def add_metrics(self, org, project, sample_rate):
         for mri in [TransactionMRI.COUNT_PER_ROOT_PROJECT, SpanMRI.COUNT_PER_ROOT_PROJECT]:
+            base_tags = {"transaction": "trans-x"}
+            if mri == SpanMRI.COUNT_PER_ROOT_PROJECT:
+                base_tags["is_segment"] = "true"
+
             if sample_rate < 100:
                 self.store_performance_metric(
                     name=mri.value,
-                    tags={"transaction": "trans-x", "decision": "drop"},
+                    tags={**base_tags, "decision": "drop"},
                     minutes_before_now=2,
                     value=100 - sample_rate,
                     project_id=project.id,
@@ -666,7 +670,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             if sample_rate > 0:
                 self.store_performance_metric(
                     name=mri.value,
-                    tags={"transaction": "trans-x", "decision": "keep"},
+                    tags={**base_tags, "decision": "keep"},
                     minutes_before_now=2,
                     value=sample_rate,
                     project_id=project.id,
@@ -862,3 +866,40 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                             "id": 1004,
                         }
                     ]
+
+    @with_feature("organizations:dynamic-sampling")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_recalibrate_orgs_with_span_metric_option(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
+        """
+        Test that orgs in the span-metric-orgs option use span metrics.
+        """
+        get_blended_sample_rate.return_value = 0.1
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
+
+        redis_client = get_redis_client_for_ds()
+
+        # Enable span metrics for first org only
+        with self.options(
+            {"dynamic-sampling.recalibrate_orgs.span-metric-orgs": [self.orgs[0].id]}
+        ):
+            with self.tasks():
+                recalibrate_orgs()
+
+        # First org should be recalibrated using span metrics
+        cache_key = generate_recalibrate_orgs_cache_key(self.orgs[0].id)
+        val = redis_client.get(cache_key)
+        assert val is not None
+        assert float(val) == 2.0
+
+        # Second org should also be recalibrated (using transaction metrics)
+        cache_key = generate_recalibrate_orgs_cache_key(self.orgs[1].id)
+        val = redis_client.get(cache_key)
+        assert val is None  # sampled at 20%, no adjustment needed
+
+        # Third org should be recalibrated
+        cache_key = generate_recalibrate_orgs_cache_key(self.orgs[2].id)
+        val = redis_client.get(cache_key)
+        assert val is not None
+        assert float(val) == 0.5
