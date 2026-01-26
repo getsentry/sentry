@@ -38,8 +38,14 @@ class BaseIOMainThreadDetector(PerformanceDetector):
     def _fingerprint(self, span_list: list[Span]) -> str:
         raise NotImplementedError
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.mapper: ProguardMapper | None = None
         self.parent_to_blocked_span: dict[str, list[Span]] = defaultdict(list)
@@ -65,6 +71,23 @@ class BaseIOMainThreadDetector(PerformanceDetector):
             if total_duration >= settings["duration_threshold"]:
                 fingerprint = self._fingerprint(span_list)
                 offender_spans = [span for span in span_list if "span_id" in span]
+                evidence_data = {
+                    "op": span_list[0].get("op"),
+                    "parent_span_ids": [parent_span_id],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        span["span_id"] for span in span_list if "span_id" in span
+                    ],
+                    "transaction_name": self._event.get("transaction", ""),
+                    "repeating_spans": get_span_evidence_value(offender_spans[0]),
+                    "repeating_spans_compact": get_span_evidence_value(
+                        offender_spans[0], include_op=False
+                    ),
+                    "num_repeating_spans": str(len(offender_spans)),
+                }
+                if self.detector_id is not None:
+                    evidence_data["detector_id"] = self.detector_id
+
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
                     op=span_list[0].get("op", ""),
@@ -73,20 +96,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                     type=self.group_type,
                     cause_span_ids=[],
                     offender_span_ids=[span["span_id"] for span in offender_spans],
-                    evidence_data={
-                        "op": span_list[0].get("op"),
-                        "parent_span_ids": [parent_span_id],
-                        "cause_span_ids": [],
-                        "offender_span_ids": [
-                            span["span_id"] for span in span_list if "span_id" in span
-                        ],
-                        "transaction_name": self._event.get("transaction", ""),
-                        "repeating_spans": get_span_evidence_value(offender_spans[0]),
-                        "repeating_spans_compact": get_span_evidence_value(
-                            offender_spans[0], include_op=False
-                        ),
-                        "num_repeating_spans": str(len(offender_spans)),
-                    },
+                    evidence_data=evidence_data,
                     evidence_display=[
                         IssueEvidence(
                             name="Offending Spans",
@@ -205,8 +215,14 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
     settings_key = DetectorType.DB_MAIN_THREAD
     group_type = PerformanceDBMainThreadGroupType
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.mapper = None
         self.parent_to_blocked_span = defaultdict(list)

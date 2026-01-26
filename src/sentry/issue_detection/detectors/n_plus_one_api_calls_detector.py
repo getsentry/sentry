@@ -42,8 +42,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     type = DetectorType.N_PLUS_ONE_API_CALLS
     settings_key = DetectorType.N_PLUS_ONE_API_CALLS
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.spans: list[Span] = []
@@ -182,6 +188,22 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         parent_span_id = last_span.get("parent_span_id")
 
         parameters = self._get_parameters()
+        evidence_data = {
+            "op": last_span["op"],
+            "cause_span_ids": [],
+            "parent_span_ids": [parent_span_id] if parent_span_id else [],
+            "offender_span_ids": offender_span_ids,
+            "transaction_name": self._event.get("transaction", ""),
+            "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
+            "repeating_spans": self._get_path_prefix(self.spans[0]),
+            "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
+            "parameters": parameters["query_params"],
+            "path_parameters": parameters["path_params"],
+            "common_url": problem_description,
+        }
+        if self.detector_id is not None:
+            evidence_data["detector_id"] = self.detector_id
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
@@ -190,19 +212,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=[parent_span_id] if parent_span_id else [],
             offender_span_ids=offender_span_ids,
-            evidence_data={
-                "op": last_span["op"],
-                "cause_span_ids": [],
-                "parent_span_ids": [parent_span_id] if parent_span_id else [],
-                "offender_span_ids": offender_span_ids,
-                "transaction_name": self._event.get("transaction", ""),
-                "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
-                "repeating_spans": self._get_path_prefix(self.spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
-                "parameters": parameters["query_params"],
-                "path_parameters": parameters["path_params"],
-                "common_url": problem_description,
-            },
+            evidence_data=evidence_data,
             evidence_display=[
                 IssueEvidence(
                     name="Offending Spans",

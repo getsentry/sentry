@@ -33,8 +33,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
     type = DetectorType.UNCOMPRESSED_ASSETS
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.any_compression = False
 
@@ -101,6 +107,19 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             )
             return
         if fingerprint and span_id:
+            evidence_data = {
+                "op": op,
+                "parent_span_ids": [],
+                "cause_span_ids": [],
+                "offender_span_ids": [span_id],
+                "transaction_name": self._event.get("description", ""),
+                "repeating_spans": get_span_evidence_value(span),
+                "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                "num_repeating_spans": str(len(span_id)),
+            }
+            if self.detector_id is not None:
+                evidence_data["detector_id"] = self.detector_id
+
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op=op,
@@ -109,16 +128,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 type=PerformanceUncompressedAssetsGroupType,
                 cause_span_ids=[],
                 offender_span_ids=[span_id],
-                evidence_data={
-                    "op": op,
-                    "parent_span_ids": [],
-                    "cause_span_ids": [],
-                    "offender_span_ids": [span_id],
-                    "transaction_name": self._event.get("description", ""),
-                    "repeating_spans": get_span_evidence_value(span),
-                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
-                    "num_repeating_spans": str(len(span_id)),
-                },
+                evidence_data=evidence_data,
                 evidence_display=[
                     IssueEvidence(
                         name="Offending Spans",

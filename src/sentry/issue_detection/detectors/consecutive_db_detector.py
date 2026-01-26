@@ -58,8 +58,14 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     type = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.consecutive_db_spans: list[Span] = []
         self.independent_db_spans: list[Span] = []
@@ -115,6 +121,31 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         cause_span_ids = [span["span_id"] for span in self.consecutive_db_spans]
         query: str = self.independent_db_spans[0].get("description", "")
 
+        evidence_data = {
+            "op": "db",
+            "cause_span_ids": cause_span_ids,
+            "parent_span_ids": None,
+            "offender_span_ids": offender_span_ids,
+            "transaction_name": self._event.get("transaction", ""),
+            "span_evidence_key_value": [
+                {"key": str(_("Transaction")), "value": self._event.get("transaction", "")},
+                {"key": str(_("Starting Span")), "value": self._get_starting_span()},
+                {
+                    "key": str(_("Parallelizable Spans")),
+                    "value": self._get_parallelizable_spans(),
+                    "is_multi_value": True,
+                },
+            ],
+            "transaction_duration": self._get_duration(self._event),
+            "slow_span_duration": self._calculate_time_saved(self.independent_db_spans),
+            "repeating_spans": get_span_evidence_value(self.independent_db_spans[0]),
+            "repeating_spans_compact": get_span_evidence_value(
+                self.independent_db_spans[0], include_op=False
+            ),
+        }
+        if self.detector_id is not None:
+            evidence_data["detector_id"] = self.detector_id
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op="db",
@@ -123,28 +154,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
-            evidence_data={
-                "op": "db",
-                "cause_span_ids": cause_span_ids,
-                "parent_span_ids": None,
-                "offender_span_ids": offender_span_ids,
-                "transaction_name": self._event.get("transaction", ""),
-                "span_evidence_key_value": [
-                    {"key": str(_("Transaction")), "value": self._event.get("transaction", "")},
-                    {"key": str(_("Starting Span")), "value": self._get_starting_span()},
-                    {
-                        "key": str(_("Parallelizable Spans")),
-                        "value": self._get_parallelizable_spans(),
-                        "is_multi_value": True,
-                    },
-                ],
-                "transaction_duration": self._get_duration(self._event),
-                "slow_span_duration": self._calculate_time_saved(self.independent_db_spans),
-                "repeating_spans": get_span_evidence_value(self.independent_db_spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(
-                    self.independent_db_spans[0], include_op=False
-                ),
-            },
+            evidence_data=evidence_data,
             evidence_display=[
                 IssueEvidence(
                     name="Offending Spans",
