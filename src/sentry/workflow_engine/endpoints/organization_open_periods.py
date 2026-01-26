@@ -141,23 +141,15 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if not target_group:
             return self.paginate(request=request, queryset=[])
 
-        limit = None
-        per_page = request.GET.get("per_page")
-        if per_page:
-            limit = int(per_page)
-            assert limit > 0
-
         open_periods = get_open_periods_for_group(
             group=target_group,
             query_start=start,
             query_end=end,
-            limit=limit,
         )
 
         if event_id_param:
             open_periods = open_periods.filter(event_id=event_id_param)
 
-        # need to pass start, end to serializer
         return self.paginate(
             request=request,
             queryset=open_periods,

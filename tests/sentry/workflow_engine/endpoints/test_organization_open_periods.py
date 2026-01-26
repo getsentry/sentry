@@ -8,7 +8,6 @@ from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import (
     GroupOpenPeriod,
     create_open_period,
-    get_open_periods_for_group,
     update_group_open_period,
 )
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
@@ -250,7 +249,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             resolution_time=resolved_time,
             resolution_activity=resolve_activity,
         )
-        get_open_periods_for_group(self.group)
 
         unresolved_time = timezone.now()
         self.group.status = GroupStatus.UNRESOLVED
