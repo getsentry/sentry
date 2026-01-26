@@ -1,0 +1,29 @@
+import ExternalLink from 'sentry/components/links/externalLink';
+import {tct} from 'sentry/locale';
+import type {Detector, MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import useOrganization from 'sentry/utils/useOrganization';
+
+export function AnomalyDetectionDisabledAlertMessage({detector}: {detector: Detector}) {
+  const organization = useOrganization();
+
+  // Check if this is an anomaly detection detector without the required feature
+  const isAnomalyDetector =
+    detector.type === 'metric_issue' &&
+    'config' in detector &&
+    (detector as MetricDetector).config?.detectionType === 'dynamic';
+
+  const hasAnomalyDetectionFeature = organization.features.includes(
+    'anomaly-detection-alerts'
+  );
+
+  if (!isAnomalyDetector || hasAnomalyDetectionFeature) {
+    return null;
+  }
+
+  return tct(
+    'Anomaly detection is only available on Business and Enterprise plans. [link:Upgrade your plan] to enable this monitor.',
+    {
+      link: <ExternalLink href="https://sentry.io/pricing/?referrer=anomaly-detection" />,
+    }
+  );
+}

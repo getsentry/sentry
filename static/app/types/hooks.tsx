@@ -206,6 +206,9 @@ type ComponentHooks = {
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
+  'component:disabled-detector-alert-message': React.ComponentType<{
+    detector: import('sentry/types/workflowEngine/detectors').Detector;
+  }>;
   'component:disabled-member': () => React.ComponentType;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;

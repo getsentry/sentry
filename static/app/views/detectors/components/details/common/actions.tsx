@@ -55,13 +55,13 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
   const isAnomalyDetector =
     detector.type === 'metric_issue' &&
     'config' in detector &&
-    detector.config?.detectionType === 'dynamic';
+    (detector as any).config?.detectionType === 'dynamic';
   const hasAnomalyDetectionFeature = organization.features.includes(
     'anomaly-detection-alerts'
   );
   const requiresUpgrade = isAnomalyDetector && !hasAnomalyDetectionFeature;
 
-  // If it's a metric detector without the feature, disable the Enable button
+  // If it's an anomaly detector without the feature, disable the Enable button
   const isButtonDisabled = isUpdating || (requiresUpgrade && !detector.enabled);
   const tooltipText =
     requiresUpgrade && !detector.enabled

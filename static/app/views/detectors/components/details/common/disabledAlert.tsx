@@ -1,10 +1,9 @@
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import Hook from 'sentry/components/hook';
 import {IconPlay} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
@@ -19,7 +18,6 @@ type DisabledAlertProps = {
  * to enable it. The alert automatically hides when the detector is enabled.
  */
 export function DisabledAlert({detector, message}: DisabledAlertProps) {
-  const organization = useOrganization();
   const {mutate: updateDetector, isPending: isEnabling} = useUpdateDetector();
   const canEdit = useCanEditDetector({
     detectorType: detector.type,
@@ -34,29 +32,15 @@ export function DisabledAlert({detector, message}: DisabledAlertProps) {
     updateDetector({detectorId: detector.id, enabled: true});
   };
 
-  // Check if this is an anomaly detection detector without the required feature
-  const isAnomalyDetector =
-    detector.type === 'metric_issue' &&
-    'config' in detector &&
-    detector.config?.detectionType === 'dynamic';
-  const hasAnomalyDetectionFeature = organization.features.includes(
-    'anomaly-detection-alerts'
+  // Check for getsentry upgrade message override
+  const UpgradeMessage = (
+    <Hook name="component:disabled-detector-alert-message" detector={detector} />
   );
-  const requiresUpgrade = isAnomalyDetector && !hasAnomalyDetectionFeature;
 
-  if (requiresUpgrade) {
+  if (UpgradeMessage) {
     return (
       <Alert.Container>
-        <Alert variant="muted">
-          {tct(
-            'Anomaly detection is only available on Business and Enterprise plans. [link:Upgrade your plan] to enable this monitor.',
-            {
-              link: (
-                <ExternalLink href="https://sentry.io/pricing/?referrer=anomaly-detection" />
-              ),
-            }
-          )}
-        </Alert>
+        <Alert variant="muted">{UpgradeMessage}</Alert>
       </Alert.Container>
     );
   }

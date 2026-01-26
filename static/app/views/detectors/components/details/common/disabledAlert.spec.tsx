@@ -1,4 +1,4 @@
-import {MetricDetectorFixture, UptimeDetectorFixture} from 'sentry-fixture/detectors';
+import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -73,28 +73,5 @@ describe('DisabledAlert', () => {
         })
       );
     });
-  });
-
-  it('shows upgrade message for disabled anomaly detector without feature', () => {
-    const orgWithoutFeature = OrganizationFixture({
-      access: ['org:write', 'alerts:write'],
-      features: [],
-    });
-    const anomalyDetector = MetricDetectorFixture({
-      enabled: false,
-      projectId: project.id,
-      config: {detectionType: 'dynamic'},
-    });
-
-    render(<DisabledAlert detector={anomalyDetector} message="Test message" />, {
-      organization: orgWithoutFeature,
-    });
-
-    expect(
-      screen.getByText(
-        /Anomaly detection is only available on Business and Enterprise plans/
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Enable'})).not.toBeInTheDocument();
   });
 });
