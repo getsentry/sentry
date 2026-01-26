@@ -366,7 +366,7 @@ def _fetch_base_size_metrics(
     if not artifacts:
         return {}
 
-    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commits(artifacts)
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(artifacts)
     if not base_artifact_map:
         return {}
 

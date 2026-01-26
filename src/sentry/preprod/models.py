@@ -283,31 +283,8 @@ class PreprodArtifact(DefaultFieldsModel):
             build_configuration=self.build_configuration,
         )
 
-    def get_head_artifacts_for_commit(
-        self, artifact_type: ArtifactType | None = None
-    ) -> models.QuerySet[PreprodArtifact]:
-        """
-        Get all head artifacts for the same commit comparison (monorepo scenario).
-        There can be multiple head artifacts for a commit comparison, as multiple
-        CommitComparisons can have the same base SHA.
-        """
-        if not self.commit_comparison:
-            return PreprodArtifact.objects.none()
-
-        head_commit_comparisons = CommitComparison.objects.filter(
-            base_sha=self.commit_comparison.head_sha,
-            organization_id=self.project.organization_id,
-        )
-
-        return PreprodArtifact.objects.filter(
-            commit_comparison__in=head_commit_comparisons,
-            project__organization_id=self.project.organization_id,
-            app_id=self.app_id,
-            artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
-        )
-
     @classmethod
-    def get_base_artifacts_for_commits(
+    def get_base_artifacts_for_commit(
         cls, artifacts: list[PreprodArtifact]
     ) -> dict[int, PreprodArtifact]:
         """
@@ -355,7 +332,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
         if len(base_commit_comparisons) > 1:
             logger.warning(
-                "preprod.models.get_base_artifacts_for_commits.multiple_base_commit_comparisons",
+                "preprod.models.get_base_artifacts_for_commit.multiple_base_commit_comparisons",
                 extra={
                     "head_sha": base_sha,
                     "head_repo_name": head_repo_name,
@@ -394,6 +371,29 @@ class PreprodArtifact(DefaultFieldsModel):
                     break
 
         return result
+
+    def get_head_artifacts_for_commit(
+        self, artifact_type: ArtifactType | None = None
+    ) -> models.QuerySet[PreprodArtifact]:
+        """
+        Get all head artifacts for the same commit comparison (monorepo scenario).
+        There can be multiple head artifacts for a commit comparison, as multiple
+        CommitComparisons can have the same base SHA.
+        """
+        if not self.commit_comparison:
+            return PreprodArtifact.objects.none()
+
+        head_commit_comparisons = CommitComparison.objects.filter(
+            base_sha=self.commit_comparison.head_sha,
+            organization_id=self.project.organization_id,
+        )
+
+        return PreprodArtifact.objects.filter(
+            commit_comparison__in=head_commit_comparisons,
+            project__organization_id=self.project.organization_id,
+            app_id=self.app_id,
+            artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
+        )
 
     def get_size_metrics(
         self,
