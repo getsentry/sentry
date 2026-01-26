@@ -448,6 +448,15 @@ def update_uptime_detector(
                 case ObjectStatus.ACTIVE:
                     enable_uptime_detector(detector, ensure_assignment=ensure_assignment)
 
+        # Invalidate cache after transaction commits
+        data_sources = list(detector.data_sources.values_list("source_id", "type"))
+
+        def invalidate_cache():
+            for source_id, source_type in data_sources:
+                invalidate_detectors_by_data_source_cache(source_id, source_type)
+
+        transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
+
     # Detector may have been updated as part of
     # {enable,disable}_uptime_detector
     detector.refresh_from_db()
