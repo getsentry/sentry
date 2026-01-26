@@ -82,6 +82,30 @@ describe('Dashboards > CreateDashboard', () => {
     ).toBeInTheDocument();
   });
 
+  it('creates dashboard with timestamped default title', async () => {
+    render(<CreateDashboard />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/new/',
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save and Finish'}));
+
+    expect(mockPOST).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: expect.stringMatching(
+            /^Untitled Dashboard - \w{3} \d{1,2}, \d{4} \d{1,2}:\d{2} [AP]M$/
+          ),
+        }),
+      })
+    );
+  });
+
   it('auto-adds widgets from location.state.widgets to dashboard', async () => {
     const widget1 = WidgetFixture({
       id: '1',
