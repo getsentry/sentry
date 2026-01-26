@@ -33,6 +33,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     enable_uptime_detector,
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
+    set_response_capture_enabled,
     update_uptime_detector,
     update_uptime_subscription,
 )
@@ -1353,3 +1354,43 @@ class CheckAndUpdateRegionsTest(UptimeTestCase):
             },
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
         )
+
+
+class SetResponseCaptureEnabledTest(UptimeTestCase):
+    def test_toggle_disabled(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+        )
+        assert sub.capture_response_on_failure is True
+
+        set_response_capture_enabled(sub, enabled=False)
+        sub.refresh_from_db()
+        assert sub.capture_response_on_failure is False
+
+    def test_toggle_enabled(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+            capture_response_on_failure=False,
+        )
+        assert sub.capture_response_on_failure is False
+
+        set_response_capture_enabled(sub, enabled=True)
+        sub.refresh_from_db()
+        assert sub.capture_response_on_failure is True
+
+    def test_no_op_when_already_set(self) -> None:
+        sub = self.create_uptime_subscription(region_slugs=["default"])
+        sub.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id="test-sub-id",
+        )
+        original_date_updated = sub.date_updated
+
+        set_response_capture_enabled(sub, enabled=True)
+        sub.refresh_from_db()
+        # Should not have updated since value was already True
+        assert sub.date_updated == original_date_updated

@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/core/layout';
@@ -15,9 +16,10 @@ import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightFo
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
-import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -46,6 +48,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -96,6 +99,7 @@ export default function AutomationEdit() {
 function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
@@ -139,29 +143,66 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
-      if (Object.keys(errors).length === 0) {
-        try {
-          formModel.setFormSaving();
-          const formData: NewAutomation = getNewAutomationData(
-            data as AutomationFormData,
-            state
-          );
-          const updatedData = {
-            id: automation.id,
-            ...formData,
-          };
-          const updatedAutomation = await updateAutomation(updatedData);
-          onSubmitSuccess(formModel?.getData() ?? data);
-          trackAnalytics('automation.updated', {
-            organization,
-            ...getAutomationAnalyticsPayload(updatedAutomation),
-          });
-          navigate(
-            makeAutomationDetailsPathname(organization.slug, updatedAutomation.id)
-          );
-        } catch (err) {
-          onSubmitError?.(err);
-        }
+      if (Object.keys(errors).length > 0) {
+        const analyticsPayload = getAutomationAnalyticsPayload(
+          getNewAutomationData({
+            data: data as AutomationFormData,
+            state,
+          })
+        );
+        Sentry.logger.warn('Edit alert form validation failed', {
+          errors,
+          details: analyticsPayload,
+        });
+        trackAnalytics('automation.updated', {
+          organization,
+          ...analyticsPayload,
+          success: false,
+        });
+        return;
+      }
+
+      formModel.setFormSaving();
+
+      const formData = await resolveDetectorIdsForProjects({
+        formData: data as AutomationFormData,
+        onSubmitError,
+        orgSlug: organization.slug,
+        projectIds: data.projectIds,
+        queryClient,
+      });
+      if (!formData) {
+        return;
+      }
+      const newAutomationData = getNewAutomationData({
+        data: formData,
+        state,
+      });
+      const analyticsPayload = getAutomationAnalyticsPayload(newAutomationData);
+
+      try {
+        const updatedAutomation = await updateAutomation({
+          id: automation.id,
+          ...newAutomationData,
+        });
+        onSubmitSuccess(formModel?.getData() ?? data);
+        trackAnalytics('automation.updated', {
+          organization,
+          ...analyticsPayload,
+          success: true,
+        });
+        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+      } catch (e) {
+        Sentry.logger.warn('Edit alert request failure', {
+          error: e,
+          details: analyticsPayload,
+        });
+        trackAnalytics('automation.updated', {
+          organization,
+          ...analyticsPayload,
+          success: false,
+        });
+        onSubmitError?.(e);
       }
     },
     [
@@ -171,6 +212,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       updateAutomation,
       organization,
       navigate,
+      queryClient,
     ]
   );
 

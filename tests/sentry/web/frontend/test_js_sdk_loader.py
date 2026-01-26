@@ -306,6 +306,92 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "debug": True,
                 },
             ),
+            # Feedback bundle tests
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.feedback.min.js",
+                {"dsn": dsn},
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                        DynamicSdkLoaderOption.HAS_DEBUG.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.feedback.debug.min.js",
+                {"dsn": dsn, "debug": True},
+            ),
+            # Note: There is no bundle.tracing.feedback or bundle.replay.feedback.
+            # When feedback is combined with tracing or replay, we serve the full bundle.
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.tracing.replay.feedback.min.js",
+                {
+                    "dsn": dsn,
+                    "tracesSampleRate": 1,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                },
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.tracing.replay.feedback.min.js",
+                {
+                    "dsn": dsn,
+                    "tracesSampleRate": 1,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                },
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.tracing.replay.feedback.min.js",
+                {
+                    "dsn": dsn,
+                    "tracesSampleRate": 1,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                },
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                        DynamicSdkLoaderOption.HAS_DEBUG.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.tracing.replay.feedback.debug.min.js",
+                {
+                    "dsn": dsn,
+                    "tracesSampleRate": 1,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                    "debug": True,
+                },
+            ),
         ]:
             self.projectkey.data = data
             self.projectkey.save()

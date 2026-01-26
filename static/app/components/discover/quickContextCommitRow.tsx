@@ -72,12 +72,12 @@ const CommitLinks = styled('div')`
 `;
 
 const LinkToPullRequest = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.2;
 `;
 
 const LinkToCommit = styled(TextOverflow)<{hasPrTitle: string | null | undefined}>`
-  font-size: ${p => (p.hasPrTitle ? p.theme.fontSize.sm : p.theme.fontSize.lg)};
+  font-size: ${p => (p.hasPrTitle ? p.theme.font.size.sm : p.theme.font.size.lg)};
   color: ${p =>
     p.hasPrTitle ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
   line-height: 1.5;

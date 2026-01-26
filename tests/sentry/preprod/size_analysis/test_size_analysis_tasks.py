@@ -15,6 +15,7 @@ from sentry.preprod.size_analysis.tasks import (
     manual_size_analysis_comparison,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.utils import json
 
 
@@ -107,7 +108,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifacts
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -115,7 +116,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_number=1,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -237,7 +238,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifacts
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -245,7 +246,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_number=1,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -332,7 +333,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifact
-        artifact = PreprodArtifact.objects.create(
+        artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=commit,
             app_id="com.example.app",
@@ -384,7 +385,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifacts
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -392,7 +393,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_number=1,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -459,7 +460,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             project=self.project, name="release"
         )
 
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -468,7 +469,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_configuration=debug_config,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        PreprodArtifact.objects.create(
+        Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -529,7 +530,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifacts with different build configurations
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -538,7 +539,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_configuration=debug_config,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -585,7 +586,7 @@ class ManualSizeAnalysisComparisonTest(TestCase):
 
     def _create_size_metrics(self, **kwargs):
         """Helper to create PreprodArtifactSizeMetrics."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = Factories.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
             state=PreprodArtifact.ArtifactState.PROCESSED,
