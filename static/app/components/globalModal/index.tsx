@@ -6,6 +6,8 @@ import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Surface} from '@sentry/scraps/layout';
+
 import {TooltipContext} from 'sentry/components/core/tooltip';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
@@ -254,7 +256,9 @@ function GlobalModal({onClose}: Props) {
                   damping: 25,
                 })}
               >
-                <Content role="document">{renderedChild}</Content>
+                <Surface variant="overlay" elevation="high">
+                  <Content role="document">{renderedChild}</Content>
+                </Surface>
               </Modal>
             )}
           </AnimatePresence>
@@ -306,11 +310,6 @@ const Modal = styled(motion.div)`
 `;
 
 const Content = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  border-radius: ${p => p.theme.radius.md};
-  box-shadow:
-    0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted},
-    ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};
 

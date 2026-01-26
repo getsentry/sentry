@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
@@ -83,7 +84,12 @@ function ProjectSessionsAnrRequest({
   const queryParams = getParams();
 
   const {data, isRefetching, isError} = useApiQuery<SessionApiResponse>(
-    [`/organizations/${organization.slug}/sessions/`, {query: queryParams}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: queryParams},
+    ],
     {
       staleTime: 0,
     }
