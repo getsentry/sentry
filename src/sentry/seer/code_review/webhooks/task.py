@@ -43,7 +43,7 @@ def schedule_task(
     from .task import process_github_webhook_event
 
     transformed_event = transform_webhook_to_codegen_request(
-        github_event=github_event.value,
+        github_event=github_event,
         github_event_action=github_event_action,
         event_payload=dict(event),
         organization=organization,

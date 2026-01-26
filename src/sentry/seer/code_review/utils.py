@@ -57,7 +57,7 @@ def get_seer_endpoint_for_event(github_event: str) -> SeerEndpoint:
     Get the appropriate Seer endpoint for a given GitHub webhook event.
 
     Args:
-        github_event: The GitHub webhook event type
+        github_event: The GitHub webhook event type (as string, after Celery deserialization)
 
     Returns:
         The SeerEndpoint to use for the event
@@ -128,7 +128,7 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
 
 
 def _get_target_commit_sha(
-    github_event: str,
+    github_event: GithubWebhookType,
     event_payload: Mapping[str, Any],
     repo: Repository,
     integration: RpcIntegration | None,
@@ -136,13 +136,13 @@ def _get_target_commit_sha(
     """
     Get the target commit SHA for code review.
     """
-    if github_event == GithubWebhookType.PULL_REQUEST.value:
+    if github_event == GithubWebhookType.PULL_REQUEST:
         sha = event_payload.get("pull_request", {}).get("head", {}).get("sha")
         if not isinstance(sha, str) or not sha:
             raise ValueError("missing-pr-head-sha")
         return sha
 
-    if github_event == GithubWebhookType.ISSUE_COMMENT.value:
+    if github_event == GithubWebhookType.ISSUE_COMMENT:
         if integration is None:
             raise ValueError("missing-integration-for-sha")
         pr_number = event_payload.get("issue", {}).get("number")
