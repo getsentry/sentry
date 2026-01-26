@@ -224,7 +224,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         assert hasattr(request, "rate_limit_key") is False
         assert hasattr(request, "rate_limit_metadata") is False
 
-    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=0)
+    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
     def test_impersonation_enforces_rate_limits_when_disabled(self) -> None:
         """Test that rate limiting is enforced during impersonation even when endpoint has enforce_rate_limit=False"""
         request = self.factory.get("/")
@@ -235,7 +235,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         impersonator = self.create_user(email="impersonator@example.com")
         request.actual_user = impersonator
 
-        # This endpoint has enforce_rate_limit=False
+        # Call this endpoint multiple times get hit by rate limit
+        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
         response = self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
 
         assert response is not None
@@ -243,7 +245,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         assert response.status_code == 429
         assert request.will_be_rate_limited is True
 
-    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=0)
+    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
     def test_impersonation_without_actual_user_not_enforced(self) -> None:
         """Test that endpoints with enforce_rate_limit=False are not rate limited without impersonation"""
         request = self.factory.get("/")
@@ -259,7 +261,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         # The middleware is not processed, and we return None in process_view
         assert response is None
 
-    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=0)
+    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
     def test_impersonation_with_custom_endpoint_config(self) -> None:
         """Test that impersonation limits are applied to endpoints with custom rate limit configs"""
 
@@ -287,7 +289,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         impersonator = self.create_user(email="impersonator@example.com")
         request.actual_user = impersonator
 
-        # Call with an endpoint that normally doesn't enforce rate limits
+        # Call with an endpoint that normally doesn't enforce rate limits multiple times to get hit by rate limit
+        self.middleware.process_view(request, high_limit_view, [], {})
+        self.middleware.process_view(request, high_limit_view, [], {})
         response = self.middleware.process_view(request, high_limit_view, [], {})
 
         # During impersonation, should get a 429 response

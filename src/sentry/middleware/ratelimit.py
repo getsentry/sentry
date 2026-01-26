@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Callable
+from math import ceil
 
 import orjson
 import sentry_sdk
@@ -37,7 +38,9 @@ def _normalize_and_min_limit(a_limit: int, a_window: int, b_limit: int, b_window
     """Normalize two (limit, window) pairs and return the minimum of the two normalized values."""
     norm_a = a_limit / a_window if a_window and a_window >= 1 else a_limit
     norm_b = b_limit / b_window if b_window and b_window >= 1 else b_limit
-    return min(int(norm_a), int(norm_b))
+
+    # Take the ceiling of the normalized values to ensure that the values are at least 1
+    return min(ceil(norm_a), ceil(norm_b))
 
 
 class RatelimitMiddleware:
