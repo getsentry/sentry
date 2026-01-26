@@ -93,6 +93,13 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 type=str,
                 description="ID of the issue group.",
             ),
+            OpenApiParameter(
+                name="eventId",
+                location="query",
+                required=False,
+                type=str,
+                description="ID of the event to filter open periods by.",
+            ),
         ],
         responses={
             200: GroupOpenPeriodSerializer,
@@ -113,6 +120,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         detector_id_param = request.GET.get("detectorId")
         group_id_param = request.GET.get("groupId")
+        event_id_param = request.GET.get("eventId")
         # determines the time we need to subtract off of each timestamp before returning the data
         bucket_size_param = request.GET.get("bucketSize", 0)
 
@@ -133,19 +141,15 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if not target_group:
             return self.paginate(request=request, queryset=[])
 
-        limit = None
-        per_page = request.GET.get("per_page")
-        if per_page:
-            limit = int(per_page)
-            assert limit > 0
-
         open_periods = get_open_periods_for_group(
             group=target_group,
             query_start=start,
             query_end=end,
-            limit=limit,
         )
-        # need to pass start, end to serializer
+
+        if event_id_param:
+            open_periods = open_periods.filter(event_id=event_id_param)
+
         return self.paginate(
             request=request,
             queryset=open_periods,

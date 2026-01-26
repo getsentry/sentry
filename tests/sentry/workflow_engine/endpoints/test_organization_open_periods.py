@@ -8,7 +8,6 @@ from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import (
     GroupOpenPeriod,
     create_open_period,
-    get_open_periods_for_group,
     update_group_open_period,
 )
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
@@ -256,7 +255,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             resolution_time=resolved_time,
             resolution_activity=resolve_activity,
         )
-        get_open_periods_for_group(self.group)
 
         unresolved_time = timezone.now()
         self.group.status = GroupStatus.UNRESOLVED
@@ -465,3 +463,52 @@ class OrganizationOpenPeriodsTest(APITestCase):
             "value": PriorityLevel(self.group.priority).to_str(),
             "dateCreated": update_gopa.date_added,
         }
+
+    def test_filter_by_event_id(self) -> None:
+        GroupOpenPeriod.objects.filter(group=self.group).delete()
+
+        event_id_1 = "a" * 32
+        event_id_2 = "b" * 32
+
+        base_time = timezone.now() - timedelta(minutes=20)
+
+        # Update group.first_seen to ensure default time range captures our test data
+        self.group.first_seen = base_time
+        self.group.save()
+
+        open_period_1 = GroupOpenPeriod.objects.create(
+            group=self.group,
+            project=self.group.project,
+            date_started=base_time,
+            date_ended=base_time + timedelta(minutes=5),
+            event_id=event_id_1,
+        )
+        open_period_2 = GroupOpenPeriod.objects.create(
+            group=self.group,
+            project=self.group.project,
+            date_started=base_time + timedelta(minutes=6),
+            date_ended=base_time + timedelta(minutes=10),
+            event_id=event_id_2,
+        )
+
+        response = self.get_success_response(
+            *self.get_url_args(),
+            qs_params={
+                "groupId": self.group.id,
+                "eventId": event_id_1,
+            },
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(open_period_1.id)
+
+        response = self.get_success_response(
+            *self.get_url_args(),
+            qs_params={
+                "groupId": self.group.id,
+                "eventId": event_id_2,
+            },
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(open_period_2.id)
