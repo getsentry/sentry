@@ -94,6 +94,8 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
+    # Test field to verify CI catches missing migrations
+    test_migration_check = models.CharField(max_length=100, null=True, default=None)
 
     # Whether to capture response body and headers on check failures.
     # Used for debugging - can be disabled after first capture to reduce bandwidth.
