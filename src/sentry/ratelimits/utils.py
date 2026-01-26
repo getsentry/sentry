@@ -157,7 +157,7 @@ def get_rate_limit_config(
     view_cls: type[object],
     view_args: Any = None,
     view_kwargs: Any = None,
-) -> RateLimitConfig | None:
+) -> RateLimitConfig:
     """Read the rate limit config from the view to be used for the rate limit check.
 
     If there is no rate limit defined on the view_cls, use the rate limit defined for the group
