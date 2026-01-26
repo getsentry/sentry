@@ -437,7 +437,26 @@ describe('Uptime Alert Form', () => {
         data: expect.objectContaining({
           name: 'Rule with Assertion',
           url: 'http://example.com',
-          assertion: {root: {op: 'and', children: [], id: expect.any(String)}},
+          assertion: {
+            root: {
+              op: 'and',
+              id: expect.any(String),
+              children: [
+                {
+                  op: 'status_code_check',
+                  id: expect.any(String),
+                  operator: {cmp: 'greater_than'},
+                  value: 199,
+                },
+                {
+                  op: 'status_code_check',
+                  id: expect.any(String),
+                  operator: {cmp: 'less_than'},
+                  value: 300,
+                },
+              ],
+            },
+          },
         }),
       })
     );
@@ -504,82 +523,48 @@ describe('Uptime Alert Form', () => {
       })
     );
   });
-});
 
-describe('normalizeAssertion', () => {
-  // Import the function directly for unit testing
-  const {
-    normalizeAssertion,
-  } = require('sentry/views/alerts/rules/uptime/assertions/field');
-
-  it('handles NaN status code value by defaulting to 200', () => {
-    const op = {
-      id: 'test-1',
-      op: 'status_code_check' as const,
-      operator: {cmp: 'equals' as const},
-      value: NaN,
-    };
-
-    expect(normalizeAssertion(op)).toEqual({
-      id: 'test-1',
-      op: 'status_code_check',
-      operator: {cmp: 'equals'},
-      value: 200,
+  it('preserves null assertion when editing rule without assertions', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
     });
-  });
+    OrganizationStore.onUpdate(orgWithAssertions);
 
-  it('clamps status code values to valid HTTP range', () => {
-    const tooLow = {
-      id: 'test-1',
-      op: 'status_code_check' as const,
-      operator: {cmp: 'equals' as const},
-      value: 50,
-    };
+    // Rule with no assertions (assertion: null from API)
+    const rule = UptimeRuleFixture({
+      name: 'Rule without Assertion',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+      assertion: null,
+    });
 
-    const tooHigh = {
-      id: 'test-2',
-      op: 'status_code_check' as const,
-      operator: {cmp: 'equals' as const},
-      value: 700,
-    };
+    render(<UptimeAlertForm rule={rule} />, {organization: orgWithAssertions});
+    await screen.findByText('Verification');
 
-    expect(normalizeAssertion(tooLow).value).toBe(100);
-    expect(normalizeAssertion(tooHigh).value).toBe(599);
-  });
+    // Should show empty UI - Add Assertion button but no assertion inputs
+    expect(screen.getByRole('button', {name: 'Add Assertion'})).toBeInTheDocument();
+    // The assertion field should not have any status code inputs (which would indicate defaults were applied)
+    const assertionSection = screen.getByText('Verification').closest('section');
+    expect(
+      assertionSection?.querySelectorAll('input[type="text"]').length ?? 0
+    ).toBeLessThanOrEqual(0);
 
-  it('preserves valid status code values', () => {
-    const valid = {
-      id: 'test-1',
-      op: 'status_code_check' as const,
-      operator: {cmp: 'equals' as const},
-      value: 404,
-    };
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
 
-    expect(normalizeAssertion(valid).value).toBe(404);
-  });
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
-  it('recursively normalizes nested assertions in and/or groups', () => {
-    const nested = {
-      id: 'group-1',
-      op: 'and' as const,
-      children: [
-        {
-          id: 'test-1',
-          op: 'status_code_check' as const,
-          operator: {cmp: 'equals' as const},
-          value: NaN,
-        },
-        {
-          id: 'test-2',
-          op: 'status_code_check' as const,
-          operator: {cmp: 'equals' as const},
-          value: 800,
-        },
-      ],
-    };
-
-    const result = normalizeAssertion(nested);
-    expect(result.children[0].value).toBe(200);
-    expect(result.children[1].value).toBe(599);
+    // Should submit null, not default assertions
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          assertion: null,
+        }),
+      })
+    );
   });
 });

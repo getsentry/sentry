@@ -36,7 +36,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
-import {UptimeAssertionsField} from './assertions/field';
+import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
@@ -82,7 +82,9 @@ function getFormDataFromRule(rule: UptimeRule) {
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
     recoveryThreshold: rule.recoveryThreshold,
     downtimeThreshold: rule.downtimeThreshold,
-    assertion: rule.assertion,
+    // Use empty assertion structure for null - FormField converts null to '' which
+    // we can't distinguish from "new form". Empty children signals "edit with no assertions".
+    assertion: rule.assertion ?? {root: createEmptyAssertionRoot()},
   };
 }
 
