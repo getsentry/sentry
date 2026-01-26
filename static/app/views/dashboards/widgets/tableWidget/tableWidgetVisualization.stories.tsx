@@ -391,6 +391,32 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
 }
         `}
         </CodeBlock>
+        <p>
+          To customize actions per cell, use <code>getAllowedCellActions</code>. This
+          overrides <code>allowedCellActions</code> and receives the full cell info,
+          including the column type.
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          getAllowedCellActions={cellInfo => {
+            if (cellInfo.column.type === 'integer') {
+              return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+            }
+
+            return [Actions.ADD, Actions.EXCLUDE];
+          }}
+        />
+        <CodeBlock language="tsx">
+          {`
+function getAllowedCellActions(cellInfo: {column: TabularColumn}) {
+  if (cellInfo.column.type === 'integer') {
+    return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+  }
+
+  return [Actions.ADD, Actions.EXCLUDE];
+}
+          `}
+        </CodeBlock>
       </Fragment>
     );
   });
