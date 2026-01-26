@@ -495,14 +495,18 @@ function DenseTagFacets({groupIds}: DenseTagFacetsProps) {
           {t('Top Value')}
         </Text>
       </TagsTableHeader>
-      <Container>
+      <DenseTagGrid>
         {tags.map((tag: GroupTag) => (
           <DenseTagItem key={tag.key} tag={tag} colors={theme.chart.getColorPalette(4)} />
         ))}
-      </Container>
+      </DenseTagGrid>
     </Grid>
   );
 }
+
+const DenseTagGrid = styled('div')`
+  display: contents;
+`;
 
 interface DenseTagItemProps {
   colors: readonly string[];
