@@ -55,6 +55,11 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.lg})`);
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
+  const showSeerSection =
+    (organization.features.includes('gen-ai-features') &&
+      issueTypeConfig.issueSummary.enabled &&
+      !organization.hideAiFeatures) ||
+    issueTypeConfig.resources;
 
   if (!shouldDisplaySidebar) {
     return null;
@@ -66,21 +71,24 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       id={IssueDetailsTour.SIDEBAR}
       demoTourId={DemoTourStep.ISSUES_DETAIL_SIDEBAR}
       title={t('Automate root cause')}
-      description={tct(
-        'Use [link:Seer] to investigate this issue faster. You can also add comments for your team and link tickets to track progress.',
-        {
-          link: <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />,
-        }
-      )}
+      description={
+        showSeerSection
+          ? tct(
+              'Use [link:Seer] to investigate this issue faster. You can also add comments for your team and link tickets to track progress.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />
+                ),
+              }
+            )
+          : t('Add comments for your team and link tickets to track progress.')
+      }
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
       <Side>
         <FirstLastSeenSection group={group} />
         <StyledBreak />
-        {((organization.features.includes('gen-ai-features') &&
-          issueTypeConfig.issueSummary.enabled &&
-          !organization.hideAiFeatures) ||
-          issueTypeConfig.resources) && (
+        {showSeerSection && (
           <ErrorBoundary mini>
             <SeerSection group={group} project={project} event={event} />
           </ErrorBoundary>
