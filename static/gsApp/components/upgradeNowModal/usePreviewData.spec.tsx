@@ -25,6 +25,7 @@ const mockReservations: Reservations = {
   reservedSeerAutofix: 0,
   reservedSeerScanner: 0,
   reservedSeerUsers: 0,
+  reservedSizeAnalyses: undefined,
 };
 
 const mockPreview = PreviewDataFixture({});
