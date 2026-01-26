@@ -120,8 +120,9 @@ def handle_check_run_event(
     from .task import process_github_webhook_event
 
     # Scheduling the work as a task allows us to retry the request if it fails.
+    # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
-        github_event=github_event,
+        github_event=github_event.value,
         # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
         action=validated_event.action,
