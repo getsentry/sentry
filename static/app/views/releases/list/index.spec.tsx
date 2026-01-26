@@ -530,8 +530,13 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     const buildsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
-      body: {builds: []},
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
     });
 
     render(<ReleasesList />, {
@@ -547,7 +552,7 @@ describe('ReleasesList', () => {
     expect(await screen.findByText(/Upload Mobile Builds to Sentry/)).toBeInTheDocument();
 
     expect(buildsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+      `/organizations/${organization.slug}/builds/`,
       expect.objectContaining({
         query: expect.objectContaining({per_page: 25, statsPeriod: '7d'}),
       })
@@ -570,36 +575,39 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
-      body: {
-        builds: [
-          {
-            id: 'build-id',
-            project_id: 15,
-            project_slug: 'mobile-project-4',
-            state: 1,
-            app_info: {
-              app_id: 'com.example.app',
-              name: 'Example App',
-              platform: 'android',
-              build_number: '1',
-              version: '1.0.0',
-              date_added: '2024-01-01T00:00:00Z',
-            },
-            distribution_info: {
-              is_installable: true,
-              download_count: 12,
-              release_notes: null,
-            },
-            size_info: {},
-            vcs_info: {
-              head_sha: 'abcdef1',
-              pr_number: 123,
-              head_ref: 'main',
-            },
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [
+        {
+          id: 'build-id',
+          project_id: 15,
+          project_slug: 'mobile-project-4',
+          state: 1,
+          app_info: {
+            app_id: 'com.example.app',
+            name: 'Example App',
+            platform: 'android',
+            build_number: '1',
+            version: '1.0.0',
+            date_added: '2024-01-01T00:00:00Z',
           },
-        ],
-      },
+          distribution_info: {
+            is_installable: true,
+            download_count: 12,
+            release_notes: null,
+          },
+          size_info: {},
+          vcs_info: {
+            head_sha: 'abcdef1',
+            pr_number: 123,
+            head_ref: 'main',
+          },
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
     });
 
     const {router} = render(<ReleasesList />, {
@@ -636,31 +644,34 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     const buildsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
-      body: {
-        builds: [
-          {
-            id: 'build-id',
-            project_id: 13,
-            project_slug: 'mobile-project-2',
-            state: 1,
-            app_info: {
-              app_id: 'com.example.app',
-              name: 'Example App',
-              platform: 'android',
-              build_number: '1',
-              version: '1.0.0',
-              date_added: '2024-01-01T00:00:00Z',
-            },
-            size_info: {},
-            vcs_info: {
-              head_sha: 'abcdef1',
-              pr_number: 123,
-              head_ref: 'main',
-            },
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [
+        {
+          id: 'build-id',
+          project_id: 13,
+          project_slug: 'mobile-project-2',
+          state: 1,
+          app_info: {
+            app_id: 'com.example.app',
+            name: 'Example App',
+            platform: 'android',
+            build_number: '1',
+            version: '1.0.0',
+            date_added: '2024-01-01T00:00:00Z',
           },
-        ],
-      },
+          size_info: {},
+          vcs_info: {
+            head_sha: 'abcdef1',
+            pr_number: 123,
+            head_ref: 'main',
+          },
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
     });
 
     render(<ReleasesList />, {
@@ -705,7 +716,7 @@ describe('ReleasesList', () => {
     // Wait for the API call with the complete search query
     await waitFor(() =>
       expect(buildsMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+        `/organizations/${organization.slug}/builds/`,
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
@@ -729,12 +740,17 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
-      body: {builds: []},
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [],
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
 
