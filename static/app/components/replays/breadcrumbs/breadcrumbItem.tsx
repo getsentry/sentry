@@ -59,7 +59,7 @@ export default function BreadcrumbItem({
 }: Props) {
   const theme = useTheme();
   const {colorGraphicsToken, description, title, icon} = getFrameDetails(frame);
-  const colorHex = theme.tokens.graphics[colorGraphicsToken];
+  const colorHex = theme.tokens.graphics[colorGraphicsToken].vibrant;
   const replay = useReplayReader();
   const {data: extraction, isPending} = useExtractDomNodes({
     replay,
@@ -179,6 +179,6 @@ const StyledTimelineItem = styled(Timeline.Item)`
 
 const ReplayTimestamp = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   align-self: flex-start;
 `;

@@ -19,7 +19,7 @@ export const ContextTitle = styled('h6')`
 export const ContextBody = styled('div')`
   width: 100%;
   text-align: left;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
 `;
@@ -35,7 +35,7 @@ export const NoContextWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   height: 50px;
   padding: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-direction: column;
   align-items: center;

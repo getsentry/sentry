@@ -2,6 +2,8 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
@@ -79,7 +81,7 @@ function CommitRow({
   const firstRelease = commit.releases?.[0];
 
   return hasStreamlinedUI ? (
-    <StreamlinedCommitRow data-test-id="commit-row">
+    <Stack padding="0 lg lg" data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
         <StyledExternalLink
           href={commit.pullRequest?.externalUrl}
@@ -159,7 +161,7 @@ function CommitRow({
           </Fragment>
         )}
       </MetaWrapper>
-    </StreamlinedCommitRow>
+    </Stack>
   ) : (
     <StyledPanelItem key={commit.id} data-test-id="commit-row">
       {customAvatar ? (
@@ -255,7 +257,7 @@ const AvatarWrapper = styled('div')`
 `;
 
 const EmailWarning = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   margin: -4px;
 `;
@@ -293,12 +295,12 @@ const CommitMessage = styled('div')`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.2;
 `;
 
 const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
-  font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSize.md : '13px')};
+  font-size: ${p => (p.hasStreamlinedUI ? p.theme.font.size.md : '13px')};
   line-height: 1.5;
   margin: 0;
   color: ${p => p.theme.tokens.content.secondary};
@@ -314,18 +316,12 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
   }
 `;
 
-const StreamlinedCommitRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: 0 ${space(1.5)} ${space(1.5)};
-`;
-
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding-top: ${space(0.25)};
 `;
 

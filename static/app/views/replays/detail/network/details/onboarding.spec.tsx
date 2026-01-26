@@ -16,7 +16,7 @@ const [MOCK_ITEM] = hydrateSpans(ReplayRecordFixture(), [
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
-    description: '/api/0/issues/1234',
+    description: '/api/0/organizations/1/issues/1234',
   }),
 ]);
 
@@ -44,7 +44,7 @@ describe('Setup', () => {
         `Sentry.init({`,
         `  integrations: [`,
         `    Sentry.replayIntegration({`,
-        `      networkDetailAllowUrls: ['/api/0/issues/1234'],`,
+        `      networkDetailAllowUrls: ['/api/0/organizations/1/issues/1234'],`,
         `      networkRequestHeaders: ['X-Custom-Header'],`,
         `      networkResponseHeaders: ['X-Custom-Header'],`,
         `    }),`,

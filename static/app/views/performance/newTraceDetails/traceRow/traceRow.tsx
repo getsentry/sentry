@@ -67,7 +67,7 @@ export function TraceRowConnectors(props: {
   manager: VirtualizedViewManager;
   node: BaseNode;
 }) {
-  const hasChildren = props.node.hasVisibleChildren();
+  const hasChildren = props.node.hasDirectVisibleChildren();
   const nodeDepth = TraceTree.Depth(props.node);
 
   return (

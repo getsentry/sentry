@@ -81,7 +81,7 @@ export interface BaseTextProps {
    * Variant determines the style of the text.
    * @default primary
    */
-  variant?: ContentVariant;
+  variant?: ContentVariant | 'muted';
 
   /**
    * Determines where line breaks appear when wrapping the text.
@@ -101,9 +101,12 @@ export type ExclusiveTextEllipsisProps =
 
 interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
   extends BaseTextProps,
-    React.DetailedHTMLProps<
-      React.HTMLAttributes<HTMLElementTagNameMap[T]>,
-      HTMLElementTagNameMap[T]
+    Omit<
+      React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+        HTMLElementTagNameMap[T]
+      >,
+      'style'
     > {
   /**
    * Our decision to make children required conflicts with the optional signature of the React.DetailedHTMLProps type.
@@ -128,6 +131,13 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
    *
    */
   htmlFor?: T extends 'label' ? string : never;
+
+  /**
+   * Deprecated in favor of the Text component API.
+   * If you have an is an unsupported use-case, please contact design engineering for support.
+   * @deprecated
+   */
+  style?: React.CSSProperties;
 }
 
 export type TextProps<T extends 'span' | 'p' | 'label' | 'div'> = TextAttributes<T> &
@@ -152,7 +162,8 @@ export const Text = styled(
 
   color: ${p =>
     p.variant
-      ? (p.theme.tokens.content[p.variant] ?? p.theme.tokens.content.primary)
+      ? (p.theme.tokens.content[p.variant === 'muted' ? 'secondary' : p.variant] ??
+        p.theme.tokens.content.primary)
       : p.theme.tokens.content.primary};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};

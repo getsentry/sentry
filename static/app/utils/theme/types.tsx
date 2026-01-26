@@ -51,12 +51,15 @@ type SemanticVariant =
 /**
  * Content/text color variant.
  */
-export type ContentVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'muted';
+export type ContentVariant =
+  | Exclude<SemanticVariant, 'neutral'>
+  | 'primary'
+  | 'secondary';
 
 /**
  * Graphics/icon color variant.
  */
-export type GraphicsVariant = Exclude<SemanticVariant, 'neutral'> | 'muted';
+export type GraphicsVariant = SemanticVariant;
 
 /**
  * Border color variant.
@@ -96,18 +99,6 @@ export type TagVariant =
  * Alert/status color scheme.
  */
 export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
-
-/**
- * Error/event severity level.
- */
-export type LevelVariant =
-  | 'sample'
-  | 'info'
-  | 'warning'
-  | 'error'
-  | 'fatal'
-  | 'default'
-  | 'unknown';
 
 // -----------------------------------------------------------------------------
 // Internal types

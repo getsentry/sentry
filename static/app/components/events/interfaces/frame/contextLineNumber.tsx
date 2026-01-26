@@ -48,7 +48,7 @@ const Wrapper = styled('div')`
   width: 58px;
   display: inline-block;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-right: ${space(1)};
 
   .line-number {
@@ -69,17 +69,17 @@ const Wrapper = styled('div')`
 
   &.covered .line-number {
     background: ${p => p.theme.colors.green100};
-    border-right: 3px solid ${p => p.theme.tokens.border.success};
+    border-right: 3px solid ${p => p.theme.tokens.border.success.vibrant};
   }
 
   &.uncovered .line-number {
     background: ${p => p.theme.colors.red100};
-    border-right: 3px solid ${p => p.theme.tokens.border.danger};
+    border-right: 3px solid ${p => p.theme.tokens.border.danger.vibrant};
   }
 
   &.partial .line-number {
     background: ${p => p.theme.colors.yellow100};
-    border-right: 3px dashed ${p => p.theme.tokens.border.warning};
+    border-right: 3px dashed ${p => p.theme.tokens.border.warning.vibrant};
   }
 
   &.active {
@@ -97,7 +97,7 @@ const Wrapper = styled('div')`
   }
 
   &.active.uncovered .line-number {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
     mix-blend-mode: screen;
     background: ${p => p.theme.colors.red400};
   }

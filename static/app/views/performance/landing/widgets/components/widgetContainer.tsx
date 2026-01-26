@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -292,7 +292,9 @@ function WidgetInteractiveTitle({
       options={menuOptions}
       value={chartSetting}
       onChange={handleChange}
-      triggerProps={{borderless: true, size: 'zero'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+      )}
       offset={4}
     />
   );
@@ -301,13 +303,13 @@ function WidgetInteractiveTitle({
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menus */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 
   button {
     padding: ${space(0.5)} ${space(1)};
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
 `;
 
@@ -350,7 +352,7 @@ function WidgetContainerActions({
   return (
     <CompositeSelect
       trigger={triggerProps => (
-        <SelectTrigger.IconButton
+        <OverlayTrigger.IconButton
           {...triggerProps}
           size="xs"
           borderless

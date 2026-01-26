@@ -113,8 +113,8 @@ const QueryTitle = styled('div')`
 `;
 
 const QueryDetail = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
   display: block;
@@ -132,7 +132,7 @@ const QueryCardBody = styled('div')`
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   grid-column-gap: ${space(1)};
   display: block;
   width: 100%;

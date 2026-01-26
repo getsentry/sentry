@@ -60,7 +60,7 @@ export function InsightDiffRow({
     <Container background="primary" radius="lg" padding="0" border="primary">
       <Flex direction="column" gap="0">
         <Flex align="center" justify="between" padding="xl">
-          <Flex direction="column" gap="xs" style={{flex: 1}}>
+          <Flex direction="column" gap="xs" flex={1}>
             <Flex align="center" gap="sm" justify="between">
               <Flex align="center" gap="sm">
                 <Heading as="h3">{config.name}</Heading>

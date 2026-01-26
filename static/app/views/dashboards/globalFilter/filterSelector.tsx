@@ -4,6 +4,7 @@ import isEqual from 'lodash/isEqual';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -335,9 +336,11 @@ function FilterSelector({
           </MenuTitleWrapper>
         }
         menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-        triggerProps={{
-          children: renderFilterSelectorTrigger(activeFilterValues),
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps}>
+            {renderFilterSelectorTrigger(activeFilterValues)}
+          </OverlayTrigger.Button>
+        )}
       />
     );
   }
@@ -391,9 +394,11 @@ function FilterSelector({
         </MenuTitleWrapper>
       }
       menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
-      triggerProps={{
-        children: renderFilterSelectorTrigger(stagedFilterValues),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {renderFilterSelectorTrigger(stagedFilterValues)}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
@@ -418,7 +423,7 @@ export default FilterSelector;
 
 const StyledButton = styled(Button)`
   font-size: inherit;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
@@ -440,5 +445,5 @@ const WildcardButton = styled(Flex)`
 
 const SubText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

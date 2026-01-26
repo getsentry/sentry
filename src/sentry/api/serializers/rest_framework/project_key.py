@@ -31,12 +31,14 @@ class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
     - `Performance Monitoring`
     - `Debug Bundles & Logging`
     - `Session Replay` - Note that the loader will load the ES6 bundle instead of the ES5 bundle.
+    - `User Feedback` - Note that the loader will load the ES6 bundle instead of the ES5 bundle.
     ```json
     {
         "dynamicSdkLoaderOptions": {
             "hasReplay": true,
             "hasPerformance": true,
-            "hasDebug": true
+            "hasDebug": true,
+            "hasFeedback": true
         }
     }
     ```
@@ -45,6 +47,7 @@ class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
     hasReplay = serializers.BooleanField(required=False)
     hasPerformance = serializers.BooleanField(required=False)
     hasDebug = serializers.BooleanField(required=False)
+    hasFeedback = serializers.BooleanField(required=False)
 
     def to_internal_value(self, data):
         # Drop any fields that are not specified as a `DynamicSdkLoaderOption`.
