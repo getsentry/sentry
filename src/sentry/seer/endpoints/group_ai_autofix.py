@@ -98,6 +98,12 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Coding agent provider (e.g., 'github_copilot'). Alternative to integration_id for user-authenticated providers.",
     )
+    intelligence_level = serializers.ChoiceField(
+        required=False,
+        choices=["low", "medium", "high"],
+        default="high",
+        help_text="The intelligence level to use.",
+    )
 
 
 @region_silo_endpoint
@@ -210,6 +216,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 group=group,
                 step=AutofixStep(step),
                 run_id=data.get("run_id"),
+                intelligence_level=data["intelligence_level"],
             )
             return Response({"run_id": run_id}, status=202)
         except SeerPermissionError as e:
