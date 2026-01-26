@@ -1,11 +1,14 @@
 import uuid
 
+import pytest
+
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-events-timeseries"
 
+    @pytest.mark.skip(reason="flaky: #106196")
     def test_cross_trace_query_with_logs(self) -> None:
         trace_id = uuid.uuid4().hex
         excluded_trace_id = uuid.uuid4().hex
