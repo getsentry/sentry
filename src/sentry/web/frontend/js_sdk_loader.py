@@ -38,6 +38,7 @@ class LoaderInternalConfig(TypedDict):
     hasPerformance: bool
     hasReplay: bool
     hasDebug: bool
+    hasFeedback: bool
 
 
 class LoaderContext(TypedDict):
@@ -61,6 +62,7 @@ class JavaScriptSdkLoader(View):
                 "hasPerformance": False,
                 "hasReplay": False,
                 "hasDebug": False,
+                "hasFeedback": False,
             }
 
         is_v7_sdk = sdk_version >= Version("7.0.0") and sdk_version < Version("8.0.0")
@@ -71,10 +73,26 @@ class JavaScriptSdkLoader(View):
         has_replay = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
         has_performance = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE)
         has_debug = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG)
+        has_feedback = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_FEEDBACK)
 
         # The order in which these modifiers are added is important, as the
         # bundle name is built up from left to right.
         # https://docs.sentry.io/platforms/javascript/install/cdn/
+
+        # Available bundles: bundle, bundle.tracing, bundle.replay, bundle.feedback,
+        # bundle.tracing.replay, bundle.tracing.replay.feedback
+        # Note: There is NO bundle.tracing.feedback or bundle.replay.feedback.
+        # If feedback is combined with tracing or replay, we must use the full bundle.
+
+        # Feedback bundles require SDK >= 7.85.0, but the frontend only allows selecting
+        # major versions (7.x, 8.x), which resolve to versions that support feedback.
+        feedback_with_other_features = has_feedback and (has_performance or has_replay)
+
+        # When feedback is combined with tracing or replay, we must serve the full bundle
+        # which includes all three features. Update the flags accordingly.
+        if is_greater_or_equal_v7_sdk and feedback_with_other_features:
+            has_performance = True
+            has_replay = True
 
         # We depend on fixes in the tracing bundle that are only available in v7
         if is_greater_or_equal_v7_sdk and has_performance:
@@ -86,12 +104,16 @@ class JavaScriptSdkLoader(View):
             bundle_kind_modifier += ".replay"
             is_lazy = False
 
+        if is_greater_or_equal_v7_sdk and has_feedback:
+            bundle_kind_modifier += ".feedback"
+            is_lazy = False
+
         # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
         #
-        # If we are loading replay, do not add the es5 modifier, as those bundles are
+        # If we are loading replay or feedback, do not add the es5 modifier, as those bundles are
         # ES6 only.
-        if is_v7_sdk and not has_replay:
+        if is_v7_sdk and not has_replay and not has_feedback:
             bundle_kind_modifier += ".es5"
 
         if has_debug:
@@ -103,6 +125,7 @@ class JavaScriptSdkLoader(View):
             "hasPerformance": has_performance,
             "hasReplay": has_replay,
             "hasDebug": has_debug,
+            "hasFeedback": has_feedback,
         }
 
     def _get_context(
@@ -198,6 +221,7 @@ class JavaScriptSdkLoader(View):
                     has_performance=loader_config["hasPerformance"],
                     has_replay=loader_config["hasReplay"],
                     has_debug=loader_config["hasDebug"],
+                    has_feedback=loader_config["hasFeedback"],
                     sdk_version=str(sdk_version) if sdk_version else None,
                     tmpl=tmpl,
                 )
