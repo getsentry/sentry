@@ -33,7 +33,7 @@ from sentry.sentry_apps.services.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
-from sentry.sentry_apps.services.app.model import SentryAppUpdateArgs
+from sentry.sentry_apps.services.app.model import RpcInstallationTokenInfo, SentryAppUpdateArgs
 from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app,
     serialize_sentry_app_component,
@@ -297,6 +297,19 @@ class DatabaseBackedAppService(AppService):
 
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
         return SentryAppInstallationToken.objects.get_token(organization_id, provider)
+
+    def get_installation_token_info(
+        self, *, organization_id: int, provider: str
+    ) -> RpcInstallationTokenInfo | None:
+        token_info = SentryAppInstallationToken.objects.get_token_info(organization_id, provider)
+        if token_info is None:
+            return None
+
+        return RpcInstallationTokenInfo(
+            token=token_info["token"],
+            token_last_characters=token_info["token_last_characters"],
+            date_added=token_info["date_added"],
+        )
 
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None

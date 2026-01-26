@@ -237,3 +237,72 @@ def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> s
             extra={"organization_id": organization_id},
         )
         return None
+
+
+class ScimTokenDisplay:
+    """
+    Represents a SCIM token for display purposes, with masking support.
+
+    If the token was created more than 5 minutes ago, only the last 4 characters
+    are shown. This prevents unauthorized access to sensitive tokens by users
+    who can view the SSO settings page but shouldn't have access to tokens
+    created by other users.
+    """
+
+    TOKEN_VISIBILITY_WINDOW_MINUTES = 5
+
+    def __init__(
+        self,
+        token: str | None,
+        token_last_characters: str | None,
+        is_visible: bool,
+    ):
+        self.token = token
+        self.token_last_characters = token_last_characters
+        self.is_visible = is_visible
+
+    @property
+    def display_value(self) -> str | None:
+        """Returns the token value appropriate for display."""
+        if self.token is None:
+            return None
+        if self.is_visible:
+            return self.token
+        return f"***...{self.token_last_characters}" if self.token_last_characters else "***"
+
+
+def get_scim_token_for_display(
+    scim_enabled: bool, organization_id: int, provider: str
+) -> ScimTokenDisplay | None:
+    """
+    Get SCIM token info for display in the UI with proper masking.
+
+    Tokens are only displayed in full for 5 minutes after creation.
+    After that, only the last 4 characters are shown.
+    """
+    from sentry.sentry_apps.services.app import app_service
+
+    if not scim_enabled:
+        logger.warning(
+            "SCIM disabled but tried to access token for display",
+            extra={"organization_id": organization_id},
+        )
+        return None
+
+    token_info = app_service.get_installation_token_info(
+        organization_id=organization_id, provider=f"{provider}_scim"
+    )
+
+    if token_info is None:
+        return None
+
+    # Token is visible only within the first 5 minutes of creation
+    is_visible = (
+        timezone.now() - token_info.date_added
+    ).total_seconds() < ScimTokenDisplay.TOKEN_VISIBILITY_WINDOW_MINUTES * 60
+
+    return ScimTokenDisplay(
+        token=token_info.token,
+        token_last_characters=token_info.token_last_characters,
+        is_visible=is_visible,
+    )

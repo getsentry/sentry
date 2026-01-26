@@ -202,3 +202,14 @@ class SentryAppUpdateArgs(TypedDict, total=False):
     events: list[str]
     name: str
     # TODO add whatever else as needed
+
+
+class RpcInstallationTokenInfo(RpcModel):
+    """
+    Information about an installation token including its creation date.
+    Used for displaying token info with proper masking in the UI.
+    """
+
+    token: str = ""
+    token_last_characters: str = ""
+    date_added: datetime.datetime = Field(default_factory=datetime.datetime.now)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+import datetime
+from typing import TYPE_CHECKING, ClassVar, TypedDict
 
 from django.db.models import QuerySet
 
@@ -15,6 +16,12 @@ if TYPE_CHECKING:
     from sentry.auth.services.auth import AuthenticatedToken
 
 
+class ScimTokenInfo(TypedDict):
+    token: str
+    token_last_characters: str
+    date_added: datetime.datetime
+
+
 class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"]):
     def get_token(self, organization_id: int, provider: str) -> str | None:
         """Find a token associated with the installation so we can use it for authentication."""
@@ -26,6 +33,25 @@ class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"
             return None
 
         return sentry_app_installation_tokens[0].api_token.token
+
+    def get_token_info(self, organization_id: int, provider: str) -> ScimTokenInfo | None:
+        """
+        Find a token associated with the installation and return it with metadata.
+        Used for displaying token info in the UI with proper masking.
+        """
+        sentry_app_installation_tokens = self.select_related("api_token").filter(
+            sentry_app_installation__sentryappinstallationforprovider__organization_id=organization_id,
+            sentry_app_installation__sentryappinstallationforprovider__provider=provider,
+        )
+        if not sentry_app_installation_tokens:
+            return None
+
+        api_token = sentry_app_installation_tokens[0].api_token
+        return ScimTokenInfo(
+            token=api_token.token,
+            token_last_characters=api_token.token[-4:],
+            date_added=api_token.date_added,
+        )
 
     def _get_token(self, token: ApiToken | AuthenticatedToken) -> SentryAppInstallationToken | None:
         if isinstance(token, ApiToken):

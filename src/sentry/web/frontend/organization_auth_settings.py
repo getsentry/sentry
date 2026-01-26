@@ -225,6 +225,10 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         pending_links_count = organization_service.count_members_without_sso(
             organization_id=organization.id
         )
+
+        # Get SCIM token info with masking support
+        scim_token_display = auth_provider.get_scim_token_for_display()
+
         context = {
             "form": form,
             "pending_links_count": pending_links_count,
@@ -234,7 +238,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             ),
             "auth_provider": auth_provider,
             "provider_name": provider.name,
-            "scim_api_token": auth_provider.get_scim_token(),
+            "scim_token_display": scim_token_display,
             "scim_url": get_scim_url(auth_provider, organization),
             "content": response,
             "disabled": provider.is_partner,
