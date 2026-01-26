@@ -138,3 +138,52 @@ def emit_observability_metrics(
     for data_point in longest_evalsha_data[2]:  # gauge_metrics
         key = data_point[0].decode("utf-8")
         metrics.gauge(f"spans.buffer.process_spans.longest_evalsha.{key}", data_point[1])
+
+
+ZSET_TO_SET_KEY_MAPPING: dict[str, str] = {
+    "zpopcalls": "set_spopcalls",
+    "zunionstore_step_latency_ms": "set_sunionstore_step_latency_ms",
+    "zpopmin_step_latency_ms": "set_spop_step_latency_ms",
+}
+
+
+def compare_metrics(
+    zset_metrics: list[EvalshaData],
+    set_metrics: list[EvalshaData],
+) -> None:
+    """
+    Reports the difference (SET - ZSET) between metrics.
+
+    SET metrics are expected to have a "set_" prefix (e.g., "set_redirect_depth").
+    Special cases are handled via ZSET_TO_SET_KEY_MAPPING.
+    """
+    differences: dict[str, tuple[float, float, float, float]] = {}
+
+    for zset_evalsha, set_evalsha in zip(zset_metrics, set_metrics):
+        set_dict: dict[str, float] = {
+            raw_key.decode("utf-8"): value for raw_key, value in set_evalsha
+        }
+
+        for raw_key, zset_value in zset_evalsha:
+            zset_key = raw_key.decode("utf-8")
+            set_key = ZSET_TO_SET_KEY_MAPPING.get(zset_key, f"set_{zset_key}")
+
+            if set_key not in set_dict:
+                continue
+
+            diff = set_dict[set_key] - zset_value
+
+            if zset_key not in differences:
+                differences[zset_key] = (diff, diff, diff, 1.0)
+            else:
+                differences[zset_key] = (
+                    min(differences[zset_key][0], diff),
+                    max(differences[zset_key][1], diff),
+                    differences[zset_key][2] + diff,
+                    differences[zset_key][3] + 1.0,
+                )
+
+    for key, (min_val, max_val, sum_val, count) in differences.items():
+        metrics.gauge(f"spans.buffer.set_vs_zset.min_{key}", min_val)
+        metrics.gauge(f"spans.buffer.set_vs_zset.max_{key}", max_val)
+        metrics.gauge(f"spans.buffer.set_vs_zset.avg_{key}", sum_val / count)
