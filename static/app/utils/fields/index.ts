@@ -3353,6 +3353,7 @@ export const getFieldDefinition = (
     | 'replay'
     | 'replay_click'
     | 'feedback'
+    | 'preprod'
     | 'span'
     | 'log'
     | 'uptime'
@@ -3386,6 +3387,7 @@ export const getFieldDefinition = (
         return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
       return null;
+    case 'preprod':
     case 'span':
       if (SPAN_FIELD_DEFINITIONS[key]) {
         return SPAN_FIELD_DEFINITIONS[key];
