@@ -17,6 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -63,7 +64,9 @@ function useHasOlderReleases({
 
   const {data: olderReleases, isPending} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/stats/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/releases/stats/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           statsPeriod: '90d',
@@ -163,7 +166,9 @@ function ProjectLatestReleases({
     isError,
   } = useApiQuery<Release[]>(
     [
-      `/projects/${organization.slug}/${projectSlug}/releases/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+      }),
       {
         query: {
           ...pick(location.query, Object.values(URL_PARAM)),

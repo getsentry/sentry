@@ -27,7 +27,6 @@ import {
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -46,7 +45,6 @@ const STACKED_GRAPH_HEIGHT = 362;
 
 interface MetricsGraphProps {
   orientation: TableOrientation;
-  queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   additionalActions?: React.ReactNode;
   infoContentHidden?: boolean;
@@ -55,7 +53,6 @@ interface MetricsGraphProps {
 
 export function MetricsGraph({
   timeseriesResult,
-  queryIndex,
   orientation,
   additionalActions,
   infoContentHidden,
@@ -80,7 +77,6 @@ export function MetricsGraph({
       visualize={visualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
-      queryIndex={queryIndex}
       orientation={orientation}
       additionalActions={additionalActions}
       infoContentHidden={infoContentHidden}
@@ -91,14 +87,12 @@ export function MetricsGraph({
 
 interface GraphProps extends MetricsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
-  queryIndex: number;
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
 function Graph({
   onChartTypeChange,
   timeseriesResult,
-  queryIndex,
   orientation,
   visualize,
   infoContentHidden,
@@ -131,7 +125,7 @@ function Graph({
 
   const Title = (
     <Widget.WidgetTitle
-      title={`${getVisualizeLabel(queryIndex)}: ${metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}`}
+      title={metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}
     />
   );
 

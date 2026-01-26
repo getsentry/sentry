@@ -107,7 +107,7 @@ export function defaultMetricQuery(): BaseMetricQuery {
     metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.AGGREGATE,
+      mode: Mode.SAMPLES,
       query: defaultQuery(),
 
       cursor: '',

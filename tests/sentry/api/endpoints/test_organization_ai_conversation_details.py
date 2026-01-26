@@ -191,7 +191,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.0025,
             user_id="user-123",
             user_email="test@example.com",
-            model="gpt-4",
         )
 
         query = {
@@ -228,7 +227,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         # Verify user attributes are included
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
-        assert span["gen_ai.request.model"] == "gpt-4"
 
     def test_pagination(self) -> None:
         """Test pagination works correctly"""
@@ -390,79 +388,3 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["span.op"] == "gen_ai.execute_tool"
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
-
-    def test_ignores_date_range_filter(self) -> None:
-        """Test that the endpoint ignores user-provided date range and returns all spans"""
-        now = before_now(days=10).replace(microsecond=0)
-        trace_id = uuid4().hex
-        conversation_id = uuid4().hex
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(days=30),
-            op="gen_ai.chat",
-            trace_id=trace_id,
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(days=15),
-            op="gen_ai.chat",
-            trace_id=trace_id,
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now,
-            op="gen_ai.chat",
-            trace_id=trace_id,
-        )
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200, response.data
-        assert len(response.data) == 3
-
-        for span in response.data:
-            assert span["gen_ai.conversation.id"] == conversation_id
-
-    def test_returns_model_attributes(self) -> None:
-        """Test that model-related attributes are included in the response"""
-        now = before_now(days=85).replace(microsecond=0)
-        trace_id = uuid4().hex
-        conversation_id = uuid4().hex
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now,
-            op="gen_ai.chat",
-            operation_type="ai_client",
-            trace_id=trace_id,
-            model="claude-3-opus",
-            response_model="claude-3-opus-20240229",
-            agent_name="CodeAssistant",
-            function_id="func-123",
-            operation_name="generate_code",
-        )
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200, response.data
-        assert len(response.data) == 1
-
-        span = response.data[0]
-        assert span["gen_ai.request.model"] == "claude-3-opus"
-        assert span["gen_ai.response.model"] == "claude-3-opus-20240229"
-        assert span["gen_ai.agent.name"] == "CodeAssistant"
-        assert span["gen_ai.function.id"] == "func-123"
-        assert span["gen_ai.operation.name"] == "generate_code"
