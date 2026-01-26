@@ -292,7 +292,7 @@ def _get_settings_url(
     triggered_rules: list[TriggeredRule] | None = None,
 ) -> str:
     """Build the settings URL for the project's preprod settings page."""
-    base_url = f"/settings/projects/{project.slug}/preprod/"
+    base_url = f"/settings/projects/{project.slug}/builds/"
     if triggered_rules:
         expanded_params = "&".join(f"expanded={tr.rule.id}" for tr in triggered_rules)
         return project.organization.absolute_url(base_url, query=expanded_params)

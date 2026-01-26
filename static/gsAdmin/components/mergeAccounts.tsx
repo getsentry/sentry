@@ -10,6 +10,7 @@ import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   setApiQueryData,
@@ -32,7 +33,9 @@ function MergeAccountsModal(props: Props) {
   const queryClient = useQueryClient();
 
   const makeMergeAccountsQueryKey = (): ApiQueryKey => [
-    `/users/${userId}/merge-accounts/`,
+    getApiUrl(`/users/$userId/merge-accounts/`, {
+      path: {userId},
+    }),
   ];
 
   const {
