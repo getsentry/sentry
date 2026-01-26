@@ -93,9 +93,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
-
-    # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
-    # too?
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(

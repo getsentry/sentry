@@ -4,6 +4,7 @@ import {Stack} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
@@ -73,6 +74,7 @@ export function NewUptimeDetectorForm() {
       extraFooterButton={
         showTestButton ? <ConnectedTestUptimeMonitorButton /> : undefined
       }
+      mapFormErrors={mapAssertionFormErrors}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -92,6 +94,7 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
       extraFooterButton={
         showTestButton ? <ConnectedTestUptimeMonitorButton size="sm" /> : undefined
       }
+      mapFormErrors={mapAssertionFormErrors}
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>
