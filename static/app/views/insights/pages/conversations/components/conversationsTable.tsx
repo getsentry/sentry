@@ -29,8 +29,6 @@ import {
   type Conversation,
   type ConversationUser,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversations';
-import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
 export function ConversationsTable() {
   const organization = useOrganization();
@@ -47,21 +45,13 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'conversationId', name: t('Conversation ID'), width: 0},
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
-  // {key: 'duration', name: t('Duration'), width: 130},
   {key: 'user', name: t('User'), width: 120},
-  // {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'llmToolCalls', name: t('LLM/Tool Calls'), width: 140},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
-const rightAlignColumns = new Set([
-  'llmCalls',
-  'toolCalls',
-  'tokensAndCost',
-  'timestamp',
-  'duration',
-]);
+const rightAlignColumns = new Set(['llmToolCalls', 'tokensAndCost', 'timestamp']);
 
 function ConversationsTableInner() {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
@@ -230,11 +220,6 @@ const BodyCell = memo(function BodyCell({
         </InputOutputButton>
       );
     }
-    case 'duration':
-      return <DurationCell milliseconds={dataRow.duration} />;
-    case 'llmCalls':
-    case 'toolCalls':
-      return <NumberCell value={dataRow[column.key]} />;
     case 'llmToolCalls':
       return (
         <TextAlignRight>
