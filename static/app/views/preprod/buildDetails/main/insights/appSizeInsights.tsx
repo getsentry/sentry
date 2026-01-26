@@ -56,13 +56,7 @@ export function AppSizeInsights({
 
   return (
     <Container background="primary" radius="md" padding="lg" border="muted">
-      <Flex
-        align="center"
-        justify="between"
-        style={{
-          marginBottom: '16px',
-        }}
-      >
+      <Flex align="center" justify="between" marginBottom="lg">
         <Heading as="h2" size="lg">
           {t('Top insights')}
         </Heading>

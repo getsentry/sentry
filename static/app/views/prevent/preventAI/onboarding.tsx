@@ -46,7 +46,7 @@ export function FeatureOverview() {
       <Text variant="muted" size="md">
         {t('AI Code Review helps you ship better code with new features:')}
       </Text>
-      <Container as="ul" margin="0" style={{fontSize: '12px'}}>
+      <Container as="ul" margin="0">
         <li>
           <Text variant="muted" size="sm">
             {tct(

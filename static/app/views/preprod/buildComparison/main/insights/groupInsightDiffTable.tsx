@@ -208,7 +208,7 @@ export function GroupInsightItemDiffTable({
                     {groupDiffItemChange.label}
                   </Tag>
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
+                <SimpleTable.RowCell justify="start" minWidth="0">
                   <Tooltip
                     title={
                       groupDiffItem.path ? (
@@ -249,7 +249,7 @@ export function GroupInsightItemDiffTable({
                         {diffItemChange.label}
                       </Tag>
                     </SimpleTable.RowCell>
-                    <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
+                    <SimpleTable.RowCell justify="start" minWidth="0">
                       <Text variant="muted">{diffItem.path ?? ''}</Text>
                     </SimpleTable.RowCell>
                     <DiffTableChangeAmountCell changeType={diffItem.type}>

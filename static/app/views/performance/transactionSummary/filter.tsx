@@ -90,8 +90,8 @@ function OperationDot({backgroundColor}: {backgroundColor: string}) {
       width={theme.space.md}
       height={theme.space.md}
       alignSelf="center"
+      radius="full"
       style={{
-        borderRadius: theme.radius.full,
         backgroundColor,
       }}
     />

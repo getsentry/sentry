@@ -237,7 +237,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
             width="100%"
             position="relative"
             onMouseDown={handleContainerMouseDown}
-            style={{minHeight: 0}}
+            minHeight="0"
           >
             <BaseChart
               height={400}
