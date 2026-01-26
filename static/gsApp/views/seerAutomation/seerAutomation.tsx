@@ -67,8 +67,8 @@ export default function SeerAutomation() {
           <Container borderBottom="primary">
             <Tabs value={tab} onChange={setTab}>
               <TabList>
-                <TabList.Item key="repos">{t('Settings')}</TabList.Item>
-                <TabList.Item key="settings">{t('Repos')}</TabList.Item>
+                <TabList.Item key="settings">{t('Settings')}</TabList.Item>
+                <TabList.Item key="repos">{t('Repos')}</TabList.Item>
               </TabList>
             </Tabs>
           </Container>
