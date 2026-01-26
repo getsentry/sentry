@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
 from django.core.exceptions import BadRequest
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
@@ -1635,19 +1636,11 @@ def get_comparative_attribute_distributions(
         datetime.now(range_start_dt.tzinfo) - range_start_dt + timedelta(minutes=1)
     )
     start_dt, end_dt = get_date_range_from_params(
-        {"start": start, "end": end, "stats_period": stats_period},
+        {"start": start, "end": end, "statsPeriod": stats_period},
         default_stats_period=default_stats_period,
     )
 
-    try:
-        organization = Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "get_attribute_breakdown_comparison: Organization not found",
-            extra={"organization_id": organization_id},
-        )
-        return {"rankedAttributes": []}
-
+    organization = Organization.objects.get(id=organization_id)
     projects = list(
         Project.objects.filter(
             organization=organization,
@@ -1656,6 +1649,8 @@ def get_comparative_attribute_distributions(
             **({"slug__in": project_slugs} if bool(project_slugs) else {}),
         )
     )
+    if not projects:
+        raise NotFound("No projects found for this organization and the given project filters")
 
     # Build the cohort queries by adding a time filter for cohort 1 (minute precision).
     base_query = (query or "").strip()
