@@ -173,6 +173,18 @@ describe('sortCategories', () => {
         prepaid: 0,
         order: 16,
       }),
+      MetricHistoryFixture({
+        category: DataCategory.SIZE_ANALYSIS,
+        reserved: 100,
+        prepaid: 100,
+        order: 17,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.INSTALLABLE_BUILD,
+        reserved: 25000,
+        prepaid: 25000,
+        order: 18,
+      }),
     ]);
   });
 
@@ -258,6 +270,24 @@ describe('sortCategories', () => {
           reserved: 0,
           prepaid: 0,
           order: 16,
+        }),
+      ],
+      [
+        'sizeAnalyses',
+        MetricHistoryFixture({
+          category: DataCategory.SIZE_ANALYSIS,
+          reserved: 100,
+          prepaid: 100,
+          order: 17,
+        }),
+      ],
+      [
+        'installableBuilds',
+        MetricHistoryFixture({
+          category: DataCategory.INSTALLABLE_BUILD,
+          reserved: 25000,
+          prepaid: 25000,
+          order: 18,
         }),
       ],
     ]);
@@ -454,7 +484,7 @@ describe('listDisplayNames', () => {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, spans, uptime monitors, and logs'
+      'errors, replays, attachments, cron monitors, spans, uptime monitors, logs, size analysis builds, and build distribution installs'
     );
   });
 
@@ -466,7 +496,7 @@ describe('listDisplayNames', () => {
         hadCustomDynamicSampling: true,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, and stored spans'
+      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, size analysis builds, build distribution installs, and stored spans'
     );
   });
 });
