@@ -6,6 +6,7 @@ from django.db.models import deletion
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.models import SafeDeleteModel
+from sentry.new_migrations.monkey.special import SafeRunSQL
 from sentry.new_migrations.monkey.state import DeletionAction
 
 
@@ -38,6 +39,11 @@ class Migration(CheckedMigration):
                 on_delete=deletion.CASCADE,
                 to="sentry.organization",
             ),
+        ),
+        SafeRunSQL(
+            sql="ALTER TABLE prevent_ai_configuration DROP CONSTRAINT IF EXISTS prevent_ai_configur_organization_id_69ec9fa2_fk_sentry_or;",
+            reverse_sql=migrations.RunSQL.noop,
+            hints={"tables": ["prevent_ai_configuration"]},
         ),
         SafeDeleteModel(
             name="PreventAIConfiguration",
