@@ -277,7 +277,10 @@ function EditContextHighlightSection({
                         size="xs"
                         onClick={() => onAddContextKey(contextType, contextKey)}
                         disabled={isDisabled}
-                        tooltipProps={{title: isDisabled && t('Already highlighted'), delay: 500}}
+                        tooltipProps={{
+                          title: isDisabled && t('Already highlighted'),
+                          delay: 500,
+                        }}
                       />
                       <HighlightKey
                         disabled={isDisabled}

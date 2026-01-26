@@ -47,7 +47,9 @@ function NoProjectMessage({
 
   const joinTeamAction = (
     <LinkButton
-      tooltipProps={{title: canJoinTeam ? undefined : t('You do not have permission to join a team.')}}
+      tooltipProps={{
+        title: canJoinTeam ? undefined : t('You do not have permission to join a team.'),
+      }}
       disabled={!canJoinTeam}
       priority={orgHasProjects ? 'primary' : 'default'}
       to={`/settings/${organization.slug}/teams/`}
@@ -61,7 +63,7 @@ function NoProjectMessage({
       tooltipProps={{
         title: canUserCreateProject
           ? undefined
-          : t('You do not have permission to create a project.')
+          : t('You do not have permission to create a project.'),
       }}
       disabled={!canUserCreateProject}
       priority={orgHasProjects ? 'default' : 'primary'}

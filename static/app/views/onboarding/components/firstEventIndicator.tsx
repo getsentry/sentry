@@ -30,7 +30,10 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
           indicator: <Indicator firstIssue={firstIssue} {...props} />,
           firstEventButton: (
             <LinkButton
-              tooltipProps={{title: t("You'll need to send your first error to continue"), disabled: !!firstIssue}}
+              tooltipProps={{
+                title: t("You'll need to send your first error to continue"),
+                disabled: !!firstIssue,
+              }}
               disabled={!firstIssue}
               priority="primary"
               onClick={() =>

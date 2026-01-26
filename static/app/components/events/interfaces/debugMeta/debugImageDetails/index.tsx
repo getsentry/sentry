@@ -326,10 +326,12 @@ export function DebugImageDetails({
           </LinkButton>
           {debugFilesSettingsLink && (
             <LinkButton
-              tooltipProps={{title: t(
-                'Search for this debug file in all images for the %s project',
-                projSlug
-              )}}
+              tooltipProps={{
+                title: t(
+                  'Search for this debug file in all images for the %s project',
+                  projSlug
+                ),
+              }}
               to={debugFilesSettingsLink}
             >
               {t('Open in Settings')}

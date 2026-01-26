@@ -141,9 +141,11 @@ function DataExport({
         <Button
           size={size}
           priority="default"
-          tooltipProps={{title: t(
-            "You can get on with your life. We'll email you when your data's ready."
-          )}}
+          tooltipProps={{
+            title: t(
+              "You can get on with your life. We'll email you when your data's ready."
+            ),
+          }}
           disabled
           icon={icon}
         >
@@ -155,9 +157,11 @@ function DataExport({
           disabled={disabled || false}
           size={size}
           priority="default"
-          tooltipProps={{title: t(
-            "Put your data to work. Start your export and we'll email you when it's finished."
-          )}}
+          tooltipProps={{
+            title: t(
+              "Put your data to work. Start your export and we'll email you when it's finished."
+            ),
+          }}
           icon={icon}
         >
           {children ? children : t('Export All to CSV')}

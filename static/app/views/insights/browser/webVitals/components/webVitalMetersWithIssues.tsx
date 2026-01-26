@@ -172,9 +172,12 @@ function VitalMeter({
                 issues &&
                 issues.length > 0 &&
                 (issues.length === 1
-                  ? tct('There is 1 performance issue potentially affecting [webVital].', {
-                      webVital: webVital.toUpperCase(),
-                    })
+                  ? tct(
+                      'There is 1 performance issue potentially affecting [webVital].',
+                      {
+                        webVital: webVital.toUpperCase(),
+                      }
+                    )
                   : tct(
                       'There are [count] performance issues potentially affecting [webVital].',
                       {

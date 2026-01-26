@@ -1036,9 +1036,11 @@ class GSBanner extends Component<Props, State> {
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"
                     priority="default"
-                    tooltipProps={{title: t(
-                      'You can also resolve this warning by removing the deactivated members from your organization'
-                    )}}
+                    tooltipProps={{
+                      title: t(
+                        'You can also resolve this warning by removing the deactivated members from your organization'
+                      ),
+                    }}
                   >
                     {t('Snooze')}
                   </Button>

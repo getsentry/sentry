@@ -166,7 +166,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
           </Flex>
           {shouldShowRefreshButton ? (
             <Button
-              tooltipProps={{title: t('Replay is outdated. Refresh for latest activity.')}}
+              tooltipProps={{
+                title: t('Replay is outdated. Refresh for latest activity.'),
+              }}
               data-test-id="refresh-button"
               size="zero"
               priority="link"

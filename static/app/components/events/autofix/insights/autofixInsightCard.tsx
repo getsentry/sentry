@@ -222,7 +222,9 @@ export function AutofixInsightCard({
               <Button
                 size="zero"
                 borderless
-                tooltipProps={{title: isExpanded ? t('Hide evidence') : t('Show evidence')}}
+                tooltipProps={{
+                  title: isExpanded ? t('Hide evidence') : t('Show evidence'),
+                }}
                 icon={
                   <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
                 }

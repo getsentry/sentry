@@ -59,7 +59,7 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
       icon={<IconDownload />}
       href={`${state.region?.url}/api/0/_admin/cells/${state.region?.name}/payments/${row.id}/pdf/`}
       size="md"
-      tooltipProps={{title: "Download Invoice"}}
+      tooltipProps={{title: 'Download Invoice'}}
     />
   </td>,
 ];

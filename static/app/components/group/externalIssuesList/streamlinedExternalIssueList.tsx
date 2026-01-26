@@ -146,7 +146,9 @@ export function StreamlinedExternalIssueList({
                       icon={integration.displayIcon}
                       disabled={integration.disabled}
                       tooltipProps={{
-                        title: integration.disabled ? integration.disabledText : undefined,
+                        title: integration.disabled
+                          ? integration.disabledText
+                          : undefined,
                       }}
                       onClick={() => {
                         action.onClick();
@@ -165,7 +167,9 @@ export function StreamlinedExternalIssueList({
                       {...sharedButtonProps}
                       disabled={integration.disabled}
                       tooltipProps={{
-                        title: integration.disabled ? integration.disabledText : undefined,
+                        title: integration.disabled
+                          ? integration.disabledText
+                          : undefined,
                       }}
                       onClick={() => {
                         action.onClick();

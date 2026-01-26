@@ -139,7 +139,7 @@ class UsageTable extends Component<Props> {
         <ButtonBar>
           <Button
             icon={<IconGraph type="bar" />}
-            tooltipProps={{title: "Go to project level stats"}}
+            tooltipProps={{title: 'Go to project level stats'}}
             data-test-id={project.slug}
             size="xs"
             onClick={() => {

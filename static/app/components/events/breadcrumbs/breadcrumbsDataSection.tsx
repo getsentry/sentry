@@ -136,9 +136,11 @@ export default function BreadcrumbsDataSection({
       />
       <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
-        tooltipProps={{title: tct('Use [format] Timestamps', {
-          format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
-        })}}
+        tooltipProps={{
+          title: tct('Use [format] Timestamps', {
+            format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
+          }),
+        }}
         icon={
           timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
             <IconClock size="xs" />

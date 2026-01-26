@@ -92,7 +92,9 @@ function SetupMessagingIntegrationButton({
             tooltipProps={{
               title: disabled
                 ? disabledReason
-                : t('Send alerts to your messaging service. Install the integration now.'),
+                : t(
+                    'Send alerts to your messaging service. Install the integration now.'
+                  ),
             }}
             onClick={() => {
               openModal(
