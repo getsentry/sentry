@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -73,6 +75,7 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         other_timeseries = response.data["timeSeries"][1]
         assert other_timeseries["meta"]["isOther"]
 
+    @pytest.mark.skip(reason="flaky: #106091")
     def test_cross_trace_query_with_spans(self) -> None:
         trace_id = uuid.uuid4().hex
         excluded_trace_id = uuid.uuid4().hex
