@@ -291,9 +291,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert call_kwargs["sha"] == preprod_artifact.commit_comparison.head_sha
                 assert call_kwargs["title"] == "Size Analysis"
 
-                # IN_PROGRESS and FAILURE are converted to NEUTRAL to avoid blocking PR merges:
-                # - IN_PROGRESS: Can get stuck due to GitHub API rate limiting
-                # - FAILURE: No approval flow exists yet
+                # When no rules are configured, IN_PROGRESS and FAILURE are converted to NEUTRAL
+                # to avoid blocking PR merges. When rules exist, actual status is preserved.
                 if expected_status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
                     assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
                 else:
@@ -455,8 +454,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         assert call_kwargs["title"] == "Size Analysis"
         assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
-        # Mixed states include a FAILED artifact, but FAILURE is converted to NEUTRAL
-        # to avoid blocking PR merges (no approval flow exists yet)
+        # Mixed states include a FAILED artifact. With no rules configured,
+        # FAILURE is converted to NEUTRAL to avoid blocking PR merges.
         assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
 
         summary = call_kwargs["summary"]
@@ -1218,3 +1217,54 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert "size" in preprod_artifact.extras["posted_status_checks"]
         assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
         assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_67890"
+
+    def test_with_rules_configured_preserves_actual_status(self):
+        """Test that actual status is preserved when rules are configured.
+
+        When users configure rules, they want to see the real status (IN_PROGRESS, FAILURE, SUCCESS)
+        instead of having it converted to NEUTRAL.
+        """
+        # Configure a rule for this project (high threshold so it won't trigger)
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100000000000}]',
+        )
+
+        test_cases = [
+            (PreprodArtifact.ArtifactState.UPLOADING, StatusCheckStatus.IN_PROGRESS),
+            (PreprodArtifact.ArtifactState.FAILED, StatusCheckStatus.FAILURE),
+            (PreprodArtifact.ArtifactState.PROCESSED, StatusCheckStatus.SUCCESS),
+        ]
+
+        for artifact_state, expected_status in test_cases:
+            with self.subTest(state=artifact_state, expected=expected_status):
+                preprod_artifact = self._create_preprod_artifact(
+                    state=artifact_state,
+                    error_message=(
+                        "Error" if artifact_state == PreprodArtifact.ArtifactState.FAILED else None
+                    ),
+                    app_id=f"com.test.rules.{artifact_state.name.lower()}",
+                )
+
+                if artifact_state == PreprodArtifact.ArtifactState.PROCESSED:
+                    PreprodArtifactSizeMetrics.objects.create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                        min_download_size=1024 * 1024,
+                        max_download_size=1024 * 1024,
+                        min_install_size=2 * 1024 * 1024,
+                        max_install_size=2 * 1024 * 1024,
+                    )
+
+                _, mock_provider, client_patch, provider_patch = (
+                    self._create_working_status_check_setup(preprod_artifact)
+                )
+
+                with client_patch, provider_patch:
+                    with self.tasks():
+                        create_preprod_status_check_task(preprod_artifact.id)
+
+                mock_provider.create_status_check.assert_called_once()
+                call_kwargs = mock_provider.create_status_check.call_args.kwargs
+                assert call_kwargs["status"] == expected_status
