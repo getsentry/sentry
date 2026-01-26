@@ -755,118 +755,63 @@ def _diff_insight(
     if head_insight is None and base_insight is None:
         raise ValueError("Both head and base insights are None")
 
+    # Calculate savings values with safe defaults for None cases
+    head_savings = head_insight.total_savings if head_insight else 0
+    base_savings = base_insight.total_savings if base_insight else 0
+    total_savings_change = head_savings - base_savings
+
+    # Determine status based on presence of insights
     if head_insight is None:
-        # Should never happen, but here for mypy passing
-        assert base_insight is not None
         status = "resolved"
-        # Resolved insight - all items removed
-        total_savings_change = -base_insight.total_savings
-        head_files = []
-        base_files = base_insight.files if isinstance(base_insight, FilesInsightResult) else []
-        head_groups = []
-        base_groups = base_insight.groups if isinstance(base_insight, GroupsInsightResult) else []
-        head_optimizable_images = []
-        base_optimizable_images = (
-            base_insight.optimizable_files
-            if isinstance(base_insight, ImageOptimizationInsightResult)
-            else []
-        )
-        head_strip_binary_files = []
-        base_strip_binary_files = (
-            base_insight.files if isinstance(base_insight, StripBinaryInsightResult) else []
-        )
-
-        head_video_compression_files = []
-        base_video_compression_files = (
-            base_insight.files if isinstance(base_insight, VideoCompressionInsightResult) else []
-        )
     elif base_insight is None:
-        # Should never happen, but here for mypy passing
-        assert head_insight is not None
         status = "new"
-        # New insight - all items added
-        total_savings_change = head_insight.total_savings
-        head_files = head_insight.files if isinstance(head_insight, FilesInsightResult) else []
-        base_files = []
-        head_groups = head_insight.groups if isinstance(head_insight, GroupsInsightResult) else []
-        base_groups = []
-        head_optimizable_images = (
-            head_insight.optimizable_files
-            if isinstance(head_insight, ImageOptimizationInsightResult)
-            else []
-        )
-        base_optimizable_images = []
-        head_strip_binary_files = (
-            head_insight.files if isinstance(head_insight, StripBinaryInsightResult) else []
-        )
-        base_strip_binary_files = []
-
-        head_video_compression_files = (
-            head_insight.files if isinstance(head_insight, VideoCompressionInsightResult) else []
-        )
-        base_video_compression_files = []
     else:
         status = "unresolved"
-        # Unresolved insight - compare both
-        total_savings_change = head_insight.total_savings - base_insight.total_savings
-        head_files = head_insight.files if isinstance(head_insight, FilesInsightResult) else []
-        base_files = base_insight.files if isinstance(base_insight, FilesInsightResult) else []
-        head_groups = head_insight.groups if isinstance(head_insight, GroupsInsightResult) else []
-        base_groups = base_insight.groups if isinstance(base_insight, GroupsInsightResult) else []
-        head_optimizable_images = (
-            head_insight.optimizable_files
-            if isinstance(head_insight, ImageOptimizationInsightResult)
-            else []
-        )
-        base_optimizable_images = (
-            base_insight.optimizable_files
-            if isinstance(base_insight, ImageOptimizationInsightResult)
-            else []
-        )
-        head_strip_binary_files = (
-            head_insight.files if isinstance(head_insight, StripBinaryInsightResult) else []
-        )
-        base_strip_binary_files = (
-            base_insight.files if isinstance(base_insight, StripBinaryInsightResult) else []
-        )
 
-        head_video_compression_files = (
-            head_insight.files if isinstance(head_insight, VideoCompressionInsightResult) else []
-        )
-        base_video_compression_files = (
-            base_insight.files if isinstance(base_insight, VideoCompressionInsightResult) else []
-        )
-
+    # Use whichever insight is present to determine the comparison type
+    reference_insight = head_insight or base_insight
     file_diffs: list[DiffItem] = []
     group_diffs: list[DiffItem] = []
 
-    if head_files or base_files:
+    if isinstance(reference_insight, FilesInsightResult):
+        head_files = head_insight.files if isinstance(head_insight, FilesInsightResult) else []
+        base_files = base_insight.files if isinstance(base_insight, FilesInsightResult) else []
         file_diffs = _compare_files(head_files, base_files)
-        # If no file diffs, we don't want to show an irrelevant insight diff item
-        if len(file_diffs) == 0:
-            return None
-    elif head_groups or base_groups:
+    elif isinstance(reference_insight, GroupsInsightResult):
+        head_groups = head_insight.groups if isinstance(head_insight, GroupsInsightResult) else []
+        base_groups = base_insight.groups if isinstance(base_insight, GroupsInsightResult) else []
         group_diffs = _compare_groups(head_groups, base_groups)
-        # If no group diffs, we don't want to show an irrelevant insight diff item
-        if len(group_diffs) == 0:
-            return None
-    elif head_optimizable_images or base_optimizable_images:
-        file_diffs = _compare_optimizable_images(head_optimizable_images, base_optimizable_images)
-        # If no file diffs, we don't want to show an irrelevant insight diff item
-        if len(file_diffs) == 0:
-            return None
-    elif head_strip_binary_files or base_strip_binary_files:
-        file_diffs = _compare_strip_binary_files(head_strip_binary_files, base_strip_binary_files)
-        # If no file diffs, we don't want to show an irrelevant insight diff item
-        if len(file_diffs) == 0:
-            return None
-    elif head_video_compression_files or base_video_compression_files:
-        file_diffs = _compare_video_compression_files(
-            head_video_compression_files, base_video_compression_files
+    elif isinstance(reference_insight, ImageOptimizationInsightResult):
+        head_images = (
+            head_insight.optimizable_files
+            if isinstance(head_insight, ImageOptimizationInsightResult)
+            else []
         )
-        # If no file diffs, we don't want to show an irrelevant insight diff item
-        if len(file_diffs) == 0:
-            return None
+        base_images = (
+            base_insight.optimizable_files
+            if isinstance(base_insight, ImageOptimizationInsightResult)
+            else []
+        )
+        file_diffs = _compare_optimizable_images(head_images, base_images)
+    elif isinstance(reference_insight, StripBinaryInsightResult):
+        head_binaries = (
+            head_insight.files if isinstance(head_insight, StripBinaryInsightResult) else []
+        )
+        base_binaries = (
+            base_insight.files if isinstance(base_insight, StripBinaryInsightResult) else []
+        )
+        file_diffs = _compare_strip_binary_files(head_binaries, base_binaries)
+    elif isinstance(reference_insight, VideoCompressionInsightResult):
+        head_videos = (
+            head_insight.files if isinstance(head_insight, VideoCompressionInsightResult) else []
+        )
+        base_videos = (
+            base_insight.files if isinstance(base_insight, VideoCompressionInsightResult) else []
+        )
+        file_diffs = _compare_video_compression_files(head_videos, base_videos)
+
+    if not file_diffs and not group_diffs:
+        return None
 
     return InsightDiffItem(
         insight_type=insight_type,
