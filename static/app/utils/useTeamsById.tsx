@@ -3,6 +3,7 @@ import {useEffect, useMemo} from 'react';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,13 +36,17 @@ function buildTeamsQueryKey(
 ): ApiQueryKey {
   if (property === 'id') {
     return [
-      `/organizations/${orgSlug}/teams/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
       {query: {query: values.map(id => `id:${id}`).join(' ')}},
     ];
   }
 
   return [
-    `/organizations/${orgSlug}/teams/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {query: {query: `slug:${values.join(',')}`}},
   ];
 }
@@ -89,7 +94,11 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
         teamQueryValues.property,
         missingValues ?? []
       )
-    : ([`/organizations/${organization?.slug}/teams/`] as const);
+    : ([
+        getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+          path: {organizationIdOrSlug: organization?.slug!},
+        }),
+      ] as const);
 
   const {
     data: additionalTeams = [],

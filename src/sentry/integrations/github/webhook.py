@@ -10,6 +10,7 @@ from datetime import timezone
 from typing import Any, Protocol
 
 import orjson
+import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -1105,10 +1106,19 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         event_handler = handler()
 
-        with IntegrationWebhookEvent(
-            interaction_type=event_handler.event_type,
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event, github_event=github_event)
+        # Create a new transaction for each webhook event to ensure separate traces
+        transaction_name = f"github.webhook.{github_event.value}"
+        with sentry_sdk.start_transaction(
+            op="webhook",
+            name=transaction_name,
+            source="component",
+        ) as transaction:
+            transaction.set_tag("github_event", github_event.value)
+
+            with IntegrationWebhookEvent(
+                interaction_type=event_handler.event_type,
+                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                provider_key=event_handler.provider,
+            ).capture():
+                event_handler(event, github_event=github_event)
         return HttpResponse(status=204)

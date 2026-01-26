@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
@@ -34,11 +35,12 @@ const usePopulateLinkedDashboards = (dashboard?: PrebuiltDashboard) => {
   );
 
   const hasLinkedDashboards = prebuiltIds.length > 0;
-  const path = `/organizations/${organization.slug}/dashboards/`;
 
   const {data, isLoading} = useApiQuery<DashboardDetails[]>(
     [
-      path,
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {prebuiltId: prebuiltIds.sort()},
       },
