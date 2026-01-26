@@ -221,7 +221,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request, organization):
         """
-        ⚠️ This endpoint is currently in **beta**. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
         Returns a list of alerts for a given organization
         """
@@ -307,7 +307,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     )
     def post(self, request, organization):
         """
-        ⚠️ This endpoint is currently in **beta**. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
         Creates an alert for an organization
         """
@@ -364,7 +364,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     )
     def put(self, request, organization):
         """
-        ⚠️ This endpoint is currently in **beta**. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
         Bulk enable or disable alerts for a given Organization
         """
@@ -425,7 +425,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     )
     def delete(self, request, organization):
         """
-        ⚠️ This endpoint is currently in **beta**. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
         Bulk delete alerts for a given organization
         """

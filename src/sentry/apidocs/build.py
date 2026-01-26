@@ -157,7 +157,7 @@ OPENAPI_TAGS = [
     {
         "name": "Monitors",
         "x-sidebar-name": "Monitors & Alerts",
-        "description": "⚠️ These endpoints are currently in **beta**. They are supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.",
+        "description": "⚠️ These endpoints are currently in **beta** and may be subject to change. They are supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.",
         "x-display-description": True,
         "externalDocs": {
             "description": "Found an error? Let us know.",
