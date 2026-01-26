@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -57,7 +59,11 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
     <Fragment>
       {gaps.map(rangeCss => {
         return (
-          <Range key={`${rangeCss.left}-${rangeCss.width}`} style={rangeCss}>
+          <Container
+            position="absolute"
+            key={`${rangeCss.left}-${rangeCss.width}`}
+            style={rangeCss}
+          >
             <Tooltip
               title={t('Video Unavailable')}
               isHoverable
@@ -66,16 +72,12 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
             >
               <Gap />
             </Tooltip>
-          </Range>
+          </Container>
         );
       })}
     </Fragment>
   );
 }
-
-const Range = styled('div')`
-  position: absolute;
-`;
 
 const Gap = styled('div')`
   background: ${p => p.theme.colors.gray500};

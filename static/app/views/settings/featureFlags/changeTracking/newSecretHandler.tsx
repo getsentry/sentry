@@ -1,6 +1,8 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -30,7 +32,7 @@ function NewSecretHandler({
       </Alert>
 
       <StyledPanelItem>
-        <InputWrapper>
+        <Container flex="1">
           <StyledFieldGroup
             label={t('Webhook URL')}
             help={tct(
@@ -64,7 +66,7 @@ function NewSecretHandler({
           >
             <TextCopyInput aria-label={t('Secret')}>{secret}</TextCopyInput>
           </StyledFieldGroup>
-        </InputWrapper>
+        </Container>
       </StyledPanelItem>
 
       <StyledPanelItem>
@@ -77,10 +79,6 @@ function NewSecretHandler({
     </div>
   );
 }
-
-const InputWrapper = styled('div')`
-  flex: 1;
-`;
 
 const StyledFieldGroup = styled(FieldGroup)`
   padding: ${space(1)};
