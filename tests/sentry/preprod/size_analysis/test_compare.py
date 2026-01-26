@@ -7,7 +7,11 @@ from sentry.preprod.size_analysis.insight_models import (
     DuplicateFilesInsightResult,
     FileSavingsResult,
     FileSavingsResultGroup,
+    ImageOptimizationInsightResult,
     LargeImageFileInsightResult,
+    OptimizableImageFile,
+    StripBinaryFileInfo,
+    StripBinaryInsightResult,
     WebPOptimizationInsightResult,
 )
 from sentry.preprod.size_analysis.models import (
@@ -1306,13 +1310,17 @@ class CompareInsightsTest(TestCase):
         insights: AndroidInsightResults | AppleInsightResults | None = None,
         analysis_version="1.0.0",
     ):
-        return SizeAnalysisResults(
+        # Use construct() to bypass Pydantic union coercion which would
+        # otherwise convert AppleInsightResults to AndroidInsightResults
+        return SizeAnalysisResults.construct(
             analysis_duration=1.0,
             download_size=500,
             install_size=1000,
             treemap=None,
             insights=insights,
             analysis_version=analysis_version,
+            file_analysis=None,
+            app_components=None,
         )
 
     def test_compare_insights_new_insight_in_head(self):
@@ -2100,3 +2108,233 @@ class CompareInsightsTest(TestCase):
 
         # No insight diff items should be returned
         assert len(result.insight_diff_items) == 0
+
+    def test_compare_insights_image_optimization_with_diffs(self):
+        """Test ImageOptimizationInsightResult with file-level differences."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head: icon.png (increased), banner.png (new)
+        # Base: icon.png (original), logo.png (removed)
+        head_insights = AppleInsightResults(
+            duplicate_files=None,
+            large_images=None,
+            large_audios=None,
+            large_videos=None,
+            strip_binary=None,
+            localized_strings_minify=None,
+            small_files=None,
+            loose_images=None,
+            hermes_debug_info=None,
+            image_optimization=ImageOptimizationInsightResult(
+                total_savings=6000,
+                optimizable_files=[
+                    OptimizableImageFile(
+                        file_path="/path/icon.png",
+                        current_size=10000,
+                        minify_savings=3000,
+                        conversion_savings=4000,
+                    ),
+                    OptimizableImageFile(
+                        file_path="/path/banner.png",
+                        current_size=5000,
+                        minify_savings=2000,
+                        conversion_savings=1000,
+                    ),
+                ],
+            ),
+            main_binary_exported_symbols=None,
+            unnecessary_files=None,
+            audio_compression=None,
+            video_compression=None,
+            alternate_icons_optimization=None,
+        )
+        base_insights = AppleInsightResults(
+            duplicate_files=None,
+            large_images=None,
+            large_audios=None,
+            large_videos=None,
+            strip_binary=None,
+            localized_strings_minify=None,
+            small_files=None,
+            loose_images=None,
+            hermes_debug_info=None,
+            image_optimization=ImageOptimizationInsightResult(
+                total_savings=5000,
+                optimizable_files=[
+                    OptimizableImageFile(
+                        file_path="/path/icon.png",
+                        current_size=10000,
+                        minify_savings=2000,
+                        conversion_savings=2000,
+                    ),
+                    OptimizableImageFile(
+                        file_path="/path/logo.png",
+                        current_size=6000,
+                        minify_savings=1000,
+                        conversion_savings=3000,
+                    ),
+                ],
+            ),
+            main_binary_exported_symbols=None,
+            unnecessary_files=None,
+            audio_compression=None,
+            video_compression=None,
+            alternate_icons_optimization=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "image_optimization"
+        assert insight_diff.status == "unresolved"
+        assert insight_diff.total_savings_change == 1000
+
+        # Should have 3 file diffs: icon.png increased, banner.png added, logo.png removed
+        assert len(insight_diff.file_diffs) == 3
+        file_diffs_by_path = {d.path: d for d in insight_diff.file_diffs}
+
+        # icon.png - increased (potential_savings: 2000 -> 4000)
+        assert file_diffs_by_path["/path/icon.png"].type.value == "increased"
+        assert file_diffs_by_path["/path/icon.png"].size_diff == 2000
+
+        # banner.png - added (potential_savings: 2000)
+        assert file_diffs_by_path["/path/banner.png"].type.value == "added"
+        assert file_diffs_by_path["/path/banner.png"].size_diff == 2000
+
+        # logo.png - removed (potential_savings: 3000)
+        assert file_diffs_by_path["/path/logo.png"].type.value == "removed"
+        assert file_diffs_by_path["/path/logo.png"].size_diff == -3000
+
+    def test_compare_insights_strip_binary_with_diffs(self):
+        """Test StripBinaryInsightResult with file-level differences."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head: MyApp (increased), NewFramework (added)
+        # Base: MyApp (original), OldFramework (removed)
+        head_insights = AppleInsightResults(
+            duplicate_files=None,
+            large_images=None,
+            large_audios=None,
+            large_videos=None,
+            strip_binary=StripBinaryInsightResult(
+                total_savings=18000,
+                files=[
+                    StripBinaryFileInfo(
+                        file_path="/path/MyApp",
+                        debug_sections_savings=8000,
+                        symbol_table_savings=4000,
+                        total_savings=12000,
+                    ),
+                    StripBinaryFileInfo(
+                        file_path="/path/NewFramework",
+                        debug_sections_savings=4000,
+                        symbol_table_savings=2000,
+                        total_savings=6000,
+                    ),
+                ],
+                total_debug_sections_savings=12000,
+                total_symbol_table_savings=6000,
+            ),
+            localized_strings_minify=None,
+            small_files=None,
+            loose_images=None,
+            hermes_debug_info=None,
+            image_optimization=None,
+            main_binary_exported_symbols=None,
+            unnecessary_files=None,
+            audio_compression=None,
+            video_compression=None,
+            alternate_icons_optimization=None,
+        )
+        base_insights = AppleInsightResults(
+            duplicate_files=None,
+            large_images=None,
+            large_audios=None,
+            large_videos=None,
+            strip_binary=StripBinaryInsightResult(
+                total_savings=15000,
+                files=[
+                    StripBinaryFileInfo(
+                        file_path="/path/MyApp",
+                        debug_sections_savings=6000,
+                        symbol_table_savings=4000,
+                        total_savings=10000,
+                    ),
+                    StripBinaryFileInfo(
+                        file_path="/path/OldFramework",
+                        debug_sections_savings=3000,
+                        symbol_table_savings=2000,
+                        total_savings=5000,
+                    ),
+                ],
+                total_debug_sections_savings=9000,
+                total_symbol_table_savings=6000,
+            ),
+            localized_strings_minify=None,
+            small_files=None,
+            loose_images=None,
+            hermes_debug_info=None,
+            image_optimization=None,
+            main_binary_exported_symbols=None,
+            unnecessary_files=None,
+            audio_compression=None,
+            video_compression=None,
+            alternate_icons_optimization=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "strip_binary"
+        assert insight_diff.status == "unresolved"
+        assert insight_diff.total_savings_change == 3000
+
+        # Should have 3 file diffs: MyApp increased, NewFramework added, OldFramework removed
+        assert len(insight_diff.file_diffs) == 3
+        file_diffs_by_path = {d.path: d for d in insight_diff.file_diffs}
+
+        # MyApp - increased (10000 -> 12000)
+        assert file_diffs_by_path["/path/MyApp"].type.value == "increased"
+        assert file_diffs_by_path["/path/MyApp"].size_diff == 2000
+
+        # NewFramework - added (6000)
+        assert file_diffs_by_path["/path/NewFramework"].type.value == "added"
+        assert file_diffs_by_path["/path/NewFramework"].size_diff == 6000
+
+        # OldFramework - removed (5000)
+        assert file_diffs_by_path["/path/OldFramework"].type.value == "removed"
+        assert file_diffs_by_path["/path/OldFramework"].size_diff == -5000
