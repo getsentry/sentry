@@ -75,15 +75,23 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
 
                 # Filter out device.class from tags since it's already specified as a field in the frontend.
                 # This prevents the tag from being displayed twice.
-                results = [tag for tag in results if tag.key != "device.class"]
+                final_results = []
+                for tag in results:
+                    if tag.key == "device.class":
+                        continue
+                    # the events dataset has special handling of the column "status" that breaks when users also send
+                    # the tag "status". So we need to be explicit its a tag in these cases
+                    elif dataset == Dataset.Events and tag.key == "status":
+                        tag.key = "tags[status]"
+                    final_results.append(tag)
 
                 # Setting the tag for now since the measurement is still experimental
-                sentry_sdk.set_tag("custom_tags.count", len(results))
+                sentry_sdk.set_tag("custom_tags.count", len(final_results))
                 sentry_sdk.set_tag(
                     "custom_tags.count.grouped",
-                    format_grouped_length(len(results), [1, 10, 50, 100]),
+                    format_grouped_length(len(final_results), [1, 10, 50, 100]),
                 )
                 sentry_sdk.set_tag("dataset_queried", dataset.value)
-                set_span_attribute("custom_tags.count", len(results))
+                set_span_attribute("custom_tags.count", len(final_results))
 
-        return Response(serialize(results, request.user))
+        return Response(serialize(final_results, request.user))
