@@ -165,15 +165,8 @@ export function useTraceMetricsSeriesQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result =
-                    await fetchDataQuery<TraceMetricsSeriesResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<TraceMetricsSeriesResponse>(context).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
@@ -348,14 +341,8 @@ export function useTraceMetricsTableQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchDataQuery<TraceMetricsTableResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<TraceMetricsTableResponse>(context).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
