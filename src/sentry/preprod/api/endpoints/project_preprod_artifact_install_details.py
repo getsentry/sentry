@@ -85,6 +85,9 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
             "release_notes": (
                 head_artifact.extras.get("release_notes") if head_artifact.extras else None
             ),
+            "install_groups": (
+                head_artifact.extras.get("install_groups") if head_artifact.extras else None
+            ),
         }
 
         # Only include iOS-specific fields for iOS apps
