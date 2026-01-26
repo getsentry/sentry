@@ -203,7 +203,7 @@ def test_unity(make_ctx_snapshot) -> None:
 
 
 def test_reserved_context_alias_self() -> None:
-    """Test that reserved Python keywords like 'self' are filtered out when used as context alias."""
+    """Test that 'self' can be used as a context alias without causing TypeError."""
     # Data with 'self' as a context alias (not as a key within context data)
     data = {
         "self": {
@@ -222,9 +222,11 @@ def test_reserved_context_alias_self() -> None:
     # Verify result exists
     assert result is not None
 
-    # Verify 'self' context was excluded
-    assert "self" not in result._data
+    # Verify 'self' context is now preserved (was previously filtered out)
+    json_data = result.to_json()
+    assert "self" in json_data
+    assert json_data["self"]["some_key"] == "some_value"
 
     # Verify valid_context was preserved
-    assert "valid_context" in result._data
-    assert result._data["valid_context"].data["valid_key"] == "valid_value"
+    assert "valid_context" in json_data
+    assert json_data["valid_context"]["valid_key"] == "valid_value"
