@@ -80,7 +80,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     try:
         attributes["sentry.duration_ms"] = AnyValue(
-            double_value=1000.0 * (span["end_timestamp"] - span["start_timestamp"])
+            double_value=round(1000.0 * (span["end_timestamp"] - span["start_timestamp"]), 6)
         )
     except Exception:
         sentry_sdk.capture_exception()
