@@ -2417,41 +2417,40 @@ function buildRoutes(): RouteObject[] {
     children: exploreChildren,
   };
 
-  const codecovChildren: SentryRouteObject[] = [
-    {
-      index: true,
-      redirectTo: 'ai-code-review/new/',
-    },
-    {
-      path: 'tests/',
-      component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/prevent/tests/tests')),
-        },
-        {
-          path: 'new/',
-          component: make(() => import('sentry/views/prevent/tests/onboarding')),
-        },
-      ],
-    },
-    {
-      path: 'tokens/',
-      component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/prevent/tokens/tokens')),
-        },
-      ],
-    },
-  ];
   const preventRoutes: SentryRouteObject = {
     path: '/prevent/',
     withOrgPath: true,
     component: make(() => import('sentry/views/prevent/index')),
-    children: codecovChildren,
+    children: [
+      {
+        index: true,
+        redirectTo: 'ai-code-review/new/',
+      },
+      {
+        path: 'tests/',
+        component: make(() => import('sentry/views/prevent/tests/testsWrapper')),
+        children: [
+          {
+            index: true,
+            component: make(() => import('sentry/views/prevent/tests/tests')),
+          },
+          {
+            path: 'new/',
+            component: make(() => import('sentry/views/prevent/tests/onboarding')),
+          },
+        ],
+      },
+      {
+        path: 'tokens/',
+        component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
+        children: [
+          {
+            index: true,
+            component: make(() => import('sentry/views/prevent/tokens/tokens')),
+          },
+        ],
+      },
+    ],
   };
 
   const preprodChildren: SentryRouteObject[] = [

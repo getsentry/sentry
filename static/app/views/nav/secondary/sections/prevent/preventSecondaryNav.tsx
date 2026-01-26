@@ -2,22 +2,32 @@ import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
-import {makePreventPathname} from 'sentry/views/prevent/pathnames';
-import {TESTS_BASE_URL, TOKENS_BASE_URL} from 'sentry/views/prevent/settings';
+
+function makePreventPathname({
+  path,
+  organization,
+}: {
+  organization: Organization;
+  path: '/' | `/${string}/`;
+}) {
+  return normalizeUrl(`/organizations/${organization.slug}/prevent${path}`);
+}
 
 export default function PreventSecondaryNav() {
   const organization = useOrganization();
   const testsPathname = makePreventPathname({
     organization,
-    path: `/${TESTS_BASE_URL}/`,
+    path: `/tests/`,
   });
   const tokensPathName = makePreventPathname({
     organization,
-    path: `/${TOKENS_BASE_URL}/`,
+    path: `/tokens/`,
   });
 
   return (

@@ -33,7 +33,6 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-import {PREVENT_BASE_URL, TESTS_BASE_URL} from 'sentry/views/prevent/settings';
 
 function SidebarBody({
   children,
@@ -156,8 +155,8 @@ export function PrimaryNavigationItems() {
           {showPreventNav(organization) ? (
             <Container position="relative" height="100%">
               <SidebarLink
-                to={`/${prefix}/${PREVENT_BASE_URL}/${TESTS_BASE_URL}/`}
-                activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                to={`/${prefix}/prevent/tests/`}
+                activeTo={`/${prefix}/prevent/`}
                 analyticsKey="prevent"
                 group={PrimaryNavGroup.PREVENT}
                 {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
