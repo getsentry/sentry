@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
+from django.db.models import Window
+from django.db.models.functions import RowNumber
+
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
@@ -25,7 +28,6 @@ class Log(StrEnum):
     MISSING_EXTERNAL_ID = "preprod.webhook.check_run.missing_external_id"
     INVALID_EXTERNAL_ID = "preprod.webhook.check_run.invalid_external_id"
     ARTIFACT_NOT_FOUND = "preprod.webhook.check_run.artifact_not_found"
-    ORGANIZATION_MISMATCH = "preprod.webhook.check_run.organization_mismatch"
     APPROVAL_ALREADY_EXISTS = "preprod.webhook.check_run.approval_already_exists"
     APPROVALS_CREATED = "preprod.webhook.check_run.approvals_created"
 
@@ -74,7 +76,7 @@ def handle_preprod_check_run_event(
     extra = {
         "organization_id": organization.id,
         "external_id": external_id,
-        "sender_login": sender.get("login"),
+        "sender_id": sender.get("id"),
         "action": action,
         "identifier": identifier,
     }
@@ -99,25 +101,13 @@ def handle_preprod_check_run_event(
     try:
         artifact = PreprodArtifact.objects.select_related(
             "project__organization", "commit_comparison"
-        ).get(id=artifact_id)
+        ).get(id=artifact_id, project__organization=organization)
     except PreprodArtifact.DoesNotExist:
         logger.warning(
             Log.ARTIFACT_NOT_FOUND,
             extra={**extra, "artifact_id": artifact_id},
         )
         metrics.incr(Log.ARTIFACT_NOT_FOUND)
-        return
-
-    if artifact.project.organization_id != organization.id:
-        logger.warning(
-            Log.ORGANIZATION_MISMATCH,
-            extra={
-                **extra,
-                "artifact_org_id": artifact.project.organization_id,
-                "webhook_org_id": organization.id,
-            },
-        )
-        metrics.incr(Log.ORGANIZATION_MISMATCH)
         return
 
     sibling_artifacts = artifact.get_sibling_artifacts_for_commit()
@@ -127,15 +117,29 @@ def handle_preprod_check_run_event(
     approvals_created = 0
     github_user_info = {"github": {"id": sender.get("id"), "login": sender.get("login")}}
 
-    for sibling in sibling_artifacts:
-        latest_approval = (
-            PreprodComparisonApproval.objects.filter(
-                preprod_artifact=sibling,
-                preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
-            )
-            .order_by("-id")
-            .first()
+    # Single query: get latest approval per artifact using window function
+    sibling_ids = [s.id for s in sibling_artifacts]
+    latest_approvals_qs = (
+        PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=sibling_ids,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
         )
+        .annotate(
+            row_num=Window(
+                expression=RowNumber(),
+                partition_by=["preprod_artifact_id"],
+                order_by=["-id"],
+            )
+        )
+        .filter(row_num=1)
+    )
+
+    latest_approval_by_artifact = {
+        approval.preprod_artifact_id: approval for approval in latest_approvals_qs
+    }
+
+    for sibling in sibling_artifacts:
+        latest_approval = latest_approval_by_artifact.get(sibling.id)
 
         if latest_approval:
             existing_github_id = (latest_approval.extras or {}).get("github", {}).get("id")

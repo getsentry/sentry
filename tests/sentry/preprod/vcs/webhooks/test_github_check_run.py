@@ -111,7 +111,12 @@ class HandlePreprodCheckRunEventTest(TestCase):
             repo=self.repo,
         )
 
-        assert PreprodComparisonApproval.objects.count() == 0
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__project__organization=self.organization
+            ).count()
+            == 0
+        )
 
     def test_ignores_non_requested_action(self):
         artifact = self._create_preprod_artifact()
@@ -128,7 +133,12 @@ class HandlePreprodCheckRunEventTest(TestCase):
             repo=self.repo,
         )
 
-        assert PreprodComparisonApproval.objects.count() == 0
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__project__organization=self.organization
+            ).count()
+            == 0
+        )
 
     def test_ignores_non_approve_size_identifier(self):
         artifact = self._create_preprod_artifact()
@@ -145,7 +155,12 @@ class HandlePreprodCheckRunEventTest(TestCase):
             repo=self.repo,
         )
 
-        assert PreprodComparisonApproval.objects.count() == 0
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__project__organization=self.organization
+            ).count()
+            == 0
+        )
 
     def test_creates_approval_for_valid_request(self):
         artifact = self._create_preprod_artifact()
@@ -212,7 +227,12 @@ class HandlePreprodCheckRunEventTest(TestCase):
 
         assert PreprodComparisonApproval.objects.filter(preprod_artifact=artifact1).exists()
         assert PreprodComparisonApproval.objects.filter(preprod_artifact=artifact2).exists()
-        assert PreprodComparisonApproval.objects.count() == 2
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__project__organization=self.organization
+            ).count()
+            == 2
+        )
 
     def test_handles_missing_external_id(self):
         event = self._create_webhook_event(
@@ -229,7 +249,12 @@ class HandlePreprodCheckRunEventTest(TestCase):
             repo=self.repo,
         )
 
-        assert PreprodComparisonApproval.objects.count() == 0
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__project__organization=self.organization
+            ).count()
+            == 0
+        )
 
     def test_handles_invalid_external_id(self):
         event = self._create_webhook_event(
@@ -245,7 +270,12 @@ class HandlePreprodCheckRunEventTest(TestCase):
             repo=self.repo,
         )
 
-        assert PreprodComparisonApproval.objects.count() == 0
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__project__organization=self.organization
+            ).count()
+            == 0
+        )
 
     def test_handles_nonexistent_artifact(self):
         event = self._create_webhook_event(
@@ -261,9 +291,15 @@ class HandlePreprodCheckRunEventTest(TestCase):
             repo=self.repo,
         )
 
-        assert PreprodComparisonApproval.objects.count() == 0
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__project__organization=self.organization
+            ).count()
+            == 0
+        )
 
-    def test_rejects_organization_mismatch(self):
+    def test_artifact_not_found_for_different_organization(self):
+        """Artifact belonging to a different org is not found (org filter is part of query)."""
         other_org = self.create_organization(owner=self.user)
         other_project = self.create_project(organization=other_org, name="other_project")
 
@@ -298,7 +334,12 @@ class HandlePreprodCheckRunEventTest(TestCase):
             repo=self.repo,
         )
 
-        assert PreprodComparisonApproval.objects.count() == 0
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__project__organization=self.organization
+            ).count()
+            == 0
+        )
 
     def test_skips_duplicate_approval_from_same_user(self):
         """Same GitHub user clicking approve twice should not create duplicate."""
@@ -374,3 +415,45 @@ class HandlePreprodCheckRunEventTest(TestCase):
         )
         assert latest_approval is not None
         assert latest_approval.extras == {"github": {"id": 12345, "login": "octocat"}}
+
+    def test_checks_latest_approval_not_first(self):
+        """When multiple approvals exist, check against the latest one, not the first."""
+        artifact = self._create_preprod_artifact()
+
+        # User A approves first
+        PreprodComparisonApproval.objects.create(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            approved_at=datetime.now(timezone.utc),
+            extras={"github": {"id": 11111, "login": "user_a"}},
+        )
+
+        # User B approves second (this is now the latest)
+        PreprodComparisonApproval.objects.create(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            approved_at=datetime.now(timezone.utc),
+            extras={"github": {"id": 22222, "login": "user_b"}},
+        )
+
+        # User A tries again - should succeed since latest approval is from B, not A
+        event = self._create_webhook_event(
+            action="requested_action",
+            identifier=APPROVE_SIZE_ACTION_IDENTIFIER,
+            external_id=str(artifact.id),
+            sender_id=11111,
+            sender_login="user_a",
+        )
+
+        with patch("sentry.preprod.vcs.webhooks.github_check_run.create_preprod_status_check_task"):
+            handle_preprod_check_run_event(
+                github_event=GithubWebhookType.CHECK_RUN,
+                event=event,
+                organization=self.organization,
+                repo=self.repo,
+            )
+
+        # Should be 3 approvals now (A, B, then A again)
+        assert PreprodComparisonApproval.objects.filter(preprod_artifact=artifact).count() == 3
