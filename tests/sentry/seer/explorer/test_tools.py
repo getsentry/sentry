@@ -997,14 +997,21 @@ class TestGetIssueAndEventDetailsV2(
 ):
     """Integration tests for the get_issue_and_event_details RPC."""
 
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def _test_get_ie_details_from_issue_id(
         self,
         mock_get_tags,
+        mock_get_timeseries,
         expected_event_idx: int,
         include_issue: bool = True,
         **kwargs,
     ):
+        mock_get_timeseries.return_value = (
+            {"count()": {"data": []}},
+            "6h",
+            "15m",
+        )
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
         # Mock spans for the first 2 events' traces.
@@ -1070,7 +1077,11 @@ class TestGetIssueAndEventDetailsV2(
             # Validate issues fields
             if include_issue:
                 assert result["tags_overview"] == mock_get_tags.return_value
-                _validate_event_timeseries(result["event_timeseries"], expected_total=3)
+                assert (
+                    result["event_timeseries"],
+                    result["timeseries_stats_period"],
+                    result["timeseries_interval"],
+                ) == mock_get_timeseries.return_value
                 assert isinstance(result["issue"], dict)
                 _IssueMetadata.parse_obj(result["issue"])
             else:
@@ -1125,12 +1136,19 @@ class TestGetIssueAndEventDetailsV2(
             end=before_now(days=0).isoformat(),
         )
 
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def test_get_ie_details_from_issue_id_no_valid_events(
         self,
         mock_get_tags,
+        mock_get_timeseries,
     ):
         """Test an event is still returned when no events have a trace/spans."""
+        mock_get_timeseries.return_value = (
+            {"count()": {"data": []}},
+            "6h",
+            "15m",
+        )
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
         # Create events with shared stacktrace (should have same group)
@@ -1155,7 +1173,7 @@ class TestGetIssueAndEventDetailsV2(
 
             # Validate issues fields
             assert result["tags_overview"] == mock_get_tags.return_value
-            _validate_event_timeseries(result["event_timeseries"], expected_total=3)
+            assert result["event_timeseries"] == mock_get_timeseries.return_value[0]
             assert isinstance(result["issue"], dict)
             _IssueMetadata.parse_obj(result["issue"])
 
@@ -1168,12 +1186,19 @@ class TestGetIssueAndEventDetailsV2(
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def test_get_ie_details_from_issue_id_single_event(
         self,
         mock_get_tags,
+        mock_get_timeseries,
     ):
         """Test non-empty result for an issue with a single event."""
+        mock_get_timeseries.return_value = (
+            {"count()": {"data": []}},
+            "6h",
+            "15m",
+        )
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
         # Mock spans.
@@ -1213,7 +1238,7 @@ class TestGetIssueAndEventDetailsV2(
 
             # Validate issues fields
             assert result["tags_overview"] == mock_get_tags.return_value
-            _validate_event_timeseries(result["event_timeseries"], expected_total=1)
+            assert result["event_timeseries"] == mock_get_timeseries.return_value[0]
             assert isinstance(result["issue"], dict)
             _IssueMetadata.parse_obj(result["issue"])
 
@@ -1226,12 +1251,19 @@ class TestGetIssueAndEventDetailsV2(
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
+    @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def _test_get_ie_details_from_event_id(
         self,
         mock_get_tags,
+        mock_get_timeseries,
         include_issue: bool,
     ):
+        mock_get_timeseries.return_value = (
+            {"count()": {"data": []}},
+            "6h",
+            "15m",
+        )
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
         # Create events with shared stacktrace (should have same group)
@@ -1261,7 +1293,7 @@ class TestGetIssueAndEventDetailsV2(
         # Validate issues fields
         if include_issue:
             assert result["tags_overview"] == mock_get_tags.return_value
-            _validate_event_timeseries(result["event_timeseries"], expected_total=3)
+            assert result["event_timeseries"] == mock_get_timeseries.return_value[0]
             assert isinstance(result["issue"], dict)
             _IssueMetadata.parse_obj(result["issue"])
         else:
@@ -1370,12 +1402,12 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
 
     @patch("sentry.seer.explorer.tools.client")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
-    def test_get_ie_response_timeseries_resolution(
+    def test_get_ie_response_timeseries_no_start_end(
         self,
         mock_get_tags,
         mock_api_client,
     ):
-        """Test timeseries resolution for groups with different first_seen dates"""
+        """Test timeseries response for different resolutions and group first_seen dates"""
         mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
 
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
@@ -1394,14 +1426,16 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             event = self.store_event(data=data, project_id=self.project.id)
 
-            # Second newer event
-            data = load_data("python", timestamp=first_seen + timedelta(minutes=6, seconds=7))
+            # Second event that just occurred
+            last_seen = datetime.now(UTC)
+            data = load_data("python", timestamp=last_seen)
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             self.store_event(data=data, project_id=self.project.id)
 
             group = event.group
             assert isinstance(group, Group)
-            assert group.first_seen == first_seen
+            group.update(first_seen=first_seen, last_seen=last_seen)
+            group.save()
 
             result = get_issue_and_event_response(
                 event=event,
@@ -1409,13 +1443,87 @@ class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, Occurr
                 organization=self.organization,
             )
 
-            # Assert expected stats params were passed to the API.
+            # Assert expected date params were passed to the API.
             stats_request_count = 0
             for _, kwargs in mock_api_client.get.call_args_list:
                 if kwargs["path"] == f"/organizations/{self.organization.slug}/events-stats/":
                     stats_request_count += 1
-                    assert kwargs["params"]["statsPeriod"] == stats_period
                     assert kwargs["params"]["interval"] == interval
+                    start, end = kwargs["params"]["start"], kwargs["params"]["end"]
+                    # Expected range is [first_seen, first_seen + delta]
+                    assert abs(datetime.fromisoformat(start) - group.first_seen) < timedelta(
+                        seconds=10
+                    )
+                    assert abs(
+                        datetime.fromisoformat(end) - (group.first_seen + delta)
+                    ) < timedelta(seconds=10)
+
+            assert stats_request_count == 1
+
+            # Validate final results.
+            assert result is not None
+            _validate_event_timeseries(result["event_timeseries"])
+            assert result["timeseries_stats_period"] == stats_period
+            assert result["timeseries_interval"] == interval
+
+            # Ensure next iteration makes a fresh group.
+            group.delete()
+
+    @patch("sentry.seer.explorer.tools.client")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_ie_response_timeseries_with_start_end(
+        self,
+        mock_get_tags,
+        mock_api_client,
+    ):
+        """Test timeseries response for different resolutions and explicit time ranges"""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+
+        for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
+            # Fresh mock with passthrough to real client - allows testing call args
+            mock_api_client.get = Mock(side_effect=client.get)
+
+            delta = parse_stats_period(stats_period)
+            assert delta is not None
+            if delta >= timedelta(days=30):
+                # Skip the 30 and 90d tests.
+                continue
+
+            # Set a fixed start date.
+            start = datetime.now(UTC) - timedelta(days=23, seconds=7)
+            data = load_data("python", timestamp=start)
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+
+            # Set an end date so the range is smaller than the delta we're testing.
+            end = start + delta - timedelta(minutes=45)
+            data = load_data("python", timestamp=end)
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            self.store_event(data=data, project_id=self.project.id)
+
+            group = event.group
+            assert isinstance(group, Group)
+
+            result = get_issue_and_event_response(
+                event=event,
+                group=group,
+                organization=self.organization,
+                start=start,
+                end=end,
+            )
+
+            # Assert expected date params were passed to the API.
+            stats_request_count = 0
+            for _, kwargs in mock_api_client.get.call_args_list:
+                if kwargs["path"] == f"/organizations/{self.organization.slug}/events-stats/":
+                    stats_request_count += 1
+                    assert kwargs["params"]["interval"] == interval
+                    start_param, end_param = kwargs["params"]["start"], kwargs["params"]["end"]
+                    # Expected range is [start, start + delta]
+                    assert abs(datetime.fromisoformat(start_param) - start) < timedelta(seconds=10)
+                    assert abs(datetime.fromisoformat(end_param) - (start + delta)) < timedelta(
+                        seconds=10
+                    )
 
             assert stats_request_count == 1
 
