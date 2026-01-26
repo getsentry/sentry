@@ -4,6 +4,8 @@ import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react-lite';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -38,6 +40,7 @@ import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {HTTPSnippet} from './httpSnippet';
+import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
@@ -53,6 +56,8 @@ const MINUTE = 60;
 
 const DEFAULT_DOWNTIME_THRESHOLD = 3;
 const DEFAULT_RECOVERY_THRESHOLD = 1;
+const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_METHOD = 'GET';
 
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
@@ -101,7 +106,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project?.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
 
@@ -203,20 +208,38 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         }
       }}
       extraButton={
-        rule && handleDelete ? (
-          <Confirm
-            message={t(
-              'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
-              rule.name
-            )}
-            header={<h5>{t('Delete Uptime Rule?')}</h5>}
-            priority="danger"
-            confirmText={t('Delete Rule')}
-            onConfirm={handleDelete}
-          >
-            <Button priority="danger">{t('Delete Rule')}</Button>
-          </Confirm>
-        ) : undefined
+        <Flex gap="md">
+          {rule && handleDelete && (
+            <Confirm
+              message={t(
+                'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
+                rule.name
+              )}
+              header={<h5>{t('Delete Uptime Rule?')}</h5>}
+              priority="danger"
+              confirmText={t('Delete Rule')}
+              onConfirm={handleDelete}
+            >
+              <Button priority="danger">{t('Delete Rule')}</Button>
+            </Confirm>
+          )}
+          {organization.features.includes('uptime-runtime-assertions') && (
+            <TestUptimeMonitorButton
+              label={t('Test Rule')}
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                  assertion: data.assertion ?? null,
+                };
+              }}
+            />
+          )}
+        </Flex>
       }
     >
       <List symbol="colored-numeric">
@@ -319,7 +342,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               max={60_000}
               step={250}
               tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
-              defaultValue={5_000}
+              defaultValue={DEFAULT_TIMEOUT_MS}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
               flexibleControlStateSize

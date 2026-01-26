@@ -33,7 +33,7 @@ interface UptimeDetectorFormData {
 
 type UptimeDetectorFormFieldName = keyof UptimeDetectorFormData;
 
-const DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP: {
+export const DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP: {
   [K in UptimeDetectorFormFieldName]: UptimeDetectorFormData[K];
 } = {
   assertion: null,
