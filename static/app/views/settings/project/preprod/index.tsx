@@ -23,9 +23,9 @@ export default function PreprodSettings() {
   return (
     <Fragment>
       <Feature features="organizations:preprod-issues" renderDisabled>
-        <SentryDocumentTitle title={t('Preprod')} />
+        <SentryDocumentTitle title={t('Mobile Builds')} />
         <SettingsPageHeader
-          title={t('Preprod')}
+          title={t('Mobile Builds')}
           action={
             <ButtonBar gap="lg">
               <FeedbackButton />
