@@ -26,14 +26,14 @@ export default function LegacyPreprodRedirect() {
     if (isCompare && headArtifactId) {
       const compareType = 'size';
       if (baseArtifactId) {
-        newPath = `/organizations/${organization.slug}/preprod/${compareType}/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
+        newPath = `/preprod/${compareType}/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
       } else {
-        newPath = `/organizations/${organization.slug}/preprod/${compareType}/compare/${headArtifactId}/?project=${projectId}`;
+        newPath = `/preprod/${compareType}/compare/${headArtifactId}/?project=${projectId}`;
       }
     } else if (isInstall && artifactId) {
-      newPath = `/organizations/${organization.slug}/preprod/install/${artifactId}/?project=${projectId}`;
+      newPath = `/preprod/install/${artifactId}/?project=${projectId}`;
     } else if (artifactId) {
-      newPath = `/organizations/${organization.slug}/preprod/size/${artifactId}/?project=${projectId}`;
+      newPath = `/preprod/size/${artifactId}/?project=${projectId}`;
     }
 
     if (newPath) {
