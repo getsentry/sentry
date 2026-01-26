@@ -12,7 +12,7 @@ export function Card({
       border="primary"
       radius="md"
       background="primary"
-      style={{boxShadow: theme.tokens.shadow.elevationMedium}}
+      style={{boxShadow: theme.shadow.medium}}
       margin="xl 0"
       padding="xl"
       {...props}
