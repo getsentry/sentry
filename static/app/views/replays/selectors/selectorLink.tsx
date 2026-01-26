@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {CodeBlock} from 'sentry/components/core/code';
 import {Link} from 'sentry/components/core/link';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -24,11 +26,11 @@ export function SelectorLink({
   const hovercardContent = (
     <TooltipContainer>
       {t('Search for replays with clicks on the element')}
-      <SelectorScroll>
+      <Container overflow="scroll">
         <CodeBlock hideCopyButton language="javascript">
           {value}
         </CodeBlock>
-      </SelectorScroll>
+      </Container>
     </TooltipContainer>
   );
 
@@ -70,8 +72,4 @@ const TooltipContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   gap: ${space(1)};
-`;
-
-const SelectorScroll = styled('div')`
-  overflow: scroll;
 `;

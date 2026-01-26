@@ -2,6 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -66,16 +68,16 @@ export function ChapterList({timeRanges}: Props) {
 
   if (!chapterData?.length) {
     return (
-      <EmptyContainer>
+      <Container padding="xl">
         <Alert variant="info" showIcon={false}>
           {t('No chapters available for this replay.')}
         </Alert>
-      </EmptyContainer>
+      </Container>
     );
   }
 
   return (
-    <ChaptersList>
+    <Container flex="1">
       {chapterData.map(({title, start, end, breadcrumbs}, i) => (
         <ChapterRow
           key={i}
@@ -86,7 +88,7 @@ export function ChapterList({timeRanges}: Props) {
           onClickChapterTimestamp={onClickChapterTimestamp}
         />
       ))}
-    </ChaptersList>
+    </Container>
   );
 }
 
@@ -254,10 +256,6 @@ const ChapterIconArrow = styled(IconChevron)`
   }
 `;
 
-const ChaptersList = styled('div')`
-  flex: 1;
-`;
-
 const ChapterWrapper = styled('details')`
   width: 100%;
   position: relative;
@@ -404,8 +402,4 @@ const ReplayTimestamp = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   justify-content: flex-end;
-`;
-
-const EmptyContainer = styled('div')`
-  padding: ${space(2)};
 `;

@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {CodeBlock} from 'sentry/components/core/code';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -171,7 +173,7 @@ function SetupInstructions({
           }
         )}
       </p>
-      <NetworkUrlWrapper>
+      <Container margin="md 0 lg 0">
         {showSnippet === Output.URL_SKIPPED &&
           url !== '[Filtered]' &&
           tct(
@@ -181,7 +183,7 @@ function SetupInstructions({
               alert: <StyledTextCopyInput>{trimUrl(url)}</StyledTextCopyInput>,
             }
           )}
-      </NetworkUrlWrapper>
+      </Container>
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert.Container>
           <Alert variant="warning" showIcon={false}>
@@ -214,10 +216,6 @@ function SetupInstructions({
 
 const StyledTextCopyInput = styled(TextCopyInput)`
   margin-top: ${space(0.5)};
-`;
-
-const NetworkUrlWrapper = styled('div')`
-  margin: ${space(1)} 0 ${space(1.5)} 0;
 `;
 
 const NoMarginAlert = styled(Alert)`

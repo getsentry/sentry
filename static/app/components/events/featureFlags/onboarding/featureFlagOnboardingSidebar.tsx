@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -219,7 +219,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   });
 
   const header = (
-    <ContentHeader>
+    <Container padding="xl 0">
       <h3>{t('Set Up Evaluation Tracking')}</h3>
       <p>{t('Configure Sentry to track feature flag evaluations on error events.')}</p>
       <RadioGroup
@@ -275,7 +275,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           window.location.hash = ORIGINAL_HASH;
         }}
       />
-    </ContentHeader>
+    </Container>
   );
 
   if (isProjKeysLoading) {
@@ -386,8 +386,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const ContentHeader = styled('div')`
-  padding: ${space(2)} 0;
 `;

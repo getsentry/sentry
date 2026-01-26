@@ -1,6 +1,8 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
@@ -62,9 +64,9 @@ export const Text = styled('div')`
   gap: ${space(0.5)};
 `;
 
-export const AvatarWrapper = styled('div')`
-  align-self: center;
-`;
+export function AvatarWrapper(props: ContainerProps<'div'>) {
+  return <Container alignSelf="center" {...props} />;
+}
 
 export const ButtonWrapper = styled('div')`
   align-items: center;
