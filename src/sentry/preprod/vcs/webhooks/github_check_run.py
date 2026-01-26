@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
-from django.db.models import Window
+from django.db.models import F, Window
 from django.db.models.functions import RowNumber
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -127,7 +127,7 @@ def handle_preprod_check_run_event(
         .annotate(
             row_num=Window(
                 expression=RowNumber(),
-                partition_by=["preprod_artifact_id"],
+                partition_by=[F("preprod_artifact_id")],
                 order_by=["-id"],
             )
         )
