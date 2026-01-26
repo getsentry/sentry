@@ -16,6 +16,9 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
 
+# Reserved Python keywords that cannot be used as Interface kwargs
+_RESERVED_INTERFACE_KEYS = frozenset(["self"])
+
 
 def get_interface(name: str) -> type[Interface]:
     try:
@@ -116,7 +119,21 @@ class Interface:
         if data is None:
             return None
 
-        return cls(**data)
+        # Fast path
+        if not data.keys() & _RESERVED_INTERFACE_KEYS:
+            return cls(**data)
+
+        # Slow path: filter out reserved Python keywords that would conflict with __init__
+        interface_logger.info(
+            "interface.reserved_keys_excluded",
+            extra={
+                "interface": cls.__name__,
+                "excluded_keys": [k for k in data if k in _RESERVED_INTERFACE_KEYS],
+            },
+        )
+
+        filtered_data = {k: v for k, v in data.items() if k not in _RESERVED_INTERFACE_KEYS}
+        return cls(**filtered_data)
 
     def get_raw_data(self):
         """Returns the underlying raw data."""

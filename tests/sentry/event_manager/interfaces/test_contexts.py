@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.event_manager import EventManager
+from sentry.interfaces.contexts import Contexts
 from sentry.services import eventstore
 
 
@@ -199,3 +200,31 @@ def test_unity(make_ctx_snapshot) -> None:
             }
         }
     )
+
+
+def test_reserved_context_alias_self() -> None:
+    """Test that reserved Python keywords like 'self' are filtered out when used as context alias."""
+    # Data with 'self' as a context alias (not as a key within context data)
+    data = {
+        "self": {
+            "type": "default",
+            "some_key": "some_value",
+        },
+        "valid_context": {
+            "type": "default",
+            "valid_key": "valid_value",
+        },
+    }
+
+    # Should not raise TypeError: Interface.__init__() got multiple values for argument 'self'
+    result = Contexts.to_python(data)
+
+    # Verify result exists
+    assert result is not None
+
+    # Verify 'self' context was excluded
+    assert "self" not in result._data
+
+    # Verify valid_context was preserved
+    assert "valid_context" in result._data
+    assert result._data["valid_context"].data["valid_key"] == "valid_value"
