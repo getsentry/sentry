@@ -24,7 +24,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_mon
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -200,12 +200,22 @@ class GetActiveOrgsVolumes:
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep: bool = True,
         orgs: list[int] | None = None,
+        use_span_metric: bool = False,
     ) -> None:
         self.include_keep = include_keep
         self.orgs = orgs
-        self.metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+
+        if use_span_metric:
+            is_segment_string_id = indexer.resolve_shared_org("is_segment")
+            self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
+            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+            self.use_case_id = UseCaseID.SPANS
+        else:
+            self.is_segment_tag = None
+            self.metric_id = indexer.resolve_shared_org(
+                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+            )
+            self.use_case_id = UseCaseID.TRANSACTIONS
 
         if self.include_keep:
             decision_string_id = indexer.resolve_shared_org("decision")
@@ -251,6 +261,9 @@ class GetActiveOrgsVolumes:
             Condition(Column("metric_id"), Op.EQ, self.metric_id),
         ]
 
+        if self.is_segment_tag is not None:
+            where.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
+
         if self.orgs:
             where.append(Condition(Column("org_id"), Op.IN, self.orgs))
 
@@ -277,7 +290,7 @@ class GetActiveOrgsVolumes:
                 app_id="dynamic_sampling",
                 query=query,
                 tenant_ids={
-                    "use_case_id": UseCaseID.TRANSACTIONS.value,
+                    "use_case_id": self.use_case_id.value,
                     "cross_org_query": 1,
                 },
             )
