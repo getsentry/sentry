@@ -139,7 +139,7 @@ export default function getConfiguration({
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
         {
-          path: `${pathPrefix}/builds/`,
+          path: `${pathPrefix}/mobile-builds/`,
           title: t('Mobile Builds'),
           show: () => !!organization?.features?.includes('preprod-issues'),
           badge: () => 'beta',
