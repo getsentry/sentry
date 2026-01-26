@@ -24,6 +24,7 @@ import {
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function DisableDetectorAction({detector}: {detector: Detector}) {
+  const organization = useOrganization();
   const {mutate: updateDetector, isPending: isUpdating} = useUpdateDetector();
 
   const toggleDisabled = useCallback(() => {
@@ -50,10 +51,26 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
     return null;
   }
 
+  // Check if this is a metric detector without the required feature
+  const isMetricDetector = detector.type === 'metric_issue';
+  const hasAnomalyDetectionFeature = organization.features.includes(
+    'anomaly-detection-alerts'
+  );
+  const requiresUpgrade = isMetricDetector && !hasAnomalyDetectionFeature;
+
+  // If it's a metric detector without the feature, disable the Enable button
+  const isButtonDisabled = isUpdating || (requiresUpgrade && !detector.enabled);
+  const tooltipText =
+    requiresUpgrade && !detector.enabled
+      ? t('Anomaly detection is only available on Business and Enterprise plans')
+      : undefined;
+
   return (
-    <Button size="sm" onClick={toggleDisabled} disabled={isUpdating}>
-      {detector.enabled ? t('Disable') : t('Enable')}
-    </Button>
+    <Tooltip title={tooltipText} disabled={!tooltipText}>
+      <Button size="sm" onClick={toggleDisabled} disabled={isButtonDisabled}>
+        {detector.enabled ? t('Disable') : t('Enable')}
+      </Button>
+    </Tooltip>
   );
 }
 
