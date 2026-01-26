@@ -488,7 +488,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
-    "sentry.prevent",
     "sentry.seer",
 )
 

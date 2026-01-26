@@ -25,8 +25,6 @@ notifications: 0002_notificationmessage_jsonfield
 
 preprod: 0026_add_initial_snapshot_models
 
-prevent: 0004_delete_prevent_ai_configuration_table
-
 releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
