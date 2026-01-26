@@ -193,18 +193,12 @@ export function useTransactionsSeriesQuery(
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
-                current: async () => {
-                  try {
-                    const result = await doOnDemandMetricsRequest(
-                      context.meta?.api,
-                      requestData,
-                      filteredWidget.widgetType
-                    );
-                    resolve(result);
-                  } catch (error) {
-                    reject(error);
-                  }
-                },
+                current: () =>
+                  doOnDemandMetricsRequest(
+                    context.meta?.api,
+                    requestData,
+                    filteredWidget.widgetType
+                  ).then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
@@ -221,15 +215,8 @@ export function useTransactionsSeriesQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result =
-                    await fetchDataQuery<TransactionsSeriesResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<TransactionsSeriesResponse>(context).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
@@ -440,14 +427,8 @@ export function useTransactionsTableQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchDataQuery<TransactionsTableResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<TransactionsTableResponse>(context).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
