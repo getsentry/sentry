@@ -5,6 +5,7 @@ import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -26,9 +27,13 @@ export default function CreateDashboard() {
       )
     : undefined;
 
+  const timestamp = getFormattedDate(new Date(), 'MMM D, YYYY h:mm A', {local: true});
   const baseDashboard = template
     ? cloneDashboard(template)
-    : cloneDashboard(EMPTY_DASHBOARD);
+    : {
+        ...cloneDashboard(EMPTY_DASHBOARD),
+        title: `${t('Untitled Dashboard')} - ${timestamp}`,
+      };
 
   const hasWidgetsToAdd = !!location.state?.widgets && location.state.widgets.length > 0;
 
