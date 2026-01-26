@@ -178,15 +178,8 @@ export function useSpansSeriesQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchDataQuery<SpansSeriesResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<SpansSeriesResponse>(context).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
@@ -392,16 +385,8 @@ export function useSpansTableQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result =
-                    await fetchDataQuery<SpansTableResponse>(modifiedContext);
-                  resolve(result);
-                } catch (error) {
-                  // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<SpansTableResponse>(modifiedContext).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
