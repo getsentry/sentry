@@ -90,6 +90,7 @@ export function FeatureFilter({
 
           <PreprodSearchBar
             initialQuery={localQuery}
+            projects={[Number(project.id)]}
             onChange={handleQueryChange}
             onSearch={handleSearch}
             searchSource="preprod_feature_filter"
