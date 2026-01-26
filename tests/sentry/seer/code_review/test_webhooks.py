@@ -418,10 +418,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
         ), f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    @patch("sentry.seer.code_review.webhooks.task.metrics")
-    def test_check_run_and_pr_events_processed_separately(
-        self, mock_metrics: MagicMock, mock_request: MagicMock
-    ) -> None:
+    def test_check_run_and_pr_events_processed_separately(self, mock_request: MagicMock) -> None:
         """Test that CHECK_RUN events use rerun endpoint while PR events use overwatch-request."""
         mock_request.return_value = self._mock_response(200, b"{}")
 
@@ -464,7 +461,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
             enqueued_at_str=self.enqueued_at_str,
         )
 
-        assert not mock_request.called
+        assert mock_request.call_count == 1
+        pr_call = mock_request.call_args
+        assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
 
 
 class TestIsPrReviewCommand:

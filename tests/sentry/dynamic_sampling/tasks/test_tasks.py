@@ -350,6 +350,14 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                         project_id=p.id,
                         org_id=org.id,
                     )
+                    self.store_performance_metric(
+                        name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                        tags={"transaction": name, "is_segment": "true"},
+                        minutes_before_now=30,
+                        value=num_transactions,
+                        project_id=p.id,
+                        org_id=org.id,
+                    )
         self.org_ids = [org["org_id"] for org in self.orgs_info]
 
     def get_count_for_transaction(self, idx: int, name: str):

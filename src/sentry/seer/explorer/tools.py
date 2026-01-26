@@ -15,7 +15,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.api.utils import default_start_end_dates
+from sentry.api.utils import default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
@@ -32,9 +32,13 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.explorer.index_data import UNESCAPED_QUOTE_RE
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.explorer.utils import (
+    _convert_profile_to_execution_tree,
+    fetch_profile_data,
+    get_group_date_range,
+    get_retention_boundary,
+)
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -45,7 +49,7 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
-from sentry.utils.dates import outside_retention_with_modified_start, parse_stats_period
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
 
@@ -126,8 +130,6 @@ def execute_table_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Start/end params take precedence over stats_period.
     """
-    stats_period, start, end = validate_date_params(stats_period, start, end)
-
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
@@ -216,7 +218,6 @@ def execute_timeseries_query(
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Start/end params take precedence over stats_period.
     """
-    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -314,10 +315,6 @@ def execute_trace_table_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
         Start/end params take precedence over stats_period. Default time range is the last 24 hours.
     """
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="24h"
-    )
-
     organization = Organization.objects.get(id=organization_id)
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
@@ -404,7 +401,12 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         projects=projects,
         organization=organization,
     )
-    events = query_trace_data(snuba_params, full_trace_id, referrer=Referrer.SEER_EXPLORER_TOOLS)
+    events = query_trace_data(
+        snuba_params,
+        full_trace_id,
+        additional_attributes=["span.status_code"],
+        referrer=Referrer.SEER_EXPLORER_TOOLS,
+    )
 
     return EAPTrace(
         trace_id=full_trace_id,
@@ -626,45 +628,75 @@ def rpc_get_profile_flamegraph(
     }
 
 
-def get_repository_definition(*, organization_id: int, repo_full_name: str) -> dict | None:
+def get_repository_definition(
+    *,
+    organization_id: int,
+    repo_full_name: str,
+    external_id: str | None = None,
+) -> dict | None:
     """
-    Look up a repository by full name (owner/repo-name) that the org has access to.
+    Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
+
+    Lookup priority:
+    1. external_id (GitHub's repo ID - stable across renames)
+    2. Current name (exact match)
 
     Args:
         organization_id: The ID of the organization
         repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
+        external_id: Optional external repository ID (e.g., GitHub repo ID). Stable across renames.
+                     If provided, this is used for lookup instead of name.
 
     Returns:
-        dict with RepoDefinition fields if found, None otherwise
+        dict with RepoDefinition fields if found, None otherwise. Includes external_id
+        which should be stored for future lookups.
     """
-    parts = repo_full_name.split("/")
-    if len(parts) != 2:
-        logger.warning(
-            "seer.rpc.invalid_repo_name_format",
-            extra={"repo_full_name": repo_full_name},
-        )
-        return None
+    repo: Repository | None = None
 
-    owner, name = parts
+    if external_id:
+        repo = Repository.objects.filter(
+            organization_id=organization_id,
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+        ).first()
 
-    repo = Repository.objects.filter(
-        organization_id=organization_id,
-        name=repo_full_name,
-        status=ObjectStatus.ACTIVE,
-        provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
-    ).first()
+    if not repo:
+        parts = repo_full_name.split("/")
+        if len(parts) < 2:
+            logger.warning(
+                "seer.rpc.invalid_repo_name_format",
+                extra={"repo_full_name": repo_full_name},
+            )
+            return None
+
+        repo = Repository.objects.filter(
+            organization_id=organization_id,
+            name=repo_full_name,
+            status=ObjectStatus.ACTIVE,
+            provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+        ).first()
 
     if not repo:
         logger.info(
             "seer.rpc.repository_not_found",
-            extra={"organization_id": organization_id, "repo_full_name": repo_full_name},
+            extra={
+                "organization_id": organization_id,
+                "repo_full_name": repo_full_name,
+                "external_id": external_id,
+            },
         )
         return None
 
+    # Use the actual repo name from the database, not the requested name.
+    repo_name_parts = repo.name.split("/")
+    owner = repo_name_parts[0]
+    name = "/".join(repo_name_parts[1:])
+
     return {
         "organization_id": organization_id,
-        "integration_id": str(repo.integration_id) if repo.integration_id else None,
+        "integration_id": str(repo.integration_id) if repo.integration_id is not None else None,
         "provider": repo.provider,
         "owner": owner,
         "name": name,
@@ -686,46 +718,53 @@ EVENT_TIMESERIES_RESOLUTIONS = (
 
 def _get_issue_event_timeseries(
     *,
+    group: Group,
     organization: Organization,
-    project_id: int,
-    issue_short_id: str,
-    first_seen_delta: timedelta,
-    issue_category: GroupCategory,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> tuple[dict[str, Any], str, str] | None:
     """
     Get event counts over time for an issue (no group by) by calling the events-stats endpoint. Dynamically picks
-    a stats period and interval based on the issue's first seen date and EVENT_TIMESERIES_RESOLUTIONS.
+    an interval based on the time range and EVENT_TIMESERIES_RESOLUTIONS.
     """
+    start, end = get_group_date_range(group, organization, start, end)
 
-    stats_period, interval = None, None
+    # Round up to nearest supported period
+    delta = end - start
+    selected_period, selected_delta, interval = None, None, None
     for p, i in EVENT_TIMESERIES_RESOLUTIONS:
-        delta = parse_stats_period(p)
-        if delta and first_seen_delta <= delta:
-            stats_period, interval = p, i
+        d = parse_stats_period(p)
+        if d and delta <= d:
+            selected_period, selected_delta, interval = p, d, i
             break
-    stats_period = stats_period or "90d"
+    selected_period = selected_period or "90d"
+    selected_delta = selected_delta or timedelta(days=90)
     interval = interval or "3d"
+
+    # Adjust range to equal period
+    end = start + selected_delta
 
     # Use the correct dataset based on issue category
     # Error issues are stored in the "events" dataset, while issue platform issues
     # (performance, etc.) are stored in "issuePlatform" (search_issues)
-    dataset = "errors" if issue_category == GroupCategory.ERROR else "issuePlatform"
+    dataset = "errors" if group.issue_category == GroupCategory.ERROR else "issuePlatform"
 
     data = execute_timeseries_query(
         org_id=organization.id,
         dataset=dataset,
         y_axes=["count()"],
         group_by=[],
-        query=f"issue:{issue_short_id}",
-        stats_period=stats_period,
+        query=f"issue:{group.qualified_short_id}",
+        start=start.isoformat(),
+        end=end.isoformat(),
         interval=interval,
-        project_ids=[project_id],
+        project_ids=[group.project_id],
         partial=True,
     )
 
     if data is None:
         return None
-    return data, stats_period, interval
+    return data, selected_period, interval
 
 
 def _get_recommended_event(
@@ -740,23 +779,8 @@ def _get_recommended_event(
     If multiple events are valid, return the one with highest RECOMMENDED ordering.
     If no events are valid, return the highest recommended event.
     """
-    if start is None:
-        start = group.first_seen
-    if end is None:
-        end = group.last_seen + timedelta(seconds=5)
-
-    expired, _ = outside_retention_with_modified_start(start, end, organization)
-    if expired:
-        logger.warning(
-            "_get_recommended_event: Time range outside retention",
-            extra={
-                "group_id": group.id,
-                "organization_id": organization.id,
-                "start": start,
-                "end": end,
-            },
-        )
-        return None
+    start, end = get_group_date_range(group, organization, start, end)
+    retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
@@ -797,7 +821,8 @@ def _get_recommended_event(
         if len(trace_ids) > 0:
             # Query EAP to get the span count of each trace.
             # Extend the time range by +-1 day to account for min/max trace start/end times.
-            spans_start = w_start - timedelta(days=1)
+            # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
+            spans_start = max(w_start - timedelta(days=1), retention_boundary)
             spans_end = w_end + timedelta(days=1)
 
             count_field = "count(span.duration)"
@@ -854,7 +879,11 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 
 
 def get_issue_and_event_response(
-    event: Event | GroupEvent, group: Group | None, organization: Organization
+    event: Event | GroupEvent,
+    group: Group | None,
+    organization: Organization,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> dict[str, Any]:
     serialized_event = serialize(event, user=None, serializer=EventSerializer())
 
@@ -873,21 +902,38 @@ def get_issue_and_event_response(
         serialized_group["issueTypeDescription"] = group.issue_type.description
 
         try:
-            tags_overview = get_all_tags_overview(group)
+            tags_overview = get_all_tags_overview(group, start, end)
         except Exception:
             logger.exception(
                 "Failed to get tags overview for issue",
-                extra={"organization_id": organization.id, "issue_id": group.id},
+                extra={
+                    "organization_id": organization.id,
+                    "issue_id": group.id,
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                },
             )
             tags_overview = None
 
-        ts_result = _get_issue_event_timeseries(
-            organization=organization,
-            project_id=group.project_id,
-            issue_short_id=group.qualified_short_id,
-            first_seen_delta=datetime.now(UTC) - group.first_seen,
-            issue_category=group.issue_category,
-        )
+        try:
+            ts_result = _get_issue_event_timeseries(
+                group=group,
+                organization=organization,
+                start=start,
+                end=end,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to get issue event timeseries",
+                extra={
+                    "organization_id": organization.id,
+                    "issue_id": group.id,
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                },
+            )
+            ts_result = None
+
         if ts_result:
             timeseries, timeseries_stats_period, timeseries_interval = ts_result
         else:
@@ -936,7 +982,7 @@ def get_issue_and_event_details_v2(
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
 
-    validate_date_params(None, start, end, allow_none=True)
+    start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
 
@@ -961,8 +1007,6 @@ def get_issue_and_event_details_v2(
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
 
-        start_dt = datetime.fromisoformat(start) if start else None
-        end_dt = datetime.fromisoformat(end) if end else None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
@@ -1015,9 +1059,9 @@ def get_issue_and_event_details_v2(
         return None
 
     if include_issue:
-        return get_issue_and_event_response(event, group, organization)
+        return get_issue_and_event_response(event, group, organization, start_dt, end_dt)
 
-    return get_issue_and_event_response(event, None, organization)
+    return get_issue_and_event_response(event, None, organization, start_dt, end_dt)
 
 
 def get_replay_metadata(
@@ -1327,7 +1371,9 @@ def get_log_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    stats_period, start, end = validate_date_params(stats_period, start, end)
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period}, optional=True
+    )
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1344,9 +1390,8 @@ def get_log_attributes_for_trace(
     )
 
     snuba_params = SnubaParams(
-        start=datetime.fromisoformat(start) if start else None,
-        end=datetime.fromisoformat(end) if end else None,
-        stats_period=stats_period,
+        start=start_dt,
+        end=end_dt,
         projects=projects,
         organization=organization,
         sampling_mode=sampling_mode,
@@ -1402,7 +1447,9 @@ def get_metric_attributes_for_trace(
         - attributes: A dict[str, dict[str, Any]] where the keys are the attribute names. See _make_get_trace_request for more details.
     """
 
-    stats_period, start, end = validate_date_params(stats_period, start, end)
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period}, optional=True
+    )
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -1419,9 +1466,8 @@ def get_metric_attributes_for_trace(
     )
 
     snuba_params = SnubaParams(
-        start=datetime.fromisoformat(start) if start else None,
-        end=datetime.fromisoformat(end) if end else None,
-        stats_period=stats_period,
+        start=start_dt,
+        end=end_dt,
         projects=projects,
         organization=organization,
         sampling_mode=sampling_mode,
@@ -1474,31 +1520,32 @@ def get_baseline_tag_distribution(
         project_id: The project ID
         group_id: The issue group ID to exclude from baseline
         tag_keys: List of tag keys to fetch (from the issue's tags_overview)
-        stats_period: Stats period for the time range (e.g. "7d"). Defaults to "7d" if no time params provided.
+        stats_period: Stats period for the time range (optional and mutually exclusive with start and end)
         start: ISO timestamp for start of time range (optional)
         end: ISO timestamp for end of time range (optional)
+
+        If no date params are provided, we use the issue's first_seen to last_seen range.
 
     Returns:
         Dict with "baseline_tag_distribution" containing list of
         {"tag_key": str, "tag_value": str, "count": int} entries.
     """
 
+    group = Group.objects.get(id=group_id, project_id=project_id)
+    organization = group.organization
+    if organization.id != organization_id:
+        raise BadRequest("Group does not belong to the specified organization")
+
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        optional=True,
+    )
+
     if not tag_keys:
         return {"baseline_tag_distribution": []}
 
-    stats_period, start, end = validate_date_params(
-        stats_period, start, end, default_stats_period="7d"
-    )
-
-    if stats_period:
-        period_delta = parse_stats_period(stats_period)
-        assert period_delta is not None  # Already validated
-        end_dt = datetime.now(timezone.utc)
-        start_dt = end_dt - period_delta
-    else:
-        assert start and end
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+    # Use first/last seen if date params are not provided.
+    start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
 
     # Query both error events and issue platform occurrences for a comprehensive baseline.
     # "events" contains error issues, "search_issues" contains performance and other issue types.

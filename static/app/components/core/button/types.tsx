@@ -38,7 +38,7 @@ export interface DO_NOT_USE_CommonButtonProps {
    * contextually the primary action, `danger` if the button will do something
    * destructive, `link` for visual similarity to a link.
    */
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'transparent';
+  priority?: 'default' | 'primary' | 'danger' | 'warning' | 'link' | 'transparent';
   /**
    * The size of the button
    */

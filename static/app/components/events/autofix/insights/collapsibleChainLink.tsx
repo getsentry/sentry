@@ -1,6 +1,8 @@
 import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -73,7 +75,7 @@ export function CollapsibleChainLink({
           (isAdding ? (
             <AddEditContainer>
               <form onSubmit={handleSubmit}>
-                <EditFormRow>
+                <Flex align="center" gap="md" width="100%">
                   <EditInput
                     type="text"
                     value={newInsightText}
@@ -112,7 +114,7 @@ export function CollapsibleChainLink({
                       {'\u23CE'}
                     </Button>
                   </ButtonBar>
-                </EditFormRow>
+                </Flex>
               </form>
             </AddEditContainer>
           ) : (
@@ -170,13 +172,6 @@ const AddEditContainer = styled('div')`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const EditFormRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  width: 100%;
-`;
-
 const EditInput = styled(TextArea)`
   flex: 1;
   resize: none;
@@ -189,7 +184,7 @@ const AddButton = styled(Button)`
 const RethinkLabel = styled('span')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-right: ${space(0.5)};
 `;

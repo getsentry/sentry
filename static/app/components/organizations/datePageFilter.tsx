@@ -25,7 +25,6 @@ export function DatePageFilter({
   disabled,
   menuTitle,
   menuWidth,
-  triggerProps = {},
   resetParamsOnChange,
   ...selectProps
 }: DatePageFilterProps) {
@@ -57,7 +56,6 @@ export function DatePageFilter({
       menuTitle={menuTitle ?? t('Filter Time Range')}
       menuWidth={(menuWidth ?? desynced) ? '22em' : undefined}
       menuBody={desynced && <DesyncedFilterMessage />}
-      triggerProps={triggerProps}
     />
   );
 }

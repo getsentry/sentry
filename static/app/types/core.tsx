@@ -99,6 +99,8 @@ export enum DataCategory {
   PREVENT_REVIEW = 'preventReviews',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRICS = 'traceMetrics',
+  SIZE_ANALYSIS = 'sizeAnalyses',
+  INSTALLABLE_BUILD = 'installableBuilds',
 }
 
 /**
@@ -131,6 +133,8 @@ export enum DataCategoryExact {
   SEER_USER = 'seer_user',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRIC = 'trace_metric',
+  SIZE_ANALYSIS = 'size_analysis',
+  INSTALLABLE_BUILD = 'installable_build',
 }
 
 /**
@@ -154,13 +158,13 @@ interface DataCategoryFormattingInfo {
    */
   bigNumUnit: 0 | 1;
   /**
-   * Formatting options for price display.
-   * minIntegerDigits: minimum integer digits (bytes use 2, counts use 5)
-   * maxIntegerDigits: maximum integer digits (bytes use 2, counts use 7)
+   * Formatting options for price display (decimal places).
+   * minFractionDigits: minimum fraction digits (bytes use 2, counts use 5)
+   * maxFractionDigits: maximum fraction digits (bytes use 2, counts use 7)
    */
   priceFormatting: {
-    maxIntegerDigits: number;
-    minIntegerDigits: number;
+    maxFractionDigits: number;
+    minFractionDigits: number;
   };
   /**
    * Whether to use abbreviated formatting for projected values.

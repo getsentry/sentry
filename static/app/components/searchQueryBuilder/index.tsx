@@ -318,7 +318,7 @@ const Wrapper = styled(Input.withComponent('div'))`
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: text;
 `;
 
@@ -337,7 +337,7 @@ const ActionButton = styled(Button)<{active?: boolean}>`
   ${p =>
     p.active &&
     css`
-      background-color: ${p.theme.colors.blue200};
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
     `}
 `;
 

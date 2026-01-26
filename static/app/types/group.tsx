@@ -63,6 +63,7 @@ export enum SavedSearchType {
   TRANSACTION = 7,
   LOG = 8,
   TRACEMETRIC = 9,
+  PREPROD_APP_SIZE = 10,
 }
 
 export enum IssueCategory {
@@ -106,6 +107,8 @@ export enum IssueCategory {
   AI_DETECTED = 'ai_detected',
 
   PREPROD = 'preprod',
+
+  INSTRUMENTATION = 'instrumentation',
 }
 
 /**
@@ -141,6 +144,9 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
+  [IssueCategory.INSTRUMENTATION]: t(
+    'Improvements to your instrumentation and SDK usage.'
+  ),
 };
 
 export enum IssueType {
@@ -355,7 +361,7 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
   return !PERFORMANCE_REGRESSION_TYPE_IDS.has(typeId);
 }
 
-// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+// endpoint: /api/0/organizations/:orgSlug/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;

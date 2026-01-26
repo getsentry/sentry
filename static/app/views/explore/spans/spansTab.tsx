@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -60,7 +62,7 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
-// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+// eslint-disable-next-line boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 interface SpansTabOnboardingProps {
@@ -288,7 +290,7 @@ function SpanTabContentSection({
           : null;
 
   return (
-    <ExploreContentSection expanded={controlSectionExpanded}>
+    <ExploreContentSection>
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={
@@ -307,7 +309,7 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
-        <ActionButtonsGroup>
+        <Flex gap="xs">
           <Feature features="organizations:tracing-export-csv">
             <SpansExport
               aggregatesTableResult={aggregatesTableResult}
@@ -315,7 +317,7 @@ function SpanTabContentSection({
             />
           </Feature>
           <SettingsDropdown />
-        </ActionButtonsGroup>
+        </Flex>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
       <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
@@ -366,11 +368,6 @@ function SpanTabContentSection({
 
 const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
-`;
-
-const ActionButtonsGroup = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const ChevronButton = styled(Button)<{expanded: boolean}>`

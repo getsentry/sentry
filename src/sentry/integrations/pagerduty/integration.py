@@ -176,6 +176,9 @@ class PagerDutyIntegration(IntegrationInstallation):
             )
         return {"service_table": service_list}
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name"]
+
     @property
     def services(self) -> list[PagerDutyServiceDict]:
         if self.org_integration:
@@ -209,7 +212,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                     integration=integration, organization_id=organization.id
                 )
             except OrganizationIntegration.DoesNotExist:
-                logger.exception("The PagerDuty post_install step failed.")
+                logger.warning("The PagerDuty post_install step failed.")
                 return
 
             with transaction.atomic(router.db_for_write(OrganizationIntegration)):

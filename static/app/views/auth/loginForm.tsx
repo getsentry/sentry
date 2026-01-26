@@ -130,7 +130,7 @@ const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
 const ProviderHeading = styled('div')`
   margin: 0;
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 24px;
 `;
 
@@ -153,7 +153,7 @@ const ProviderWrapper = styled('div')`
 
 const LostPasswordLink = styled(Link)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

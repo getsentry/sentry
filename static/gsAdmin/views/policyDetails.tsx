@@ -6,10 +6,11 @@ import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
 
 import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
@@ -19,19 +20,25 @@ import PolicyRevisionModal from 'admin/components/policies/policyRevisionModal';
 import PolicyRevisions from 'admin/components/policies/policyRevisions';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
-type PolicyDetailsProps = RouteComponentProps<{policySlug: string}, unknown>;
-
-function PolicyDetails({params}: PolicyDetailsProps) {
+export default function PolicyDetails() {
   const api = useApi();
+  const {policySlug} = useParams<{policySlug: string}>();
 
   const {
     data: policy,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Policy>([`/policies/${params.policySlug}/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Policy>(
+    [
+      getApiUrl(`/policies/$policySlug/`, {
+        path: {policySlug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -114,5 +121,3 @@ function PolicyDetails({params}: PolicyDetailsProps) {
     />
   );
 }
-
-export default PolicyDetails;

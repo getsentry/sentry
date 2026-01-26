@@ -156,7 +156,9 @@ const TemplateCard = styled('div')<{selected: boolean}>`
   padding: ${space(2)};
   border: none;
   background-color: ${p =>
-    p.selected ? p.theme.colors.blue100 : p.theme.tokens.background.primary};
+    p.selected
+      ? p.theme.tokens.background.transparent.accent.muted
+      : p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   margin: ${p => (p.selected ? space(2) : space(0.5))} 0px;
 
@@ -164,23 +166,23 @@ const TemplateCard = styled('div')<{selected: boolean}>`
 
   &:focus,
   &:hover {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     outline: none;
   }
 
   &:active {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 `;
 
 const WidgetTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: ${space(0.25)};
 `;
 
 const WidgetDescription = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;

@@ -20,13 +20,13 @@ const CalendarStylesWrapper = styled('div')`
     right: 0;
     top: 3px;
     bottom: 3px;
-    background-color: ${p => p.theme.active};
+    background-color: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 
   .rdrDayNumber {
     top: 3px;
     bottom: 3px;
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 
   .rdrDayNumber span {
@@ -36,7 +36,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
   .rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span,
   .rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
 
   .rdrDayDisabled {
@@ -50,7 +50,7 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrDayToday .rdrDayNumber span {
-    color: ${p => p.theme.activeText};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
     &:after {
       display: none;
@@ -59,11 +59,11 @@ const CalendarStylesWrapper = styled('div')`
 
   .rdrDayToday .rdrDayNumber {
     border-radius: 2rem;
-    box-shadow: inset 0 0 0 2px ${p => p.theme.active};
+    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.interactive.link.accent.active};
   }
 
   .rdrDayNumber span:after {
-    background-color: ${p => p.theme.active};
+    background-color: ${p => p.theme.tokens.interactive.link.accent.active};
     font-variant-numeric: tabular-nums;
   }
 
@@ -74,7 +74,7 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrInRange {
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 
   .rdrDayInPreview {
@@ -181,8 +181,8 @@ const CalendarStylesWrapper = styled('div')`
   .rdrYearPicker select {
     background: none;
     color: ${p => p.theme.tokens.content.primary};
-    font-weight: ${p => p.theme.fontWeight.normal};
-    font-size: ${p => p.theme.fontSize.lg};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    font-size: ${p => p.theme.font.size.lg};
     padding: ${space(0.25)} ${space(1)};
   }
 

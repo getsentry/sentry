@@ -243,7 +243,7 @@ export function getVisualizeLabel(index: number) {
   return String.fromCharCode('A'.charCodeAt(0) + index);
 }
 
-export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
   const label = visualize.visible ? getVisualizeLabel(index) : <IconHide />;
 
   return <Label onClick={onClick}>{label}</Label>;
@@ -252,9 +252,9 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
 const Label = styled('div')`
   cursor: pointer;
   border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => p.theme.colors.blue100};
-  color: ${p => p.theme.colors.blue400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  color: ${p => p.theme.tokens.content.accent};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   width: 24px;
   height: 36px;
   display: flex;

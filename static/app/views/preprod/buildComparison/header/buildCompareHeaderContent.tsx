@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -12,7 +11,7 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
@@ -34,19 +33,18 @@ interface BuildCompareHeaderContentProps {
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, projectId} = props;
-  const theme = useTheme();
-  const project = ProjectsStore.getBySlug(projectId);
+  const organization = useOrganization();
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
       label: t('Releases'),
     },
   ];
 
   if (buildDetails.app_info.version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(project?.id, {
+      to: makeReleasesUrl(organization.slug, projectId, {
         query: buildDetails.app_info.version,
         tab: 'mobile-builds',
       }),
@@ -60,7 +58,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
 
   return (
     <Flex justify="between" align="center" gap="lg">
-      <Stack gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
+      <Stack gap="lg" padding="0 0 lg 0">
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
           <FeatureBadge type="beta" />

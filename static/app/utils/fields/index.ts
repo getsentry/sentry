@@ -20,6 +20,7 @@ export enum FieldKind {
   EQUATION = 'equation',
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
+  BOOLEAN = 'boolean',
 }
 
 export enum FieldKey {
@@ -97,6 +98,7 @@ export enum FieldKey {
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
+  RELEASE_CREATED = 'release.created',
   RELEASE_PACKAGE = 'release.package',
   RELEASE_STAGE = 'release.stage',
   RELEASE_VERSION = 'release.version',
@@ -251,6 +253,7 @@ type OsFieldKey =
 type ReleaseFieldKey =
   | FieldKey.RELEASE
   | FieldKey.RELEASE_BUILD
+  | FieldKey.RELEASE_CREATED
   | FieldKey.RELEASE_PACKAGE
   | FieldKey.RELEASE_STAGE
   | FieldKey.RELEASE_VERSION;
@@ -2281,6 +2284,11 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     allowComparisonOperators: true,
     allowWildcard: false,
   },
+  [FieldKey.RELEASE_CREATED]: {
+    desc: t('The date the release was created'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
@@ -2576,7 +2584,11 @@ const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 };
 
 const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  // TODO: Add field definitions for tracemetric fields
+  [FieldKey.TIMESTAMP]: {
+    desc: t('The time the metric was recorded'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
@@ -3341,6 +3353,7 @@ export const getFieldDefinition = (
     | 'replay'
     | 'replay_click'
     | 'feedback'
+    | 'preprod'
     | 'span'
     | 'log'
     | 'uptime'
@@ -3374,6 +3387,7 @@ export const getFieldDefinition = (
         return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
       return null;
+    case 'preprod':
     case 'span':
       if (SPAN_FIELD_DEFINITIONS[key]) {
         return SPAN_FIELD_DEFINITIONS[key];
@@ -3388,6 +3402,10 @@ export const getFieldDefinition = (
 
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+      }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
       return null;
@@ -3408,6 +3426,11 @@ export const getFieldDefinition = (
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'tracemetric':
@@ -3426,6 +3449,11 @@ export const getFieldDefinition = (
       if (kind === FieldKind.TAG) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
       return null;
 
     case 'event':
@@ -3457,7 +3485,16 @@ const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);
-  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+
+  if (result?.[2] === 'number') {
+    return FieldKind.MEASUREMENT;
+  }
+
+  if (result?.[2] === 'boolean') {
+    return FieldKind.BOOLEAN;
+  }
+
+  return FieldKind.TAG;
 }
 
 export function prettifyTagKey(key: string): string {

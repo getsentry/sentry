@@ -93,21 +93,34 @@ Required context variables:
           return port2;
         }
 
-        function getCookieValue(cookie, domain) {
-          return `${cookie}; domain=${domain}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
+        function makeCookieValue(name, value, domain, maxAge) {
+          return `${name}=${value}; domain=${domain}; path=/; max-age=${maxAge === undefined ? 31536000 : maxAge}; SameSite=none; partitioned; secure`;
+        }
+
+        function clearCookies() {
+          document.cookie.split(';').forEach(cookie => {
+            const name = cookie.split('=')[0].trim();
+            document.cookie = makeCookieValue(name, '', window.location.hostname, 0);
+            document.cookie = makeCookieValue(name, '', regionUrl, 0);
+          });
         }
 
         const loginWindowMessageDispatch = {
-          'did-login': ({ cookie, token }) => {
-            if (cookie) {
-              document.cookie = getCookieValue(cookie, window.location.hostname);
-              log('Saved a cookie', document.cookie.indexOf(cookie) >= 0);
+          'did-login': ({ sessionCookieName, sessionCookieValue, csrfCookieName, csrfToken, token }) => {
+            if (sessionCookieName && sessionCookieValue) {
+              document.cookie = makeCookieValue(sessionCookieName, sessionCookieValue, window.location.hostname);
+              log('Saved session cookie', document.cookie.indexOf(sessionCookieName) >= 0);
+            }
+            if (csrfCookieName && csrfToken) {
+              sessionStorage.setItem('csrfToken', csrfToken);
+              document.cookie = makeCookieValue(csrfCookieName, csrfToken, window.location.hostname)
+              log('Saved CSRF token', document.cookie.indexOf(csrfCookieName) >= 0);
             }
             if (token) {
               localStorage.setItem('accessToken', token);
               log('Saved an accessToken to localStorage');
             }
-            if (!cookie && !token) {
+            if ((!sessionCookieValue || !csrfToken) && !token) {
               log('Unexpected: No access token found!');
             }
 
@@ -130,12 +143,13 @@ Required context variables:
           },
 
           'request-logout': () => {
-            const cookie = document.cookie.split('=').at(0) + '=';
-            document.cookie = getCookieValue(cookie, window.location.hostname);
-            document.cookie = getCookieValue(cookie, regionUrl);
-            log('Cleared the current cookie');
+            clearCookies();
+            log('Cleared the cookies');
 
-            const accessToken = localStorage.removeItem('accessToken')
+            sessionStorage.removeItem('csrfToken');
+            log('Removed CSRF token from sessionStorage');
+
+            localStorage.removeItem('accessToken')
             log('Removed accessToken from localStorage');
 
             postStateMessage('stale');
@@ -150,15 +164,22 @@ Required context variables:
             const accessToken = localStorage.getItem('accessToken');
             const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
 
+            const csrfToken = sessionStorage.getItem('csrfToken');
+            const csrfHeader = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+
             // If either of these is invalid, or both are missing, we will
             // forward the resulting 401 to the application, which will request
             // tokens be destroyed and reload the iframe in an unauth state.
-            log('Has access info', { cookie: Boolean(document.cookie), accessToken: Boolean(accessToken) });
+            log('Has access info', {
+              cookie: Boolean(document.cookie),
+              csrfToken: Boolean(sessionStorage.getItem('csrfToken')),
+              accessToken: Boolean(accessToken),
+            });
 
             const url = new URL('/api/0' + path, organizationUrl);
             const initWithCreds = {
               ...init,
-              headers: { ...init.headers, ...bearer },
+              headers: { ...init.headers, ...bearer, ...csrfHeader },
               credentials: 'include',
             };
             const response = await fetch(url, initWithCreds);
@@ -176,9 +197,7 @@ Required context variables:
         log('Init', { referrerOrigin, state });
 
         if (state === 'logged-out') {
-          const cookie = document.cookie.split('=').at(0) + '=';
-          document.cookie = getCookieValue(cookie, window.location.hostname);
-          document.cookie = getCookieValue(cookie, regionUrl);
+          clearCookies();
         }
 
         window.addEventListener('message', handleLoginWindowMessage);
@@ -199,5 +218,5 @@ Required context variables:
 
 {% comment %}
 No need to close `body`. If we do then middleware will inject some extra markup
-we don't need. Browsers can figure out when it missing and deal with it.
+we don't need. Browsers can figure out when it's missing and deal with it.
 {% endcomment %}

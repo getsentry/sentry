@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
@@ -51,7 +52,12 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
     queryParams.sort = defaultSort;
   }
 
-  return [`/organizations/${orgSlug}/combined-rules/`, {query: queryParams}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/combined-rules/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: queryParams},
+  ];
 }
 
 const DataConsentBanner = HookOrDefault({
@@ -345,5 +351,5 @@ const StyledPanelTable = styled(PanelTable)`
 
   grid-template-columns: minmax(250px, 4fr) auto auto 60px auto;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

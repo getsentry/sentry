@@ -37,7 +37,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
               },
               {
                 "contributes": false,
-                "hint": "discarded because stack trace only contains 1 frame which is under the configured threshold by stack trace rule (family:native min-frames=2)",
+                "hint": "discarded because stack trace only contains 1 frame which is under the configured threshold by custom stack trace rule (family:native min-frames=2)",
                 "id": "stacktrace",
                 "name": "stacktrace",
                 "values": [

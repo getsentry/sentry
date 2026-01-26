@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
@@ -97,24 +97,28 @@ export function useMetricOptions({
     enabled,
   });
 
-  // This replaces order-by metric.name as that will never be performant over large time periods with high numbers of metrics.
-  useEffect(() => {
-    if (result.data?.data) {
-      result.data.data.sort((a, b) => {
-        return a[TraceMetricKnownFieldKey.METRIC_NAME].localeCompare(
-          b[TraceMetricKnownFieldKey.METRIC_NAME]
-        );
-      });
+  const filteredData = useMemo(() => {
+    if (!result.data?.data) {
+      return undefined;
     }
-  }, [result.data]);
+    // Filter out empty string metric names which cause infinite update loops
+    return result.data.data
+      .filter(item => item[TraceMetricKnownFieldKey.METRIC_NAME]?.length > 0)
+      .sort((a, b) =>
+        a[TraceMetricKnownFieldKey.METRIC_NAME].localeCompare(
+          b[TraceMetricKnownFieldKey.METRIC_NAME]
+        )
+      );
+  }, [result.data?.data]);
 
   const isMetricOptionsEmpty =
     !result.isFetching &&
     !result.isLoading &&
-    (!result.data?.data || result.data.data.length === 0);
+    (!filteredData || filteredData.length === 0);
 
   return {
     ...result,
+    data: filteredData ? {...result.data, data: filteredData} : result.data,
     isMetricOptionsEmpty,
   };
 }
