@@ -8,6 +8,7 @@ import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
@@ -165,7 +166,12 @@ export function useReleasesSeriesQuery(
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
+    const errorMessage = error?.responseJSON?.detail
+      ? typeof error.responseJSON.detail === 'string'
+        ? error.responseJSON.detail
+        : error.responseJSON.detail.message
+      : error?.message;
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
@@ -219,6 +225,7 @@ export function useReleasesSeriesQuery(
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
+      tableResults: undefined,
       rawData: finalRawData,
     };
   })();
@@ -330,7 +337,12 @@ export function useReleasesTableQuery(
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
+    const errorMessage = error?.responseJSON?.detail
+      ? typeof error.responseJSON.detail === 'string'
+        ? error.responseJSON.detail
+        : error.responseJSON.detail.message
+      : error?.message;
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
@@ -393,6 +405,7 @@ export function useReleasesTableQuery(
       loading: false,
       errorMessage: undefined,
       tableResults,
+      timeseriesResults: undefined,
       pageLinks: responsePageLinks,
       rawData: finalRawData,
     };
