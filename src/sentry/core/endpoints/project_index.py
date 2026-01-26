@@ -7,10 +7,11 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ObjectStatus
+from sentry.constants import CELL_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
@@ -25,6 +26,7 @@ class ProjectIndexEndpoint(Endpoint):
     }
     permission_classes = (ProjectPermission,)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/projects/")
     def get(self, request: Request) -> Response:
         """
         List your Projects
