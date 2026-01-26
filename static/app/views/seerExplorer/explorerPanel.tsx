@@ -4,6 +4,7 @@ import {createPortal} from 'react-dom';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isSeerExplorerEnabled} from 'sentry/utils/seerFeatures';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -739,7 +740,11 @@ function ExplorerPanel() {
     </PanelContainers>
   );
 
-  if (!organization?.features.includes('seer-explorer') || organization.hideAiFeatures) {
+  if (
+    !organization ||
+    organization.hideAiFeatures ||
+    !isSeerExplorerEnabled(organization)
+  ) {
     return null;
   }
 

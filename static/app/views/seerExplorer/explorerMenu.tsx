@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
+import {isSeerExplorerEnabled} from 'sentry/utils/seerFeatures';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
@@ -414,7 +415,7 @@ function useSessions({
   enabled?: boolean;
 }) {
   const organization = useOrganization({allowNull: true});
-  const hasFeature = organization?.features.includes('seer-explorer');
+  const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
 
   const {data, isPending, isError, refetch} = useExplorerSessions({
     limit: 20,

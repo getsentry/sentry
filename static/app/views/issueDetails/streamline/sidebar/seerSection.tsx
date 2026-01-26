@@ -22,6 +22,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {isSeerExplorerEnabled} from 'sentry/utils/seerFeatures';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -117,7 +118,7 @@ export default function SeerSection({
   const organization = useOrganization();
   const removeConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
   const isExplorerEnabled =
-    organization.features.includes('seer-explorer') &&
+    isSeerExplorerEnabled(organization) &&
     organization.features.includes('autofix-on-explorer');
 
   // Get explorer artifacts when autofix-on-explorer is enabled

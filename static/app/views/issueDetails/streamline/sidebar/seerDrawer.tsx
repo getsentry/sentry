@@ -33,6 +33,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {isSeerExplorerEnabled} from 'sentry/utils/seerFeatures';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -213,7 +214,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
   // Route to Explorer-based drawer if both feature flags are enabled
   if (
-    organization.features.includes('seer-explorer') &&
+    isSeerExplorerEnabled(organization) &&
     organization.features.includes('autofix-on-explorer')
   ) {
     return (
@@ -521,7 +522,7 @@ export const useOpenSeerDrawer = ({
     }
 
     const isExplorerVersion =
-      organization.features.includes('seer-explorer') &&
+      isSeerExplorerEnabled(organization) &&
       organization.features.includes('autofix-on-explorer');
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
