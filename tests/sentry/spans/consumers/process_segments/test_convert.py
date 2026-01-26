@@ -158,7 +158,7 @@ def test_convert_span_to_item() -> None:
         "relay_use_post_or_schedule": AnyValue(string_value="True"),
         "sentry.category": AnyValue(string_value="http"),
         "sentry.client_sample_rate": AnyValue(double_value=0.1),
-        "sentry.duration_ms": AnyValue(int_value=152),
+        "sentry.duration_ms": AnyValue(double_value=152.158022),
         "sentry.end_timestamp_precise": AnyValue(double_value=1721319572.768806),
         "sentry.environment": AnyValue(string_value="development"),
         "sentry.is_segment": AnyValue(bool_value=True),
