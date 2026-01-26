@@ -320,6 +320,42 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         # The key should indicate it's a user-based rate limit
         assert rate_limit_key.startswith("user:")
 
+    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=10)
+    def test_apply_impersonation_limits_selects_smaller_limit(self) -> None:
+        """Test that _apply_impersonation_limits selects the smaller API limit over SENTRY_IMPERSONATION_RATE_LIMIT"""
+        middleware = RatelimitMiddleware(lambda request: sentinel.response)
+
+        api_config = RateLimitConfig(
+            limit_overrides={
+                "GET": {
+                    RateLimitCategory.USER: RateLimit(limit=5, window=30, concurrent_limit=3),
+                },
+                "POST": {
+                    RateLimitCategory.IP: RateLimit(limit=20, window=60, concurrent_limit=15),
+                },
+            }
+        )
+
+        result = middleware._apply_impersonation_limits(api_config)
+
+        # Should use API's limit (5) since it's smaller than impersonation_limit (10)
+        user_limit = result.get_rate_limit("GET", RateLimitCategory.USER)
+        assert (
+            user_limit.limit == 5
+        ), "Should use API's smaller limit (5) instead of impersonation_limit (10)"
+        assert (
+            user_limit.concurrent_limit == 3
+        ), "Should use API's smaller concurrent_limit (3) instead of impersonation_limit (10)"
+        assert user_limit.window == 30, "Should preserve API's window value"
+
+        # Should use impersonation limit (10) since it's smaller
+        ip_limit = result.get_rate_limit("POST", RateLimitCategory.IP)
+        assert ip_limit.limit == 10, "Should use impersonation limit (10) since it's smaller"
+        assert (
+            ip_limit.concurrent_limit == 10
+        ), "Should use impersonation limit (10) since it's smaller"
+        assert ip_limit.window == 60, "Should preserve API's window value"
+
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetRateLimitValue(TestCase):

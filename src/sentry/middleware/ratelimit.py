@@ -48,29 +48,37 @@ class RatelimitMiddleware:
             self.process_response(request, response)
             return response
 
-    def _apply_impersonation_limits(self) -> RateLimitConfig:
-        """Apply fixed rate limits during impersonation sessions."""
+    def _apply_impersonation_limits(self, rate_limit_config: RateLimitConfig) -> RateLimitConfig:
+        """Takes the minimum between the impersonation_limit and the API's rate limit configuration
+        for each HTTP method and category.
+        """
 
-        impersonation_limit = getattr(settings, "SENTRY_IMPERSONATION_RATE_LIMIT", 100)
+        impersonation_limit = settings.SENTRY_IMPERSONATION_RATE_LIMIT
 
         # Create one set of limits to use for all HTTP methods
-        default_limits = {
-            RateLimitCategory.IP: RateLimit(
-                limit=impersonation_limit, window=1, concurrent_limit=impersonation_limit
-            ),
-            RateLimitCategory.USER: RateLimit(
-                limit=impersonation_limit, window=1, concurrent_limit=impersonation_limit
-            ),
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=impersonation_limit, window=1, concurrent_limit=impersonation_limit
-            ),
-        }
+        # For each method and category, take the min between impersonation_limit and API's limit
+        limit_overrides = {}
+        for method in ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]:
+            method_limits = {}
+            for category in RateLimitCategory:
+                api_rate_limit = rate_limit_config.get_rate_limit(method, category)
+                # Take minimum of impersonation_limit and API's limit/concurrent_limit
+                min_limit = min(impersonation_limit, api_rate_limit.limit)
+                min_concurrent_limit = min(
+                    impersonation_limit,
+                    api_rate_limit.concurrent_limit or impersonation_limit,
+                )
+                # Preserve the API's window value
+                method_limits[category] = RateLimit(
+                    limit=min_limit,
+                    window=api_rate_limit.window,
+                    concurrent_limit=min_concurrent_limit,
+                )
+            limit_overrides[method] = method_limits
 
         return RateLimitConfig(
-            limit_overrides={
-                method: default_limits
-                for method in ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
-            }
+            group=rate_limit_config.group,
+            limit_overrides=limit_overrides,
         )
 
     def process_view(
@@ -106,7 +114,7 @@ class RatelimitMiddleware:
 
                 # Apply stricter limits during impersonation
                 if is_impersonating:
-                    rate_limit_config = self._apply_impersonation_limits()
+                    rate_limit_config = self._apply_impersonation_limits(rate_limit_config)
 
                 rate_limit_group = (
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
