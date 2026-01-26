@@ -15,6 +15,25 @@ import {
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
+export function getCreateTooltip(params: {
+  hasAccess: boolean;
+  hasAvailability: boolean;
+  hasFeature: boolean;
+}): string | undefined {
+  if (!params.hasFeature) {
+    return t('This feature is not available for your organization');
+  }
+  if (!params.hasAccess) {
+    return t(
+      'You must be an organization owner, manager or admin to configure data forwarding.'
+    );
+  }
+  if (!params.hasAvailability) {
+    return t('Maximum data forwarders configured.');
+  }
+  return undefined;
+}
+
 export function getDataForwarderFormGroups({
   provider,
   dataForwarder,

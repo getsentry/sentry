@@ -11,8 +11,9 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 
-export function DataForwarderOnboarding({disabled}: {disabled: boolean}) {
+export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {
   const organization = useOrganization();
 
   return (
@@ -29,16 +30,21 @@ export function DataForwarderOnboarding({disabled}: {disabled: boolean}) {
             {t('Works with Amazon SQS, Segment and Splunk.')}
           </Text>
           <Access access={['org:write']}>
-            <LinkButton
-              priority="primary"
-              to={`/settings/${organization.slug}/data-forwarding/setup/`}
-              onClick={() => {
-                trackAnalytics('data_forwarding.onboarding_cta_clicked', {organization});
-              }}
-              disabled={disabled}
-            >
-              {t('Setup Your First Forwarder')}
-            </LinkButton>
+            {({hasAccess}) => (
+              <LinkButton
+                priority="primary"
+                to={`/settings/${organization.slug}/data-forwarding/setup/`}
+                onClick={() => {
+                  trackAnalytics('data_forwarding.onboarding_cta_clicked', {
+                    organization,
+                  });
+                }}
+                disabled={!hasFeature || !hasAccess}
+                title={getCreateTooltip({hasAccess, hasFeature, hasAvailability: true})}
+              >
+                {t('Set up your first Forwarder')}
+              </LinkButton>
+            )}
           </Access>
         </Flex>
         <OversizedImage
@@ -51,6 +57,7 @@ export function DataForwarderOnboarding({disabled}: {disabled: boolean}) {
 }
 
 const OversizedImage = styled(Image)`
-  transform: translateX(8%) scale(1.1);
+  transform: translateX(8%) scale(1.3);
   flex: 2;
+  max-height: 300px;
 `;
