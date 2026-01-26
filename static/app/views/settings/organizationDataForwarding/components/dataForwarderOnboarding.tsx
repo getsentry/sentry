@@ -39,8 +39,10 @@ export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {
                     organization,
                   });
                 }}
+                tooltipProps={{
+                  title: getCreateTooltip({hasAccess, hasFeature, hasAvailability: true}),
+                }}
                 disabled={!hasFeature || !hasAccess}
-                title={getCreateTooltip({hasAccess, hasFeature, hasAvailability: true})}
               >
                 {t('Set up your first Forwarder')}
               </LinkButton>
