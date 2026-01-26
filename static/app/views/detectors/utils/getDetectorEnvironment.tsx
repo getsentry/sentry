@@ -16,6 +16,7 @@ export function getDetectorEnvironment(detector: Detector): string | null {
       return null;
     case 'error':
     case 'issue_stream':
+    case 'preprod_static':
       return null;
     default:
       unreachable(detectorType);
