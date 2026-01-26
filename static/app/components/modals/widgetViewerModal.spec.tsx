@@ -806,9 +806,7 @@ describe('Modals -> WidgetViewerModal', () => {
         expect(eventsStatsMock).toHaveBeenCalled();
       });
 
-      // TODO: this test is flakey in CI https://linear.app/getsentry/issue/BROWSE-264/fix-flakey-test
-      // eslint-disable-next-line jest/no-disabled-tests
-      it.skip('appends the orderby to the query if it is not already selected as an aggregate', async () => {
+      it('appends the orderby to the query if it is not already selected as an aggregate', async () => {
         const eventsStatsMock = mockEventsStats();
         mockEvents();
 
