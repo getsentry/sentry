@@ -49,6 +49,10 @@ logger = logging.getLogger(__name__)
 ENABLED_OPTION_KEY = "sentry:preprod_size_status_checks_enabled"
 RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 
+# Action identifier for the "Approve" button on GitHub check runs.
+# This is sent back in the webhook payload when the button is clicked.
+APPROVE_SIZE_ACTION_IDENTIFIER = "approve_size"
+
 preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
     text_operator_keys={
