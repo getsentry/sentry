@@ -80,7 +80,7 @@ export function handleUpdateQuery(
 
   if (!eventView.name) {
     addErrorMessage(t('Please name your query'));
-    return Promise.reject();
+    return Promise.reject(new Error('Query name is required'));
   }
 
   trackAnalytics('discover_v2.update_query_request', {
