@@ -18,6 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderOnboarding';
 import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
+import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {useDataForwarders} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
   DATA_FORWARDING_DOCS_URL,
@@ -34,7 +35,7 @@ export default function OrganizationDataForwarding() {
   } = useDataForwarders({
     params: {orgSlug: organization.slug},
   });
-  const canCreateForwarder =
+  const hasAvailability =
     dataForwarders.length < Object.values(DataForwarderProviderSlug).length;
 
   const pageContent = (
@@ -75,18 +76,8 @@ export default function OrganizationDataForwarding() {
                           organization,
                         });
                       }}
-                      disabled={!hasAccess || !canCreateForwarder || !hasFeature}
-                      title={
-                        canCreateForwarder
-                          ? hasFeature
-                            ? hasAccess
-                              ? undefined
-                              : t(
-                                  'You must be an organization owner, manager or admin to configure data forwarding.'
-                                )
-                            : t('This feature is not available for your organization')
-                          : t('Maximum data forwarders configured.')
-                      }
+                      disabled={!hasAccess || !hasAvailability || !hasFeature}
+                      title={getCreateTooltip({hasAvailability, hasAccess, hasFeature})}
                     >
                       {t('Setup a new Forwarder')}
                     </LinkButton>

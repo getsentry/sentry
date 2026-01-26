@@ -11,6 +11,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 
 export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {
   const organization = useOrganization();
@@ -39,15 +40,7 @@ export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {
                   });
                 }}
                 disabled={!hasFeature || !hasAccess}
-                title={
-                  hasAccess
-                    ? hasFeature
-                      ? undefined
-                      : t('Your organization does not have access to this feature.')
-                    : t(
-                        'You must be an organization owner, manager or admin to configure data forwarding.'
-                      )
-                }
+                title={getCreateTooltip({hasAccess, hasFeature, hasAvailability: true})}
               >
                 {t('Set up your first Forwarder')}
               </LinkButton>
