@@ -2437,24 +2437,6 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'ai-code-review/',
-      children: [
-        {
-          component: make(() => import('sentry/views/prevent/preventAI/wrapper')),
-          children: [
-            {
-              index: true,
-              redirectTo: 'new/',
-            },
-            {
-              path: 'new/',
-              component: make(() => import('sentry/views/prevent/preventAI/onboarding')),
-            },
-          ],
-        },
-      ],
-    },
-    {
       path: 'tokens/',
       component: make(() => import('sentry/views/prevent/tokens/tokensWrapper')),
       children: [

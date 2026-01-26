@@ -2,17 +2,12 @@ import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {makePreventPathname} from 'sentry/views/prevent/pathnames';
-import {
-  PREVENT_AI_BASE_URL,
-  TESTS_BASE_URL,
-  TOKENS_BASE_URL,
-} from 'sentry/views/prevent/settings';
+import {TESTS_BASE_URL, TOKENS_BASE_URL} from 'sentry/views/prevent/settings';
 
 export default function PreventSecondaryNav() {
   const organization = useOrganization();
@@ -23,10 +18,6 @@ export default function PreventSecondaryNav() {
   const tokensPathName = makePreventPathname({
     organization,
     path: `/${TOKENS_BASE_URL}/`,
-  });
-  const preventAIPathName = makePreventPathname({
-    organization,
-    path: `/${PREVENT_AI_BASE_URL}/`,
   });
 
   return (
@@ -41,14 +32,6 @@ export default function PreventSecondaryNav() {
               {t('Tests')}
             </SecondaryNav.Item>
           </Feature>
-          {showNewSeer(organization) ? null : (
-            <SecondaryNav.Item
-              to={`${preventAIPathName}new/`}
-              activeTo={`${preventAIPathName}new/`}
-            >
-              {t('AI Code Review')}
-            </SecondaryNav.Item>
-          )}
         </SecondaryNav.Section>
         <Feature features={['prevent-test-analytics']}>
           <SecondaryNav.Section id="prevent-configure" title={t('Configure')}>
