@@ -78,7 +78,7 @@ function useIssueDetailsPromoModal() {
             }}
             header={t('Welcome to Issue Details')}
             description={t(
-              "New around here? Tour the issue experience - we promise you'll be less confused."
+              "This is where you'll come every time something breaks. It shows what happened, why it happened, and what to do next.\n\nNew here? Take a tour - we promise you'll be less confused."
             )}
             onDismissTour={() => {
               handleEndTour();
