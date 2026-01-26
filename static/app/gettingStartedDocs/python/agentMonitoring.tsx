@@ -46,12 +46,8 @@ export const agentMonitoring: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Import and initialize the Sentry SDK with the [openai:OpenAI Agents] integration:',
-            {
-              openai: (
-                <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
-              ),
-            }
+            'Import and initialize the Sentry SDK - the OpenAI Agents integration will be enabled automatically:',
+            {code: <code />}
           ),
         },
         {
@@ -59,7 +55,6 @@ export const agentMonitoring: OnboardingConfig = {
           language: 'python',
           code: `
 import sentry_sdk
-from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -67,16 +62,7 @@ sentry_sdk.init(
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-    integrations=[
-        OpenAIAgentsIntegration(),
-    ],
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The OpenAI Agents integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
@@ -87,7 +73,7 @@ sentry_sdk.init(
         {
           type: 'text',
           text: tct(
-            'Import and initialize the Sentry SDK - the OpenAIIntegration will be enabled automatically:',
+            'Import and initialize the Sentry SDK - the OpenAI integration will be enabled automatically:',
             {code: <code />}
           ),
         },
@@ -114,7 +100,7 @@ sentry_sdk.init(
         {
           type: 'text',
           text: tct(
-            'Import and initialize the Sentry SDK - the Anthropic Integration will be enabled automatically:',
+            'Import and initialize the Sentry SDK - the Anthropic integration will be enabled automatically:',
             {code: <code />}
           ),
         },
@@ -141,7 +127,7 @@ sentry_sdk.init(
         {
           type: 'text',
           text: tct(
-            'Import and initialize the Sentry SDK - add the GoogleGenAIIntegration to your integrations list:',
+            'Import and initialize the Sentry SDK - the GoogleGenAI integration will be enabled automatically:',
             {code: <code />}
           ),
         },
@@ -150,7 +136,6 @@ sentry_sdk.init(
           language: 'python',
           code: `
 import sentry_sdk
-from sentry_sdk.integrations.google_genai import GoogleGenAIIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -158,9 +143,6 @@ sentry_sdk.init(
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-    integrations=[
-        GoogleGenAIIntegration(),
-    ],
 )`,
         },
       ],
@@ -172,12 +154,8 @@ sentry_sdk.init(
         {
           type: 'text',
           text: tct(
-            'Import and initialize the Sentry SDK for [langchain:LangChain] monitoring:',
-            {
-              langchain: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/langchain/" />
-              ),
-            }
+            'Import and initialize the Sentry SDK - the LangChain integration will be enabled automatically:',
+            {code: <code />}
           ),
         },
         {
@@ -185,7 +163,6 @@ sentry_sdk.init(
           language: 'python',
           code: `
 import sentry_sdk
-from sentry_sdk.integrations.openai import OpenAIIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -194,14 +171,7 @@ sentry_sdk.init(
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The LangChain integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
@@ -212,12 +182,8 @@ sentry_sdk.init(
         {
           type: 'text',
           text: tct(
-            'Import and initialize the Sentry SDK for [langgraph:LangGraph] monitoring:',
-            {
-              langgraph: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/langgraph/" />
-              ),
-            }
+            'Import and initialize the Sentry SDK - the LangGraph integration will be enabled automatically:',
+            {code: <code />}
           ),
         },
         {
@@ -225,7 +191,6 @@ sentry_sdk.init(
           language: 'python',
           code: `
 import sentry_sdk
-from sentry_sdk.integrations.openai import OpenAIIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -235,12 +200,6 @@ sentry_sdk.init(
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The LangGraph integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
@@ -264,7 +223,6 @@ sentry_sdk.init(
           language: 'python',
           code: `
 import sentry_sdk
-from sentry_sdk.integrations.openai import OpenAIIntegration
 from sentry_sdk.integrations.litellm import LiteLLMIntegration
 
 sentry_sdk.init(
@@ -278,12 +236,6 @@ sentry_sdk.init(
         LiteLLMIntegration(),
     ],
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The LiteLLM integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
@@ -329,12 +281,8 @@ sentry_sdk.init(
         {
           type: 'text',
           text: tct(
-            'Import and initialize the Sentry SDK for [pydantic_ai:Pydantic AI] monitoring:',
-            {
-              pydantic_ai: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/pydantic-ai/" />
-              ),
-            }
+            'Import and initialize the Sentry SDK - the PydanticAI integration will be enabled automatically:',
+            {code: <code />}
           ),
         },
         {
@@ -342,9 +290,6 @@ sentry_sdk.init(
           language: 'python',
           code: `
 import sentry_sdk
-from sentry_sdk.integrations.pydantic_ai import PydanticAIIntegration
-from sentry_sdk.integrations.openai import OpenAIIntegration
-
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -353,16 +298,7 @@ sentry_sdk.init(
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
-    integrations=[
-        PydanticAIIntegration(),
-    ],
 )`,
-        },
-        {
-          type: 'text',
-          text: t(
-            'The Pydantic AI integration will automatically collect information about agents, tools, prompts, tokens, and models.'
-          ),
         },
       ],
     };
