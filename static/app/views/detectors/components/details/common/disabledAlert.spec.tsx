@@ -75,17 +75,18 @@ describe('DisabledAlert', () => {
     });
   });
 
-  it('shows upgrade message for disabled metric detector without feature', () => {
+  it('shows upgrade message for disabled anomaly detector without feature', () => {
     const orgWithoutFeature = OrganizationFixture({
       access: ['org:write', 'alerts:write'],
       features: [],
     });
-    const metricDetector = MetricDetectorFixture({
+    const anomalyDetector = MetricDetectorFixture({
       enabled: false,
       projectId: project.id,
+      config: {detectionType: 'dynamic'},
     });
 
-    render(<DisabledAlert detector={metricDetector} message="Test message" />, {
+    render(<DisabledAlert detector={anomalyDetector} message="Test message" />, {
       organization: orgWithoutFeature,
     });
 

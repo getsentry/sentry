@@ -34,12 +34,15 @@ export function DisabledAlert({detector, message}: DisabledAlertProps) {
     updateDetector({detectorId: detector.id, enabled: true});
   };
 
-  // Check if this is a metric (anomaly detection) detector without the required feature
-  const isMetricDetector = detector.type === 'metric_issue';
+  // Check if this is an anomaly detection detector without the required feature
+  const isAnomalyDetector =
+    detector.type === 'metric_issue' &&
+    'config' in detector &&
+    detector.config?.detectionType === 'dynamic';
   const hasAnomalyDetectionFeature = organization.features.includes(
     'anomaly-detection-alerts'
   );
-  const requiresUpgrade = isMetricDetector && !hasAnomalyDetectionFeature;
+  const requiresUpgrade = isAnomalyDetector && !hasAnomalyDetectionFeature;
 
   if (requiresUpgrade) {
     return (
