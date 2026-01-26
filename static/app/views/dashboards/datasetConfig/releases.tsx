@@ -1,7 +1,7 @@
 import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {SelectValue} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {SessionsMeta} from 'sentry/types/sessions';
 import {SessionField} from 'sentry/types/sessions';
@@ -209,9 +209,7 @@ function getReleasesTableFieldOptions(_organization: Organization) {
 /** @internal exported for tests **/
 export function transformSessionsResponseToTable(
   data: SessionApiResponse,
-  widgetQuery: WidgetQuery,
-  _organization: Organization,
-  _pageFilters: PageFilters
+  widgetQuery: WidgetQuery
 ): TableData {
   const useSessionAPI = widgetQuery.columns.includes('session.status');
   const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
