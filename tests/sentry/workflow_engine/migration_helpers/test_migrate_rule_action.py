@@ -115,10 +115,14 @@ class TestNotificationActionMigrationUtils(TestCase):
                     else:
                         # For unmapped fields, check directly with empty string default
                         if action.type == Action.Type.EMAIL and field == "fallthrough_type":
-                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
-                            assert action.data.get(field) == compare_dict.get(
-                                field, "ActiveMembers"
+                            fallthrough_fields = ["fallthrough_type", "fallthroughType"]
+                            assert any(
+                                [
+                                    action.data.get(field) == compare_dict.get(f, "ActiveMembers")
+                                    for f in fallthrough_fields
+                                ]
                             )
+                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
                         else:
                             assert action.data.get(field) == compare_dict.get(field, "")
                 # Ensure no extra fields
@@ -131,7 +135,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 if key not in exclude_keys:
                     if (
                         action.type == Action.Type.EMAIL
-                        and key == "fallthrough_type"
+                        and (key == "fallthrough_type" or key == "fallthroughType")
                         and action.config.get("target_type") != ActionTarget.ISSUE_OWNERS
                     ):
                         # for email actions, fallthrough_type should only be set for when targetType is ISSUE_OWNERS

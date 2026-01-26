@@ -642,6 +642,16 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
       set(clonedState, `rule[${type}][${idx}][${prop}]`, val);
+
+      // If changing the channel name for a Slack action, clear the channel id for convenience
+      if (
+        type === 'actions' &&
+        prop === 'channel' &&
+        prevState.rule?.actions?.[idx]?.id === IssueAlertActionType.SLACK
+      ) {
+        set(clonedState, `rule[${type}][${idx}][channel_id]`, '');
+      }
+
       return clonedState;
     });
   };

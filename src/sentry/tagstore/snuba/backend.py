@@ -900,7 +900,12 @@ class SnubaTagStorage(TagStorage):
 
         # First get totals and unique counts by key.
         keys_with_counts = self.get_group_tag_keys(
-            group, environment_ids, keys=keys, tenant_ids=tenant_ids
+            group,
+            environment_ids,
+            keys=keys,
+            tenant_ids=tenant_ids,
+            start=kwargs.get("start"),
+            end=kwargs.get("end"),
         )
 
         # Then get the top values with first_seen/last_seen/count for each
