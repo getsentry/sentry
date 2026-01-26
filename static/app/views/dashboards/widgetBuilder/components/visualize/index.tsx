@@ -299,17 +299,19 @@ function Visualize({error, setError}: VisualizeProps) {
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let traceItemColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
-  if (
-    state.dataset === WidgetType.SPANS ||
-    state.dataset === WidgetType.LOGS ||
-    state.dataset === WidgetType.TRACEMETRICS
-  ) {
+  const traceItemColumnOptions = useMemo(() => {
+    if (
+      state.dataset !== WidgetType.SPANS &&
+      state.dataset !== WidgetType.LOGS &&
+      state.dataset !== WidgetType.TRACEMETRICS
+    ) {
+      return [];
+    }
     const columns =
       state.fields
         ?.filter(field => field.kind === FieldValueKind.FIELD)
         .map(field => field.field) ?? [];
-    traceItemColumnOptions = [
+    const options: Array<SelectValue<string> & {label: string; value: string}> = [
       // Columns that are not in the tag responses, e.g. old tags
       ...columns
         .filter(
@@ -340,8 +342,9 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
-    traceItemColumnOptions.sort(_sortFn);
-  }
+    options.sort(_sortFn);
+    return options;
+  }, [state.dataset, state.fields, stringSpanTags, numericSpanTags]);
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
@@ -414,6 +417,110 @@ function Visualize({error, setError}: VisualizeProps) {
   // Default field to add to the widget query when adding a new field.
   const defaultField =
     (isChartWidget && datasetConfig.defaultSeriesField) || datasetConfig.defaultField;
+
+  // Memoize base aggregate options to avoid recreating on every field iteration
+  const baseAggregateOptions = useMemo(
+    () =>
+      aggregates.map(option => ({
+        value:
+          option.value.kind === FieldValueKind.FUNCTION
+            ? getAggregateValueKey(option.value.meta.name)
+            : option.value.meta.name,
+        label: option.value.meta.name,
+        trailingItems: () => renderTag(option.value.kind, option.value.meta.name) ?? null,
+      })),
+    [aggregates]
+  );
+
+  // Memoize release session tags options
+  const releaseSessionTagsOptions = useMemo(() => {
+    if (state.dataset !== WidgetType.RELEASE) {
+      return [];
+    }
+    return Object.values(fieldOptions)
+      .filter(option => SESSIONS_TAGS.includes(option.value.meta.name))
+      .map(option => ({
+        label: option.value.meta.name,
+        value: option.value.meta.name,
+        textValue: option.value.meta.name,
+        trailingItems: () => renderTag(option.value.kind, option.value.meta.name),
+      }))
+      .sort(_sortFn);
+  }, [state.dataset, fieldOptions]);
+
+  // Memoize non-function field options for tables
+  const tableFieldOptions = useMemo(() => {
+    if (
+      isChartWidget ||
+      isBigNumberWidget ||
+      state.dataset === WidgetType.ISSUE ||
+      state.dataset === WidgetType.SPANS ||
+      state.dataset === WidgetType.LOGS ||
+      state.dataset === WidgetType.TRACEMETRICS ||
+      state.dataset === WidgetType.RELEASE
+    ) {
+      return [];
+    }
+    return Object.values(fieldOptions)
+      .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
+      .map(option => ({
+        label: option.value.meta.name,
+        value: option.value.meta.name,
+        textValue: option.value.meta.name,
+        trailingItems: () =>
+          renderTag(
+            option.value.kind,
+            option.value.meta.name,
+            option.value.kind !== FieldValueKind.FUNCTION &&
+              option.value.kind !== FieldValueKind.EQUATION
+              ? option.value.meta.dataType
+              : undefined
+          ),
+      }))
+      .sort(_sortFn);
+  }, [isChartWidget, isBigNumberWidget, state.dataset, fieldOptions]);
+
+  // Pre-compute complete aggregate options for non-field-dependent cases
+  // This avoids recreating the same array on each field iteration
+  const computedAggregateOptions = useMemo(() => {
+    if (isChartWidget || isBigNumberWidget) {
+      return {type: 'chart' as const, options: baseAggregateOptions};
+    }
+
+    const baseOptions = [NONE_AGGREGATE, ...baseAggregateOptions];
+
+    if (state.dataset === WidgetType.ISSUE) {
+      return {type: 'issue' as const, options: baseOptions};
+    }
+    if (
+      state.dataset === WidgetType.SPANS ||
+      state.dataset === WidgetType.LOGS ||
+      state.dataset === WidgetType.TRACEMETRICS
+    ) {
+      return {
+        type: 'trace' as const,
+        options: [...baseOptions, ...traceItemColumnOptions],
+      };
+    }
+    if (state.dataset === WidgetType.RELEASE) {
+      // RELEASE needs canDelete per-field, return both variants
+      return {
+        type: 'release' as const,
+        optionsWithNone: [...baseOptions, ...releaseSessionTagsOptions],
+        optionsWithoutNone: [...baseAggregateOptions, ...releaseSessionTagsOptions],
+      };
+    }
+    // Default table case
+    return {type: 'table' as const, options: [...baseOptions, ...tableFieldOptions]};
+  }, [
+    isChartWidget,
+    isBigNumberWidget,
+    state.dataset,
+    baseAggregateOptions,
+    traceItemColumnOptions,
+    releaseSessionTagsOptions,
+    tableFieldOptions,
+  ]);
 
   return (
     <Fragment>
@@ -503,6 +610,7 @@ function Visualize({error, setError}: VisualizeProps) {
                         columnFilterMethod ?? (() => true)
                       );
 
+                // Use pre-computed aggregate options to avoid array recreation per field
                 let aggregateOptions: Array<
                   | {
                       label: string | React.ReactNode;
@@ -511,70 +619,15 @@ function Visualize({error, setError}: VisualizeProps) {
                       textValue?: string;
                     }
                   | SelectValue<string>
-                > = aggregates.map(option => ({
-                  value:
-                    option.value.kind === FieldValueKind.FUNCTION
-                      ? getAggregateValueKey(option.value.meta.name)
-                      : option.value.meta.name,
-                  label: option.value.meta.name,
-                  trailingItems: () =>
-                    renderTag(option.value.kind, option.value.meta.name) ?? null,
-                }));
+                >;
 
-                if (!isChartWidget && !isBigNumberWidget) {
-                  const baseOptions = [NONE_AGGREGATE, ...aggregateOptions];
-
-                  if (state.dataset === WidgetType.ISSUE) {
-                    // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
-                    aggregateOptions = baseOptions;
-                  } else if (
-                    state.dataset === WidgetType.SPANS ||
-                    state.dataset === WidgetType.LOGS ||
-                    state.dataset === WidgetType.TRACEMETRICS
-                  ) {
-                    // Add span column options for Spans dataset
-                    aggregateOptions = [...baseOptions, ...traceItemColumnOptions];
-                  } else if (state.dataset === WidgetType.RELEASE) {
-                    aggregateOptions = [
-                      ...(canDelete ? baseOptions : aggregateOptions),
-                      ...Object.values(fieldOptions)
-                        // release dataset tables only use specific fields "SESSION_TAGS"
-                        .filter(option => SESSIONS_TAGS.includes(option.value.meta.name))
-                        .map(option => ({
-                          label: option.value.meta.name,
-                          value: option.value.meta.name,
-                          textValue: option.value.meta.name,
-                          trailingItems: () =>
-                            renderTag(option.value.kind, option.value.meta.name),
-                        }))
-                        .sort(_sortFn),
-                    ];
-                  } else {
-                    // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
-                    aggregateOptions = [
-                      ...baseOptions,
-
-                      // Iterate over fieldOptions so we can show all of the fields without any filtering
-                      // imposed by the aggregate filtering its possible columns
-                      ...Object.values(fieldOptions)
-                        .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
-                        .map(option => ({
-                          label: option.value.meta.name,
-                          value: option.value.meta.name,
-                          textValue: option.value.meta.name,
-                          trailingItems: () =>
-                            renderTag(
-                              option.value.kind,
-                              option.value.meta.name,
-                              option.value.kind !== FieldValueKind.FUNCTION &&
-                                option.value.kind !== FieldValueKind.EQUATION
-                                ? option.value.meta.dataType
-                                : undefined
-                            ),
-                        }))
-                        .sort(_sortFn),
-                    ];
-                  }
+                if (computedAggregateOptions.type === 'release') {
+                  // RELEASE dataset needs canDelete check per field
+                  aggregateOptions = canDelete
+                    ? computedAggregateOptions.optionsWithNone
+                    : computedAggregateOptions.optionsWithoutNone;
+                } else {
+                  aggregateOptions = computedAggregateOptions.options;
                 }
 
                 let matchingAggregate: any;
