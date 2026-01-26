@@ -64,30 +64,38 @@ export default function OrganizationDataForwarding() {
               </Stack>
               <Flex justify="end">
                 <Access access={['org:write']}>
-                  <LinkButton
-                    priority="primary"
-                    to={`/settings/${organization.slug}/data-forwarding/setup/`}
-                    icon={<IconAdd />}
-                    size="sm"
-                    onClick={() => {
-                      trackAnalytics('data_forwarding.add_forwarder_clicked', {
-                        organization,
-                      });
-                    }}
-                    disabled={!canCreateForwarder || !hasFeature}
-                    title={
-                      canCreateForwarder || !hasFeature
-                        ? undefined
-                        : t('Maximum data forwarders configured.')
-                    }
-                  >
-                    {t('Setup a new Forwarder')}
-                  </LinkButton>
+                  {({hasAccess}) => (
+                    <LinkButton
+                      priority="primary"
+                      to={`/settings/${organization.slug}/data-forwarding/setup/`}
+                      icon={<IconAdd />}
+                      size="sm"
+                      onClick={() => {
+                        trackAnalytics('data_forwarding.add_forwarder_clicked', {
+                          organization,
+                        });
+                      }}
+                      disabled={!hasAccess || !canCreateForwarder || !hasFeature}
+                      title={
+                        canCreateForwarder
+                          ? hasFeature
+                            ? hasAccess
+                              ? undefined
+                              : t(
+                                  'You must be an organization owner, manager or admin to configure data forwarding.'
+                                )
+                            : t('This feature is not available for your organization')
+                          : t('Maximum data forwarders configured.')
+                      }
+                    >
+                      {t('Setup a new Forwarder')}
+                    </LinkButton>
+                  )}
                 </Access>
               </Flex>
             </Fragment>
           ) : (
-            <DataForwarderOnboarding disabled={!hasFeature} />
+            <DataForwarderOnboarding hasFeature={hasFeature} />
           )}
         </Fragment>
       )}
