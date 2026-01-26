@@ -162,15 +162,15 @@ type LabelDetailsProps = {
 function LabelDetails(props: LabelDetailsProps) {
   return (
     <Grid columns="repeat(2, 1fr)" gap="sm" minWidth="200px">
-      {defined(props.eventCount) && (
-        <Container>{tn('%s event', '%s events', props.eventCount)}</Container>
-      )}
+      <Container>
+        {defined(props.eventCount) && tn('%s event', '%s events', props.eventCount)}
+      </Container>
 
-      {defined(props.dateCreated) && (
-        <Container justifySelf="right">
+      <Container justifySelf="right">
+        {defined(props.dateCreated) && (
           <DateTime dateOnly year date={props.dateCreated} />
-        </Container>
-      )}
+        )}
+      </Container>
     </Grid>
   );
 }
