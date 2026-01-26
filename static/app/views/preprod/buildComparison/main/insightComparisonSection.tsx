@@ -10,6 +10,8 @@ import {FileInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/mai
 import {GroupInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/groupInsightDiffTable';
 import {InsightDiffRow} from 'sentry/views/preprod/buildComparison/main/insights/insightDiffRow';
 import type {
+  DiffItem,
+  DiffType,
   InsightDiffItem,
   InsightStatus,
 } from 'sentry/views/preprod/types/appSizeTypes';
@@ -37,27 +39,130 @@ const FILE_DIFF_INSIGHT_TYPES = [
 
 const GROUP_DIFF_INSIGHT_TYPES = ['duplicate_files', 'loose_images'];
 
+const UNRESOLVED_ITEM_TYPES = new Set<DiffType>(['added', 'increased']);
+const RESOLVED_ITEM_TYPES = new Set<DiffType>(['removed', 'decreased']);
+
+function sumDiffItems(diffItems: DiffItem[]): number {
+  return diffItems.reduce((total, item) => total + item.size_diff, 0);
+}
+
+function filterDiffItems(
+  diffItems: DiffItem[],
+  allowedTypes: Set<DiffType>,
+  fallbackType: DiffType
+): DiffItem[] {
+  return diffItems.flatMap(item => {
+    const children = item.diff_items ?? [];
+    if (children.length === 0) {
+      return allowedTypes.has(item.type) ? [item] : [];
+    }
+
+    const filteredChildren = children.filter(child => allowedTypes.has(child.type));
+    if (filteredChildren.length === 0) {
+      return [];
+    }
+
+    const firstType = filteredChildren[0]!.type;
+    const inferredType = filteredChildren.every(child => child.type === firstType)
+      ? firstType
+      : fallbackType;
+
+    return [
+      {
+        ...item,
+        type: inferredType,
+        size_diff: sumDiffItems(filteredChildren),
+        diff_items: filteredChildren,
+      },
+    ];
+  });
+}
+
+function filterInsightByLineItemTypes(
+  insight: InsightDiffItem,
+  allowedTypes: Set<DiffType>,
+  fallbackType: DiffType
+): InsightDiffItem | null {
+  const filteredFileDiffs = filterDiffItems(
+    insight.file_diffs,
+    allowedTypes,
+    fallbackType
+  );
+  const filteredGroupDiffs = filterDiffItems(
+    insight.group_diffs,
+    allowedTypes,
+    fallbackType
+  );
+  const filteredItems = [...filteredFileDiffs, ...filteredGroupDiffs];
+
+  if (filteredItems.length === 0) {
+    return null;
+  }
+
+  return {
+    ...insight,
+    file_diffs: filteredFileDiffs,
+    group_diffs: filteredGroupDiffs,
+    total_savings_change: sumDiffItems(filteredItems),
+  };
+}
+
 export function InsightComparisonSection({
   insightDiffItems,
   totalInstallSizeBytes,
 }: InsightComparisonSectionProps) {
-  const [selectedTab, setSelectedTab] = useState<'all' | InsightStatus>('all');
+  type InsightTab = 'all' | InsightStatus;
+  const [selectedTab, setSelectedTab] = useState<InsightTab>('all');
 
-  const filteredInsights = useMemo(() => {
-    if (selectedTab === 'all') {
-      return insightDiffItems;
+  const tabbedInsights = useMemo(() => {
+    const byTab: Record<InsightTab, InsightDiffItem[]> = {
+      all: [],
+      new: [],
+      unresolved: [],
+      resolved: [],
+    };
+
+    for (const insight of insightDiffItems) {
+      byTab.all.push(insight);
+
+      if (insight.status === 'new') {
+        byTab.new.push(insight);
+      }
+
+      if (insight.status === 'unresolved') {
+        const unresolvedInsight = filterInsightByLineItemTypes(
+          insight,
+          UNRESOLVED_ITEM_TYPES,
+          'increased'
+        );
+        if (unresolvedInsight) {
+          byTab.unresolved.push(unresolvedInsight);
+        }
+      }
+
+      const resolvedInsight = filterInsightByLineItemTypes(
+        insight,
+        RESOLVED_ITEM_TYPES,
+        'decreased'
+      );
+      if (resolvedInsight) {
+        byTab.resolved.push(resolvedInsight);
+      }
     }
-    return insightDiffItems.filter(insight => insight.status === selectedTab);
-  }, [insightDiffItems, selectedTab]);
 
-  const statusCounts = useMemo(() => {
     return {
-      all: insightDiffItems.length,
-      new: insightDiffItems.filter(i => i.status === 'new').length,
-      unresolved: insightDiffItems.filter(i => i.status === 'unresolved').length,
-      resolved: insightDiffItems.filter(i => i.status === 'resolved').length,
+      byTab,
+      counts: {
+        all: byTab.all.length,
+        new: byTab.new.length,
+        unresolved: byTab.unresolved.length,
+        resolved: byTab.resolved.length,
+      },
     };
   }, [insightDiffItems]);
+
+  const filteredInsights = tabbedInsights.byTab[selectedTab];
+  const statusCounts = tabbedInsights.counts;
 
   if (insightDiffItems.length === 0) {
     return null;
