@@ -116,11 +116,9 @@ export default function SeerSection({
 
   const organization = useOrganization();
   const removeConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
-  const isExplorerEnabled =
-    organization.features.includes('seer-explorer') &&
-    organization.features.includes('autofix-on-explorer');
+  const isExplorerEnabled = organization.features.includes('seer-explorer');
 
-  // Get explorer artifacts when autofix-on-explorer is enabled
+  // Get explorer artifacts when autofix on explorer is enabled
   const {runState: explorerRunState} = useExplorerAutofix(group.id, {
     enabled: isExplorerEnabled,
   });
