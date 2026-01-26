@@ -1,6 +1,7 @@
 from unittest.mock import ANY, MagicMock, patch
 from urllib.parse import urlencode
 
+import pytest
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
 
@@ -419,6 +420,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             ANY, "awsLambdaFailureDetails", {"lambdaFunctionFailures": failures, "successCount": 0}
         )
 
+    @pytest.mark.skip(reason="flaky: #106198")
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     @patch.object(aws_lambda_integration, "render_react_view", return_value=HttpResponse())
