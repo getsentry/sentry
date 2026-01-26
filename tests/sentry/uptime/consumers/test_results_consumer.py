@@ -3,6 +3,7 @@ import base64
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
+from io import BytesIO
 from typing import Literal
 from unittest import mock
 from unittest.mock import MagicMock, call
@@ -1578,6 +1579,54 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             ).count()
             == 0
         )
+
+    def test_response_capture_skipped_when_already_exists(self) -> None:
+        """
+        Test that no duplicate capture is created when one already exists for
+        the same scheduled check time (e.g., on retry).
+        """
+        response_body = b"<html><body>Server Error</body></html>"
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [
+            {
+                **request_info,
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "response_headers": [["Content-Type", "text/html"]],
+            }
+        ]
+
+        # Pre-create a capture for the same scheduled check time
+        existing_file = File.objects.create(name="existing-response", type="uptime.response")
+        existing_file.putfile(BytesIO(b"existing content"))
+        UptimeResponseCapture.objects.create(
+            uptime_subscription=self.subscription,
+            file_id=existing_file.id,
+            scheduled_check_time_ms=result["scheduled_check_time_ms"],
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            # Should not have created a new capture
+            for call_args in metrics.incr.call_args_list:
+                assert call_args[0][0] != "uptime.response_capture.created"
+
+        # Still only one capture
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 1
+        )
+        # And only one file (the original)
+        assert File.objects.filter(type="uptime.response").count() == 1
 
     def test_response_capture_toggle_disabled_on_failure(self) -> None:
         """

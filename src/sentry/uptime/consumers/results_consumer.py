@@ -107,7 +107,17 @@ def create_uptime_response_capture(
     Create a response capture from a check result if it contains response data.
 
     Returns the created capture, or None if there's no response data in result
+    or if a capture already exists for this scheduled check time.
     """
+    # Check if we already have a capture for this scheduled check time
+    # to avoid creating duplicates on retries.
+    scheduled_check_time_ms = result["scheduled_check_time_ms"]
+    if UptimeResponseCapture.objects.filter(
+        uptime_subscription=subscription,
+        scheduled_check_time_ms=scheduled_check_time_ms,
+    ).exists():
+        return None
+
     request_info_list = result.get("request_info_list")
     if not request_info_list:
         return None
@@ -124,7 +134,6 @@ def create_uptime_response_capture(
         return None
 
     raw_headers = request_info.get("response_headers")
-    # Convert list[list[Any]] from kafka schema to list[tuple[str, str]]
     response_headers: list[tuple[str, str]] | None = (
         [(str(h[0]), str(h[1])) for h in raw_headers] if raw_headers else None
     )
