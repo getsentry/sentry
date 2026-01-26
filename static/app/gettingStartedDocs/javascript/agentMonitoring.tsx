@@ -452,10 +452,12 @@ export function agentMonitoringFullStack({
                           label: 'JavaScript',
                           filename: 'sentry.edge.config.(js|ts)',
                           language: 'javascript',
-                          code: `Sentry.init({
-                            dsn: '${params.dsn.public}',
-                            integrations: [Sentry.vercelAIIntegration()],
-                          });`,
+                          code: `${getImport(packageName, 'esm-only').join('\n')}
+
+Sentry.init({
+  dsn: '${params.dsn.public}',
+  integrations: [Sentry.vercelAIIntegration()],
+});`,
                         },
                       ],
                     },
