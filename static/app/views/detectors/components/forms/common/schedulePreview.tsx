@@ -19,19 +19,14 @@ import LoadingError from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
-import {useMonitorsScheduleSamples} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
-import type {ScheduleType} from 'sentry/views/insights/crons/types';
+import {
+  useMonitorsScheduleSamples,
+  type UseMonitorsScheduleSamplesOptions,
+} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
 
-type SchedulePreviewProps = {
-  failureIssueThreshold: number;
-  recoveryThreshold: number;
-  scheduleCrontab: string;
-  scheduleIntervalUnit: string;
-  scheduleIntervalValue: number;
-  scheduleType: ScheduleType;
+interface SchedulePreviewProps extends UseMonitorsScheduleSamplesOptions {
   statusToText: Record<SchedulePreviewStatus, string>;
-  timezone: string;
-};
+}
 
 const statusPrecedent: SchedulePreviewStatus[] = [
   SchedulePreviewStatus.SUB_FAILURE_ERROR,
@@ -233,7 +228,7 @@ const OpenPeriodBar = styled('div')`
 `;
 
 const OpenPeriodLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -243,7 +238,7 @@ const OpenPeriodLabel = styled('div')`
 const OpenPeriodCountLabel = styled('div')`
   position: absolute;
   top: 108px;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
   transform: translateX(-50%);
@@ -252,7 +247,7 @@ const OpenPeriodCountLabel = styled('div')`
 
 const StyledContainer = styled(Container)`
   top: 8px;
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: ${p => p.theme.zIndex.monitorCreationForms.schedulePreview};
   /*
     * Prevent seeing content beneath in the uncovered strip above the sticky element.
     * Use a solid, zero-blur shadow so we don't paint over the border.
@@ -262,5 +257,5 @@ const StyledContainer = styled(Container)`
 
 const ErrorContainer = styled(Container)`
   transform: translate(-50%, -50%);
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;

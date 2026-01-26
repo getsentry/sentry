@@ -1,4 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -100,7 +101,9 @@ export function useMetricDetectorAnomalies({
 
   const {data, isLoading, error, refetch} = useApiQuery<Anomaly[]>(
     [
-      `/organizations/${organization.slug}/events/anomalies/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/anomalies/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         method: 'POST',
         data: payload,

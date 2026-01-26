@@ -125,8 +125,8 @@ export function ShortIdBreadcrumb({
 }
 
 const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

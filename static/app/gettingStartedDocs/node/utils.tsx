@@ -4,6 +4,7 @@ import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
@@ -89,7 +90,98 @@ export function getInstallCodeBlock(
   };
 }
 
-function getImport(
+/**
+ * Returns the install step for agent monitoring with the minimum SDK version requirement.
+ */
+export function getAgentMonitoringInstallStep(
+  params: DocsParams,
+  {
+    packageName = '@sentry/node',
+    minVersion = '10.28.0',
+  }: {
+    minVersion?: string;
+    packageName?: `@sentry/${string}`;
+  } = {}
+): OnboardingStep[] {
+  return [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
+            {
+              minVersion: <code>{minVersion}</code>,
+            }
+          ),
+        },
+        getInstallCodeBlock(params, {
+          packageName,
+        }),
+      ],
+    },
+  ];
+}
+
+export function getAgentMonitoringManualConfigStep(
+  params: DocsParams,
+  {
+    packageName = '@sentry/node',
+    importMode,
+  }: {
+    importMode?: 'esm' | 'cjs' | 'esm-only';
+    packageName?: `@sentry/${string}`;
+  } = {}
+): OnboardingStep[] {
+  return [
+    {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: t('Initialize the Sentry SDK in the entry point of your application.'),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `${getImport(packageName, importMode).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  // Add data like inputs and responses to/from LLMs and tools;
+  // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
+  sendDefaultPii: true,
+});`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: <CopyLLMPromptButton />,
+        },
+      ],
+    },
+  ];
+}
+
+export function getImport(
   packageName: `@sentry/${string}`,
   importMode?: 'esm' | 'cjs' | 'esm-only'
 ): string[] {
@@ -466,7 +558,7 @@ const client = Sentry.instrumentGoogleGenAIClient(genAI, {
 });
 
 const response = await client.models.generateContent({
-  model: 'gemini-2.0-flash-001',
+  model: 'gemini-2.5-flash-lite',
   contents: 'Why is the sky blue?',
 });
             `,
@@ -570,38 +662,79 @@ export const getNodeAgentMonitoringOnboarding = ({
   importMode?: 'esm' | 'cjs' | 'esm-only';
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: [
+  install: params => {
+    const selected =
+      (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
+
+    if (selected === AgentIntegration.MASTRA) {
+      return [
         {
-          type: 'text',
-          text: tct(
-            'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.28.0].',
+          type: StepType.INSTALL,
+          content: [
             {
-              code: <code />,
-            }
-          ),
+              type: 'text',
+              text: tct(
+                'Install the [code:@mastra/sentry] package to enable Sentry integration with Mastra.',
+                {
+                  code: <code />,
+                }
+              ),
+            },
+            {
+              type: 'code',
+              tabs: [
+                {
+                  label: 'npm',
+                  language: 'bash',
+                  code: 'npm install @mastra/sentry',
+                },
+                {
+                  label: 'yarn',
+                  language: 'bash',
+                  code: 'yarn add @mastra/sentry',
+                },
+                {
+                  label: 'pnpm',
+                  language: 'bash',
+                  code: 'pnpm add @mastra/sentry',
+                },
+              ],
+            },
+          ],
         },
-        getInstallCodeBlock(params, {
-          packageName,
-        }),
-      ],
-    },
-  ],
+      ];
+    }
+
+    return getAgentMonitoringInstallStep(params, {
+      packageName,
+    });
+  },
   configure: params => {
     const selected =
       (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
 
     if (selected === AgentIntegration.MANUAL) {
+      return getAgentMonitoringManualConfigStep(params, {
+        packageName,
+        importMode,
+      });
+    }
+
+    if (selected === AgentIntegration.MASTRA) {
       return [
         {
           title: t('Configure'),
           content: [
             {
               type: 'text',
-              text: t(
-                'Initialize the Sentry SDK in the entry point of your application.'
+              text: tct(
+                'Configure Mastra to use Sentry by adding the [code:SentryExporter] to your Mastra observability config. For more details, see the [link:@mastra/sentry package].',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://www.npmjs.com/package/@mastra/sentry" />
+                  ),
+                }
               ),
             },
             {
@@ -610,29 +743,27 @@ export const getNodeAgentMonitoringOnboarding = ({
                 {
                   label: 'JavaScript',
                   language: 'javascript',
-                  code: `${getImport(packageName, importMode).join('\n')}
+                  code: `import { Mastra } from '@mastra/core';
+import { SentryExporter } from '@mastra/sentry';
 
-      Sentry.init({
-        dsn: "${params.dsn.public}",
-        tracesSampleRate: 1.0,
-      });`,
+const mastra = new Mastra({
+  // ... your existing config
+  observability: {
+    configs: {
+      sentry: {
+        serviceName: 'my-service',
+        exporters: [
+          new SentryExporter({
+            dsn: '${params.dsn.public}',
+            tracesSampleRate: 1.0,
+          }),
+        ],
+      },
+    },
+  },
+});`,
                 },
               ],
-            },
-            {
-              type: 'text',
-              text: tct(
-                'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-                  ),
-                }
-              ),
-            },
-            {
-              type: 'custom',
-              content: <CopyLLMPromptButton />,
             },
           ],
         },
@@ -762,13 +893,14 @@ Sentry.init({
             label: 'JavaScript',
             language: 'javascript',
             code: `
-const Anthropic = require("anthropic");
-const anthropic = new Anthropic();
+const Anthropic = require("@anthropic-ai/sdk");
+const client = new Anthropic();
 
-const msg = await anthropic.messages.create({
-model: "claude-3-5-sonnet",
-messages: [{role: "user", content: "Tell me a joke"}],
-});`,
+const msg = await client.messages.create({
+  messages: [{role: "user", content: "Tell me a joke"}],
+  model: "claude-sonnet-4-5-20250929",
+});
+`,
           },
         ],
       });
@@ -805,7 +937,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
 const response = await ai.models.generateContent({
-  model: 'gemini-2.0-flash-001',
+  model: 'gemini-2.5-flash-lite',
   contents: 'Why is the sky blue?',
 });`,
           },
@@ -868,6 +1000,28 @@ const result = await agent.invoke({
 const messages = result.messages;
 const lastMessage = messages[messages.length - 1];
 const text = lastMessage.content;`,
+          },
+        ],
+      });
+    }
+    if (selected === AgentIntegration.MASTRA) {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `import { Agent } from '@mastra/core/agent';
+
+// This agent needs to be registered in your Mastra config
+const agent = new Agent({
+  id: 'my-agent',
+  name: 'My Agent',
+  instructions: 'You are a helpful assistant',
+  model: 'openai/gpt-4o',
+});
+
+const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
           },
         ],
       });

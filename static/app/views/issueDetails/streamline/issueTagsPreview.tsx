@@ -2,7 +2,8 @@ import type React from 'react';
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -56,7 +57,7 @@ type Segment = {
 };
 
 const bgColor = (index: number, theme: Theme) =>
-  Color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();
+  color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
   percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 
@@ -338,7 +339,7 @@ const TagsPreview = styled('div')`
   align-content: center;
   gap: 1px;
   column-gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
@@ -351,7 +352,7 @@ const TagBarPlaceholder = styled('div')`
   width: 100%;
   border-radius: 3px;
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
-  background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
+  background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 
@@ -400,7 +401,7 @@ const TagPreviewGrid = styled(Link)`
   margin: 0 -${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   &:hover {
     background: ${p => p.theme.tokens.background.tertiary};
@@ -409,12 +410,12 @@ const TagPreviewGrid = styled(Link)`
 `;
 
 const LegendText = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
 `;
 
 const LegendPercentage = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;

@@ -99,21 +99,21 @@ function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProp
         background: theme.tokens.background.transparent.success.muted,
         borderBottom: `2px solid ${theme.tokens.border.success.moderate}`,
         border: `1px solid ${theme.tokens.border.success.moderate}`,
-        boxShadow: `0 3px 0 0px ${theme.tokens.shadow.elevationLow}`,
+        boxShadow: theme.shadow.medium,
       };
     case 'error':
       return {
         background: theme.tokens.background.transparent.danger.muted,
         borderBottom: `2px solid ${theme.tokens.border.danger.moderate}`,
         border: `1px solid ${theme.tokens.border.danger.moderate}`,
-        boxShadow: `0 3px 0 0px ${theme.tokens.shadow.elevationLow}`,
+        boxShadow: theme.shadow.medium,
       };
     default:
       return {
         background: theme.tokens.background.overlay,
         borderBottom: `2px solid ${theme.tokens.border.primary}`,
         border: `1px solid ${theme.tokens.border.primary}`,
-        boxShadow: `0 3px 0 0px ${theme.tokens.shadow.elevationLow}`,
+        boxShadow: theme.shadow.medium,
       };
   }
 }

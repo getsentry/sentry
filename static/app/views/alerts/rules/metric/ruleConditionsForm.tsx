@@ -924,7 +924,7 @@ const SearchContainer = styled('div')`
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   line-height: 1.3;
 `;
 

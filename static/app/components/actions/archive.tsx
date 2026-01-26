@@ -361,5 +361,5 @@ const DropdownTrigger = styled(Button)`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -49,7 +50,9 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
     refetch,
   } = useApiQuery<RelatedIssuesResponse>(
     [
-      `/organizations/${organization.slug}/issues/${group.id}/related-issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+      }),
       {
         query: {
           type: relationType,
@@ -173,7 +176,7 @@ const getLinkButton = (to: LocationDescriptor, eventName: string, eventKey: stri
 export {GroupRelatedIssues};
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(0.75)};
 `;
 

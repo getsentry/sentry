@@ -361,7 +361,6 @@ function SetupCta({
   organization: Organization;
   selectedProduct: DataCategory | AddOnCategory;
 }) {
-  // TODO(isabella): refactor this whole file to be more reusable
   if (selectedProduct !== AddOnCategory.SEER) {
     return null;
   }
