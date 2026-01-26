@@ -182,7 +182,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               size="sm"
               icon={<IconSettings />}
               aria-label={t('Settings')}
-              to={`/settings/${organization.slug}/projects/${projectId}/builds/`}
+              to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
             />
           </Feature>
           <ConfirmDelete

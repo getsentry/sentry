@@ -683,7 +683,7 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/project/tempest')),
     },
     {
-      path: 'builds/',
+      path: 'mobile-builds/',
       name: t('Mobile Builds'),
       component: make(() => import('sentry/views/settings/project/preprod')),
     },
