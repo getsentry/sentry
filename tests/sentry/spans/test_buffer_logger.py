@@ -325,7 +325,7 @@ class TestCompareMetrics:
             ],
         ]
 
-        compare_metrics(zset_gauge_metrics, set_gauge_metrics)
+        compare_metrics(zset_gauge_metrics, set_gauge_metrics)  # type: ignore[arg-type]
 
         mock_gauge.assert_has_calls(
             [
@@ -376,7 +376,7 @@ class TestCompareMetrics:
             ],
         ]
 
-        compare_metrics(zset_latency_metrics, set_latency_metrics)
+        compare_metrics(zset_latency_metrics, set_latency_metrics)  # type: ignore[arg-type]
 
         mock_gauge.assert_has_calls(
             [
