@@ -307,14 +307,29 @@ def query_project_counts_by_org(
             "id", flat=True
         )
     )
-    transaction_string_id = indexer.resolve_shared_org("decision")
-    transaction_tag = f"tags_raw[{transaction_string_id}]"
+    decision_string_id = indexer.resolve_shared_org("decision")
+    decision_tag = f"tags_raw[{decision_string_id}]"
     if measure == SamplingMeasure.SPANS:
+        is_segment_string_id = indexer.resolve_shared_org("is_segment")
+        is_segment_tag = f"tags_raw[{is_segment_string_id}]"
         metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        use_case_id = UseCaseID.SPANS
     elif measure == SamplingMeasure.TRANSACTIONS:
+        is_segment_tag = None
         metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+        use_case_id = UseCaseID.TRANSACTIONS
     else:
         raise ValueError(f"Unsupported measure: {measure}")
+
+    where_conditions = [
+        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
+        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column("org_id"), Op.IN, org_ids),
+        Condition(Column("project_id"), Op.IN, project_ids),
+    ]
+    if is_segment_tag is not None:
+        where_conditions.append(Condition(Column(is_segment_tag), Op.EQ, "true"))
 
     query = Query(
         match=Entity(EntityKey.GenericOrgMetricsCounters.value),
@@ -326,7 +341,7 @@ def query_project_counts_by_org(
                 "sumIf",
                 [
                     Column("value"),
-                    Function("equals", [Column(transaction_tag), "keep"]),
+                    Function("equals", [Column(decision_tag), "keep"]),
                 ],
                 alias="keep_count",
             ),
@@ -334,19 +349,13 @@ def query_project_counts_by_org(
                 "sumIf",
                 [
                     Column("value"),
-                    Function("equals", [Column(transaction_tag), "drop"]),
+                    Function("equals", [Column(decision_tag), "drop"]),
                 ],
                 alias="drop_count",
             ),
         ],
         groupby=[Column("org_id"), Column("project_id")],
-        where=[
-            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-            Condition(Column("metric_id"), Op.EQ, metric_id),
-            Condition(Column("org_id"), Op.IN, org_ids),
-            Condition(Column("project_id"), Op.IN, project_ids),
-        ],
+        where=where_conditions,
         granularity=granularity,
         orderby=[
             OrderBy(Column("org_id"), Direction.ASC),
@@ -371,7 +380,7 @@ def query_project_counts_by_org(
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query.set_offset(offset),
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": use_case_id.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
