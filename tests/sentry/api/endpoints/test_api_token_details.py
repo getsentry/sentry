@@ -42,7 +42,7 @@ class ApiTokenGetTest(APITestCase):
 
     def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
-        self.login_as(self.user, superuser=True)
+        self.login_as(self.user, staff=True)
         self.get_error_response(
             token.id, qs_params={"userId": "abc"}, status_code=status.HTTP_404_NOT_FOUND
         )
@@ -131,7 +131,7 @@ class ApiTokenPutTest(APITestCase):
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
 
-        self.login_as(self.user, superuser=True)
+        self.login_as(self.user, staff=True)
         self.get_error_response(
             token.id, qs_params={"userId": "abc"}, status_code=status.HTTP_404_NOT_FOUND, **payload
         )
@@ -170,7 +170,7 @@ class ApiTokenDeleteTest(APITestCase):
     def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
-        self.login_as(self.user, superuser=True)
+        self.login_as(self.user, staff=True)
         self.get_error_response(
             token.id, qs_params={"userId": "abc"}, status_code=status.HTTP_404_NOT_FOUND
         )
