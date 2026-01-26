@@ -9,7 +9,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
@@ -51,7 +50,6 @@ type Props = {
   totalValues: Record<string, number> | null;
   transactionName: string;
   showViewSampledEventsButton?: boolean;
-  supportsInvestigationRule?: boolean;
 };
 
 export function ServiceEntrySpansTable({
@@ -59,7 +57,6 @@ export function ServiceEntrySpansTable({
   handleDropdownChange,
   totalValues,
   transactionName,
-  supportsInvestigationRule,
   showViewSampledEventsButton,
 }: Props) {
   const theme = useTheme();
@@ -139,15 +136,6 @@ export function ServiceEntrySpansTable({
           onChange={opt => handleDropdownChange(opt.value)}
         />
         <Flex>
-          {supportsInvestigationRule && (
-            <InvestigationRuleWrapper>
-              <InvestigationRuleCreation
-                buttonProps={{size: 'xs'}}
-                eventView={eventView}
-                numSamples={totalNumSamples}
-              />
-            </InvestigationRuleWrapper>
-          )}
           {showViewSampledEventsButton && (
             <Button
               size="xs"
@@ -300,8 +288,4 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
-`;
-
-const InvestigationRuleWrapper = styled('div')`
-  margin-right: ${space(1)};
 `;
