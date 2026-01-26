@@ -177,7 +177,7 @@ const StyledPanel = styled(Panel)`
 
 const Heading = styled('h6')`
   margin-bottom: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Breakdown = styled('div')`
@@ -186,7 +186,7 @@ const Breakdown = styled('div')`
   width: 100%;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  background: ${p => p.theme.backgroundTertiary};
+  background: ${p => p.theme.tokens.background.tertiary};
 `;
 
 const Legend = styled('div')`
@@ -194,7 +194,7 @@ const Legend = styled('div')`
   flex-wrap: wrap;
   margin-top: ${space(1.5)};
   gap: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   flex: 1;
 `;
 
@@ -202,7 +202,7 @@ const Total = styled('div')`
   display: flex;
   align-items: center;
   margin-top: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   flex-shrink: 0;
 `;
 

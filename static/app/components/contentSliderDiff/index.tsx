@@ -127,7 +127,7 @@ const Header = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
@@ -206,7 +206,7 @@ const DragHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.colors.blue500};
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
     }
   }
 
@@ -219,7 +219,7 @@ const DragHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.colors.blue500};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 

@@ -13,6 +13,7 @@ interface RowProps {
   onDelete: () => void;
   errorMessage?: string;
   hasError?: boolean;
+  warningMessage?: React.ReactNode;
 }
 
 export default function AutomationBuilderRow({
@@ -20,6 +21,7 @@ export default function AutomationBuilderRow({
   children,
   hasError,
   errorMessage,
+  warningMessage,
 }: RowProps) {
   return (
     <Flex direction="column" gap="xs">
@@ -35,16 +37,17 @@ export default function AutomationBuilderRow({
         />
       </RowContainer>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
+      {warningMessage && <Alert variant="warning">{warningMessage}</Alert>}
     </Flex>
   );
 }
 
 const RowContainer = styled('div')<{incompatible?: boolean}>`
   display: flex;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => p.theme.tokens.border.secondary} solid;
-  border-color: ${p => (p.incompatible ? p.theme.tokens.border.danger : 'none')};
+  border-color: ${p => (p.incompatible ? p.theme.tokens.border.danger.vibrant : 'none')};
   position: relative;
   padding: ${space(0.75)} ${space(1.5)};
   min-height: 46px;

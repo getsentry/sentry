@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {Badge} from 'sentry/components/core/badge';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -106,17 +108,18 @@ function TeamFilter({
         }
         return handleChangeFilter(opts.map(opt => opt.value));
       }}
-      triggerProps={{
-        icon: triggerIcon,
-        children: (
-          <Fragment>
-            {triggerLabel}
-            {selectedTeams.length > 1 && (
-              <StyledBadge variant="muted">{`+${selectedTeams.length - 1}`}</StyledBadge>
-            )}
-          </Fragment>
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} icon={triggerIcon}>
+          {
+            <Fragment>
+              {triggerLabel}
+              {selectedTeams.length > 1 && (
+                <StyledBadge variant="muted">{`+${selectedTeams.length - 1}`}</StyledBadge>
+              )}
+            </Fragment>
+          }
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

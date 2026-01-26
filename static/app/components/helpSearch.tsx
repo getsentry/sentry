@@ -63,7 +63,7 @@ const SectionHeading = styled('div')`
   grid-template-columns: max-content 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} ${space(2)};
 
   &:not(:first-of-type) {
@@ -72,7 +72,7 @@ const SectionHeading = styled('div')`
 `;
 
 const Count = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -81,7 +81,7 @@ const Empty = styled('div')`
   align-items: center;
   padding: ${space(2)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 

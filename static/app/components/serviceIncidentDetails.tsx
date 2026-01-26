@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
@@ -138,7 +139,7 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
 }
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(1)};
 `;
 
@@ -185,10 +186,10 @@ function getIndicatorColor({
   theme: Theme;
 }): string {
   const indicatorColor: Record<StatusPageIncidentUpdate['status'], string> = {
-    investigating: theme.colors.red200,
-    identified: theme.colors.blue200,
-    monitoring: theme.colors.yellow200,
-    resolved: theme.colors.green200,
+    investigating: theme.tokens.background.transparent.danger.muted,
+    identified: theme.tokens.background.transparent.accent.muted,
+    monitoring: theme.tokens.background.transparent.warning.muted,
+    resolved: theme.tokens.background.transparent.success.muted,
   };
   return indicatorColor[status];
 }
@@ -214,12 +215,12 @@ const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}
 
 const StatusTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const StatusDate = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ComponentList = styled(List)`
@@ -229,6 +230,6 @@ const ComponentList = styled(List)`
 `;
 
 const ComponentStatus = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 2;
 `;

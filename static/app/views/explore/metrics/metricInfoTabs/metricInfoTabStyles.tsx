@@ -10,8 +10,9 @@ import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrien
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
 export const TabListWrapper = styled('div')<{orientation: TableOrientation}>`
-  padding-top: 10px;
   width: 100%;
+  padding-left: ${p => p.theme.space.md};
+  padding-top: ${p => p.theme.space.md};
 
   ${p =>
     p.orientation === 'bottom' &&
@@ -35,7 +36,7 @@ export const TransparentLoadingMask = styled('div')`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   opacity: 0.6;
   z-index: 1;
   display: flex;
@@ -65,14 +66,14 @@ export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
   padding-bottom: ${p =>
     p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
 
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
   embedded?: boolean;
   noPadding?: boolean;
 }>`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${p => (p.noPadding ? 0 : p.embedded ? p.theme.space.xl : p.theme.space.lg)};
   padding-top: ${p =>
     p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};

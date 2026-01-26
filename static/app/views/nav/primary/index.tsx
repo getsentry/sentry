@@ -15,6 +15,8 @@ import {
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
+import type {Organization} from 'sentry/types/organization';
+import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -32,7 +34,11 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-import {PREVENT_AI_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
+import {
+  PREVENT_AI_BASE_URL,
+  PREVENT_BASE_URL,
+  TESTS_BASE_URL,
+} from 'sentry/views/prevent/settings';
 
 function SidebarBody({
   children,
@@ -65,6 +71,16 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
       </SidebarList>
     </SidebarFooterWrapper>
   );
+}
+
+function showPreventNav(organization: Organization) {
+  if (showNewSeer(organization)) {
+    // If you've got the new seer, then we won't show code-review sub-nav items.
+    // We will show the main prevent nav only if you have test analytics.
+    return organization.features.includes('prevent-test-analytics');
+  }
+  // If you've got the old seer, then we will show the sub-nav items, maybe the test items too
+  return true;
 }
 
 export function PrimaryNavigationItems() {
@@ -145,18 +161,32 @@ export function PrimaryNavigationItems() {
         </Feature>
 
         <Feature features={['prevent-ai']}>
-          <Container position="relative" height="100%">
-            <SidebarLink
-              to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-              activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
-              analyticsKey="prevent"
-              group={PrimaryNavGroup.PREVENT}
-              {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-            >
-              <IconPrevent />
-            </SidebarLink>
-            <BetaBadge type="beta" />
-          </Container>
+          {showPreventNav(organization) ? (
+            <Container position="relative" height="100%">
+              {showNewSeer(organization) ? (
+                <SidebarLink
+                  to={`/${prefix}/${PREVENT_BASE_URL}/${TESTS_BASE_URL}/`}
+                  activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                  analyticsKey="prevent"
+                  group={PrimaryNavGroup.PREVENT}
+                  {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+                >
+                  <IconPrevent />
+                </SidebarLink>
+              ) : (
+                <SidebarLink
+                  to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
+                  activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                  analyticsKey="prevent"
+                  group={PrimaryNavGroup.PREVENT}
+                  {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+                >
+                  <IconPrevent />
+                </SidebarLink>
+              )}
+              <BetaBadge type="beta" />
+            </Container>
+          ) : null}
         </Feature>
 
         <SeparatorItem />
@@ -221,7 +251,7 @@ const BetaBadge = styled(FeatureBadge)`
   pointer-events: none;
   top: -2px;
   right: 2px;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};
   height: 16px;
 `;

@@ -1,10 +1,10 @@
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   children: ReactNode;
@@ -13,21 +13,13 @@ interface Props {
 
 export default function FilterLoadingIndicator({children, isLoading}: Props) {
   return (
-    <Wrapper>
+    <Stack justify="between" flexGrow={1} gap="md">
       {children}
       {isLoading ? (
         <Tooltip title={t('Data is still loading')}>
           <LoadingIndicator mini />
         </Tooltip>
       ) : null}
-    </Wrapper>
+    </Stack>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;

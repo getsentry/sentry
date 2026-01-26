@@ -2,12 +2,15 @@ import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Flex} from '@sentry/scraps/layout/flex';
 import {Stack} from '@sentry/scraps/layout/stack';
+import {Text} from '@sentry/scraps/text/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -18,8 +21,7 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 import OldProjectDetails from 'sentry/views/settings/projectSeer/index';
 
 import AutofixRepositories from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';
-import BackgroundAgentForm from 'getsentry/views/seerAutomation/components/projectDetails/backgroundAgentForm';
-import ProjectDetailsForm from 'getsentry/views/seerAutomation/components/projectDetails/projectDetailsForm';
+import SeerSettingsContainer from 'getsentry/views/seerAutomation/components/projectDetails/seerSettingsContainer';
 
 export default function SeerProjectDetailsPage() {
   const organization = useOrganization();
@@ -58,18 +60,34 @@ function SeerProjectDetails() {
       />
       <SettingsPageHeader
         title={tct('Seer Settings for [projectName]', {
-          projectName: <code>{project.slug}</code>,
+          projectName: (
+            <Text as="span" monospace>
+              {project.slug}
+            </Text>
+          ),
         })}
         subtitle={t(
           'Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them.'
         )}
         action={
-          <LinkButton
-            href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/"
-            external
-          >
-            {t('Read the docs')}
-          </LinkButton>
+          <Flex gap="lg">
+            <FeedbackButton
+              size="md"
+              feedbackOptions={{
+                messagePlaceholder: t('How can we make Seer better for you?'),
+                tags: {
+                  ['feedback.source']: 'seer-settings-project-details',
+                  ['feedback.owner']: 'coding-workflows',
+                },
+              }}
+            />
+            <LinkButton
+              href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/"
+              external
+            >
+              {t('Read the docs')}
+            </LinkButton>
+          </Flex>
         }
       />
       {canWrite ? null : (
@@ -84,16 +102,11 @@ function SeerProjectDetails() {
       {isPending ? (
         <LoadingIndicator />
       ) : (
-        <Fragment>
-          <ProjectDetailsForm
+        <Stack gap="2xl">
+          <SeerSettingsContainer
             canWrite={canWrite}
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
-          />
-          <BackgroundAgentForm
-            canWrite={canWrite}
-            project={project}
-            preference={preference ?? DEFAULT_PREFERENCE}
           />
           <AutofixRepositories
             canWrite={canWrite}
@@ -101,7 +114,7 @@ function SeerProjectDetails() {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
-        </Fragment>
+        </Stack>
       )}
     </Fragment>
   );

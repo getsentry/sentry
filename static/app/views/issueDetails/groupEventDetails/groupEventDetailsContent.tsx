@@ -69,13 +69,15 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {isJavascriptPlatform} from 'sentry/utils/platform';
+import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
+import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
@@ -149,6 +151,9 @@ export function EventDetailsContent({
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
+      {isMobilePlatform(project.platform) && (
+        <ProfilePreviewSection event={event} project={project} />
+      )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
@@ -216,6 +221,11 @@ export function EventDetailsContent({
         />
       )}
       <EventEvidence event={event} group={group} project={project} />
+      {hasStreamlinedUI && issueTypeConfig.instrumentationFixSection.enabled && (
+        <ErrorBoundary mini>
+          <InstrumentationFixSection event={event} group={group} />
+        </ErrorBoundary>
+      )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />

@@ -389,11 +389,14 @@ function DashboardTable({
 export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  display: grid;
+  font-size: ${p => p.theme.font.size.md};
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const DateStatus = styled('span')`

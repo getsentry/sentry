@@ -396,14 +396,26 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
     -10px 0px;
   background-color: ${p => p.theme.tokens.background.primary};
   background-image:
-    linear-gradient(45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(
-      -45deg,
-      ${p => p.theme.backgroundSecondary} 25%,
+      45deg,
+      ${p => p.theme.tokens.background.secondary} 25%,
       rgba(0, 0, 0, 0) 25%
     ),
-    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%),
-    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%);
+    linear-gradient(
+      -45deg,
+      ${p => p.theme.tokens.background.secondary} 25%,
+      rgba(0, 0, 0, 0) 25%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0) 75%,
+      ${p => p.theme.tokens.background.secondary} 75%
+    ),
+    linear-gradient(
+      -45deg,
+      rgba(0, 0, 0, 0) 75%,
+      ${p => p.theme.tokens.background.secondary} 75%
+    );
 
   cursor: ${p => (p.resizeDirection ? `${p.resizeDirection}-resize` : 'default')};
 `;

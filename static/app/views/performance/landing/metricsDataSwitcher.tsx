@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
@@ -45,9 +46,9 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
   if (metricsCardinality.isLoading && !props.hideLoadingIndicator) {
     return (
       <Fragment>
-        <LoadingContainer>
+        <Flex justify="center">
           <LoadingIndicator />
-        </LoadingContainer>
+        </Flex>
       </Fragment>
     );
   }
@@ -116,8 +117,3 @@ function MetricsSwitchHandler({
 
   return <Fragment>{switcherChildren(outcome)}</Fragment>;
 }
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-`;

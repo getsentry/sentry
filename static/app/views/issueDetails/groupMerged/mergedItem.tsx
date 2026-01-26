@@ -175,7 +175,7 @@ const MergedGroup = styled('div')<{busy: boolean}>`
 const Controls = styled('div')<{expanded: boolean}>`
   display: flex;
   justify-content: space-between;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.tokens.border.secondary}`};
   padding: ${space(0.5)} ${space(1)};
 
@@ -193,9 +193,9 @@ const FingerprintLabel = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   line-height: 1;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 

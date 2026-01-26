@@ -180,7 +180,7 @@ function TransactionDetails({
   const theme = useTheme();
 
   if (isControllerLoading) {
-    return <Placeholder height={theme.fontSize.sm} width="200px" />;
+    return <Placeholder height={theme.font.size.sm} width="200px" />;
   }
 
   if (!controller) {
@@ -201,8 +201,12 @@ function TransactionDetails({
 }
 
 const ControllerText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   min-width: 0px;
 `;

@@ -12,7 +12,7 @@ type Options = {
 
   location?: Location;
   /**
-   * The number of routes to to pop off of `routes
+   * The number of routes to pop off of `routes
    * Must be < 0
    *
    * There's no ts type for negative numbers so we are arbitrarily specifying -1-9

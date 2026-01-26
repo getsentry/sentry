@@ -134,13 +134,17 @@ const CardWithoutMargin = styled(Card)`
 
 const Title = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
   line-height: 1.2;
   /* @TODO(jonasbadalic) font weight normal? This is inconsisten with other titles */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const CardLink = styled(Link)`
@@ -161,10 +165,14 @@ const CardLink = styled(Link)`
 `;
 
 const Detail = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.5;
 `;
 
@@ -178,11 +186,14 @@ const CardBody = styled('div')`
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  display: grid;
+  font-size: ${p => p.theme.font.size.sm};
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const DateStatus = styled('span')`

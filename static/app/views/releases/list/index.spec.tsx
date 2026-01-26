@@ -544,7 +544,7 @@ describe('ReleasesList', () => {
       },
     });
 
-    expect(await screen.findByText(/No mobile builds found/)).toBeInTheDocument();
+    expect(await screen.findByText(/Upload Mobile Builds to Sentry/)).toBeInTheDocument();
 
     expect(buildsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/preprodartifacts/list-builds/`,

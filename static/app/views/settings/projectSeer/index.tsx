@@ -2,12 +2,15 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
+import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {
   makeProjectSeerPreferencesQueryKey,
   useProjectSeerPreferences,
@@ -230,7 +233,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'cursor_handoff'
     ) => {
       if (value === 'cursor_handoff') {
-        if (!cursorIntegration) {
+        if (!cursorIntegration?.id) {
           throw new Error('Cursor integration not found');
         }
         updateProjectSeerPreferences({
@@ -331,7 +334,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const handleCursorHandoffChange = useCallback(
     (value: boolean) => {
       if (value) {
-        if (!cursorIntegration) {
+        if (!cursorIntegration?.id) {
           addErrorMessage(
             t('Cursor integration not found. Please refresh the page and try again.')
           );
@@ -654,15 +657,16 @@ function ProjectSeer({
       />
       <ProjectSeerGeneralForm project={project} />
       <CursorIntegrationCta project={project} />
+      <GithubCopilotIntegrationCta />
       <AutofixRepositories project={project} />
-      <Center>
+      <Flex justify="center" marginTop="lg">
         <LinkButton
           to={`/settings/${organization.slug}/seer/onboarding/`}
           priority="primary"
         >
           {t('Set up my other projects')}
         </LinkButton>
-      </Center>
+      </Flex>
     </Fragment>
   );
 }
@@ -686,16 +690,10 @@ export default function ProjectSeerContainer() {
 }
 
 const Subheading = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
   margin-top: ${space(1)};
   line-height: 1.4;
-`;
-
-const Center = styled('div')`
-  display: flex;
-  justify-content: center;
-  margin-top: ${p => p.theme.space.lg};
 `;

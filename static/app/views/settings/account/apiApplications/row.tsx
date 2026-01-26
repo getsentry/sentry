@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -49,12 +51,12 @@ function Row({app, onRemove}: Props) {
 
   return (
     <StyledPanelItem>
-      <ApplicationNameWrapper>
+      <Stack flex="1" marginRight="md">
         <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
           {app.name}
         </ApplicationName>
         <ClientId>{app.clientID}</ClientId>
-      </ApplicationNameWrapper>
+      </Stack>
 
       <ConfirmDelete
         message={t(
@@ -76,20 +78,13 @@ const StyledPanelItem = styled(PanelItem)`
   align-items: center;
 `;
 
-const ApplicationNameWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  margin-right: ${space(1)};
-`;
-
 const ApplicationName = styled(Link)`
   margin-bottom: ${space(1)};
 `;
 
 const ClientId = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default Row;

@@ -184,7 +184,7 @@ const DiffTable = styled('table')`
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   margin: 0;
 `;
 
@@ -239,11 +239,11 @@ const DiffRow = styled('tr')`
   }
 
   &.header {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
 
     td {
-      color: ${p => p.theme.colors.blue400};
-      font-weight: ${p => p.theme.fontWeight.bold};
+      color: ${p => p.theme.tokens.content.accent};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
     }
   }
 `;

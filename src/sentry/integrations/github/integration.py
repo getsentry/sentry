@@ -197,7 +197,7 @@ def error(
         org_id = None
     else:
         org_id = org.organization.id
-    logger.error(
+    logger.warning(
         "github.installation_error",
         extra={"org_id": org_id, "error_short": error_short},
     )
@@ -250,6 +250,9 @@ class GitHubIntegration(
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
         return GitHubApiClient(integration=self.model, org_integration_id=self.org_integration.id)
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["account_type", "domain_name", "permissions"]
 
     # IntegrationInstallation methods
 

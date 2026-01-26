@@ -247,7 +247,11 @@ const MemoryChartSeries = memo(
             symbol: ['', ''],
             data: [],
             label: {show: false},
-            lineStyle: {type: 'solid', color: theme.colors.blue400, width: 2},
+            lineStyle: {
+              type: 'solid',
+              color: theme.tokens.graphics.accent.vibrant,
+              width: 2,
+            },
           },
         },
         {
@@ -258,11 +262,15 @@ const MemoryChartSeries = memo(
             symbol: ['', ''],
             data: [],
             label: {show: false},
-            lineStyle: {type: 'solid', color: theme.colors.blue200, width: 2},
+            lineStyle: {
+              type: 'solid',
+              color: theme.tokens.graphics.neutral.moderate,
+              width: 2,
+            },
           },
         },
       ],
-      [theme.colors.blue200, theme.colors.blue400]
+      [theme.tokens.graphics.accent.vibrant, theme.tokens.graphics.neutral.moderate]
     );
 
     const series = useMemo(

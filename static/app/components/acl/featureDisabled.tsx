@@ -133,7 +133,7 @@ function FeatureDisabled({
 const FeatureDisabledMessage = styled('div')`
   display: flex;
   justify-content: space-between;
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const HelpDescription = styled('div')`
@@ -159,12 +159,12 @@ const StyledIconChevron = styled(IconChevron)`
 `;
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.active};
-  height: ${p => p.theme.text.lineHeightBody}em;
-  min-height: ${p => p.theme.text.lineHeightBody}em;
+  color: ${p => p.theme.tokens.interactive.link.accent.active};
+  height: ${p => p.theme.font.lineHeight.comfortable}em;
+  min-height: ${p => p.theme.font.lineHeight.comfortable}em;
 
   &:hover {
-    color: ${p => p.theme.activeHover};
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 `;
 

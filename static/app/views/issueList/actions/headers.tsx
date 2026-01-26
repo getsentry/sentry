@@ -89,7 +89,7 @@ const GraphLabel = styled(IssueStreamHeaderLabel)`
 `;
 
 const GraphToggles = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-right: ${space(2)};
 `;
 
@@ -129,7 +129,10 @@ const AssigneeLabel = styled(IssueStreamHeaderLabel)`
 // Reprocessing
 const StartedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -139,7 +142,10 @@ const StartedColumn = styled(ToolbarHeader)`
 
 const EventsReprocessedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

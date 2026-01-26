@@ -86,14 +86,14 @@ const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   background: linear-gradient(
     269.35deg,
-    ${p => p.theme.backgroundTertiary} 0.32%,
+    ${p => p.theme.tokens.background.tertiary} 0.32%,
     rgba(245, 243, 247, 0) 99.69%
   );
 

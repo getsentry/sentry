@@ -85,11 +85,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getBySlug(projectId);
+  const project = ProjectsStore.getById(projectId);
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
@@ -99,7 +99,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(project?.id, {
+      to: makeReleasesUrl(organization.slug, projectId, {
         query: version,
         tab: 'mobile-builds',
       }),
@@ -182,7 +182,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               size="sm"
               icon={<IconSettings />}
               aria-label={t('Settings')}
-              to={`/settings/${organization.slug}/projects/${projectId}/preprod/`}
+              to={`/settings/${organization.slug}/projects/${projectId}/builds/`}
             />
           </Feature>
           <ConfirmDelete

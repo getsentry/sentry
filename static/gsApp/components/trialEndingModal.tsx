@@ -142,7 +142,7 @@ const TrialEndInfo = styled('div')`
   padding: ${space(3)} 0;
 
   p {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     margin: 0;
   }
 
@@ -155,7 +155,7 @@ const PathWrapper = styled('div')`
   display: grid;
   margin: 0 -${space(4)} -${space(4)};
   grid-template-columns: 1fr 1fr;
-  border-top: 1px solid ${p => p.theme.gray200};
+  border-top: 1px solid ${p => p.theme.colors.gray200};
 `;
 
 const PathContainer = styled('div')`
@@ -165,7 +165,7 @@ const PathContainer = styled('div')`
   gap: ${space(1.5)};
 
   &:first-of-type {
-    border-right: 1px solid ${p => p.theme.gray200};
+    border-right: 1px solid ${p => p.theme.colors.gray200};
   }
 `;
 
@@ -175,7 +175,7 @@ const Bullets = styled('div')`
   grid-auto-rows: max-content;
   gap: ${space(1)} ${space(1.5)};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1)};
 `;
 
@@ -185,7 +185,7 @@ const PathHeading = styled('h5')`
 `;
 
 const OtherPlanDetails = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.5;
 `;
 

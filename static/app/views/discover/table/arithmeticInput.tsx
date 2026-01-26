@@ -296,7 +296,7 @@ const Container = styled('div')<{isOpen: boolean}>`
     p.isOpen ? `${p.theme.radius.md} ${p.theme.radius.md} 0 0` : p.theme.radius.md};
 
   .show-sidebar & {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -436,10 +436,10 @@ const DropdownTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
 
   margin: 0;
   padding: ${space(1)} ${space(2)};
@@ -451,7 +451,7 @@ const DropdownTitle = styled('header')`
 
 const DropdownListItem = styled(ListItem)`
   scroll-margin: 40px 0;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 
@@ -465,17 +465,21 @@ const DropdownListItem = styled(ListItem)`
 
 const DropdownItemTitleWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
-  line-height: ${p => p.theme.text.lineHeightHeading};
-  ${p => p.theme.overflowEllipsis};
+  line-height: ${p => p.theme.font.lineHeight.default};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
 
   &:not(:last-child) {

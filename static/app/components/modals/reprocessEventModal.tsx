@@ -118,11 +118,11 @@ export function ReprocessingEventModal({
 }
 
 const Introduction = styled('p')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StyledList = styled(List)`
   gap: ${space(1)};
   margin-bottom: ${space(4)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

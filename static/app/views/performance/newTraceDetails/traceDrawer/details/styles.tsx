@@ -10,7 +10,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
@@ -116,11 +116,15 @@ const Title = styled(FlexBox)`
 `;
 
 const LegacyTitleText = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TitleText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
 `;
 
@@ -152,11 +156,15 @@ function SubtitleWithCopyButton({
 }
 
 const SubTitleWrapper = styled(FlexBox)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -184,13 +192,17 @@ function TitleOp({text}: {text: string}) {
 }
 
 const Type = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TitleOpText = styled('div')`
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  ${p => p.theme.overflowEllipsis}
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Table = styled('table')`
@@ -218,7 +230,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   min-width: 30px;
 
   svg {
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
     width: 14px;
     height: 14px;
   }
@@ -451,7 +463,7 @@ function Highlights({
   return (
     <Fragment>
       <HighlightsWrapper>
-        <HighlightsLeftColumn>
+        <Stack justify="center" align="center">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
               project={project ? project : {slug: node.projectSlug ?? ''}}
@@ -460,8 +472,8 @@ function Highlights({
             />
           </Tooltip>
           <VerticalLine />
-        </HighlightsLeftColumn>
-        <HighlightsRightColumn>
+        </Stack>
+        <Stack justify="left" flex="1" height="100%" overflow="hidden">
           <HighlightOp>{node.op}</HighlightOp>
           <HighlightsDurationWrapper>
             <HighlightDuration>
@@ -511,7 +523,7 @@ function Highlights({
               {footerContent}
             </Fragment>
           )}
-        </HighlightsRightColumn>
+        </Stack>
       </HighlightsWrapper>
       <SectionDivider />
     </Fragment>
@@ -532,7 +544,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
       <HighlightsSpanCount>
         {t('Most frequent span ops for this transaction are')}
       </HighlightsSpanCount>
-      <TopOpsList>
+      <Flex wrap="wrap" gap="md">
         {breakdown.slice(0, 3).map(currOp => {
           const {name, percentage} = currOp;
 
@@ -557,7 +569,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
             </HighlightsOpRow>
           );
         })}
-      </TopOpsList>
+      </Flex>
     </HighlightsOpsBreakdownWrapper>
   );
 }
@@ -591,7 +603,7 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   return (
     <HighlightsOpsBreakdownWrapper>
       <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
-      <TopOpsList>
+      <Flex wrap="wrap" gap="md">
         {displayOps.map(currOp => {
           const operationName = currOp.op;
           const color = pickBarColor(operationName, theme);
@@ -614,20 +626,13 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
             </HighlightsOpRow>
           );
         })}
-      </TopOpsList>
+      </Flex>
     </HighlightsOpsBreakdownWrapper>
   );
 }
 
 const StyledIconCircleFill = styled(IconCircleFill)<{fill: string}>`
   fill: ${p => p.fill};
-`;
-
-const TopOpsList = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const HighlightsOpPct = styled('div')`
@@ -660,7 +665,7 @@ const HiglightsDurationComparison = styled('div')<
   color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].normal};
   background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
   height: 21px;
@@ -672,13 +677,13 @@ const HighlightsDurationWrapper = styled(FlexBox)`
 `;
 
 const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: 400;
 `;
 
 const HighlightOp = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: normal;
 `;
 
@@ -687,7 +692,7 @@ const HighlightedAttributesWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   column-gap: ${space(1.5)};
   row-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }
@@ -729,22 +734,6 @@ const HighlightsWrapper = styled('div')`
   margin: ${space(1)} 0;
 `;
 
-const HighlightsLeftColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-`;
-
-const HighlightsRightColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: left;
-  height: 100%;
-  flex: 1;
-  overflow: hidden;
-`;
-
 function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -778,7 +767,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 };
 
 const DurationContainer = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-right: ${space(1)};
 `;
 
@@ -797,7 +786,7 @@ const TableValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   margin: 2px;
 `;
 
@@ -1000,7 +989,7 @@ function NodeActions(props: {
   }, [organization, params.traceSlug, props.node, props.profilerId, props.threadId]);
 
   return (
-    <ActionWrapper>
+    <Flex align="center" gap="xs" overflow="visible">
       <Tooltip title={t('Show in view')} skipWrapper>
         <ActionButton
           onClick={_e => {
@@ -1045,7 +1034,7 @@ function NodeActions(props: {
         </Tooltip>
       ) : null}
       <PanelPositionDropDown organization={organization} />
-    </ActionWrapper>
+    </Flex>
   );
 }
 
@@ -1073,13 +1062,6 @@ const ActionButton = styled(Button)`
 
 const ActionLinkButton = styled(LinkButton)`
   ${actionButtonStyles};
-`;
-
-const ActionWrapper = styled('div')`
-  overflow: visible;
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
@@ -1221,10 +1203,7 @@ function MultilineText({children}: {children: string}) {
     <Fragment>
       <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
-          <Container
-            position="absolute"
-            style={{top: theme.space.xs, right: theme.space.xs}}
-          >
+          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (
               <SegmentedControl
                 size="xs"
@@ -1273,7 +1252,7 @@ const MarkdownContainer = styled('div')`
   h4,
   h5,
   h6 {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     margin: 0;
     padding-bottom: ${p => p.theme.space.sm};
   }
@@ -1313,7 +1292,7 @@ const MarkdownContainer = styled('div')`
 const MultilineTextWrapper = styled('div')`
   position: relative;
   white-space: pre-wrap;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   word-break: break-word;
@@ -1347,9 +1326,9 @@ function MultilineJSON({
       {isHovered && (
         <Container
           position="absolute"
+          top={theme.space.xs}
+          right={theme.space.xs}
           style={{
-            top: theme.space.xs,
-            right: theme.space.xs,
             // Ensure the segmented control is on top of the text StructuredData
             zIndex: 1,
           }}
@@ -1385,12 +1364,14 @@ function MultilineJSON({
 }
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
+  /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
+  min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
   pre {
     margin: 0;
     padding: 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;
 

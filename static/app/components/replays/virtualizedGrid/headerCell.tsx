@@ -60,11 +60,11 @@ function HeaderCell<T extends BaseRecord>({
 const HeaderButton = styled('button')`
   border: 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
 
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 16px;
   text-align: unset;
   text-transform: uppercase;

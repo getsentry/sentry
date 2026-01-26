@@ -6,6 +6,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
+import {Container} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -138,15 +140,12 @@ const StyledLeadingItems = styled('div')<{
 const StyledLabel = styled('div')`
   margin-bottom: 0;
   line-height: 1.4;
-  white-space: nowrap;
 
-  ${p => p.theme.overflowEllipsis}
-`;
-
-const StyledLabelWrap = styled('div')`
-  padding-right: ${space(1)};
+  display: block;
   width: 100%;
-  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
@@ -296,7 +295,7 @@ function BaseMenuListItem({
             </StyledLeadingItems>
           )}
           <StyledContentWrap isFocused={isFocused} size={size}>
-            <StyledLabelWrap>
+            <Container paddingRight="md" width="100%" minWidth="0">
               <StyledLabel
                 id={labelId}
                 data-test-id="menu-list-item-label"
@@ -316,7 +315,7 @@ function BaseMenuListItem({
                     : details}
                 </StyledDetails>
               )}
-            </StyledLabelWrap>
+            </Container>
             {trailingItems && (
               <TrailingItems disabled={disabled}>
                 {typeof trailingItems === 'function'

@@ -151,7 +151,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
-from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
@@ -3337,12 +3337,12 @@ class _OptionalOurLogData(TypedDict, total=False):
 def scalar_to_any_value(value: Any) -> AnyValue:
     if isinstance(value, str):
         return AnyValue(string_value=value)
+    if isinstance(value, bool):
+        return AnyValue(bool_value=value)
     if isinstance(value, int):
         return AnyValue(int_value=value)
     if isinstance(value, float):
         return AnyValue(double_value=value)
-    if isinstance(value, bool):
-        return AnyValue(bool_value=value)
     if isinstance(value, dict):
         return AnyValue(**value)
     raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
@@ -3394,14 +3394,8 @@ def span_to_trace_item(span) -> TraceItem:
         "start_timestamp_precise",
     }:
         if field in span and span[field] is not None:
-            if field == "is_segment":
-                is_segment = span["is_segment"]
-                attributes["sentry.is_segment"] = AnyValue(
-                    double_value=float(is_segment),
-                )
-            else:
-                value = scalar_to_any_value(span[field])
-                attributes[f"sentry.{field}"] = value
+            value = scalar_to_any_value(span[field])
+            attributes[f"sentry.{field}"] = value
 
     timestamp = Timestamp()
 
@@ -3413,11 +3407,7 @@ def span_to_trace_item(span) -> TraceItem:
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         timestamp=timestamp,
         trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(
-            16,
-            byteorder="little",
-            signed=False,
-        ),
+        item_id=hex_to_item_id(span["span_id"]),
         received=timestamp,
         retention_days=90,
         attributes=attributes,

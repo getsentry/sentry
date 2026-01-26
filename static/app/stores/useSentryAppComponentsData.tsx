@@ -3,6 +3,7 @@ import {useEffect} from 'react';
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -14,7 +15,11 @@ export default function useSentryAppComponentsData({projectId}: Props) {
   const organization = useOrganization();
 
   const {data: installs} = useApiQuery<SentryAppInstallation[]>(
-    [`/organizations/${organization.slug}/sentry-app-installations/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {staleTime: Infinity}
   );
   useEffect(() => {
@@ -24,7 +29,12 @@ export default function useSentryAppComponentsData({projectId}: Props) {
   }, [installs]);
 
   const {data: components} = useApiQuery<SentryAppComponent[]>(
-    [`/organizations/${organization.slug}/sentry-app-components/`, {query: {projectId}}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-components/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {projectId: projectId!}},
+    ],
     {enabled: Boolean(projectId), staleTime: Infinity}
   );
   useEffect(() => {

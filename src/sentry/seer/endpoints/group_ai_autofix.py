@@ -13,6 +13,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -23,6 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.autofix_examples import AutofixExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
@@ -37,6 +39,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
+from sentry.seer.autofix.coding_agent import poll_github_copilot_agents
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
 from sentry.seer.models import SeerPermissionError
@@ -89,7 +92,11 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     )
     integration_id = serializers.IntegerField(
         required=False,
-        help_text="Coding agent integration ID. Required for coding_agent_handoff step.",
+        help_text="Coding agent integration ID. Required for coding_agent_handoff step (unless provider is specified).",
+    )
+    provider = serializers.CharField(
+        required=False,
+        help_text="Coding agent provider (e.g., 'github_copilot'). Alternative to integration_id for user-authenticated providers.",
     )
 
 
@@ -119,13 +126,10 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
     def _should_use_explorer(self, request: Request, organization: Organization) -> bool:
         """Check if explorer mode should be used based on query params and feature flags."""
-        if request.GET.get("mode") == "legacy":
+        if request.GET.get("mode") != "explorer":
             return False
 
         if not features.has("organizations:seer-explorer", organization, actor=request.user):
-            return False
-
-        if not features.has("organizations:autofix-on-explorer", organization, actor=request.user):
             return False
 
         return True
@@ -147,6 +151,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         },
         examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
     )
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
     def post(self, request: Request, group: Group) -> Response:
         """
         Trigger a Seer Issue Fix run for a specific issue.
@@ -176,9 +181,17 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if step == "coding_agent_handoff":
             run_id = data.get("run_id")
             integration_id = data.get("integration_id")
-            if not run_id or not integration_id:
+            provider = data.get("provider")
+            if not run_id or (not integration_id and not provider):
                 return Response(
-                    {"error": "run_id and integration_id are required for coding_agent_handoff"},
+                    {
+                        "detail": "run_id and either integration_id or provider are required for coding_agent_handoff"
+                    },
+                    status=400,
+                )
+            if integration_id and provider:
+                return Response(
+                    {"detail": "Cannot specify both integration_id and provider"},
                     status=400,
                 )
 
@@ -186,6 +199,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 group=group,
                 run_id=run_id,
                 integration_id=integration_id,
+                provider=provider,
+                user_id=request.user.id if request.user else None,
             )
             return Response(result, status=202)
 
@@ -236,6 +251,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         },
         examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
     )
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve the current detailed state of an issue fix process for a specific issue including:
@@ -309,6 +325,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             )
 
             raise PermissionDenied("You are not authorized to access this autofix state")
+
+        if autofix_state and autofix_state.coding_agents and request.user.id:
+            poll_github_copilot_agents(autofix_state, user_id=request.user.id)
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout

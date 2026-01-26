@@ -494,7 +494,7 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const CloseButton = styled(Button)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   height: 100%;
   border-bottom: 2px solid transparent;
@@ -638,7 +638,7 @@ const Tab = styled('li')`
   }
 
   &:hover {
-    border-bottom: 2px solid ${p => p.theme.colors.blue200};
+    border-bottom: 2px solid ${p => p.theme.tokens.border.accent.vibrant};
 
     button:last-child {
       transition: all 0.3s ease-in-out 500ms;
@@ -647,7 +647,7 @@ const Tab = styled('li')`
     }
   }
   &[aria-selected='true'] {
-    border-bottom: 2px solid ${p => p.theme.colors.blue500};
+    border-bottom: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
@@ -672,7 +672,7 @@ const TabButton = styled('button')`
   border-radius: 0;
   margin: 0;
   padding: 0 ${space(0.25)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   background: transparent;
 `;

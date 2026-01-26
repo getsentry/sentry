@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {t} from 'sentry/locale';
@@ -31,7 +33,7 @@ function ReplaySection({
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
   return replayId ? (
-    <ReplaySectionContainer>
+    <Stack>
       {showTitle ? <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle> : null}
       <ReplayClipPreview
         analyticsContext="trace-view"
@@ -48,7 +50,7 @@ function ReplaySection({
           },
         }}
       />
-    </ReplaySectionContainer>
+    </Stack>
   ) : null;
 }
 
@@ -78,13 +80,8 @@ export default function ReplayPreview({
   );
 }
 
-const ReplaySectionContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const ReplaySectionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(2)};
 `;

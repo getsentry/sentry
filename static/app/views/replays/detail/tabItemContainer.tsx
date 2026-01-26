@@ -15,17 +15,17 @@ const TabItemContainer = styled('div')`
   }
 
   .beforeHoverTime + .afterHoverTime {
-    border-top-color: ${p => p.theme.colors.blue200};
+    border-top-color: ${p => p.theme.tokens.border.accent.moderate};
   }
   .beforeHoverTime:last-child {
-    border-bottom-color: ${p => p.theme.colors.blue200};
+    border-bottom-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 
   .beforeCurrentTime + .afterCurrentTime {
-    border-top-color: ${p => p.theme.colors.blue400};
+    border-top-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
   .beforeCurrentTime:last-child {
-    border-bottom-color: ${p => p.theme.colors.blue400};
+    border-bottom-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 `;
 

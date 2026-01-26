@@ -16,22 +16,22 @@ export const makePerformanceScoreColors = (theme: Theme): PerformanceScoreColors
     good: {
       light: theme.colors.gray100,
       normal: theme.tokens.content.success,
-      border: theme.tokens.border.success,
+      border: theme.tokens.border.success.vibrant,
     },
     needsImprovement: {
       light: theme.colors.yellow100,
       normal: theme.tokens.content.warning,
-      border: theme.tokens.border.warning,
+      border: theme.tokens.border.warning.vibrant,
     },
     bad: {
       light: theme.colors.red100,
       normal: theme.tokens.content.danger,
-      border: theme.tokens.border.danger,
+      border: theme.tokens.border.danger.vibrant,
     },
     none: {
       light: theme.colors.gray100,
-      normal: theme.tokens.content.muted,
-      border: theme.tokens.border.muted,
+      normal: theme.tokens.content.secondary,
+      border: theme.tokens.border.secondary,
     },
   };
 };
