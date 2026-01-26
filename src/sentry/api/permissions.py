@@ -67,14 +67,6 @@ class StaffPermission(BasePermission):
         return is_active_staff(request)
 
 
-# NOTE(schew2381): This permission class is deprecated and should be replaced with
-# StaffPermission. It's kept temporarily for backwards compatibility during the
-# transition period. Now that staff is GA, this always uses StaffPermission.
-class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
-    def has_permission(self, request: Request, view: object) -> bool:
-        return StaffPermission().has_permission(request, view)
-
-
 class ScopedPermission(BasePermission):
     """
     Permissions work depending on the type of authentication:

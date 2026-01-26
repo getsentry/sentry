@@ -27,7 +27,7 @@ from sentry import analytics, options, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.exceptions import StaffRequired
+from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.middleware import is_frontend_request
@@ -59,7 +59,7 @@ from .authentication import (
     update_token_access_record,
 )
 from .paginator import BadPaginationError, MissingPaginationError, Paginator
-from .permissions import NoPermission, StaffPermission, SuperuserOrStaffFeatureFlaggedPermission
+from .permissions import NoPermission, StaffPermission, SuperuserPermission
 
 __all__ = [
     "Endpoint",
@@ -255,22 +255,27 @@ class Endpoint(APIView):
 
     def permission_denied(self, request, message=None, code=None):
         """
-        Raise a specific staff exception if the user can become staff
-        and the only permission class is StaffPermission. Otherwise, raises
+        Raise a specific staff/superuser exception if the user can become staff/superuser
+        and the only permission class is StaffPermission/SuperuserPermission. Otherwise, raises
         the appropriate exception according to parent DRF function.
         """
         permissions = self.get_permissions()
         if request.user.is_authenticated and len(permissions) == 1:
+
+            # User with staff permission should raise StaffRequired error
             permission_cls = permissions[0]
             is_staff_user = request.user.is_staff
-            # TODO(schew2381): Remove SuperuserOrStaffFeatureFlaggedPermission
-            # from isinstance checks once it's fully removed.
-            has_only_staff_permission = isinstance(
-                permission_cls, (StaffPermission, SuperuserOrStaffFeatureFlaggedPermission)
-            )
+            has_only_staff_permission = isinstance(permission_cls, StaffPermission)
 
             if is_staff_user and has_only_staff_permission:
                 raise StaffRequired()
+
+            # User with superuser permission should raise SuperuserRequired error
+            is_superuser_user = request.user.is_superuser
+            has_only_superuser_permission = isinstance(permission_cls, SuperuserPermission)
+
+            if is_superuser_user and has_only_superuser_permission:
+                raise SuperuserRequired()
 
         super().permission_denied(request, message, code)
 

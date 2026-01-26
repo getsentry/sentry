@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
+from sentry.api.permissions import StaffPermission
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.relay import projectconfig_cache
@@ -23,7 +23,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
+    permission_classes = (StaffPermission,)
 
     def get(self, request: Request) -> Response:
         """The GET endpoint retrieves the project configs for a specific project_id

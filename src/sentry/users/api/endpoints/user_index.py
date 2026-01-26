@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
-from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
+from sentry.api.permissions import StaffPermission
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
 from sentry.search.utils import tokenize_query
@@ -19,7 +19,7 @@ class UserIndexEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
+    permission_classes = (StaffPermission,)
 
     def get(self, request: Request) -> Response:
         queryset = User.objects.distinct()

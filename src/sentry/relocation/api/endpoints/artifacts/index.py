@@ -8,7 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist, StaffRequired
-from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
+from sentry.api.permissions import StaffPermission
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocation import Relocation
@@ -27,7 +27,7 @@ class RelocationArtifactIndexEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
+    permission_classes = (StaffPermission,)
 
     def get(self, request: Request, relocation_uuid: str) -> Response:
         """
