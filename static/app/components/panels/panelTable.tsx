@@ -182,13 +182,20 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
-  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background: ${p => p.theme.tokens.background.secondary};
   line-height: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-height: 45px;
+
+  &:first-of-type {
+    border-radius: ${p => p.theme.radius.md} 0 0 0;
+  }
+
+  &:last-of-type {
+    border-radius: 0 ${p => p.theme.radius.md} 0 0;
+  }
 
   ${p =>
     p.sticky &&
