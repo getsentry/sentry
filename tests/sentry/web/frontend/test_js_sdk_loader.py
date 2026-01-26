@@ -314,7 +314,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.feedback.min.js",
-                {"dsn": dsn, "autoInjectFeedback": True},
+                {"dsn": dsn},
             ),
             (
                 {
@@ -324,7 +324,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.feedback.debug.min.js",
-                {"dsn": dsn, "debug": True, "autoInjectFeedback": True},
+                {"dsn": dsn, "debug": True},
             ),
             # Note: There is no bundle.tracing.feedback or bundle.replay.feedback.
             # When feedback is combined with tracing or replay, we serve the full bundle.
@@ -341,7 +341,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
-                    "autoInjectFeedback": True,
                 },
             ),
             (
@@ -357,7 +356,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
-                    "autoInjectFeedback": True,
                 },
             ),
             (
@@ -374,7 +372,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
-                    "autoInjectFeedback": True,
                 },
             ),
             (
@@ -393,7 +390,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
                     "debug": True,
-                    "autoInjectFeedback": True,
                 },
             ),
         ]:
