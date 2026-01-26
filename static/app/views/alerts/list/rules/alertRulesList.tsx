@@ -178,9 +178,12 @@ export default function AlertRulesList() {
   };
 
   const hasEditAccess = organization.access.includes('alerts:write');
-  const hasMetricAlerts = organization.features.includes('incidents');
+  const hasMetricAlertsFeature = organization.features.includes('incidents');
 
   const ruleList = ruleListResponse.filter(defined);
+  const hasAnyMetricAlerts = ruleList.some(
+    rule => rule.type === CombinedAlertType.METRIC
+  );
   const projectsFromResults = uniq(
     ruleList.flatMap(rule =>
       rule.type === CombinedAlertType.UPTIME
@@ -212,9 +215,12 @@ export default function AlertRulesList() {
         <Layout.Body>
           <Layout.Main width="full">
             <DataConsentBanner source="alerts" />
-            {!hasMetricAlerts && (
+            {!hasMetricAlertsFeature && hasAnyMetricAlerts && (
               <Alert.Container>
-                <Alert variant="danger">Placeholder Text</Alert>
+                <Alert variant="danger">
+                  Your metric alerts have been disabled. Upgrade your plan to re-enable
+                  them.
+                </Alert>
               </Alert.Container>
             )}
             <FilterBar
@@ -304,7 +310,7 @@ export default function AlertRulesList() {
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}
-                          hasMetricAlerts={hasMetricAlerts}
+                          hasMetricAlerts={hasMetricAlertsFeature}
                         />
                       );
                     })

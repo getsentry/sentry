@@ -129,7 +129,7 @@ function RuleListRow({
     : true;
 
   const isMetricAlert = rule.type === CombinedAlertType.METRIC;
-  const isMetricAlertDisabled = isMetricAlert && !hasMetricAlerts;
+  const shouldDisableAlertRule = isMetricAlert && !hasMetricAlerts;
 
   const activeActions = {
     [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
@@ -284,7 +284,7 @@ function RuleListRow({
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <AlertNameAndStatus>
           <AlertName>
-            {isMetricAlertDisabled ? (
+            {shouldDisableAlertRule ? (
               <Tooltip
                 skipWrapper
                 title={t(
@@ -364,7 +364,7 @@ function RuleListRow({
             if (!hasAccess || !canEdit) {
               disabledKeys.push('delete');
             }
-            if (isMetricAlertDisabled) {
+            if (shouldDisableAlertRule) {
               disabledKeys.push('edit', 'duplicate');
             }
             return (
