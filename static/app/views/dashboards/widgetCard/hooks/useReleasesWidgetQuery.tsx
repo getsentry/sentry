@@ -143,7 +143,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
                   const result = await fetchFn();
                   resolve(result);
                 } catch (error) {
-                  reject(error);
+                  reject(error instanceof Error ? error : new Error(String(error)));
                 }
               },
             };
@@ -334,7 +334,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
                   const result = await fetchFn();
                   resolve(result);
                 } catch (error) {
-                  reject(error);
+                  reject(error instanceof Error ? error : new Error(String(error)));
                 }
               },
             };
