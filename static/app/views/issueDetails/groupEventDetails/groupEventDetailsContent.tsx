@@ -69,10 +69,11 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {isJavascriptPlatform} from 'sentry/utils/platform';
+import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
+import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
@@ -149,6 +150,9 @@ export function EventDetailsContent({
       )}
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      )}
+      {isMobilePlatform(project.platform) && (
+        <ProfilePreviewSection event={event} project={project} />
       )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
