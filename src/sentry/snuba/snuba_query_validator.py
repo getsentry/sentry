@@ -70,6 +70,7 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
         SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
         SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
         SnubaQueryEventType.EventType.TRACE_ITEM_METRIC,
+        SnubaQueryEventType.EventType.TRACE_ITEM_PREPROD,
     },
 }
 
