@@ -157,8 +157,8 @@ OPENAPI_TAGS = [
     {
         "name": "Monitors",
         "x-sidebar-name": "Monitors & Alerts",
-        "description": "Endpoints for Monitors and Alerts",
-        "x-display-description": False,
+        "description": "⚠️ These endpoints are currently in **beta** and may be subject to change. They are supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.",
+        "x-display-description": True,
         "externalDocs": {
             "description": "Found an error? Let us know.",
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/monitors/&template=api_error_template.md",
