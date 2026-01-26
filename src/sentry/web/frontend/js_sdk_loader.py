@@ -39,6 +39,7 @@ class LoaderInternalConfig(TypedDict):
     hasReplay: bool
     hasDebug: bool
     hasFeedback: bool
+    hasLogsAndMetrics: bool
 
 
 class LoaderContext(TypedDict):
@@ -63,10 +64,12 @@ class JavaScriptSdkLoader(View):
                 "hasReplay": False,
                 "hasDebug": False,
                 "hasFeedback": False,
+                "hasLogsAndMetrics": False,
             }
 
         is_v7_sdk = sdk_version >= Version("7.0.0") and sdk_version < Version("8.0.0")
         is_greater_or_equal_v7_sdk = sdk_version >= Version("7.0.0")
+        is_greater_or_equal_v10_sdk = sdk_version >= Version("10.0.0")
 
         is_lazy = True
         bundle_kind_modifier = ""
@@ -74,6 +77,9 @@ class JavaScriptSdkLoader(View):
         has_performance = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE)
         has_debug = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG)
         has_feedback = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_FEEDBACK)
+        has_logs_and_metrics = get_dynamic_sdk_loader_option(
+            key, DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS
+        )
 
         # The order in which these modifiers are added is important, as the
         # bundle name is built up from left to right.
@@ -94,6 +100,22 @@ class JavaScriptSdkLoader(View):
             has_performance = True
             has_replay = True
 
+        # Logs and metrics bundles require SDK >= 10.0.0 and tracing
+        # Available bundles: bundle.tracing.logs.metrics, bundle.tracing.replay.feedback.logs.metrics
+        # If logs+metrics is combined with replay or feedback, we must use the full bundle.
+        logs_metrics_with_other_features = has_logs_and_metrics and (has_replay or has_feedback)
+
+        # When logs+metrics is combined with replay or feedback, we must serve the full bundle
+        # which includes tracing, replay, feedback, logs, and metrics. Update the flags accordingly.
+        if is_greater_or_equal_v10_sdk and logs_metrics_with_other_features:
+            has_performance = True
+            has_replay = True
+            has_feedback = True
+
+        # Logs and metrics always require tracing (performance)
+        if is_greater_or_equal_v10_sdk and has_logs_and_metrics:
+            has_performance = True
+
         # We depend on fixes in the tracing bundle that are only available in v7
         if is_greater_or_equal_v7_sdk and has_performance:
             bundle_kind_modifier += ".tracing"
@@ -108,12 +130,16 @@ class JavaScriptSdkLoader(View):
             bundle_kind_modifier += ".feedback"
             is_lazy = False
 
+        if is_greater_or_equal_v10_sdk and has_logs_and_metrics:
+            bundle_kind_modifier += ".logs.metrics"
+            is_lazy = False
+
         # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
         #
-        # If we are loading replay or feedback, do not add the es5 modifier, as those bundles are
-        # ES6 only.
-        if is_v7_sdk and not has_replay and not has_feedback:
+        # If we are loading replay, feedback, or logs+metrics, do not add the es5 modifier, as those
+        # bundles are ES6 only.
+        if is_v7_sdk and not has_replay and not has_feedback and not has_logs_and_metrics:
             bundle_kind_modifier += ".es5"
 
         if has_debug:
@@ -126,6 +152,7 @@ class JavaScriptSdkLoader(View):
             "hasReplay": has_replay,
             "hasDebug": has_debug,
             "hasFeedback": has_feedback,
+            "hasLogsAndMetrics": has_logs_and_metrics,
         }
 
     def _get_context(
@@ -222,6 +249,7 @@ class JavaScriptSdkLoader(View):
                     has_replay=loader_config["hasReplay"],
                     has_debug=loader_config["hasDebug"],
                     has_feedback=loader_config["hasFeedback"],
+                    has_logs_and_metrics=loader_config["hasLogsAndMetrics"],
                     sdk_version=str(sdk_version) if sdk_version else None,
                     tmpl=tmpl,
                 )
