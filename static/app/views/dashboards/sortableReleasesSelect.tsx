@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import type {ReleasesSortOption} from 'sentry/constants/releases';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,7 +27,7 @@ export function SortableReleasesSelect({
   const organization = useOrganization();
 
   return (
-    <PageFilterBar>
+    <StyledPageFilterBar>
       <ReleasesSelectControl
         sortBy={sortBy}
         handleChangeFilter={activeFilters => {
@@ -49,6 +51,20 @@ export function SortableReleasesSelect({
         }}
         disabled={isDisabled}
       />
-    </PageFilterBar>
+    </StyledPageFilterBar>
   );
 }
+
+// TURBOHACK: The regular `PageFilterBar` forces its last child (which is
+// usually the date range selector) to have a minimum width of 4rem. In _this_
+// case the last child is a release sort selector, which does not need a minimum
+// width at all. This is a short-term turbohack because what we want is to move
+// the sort selector _into_ the release selector, at which point this will
+// become moot.
+const StyledPageFilterBar = styled(PageFilterBar)`
+  & > * {
+    &:last-child {
+      min-width: 0;
+    }
+  }
+`;
