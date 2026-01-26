@@ -819,6 +819,37 @@ describe('TraceTree', () => {
         ])
       );
     });
+
+    it('handles cycles in EAP trace structure without infinite loop', () => {
+      const cyclicSpan = makeEAPSpan({
+        event_id: 'cyclic-span',
+        is_transaction: false,
+        children: [],
+      });
+
+      cyclicSpan.children = [cyclicSpan];
+
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-span',
+            is_transaction: true,
+            children: [cyclicSpan],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      expect(tree.build()).toBeDefined();
+
+      const cyclicNodes: BaseNode[] = [];
+      tree.root.forEachChild(node => {
+        if (node.id === 'cyclic-span') {
+          cyclicNodes.push(node);
+        }
+      });
+      expect(cyclicNodes).toHaveLength(1);
+    });
   });
 
   describe('events', () => {

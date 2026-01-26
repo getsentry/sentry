@@ -766,7 +766,7 @@ describe('autogrouping', () => {
                   parent_span_id: '0000',
                 }),
                 makeEAPSpan({
-                  event_id: '0003',
+                  event_id: '0004',
                   op: 'db',
                   name: 'GET',
                   start_timestamp: start,
@@ -774,7 +774,7 @@ describe('autogrouping', () => {
                   parent_span_id: '0000',
                 }),
                 makeEAPSpan({
-                  event_id: '0003',
+                  event_id: '0005',
                   op: 'db',
                   name: 'GET',
                   start_timestamp: start,
