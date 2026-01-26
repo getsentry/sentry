@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Select} from 'sentry/components/core/select';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
@@ -58,7 +58,7 @@ export default function AutomationBuilder() {
               {
                 when: <ConditionBadge />,
                 selector: showTriggerLogicTypeSelector ? (
-                  <EmbeddedWrapper>
+                  <Container width="80px">
                     <EmbeddedSelectField
                       styles={{
                         control: (provided: any) => ({
@@ -85,7 +85,7 @@ export default function AutomationBuilder() {
                       options={TRIGGER_MATCH_OPTIONS}
                       size="xs"
                     />
-                  </EmbeddedWrapper>
+                  </Container>
                 ) : (
                   <strong>{t('any')}</strong>
                 ),
@@ -175,7 +175,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
             {tct('[if: If] [selector] of these filters match', {
               if: <ConditionBadge />,
               selector: (
-                <EmbeddedWrapper>
+                <Container width="80px">
                   <EmbeddedSelectField
                     styles={{
                       control: (provided: any) => ({
@@ -203,7 +203,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
                       actions.updateIfLogicType(actionFilter.id, option.value)
                     }
                   />
-                </EmbeddedWrapper>
+                </Container>
               ),
             })}
           </StepLead>
@@ -274,10 +274,6 @@ const EmbeddedSelectField = styled(Select)`
   padding: 0;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
-`;
-
-const EmbeddedWrapper = styled('div')`
-  width: 80px;
 `;
 
 const IfThenWrapper = styled(Flex)`
