@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -161,22 +161,19 @@ type LabelDetailsProps = {
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
-    <LabelDetailsWrapper justify="between" gap="sm">
+    <Grid columns="repeat(2, 1fr)" gap="sm" minWidth="200px">
       {defined(props.eventCount) && (
         <Container>{tn('%s event', '%s events', props.eventCount)}</Container>
       )}
+
       {defined(props.dateCreated) && (
-        <Container>
+        <Container justifySelf="right">
           <DateTime dateOnly year date={props.dateCreated} />
         </Container>
       )}
-    </LabelDetailsWrapper>
+    </Grid>
   );
 }
-
-const LabelDetailsWrapper = styled(Flex)`
-  min-width: 200px;
-`;
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
