@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
@@ -19,10 +19,7 @@ import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/t
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {
-  PlatformOptionsControl,
-  useUrlPlatformOptions,
-} from 'sentry/components/onboarding/platformOptionsControl';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -38,6 +35,7 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -46,10 +44,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {
-  Runtime,
-  RUNTIME_LABELS,
-} from 'sentry/views/insights/pages/agents/utils/javascriptRuntimes';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
@@ -223,8 +217,8 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -264,40 +258,7 @@ export function Onboarding() {
     },
   };
 
-  const runtimeOptions = {
-    runtime: {
-      label: t('Runtime'),
-      items: [
-        {label: RUNTIME_LABELS[Runtime.NODE_JS], value: Runtime.NODE_JS},
-        {label: RUNTIME_LABELS[Runtime.OTHER], value: Runtime.OTHER},
-      ],
-    },
-  };
-
-  const platformOptions = {
-    ...integrationOptions,
-    ...runtimeOptions,
-  };
-
-  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
-
-  // Clean up runtime parameter from URL when switching
-  // to non-fullstack platform or when MANUAL/MASTRA integration is selected
-  useEffect(() => {
-    const shouldCleanRuntime =
-      (!isFullStackJsPlatform ||
-        location.query.integration === AgentIntegration.MANUAL ||
-        location.query.integration === AgentIntegration.MASTRA) &&
-      location.query.runtime;
-
-    if (shouldCleanRuntime) {
-      const {runtime: _runtime, ...restQuery} = location.query;
-      navigate({
-        pathname: location.pathname,
-        query: restQuery,
-      });
-    }
-  }, [isFullStackJsPlatform, location.pathname, location.query, navigate]);
+  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -350,8 +311,6 @@ export function Onboarding() {
   };
 
   const introduction = agentMonitoringDocs.introduction?.(docParams);
-  const integration = selectedPlatformOptions.integration;
-  const runtime = selectedPlatformOptions.runtime;
 
   const steps = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
@@ -364,18 +323,20 @@ export function Onboarding() {
       <SetupTitle project={project} />
       <OptionsWrapper>
         <PlatformOptionDropdown platformOptions={integrationOptions} />
-        {isFullStackJsPlatform &&
-          integration !== AgentIntegration.MANUAL &&
-          integration !== AgentIntegration.MASTRA && (
-            <Fragment>
-              {t('on')}
-              <PlatformOptionsControl platformOptions={runtimeOptions} />
-            </Fragment>
-          )}
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      {/* Force remount when integration or runtime changes */}
-      <GuidedSteps key={runtime ? `${integration}-${runtime}` : integration}>
+      <GuidedSteps
+        initialStep={decodeInteger(location.query.guidedStep)}
+        onStepChange={step => {
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              guidedStep: step,
+            },
+          });
+        }}
+      >
         {steps
           // Only show non-collapsible steps
           .filter(step => !step.collapsible)

@@ -4,19 +4,17 @@ import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
-  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getAgentMonitoringConfigStep,
   getAgentMonitoringInstallStep,
   getAgentMonitoringManualConfigStep,
+  getAgentMonitoringVerifyStep,
   getImport,
-  getServerSideAgentMonitoringConfig,
-  vercelAiExtraInstrumentation,
 } from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
-import {Runtime} from 'sentry/views/insights/pages/agents/utils/javascriptRuntimes';
 
 function getClientSideConfig({
   integration,
@@ -295,49 +293,6 @@ const response = await client.responses.create({
   return initConfig;
 }
 
-function getVerifyStep(params: DocsParams): OnboardingStep[] {
-  const integration =
-    (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
-
-  return [
-    {
-      type: StepType.VERIFY,
-      content:
-        integration === AgentIntegration.MASTRA
-          ? [
-              {
-                type: 'code',
-                tabs: [
-                  {
-                    label: 'JavaScript',
-                    language: 'javascript',
-                    code: `import { Agent } from '@mastra/core/agent';
-
-    // This agent needs to be registered in your Mastra config
-    const agent = new Agent({
-      id: 'my-agent',
-      name: 'My Agent',
-      instructions: 'You are a helpful assistant',
-      model: 'openai/gpt-4o',
-    });
-
-    const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
-                  },
-                ],
-              },
-            ]
-          : [
-              {
-                type: 'text',
-                text: t(
-                  'Verify that your instrumentation works by simply calling your LLM.'
-                ),
-              },
-            ],
-    },
-  ];
-}
-
 /**
  * Browser-only agent monitoring configuration.
  * Use this for pure browser platforms like React, Vue, Angular, Svelte, etc.
@@ -376,17 +331,27 @@ export function agentMonitoring({
         },
       ];
     },
-    verify: params => getVerifyStep(params),
+    verify: () => [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t('Verify that your instrumentation works by simply calling your LLM.'),
+          },
+        ],
+      },
+    ],
   };
 }
 
 export function agentMonitoringFullStack({
-  packageName = '@sentry/node',
-  configFileName = 'sentry.server.config.ts',
+  packageName,
+  configFileName,
 }: {
-  configFileName?: string;
-  packageName?: `@sentry/${string}`;
-} = {}): OnboardingConfig {
+  configFileName: string;
+  packageName: `@sentry/${string}`;
+}): OnboardingConfig {
   return {
     install: params =>
       getAgentMonitoringInstallStep(params, {
@@ -402,100 +367,13 @@ export function agentMonitoringFullStack({
         });
       }
 
-      const serverSideConfig = getServerSideAgentMonitoringConfig({
+      return getAgentMonitoringConfigStep({
         params,
         integration: selected,
         packageName,
         configFileName,
       });
-
-      if (selected === AgentIntegration.MASTRA) {
-        return [
-          {
-            title: t('Configure'),
-            content: serverSideConfig,
-          },
-        ];
-      }
-
-      const runtime = params.platformOptions?.runtime ?? Runtime.NODE_JS;
-
-      const clientSideConfig = {
-        title: t('Configure Client-Side'),
-        content: getClientSideConfig({
-          integration: selected,
-          sentryImport: getImport(packageName, 'esm-only').join('\n'),
-          params,
-        }),
-      };
-
-      if (selected === AgentIntegration.VERCEL_AI) {
-        return [
-          {
-            title: t('Configure'),
-            content:
-              runtime === Runtime.OTHER
-                ? [
-                    {
-                      type: 'text',
-                      text: tct(
-                        'For the Edge runtime, you need to manually add [code:Sentry.vercelAIIntegration()] to [code:Sentry.init] in your [code:sentry.edge.config.js] file:',
-                        {
-                          code: <code />,
-                        }
-                      ),
-                    },
-                    {
-                      type: 'code',
-                      tabs: [
-                        {
-                          label: 'JavaScript',
-                          filename: 'sentry.edge.config.(js|ts)',
-                          language: 'javascript',
-                          code: `${getImport(packageName, 'esm-only').join('\n')}
-
-Sentry.init({
-  dsn: '${params.dsn.public}',
-  integrations: [Sentry.vercelAIIntegration()],
-});`,
-                        },
-                      ],
-                    },
-                    ...vercelAiExtraInstrumentation,
-                  ]
-                : serverSideConfig,
-          },
-        ];
-      }
-
-      if (runtime === Runtime.OTHER) {
-        return [
-          {
-            title: t('Configure'),
-            content: [
-              {
-                type: 'text',
-                text: t(
-                  'For other runtimes, like the Browser, the instrumentation needs to be manually enabled.'
-                ),
-              },
-              ...clientSideConfig.content,
-            ],
-          },
-        ];
-      }
-
-      return [
-        {
-          title: t('Configure Server-Side'),
-          content: serverSideConfig,
-        },
-        {
-          ...clientSideConfig,
-          showOptionalLabel: true,
-        },
-      ];
     },
-    verify: params => getVerifyStep(params),
+    verify: params => getAgentMonitoringVerifyStep(params),
   };
 }
