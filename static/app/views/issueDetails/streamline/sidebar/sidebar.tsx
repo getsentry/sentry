@@ -70,7 +70,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       tourContext={IssueDetailsTourContext}
       id={IssueDetailsTour.SIDEBAR}
       demoTourId={DemoTourStep.ISSUES_DETAIL_SIDEBAR}
-      title={t('Automate root cause')}
+      title={showSeerSection ? t('Automate root cause') : t('Share updates')}
       description={
         showSeerSection
           ? tct(
@@ -81,7 +81,9 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
                 ),
               }
             )
-          : t('Add comments for your team and link tickets to track progress.')
+          : t(
+              'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
+            )
       }
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
