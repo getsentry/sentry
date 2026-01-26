@@ -39,6 +39,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
+import {mapAssertionFormErrors} from './assertionFormErrors';
 import {HTTPSnippet} from './httpSnippet';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
@@ -202,6 +203,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      mapFormErrors={mapAssertionFormErrors}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
