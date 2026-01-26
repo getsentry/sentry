@@ -24,7 +24,7 @@ MIN_THRESHOLD = 1
 DEFAULT_CHECKIN_MARGIN = 1
 
 # minimum number of padding ticks to be generated for a sample window
-SAMPLE_PADDING_TICKS_MIN_COUNT = 2
+SAMPLE_PADDING_TICKS_MIN_COUNT = 3
 
 # ratio of padding ticks to be generated for a sample window, relative to the total thresholds
 SAMPLE_PADDING_RATIO_OF_THRESHOLD = 1
@@ -55,3 +55,10 @@ class PermitCheckInStatus(Enum):
     This status is used when an unknown monitor slug is seen and has yet to
     have been assigned a seat.
     """
+
+
+class ScheduleSampleStatus(Enum):
+    OK = "ok"
+    ERROR = "error"
+    SUB_FAILURE_ERROR = "sub_failure_error"
+    SUB_RECOVERY_OK = "sub_recovery_ok"

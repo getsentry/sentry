@@ -94,14 +94,14 @@ export default function FeedbackListPage() {
 
   const largeScreenView = (
     <Fragment>
-      <Stack style={{gridArea: 'list'}} gap="md">
+      <Stack area="list" gap="md">
         <FeedbackSummaryCategories />
         <Container>
           <FeedbackList onItemSelect={() => {}} />
         </Container>
       </Stack>
 
-      <Container style={{gridArea: 'details'}}>
+      <Container area="details">
         <AnalyticsArea name="details">
           <FeedbackItemLoader />
         </AnalyticsArea>
@@ -112,13 +112,13 @@ export default function FeedbackListPage() {
   const smallerScreenView = (
     <Fragment>
       {showItemPreview ? (
-        <Container style={{gridArea: 'content'}}>
+        <Container area="content">
           <AnalyticsArea name="details">
             <FeedbackItemLoader onBackToList={handleBackToList} />
           </AnalyticsArea>
         </Container>
       ) : (
-        <Stack style={{gridArea: 'content'}} gap="md">
+        <Stack area="content" gap="md">
           <FeedbackSummaryCategories />
           <Container>
             <FeedbackList onItemSelect={handleItemSelect} />
@@ -258,7 +258,7 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   }
 `;
 
-const Container = styled('div')`
+const Container = styled('div')<{area?: string}>`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
@@ -266,6 +266,7 @@ const Container = styled('div')`
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  ${p => p.area && `grid-area: ${p.area};`}
 `;
 
 const SetupContainer = styled('div')`

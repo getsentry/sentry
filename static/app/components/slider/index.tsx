@@ -310,7 +310,7 @@ const SliderGroup = styled('div')`
 `;
 
 const SliderLabel = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -400,5 +400,5 @@ const SliderTickLabel = styled('small')`
   margin: 0 -1px;
 
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

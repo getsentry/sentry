@@ -8,6 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -45,7 +46,12 @@ type BodyProps = {
 };
 
 function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
-  const endpoint = `/organizations/${orgSlug}/unsubscribe/issue/${issueId}/`;
+  const endpoint = getApiUrl(
+    '/organizations/$organizationIdOrSlug/unsubscribe/issue/$id/',
+    {
+      path: {organizationIdOrSlug: orgSlug, id: issueId},
+    }
+  );
   const {isPending, isError, data} = useApiQuery<UnsubscribeResponse>(
     [endpoint, {query: {_: signature}}],
     {staleTime: 0}

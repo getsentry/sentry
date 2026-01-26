@@ -99,6 +99,12 @@ export type ApiApplication = {
   clientSecret: string | null;
   homepageUrl: string | null;
   id: string;
+  /**
+   * Whether this is a public client (no client_secret).
+   * Public clients are used for CLIs, native apps, and SPAs that
+   * cannot securely store a client secret (RFC 6749 §2.1).
+   */
+  isPublic: boolean;
   name: string;
   privacyUrl: string | null;
   redirectUris: string[];

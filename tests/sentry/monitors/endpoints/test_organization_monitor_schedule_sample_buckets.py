@@ -129,15 +129,15 @@ class SampleScheduleBucketsTest(APITestCase):
         expected_bucket_stats = [
             {"ok": 2},
             {"ok": 2},
-            {"ok": 1, "sub_failure_error": 1},
+            {"sub_failure_error": 1},  # sub-failure error dominates the bucket
             {"error": 2},
             {"error": 2},
             {"error": 2},
             {"error": 2},
             {"error": 2},
             {"error": 2},
-            {"error": 1, "sub_recovery_ok": 1},
-            {"sub_recovery_ok": 1, "ok": 1},
+            {"sub_recovery_ok": 1},  # sub-recovery ok dominates the bucket
+            {"sub_recovery_ok": 1},  # sub-recovery ok dominates the bucket
             {"ok": 2},
             {"ok": 2},
         ]

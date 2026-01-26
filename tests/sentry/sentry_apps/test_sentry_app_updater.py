@@ -218,6 +218,23 @@ class TestUpdater(TestCase):
         self.updater.run(self.user)
         assert self.sentry_app.status == SentryAppStatus.UNPUBLISHED
 
+    def test_update_status_to_publish_request_inprogress_if_superuser(self) -> None:
+        self.updater.status = "publish_request_inprogress"
+        self.user.is_superuser = True
+        self.updater.run(self.user)
+        assert self.sentry_app.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
+
+    def test_doesnt_update_status_to_publish_request_inprogress_if_not_superuser(self) -> None:
+        """Non-elevated users cannot set publish_request_inprogress via SentryAppUpdater.
+
+        The dedicated publish request endpoint sets status directly and has its own
+        permission checks (org:admin).
+        """
+        self.updater.status = "publish_request_inprogress"
+        self.updater.run(self.user)
+        # Status should remain unchanged (UNPUBLISHED)
+        assert self.sentry_app.status == SentryAppStatus.UNPUBLISHED
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_create_service_hook_on_update(self, mock_record: MagicMock) -> None:
         self.create_project(organization=self.org)

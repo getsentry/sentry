@@ -153,7 +153,7 @@ class RepoTreesIntegration(ABC):
                     connection_error_count += 1
             except Exception:
                 # Report for investigation but do not stop processing
-                logger.exception(
+                logger.warning(
                     "Failed to populate_tree. Investigate. Contining execution.", extra=extra
                 )
 
@@ -261,7 +261,7 @@ def filter_source_code_files(files: list[str]) -> list[str]:
             if should_include(file_path):
                 supported_files.append(file_path)
         except Exception:
-            logger.exception("We've failed to store the file path.")
+            logger.warning("We've failed to store the file path.")
 
     return supported_files
 

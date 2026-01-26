@@ -324,31 +324,47 @@ def run_missing_sdk_integration_detector_for_project(
 
     prompt = f"""# Objective
 
-Identify missing Sentry SDK integrations for a project by analyzing its code repository.
-
-# Context
-
-- **Project**: {project.slug}
-- **Repository**: {repo_name}
-- **Source Root**: {source_root or "/"}
-- **Platform**: {project.platform}
-- **SDK Integrations Documentation**: {integration_docs_url}
+Identify missing Sentry SDK integrations for a project by analyzing its code repository: {repo_name}
 
 # Instructions
 
 Follow these steps in order:
 
-## Step 1: Locate the Project Directory
+## Step 1: Explore Repository Structure
 
-The repository may contain multiple projects. Use the **Source Root** path to identify the correct project directory.
-- If the Source Root is "/" or empty, the project is at the repository root
+**Before reading any files**, retrieve and examine the complete folder structure of the repository.
+
+This is critical because:
+- The repository may be a monorepo with multiple projects
+- Dependency files may exist at different levels (root, subdirectories, packages)
+- Understanding the structure helps identify the correct project location
+
+List all directories and files recursively to understand the repository layout. Pay attention to:
+- Top-level directories that may indicate separate projects or packages
+- Nested `packages/`, `apps/`, `services/`, or similar directories common in monorepos
+- Location of dependency files (`package.json`, `requirements.txt`, etc.) at various levels
+
+## Step 2: Locate the Project Directory
+
+Using the folder structure from Step 1, identify and scope your analysis to the correct project.
+
+Use these hints to locate the project:
+- **Source Root**: `{source_root or "/"}` - This is the primary indicator of where the project code lives
+- **Project Slug**: `{project.slug}` - The project name, which may correspond to a directory name
+- **Platform**: `{project.platform}` - The technology stack (e.g., JavaScript, Python) helps identify which dependency files are relevant
+
+Navigation:
+- If the Source Root is "/" or empty, the project is likely at the repository root
 - Otherwise, navigate to the Source Root path within the repository
+- If Source Root doesn't exist, look for a directory fuzzily matching the project slug
 
-All subsequent steps should be scoped to this directory.
+**All subsequent steps MUST be scoped exclusively to this project directory. Do NOT analyze files from other projects in the monorepo.**
 
-## Step 2: Identify Project Dependencies
+## Step 3: Identify Project Dependencies
 
-Locate and analyze dependency files within the project directory, like:
+Locate and analyze dependency files **only within the project directory identified in Step 2**.
+
+Look for platform-appropriate dependency files:
 - `package.json` (Node.js/JavaScript)
 - `requirements.txt`, `pyproject.toml`, `setup.py` (Python)
 - `Gemfile` (Ruby)
@@ -356,32 +372,43 @@ Locate and analyze dependency files within the project directory, like:
 - `pom.xml`, `build.gradle` (Java)
 - `composer.json` (PHP)
 
-Extract the list of libraries and frameworks the project uses.
+**Monorepo Warning**: Do NOT read dependency files from:
+- Parent directories (unless the project is at the root)
+- Sibling project directories
+- Unrelated subdirectories
 
-## Step 3: Review Available Sentry Integrations
+Extract only the libraries and frameworks that THIS specific project uses.
 
-Reference the SDK integrations documentation to identify which integrations:
-- Are available for the detected libraries/frameworks
-- Require manual configuration (not auto-enabled by default)
+## Step 4: Review Available Sentry Integrations
 
-## Step 4: Check Current Sentry Configuration
+1. Read the **SDK Integrations Documentation** URL: {integration_docs_url}
+2. Locate the integrations table on that page
+3. Note the exact integration name as listed in the table (e.g., "zodErrorIntegration")
+5. Check the "Auto Enabled" column to identify integrations that require manual configuration
+
+## Step 5: Check Current Sentry Configuration
 
 Search for existing Sentry initialization code (e.g., `Sentry.init`, `sentry_sdk.init`) within the project directory.
 Note which integrations are already explicitly configured.
 
-## Step 5: Determine Missing Integrations
+## Step 6: Determine Missing Integrations
 
-Compare the available integrations (Step 3) against the configured integrations (Step 4).
-An integration is "missing" if:
-- A library/framework in the project has a corresponding Sentry integration
-- The integration requires manual setup
+Compare the available integrations (Step 4) against the configured integrations (Step 5).
+An integration is "missing" if ALL of the following are true:
+- The integration corresponds to a **specific package** found in the project's dependencies (Step 3)
+- The integration is NOT auto-enabled
 - The integration is NOT already configured
+- The integration is NOT explicitly disabled
+
+**Important**: Only report integrations that have a direct 1:1 mapping to a package in the project's dependencies.
+Do NOT report general-purpose integrations that don't require a specific package (e.g., `extraErrorDataIntegration`, `replayIntegration`, `feedbackIntegration`, `captureConsoleIntegration`).
 
 # Output
 
 Return a JSON array of strings containing the missing SDK integration names.
+**Important**: Use the exact integration names from the documentation table.
 
-Example: `["celery", "redis", "sqlalchemy"]`
+Example: For a project using the `zod` package, report `["zodErrorIntegration"]`
 
 If no missing integrations are found, return an empty array: `[]`"""
 
