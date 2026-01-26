@@ -114,6 +114,7 @@ function Graph({
       series,
       timeseriesResult,
       yAxis: aggregate,
+      label: metricLabel,
       confidence: combineConfidenceForSeries(series),
       dataScanned: samplingMeta.dataScanned,
       isSampled: samplingMeta.isSampled,
@@ -121,7 +122,7 @@ function Graph({
       samplingMode: undefined,
       topEvents: isTopEvents ? TOP_EVENTS_LIMIT : undefined,
     };
-  }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit]);
+  }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit, metricLabel]);
 
   const Title = (
     <Widget.WidgetTitle

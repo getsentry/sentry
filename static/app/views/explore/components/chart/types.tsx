@@ -12,6 +12,12 @@ export interface ChartInfo {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
+  /**
+   * Optional display label for the chart series. When provided, this will be used
+   * in tooltips and legends instead of the raw yAxis string. Useful for metrics
+   * where the yAxis is in an internal format like "aggregate(value,metric.name,metric.type,-)".
+   */
+  label?: string;
   sampleCount?: number;
   samplingMode?: SamplingMode;
   topEvents?: number;
