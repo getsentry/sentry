@@ -33,6 +33,7 @@ KEY_RATE_LIMIT = {
         "hasReplay": True,
         "hasPerformance": True,
         "hasDebug": True,
+        "hasFeedback": False,
     },
 }
 
