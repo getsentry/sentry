@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text/text';
 
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
@@ -21,11 +22,13 @@ import {
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
 import {NavLayout} from 'sentry/views/nav/types';
 
+import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
 export default function PrimaryNavSeerConfigReminder() {
   const organization = useOrganization();
+  const canWrite = useCanWriteSettings();
   const {isPending, initialStep} = useSeerOnboardingStep();
 
   const {
@@ -44,6 +47,10 @@ export default function PrimaryNavSeerConfigReminder() {
   const hasSeer = hasSeatBasedSeer || hasOldSeer;
   if (!hasSeer) {
     return false;
+  }
+
+  if (!canWrite && !isActiveSuperuser()) {
+    return null;
   }
 
   if (isPending || initialStep === Steps.WRAP_UP) {
@@ -91,7 +98,8 @@ export default function PrimaryNavSeerConfigReminder() {
 const SeerButton = styled(SidebarButton)`
   display: none;
 
-  @media (min-height: 800px) {
+  /* TODO(ryan953): Make this shorter once showPreventNav() is removed from PrimaryNavigationItems */
+  @media (min-height: 724px) {
     display: flex;
   }
 `;
