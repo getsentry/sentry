@@ -337,7 +337,8 @@ describe('BuildDetails', () => {
     });
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
+    // First call returns PENDING state - shows queued message
+    expect(await screen.findByText('Queued for analysis')).toBeInTheDocument();
 
     await waitFor(
       () => {
@@ -346,7 +347,7 @@ describe('BuildDetails', () => {
       {timeout: 12000}
     );
 
-    // Still showing processing state (not completed yet)
+    // Second call returns PROCESSING state - shows processing message
     expect(screen.getByText('Running size analysis')).toBeInTheDocument();
 
     // Size analysis should not be refetched since we're still processing
