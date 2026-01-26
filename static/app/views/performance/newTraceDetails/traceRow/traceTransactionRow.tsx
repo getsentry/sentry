@@ -42,7 +42,7 @@ export function TraceTransactionRow(props: TraceRowProps<TransactionNode>) {
                     props.node.fetchStatus === 'idle' ? (
                       '+'
                     ) : props.node.hasFetchedChildren ? (
-                      <TraceIcons.Chevron direction="right" />
+                      <TraceIcons.Chevron direction="down" />
                     ) : (
                       '+'
                     )
