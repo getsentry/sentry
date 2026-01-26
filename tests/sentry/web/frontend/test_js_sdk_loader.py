@@ -328,6 +328,8 @@ class JavaScriptSdkLoaderTest(TestCase):
             ),
             # Note: There is no bundle.tracing.feedback or bundle.replay.feedback.
             # When feedback is combined with tracing or replay, we serve the full bundle.
+            # Even though the full bundle includes replay, we should NOT enable replay config
+            # because the user didn't explicitly enable replay.
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -339,8 +341,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                 {
                     "dsn": dsn,
                     "tracesSampleRate": 1,
-                    "replaysSessionSampleRate": 0.1,
-                    "replaysOnErrorSampleRate": 1,
                     "autoInjectFeedback": True,
                 },
             ),
@@ -507,6 +507,8 @@ class JavaScriptSdkLoaderTest(TestCase):
                 },
             ),
             # Logs and metrics with feedback (should use full bundle)
+            # Note: Even though the full bundle includes replay, we should NOT enable replay config
+            # because the user didn't explicitly enable replay.
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -518,8 +520,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                 {
                     "dsn": dsn,
                     "tracesSampleRate": 1,
-                    "replaysSessionSampleRate": 0.1,
-                    "replaysOnErrorSampleRate": 1,
                     "autoInjectFeedback": True,
                     "enableLogs": True,
                 },
