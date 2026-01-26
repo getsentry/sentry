@@ -60,6 +60,7 @@ export function Button({
         >
           {props.icon && (
             <Flex
+              as="span"
               display="flex"
               align="center"
               flexShrink={0}
