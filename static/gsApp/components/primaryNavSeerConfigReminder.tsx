@@ -74,7 +74,7 @@ export default function PrimaryNavSeerConfigReminder() {
             </Text>
             <Flex>
               <LinkButton
-                to={`/organizations/${organization.slug}/settings/seer/`}
+                to={`/organizations/${organization.slug}/settings/seer/?tab=repos`}
                 priority="primary"
                 onClick={() => state.close()}
               >
