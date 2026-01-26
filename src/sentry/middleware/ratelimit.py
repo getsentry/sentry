@@ -33,6 +33,13 @@ DEFAULT_CONCURRENT_ERROR_MESSAGE = (
 logger = logging.getLogger("sentry.api.rate-limit")
 
 
+def _normalize_and_min_limit(a_limit: int, a_window: int, b_limit: int, b_window: int) -> int:
+    """Normalize two (limit, window) pairs and return the minimum of the two normalized values."""
+    norm_a = a_limit / a_window if a_window and a_window >= 1 else a_limit
+    norm_b = b_limit / b_window if b_window and b_window >= 1 else b_limit
+    return min(int(norm_a), int(norm_b))
+
+
 class RatelimitMiddleware:
     """Middleware that applies a rate limit to every endpoint.
     See: https://docs.djangoproject.com/en/4.0/topics/http/middleware/#writing-your-own-middleware
@@ -60,17 +67,32 @@ class RatelimitMiddleware:
         limit_overrides = {}
         for method in ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]:
             method_limits = {}
+
             for category in RateLimitCategory:
                 api_rate_limit = rate_limit_config.get_rate_limit(method, category)
-                # Take minimum of impersonation_limit and API's limit/concurrent_limit
-                min_limit = min(impersonation_limit, api_rate_limit.limit)
-                min_concurrent_limit = min(
-                    impersonation_limit,
-                    api_rate_limit.concurrent_limit or impersonation_limit,
-                )
+
+                # Normalize limits to 1 second window and take the minimum. We will use the
+                # normalized values to set the new lower rate limit.
+                if api_rate_limit.limit:
+                    min_limit = _normalize_and_min_limit(
+                        api_rate_limit.limit, api_rate_limit.window, impersonation_limit, 1
+                    )
+                else:
+                    min_limit = impersonation_limit
+
+                if api_rate_limit.concurrent_limit:
+                    min_concurrent_limit = _normalize_and_min_limit(
+                        api_rate_limit.concurrent_limit,
+                        api_rate_limit.window,
+                        impersonation_limit,
+                        1,
+                    )
+                else:
+                    min_concurrent_limit = impersonation_limit
+
                 method_limits[category] = RateLimit(
                     limit=min_limit,
-                    window=1,  # Impersonation rate limits are always 1 second
+                    window=1,  # All limits are already normalized to 1 second windows
                     concurrent_limit=min_concurrent_limit,
                 )
             limit_overrides[method] = method_limits

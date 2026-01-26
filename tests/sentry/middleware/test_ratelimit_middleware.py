@@ -328,10 +328,10 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         api_config = RateLimitConfig(
             limit_overrides={
                 "GET": {
-                    RateLimitCategory.USER: RateLimit(limit=5, window=30, concurrent_limit=3),
+                    RateLimitCategory.USER: RateLimit(limit=5, window=1, concurrent_limit=3),
                 },
                 "POST": {
-                    RateLimitCategory.IP: RateLimit(limit=20, window=60, concurrent_limit=15),
+                    RateLimitCategory.IP: RateLimit(limit=20, window=1, concurrent_limit=15),
                 },
             }
         )
@@ -355,6 +355,64 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             ip_limit.concurrent_limit == 10
         ), "Should use impersonation limit (10) since it's smaller"
         assert ip_limit.window == 1, "Should always be one second"
+
+    @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
+    @patch("sentry.middleware.ratelimit.above_rate_limit_check")
+    def test_impersonation_uses_normalized_rate_limit(
+        self, rate_limit_check_mock: MagicMock
+    ) -> None:
+        """Test that impersonation normalizes the rate limit and applies the smaller value"""
+        # Mock the rate limit check to always pass (not limited)
+        from sentry.types.ratelimit import RateLimitMeta, RateLimitType
+
+        rate_limit_check_mock.return_value = RateLimitMeta(
+            rate_limit_type=RateLimitType.NOT_LIMITED,
+            current=0,
+            remaining=1,
+            limit=1,
+            window=1,
+            group="default",
+            reset_time=0,
+            concurrent_limit=1,
+            concurrent_requests=0,
+        )
+
+        # Create endpoint with 100 requests/60 seconds (1.66 per second)
+        # Impersonation limit is 1 request/1 second (1 per second)
+        # Should use 1 per second (impersonation limit is smaller after normalization)
+        class TestEndpointWithRate(Endpoint):
+            enforce_rate_limit = True
+            rate_limits = RateLimitConfig(
+                limit_overrides={
+                    "GET": {
+                        RateLimitCategory.USER: RateLimit(limit=100, window=60),
+                    }
+                }
+            )
+
+            def get(self):
+                raise NotImplementedError
+
+        request = self.factory.get("/")
+        request.session = {}
+        request.user = self.user
+
+        # Set up impersonation
+        impersonator = self.create_user(email="impersonator@example.com")
+        request.actual_user = impersonator
+
+        self.middleware.process_view(request, TestEndpointWithRate.as_view(), [], {})
+
+        # Verify the rate limit check was called
+        assert rate_limit_check_mock.called
+
+        # Get the RateLimit that was passed to above_rate_limit_check
+        call_args = rate_limit_check_mock.call_args
+        rate_limit_arg = call_args[0][1]  # Second positional argument is the RateLimit
+
+        # Should have normalized to 1 request per 1 second (impersonation limit)
+        assert rate_limit_arg.limit == 1
+        assert rate_limit_arg.window == 1
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
