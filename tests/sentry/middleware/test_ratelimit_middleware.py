@@ -346,7 +346,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         assert (
             user_limit.concurrent_limit == 3
         ), "Should use API's smaller concurrent_limit (3) instead of impersonation_limit (10)"
-        assert user_limit.window == 30, "Should preserve API's window value"
+        assert user_limit.window == 1, "Should always be one second"
 
         # Should use impersonation limit (10) since it's smaller
         ip_limit = result.get_rate_limit("POST", RateLimitCategory.IP)
@@ -354,7 +354,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         assert (
             ip_limit.concurrent_limit == 10
         ), "Should use impersonation limit (10) since it's smaller"
-        assert ip_limit.window == 60, "Should preserve API's window value"
+        assert ip_limit.window == 1, "Should always be one second"
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)

@@ -68,10 +68,9 @@ class RatelimitMiddleware:
                     impersonation_limit,
                     api_rate_limit.concurrent_limit or impersonation_limit,
                 )
-                # Preserve the API's window value
                 method_limits[category] = RateLimit(
                     limit=min_limit,
-                    window=api_rate_limit.window,
+                    window=1,  # Impersonation rate limits are always 1 second
                     concurrent_limit=min_concurrent_limit,
                 )
             limit_overrides[method] = method_limits
