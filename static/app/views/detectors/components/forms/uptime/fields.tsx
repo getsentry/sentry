@@ -146,7 +146,9 @@ export function uptimeSavedDetectorToFormData(
     url: 'https://example.com',
     headers: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
     body: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.body,
-    assertion: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.assertion,
+    // Use empty assertion structure for consistency with the main case above.
+    // null would cause a crash in getValue when accessing value.root.children.length
+    assertion: {root: createEmptyAssertionRoot()},
     workflowIds: detector.workflowIds,
   };
 }
