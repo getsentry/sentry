@@ -83,6 +83,14 @@ export function InsightsSecondaryNav() {
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-ai" title={t('AI')}>
+          <Feature features="gen-ai-conversations">
+            <SecondaryNav.Item
+              to={`${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`}
+              analyticsItemName="insights_conversations"
+            >
+              {CONVERSATIONS_SIDEBAR_LABEL}
+            </SecondaryNav.Item>
+          </Feature>
           <SecondaryNav.Item
             to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_agents"
@@ -95,14 +103,6 @@ export function InsightsSecondaryNav() {
           >
             {MCP_SIDEBAR_LABEL}
           </SecondaryNav.Item>
-          <Feature features="gen-ai-conversations">
-            <SecondaryNav.Item
-              to={`${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`}
-              analyticsItemName="insights_conversations"
-            >
-              {CONVERSATIONS_SIDEBAR_LABEL}
-            </SecondaryNav.Item>
-          </Feature>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-monitors">
           <SecondaryNav.Item
