@@ -309,6 +309,7 @@ def validate_request(
                 "project": project,
                 "organization": project.organization,
                 "access": getattr(request, "access", None),
+                "request": request,
             },
         )
         if not serializer.is_valid():

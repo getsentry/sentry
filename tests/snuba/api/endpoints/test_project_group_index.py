@@ -1400,6 +1400,69 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["assignedTo"] is None
 
+    def test_assign_team_not_member_of_when_open_membership_disabled(self) -> None:
+        """
+        Test that a user cannot assign an issue to a team they are not a member of
+        when Open Membership is disabled. This is a regression test for an authorization
+        bypass vulnerability.
+        """
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        group = self.create_group()
+
+        # Create a member user (not owner) who only belongs to a specific team
+        member_user = self.create_user("member@example.com")
+        member_team = self.create_team(organization=group.project.organization, name="member-team")
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[member_team]
+        )
+        group.project.add_team(member_team)
+
+        # Create a second team that the member is NOT a member of
+        other_team = self.create_team(organization=group.project.organization, name="other-team")
+        group.project.add_team(other_team)
+
+        self.login_as(user=member_user)
+
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
+
+        # Should fail because user is not a member of other_team
+        assert response.status_code == 400, response.content
+        assert "do not have permission" in str(response.data) or "permission" in str(response.data)
+        assert not GroupAssignee.objects.filter(group=group, team=other_team).exists()
+
+    def test_assign_team_not_member_of_with_team_admin_scope(self) -> None:
+        """
+        Test that a user with team:admin scope CAN assign an issue to a team they are
+        not a member of, even when Open Membership is disabled.
+        """
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        group = self.create_group()
+
+        # Create a second team that the current user is NOT a member of
+        other_team = self.create_team(organization=group.project.organization, name="other-team")
+        group.project.add_team(other_team)
+
+        # Login as an admin/owner who has team:admin scope
+        admin_user = self.create_user("admin@example.com")
+        self.create_member(user=admin_user, organization=self.organization, role="owner")
+        self.login_as(user=admin_user)
+
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
+
+        # Should succeed because user has team:admin scope
+        assert response.status_code == 200, response.content
+        assert response.data["assignedTo"]["id"] == str(other_team.id)
+        assert response.data["assignedTo"]["type"] == "team"
+        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
+
     def test_discard(self) -> None:
         group1 = self.create_group(is_public=True)
         group2 = self.create_group(is_public=True)
