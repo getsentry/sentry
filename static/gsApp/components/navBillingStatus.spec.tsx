@@ -479,7 +479,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          /Your organization has used your full quota of 100 Size Analysis builds uploaded this billing period/
+          /Your organization has used your full quota of Size Analysis builds uploaded this billing period/
         )
       ).toBeInTheDocument();
       expect(
@@ -495,39 +495,6 @@ describe('PrimaryNavigationQuotaExceeded', () => {
         screen.getByRole('button', {
           name: 'Dismiss alert for the rest of the billing cycle',
         })
-      ).toBeInTheDocument();
-    });
-
-    it('should display dynamic quota from subscription for Size Analysis', async () => {
-      const newSub = SubscriptionFixture({
-        organization,
-        plan: 'am3_business',
-      });
-      // Add SIZE_ANALYSIS category with a different quota value (200 instead of default 100)
-      newSub.categories.sizeAnalyses = MetricHistoryFixture({
-        category: DataCategory.SIZE_ANALYSIS,
-        reserved: 200,
-        prepaid: 200,
-        usageExceeded: true,
-        order: 20,
-      });
-      // Clear other exceeded flags
-      for (const key of Object.keys(newSub.categories) as Array<
-        keyof typeof newSub.categories
-      >) {
-        if (key !== 'sizeAnalyses' && newSub.categories[key]) {
-          newSub.categories[key].usageExceeded = false;
-        }
-      }
-      SubscriptionStore.set(organization.slug, newSub);
-
-      render(<PrimaryNavigationQuotaExceeded organization={organization} />);
-
-      // The alert auto-opens, verify content shows dynamic quota (200 instead of hardcoded 100)
-      expect(
-        await screen.findByText(
-          /Your organization has used your full quota of 200 Size Analysis builds uploaded this billing period/
-        )
       ).toBeInTheDocument();
     });
 
@@ -671,7 +638,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          /Your organization has used your full quota of 100 Size Analysis builds uploaded this billing period/
+          /Your organization has used your full quota of Size Analysis builds uploaded this billing period/
         )
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Contact Sales'})).toHaveAttribute(

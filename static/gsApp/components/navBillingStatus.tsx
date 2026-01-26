@@ -66,10 +66,7 @@ function getEmergeSubheader(emergeCategories: DataCategory[]): string {
   return t('Build Distribution - Quota Exceeded');
 }
 
-function getEmergeBodyCopy(
-  emergeCategories: DataCategory[],
-  subscription: Subscription
-): string {
+function getEmergeBodyCopy(emergeCategories: DataCategory[]): string {
   const hasSizeAnalysis = emergeCategories.includes(DataCategory.SIZE_ANALYSIS);
   const hasInstallableBuild = emergeCategories.includes(DataCategory.INSTALLABLE_BUILD);
 
@@ -79,10 +76,8 @@ function getEmergeBodyCopy(
     );
   }
   if (hasSizeAnalysis) {
-    const quota = subscription.categories.sizeAnalyses?.reserved ?? 100;
     return t(
-      'Your organization has used your full quota of %s Size Analysis builds uploaded this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:',
-      quota
+      'Your organization has used your full quota of Size Analysis builds uploaded this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:'
     );
   }
   return t(
@@ -153,7 +148,7 @@ function QuotaExceededContent({
         </Header>
         <Body>
           <Title>{getEmergeSubheader(emergeCategories)}</Title>
-          <Description>{getEmergeBodyCopy(emergeCategories, subscription)}</Description>
+          <Description>{getEmergeBodyCopy(emergeCategories)}</Description>
           <Flex justify="between" align="center">
             <LinkButton
               priority="primary"
@@ -193,7 +188,7 @@ function QuotaExceededContent({
         <Body>
           {/* Emerge categories section */}
           <Title>{getEmergeSubheader(emergeCategories)}</Title>
-          <Description>{getEmergeBodyCopy(emergeCategories, subscription)}</Description>
+          <Description>{getEmergeBodyCopy(emergeCategories)}</Description>
           <Flex justify="start" align="center">
             <LinkButton
               priority="primary"
