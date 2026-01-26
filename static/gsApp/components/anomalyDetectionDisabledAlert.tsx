@@ -10,7 +10,7 @@ export function AnomalyDetectionDisabledAlertMessage({detector}: {detector: Dete
   const isAnomalyDetector =
     detector.type === 'metric_issue' &&
     'config' in detector &&
-    (detector as MetricDetector).config?.detectionType === 'dynamic';
+    detector.config?.detectionType === 'dynamic';
 
   const hasAnomalyDetectionFeature = organization.features.includes(
     'anomaly-detection-alerts'
