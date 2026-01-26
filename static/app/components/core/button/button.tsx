@@ -61,7 +61,7 @@ export function Button({
             <Flex
               display="flex"
               align="center"
-              flexShrink={1}
+              flexShrink={0}
               marginRight={
                 hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : '0'
               }
