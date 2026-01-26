@@ -45,6 +45,19 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 TIMEZONE_CHOICES = get_timezone_choices()
 
 
+def user_can_elevate(target_user: User) -> bool:
+    try:
+        org_member_exists = OrganizationMemberMapping.objects.filter(
+            organization_id=settings.SENTRY_DEFAULT_ORGANIZATION_ID,
+            user=target_user,
+        ).exists()
+    except Exception:
+        # If anything goes wrong, default to not allowing elevation
+        return False
+
+    return org_member_exists
+
+
 def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None:
     deactivation_datetime = django_timezone.now()
     scheduled_deletion_datetime = deactivation_datetime + timedelta(days=30)
@@ -305,19 +318,6 @@ class UserDetailsEndpoint(UserEndpoint):
         serializer_cls: type[BaseUserSerializer]
         if can_elevate_user:
             serializer_cls = PrivilegedUserSerializer
-            # Check if user has membership to the default organization
-            if settings.SENTRY_MODE == SentryMode.SAAS:
-                user_can_elevate = OrganizationMemberMapping.objects.filter(
-                    user_id=user.id, organization_id=settings.SENTRY_DEFAULT_ORGANIZATION_ID
-                ).exists()
-
-                if not user_can_elevate:
-                    return Response(
-                        {
-                            "detail": "User must be a member to the default organization to enable SuperUser mode."
-                        },
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
         # With superuser read/write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser. Once the feature flag is
         # removed and we only check is_active_staff, we can remove this comment.
@@ -337,6 +337,26 @@ class UserDetailsEndpoint(UserEndpoint):
         # This serializer should NOT include privileged fields e.g. password
         if not serializer.is_valid() or not serializer_options.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # We want to do extra checks in SaaS mode for superuser/staff elevation.
+        # The users have to also be a member of the default organization to be able to elevate
+        # to superuser/staff.
+        if settings.SENTRY_MODE == SentryMode.SAAS:
+            validated_data = serializer.validated_data
+            requested_superuser = validated_data.get("is_superuser")
+            requested_staff = validated_data.get("is_staff")
+
+            is_updating_superuser = requested_superuser is not None
+            is_updating_staff = requested_staff is not None
+
+            if is_updating_superuser or is_updating_staff:
+                if not user_can_elevate(user):
+                    return Response(
+                        {
+                            "detail": "User must be a member to the default organization to enable SuperUser mode."
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
 
         # map API keys to keys in model
         key_map = {
