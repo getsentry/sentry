@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -75,13 +75,10 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     'visibility-dashboards-async-queue'
   );
 
-  // Track validation errors from getReleasesRequestData
-  const [validationError, setValidationError] = React.useState<string | undefined>();
-
-  const queryKeys = useMemo(() => {
+  // Compute validation error and query keys together
+  const {queryKeys, validationError} = useMemo(() => {
     try {
-      setValidationError(undefined);
-      return filteredWidget.queries.map((query, queryIndex) => {
+      const keys = filteredWidget.queries.map((query, queryIndex) => {
         const {datetime} = pageFilters;
         const {start, end, period} = datetime;
 
@@ -114,12 +111,12 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           useSessionAPI: requestData.useSessionAPI,
         };
       });
+      return {queryKeys: keys, validationError: undefined};
     } catch (error) {
       // Catch synchronous errors from getReleasesRequestData (e.g., date validation)
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setValidationError(errorMessage);
       // Return empty array to prevent queries from running
-      return [];
+      return {queryKeys: [], validationError: errorMessage};
     }
   }, [filteredWidget, organization, pageFilters]);
 
@@ -281,12 +278,10 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     'visibility-dashboards-async-queue'
   );
 
-  const [validationError, setValidationError] = React.useState<string | undefined>();
-
-  const queryKeys = useMemo(() => {
+  // Compute validation error and query keys together
+  const {queryKeys, validationError} = useMemo(() => {
     try {
-      setValidationError(undefined);
-      return filteredWidget.queries.map((query, queryIndex) => {
+      const keys = filteredWidget.queries.map((query, queryIndex) => {
         const requestData = getReleasesRequestData(
           0, // includeSeries
           1, // includeTotals
@@ -307,10 +302,12 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
           useSessionAPI: requestData.useSessionAPI,
         };
       });
+      return {queryKeys: keys, validationError: undefined};
     } catch (error) {
+      // Catch synchronous errors from getReleasesRequestData (e.g., date validation)
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setValidationError(errorMessage);
-      return [];
+      // Return empty array to prevent queries from running
+      return {queryKeys: [], validationError: errorMessage};
     }
   }, [filteredWidget, organization, pageFilters, limit, cursor]);
 
