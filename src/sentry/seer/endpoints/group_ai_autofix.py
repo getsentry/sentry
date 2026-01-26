@@ -216,7 +216,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 group=group,
                 step=AutofixStep(step),
                 run_id=data.get("run_id"),
-                intelligence_level=data.get("intelligence_level"),
+                intelligence_level=data["intelligence_level"],
             )
             return Response({"run_id": run_id}, status=202)
         except SeerPermissionError as e:
