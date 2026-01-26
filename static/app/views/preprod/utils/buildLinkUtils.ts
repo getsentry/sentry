@@ -1,3 +1,5 @@
+import ConfigStore from 'sentry/stores/configStore';
+
 interface BuildLinkParams {
   organizationSlug: string;
   projectId: string;
@@ -12,6 +14,11 @@ export function getBaseBuildPath(
 
   if (!baseArtifactId) {
     return undefined;
+  }
+
+  const customerDomain = ConfigStore.get('customerDomain');
+  if (customerDomain?.subdomain) {
+    return `/preprod/${viewType}/${baseArtifactId}/?project=${projectId}`;
   }
 
   return `/organizations/${organizationSlug}/preprod/${viewType}/${baseArtifactId}/?project=${projectId}`;
@@ -33,6 +40,14 @@ export function getCompareBuildPath(params: {
 }): string {
   const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
 
+  const customerDomain = ConfigStore.get('customerDomain');
+  if (customerDomain?.subdomain) {
+    if (baseArtifactId) {
+      return `/preprod/size/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
+    }
+    return `/preprod/size/compare/${headArtifactId}/?project=${projectId}`;
+  }
+
   if (baseArtifactId) {
     return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
   }
@@ -45,6 +60,12 @@ export function getListBuildPath(params: {
   projectId: string;
 }): string {
   const {organizationSlug, projectId} = params;
+
+  const customerDomain = ConfigStore.get('customerDomain');
+  if (customerDomain?.subdomain) {
+    return `/preprod/?project=${projectId}`;
+  }
+
   return `/organizations/${organizationSlug}/preprod/?project=${projectId}`;
 }
 
