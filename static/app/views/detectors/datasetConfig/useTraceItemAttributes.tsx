@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Tag, TagCollection} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {FieldKind} from 'sentry/utils/fields';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
@@ -33,7 +34,9 @@ function useTraceItemAttributeKeys({
   const organization = useOrganization();
   const {data, isPending, error} = useApiQuery<Tag[]>(
     [
-      `/organizations/${organization.slug}/trace-items/attributes/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/attributes/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: makeTraceItemAttributeKeysQueryOptions({
           traceItemType,

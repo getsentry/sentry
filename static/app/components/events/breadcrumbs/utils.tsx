@@ -58,7 +58,6 @@ export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-d
 const Color = styled('span')<{
   colorConfig: NonNullable<TimelineItemProps['colorConfig']>;
 }>`
-  display: flex;
   color: ${p => p.colorConfig.icon};
 `;
 
@@ -395,7 +394,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
 const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   border: 0;
   background: none;
   color: ${p => {

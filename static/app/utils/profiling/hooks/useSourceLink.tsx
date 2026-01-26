@@ -1,6 +1,7 @@
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -21,7 +22,12 @@ export function useSourceCodeLink(
 ): UseApiQueryResult<StacktraceLinkResult, RequestError> {
   return useApiQuery<StacktraceLinkResult>(
     [
-      `/projects/${props.organization.slug}/${props.project?.slug}/stacktrace-link/`,
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/', {
+        path: {
+          organizationIdOrSlug: props.organization.slug,
+          projectIdOrSlug: props.project?.slug!,
+        },
+      }),
       {
         query: {
           file: props.frame.file,

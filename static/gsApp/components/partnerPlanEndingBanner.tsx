@@ -93,7 +93,7 @@ function PartnerPlanEndingBanner({
 }
 
 const PartnerPlanEndingBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: 600;
   display: flex;
   gap: ${space(1)};

@@ -443,6 +443,9 @@ class Fixtures:
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
+    def create_service_hook_project_for_installation(self, *args, **kwargs):
+        return Factories.create_service_hook_project_for_installation(*args, **kwargs)
+
     def create_userreport(self, *args, **kwargs):
         return Factories.create_userreport(*args, **kwargs)
 

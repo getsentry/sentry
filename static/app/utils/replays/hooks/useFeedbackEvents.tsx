@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,7 +14,13 @@ export default function useFeedbackEvents({
 
   const feedbackEventQuery = useApiQueries<FeedbackEvent>(
     feedbackEventIds.map((feedbackEventId: string) => [
-      `/projects/${organization.slug}/${projectId}/events/${feedbackEventId}/`,
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId!,
+          eventId: feedbackEventId,
+        },
+      }),
     ]),
     {
       staleTime: Infinity,

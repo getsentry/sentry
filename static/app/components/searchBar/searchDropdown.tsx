@@ -504,7 +504,7 @@ const SearchDropdownOverlay = styled(Overlay)`
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
 
   &:not(:last-child) {
@@ -520,8 +520,8 @@ const SearchDropdownGroupTitle = styled('header')`
 
   background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
 
   margin: 0;
   padding: ${space(1)} ${space(2)};
@@ -551,7 +551,7 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
 
 const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   padding: 4px ${space(2)};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
@@ -588,10 +588,10 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
-  line-height: ${p => p.theme.text.lineHeightHeading};
+  line-height: ${p => p.theme.font.lineHeight.default};
 
   display: block;
   width: 100%;
@@ -622,8 +622,8 @@ const Documentation = styled('span')`
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: ${p => p.theme.fontSize.md};
-  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.font.size.md};
+  font-family: ${p => p.theme.font.family.sans};
   color: ${p => p.theme.tokens.content.secondary};
   white-space: pre;
 `;
@@ -663,18 +663,18 @@ const IconWrapper = styled('span')`
 `;
 
 const QueryItemWrapper = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
   gap: ${space(1)};
   display: flex;
   white-space: nowrap;
   word-break: normal;
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const Value = styled('span')<{hasDocs?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 
   max-width: ${p => (p.hasDocs ? '280px' : 'none')};
 
@@ -690,7 +690,7 @@ const IconOpenWithMargin = styled(IconOpen)`
 `;
 
 const RecommendedItem = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const RecommendedItemTitle = styled('div')`
