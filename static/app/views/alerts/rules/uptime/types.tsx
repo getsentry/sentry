@@ -177,26 +177,24 @@ interface PreviewCheckStatusReason {
   type: PreviewCheckStatusReasonType;
 }
 
-export interface PreviewCheckResult {
-  actual_check_time_ms: number;
-  duration_ms: number | null;
-  guid: string;
-  region: string;
-  scheduled_check_time_ms: number;
-  span_id: string;
-  status: PreviewCheckStatus;
-  status_reason: PreviewCheckStatusReason | null;
-  subscription_id: string;
-  trace_id: string;
-  request_info?: {
-    http_status_code: number | null;
-    request_type: string;
-    url: string;
-  } | null;
-}
-
 export interface PreviewCheckResponse {
-  check_result?: PreviewCheckResult;
+  check_result?: {
+    actual_check_time_ms: number;
+    duration_ms: number | null;
+    guid: string;
+    region: string;
+    scheduled_check_time_ms: number;
+    span_id: string;
+    status: PreviewCheckStatus;
+    status_reason: PreviewCheckStatusReason | null;
+    subscription_id: string;
+    trace_id: string;
+    request_info?: {
+      http_status_code: number | null;
+      request_type: string;
+      url: string;
+    } | null;
+  };
 }
 
 export interface PreviewCheckPayload {

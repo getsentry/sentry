@@ -7,14 +7,14 @@ import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 interface NewDetectorFooterProps {
   disabledCreate?: string;
-  extraButton?: React.ReactNode;
+  extras?: React.ReactNode;
   maxWidth?: string;
 }
 
 export function NewDetectorFooter({
   maxWidth,
   disabledCreate,
-  extraButton,
+  extras,
 }: NewDetectorFooterProps) {
   const organization = useOrganization();
 
@@ -26,7 +26,7 @@ export function NewDetectorFooter({
       >
         {t('Back')}
       </LinkButton>
-      {extraButton}
+      {extras}
       <Button
         priority="primary"
         type="submit"

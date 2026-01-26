@@ -97,7 +97,7 @@ export function NewDetectorLayout<
       <NewDetectorFooter
         maxWidth={maxWidth}
         disabledCreate={disabledCreate}
-        extraButton={extraFooterButton}
+        extras={extraFooterButton}
       />
     </EditLayout>
   );
