@@ -111,7 +111,7 @@ def create_uptime_response_capture(
     """
     # Check if we already have a capture for this scheduled check time
     # to avoid creating duplicates on retries.
-    scheduled_check_time_ms = result["scheduled_check_time_ms"]
+    scheduled_check_time_ms = int(result["scheduled_check_time_ms"])
     if UptimeResponseCapture.objects.filter(
         uptime_subscription=subscription,
         scheduled_check_time_ms=scheduled_check_time_ms,
