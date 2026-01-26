@@ -5,6 +5,7 @@ class DynamicSdkLoaderOption(str, Enum):
     HAS_REPLAY = "hasReplay"
     HAS_PERFORMANCE = "hasPerformance"
     HAS_DEBUG = "hasDebug"
+    HAS_FEEDBACK = "hasFeedback"
 
 
 def get_dynamic_sdk_loader_option(project_key, option: DynamicSdkLoaderOption, default=False):
