@@ -34,9 +34,14 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
                 mock_client_instance.get_pull_request,
             ) as mock_get_pull_request,
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.get_issue_reactions"
+            ) as mock_get_issue_reactions,
         ):
+            mock_get_issue_reactions.return_value = []
             self.mock_reaction = mock_reaction
             self.mock_get_pull_request = mock_get_pull_request
+            self.mock_get_issue_reactions = mock_get_issue_reactions
             yield
 
     @pytest.fixture(autouse=True)
@@ -113,7 +118,9 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
+    @patch(
+        "sentry.seer.code_review.webhooks.issue_comment.delete_existing_reactions_and_add_eyes_reaction"
+    )
     def test_skips_reaction_when_no_comment_id(self, mock_reaction: MagicMock) -> None:
         """Test that reaction is skipped when comment has no ID, but processing continues."""
         with self.code_review_setup(), self.tasks():
