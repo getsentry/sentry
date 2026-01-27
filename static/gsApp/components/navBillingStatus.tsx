@@ -1,3 +1,4 @@
+import type React from 'react';
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import snakeCase from 'lodash/snakeCase';
@@ -61,7 +62,7 @@ function isPaygIneligibleCategory(category: DataCategory): boolean {
 function getPaygIneligibleSubheader(
   paygIneligibleCategories: DataCategory[],
   subscription: Subscription
-): string {
+): React.ReactNode {
   const paygIneligibleCategoryList = listDisplayNames({
     plan: subscription.planDetails,
     categories: paygIneligibleCategories,
@@ -74,7 +75,7 @@ function getPaygIneligibleSubheader(
 function getPaygIneligibleBodyCopy(
   paygIneligibleCategories: DataCategory[],
   subscription: Subscription
-): string {
+): React.ReactNode {
   const paygIneligibleCategoryList = listDisplayNames({
     plan: subscription.planDetails,
     categories: paygIneligibleCategories,
