@@ -10,3 +10,5 @@ export const MODULES = [
   ModuleName.AGENT_TOOLS,
   ModuleName.AI_GENERATIONS,
 ];
+
+export const MODULE_FEATURES = [];

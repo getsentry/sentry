@@ -1,4 +1,5 @@
 import {type DashboardDetails} from 'sentry/views/dashboards/types';
+import {AGENTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/agents';
 import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
 import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
@@ -25,6 +26,7 @@ export enum PrebuiltDashboardId {
   MOBILE_VITALS_SCREEN_LOADS = 10,
   MOBILE_VITALS_SCREEN_RENDERING = 11,
   BACKEND_OVERVIEW = 12,
+  AGENTS_LANDING = 13,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -47,4 +49,5 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
     MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING]:
     MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.AGENTS_LANDING]: AGENTS_PREBUILT_CONFIG,
 };

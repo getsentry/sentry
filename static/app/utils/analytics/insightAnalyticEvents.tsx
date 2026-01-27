@@ -25,6 +25,7 @@ export type InsightEventParameters = {
   'insight.general.table_sort': {direction: string; field: string; source: string};
   'insight.page_loads.agent_models': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.agent_tools': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.agents': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.ai': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.app_start': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.assets': {has_ever_sent_data: boolean; view: DomainView};
@@ -65,6 +66,7 @@ export type InsightEventKey = keyof InsightEventParameters;
 
 export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insights.page_loads.overview': 'Insights: Overview Page Load',
+  'insight.page_loads.agents': 'Insights: Agents Page Load',
   'insight.page_loads.ai': 'Insights: AI Page Load',
   'insight.page_loads.agent_models': 'Insights: Agent Models Page Load',
   'insight.page_loads.agent_tools': 'Insights: Agent Tools Page Load',

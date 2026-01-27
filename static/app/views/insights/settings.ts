@@ -110,6 +110,10 @@ import {
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
   MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
 } from 'sentry/views/insights/mobile/ui/settings';
+import {
+  MODULE_FEATURES as AGENTS_LANDING_MODULE_FEATURES,
+  AGENTS_LANDING_TITLE,
+} from 'sentry/views/insights/pages/agents/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
@@ -139,6 +143,7 @@ export const DEFAULT_INTERVAL = '10m';
 export const QUERY_DATE_RANGE_LIMIT = 30; // Maximum number of days that can be queried for, enabled by the `insights-query-date-range-limit` feature flag
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
+  [ModuleName.AGENTS_LANDING]: AGENTS_LANDING_TITLE,
   [ModuleName.DB]: DB_MODULE_TITLE,
   [ModuleName.HTTP]: HTTP_MODULE_TITLE,
   [ModuleName.CACHE]: CACHE_MODULE_TITLE,
@@ -243,6 +248,7 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.VITAL]: VITALS_MODULE_FEATURES,
   [ModuleName.CACHE]: CACHE_MODULE_FEATURES,
   [ModuleName.QUEUE]: QUEUE_MODULE_FEATURES,
+  [ModuleName.AGENTS_LANDING]: AGENTS_LANDING_MODULE_FEATURES,
   [ModuleName.AGENT_MODELS]: AGENT_MODELS_MODULE_FEATURES,
   [ModuleName.AGENT_TOOLS]: AGENT_TOOLS_MODULE_FEATURES,
   [ModuleName.SCREEN_LOAD]: SCREEN_LOADS_MODULE_FEATURES,
@@ -268,6 +274,7 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.VITAL]: ['insight-modules'],
   [ModuleName.CACHE]: ['insight-modules'],
   [ModuleName.QUEUE]: ['insight-modules'],
+  [ModuleName.AGENTS_LANDING]: ['agents-landing'],
   [ModuleName.AGENT_MODELS]: ['insight-modules'],
   [ModuleName.AGENT_TOOLS]: ['insight-modules'],
   [ModuleName.SCREEN_LOAD]: ['insight-modules'],
