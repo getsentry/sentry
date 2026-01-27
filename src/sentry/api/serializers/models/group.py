@@ -542,32 +542,87 @@ class GroupSerializerBase(Serializer, ABC):
             filter_keys.setdefault("group_id", []).append(item.id)
 
         if filter_keys:
-            rv = raw_query(
-                dataset=Dataset.Events,
-                selected_columns=[
-                    "group_id",
-                    [
-                        "argMax",
-                        [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
-                        "unhandled",
+            try:
+                rv = raw_query(
+                    dataset=Dataset.Events,
+                    selected_columns=[
+                        "group_id",
+                        [
+                            "argMax",
+                            [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
+                            "unhandled",
+                        ],
                     ],
-                ],
-                groupby=["group_id"],
-                filter_keys=filter_keys,
-                start=start,
-                orderby="group_id",
-                referrer="group.unhandled-flag",
-                tenant_ids=(
-                    {"organization_id": item_list[0].project.organization_id} if item_list else None
-                ),
-            )
-            for x in rv["data"]:
-                unhandled[x["group_id"]] = x["unhandled"]
+                    groupby=["group_id"],
+                    filter_keys=filter_keys,
+                    start=start,
+                    orderby="group_id",
+                    referrer="group.unhandled-flag",
+                    tenant_ids=(
+                        {"organization_id": item_list[0].project.organization_id} if item_list else None
+                    ),
+                )
+                for x in rv["data"]:
+                    unhandled[x["group_id"]] = x["unhandled"]
 
-                # cache the handled flag for 60 seconds.  This is broadly in line with
-                # the time we give for buffer flushes so the user experience is somewhat
-                # consistent here.
-                cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
+                    # cache the handled flag for 60 seconds.  This is broadly in line with
+                    # the time we give for buffer flushes so the user experience is somewhat
+                    # consistent here.
+                    cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
+            except Exception as e:
+                # Handle Snuba query timeouts gracefully
+                from sentry.utils.snuba import SnubaError
+
+                if isinstance(e, SnubaError) and (
+                    "timeout" in str(e).lower() or "timed out" in str(e).lower()
+                ):
+                    logger.warning(
+                        "Snuba query for unhandled flag timed out, retrying with shorter time window",
+                        extra={
+                            "group_ids": filter_keys.get("group_id", []),
+                            "original_start": start,
+                            "error": str(e),
+                        },
+                    )
+                    # Retry with a much shorter time window (7 days) to avoid timeout
+                    short_start = datetime.now(timezone.utc) - timedelta(days=7)
+                    try:
+                        rv = raw_query(
+                            dataset=Dataset.Events,
+                            selected_columns=[
+                                "group_id",
+                                [
+                                    "argMax",
+                                    [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
+                                    "unhandled",
+                                ],
+                            ],
+                            groupby=["group_id"],
+                            filter_keys=filter_keys,
+                            start=short_start,
+                            orderby="group_id",
+                            referrer="group.unhandled-flag",
+                            tenant_ids=(
+                                {"organization_id": item_list[0].project.organization_id} if item_list else None
+                            ),
+                        )
+                        for x in rv["data"]:
+                            unhandled[x["group_id"]] = x["unhandled"]
+                            cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
+                    except Exception as retry_error:
+                        logger.error(
+                            "Snuba query for unhandled flag failed even with short time window",
+                            extra={
+                                "group_ids": filter_keys.get("group_id", []),
+                                "short_start": short_start,
+                                "error": str(retry_error),
+                            },
+                        )
+                        # Gracefully degrade: skip unhandled flag for these groups
+                        # They will remain as None in the unhandled dict
+                else:
+                    # Re-raise non-timeout errors
+                    raise
 
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 
