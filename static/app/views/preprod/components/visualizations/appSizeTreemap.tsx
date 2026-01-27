@@ -213,12 +213,10 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       height: `calc(100% - 22px)`,
       width: '100%',
       top: '22px',
-      // Very mysteriously this controls the initial breadcrumbs:
-      // https://github.com/apache/echarts/blob/6f305b497adc47fa2987a450d892d09741342c56/src/chart/treemap/TreemapView.ts#L665
-      // If truthy the root is selected else the 'middle' node is selected.
-      // It has to be set to large number to avoid problems caused by
-      // leafDepth's main use - controlling how many layers to render.
-      leafDepth: 100000,
+      // Controls how many levels deep to render at once.
+      // Users can click on nodes to drill down into deeper levels.
+      // The breadcrumb shows the current path and allows navigating back up.
+      leafDepth: 4,
       breadcrumb: {
         show: true,
         left: '0',
