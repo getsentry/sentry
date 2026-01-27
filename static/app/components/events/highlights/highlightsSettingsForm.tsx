@@ -77,8 +77,8 @@ export default function HighlightsSettingsForm({
             placeholder: t('environment, release, my-tag'),
             label: t('Highlighted Tags'),
             help: t('Separate tag keys with a newline.'),
-            getValue: val => extractMultilineFields(val),
-            setValue: val => convertMultilineFieldValue(val),
+            getValue: extractMultilineFields,
+            setValue: convertMultilineFieldValue,
           },
           {
             name: 'highlightContext',
