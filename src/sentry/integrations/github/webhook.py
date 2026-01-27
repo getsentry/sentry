@@ -150,7 +150,7 @@ class GitHubWebhook(SCMWebhook, ABC):
     # When subclassing, add your webhook event processor here.
     WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if not inspect.isabstract(cls) and not hasattr(cls, "EVENT_TYPE"):
             raise TypeError(f"{cls.__name__} must define EVENT_TYPE class attribute")

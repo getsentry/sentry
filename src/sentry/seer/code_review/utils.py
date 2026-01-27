@@ -60,17 +60,17 @@ class SeerEndpoint(StrEnum):
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
 
 
-def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint:
+def get_seer_endpoint_for_event(github_event: str) -> SeerEndpoint:
     """
     Get the appropriate Seer endpoint for a given GitHub webhook event.
 
     Args:
-        github_event: The GitHub webhook event type
+        github_event: The GitHub webhook event type (as string, after Celery deserialization)
 
     Returns:
         The SeerEndpoint to use for the event
     """
-    if github_event == GithubWebhookType.CHECK_RUN:
+    if github_event == GithubWebhookType.CHECK_RUN.value:
         return SeerEndpoint.PR_REVIEW_RERUN
     return SeerEndpoint.OVERWATCH_REQUEST
 
@@ -336,6 +336,67 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
         return str(user_id)
 
     return None
+
+
+def extract_github_info(
+    event: Mapping[str, Any], github_event: str | None = None
+) -> dict[str, str | None]:
+    """
+    Extract GitHub-related information from a webhook event payload.
+
+    Args:
+        event: The GitHub webhook event payload
+        github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
+
+    Returns:
+        Dictionary containing:
+            - github_owner: The repository owner/organization name
+            - github_repo_name: The repository name
+            - github_repo_full_name: The repository full name (owner/repo)
+            - github_event_url: URL to the specific event (check_run, pull_request, or comment)
+            - github_event: The GitHub event type
+            - github_event_action: The event action (e.g., "opened", "closed", "created")
+    """
+    result: dict[str, str | None] = {
+        "github_owner": None,
+        "github_repo_name": None,
+        "github_repo_full_name": None,
+        "github_event_url": None,
+        "github_event": github_event,
+        "github_event_action": None,
+    }
+
+    repository = event.get("repository", {})
+    if repository:
+        if owner := repository.get("owner", {}).get("login"):
+            result["github_owner"] = owner
+        if repo_name := repository.get("name"):
+            result["github_repo_name"] = repo_name
+        if owner_repo_name := repository.get("full_name"):
+            result["github_repo_full_name"] = owner_repo_name
+
+    if action := event.get("action"):
+        result["github_event_action"] = action
+
+    if pull_request := event.get("pull_request"):
+        if html_url := pull_request.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if check_run := event.get("check_run"):
+        if html_url := check_run.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if comment := event.get("comment"):
+        if html_url := comment.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if issue := event.get("issue"):
+        if pull_request_data := issue.get("pull_request"):
+            if html_url := pull_request_data.get("html_url"):
+                if result["github_event_url"] is None:
+                    result["github_event_url"] = html_url
+
+    return result
 
 
 def delete_existing_reactions_and_add_eyes_reaction(
