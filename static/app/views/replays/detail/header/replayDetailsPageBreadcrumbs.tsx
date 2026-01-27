@@ -91,7 +91,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         <Flex align="center" gap="sm">
           <div>
             <Tooltip
-              title={t('Previous replay based on search conditions')}
+              title={t('Previous replay based on search query')}
               disabled={!previousReplay}
             >
               <LinkButton
@@ -99,7 +99,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                 borderless
                 icon={<IconChevron direction="left" size="xs" />}
                 disabled={!previousReplay}
-                aria-label={t('Previous replay based on search conditions')}
+                aria-label={t('Previous replay based on search query')}
                 to={{
                   pathname: previousReplay
                     ? makeReplaysPathname({
@@ -118,7 +118,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               />
             </Tooltip>
             <Tooltip
-              title={t('Next replay based on search conditions')}
+              title={t('Next replay based on search query')}
               disabled={!nextReplay}
             >
               <LinkButton
@@ -126,7 +126,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                 borderless
                 icon={<IconChevron direction="right" size="xs" />}
                 disabled={!nextReplay}
-                aria-label={t('Next replay based on search conditions')}
+                aria-label={t('Next replay based on search query')}
                 to={{
                   pathname: nextReplay
                     ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
