@@ -191,7 +191,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
           builds={builds}
           display={activeDisplay}
           isLoading={isLoadingBuilds}
-          error={!!buildsError}
+          error={buildsError}
           pageLinks={pageLinks}
           organizationSlug={organization.slug}
           hasSearchQuery={hasSearchQuery}
