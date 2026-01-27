@@ -244,22 +244,84 @@ def translate_wildcard(pat: str) -> str:
     return "^" + res + "$"
 
 
+def _decode_escape_sequences(string: str) -> str:
+    r"""
+    Decode common escape sequences found in JSON-encoded strings.
+    Handles sequences like \uXXXX (Unicode), \n (newline), \t (tab), etc.
+    
+    This is necessary because queries stored in the database may contain
+    JSON-escaped Unicode characters (e.g., \u00ea for ê), and these need
+    to be decoded before wildcard processing.
+    """
+    result: list[str] = []
+    i = 0
+    n = len(string)
+    
+    while i < n:
+        c = string[i]
+        if c == "\\" and i + 1 < n:
+            next_char = string[i + 1]
+            # Handle \uXXXX Unicode escape sequences
+            if next_char == "u" and i + 5 < n:
+                try:
+                    # Extract the 4 hex digits after \u
+                    hex_digits = string[i + 2 : i + 6]
+                    code_point = int(hex_digits, 16)
+                    result.append(chr(code_point))
+                    i += 6
+                    continue
+                except (ValueError, TypeError):
+                    # If it's not a valid Unicode escape, keep the backslash
+                    pass
+            # Handle other common escape sequences
+            elif next_char == "n":
+                result.append("\n")
+                i += 2
+                continue
+            elif next_char == "t":
+                result.append("\t")
+                i += 2
+                continue
+            elif next_char == "r":
+                result.append("\r")
+                i += 2
+                continue
+            elif next_char == "b":
+                result.append("\b")
+                i += 2
+                continue
+            elif next_char == "f":
+                result.append("\f")
+                i += 2
+                continue
+            # For \*, \\, and other sequences, keep as-is for wildcard processing
+        
+        result.append(c)
+        i += 1
+    
+    return "".join(result)
+
+
 def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
     """
     Translate a wildcard pattern to clickhouse pattern.
 
     See https://clickhouse.com/docs/en/sql-reference/functions/string-search-functions#like
     """
+    # First, decode JSON escape sequences (like \uXXXX, \n, \t, etc.)
+    # This handles cases where Unicode characters are stored as JSON-escaped strings
+    decoded_pattern = _decode_escape_sequences(pattern)
+    
     chars: list[str] = []
 
     i = 0
-    n = len(pattern)
+    n = len(decoded_pattern)
 
     while i < n:
-        c = pattern[i]
+        c = decoded_pattern[i]
         i += 1
         if c == "\\" and i < n:
-            c = pattern[i]
+            c = decoded_pattern[i]
             if c not in {"*", "\\"}:
                 raise InvalidSearchQuery(f"Unexpected escape character: {c}")
             chars.append(c)

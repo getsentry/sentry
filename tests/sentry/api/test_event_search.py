@@ -1089,6 +1089,20 @@ def test_search_value_classify_and_format_wildcard(value, expected_kind, expecte
         pytest.param("per%centage", "per\\%centage", id="percentage"),
         pytest.param("ast\\*erisk", "ast*erisk", id="asterisk"),
         pytest.param("c*o_m%p\\*lex", "c%o\\_m\\%p*lex", id="complex"),
+        # Test JSON-escaped Unicode characters
+        pytest.param(
+            "La valeur de products.0.depth ne peut \\u00eatre inf\\u00e9rieure \\u00e0 10",
+            "La valeur de products.0.depth ne peut être inférieure à 10",
+            id="unicode_escape_sequences",
+        ),
+        pytest.param(
+            "*La valeur de products.0.depth ne peut \\u00eatre inf\\u00e9rieure \\u00e0 10*",
+            "%La valeur de products.0.depth ne peut être inférieure à 10%",
+            id="unicode_with_wildcards",
+        ),
+        # Test other escape sequences
+        pytest.param("line1\\nline2", "line1\nline2", id="newline"),
+        pytest.param("tab\\there", "tab\there", id="tab"),
     ],
 )
 def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse) -> None:
