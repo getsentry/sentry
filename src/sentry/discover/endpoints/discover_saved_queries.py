@@ -80,6 +80,12 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             .prefetch_related("projects")
             .extra(select={"lower_name": "lower(name)"})
         ).exclude(is_homepage=True)
+
+        if features.has(
+            "organizations:discover-saved-queries-deprecation", organization, actor=request.user
+        ):
+            queryset = queryset.exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+
         query = request.query_params.get("query")
         if query:
             tokens = tokenize_query(query)

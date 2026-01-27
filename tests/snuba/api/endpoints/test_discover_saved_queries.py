@@ -282,6 +282,29 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert len(response.data) == 1
         assert not any([query["name"] == "Homepage Test Query" for query in response.data])
 
+    def test_get_ignores_transactions_queries_if_deprecation_feature_is_enabled(self) -> None:
+        query = {"fields": ["test"], "conditions": [], "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Transactions Test Query",
+            query=query,
+            version=2,
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            is_homepage=True,
+        )
+        model.set_projects(self.project_ids)
+
+        with (
+            self.feature([self.feature_name, "organizations:discover-saved-queries-deprecation"]),
+        ):
+            response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] != "Transactions Test Query"
+
     def test_post(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.post(
