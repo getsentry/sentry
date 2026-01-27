@@ -41,10 +41,9 @@ export default function PrimaryNavSeerConfigReminder() {
   const {layout} = useNavContext();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
-  const hasOldSeer =
-    organization.features.includes('seer-added') ||
-    organization.features.includes('code-review-beta');
-  const hasSeer = hasSeatBasedSeer || hasOldSeer;
+  const hasLegacySeer = organization.features.includes('seer-added');
+  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
+  const hasSeer = hasSeatBasedSeer || hasLegacySeer || hasCodeReviewBeta;
   if (!hasSeer) {
     return false;
   }
@@ -73,15 +72,34 @@ export default function PrimaryNavSeerConfigReminder() {
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <Stack gap="md" padding="xl">
-            <Heading as="h3">{t('Finish configuring Seer')}</Heading>
+            <Heading as="h3">
+              {hasSeatBasedSeer
+                ? t('Finish configuring Seer')
+                : hasLegacySeer
+                  ? t('Start using Seer\u2019s AI Code Review')
+                  : t('Start using Seer\u2019s Issue Autofix')}
+            </Heading>
             <Text>
-              {t(
-                "Make sure you're getting the most out of Sentry. Finish setting up Seer to start using Root Cause Analysis and AI Code Review."
-              )}
+              {hasSeatBasedSeer
+                ? t(
+                    "Make sure you're getting the most out of Sentry. Finish setting up Seer to start using Root Cause Analysis and AI Code Review."
+                  )
+                : hasLegacySeer
+                  ? t(
+                      'Your current Seer plan also includes access to AI Code Review. Finish setting up to get the most out of Sentry.'
+                    )
+                  : t(
+                      'Your current Seer plan also includes access to Issue Autofix. Finish setting up to get the most out of Sentry.'
+                    )}
             </Text>
             <Flex>
               <LinkButton
-                to={`/organizations/${organization.slug}/settings/seer/?tab=repos`}
+                to={{
+                  pathname: `/organizations/${organization.slug}/settings/seer/`,
+                  query: {
+                    tab: hasLegacySeer ? 'repos' : undefined,
+                  },
+                }}
                 priority="primary"
                 onClick={() => state.close()}
               >
