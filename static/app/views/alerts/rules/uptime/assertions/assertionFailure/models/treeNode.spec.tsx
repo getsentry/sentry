@@ -75,25 +75,24 @@ describe('Assertion Failure TreeNode model', () => {
       expect(root.connectors).toEqual([]);
     });
 
-    it('for depth 1, contains only the horizontal connector', () => {
+    it('includes ancestor vertical connector level when ancestor is not last', () => {
       const root = new MockTreeNode(makeAndOp({id: 'op-1'}), null);
-      const child = new MockTreeNode(makeStatusCodeOp({id: 'op-2'}), root);
 
-      expect(child.connectors).toEqual([
-        {type: 'horizontal', left: 12, top: 12, width: 24, height: 1},
+      const firstChild = new MockTreeNode(makeAndOp({id: 'op-2'}), root);
+      const secondChild = new MockTreeNode(makeAndOp({id: 'op-3'}), root);
+
+      const grandchild = new MockTreeNode(makeAndOp({id: 'op-4'}), firstChild);
+      const greatGrandchild = new MockTreeNode(
+        makeStatusCodeOp({id: 'op-5'}),
+        grandchild
+      );
+
+      expect(greatGrandchild.connectors).toEqual([
+        {type: 'vertical', level: 0}, // connector for root -> secondChild
+        {type: 'vertical', level: 2}, // connector for grandchild -> greatGrandchild
+        {type: 'horizontal', level: 2},
       ]);
-    });
 
-    it('for depth 2, includes ancestor vertical connector when needed', () => {
-      const root = new MockTreeNode(makeAndOp({id: 'op-1'}), null);
-      const firstChild = new MockTreeNode(makeStatusCodeOp({id: 'op-2'}), root);
-      const secondChild = new MockTreeNode(makeStatusCodeOp({id: 'op-3'}), root); // make `op-2` not last
-
-      const grandchild = new MockTreeNode(makeJsonPathOp({id: 'op-4'}), firstChild);
-      expect(grandchild.connectors).toEqual([
-        {type: 'vertical', left: 36, top: 0, width: 1, height: 24},
-        {type: 'horizontal', left: 36, top: 12, width: 24, height: 1},
-      ]);
       expect(secondChild.value.id).toBe('op-3');
     });
   });

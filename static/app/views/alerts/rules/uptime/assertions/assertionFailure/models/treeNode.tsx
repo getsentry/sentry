@@ -4,17 +4,10 @@ import type {Op} from 'sentry/views/alerts/rules/uptime/types';
 
 export type ConnectorType = 'vertical' | 'horizontal';
 
-interface Connector {
-  height: number;
-  left: number;
-  top: number;
+export type Connector = {
+  level: number;
   type: ConnectorType;
-  width: number;
-}
-
-const CONNECTOR_THICKNESS_PX = 1;
-const ROW_HEIGHT_PX = 24;
-const INDENT_PX = 24;
+};
 
 export abstract class TreeNode<T extends Op = Op> {
   value: T;
@@ -52,38 +45,30 @@ export abstract class TreeNode<T extends Op = Op> {
     }
 
     const connectors: Connector[] = [];
-    const midY = Math.floor(ROW_HEIGHT_PX / 2);
 
-    // Ancestor vertical connectors (for siblings that continue below).
+    // Vertical connectors for ancestor columns.
     let ancestor = this.parent;
-    while (ancestor) {
+    while (ancestor && ancestor.parent) {
       if (!ancestor.isLastChild) {
-        connectors.push({
-          type: 'vertical',
-          left: leftOffsetFromLevel(ancestor.depth),
-          top: 0,
-          width: CONNECTOR_THICKNESS_PX,
-          height: ROW_HEIGHT_PX,
-        });
+        connectors.push({type: 'vertical', level: ancestor.depth - 1});
       }
       ancestor = ancestor.parent;
     }
 
+    // Vertical line at the immediate parent's position.
+    connectors.push({
+      type: 'vertical',
+      level: this.depth - 1,
+    });
+
     // Horizontal connector from parent column to this column.
     connectors.push({
       type: 'horizontal',
-      left: leftOffsetFromLevel(this.depth - 1),
-      top: midY,
-      width: INDENT_PX,
-      height: CONNECTOR_THICKNESS_PX,
+      level: this.depth - 1,
     });
 
     return connectors;
   }
 
   abstract renderRow(): ReactNode;
-}
-
-function leftOffsetFromLevel(level: number): number {
-  return level * INDENT_PX + Math.floor(INDENT_PX / 2);
 }
