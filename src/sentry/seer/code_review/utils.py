@@ -7,6 +7,7 @@ from enum import Enum, StrEnum
 from typing import Any
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
@@ -447,7 +448,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
                         )
                     ):
                         client.delete_issue_reaction(repo.name, pr_number, str(reaction.get("id")))
-            except Exception:
+            except Exception as e:
                 # Continue even if this fails
                 record_webhook_handler_error(
                     github_event,
@@ -455,16 +456,18 @@ def delete_existing_reactions_and_add_eyes_reaction(
                     CodeReviewErrorType.REACTION_FAILED,
                 )
                 logger.warning(Log.REACTION_FAILED.value, extra=extra)
+                sentry_sdk.capture_exception(e)
 
         # Add :eyes: on the originating issue comment or pr description
         if github_event == GithubWebhookType.PULL_REQUEST:
             client.create_issue_reaction(repo.name, pr_number, GitHubReaction.EYES)
         elif github_event == GithubWebhookType.ISSUE_COMMENT:
             client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
-    except Exception:
+    except Exception as e:
         record_webhook_handler_error(
             github_event,
             github_event_action,
             CodeReviewErrorType.REACTION_FAILED,
         )
         logger.warning(Log.REACTION_FAILED.value, extra=extra)
+        sentry_sdk.capture_exception(e)
