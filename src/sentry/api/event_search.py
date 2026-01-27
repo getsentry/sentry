@@ -223,17 +223,20 @@ def translate_wildcard(pat: str) -> str:
     Translate a shell PATTERN to a regular expression.
     modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
     """
+    # First, decode JSON escape sequences (like \uXXXX, \n, \t, etc.)
+    # This handles cases where Unicode characters are stored as JSON-escaped strings
+    decoded_pat = _decode_escape_sequences(pat)
 
-    i, n = 0, len(pat)
+    i, n = 0, len(decoded_pat)
     res = ""
     while i < n:
-        c = pat[i]
+        c = decoded_pat[i]
         i = i + 1
         # fnmatch.translate has no way to handle escaping metacharacters.
         # Applied this basic patch to handle it:
         # https://bugs.python.org/file27570/issue8402.1.patch
         if c == "\\" and i < n:
-            res += re.escape(pat[i])
+            res += re.escape(decoded_pat[i])
             i += 1
         elif c == "*":
             res += ".*"
