@@ -13,6 +13,7 @@ from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
+from sentry import features
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -160,6 +161,35 @@ def is_valid_cimd_redirect_uri(value: str, registered_uris: list[str]) -> bool:
 # ABNF: code-challenge = 43*128unreserved
 # unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
 CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
+
+
+def _build_permissions_list(scopes: list[str]) -> list[str]:
+    """
+    Build a list of human-readable permission descriptions from OAuth scopes.
+
+    Maps scopes to their descriptions using SENTRY_SCOPE_SETS, ensuring
+    that related scopes (e.g., org:read and org:write) show a single
+    combined description rather than duplicates.
+    """
+    if not scopes:
+        return []
+
+    permissions = []
+    pending_scopes = set(scopes)
+    matched_sets: set = set()
+    for scope_set in settings.SENTRY_SCOPE_SETS:
+        for scope, description in scope_set:
+            if scope_set in matched_sets and scope in pending_scopes:
+                pending_scopes.remove(scope)
+            elif scope in pending_scopes:
+                permissions.append(description)
+                matched_sets.add(scope_set)
+                pending_scopes.remove(scope)
+
+    if pending_scopes:
+        raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
+
+    return permissions
 
 
 def is_valid_cimd_url(client_id: str) -> bool:
@@ -338,7 +368,24 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         if client_type == "cimd":
+            # Check if CIMD is enabled via feature flag
+            if not features.has("oauth:cimd-enabled"):
+                logger.info(
+                    "oauth.cimd.disabled",
+                    extra={"client_id": client_id},
+                )
+                metrics.incr("oauth.cimd.authorization.disabled", sample_rate=1.0)
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="unauthorized_client",
+                    err_response="client_id",
+                )
+
             # CIMD flow: client_id is a URL where metadata can be fetched
+            metrics.incr("oauth.cimd.authorization.attempt", sample_rate=1.0)
             return self._handle_cimd_authorization(
                 request=request,
                 client_id=client_id,
@@ -520,21 +567,7 @@ class OAuthAuthorizeView(AuthLoginView):
                         code_challenge_method=payload.get("ccm"),
                     )
 
-        permissions = []
-        if scopes:
-            pending_scopes = set(scopes)
-            matched_sets = set()
-            for scope_set in settings.SENTRY_SCOPE_SETS:
-                for scope, description in scope_set:
-                    if scope_set in matched_sets and scope in pending_scopes:
-                        pending_scopes.remove(scope)
-                    elif scope in pending_scopes:
-                        permissions.append(description)
-                        matched_sets.add(scope_set)
-                        pending_scopes.remove(scope)
-
-            if pending_scopes:
-                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
+        permissions = _build_permissions_list(scopes)
 
         if application.requires_org_level_access:
             organization_options = user_service.get_organizations(
@@ -586,11 +619,13 @@ class OAuthAuthorizeView(AuthLoginView):
         cimd_client = CIMDClient()
         try:
             metadata = cimd_client.fetch_and_validate(client_id)
+            metrics.incr("oauth.cimd.metadata_fetch.success", sample_rate=1.0)
         except CIMDError as e:
             logger.warning(
                 "oauth.cimd.error",
                 extra={"client_id": client_id, "error": str(e)},
             )
+            metrics.incr("oauth.cimd.metadata_fetch.error", sample_rate=1.0)
             # Per RFC: show only hostname to user, not potentially spoofed metadata
             return self.respond(
                 "sentry/oauth-error.html",
@@ -716,21 +751,7 @@ class OAuthAuthorizeView(AuthLoginView):
         # Always prompt for consent (force_prompt is implicit for CIMD)
 
         # Build permissions list for display
-        permissions = []
-        if scopes:
-            pending_scopes = set(scopes)
-            matched_sets: set[tuple[tuple[str, str], ...]] = set()
-            for scope_set in settings.SENTRY_SCOPE_SETS:
-                for scope, description in scope_set:
-                    if scope_set in matched_sets and scope in pending_scopes:
-                        pending_scopes.remove(scope)
-                    elif scope in pending_scopes:
-                        permissions.append(description)
-                        matched_sets.add(scope_set)
-                        pending_scopes.remove(scope)
-
-            if pending_scopes:
-                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
+        permissions = _build_permissions_list(scopes)
 
         # CIMD clients don't support org-level access restrictions
         organization_options: list[Any] = []
@@ -745,6 +766,7 @@ class OAuthAuthorizeView(AuthLoginView):
             "client_uri": cimd_info.client_uri,
         }
 
+        metrics.incr("oauth.cimd.authorization.consent_shown", sample_rate=1.0)
         return self.respond("sentry/oauth-authorize.html", context)
 
     def _logged_out_post(

@@ -735,6 +735,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:project-detail-apple-app-hang-rate", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # fmt: on
 
+    # OAuth CIMD (Client ID Metadata Document) support for MCP clients
+    # Enables URL-based client_ids that fetch metadata from the client_id URL
+    manager.add("oauth:cimd-enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
+
     # Partner oauth
     manager.add(
         "organizations:scoped-partner-oauth",

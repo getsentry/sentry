@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import features, options
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
@@ -160,6 +160,20 @@ class OAuthTokenView(View):
         # Check if this is a CIMD (Client ID Metadata Document) client
         # CIMD clients have URL-based client_ids and use "none" auth method
         if is_valid_cimd_url(client_id):
+            # Check if CIMD is enabled via feature flag
+            if not features.has("oauth:cimd-enabled"):
+                logger.info(
+                    "oauth.cimd.token.disabled",
+                    extra={"client_id": client_id},
+                )
+                metrics.incr("oauth.cimd.token.disabled", sample_rate=1.0)
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="CIMD clients not supported",
+                    status=401,
+                )
+
             return self._handle_cimd_token_request(
                 request=request,
                 client_id=client_id,
@@ -350,11 +364,13 @@ class OAuthTokenView(View):
         cimd_client = CIMDClient()
         try:
             metadata = cimd_client.fetch_and_validate(client_id)
+            metrics.incr("oauth.cimd.token.metadata_fetch.success", sample_rate=1.0)
         except CIMDFetchError as e:
             logger.warning(
                 "oauth.cimd.token.fetch-error",
                 extra={"client_id": client_id, "error": str(e)},
             )
+            metrics.incr("oauth.cimd.token.metadata_fetch.error", sample_rate=1.0)
             return self.error(
                 request=request,
                 name="invalid_client",
@@ -366,6 +382,7 @@ class OAuthTokenView(View):
                 "oauth.cimd.token.validation-error",
                 extra={"client_id": client_id, "error": str(e)},
             )
+            metrics.incr("oauth.cimd.token.validation.error", sample_rate=1.0)
             return self.error(
                 request=request,
                 name="invalid_client",

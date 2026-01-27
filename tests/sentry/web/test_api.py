@@ -708,14 +708,24 @@ class OAuthAuthorizationServerMetadataTest(TestCase):
         assert "org:read" in data["scopes_supported"]
         assert "project:read" in data["scopes_supported"]
 
-    def test_cimd_support_advertised(self) -> None:
-        """Verify that CIMD support is advertised per RFC draft."""
+    def test_cimd_support_advertised_when_enabled(self) -> None:
+        """Verify that CIMD support is advertised when the feature flag is enabled."""
+        with self.feature("oauth:cimd-enabled"):
+            response = self.client.get(self.path)
+
+            assert response.status_code == 200
+            data = json.loads(response.content)
+
+            assert data["client_id_metadata_document_supported"] is True
+
+    def test_cimd_support_not_advertised_when_disabled(self) -> None:
+        """Verify that CIMD support is not advertised when the feature flag is disabled."""
         response = self.client.get(self.path)
 
         assert response.status_code == 200
         data = json.loads(response.content)
 
-        assert data["client_id_metadata_document_supported"] is True
+        assert data["client_id_metadata_document_supported"] is False
 
     def test_cache_control(self) -> None:
         response = self.client.get(self.path)

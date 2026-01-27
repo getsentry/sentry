@@ -11,6 +11,7 @@ from requests.exceptions import Timeout
 
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger("sentry.oauth.cimd")
@@ -335,9 +336,11 @@ class CIMDClient:
                     "cimd.cache.hit",
                     extra={"client_id_url": client_id_url},
                 )
+                metrics.incr("oauth.cimd.cache.hit", sample_rate=1.0)
                 return cached
 
-        # Fetch and parse
+        # Fetch and parse (cache miss)
+        metrics.incr("oauth.cimd.cache.miss", sample_rate=1.0)
         metadata, cache_control = self._fetch_metadata_with_headers(client_id_url)
 
         # Validate (may raise CIMDValidationError)

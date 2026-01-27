@@ -1688,6 +1688,22 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
             owner=self.user, redirect_uris="https://example.com"
         )
 
+    def test_cimd_url_rejected_when_feature_disabled(self) -> None:
+        """Test that CIMD URLs are rejected when the feature flag is disabled."""
+        self.login_as(self.user)
+
+        # Valid CIMD URL with path
+        cimd_client_id = "https://myclient.example.com/oauth-metadata.json"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={cimd_client_id}&redirect_uri=https://myclient.example.com/callback"
+        )
+
+        # Without feature flag, CIMD should be rejected as unauthorized_client
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
     def test_cimd_url_detected_and_fetch_fails(self) -> None:
         """Test that valid CIMD URL client_ids are detected but fail when metadata can't be fetched."""
         self.login_as(self.user)
@@ -1695,9 +1711,10 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
         # Valid CIMD URL with path - but no actual metadata endpoint exists
         cimd_client_id = "https://myclient.example.com/oauth-metadata.json"
 
-        resp = self.client.get(
-            f"{self.path}?response_type=code&client_id={cimd_client_id}&redirect_uri=https://myclient.example.com/callback"
-        )
+        with self.feature("oauth:cimd-enabled"):
+            resp = self.client.get(
+                f"{self.path}?response_type=code&client_id={cimd_client_id}&redirect_uri=https://myclient.example.com/callback"
+            )
 
         # Should return 400 with safe error showing only hostname (per RFC)
         assert resp.status_code == 400
@@ -1821,9 +1838,10 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
         # URL with query string is valid per RFC (though discouraged)
         query_client_id = "https://myclient.example.com/oauth.json?version=1"
 
-        resp = self.client.get(
-            f"{self.path}?response_type=code&client_id={query_client_id}&redirect_uri=https://myclient.example.com/callback"
-        )
+        with self.feature("oauth:cimd-enabled"):
+            resp = self.client.get(
+                f"{self.path}?response_type=code&client_id={query_client_id}&redirect_uri=https://myclient.example.com/callback"
+            )
 
         # Should return 400 with safe error showing only hostname (per RFC)
         assert resp.status_code == 400
@@ -1842,12 +1860,13 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
             "https://sub.domain.example.com/path/to/metadata",
         ]
 
-        for cimd_url in valid_cimd_urls:
-            resp = self.client.get(
-                f"{self.path}?response_type=code&client_id={cimd_url}&redirect_uri=https://example.com/callback"
-            )
+        with self.feature("oauth:cimd-enabled"):
+            for cimd_url in valid_cimd_urls:
+                resp = self.client.get(
+                    f"{self.path}?response_type=code&client_id={cimd_url}&redirect_uri=https://example.com/callback"
+                )
 
-            # All should be detected as CIMD and return 400 (fetch fails)
-            # Error shows safe message with hostname only (per RFC)
-            assert resp.status_code == 400, f"URL {cimd_url} should be detected as valid CIMD"
-            assert "Unable to verify client:" in resp.context["error"]
+                # All should be detected as CIMD and return 400 (fetch fails)
+                # Error shows safe message with hostname only (per RFC)
+                assert resp.status_code == 400, f"URL {cimd_url} should be detected as valid CIMD"
+                assert "Unable to verify client:" in resp.context["error"]
