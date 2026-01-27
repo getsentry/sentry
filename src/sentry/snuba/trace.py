@@ -92,7 +92,9 @@ class SerializedUptimeCheck(SerializedEvent):
     additional_attributes: dict[str, Any]
 
 
-def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -> SerializedIssue:
+def _serialize_rpc_issue(
+    event: dict[str, Any], group_cache: dict[int, Group]
+) -> SerializedIssue | None:
     def _qualify_short_id(project: str, short_id: int | None) -> str | None:
         """Logic for qualified_short_id is copied from property on the Group model
         to prevent an N+1 query from accessing project.slug everytime"""
@@ -108,8 +110,21 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
         if issue_id in group_cache:
             issue = group_cache[issue_id]
         else:
-            issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
-            group_cache[issue_id] = issue
+            try:
+                issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
+                group_cache[issue_id] = issue
+            except Group.DoesNotExist:
+                logger.warning(
+                    "Group %s does not exist for project %s. Skipping occurrence in trace.",
+                    issue_id,
+                    occurrence.project_id,
+                    extra={
+                        "issue_id": issue_id,
+                        "project_id": occurrence.project_id,
+                        "occurrence_id": occurrence.id,
+                    },
+                )
+                return None
         return SerializedIssue(
             event_id=occurrence.event_id,
             project_id=occurrence.project_id,
@@ -135,8 +150,21 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
         if issue_id in group_cache:
             issue = group_cache[issue_id]
         else:
-            issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
-            group_cache[issue_id] = issue
+            try:
+                issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
+                group_cache[issue_id] = issue
+            except Group.DoesNotExist:
+                logger.warning(
+                    "Group %s does not exist for project %s. Skipping error in trace.",
+                    issue_id,
+                    event["project.id"],
+                    extra={
+                        "issue_id": issue_id,
+                        "project_id": event["project.id"],
+                        "event_id": event["id"],
+                    },
+                )
+                return None
 
         return SerializedIssue(
             event_id=event["id"],
@@ -160,7 +188,7 @@ def _serialize_rpc_event(
     event: dict[str, Any],
     group_cache: dict[int, Group],
     additional_attributes: list[str] | None = None,
-) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck:
+) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck | None:
     if event.get("event_type") not in ("span", "uptime_check"):
         return _serialize_rpc_issue(event, group_cache)
 
@@ -170,11 +198,21 @@ def _serialize_rpc_event(
         if attribute in event
     }
     children = [
-        _serialize_rpc_event(child, group_cache, additional_attributes)
+        serialized_child
         for child in event["children"]
+        if (serialized_child := _serialize_rpc_event(child, group_cache, additional_attributes))
+        is not None
     ]
-    errors = [_serialize_rpc_issue(error, group_cache) for error in event["errors"]]
-    occurrences = [_serialize_rpc_issue(error, group_cache) for error in event["occurrences"]]
+    errors = [
+        serialized_error
+        for error in event["errors"]
+        if (serialized_error := _serialize_rpc_issue(error, group_cache)) is not None
+    ]
+    occurrences = [
+        serialized_occurrence
+        for occurrence in event["occurrences"]
+        if (serialized_occurrence := _serialize_rpc_issue(occurrence, group_cache)) is not None
+    ]
 
     if event.get("event_type") == "uptime_check":
         return SerializedUptimeCheck(
@@ -569,4 +607,9 @@ def query_trace_data(
             result.extend(errors)
     group_cache: dict[int, Group] = {}
     with sentry_sdk.start_span(op="serializing_data"):
-        return [_serialize_rpc_event(root, group_cache, additional_attributes) for root in result]
+        return [
+            serialized_root
+            for root in result
+            if (serialized_root := _serialize_rpc_event(root, group_cache, additional_attributes))
+            is not None
+        ]
