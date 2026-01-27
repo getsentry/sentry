@@ -31,6 +31,8 @@ export default function PrimaryNavSeerConfigReminder() {
   const canWrite = useCanWriteSettings();
   const {isPending, initialStep} = useSeerOnboardingStep();
 
+  // TODO: check which SCM's are connected already.
+
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
