@@ -1635,6 +1635,10 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
 SENTRY_SNUBA_TIMEOUT = 30
 SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
+# Maximum number of concurrent queries to Snuba to prevent overwhelming the service
+# and hitting guard rail limits. Reduced from 10 to prevent ReferrerGuardRailPolicy
+# rejections due to too many concurrent queries.
+SENTRY_SNUBA_MAX_CONCURRENT_QUERIES = 3
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.services.nodestore.django.DjangoNodeStorage"

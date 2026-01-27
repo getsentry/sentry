@@ -1239,7 +1239,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         if len(snuba_requests_list) > 1:
             with ThreadPoolExecutor(
                 thread_name_prefix=__name__,
-                max_workers=10,
+                max_workers=settings.SENTRY_SNUBA_MAX_CONCURRENT_QUERIES,
             ) as query_thread_pool:
                 query_results = list(
                     query_thread_pool.map(
