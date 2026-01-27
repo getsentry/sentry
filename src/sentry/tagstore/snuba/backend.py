@@ -1094,7 +1094,27 @@ class SnubaTagStorage(TagStorage):
         if rpe:
             return rpe.first_seen
 
-        return None
+        # Fallback to Release.date_added when no ReleaseProjectEnvironment exists
+        # This prevents queries from defaulting to 2008 and timing out
+        release_query = Release.objects.filter(
+            organization_id=organization_id,
+            version__in=versions,
+        )
+        
+        # Filter by projects to ensure we only get releases relevant to the query
+        release_query = release_query.filter(
+            id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
+                "release_id", flat=True
+            )
+        )
+        
+        release = release_query.order_by("date_added").first()
+        if release:
+            return release.date_added
+
+        # As a last resort, use a recent date to keep query window reasonable
+        # This prevents scanning from 2008 which causes timeouts
+        return datetime.now(tz=timezone.utc) - timedelta(days=90)
 
     def __get_groups_user_counts(
         self,
