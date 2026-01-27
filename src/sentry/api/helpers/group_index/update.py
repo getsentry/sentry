@@ -46,6 +46,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
@@ -190,7 +191,7 @@ def update_groups(
     if not groups:
         return Response({"detail": "No groups found"}, status=204)
 
-    serializer = validate_request(request, projects, data)
+    serializer = validate_request(request, projects, data, user)
 
     if serializer is None:
         logger.error("Error validating request. Investigate.")
@@ -248,6 +249,7 @@ def update_groups(
         )
 
     return prepare_response(
+        request,
         result,
         groups,
         project_lookup,
@@ -296,6 +298,7 @@ def validate_request(
     request: Request,
     projects: Sequence[Project],
     data: Mapping[str, Any],
+    user: RpcUser | User | AnonymousUser | None = None,
 ) -> GroupValidator | None:
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
@@ -310,6 +313,14 @@ def validate_request(
                 "organization": project.organization,
                 "access": getattr(request, "access", None),
                 "request": request,
+                # Pass user explicitly for cases like Slack webhooks where
+                # request.user may be anonymous but the actual user is known
+                "user": user or getattr(request, "user", None),
+                # Skip team validation in OwnerActorField because:
+                # 1. For bulk updates, each group may have a different current assignee
+                # 2. Team membership validation happens later in validate_bulk_reassignment
+                #    with full access to the groups' current assignments
+                "skip_team_validation": True,
             },
         )
         if not serializer.is_valid():
@@ -752,6 +763,7 @@ def handle_other_status_updates(
 
 
 def prepare_response(
+    request: Request,
     result: dict[str, Any],
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
@@ -776,6 +788,12 @@ def prepare_response(
         pass
 
     if "assignedTo" in result:
+        # Validate reassignment permissions for bulk updates
+        try:
+            validate_bulk_reassignment(request, group_list, result["assignedTo"], acting_user)
+        except serializers.ValidationError as e:
+            return Response(e.detail, status=400)
+
         result["assignedTo"] = handle_assigned_to(
             result["assignedTo"],
             data.get("assignedBy"),
@@ -1022,6 +1040,87 @@ def handle_is_public(
                 )
 
     return share_id
+
+
+def validate_bulk_reassignment(
+    request: Request,
+    group_list: Sequence[Group],
+    assigned_actor: Actor | None,
+    user: RpcUser | User | None = None,
+) -> None:
+    """
+    Validate that the user has permission to reassign all groups.
+
+    A user can reassign a group if:
+    - They have team:admin scope, OR
+    - They are a member of the team the new assignment is going to, OR
+    - The group is currently assigned to a team they are a member of (can reassign from their team)
+
+    For bulk updates, all groups must pass this validation.
+
+    Args:
+        request: The request object (used for access scope check)
+        group_list: List of groups being reassigned
+        assigned_actor: The actor being assigned to (team or user)
+        user: The user performing the action. For Slack webhooks, this may differ
+              from request.user which could be anonymous.
+
+    Raises:
+        serializers.ValidationError: If the user doesn't have permission to reassign any group.
+    """
+    # Skip validation if not assigning to a team
+    if assigned_actor is None or not assigned_actor.is_team:
+        return
+
+    # Users with team:admin scope can reassign any group
+    access = getattr(request, "access", None)
+    if access and access.has_scope("team:admin"):
+        return
+
+    # Use explicitly passed user, fall back to request.user
+    user = user or getattr(request, "user", None)
+    if not user or not getattr(user, "is_authenticated", False):
+        raise serializers.ValidationError(
+            {"assignedTo": "You do not have permission to assign this owner"}
+        )
+
+    # Check if user is a member of the target team (existing validation)
+    user_is_target_team_member = OrganizationMemberTeam.objects.filter(
+        team_id=assigned_actor.id,
+        organizationmember__user_id=user.id,
+        is_active=True,
+    ).exists()
+
+    if user_is_target_team_member:
+        return
+
+    # Get current assignees for all groups
+    current_assignees = GroupAssignee.objects.filter(group__in=group_list).select_related("team")
+
+    current_team_ids = {
+        assignee.team_id for assignee in current_assignees if assignee.team_id is not None
+    }
+
+    if not current_team_ids:
+        # No current team assignments, and user is not a member of target team
+        raise serializers.ValidationError(
+            {"assignedTo": "You do not have permission to assign this owner"}
+        )
+
+    # Check if user is a member of ALL currently assigned teams
+    user_team_memberships = set(
+        OrganizationMemberTeam.objects.filter(
+            team_id__in=current_team_ids,
+            organizationmember__user_id=user.id,
+            is_active=True,
+        ).values_list("team_id", flat=True)
+    )
+
+    # If any group is assigned to a team the user is not a member of, deny
+    if current_team_ids - user_team_memberships:
+        raise serializers.ValidationError(
+            {"assignedTo": "You do not have permission to assign this owner"}
+        )
 
 
 def handle_assigned_to(

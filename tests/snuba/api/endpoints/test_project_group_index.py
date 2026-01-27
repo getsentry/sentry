@@ -1463,6 +1463,78 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
 
+    def test_reassign_from_own_team_to_any_team(self) -> None:
+        """
+        Test that a user can reassign an issue from their team to any other team,
+        even if they're not a member of the target team.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        group = self.create_group()
+
+        member_user = self.create_user("member@example.com")
+        member_team = self.create_team(organization=group.project.organization, name="member-team")
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[member_team]
+        )
+        group.project.add_team(member_team)
+
+        # Create a second team that the member is NOT a member of
+        other_team = self.create_team(organization=group.project.organization, name="other-team")
+        group.project.add_team(other_team)
+
+        GroupAssignee.objects.assign(group, member_team, member_user)
+        assert GroupAssignee.objects.filter(group=group, team=member_team).exists()
+
+        self.login_as(user=member_user)
+
+        # Now try to reassign to the other team (which member is not part of)
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["assignedTo"]["id"] == str(other_team.id)
+        assert response.data["assignedTo"]["type"] == "team"
+        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
+
+    def test_cannot_reassign_from_other_team(self) -> None:
+        """
+        Test that a user cannot reassign an issue that is currently assigned
+        to a team they are not a member of.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        group = self.create_group()
+
+        # Create a member user who only belongs to a specific team
+        member_user = self.create_user("member@example.com")
+        member_team = self.create_team(organization=group.project.organization, name="member-team")
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[member_team]
+        )
+        group.project.add_team(member_team)
+
+        other_team = self.create_team(organization=group.project.organization, name="other-team")
+        third_team = self.create_team(organization=group.project.organization, name="third-team")
+        group.project.add_team(other_team)
+        group.project.add_team(third_team)
+
+        GroupAssignee.objects.assign(group, other_team, None)
+        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
+
+        self.login_as(user=member_user)
+
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(url, data={"assignedTo": f"team:{third_team.id}"})
+
+        assert response.status_code == 400, response.content
+        assert "do not have permission" in str(response.data) or "permission" in str(response.data)
+        # Issue should still be assigned to other_team
+        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
+        assert not GroupAssignee.objects.filter(group=group, team=third_team).exists()
+
     def test_discard(self) -> None:
         group1 = self.create_group(is_public=True)
         group2 = self.create_group(is_public=True)

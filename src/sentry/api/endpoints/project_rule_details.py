@@ -185,14 +185,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
+        current_owner = None
         if rule.owner_team_id or rule.owner_user_id:
-            rule_data_before["owner"] = Actor.from_id(
-                user_id=rule.owner_user_id, team_id=rule.owner_team_id
-            )
+            current_owner = Actor.from_id(user_id=rule.owner_user_id, team_id=rule.owner_team_id)
+            rule_data_before["owner"] = current_owner
         rule_data_before["label"] = rule.label
 
         serializer = DrfRuleSerializer(
-            context={"project": project, "organization": project.organization, "request": request},
+            context={
+                "project": project,
+                "organization": project.organization,
+                "request": request,
+                "current_owner": current_owner,
+            },
             data=request.data,
             partial=True,
         )
