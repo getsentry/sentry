@@ -7,9 +7,14 @@ from typing import Any
 
 from urllib3.exceptions import HTTPError
 
+from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.seer.code_review.models import (
+    SeerCodeReviewTaskRequestForPrClosed,
+    SeerCodeReviewTaskRequestForPrReview,
+)
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -19,7 +24,7 @@ from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
-from ..utils import get_seer_endpoint_for_event, make_seer_request
+from ..utils import convert_enum_keys_to_strings, get_seer_endpoint_for_event, make_seer_request
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +96,30 @@ def process_github_webhook_event(
     should_record_latency = True
     try:
         path = get_seer_endpoint_for_event(github_event).value
-        make_seer_request(path=path, payload=event_payload)
+
+        # Validate payload with Pydantic if enabled (except for CHECK_RUN events which use minimal payload)
+        should_validate = options.get("seer.code_review.validate_webhook_payload", False)
+        if should_validate and github_event != GithubWebhookType.CHECK_RUN:
+            # Parse with appropriate model based on request type to enforce
+            # organization_id and integration_id requirements for PR closed
+            request_type = event_payload.get("request_type")
+            validated_payload: (
+                SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
+            )
+            if request_type == "pr-closed":
+                validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(event_payload)
+            else:
+                validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(event_payload)
+            # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
+            # but JSON requires string keys, so we need to convert them back)
+            payload = convert_enum_keys_to_strings(validated_payload.dict())
+            # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
+            # Pydantic v2 will automatically convert enum keys to strings.
+            # payload = validated_payload.model_dump(mode="json")
+        else:
+            payload = event_payload
+
+        make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.

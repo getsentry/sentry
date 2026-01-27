@@ -6,11 +6,12 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.code_review.models import SeerCodeReviewTrigger
 from sentry.seer.code_review.utils import (
-    SeerCodeReviewTrigger,
     _get_target_commit_sha,
     _get_trigger_metadata_for_issue_comment,
     _get_trigger_metadata_for_pull_request,
+    convert_enum_keys_to_strings,
     transform_webhook_to_codegen_request,
 )
 from sentry.testutils.cases import TestCase
@@ -297,3 +298,82 @@ class TestTransformWebhookToCodegenRequest:
 
         assert result is not None
         assert "integration_id" not in result["data"]["repo"]
+
+
+class TestConvertEnumKeysToStrings:
+    """Tests for the convert_enum_keys_to_strings utility function."""
+
+    def test_converts_enum_keys_in_dict(self) -> None:
+        """Test that enum keys in dictionaries are converted to their string values."""
+        from enum import Enum
+
+        class TestEnum(Enum):
+            KEY1 = "key1"
+            KEY2 = "key2"
+
+        input_dict = {TestEnum.KEY1: "value1", TestEnum.KEY2: "value2"}
+        result = convert_enum_keys_to_strings(input_dict)
+
+        assert result == {"key1": "value1", "key2": "value2"}
+        assert all(isinstance(k, str) for k in result.keys())
+
+    def test_converts_enum_values(self) -> None:
+        """Test that enum values are converted to their string values."""
+        from enum import Enum
+
+        class TestEnum(Enum):
+            VALUE1 = "value1"
+            VALUE2 = "value2"
+
+        input_dict = {"key1": TestEnum.VALUE1, "key2": TestEnum.VALUE2}
+        result = convert_enum_keys_to_strings(input_dict)
+
+        assert result == {"key1": "value1", "key2": "value2"}
+
+    def test_handles_nested_structures(self) -> None:
+        """Test that nested dictionaries and lists are processed recursively."""
+        from enum import Enum
+
+        class TestEnum(Enum):
+            KEY1 = "key1"
+            VALUE1 = "value1"
+
+        input_data = {
+            "top_level": {
+                TestEnum.KEY1: "nested_value",
+                "nested_list": [TestEnum.VALUE1, {"inner_key": TestEnum.VALUE1}],
+            }
+        }
+        result = convert_enum_keys_to_strings(input_data)
+
+        assert result == {
+            "top_level": {
+                "key1": "nested_value",
+                "nested_list": ["value1", {"inner_key": "value1"}],
+            }
+        }
+
+    def test_preserves_non_enum_values(self) -> None:
+        """Test that non-enum values are preserved unchanged."""
+        input_dict = {
+            "string_key": "string_value",
+            "int_key": 123,
+            "bool_key": True,
+            "none_key": None,
+            "list_key": [1, 2, 3],
+        }
+        result = convert_enum_keys_to_strings(input_dict)
+
+        assert result == input_dict
+
+    def test_handles_seer_code_review_feature_enum(self) -> None:
+        """Test with the actual SeerCodeReviewFeature enum used in the codebase."""
+        from sentry.seer.code_review.models import SeerCodeReviewFeature
+
+        input_dict = {
+            SeerCodeReviewFeature.BUG_PREDICTION: True,
+        }
+        result = convert_enum_keys_to_strings(input_dict)
+
+        assert result == {"bug_prediction": True}
+        assert isinstance(list(result.keys())[0], str)
