@@ -418,7 +418,6 @@ function Visualize({error, setError}: VisualizeProps) {
   const defaultField =
     (isChartWidget && datasetConfig.defaultSeriesField) || datasetConfig.defaultField;
 
-  // Memoize base aggregate options to avoid recreating on every field iteration
   const baseAggregateOptions = useMemo(
     () =>
       aggregates.map(option => ({
@@ -432,7 +431,7 @@ function Visualize({error, setError}: VisualizeProps) {
     [aggregates]
   );
 
-  // Memoize release session tags options
+  // Release dataset tables only use specific fields from SESSIONS_TAGS
   const releaseSessionTagsOptions = useMemo(() => {
     if (state.dataset !== WidgetType.RELEASE) {
       return [];
@@ -448,7 +447,8 @@ function Visualize({error, setError}: VisualizeProps) {
       .sort(_sortFn);
   }, [state.dataset, fieldOptions]);
 
-  // Memoize non-function field options for tables
+  // Column options for table widgets - includes all fields without any filtering
+  // imposed by the aggregate filtering its possible columns
   const tableFieldOptions = useMemo(() => {
     if (
       isChartWidget ||
@@ -480,8 +480,6 @@ function Visualize({error, setError}: VisualizeProps) {
       .sort(_sortFn);
   }, [isChartWidget, isBigNumberWidget, state.dataset, fieldOptions]);
 
-  // Pre-compute complete aggregate options for non-field-dependent cases
-  // This avoids recreating the same array on each field iteration
   const computedAggregateOptions = useMemo(() => {
     if (isChartWidget || isBigNumberWidget) {
       return {type: 'chart' as const, options: baseAggregateOptions};
@@ -489,9 +487,11 @@ function Visualize({error, setError}: VisualizeProps) {
 
     const baseOptions = [NONE_AGGREGATE, ...baseAggregateOptions];
 
+    // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
     if (state.dataset === WidgetType.ISSUE) {
       return {type: 'issue' as const, options: baseOptions};
     }
+    // Add span column options for Spans dataset
     if (
       state.dataset === WidgetType.SPANS ||
       state.dataset === WidgetType.LOGS ||
@@ -503,14 +503,13 @@ function Visualize({error, setError}: VisualizeProps) {
       };
     }
     if (state.dataset === WidgetType.RELEASE) {
-      // RELEASE needs canDelete per-field, return both variants
       return {
         type: 'release' as const,
         optionsWithNone: [...baseOptions, ...releaseSessionTagsOptions],
         optionsWithoutNone: [...baseAggregateOptions, ...releaseSessionTagsOptions],
       };
     }
-    // Default table case
+    // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
     return {type: 'table' as const, options: [...baseOptions, ...tableFieldOptions]};
   }, [
     isChartWidget,
@@ -610,7 +609,6 @@ function Visualize({error, setError}: VisualizeProps) {
                         columnFilterMethod ?? (() => true)
                       );
 
-                // Use pre-computed aggregate options to avoid array recreation per field
                 let aggregateOptions: Array<
                   | {
                       label: string | React.ReactNode;
@@ -622,7 +620,6 @@ function Visualize({error, setError}: VisualizeProps) {
                 >;
 
                 if (computedAggregateOptions.type === 'release') {
-                  // RELEASE dataset needs canDelete check per field
                   aggregateOptions = canDelete
                     ? computedAggregateOptions.optionsWithNone
                     : computedAggregateOptions.optionsWithoutNone;
