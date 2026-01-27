@@ -57,10 +57,8 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     [setConversationDrawerQueryState, organization]
   );
 
-  // Use primitive string ID to avoid re-render issues from node reference changes
   const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
 
-  // Compute selected node
   const selectedNode = useMemo(() => {
     if (selectedNodeKey) {
       const found = nodes.find(node => node.id === selectedNodeKey);
@@ -71,21 +69,15 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     return nodes.find(node => node.id === defaultNodeId);
   }, [nodes, selectedNodeKey, defaultNodeId]);
 
-  // Sync default selection to URL when:
-  // - Nodes have loaded
-  // - No valid spanId in URL OR spanId doesn't match any node
-  // Uses primitive defaultNodeId to prevent unnecessary effect runs
   useEffect(() => {
     if (isLoading || !defaultNodeId) {
-      return; // Wait for nodes to load and have a default
+      return;
     }
 
-    // Check if current URL spanId is valid (exists in nodes)
     const isCurrentSpanValid =
       selectedNodeKey && nodes.some(node => node.id === selectedNodeKey);
 
     if (!isCurrentSpanValid) {
-      // Sync default to URL - this causes ONE re-render, which is expected
       setConversationDrawerQueryState({
         spanId: defaultNodeId,
       });
@@ -137,7 +129,7 @@ export function useConversationViewDrawer({
         drawerWidth: `${DRAWER_WIDTH}px`,
         resizable: true,
         conversationId: conversation.conversationId,
-        spanId: initialSpanId, // Pass spanId to preserve URL state
+        spanId: initialSpanId,
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -147,7 +139,6 @@ export function useConversationViewDrawer({
   useEffect(() => {
     const {conversationId, spanId} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
-      // Pass spanId to preserve URL state on restoration
       openConversationViewDrawer({conversationId}, spanId ?? undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
