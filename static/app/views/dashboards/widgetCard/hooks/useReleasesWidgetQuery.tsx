@@ -183,11 +183,13 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
     const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
-    const errorMessage = error?.responseJSON?.detail
-      ? typeof error.responseJSON.detail === 'string'
-        ? error.responseJSON.detail
-        : error.responseJSON.detail.message
-      : error?.message || t('An unknown error occurred.');
+    const errorMessage = error
+      ? error.responseJSON?.detail
+        ? typeof error.responseJSON.detail === 'string'
+          ? error.responseJSON.detail
+          : error.responseJSON.detail.message
+        : error.message || t('An unknown error occurred.')
+      : undefined;
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
@@ -369,11 +371,13 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
     const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
-    const errorMessage = error?.responseJSON?.detail
-      ? typeof error.responseJSON.detail === 'string'
-        ? error.responseJSON.detail
-        : error.responseJSON.detail.message
-      : error?.message || t('An unknown error occurred.');
+    const errorMessage = error
+      ? error.responseJSON?.detail
+        ? typeof error.responseJSON.detail === 'string'
+          ? error.responseJSON.detail
+          : error.responseJSON.detail.message
+        : error.message || t('An unknown error occurred.')
+      : undefined;
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
