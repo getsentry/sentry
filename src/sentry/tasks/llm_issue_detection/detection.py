@@ -32,7 +32,7 @@ SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 10
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
-TRACES_TO_SEND_TO_SEER = 20
+NUM_TRANSACTIONS_TO_PROCESS = 10
 TRACE_PROCESSING_TTL_SECONDS = 7200
 # Character limit for LLM-generated fields to protect against abuse.
 # Word limits are enforced by Seer's prompt (see seer/automation/issue_detection/analyze.py).
@@ -267,10 +267,10 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if skipped:
         sentry_sdk.metrics.count("llm_issue_detection.trace.skipped", skipped)
 
-    # Take up to TRACES_TO_SEND_TO_SEER unprocessed traces
+    # Take up to NUM_TRANSACTIONS_TO_PROCESS
     traces_to_send: list[TraceMetadata] = [
         t for t in evidence_traces if t.trace_id in unprocessed_ids
-    ][:TRACES_TO_SEND_TO_SEER]
+    ][:NUM_TRANSACTIONS_TO_PROCESS]
 
     if not traces_to_send:
         return
