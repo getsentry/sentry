@@ -317,7 +317,7 @@ def value_matches(
             decision = True
             break
 
-    if emit_metrics:
+    if emit_metrics or decision:
         # metrics can have a meaningful performance impact, so allow caller to opt out
         # TODO: re-evaluate after we make metric collection aysnc.
         metrics.incr(
