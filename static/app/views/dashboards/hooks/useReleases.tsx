@@ -50,7 +50,13 @@ export function useReleases(
   const {selection, isReady} = usePageFilters();
   const {environments, projects, datetime} = selection;
 
-  const activeSort = sortBy ?? ReleasesSortOption.DATE;
+  // Normalize sort option: ADOPTION requires exactly one environment because it
+  // calculates the percentage of sessions/users in that specific environment.
+  // Reset to DATE if the requirement isn't met.
+  const activeSort =
+    sortBy === ReleasesSortOption.ADOPTION && environments.length !== 1
+      ? ReleasesSortOption.DATE
+      : (sortBy ?? ReleasesSortOption.DATE);
 
   // Fetch releases
   const releaseResults = useApiQuery<Release[]>(
