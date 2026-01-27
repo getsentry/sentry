@@ -40,10 +40,10 @@ logger = logging.getLogger()
     silo_mode=SiloMode.REGION,
 )
 def delete_replay(
-    organization_id: int,
     project_id: int,
     replay_id: str,
     has_seer_data: bool = False,
+    organization_id: int = 0,
     **kwargs: Any,
 ) -> None:
     """Asynchronously delete a replay."""
