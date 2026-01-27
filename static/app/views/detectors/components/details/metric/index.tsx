@@ -6,6 +6,7 @@ import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
+import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
@@ -49,7 +50,18 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
             name="component:disabled-detector-alert"
             detector={detector}
             message={t('This monitor is disabled and not creating issues.')}
-          />
+          >
+            {({hooks}) =>
+              hooks.length > 0 ? (
+                (hooks as React.ReactNode)
+              ) : (
+                <DisabledAlert
+                  detector={detector}
+                  message={t('This monitor is disabled and not creating issues.')}
+                />
+              )
+            }
+          </Hook>
           {detectorDataset === DetectorDataset.TRANSACTIONS && (
             <TransactionsDatasetWarning />
           )}

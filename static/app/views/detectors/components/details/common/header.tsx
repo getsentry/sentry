@@ -5,7 +5,10 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
-import {EditDetectorAction} from 'sentry/views/detectors/components/details/common/actions';
+import {
+  DisableDetectorAction,
+  EditDetectorAction,
+} from 'sentry/views/detectors/components/details/common/actions';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {
   makeMonitorBasePathname,
@@ -56,7 +59,15 @@ function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
   return (
     <DetailLayout.Actions>
       <MonitorFeedbackButton />
-      <Hook name="component:disabled-detector-action" detector={detector} />
+      <Hook name="component:disabled-detector-action" detector={detector}>
+        {({hooks}) =>
+          hooks.length > 0 ? (
+            (hooks as React.ReactNode)
+          ) : (
+            <DisableDetectorAction detector={detector} />
+          )
+        }
+      </Hook>
       <EditDetectorAction detector={detector} />
     </DetailLayout.Actions>
   );
