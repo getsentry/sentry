@@ -2505,62 +2505,62 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 
 const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   app_id: {
-    desc: t('The bundle identifier of the application.'),
+    desc: t('The bundle identifier of the application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   app_name: {
-    desc: t('The display name of the application.'),
+    desc: t('The display name of the application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   build_configuration_name: {
-    desc: t('The name of the build configuration.'),
+    desc: t('The name of the build configuration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   platform_name: {
-    desc: t('The platform the build targets.'),
+    desc: t('The platform the build targets'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   build_number: {
-    desc: t('The build number assigned to this build.'),
+    desc: t('The build number assigned to this build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   build_version: {
-    desc: t('The version string of the build.'),
+    desc: t('The version string of the build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_head_ref: {
-    desc: t('The Git branch or tag name of the HEAD commit.'),
+    desc: t('The Git branch or tag name of the HEAD commit'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_base_ref: {
-    desc: t('The Git branch or tag name of the base commit for comparison.'),
+    desc: t('The Git branch or tag name of the base commit for comparison'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_head_sha: {
-    desc: t('The Git SHA of the HEAD commit.'),
+    desc: t('The Git SHA of the HEAD commit'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_base_sha: {
-    desc: t('The Git SHA of the base commit for comparison.'),
+    desc: t('The Git SHA of the base commit for comparison'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_head_repo_name: {
-    desc: t('The repository name for the HEAD commit.'),
+    desc: t('The repository name for the HEAD commit'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_pr_number: {
-    desc: t('The pull request number associated with this build.'),
+    desc: t('The pull request number associated with this build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
