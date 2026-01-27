@@ -47,6 +47,7 @@ export function useOpenPeriods(
     makeOpenPeriodsQueryKey({orgSlug: organization.slug, ...params}),
     {
       staleTime: 0,
+      retry: false,
       ...options,
     }
   );

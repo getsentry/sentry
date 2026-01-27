@@ -83,7 +83,7 @@ export default function BuildList() {
                   size="sm"
                   icon={<IconSettings />}
                   aria-label={t('Settings')}
-                  to={`/settings/${organization.slug}/projects/${projectId}/preprod/`}
+                  to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
                 />
               </Feature>
             )}
@@ -96,7 +96,7 @@ export default function BuildList() {
               <PreprodBuildsTable
                 builds={builds}
                 isLoading={isLoading}
-                error={!!error}
+                error={error}
                 pageLinks={pageLinks}
                 organizationSlug={organization.slug}
               />
