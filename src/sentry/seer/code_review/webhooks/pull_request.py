@@ -32,8 +32,6 @@ class Log(enum.StrEnum):
     MISSING_PULL_REQUEST = "github.webhook.pull_request.missing-pull-request"
     MISSING_ACTION = "github.webhook.pull_request.missing-action"
     UNSUPPORTED_ACTION = "github.webhook.pull_request.unsupported-action"
-    MISSING_INTEGRATION = "github.webhook.pull_request.missing-integration"
-    REACTION_FAILED = "github.webhook.pull_request.reaction-failed"
 
 
 class PullRequestAction(enum.StrEnum):
