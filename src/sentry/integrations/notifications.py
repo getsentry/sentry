@@ -83,22 +83,25 @@ def _get_channel_and_integration_by_team(
         status=ObjectStatus.ACTIVE, organization_id=organization.id
     )
 
-    try:
-        external_actor = ExternalActor.objects.get(
-            provider=provider.value,
-            team_id=team_id,
-            organization_id=organization.id,
-            integration_id__in=[oi.integration_id for oi in org_integrations],
-        )
-    except ExternalActor.DoesNotExist:
+    external_actors = ExternalActor.objects.filter(
+        provider=provider.value,
+        team_id=team_id,
+        organization_id=organization.id,
+        integration_id__in=[oi.integration_id for oi in org_integrations],
+    )
+
+    if not external_actors:
         return {}
 
-    integration = integration_service.get_integration(
-        integration_id=external_actor.integration_id, status=ObjectStatus.ACTIVE
-    )
-    if integration is None or external_actor.external_id is None:
-        return {}
-    return {external_actor.external_id: integration}
+    channels_to_integration: dict[str, RpcIntegration] = {}
+    for external_actor in external_actors:
+        integration = integration_service.get_integration(
+            integration_id=external_actor.integration_id, status=ObjectStatus.ACTIVE
+        )
+        if integration is not None and external_actor.external_id is not None:
+            channels_to_integration[external_actor.external_id] = integration
+
+    return channels_to_integration
 
 
 def get_integrations_by_channel_by_recipient(
