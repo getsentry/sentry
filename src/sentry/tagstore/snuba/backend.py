@@ -1609,6 +1609,18 @@ class SnubaTagStorage(TagStorage):
             }
 
         else:
+            # Calculate adaptive sample size based on time range to prevent timeouts
+            # on large date ranges while maintaining accuracy for shorter ranges
+            time_range_days = (end - start).total_seconds() / 86400  # Convert to days
+            if time_range_days <= 7:
+                sample_size = 1_000_000  # 1M for <= 7 days (current behavior for short ranges)
+            elif time_range_days <= 30:
+                sample_size = 500_000  # 500K for <= 30 days
+            elif time_range_days <= 90:
+                sample_size = 250_000  # 250K for <= 90 days
+            else:
+                sample_size = 100_000  # 100K for > 90 days
+
             results = snuba.query(
                 dataset=dataset,
                 start=start,
@@ -1624,8 +1636,7 @@ class SnubaTagStorage(TagStorage):
                 orderby=order_by,
                 # TODO: This means they can't actually paginate all TagValues.
                 limit=1000,
-                # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
-                sample=1_000_000,
+                sample=sample_size,
                 arrayjoin=snuba.get_arrayjoin(snuba_key),
                 referrer="tagstore.get_tag_value_paginator_for_projects",
                 tenant_ids=tenant_ids,
