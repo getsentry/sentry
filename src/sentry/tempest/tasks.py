@@ -37,7 +37,9 @@ def poll_tempest(**kwargs):
         if not has_tempest_access(credentials.project.organization):
             # If users don't have access to Tempest we reset the latest_fetched_item_id to None
             # so that in the next iteration of the job we first fetch the latest ID again.
-            credentials.latest_fetched_item_id = None
+            if credentials.latest_fetched_item_id is not None:
+                credentials.latest_fetched_item_id = None
+                credentials.save(update_fields=["latest_fetched_item_id"])
             continue
 
         if credentials.latest_fetched_item_id is None:
