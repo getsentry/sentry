@@ -263,6 +263,7 @@ def get_oldest_or_latest_event(
         referrer="Group.get_latest",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
+        inner_limit=1000,
     )
 
     if events:
@@ -277,6 +278,8 @@ def get_recommended_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
+    from sentry.utils.snuba import SnubaError
+
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
@@ -302,22 +305,36 @@ def get_recommended_event(
     if expired:
         return None
 
-    events = eventstore.backend.get_events_snql(
-        organization_id=group.project.organization_id,
-        group_id=group.id,
-        start=start if start else default_start,
-        end=end if end else default_end,
-        conditions=all_conditions,
-        limit=1,
-        orderby=EventOrdering.RECOMMENDED.value,
-        referrer="Group.get_helpful",
-        dataset=dataset,
-        tenant_ids={"organization_id": group.project.organization_id},
-        inner_limit=1000,
-    )
+    try:
+        # Use a smaller inner_limit (100) to avoid timeouts on very large groups
+        # This limits the sorting to the 100 most recent events before applying
+        # the recommended ordering
+        events = eventstore.backend.get_events_snql(
+            organization_id=group.project.organization_id,
+            group_id=group.id,
+            start=start if start else default_start,
+            end=end if end else default_end,
+            conditions=all_conditions,
+            limit=1,
+            orderby=EventOrdering.RECOMMENDED.value,
+            referrer="Group.get_helpful",
+            dataset=dataset,
+            tenant_ids={"organization_id": group.project.organization_id},
+            inner_limit=100,
+        )
 
-    if events:
-        return events[0].for_group(group)
+        if events:
+            return events[0].for_group(group)
+    except SnubaError:
+        # If the recommended query times out or fails, fall back to latest event
+        # This ensures we always return a useful event even for very large groups
+        return get_oldest_or_latest_event(
+            group=group,
+            ordering=EventOrdering.LATEST,
+            conditions=conditions,
+            start=start,
+            end=end,
+        )
 
     return None
 
