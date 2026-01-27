@@ -25,6 +25,8 @@ class Log(enum.StrEnum):
     NOT_ENABLED = "github.webhook.issue_comment.not-enabled"
     NOT_REVIEW_COMMAND = "github.webhook.issue_comment.not-review-command"
     NOT_PR_COMMENT = "github.webhook.issue_comment.not-pr-comment"
+    MISSING_INTEGRATION = "github.webhook.issue_comment.missing-integration"
+    REACTION_FAILED = "github.webhook.issue_comment.reaction-failed"
 
 
 class GitHubIssueCommentAction(enum.StrEnum):
@@ -94,6 +96,7 @@ def handle_issue_comment_event(
             repo=repo,
             pr_number=str(pr_number) if pr_number else None,
             comment_id=str(comment_id),
+            extra=extra,
         )
 
     target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
