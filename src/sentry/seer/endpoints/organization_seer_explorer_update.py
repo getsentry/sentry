@@ -48,9 +48,9 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
 
         body = orjson.dumps(
             {
+                **request.data,
                 "run_id": run_id,
                 "organization_id": organization.id,
-                **request.data,
             }
         )
 
