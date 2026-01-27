@@ -4,6 +4,7 @@ import {AnimatePresence} from 'framer-motion';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
@@ -94,9 +95,9 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
   }, [runState?.run_id]);
 
   const handleCodingAgentHandoff = useCallback(
-    async (integrationId: number) => {
+    async (integration: CodingAgentIntegration) => {
       if (runState?.run_id) {
-        await triggerCodingAgentHandoff(runState.run_id, integrationId);
+        await triggerCodingAgentHandoff(runState.run_id, integration);
       }
     },
     [triggerCodingAgentHandoff, runState?.run_id]
