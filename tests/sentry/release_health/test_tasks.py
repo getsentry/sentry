@@ -671,3 +671,71 @@ def test_has_been_adopted() -> None:
     assert not has_been_adopted(100, 0)
     assert not has_been_adopted(100, 1)
     assert not has_been_adopted(100, 9)
+
+
+class TestDeletedProjectHandling(TestMetricReleaseMonitor):
+    """Test that deleted projects from stale Snuba data are handled gracefully."""
+
+    def test_deleted_project_is_filtered_from_snuba_data(self) -> None:
+        """
+        Test that when Snuba returns stale data for a deleted project,
+        the task filters it out and continues processing without errors.
+        """
+        # Create a project with sessions
+        deleted_project = self.create_project()
+        deleted_project_id = deleted_project.id
+        org_id = deleted_project.organization_id
+
+        # Store sessions for the project
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    project_id=deleted_project,
+                    release=self.release,
+                    environment=self.environment,
+                )
+                for _ in range(20)
+            ]
+        )
+
+        # Delete the project (simulating the race condition)
+        deleted_project.delete()
+
+        # Mock Snuba returning stale data that includes the deleted project
+        with mock.patch(
+            "sentry.release_health.tasks.release_monitor.fetch_project_release_health_totals"
+        ) as mock_fetch:
+            # Snuba returns data for both existing project1 and deleted project
+            mock_fetch.return_value = {
+                self.project1.id: {
+                    "prod": {
+                        "releases": {self.release.version: 10},
+                        "total_sessions": 10,
+                    }
+                },
+                deleted_project_id: {
+                    "prod": {
+                        "releases": {self.release.version: 10},
+                        "total_sessions": 10,
+                    }
+                },
+            }
+
+            # This should not raise Project.DoesNotExist
+            # The deleted project should be filtered out
+            process_projects_with_sessions(org_id, [self.project1.id, deleted_project_id])
+
+        # Verify that project1 was processed normally
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id,
+            release_id=self.release.id,
+            environment__name="prod",
+            adopted__isnull=False,
+        ).exists()
+
+        # Verify that no ReleaseProjectEnvironment was created for the deleted project
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project_id=deleted_project_id,
+            release_id=self.release.id,
+            environment__name="prod",
+        ).exists()
