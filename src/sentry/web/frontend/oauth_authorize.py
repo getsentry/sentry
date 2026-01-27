@@ -29,6 +29,78 @@ logger = logging.getLogger("sentry.oauth")
 CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
 
 
+def is_valid_cimd_url(client_id: str) -> bool:
+    """
+    Validate that a client_id is a valid CIMD URL per the draft RFC specification.
+
+    CIMD URL requirements:
+    - MUST be HTTPS scheme
+    - MUST contain a path component (not just domain)
+    - MUST NOT contain dot segments (. or ..)
+    - MUST NOT contain fragment (#)
+    - MUST NOT contain credentials (user:pass@)
+    - Query strings are allowed but discouraged
+
+    Returns True if valid CIMD URL, False otherwise.
+    """
+    try:
+        parsed = urlparse(client_id)
+    except Exception:
+        return False
+
+    # Must be HTTPS
+    if parsed.scheme != "https":
+        return False
+
+    # Must have a netloc (domain)
+    if not parsed.netloc:
+        return False
+
+    # Must NOT contain credentials (user:pass@)
+    if parsed.username or parsed.password:
+        return False
+
+    # Must NOT contain fragment
+    if parsed.fragment:
+        return False
+
+    # Must have a path component (not just "/")
+    if not parsed.path or parsed.path == "/":
+        return False
+
+    # Must NOT contain dot segments (. or ..)
+    path_segments = parsed.path.split("/")
+    if "." in path_segments or ".." in path_segments:
+        return False
+
+    return True
+
+
+def detect_cimd_client_id(
+    client_id: str,
+) -> tuple[Literal["cimd", "registered", "invalid"], str | None]:
+    """
+    Detect whether a client_id is a CIMD URL or a traditional registered client_id.
+
+    Returns a tuple of (client_type, error_message):
+    - ("cimd", None) - Valid CIMD URL
+    - ("registered", None) - Traditional registered client_id (64-char hex)
+    - ("invalid", error_message) - Invalid client_id format
+    """
+    # Check if it looks like a URL (starts with http:// or https://)
+    if client_id.startswith("http://"):
+        return ("invalid", "CIMD client_id must use HTTPS scheme")
+
+    if client_id.startswith("https://"):
+        if is_valid_cimd_url(client_id):
+            return ("cimd", None)
+        return ("invalid", "Invalid CIMD URL format")
+
+    # Traditional client_id: should be a 64-character hex string
+    # Allow it through for the existing flow to validate
+    return ("registered", None)
+
+
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
 
@@ -112,6 +184,44 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
+        # Detect if client_id is a CIMD URL or a traditional registered client_id
+        client_type, cimd_error = detect_cimd_client_id(client_id)
+
+        if client_type == "invalid":
+            logger.warning(
+                "oauth.cimd.invalid-url",
+                extra={
+                    "client_id": client_id,
+                    "error": cimd_error,
+                },
+            )
+            return self.error(
+                request=request,
+                client_id=client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name="unauthorized_client",
+                err_response="client_id",
+            )
+
+        if client_type == "cimd":
+            # CIMD flow: client_id is a URL where metadata can be fetched
+            # This will be implemented in subsequent tasks (tyoco9vx, ipsrs40b)
+            logger.info(
+                "oauth.cimd.detected",
+                extra={
+                    "client_id": client_id,
+                },
+            )
+            # For now, return an error indicating CIMD is not yet supported
+            # This will be replaced with actual CIMD handling in task ipsrs40b
+            return self.respond(
+                "sentry/oauth-error.html",
+                {"error": "CIMD (Client ID Metadata Document) clients are not yet supported."},
+                status=501,
+            )
+
+        # Traditional registered client flow
         try:
             application = ApiApplication.objects.get(
                 client_id=client_id, status=ApiApplicationStatus.active
