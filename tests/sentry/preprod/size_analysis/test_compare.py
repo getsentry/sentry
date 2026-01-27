@@ -12,6 +12,8 @@ from sentry.preprod.size_analysis.insight_models import (
     OptimizableImageFile,
     StripBinaryFileInfo,
     StripBinaryInsightResult,
+    VideoCompressionFileSavingsResult,
+    VideoCompressionInsightResult,
     WebPOptimizationInsightResult,
 )
 from sentry.preprod.size_analysis.models import (
@@ -2338,3 +2340,112 @@ class CompareInsightsTest(TestCase):
         # OldFramework - removed (5000)
         assert file_diffs_by_path["/path/OldFramework"].type.value == "removed"
         assert file_diffs_by_path["/path/OldFramework"].size_diff == -5000
+
+    def test_compare_insights_video_compression_with_diffs(self):
+        """Test VideoCompressionInsightResult with file-level differences."""
+        head_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=1,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+        base_metrics = PreprodArtifactSizeMetrics(
+            preprod_artifact_id=2,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="test",
+            max_install_size=1000,
+            max_download_size=500,
+        )
+
+        # Head: intro.mp4 (increased savings), promo.mp4 (new)
+        # Base: intro.mp4 (original), trailer.mp4 (removed)
+        head_insights = AppleInsightResults(
+            duplicate_files=None,
+            large_images=None,
+            large_audios=None,
+            large_videos=None,
+            strip_binary=None,
+            localized_strings_minify=None,
+            small_files=None,
+            loose_images=None,
+            hermes_debug_info=None,
+            image_optimization=None,
+            main_binary_exported_symbols=None,
+            unnecessary_files=None,
+            audio_compression=None,
+            video_compression=VideoCompressionInsightResult(
+                total_savings=15000,
+                files=[
+                    VideoCompressionFileSavingsResult(
+                        file_path="/path/intro.mp4",
+                        total_savings=10000,
+                        recommended_codec="HEVC",
+                    ),
+                    VideoCompressionFileSavingsResult(
+                        file_path="/path/promo.mp4",
+                        total_savings=5000,
+                        recommended_codec="HEVC",
+                    ),
+                ],
+            ),
+            alternate_icons_optimization=None,
+        )
+        base_insights = AppleInsightResults(
+            duplicate_files=None,
+            large_images=None,
+            large_audios=None,
+            large_videos=None,
+            strip_binary=None,
+            localized_strings_minify=None,
+            small_files=None,
+            loose_images=None,
+            hermes_debug_info=None,
+            image_optimization=None,
+            main_binary_exported_symbols=None,
+            unnecessary_files=None,
+            audio_compression=None,
+            video_compression=VideoCompressionInsightResult(
+                total_savings=14000,
+                files=[
+                    VideoCompressionFileSavingsResult(
+                        file_path="/path/intro.mp4",
+                        total_savings=8000,
+                        recommended_codec="HEVC",
+                    ),
+                    VideoCompressionFileSavingsResult(
+                        file_path="/path/trailer.mp4",
+                        total_savings=6000,
+                        recommended_codec="HEVC",
+                    ),
+                ],
+            ),
+            alternate_icons_optimization=None,
+        )
+
+        head_results = self._create_size_analysis_results(insights=head_insights)
+        base_results = self._create_size_analysis_results(insights=base_insights)
+
+        result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
+
+        assert len(result.insight_diff_items) == 1
+        insight_diff = result.insight_diff_items[0]
+        assert insight_diff.insight_type == "video_compression"
+        assert insight_diff.status == "unresolved"
+        assert insight_diff.total_savings_change == 1000
+
+        # Should have 3 file diffs: intro.mp4 increased, promo.mp4 added, trailer.mp4 removed
+        assert len(insight_diff.file_diffs) == 3
+        file_diffs_by_path = {d.path: d for d in insight_diff.file_diffs}
+
+        # intro.mp4 - increased (8000 -> 10000)
+        assert file_diffs_by_path["/path/intro.mp4"].type.value == "increased"
+        assert file_diffs_by_path["/path/intro.mp4"].size_diff == 2000
+
+        # promo.mp4 - added (5000)
+        assert file_diffs_by_path["/path/promo.mp4"].type.value == "added"
+        assert file_diffs_by_path["/path/promo.mp4"].size_diff == 5000
+
+        # trailer.mp4 - removed (6000)
+        assert file_diffs_by_path["/path/trailer.mp4"].type.value == "removed"
+        assert file_diffs_by_path["/path/trailer.mp4"].size_diff == -6000
