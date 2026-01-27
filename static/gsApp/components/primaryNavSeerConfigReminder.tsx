@@ -47,7 +47,7 @@ export default function PrimaryNavSeerConfigReminder() {
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const hasSeer = hasSeatBasedSeer || hasLegacySeer || hasCodeReviewBeta;
   if (!hasSeer) {
-    return false;
+    return null;
   }
 
   if (!canWrite && !isActiveSuperuser()) {
@@ -99,7 +99,11 @@ export default function PrimaryNavSeerConfigReminder() {
                 to={{
                   pathname: `/organizations/${organization.slug}/settings/seer/`,
                   query: {
-                    tab: hasLegacySeer ? 'repos' : undefined,
+                    tab: hasSeatBasedSeer
+                      ? undefined
+                      : hasLegacySeer
+                        ? 'repos'
+                        : undefined,
                   },
                 }}
                 priority="primary"
