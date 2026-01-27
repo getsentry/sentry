@@ -1,6 +1,7 @@
 import {createFormHook, formOptions, revalidateLogic} from '@tanstack/react-form';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {FieldGroup} from '@sentry/scraps/form/fields/fieldGroup';
 
 import {InputField} from './fields/inputField';
 import {NumberField} from './fields/numberField';
@@ -32,6 +33,7 @@ export type BoundFieldComponents = typeof fieldComponents;
 const {useAppForm} = createFormHook({
   fieldComponents,
   formComponents: {
+    FieldGroup,
     SubmitButton,
   },
   fieldContext,
@@ -42,7 +44,9 @@ function SubmitButton(props: ButtonProps) {
   const form = useFormContext();
   return (
     <form.Subscribe selector={state => state.isSubmitting}>
-      {isSubmitting => <Button {...props} type="submit" disabled={isSubmitting} />}
+      {isSubmitting => (
+        <Button {...props} priority="primary" type="submit" disabled={isSubmitting} />
+      )}
     </form.Subscribe>
   );
 }

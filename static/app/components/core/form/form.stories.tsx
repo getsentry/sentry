@@ -170,7 +170,7 @@ function TanStack() {
           form.handleSubmit();
         }}
       >
-        <Stack gap="lg">
+        <form.FieldGroup title="Peronal Information">
           <form.AppField name="firstName">
             {field => (
               <field.Input
@@ -185,6 +185,7 @@ function TanStack() {
               <field.Input
                 label="Lastname:"
                 required
+                hintText="Your family name"
                 value={field.state.value}
                 onChange={field.handleChange}
               />
@@ -221,9 +222,9 @@ function TanStack() {
               ) : null
             }
           </form.Subscribe>
-          <div style={{marginTop: '20px', marginBottom: '10px'}}>
-            <strong>Address</strong>
-          </div>
+        </form.FieldGroup>
+
+        <form.FieldGroup title="Address Information">
           <form.AppField name="address.street">
             {field => (
               <field.Input
@@ -255,12 +256,12 @@ function TanStack() {
               />
             )}
           </form.AppField>
+        </form.FieldGroup>
 
-          <Flex gap="md">
-            <form.SubmitButton>Submit</form.SubmitButton>
-            <Button onClick={() => form.reset()}>Reset</Button>
-          </Flex>
-        </Stack>
+        <Flex gap="md">
+          <form.SubmitButton>Submit</form.SubmitButton>
+          <Button onClick={() => form.reset()}>Reset</Button>
+        </Flex>
       </form>
     </form.AppForm>
   );

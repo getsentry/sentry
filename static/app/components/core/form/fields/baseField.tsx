@@ -1,7 +1,9 @@
+import {Fragment, useId} from 'react';
+
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Checkmark, Spinner, Warning} from '@sentry/scraps/form/icons';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,6 +15,7 @@ export type BaseFieldProps = {
 
 type FieldChildrenProps = {
   'aria-invalid': boolean;
+  id: string;
   name: string;
   onBlur: () => void;
 };
@@ -53,25 +56,38 @@ export function BaseField(
   const field = useFieldContext();
   const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
   const indicator = useFieldStateIndicator();
+  const fieldId = useId();
 
   return (
-    <Stack as="label" gap="sm">
-      <Text>
-        {props.label} {props.required ? <Text variant="danger">*</Text> : null}
-      </Text>
-      {props.children(
-        {
-          'aria-invalid': hasError,
-          onBlur: field.handleBlur,
-          name: field.name,
-        },
-        {indicator}
-      )}
-      {props.hintText ? (
-        <Text size="sm" variant="muted">
-          {props.hintText}
-        </Text>
-      ) : null}
-    </Stack>
+    <Flex gap="sm" align="center" justify="between" padding="xl">
+      <Stack width="50%" gap="xs">
+        <Container width="fit-content">
+          {containerProps => (
+            <Fragment>
+              <Text {...containerProps} as="label" htmlFor={fieldId}>
+                {props.label} {props.required ? <Text variant="danger">*</Text> : null}
+              </Text>
+              {props.hintText ? (
+                <Text {...containerProps} size="sm" variant="muted">
+                  {props.hintText}
+                </Text>
+              ) : null}
+            </Fragment>
+          )}
+        </Container>
+      </Stack>
+
+      <Container flexGrow={1}>
+        {props.children(
+          {
+            'aria-invalid': hasError,
+            onBlur: field.handleBlur,
+            name: field.name,
+            id: fieldId,
+          },
+          {indicator}
+        )}
+      </Container>
+    </Flex>
   );
 }
