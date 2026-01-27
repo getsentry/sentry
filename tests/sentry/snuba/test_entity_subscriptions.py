@@ -464,6 +464,38 @@ class EntitySubscriptionTestCase(TestCase):
             == ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
         )
 
+    def test_get_entity_subscription_for_eap_rpc_p95_transaction_duration(self) -> None:
+        """Test that p95(transaction.duration) works correctly in EAP subscriptions.
+        
+        This is a regression test for SENTRY-5HAH, where transaction.duration was
+        incorrectly resolved as a string type instead of millisecond, causing
+        InvalidSearchQuery errors.
+        """
+        aggregate = "p95(transaction.duration)"
+        query = 'is_transaction:true transaction:["/clients/[accountNumber]/summary"]'
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.EventsAnalyticsPlatform,
+            aggregate=aggregate,
+            time_window=3600,
+            extra_fields={"org_id": self.organization.id},
+        )
+        assert isinstance(entity_subscription, PerformanceSpansEAPRpcEntitySubscription)
+        assert entity_subscription.aggregate == aggregate
+        assert entity_subscription.dataset == Dataset.EventsAnalyticsPlatform
+
+        # This should not raise InvalidSearchQuery
+        rpc_timeseries_request = entity_subscription.build_rpc_request(
+            query, [self.project.id], None
+        )
+
+        assert rpc_timeseries_request.granularity_secs == 3600
+        assert rpc_timeseries_request.expressions[0].aggregation.label == "p95(transaction.duration)"
+        assert (
+            rpc_timeseries_request.expressions[0].aggregation.extrapolation_mode
+            == ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+        )
+
     def test_get_entity_subscription_for_eap_with_extrapolation_mode(self) -> None:
         aggregate = "count(span.duration)"
         query = "span.op:http.client"
