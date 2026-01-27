@@ -64,7 +64,7 @@ type FieldChildrenProps = {
   onBlur: () => void;
 };
 
-export function Field(
+function Field(
   props: FieldProps & {children: (props: FieldChildrenProps) => React.ReactNode}
 ) {
   const field = useFieldContext();
