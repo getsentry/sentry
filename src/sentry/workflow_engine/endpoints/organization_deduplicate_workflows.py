@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Prefetch
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,12 +8,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.utils import json
-from sentry.workflow_engine.endpoints.organization_workflow_index import (
-    OrganizationWorkflowPermission,
-)
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
@@ -24,6 +21,12 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+
+
+class OrganizationDeduplicateWorkflowsPermission(OrganizationPermission):
+    scope_map = {
+        "PUT": ["org:write", "org:admin"],
+    }
 
 
 class WorkflowData:
@@ -99,7 +102,6 @@ class WorkflowData:
 def deduplicate_workflows(organization: Organization):
     workflows = (
         Workflow.objects.filter(organization=organization)
-        .exclude(detectorworkflow__detector__type="error")  # grouping.grouptype ErrorGroupType.slug
         .select_related("when_condition_group")
         .prefetch_related(
             Prefetch(
@@ -153,15 +155,20 @@ def deduplicate_workflows(organization: Organization):
 
             canonical_workflow_id = workflow_ids.pop()
 
-            # Update the DetectorWorkflow references to use the canonical version
-            DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
-                workflow_id=canonical_workflow_id
-            )
+            try:
+                # Update the DetectorWorkflow references to use the canonical version
+                DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
+                    workflow_id=canonical_workflow_id
+                )
 
-            # Update AlertRuleWorkflow entries to point to the canonical workflow
-            AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
-                workflow_id=canonical_workflow_id
-            )
+                # Update AlertRuleWorkflow entries to point to the canonical workflow
+                AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
+                    workflow_id=canonical_workflow_id
+                )
+            except IntegrityError:
+                # the DetectorWorkflow or AlertRuleWorkflow connections that we're attempting to create
+                # already exist. We should just continue with the rest of the process for this workflow.
+                pass
 
             # Before deleting workflows, clean up related models that won't be cascade deleted
             # Also deletes DataConditionGroupAction
@@ -180,7 +187,7 @@ def deduplicate_workflows(organization: Organization):
 
 @region_silo_endpoint
 class OrganizationDeduplicateWorkflowsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationWorkflowPermission,)
+    permission_classes = (OrganizationDeduplicateWorkflowsPermission,)
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
     }
