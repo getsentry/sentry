@@ -2322,6 +2322,39 @@ class UserReportEventLinkTestMixin(BasePostProcessGroupMixin):
         assert report1.environment_id == event.get_environment().id
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
+    def test_user_report_without_environment(self) -> None:
+        """Test that events without an environment tag don't cause DoesNotExist errors."""
+        project = self.create_project()
+        event_id = "b" * 32
+
+        # Create a user report without environment
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="Test User",
+            email="test@example.com",
+            comments="Something broke!",
+        )
+
+        # Create an event without an environment tag
+        event = self.store_event(
+            data={"event_id": event_id},
+            project_id=project.id,
+        )
+
+        # This should not raise Environment.DoesNotExist
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        # Verify the user report was updated with group_id but environment_id remains None
+        report = UserReport.objects.get(project_id=project.id, event_id=event_id)
+        assert report.group_id == event.group_id
+        assert report.environment_id is None
+
 
 class DetectBaseUrlsForUptimeTestMixin(BasePostProcessGroupMixin):
     def assert_organization_key(self, organization: Organization, exists: bool) -> None:

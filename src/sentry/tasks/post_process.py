@@ -1452,11 +1452,18 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
 def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.lib.utils import FeedbackCreationSource
     from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
+    from sentry.models.environment import Environment
     from sentry.models.userreport import UserReport
 
     event = job["event"]
     project = event.project
     group = event.group
+
+    # Get environment_id, handling cases where environment doesn't exist
+    try:
+        environment_id = event.get_environment().id
+    except Environment.DoesNotExist:
+        environment_id = None
 
     if not job["is_reprocessed"]:
         metrics.incr("event_manager.save._update_user_reports_with_event_link")
@@ -1485,7 +1492,7 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         # If environment is set, this report was already shimmed from new feedback.
 
         user_reports_updated = user_reports_without_group.update(
-            group_id=group.id, environment_id=event.get_environment().id
+            group_id=group.id, environment_id=environment_id
         )
 
         if user_reports_updated:
@@ -1493,7 +1500,7 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
 
     else:
         UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-            group_id=group.id, environment_id=event.get_environment().id
+            group_id=group.id, environment_id=environment_id
         )
 
 
