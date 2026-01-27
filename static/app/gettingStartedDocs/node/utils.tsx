@@ -10,7 +10,10 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {
+  AGENT_INTEGRATION_LABELS,
+  AgentIntegration,
+} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 function getInstallSnippet({
   params,
@@ -573,6 +576,15 @@ const mastra = new Mastra({
             ]
           : [
               ...manualInstrumentationAlert,
+              {
+                type: 'text',
+                text: tct(
+                  'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
+                  {
+                    integration: AGENT_INTEGRATION_LABELS[integration] ?? integration,
+                  }
+                ),
+              },
               {
                 type: 'code',
                 tabs: [
