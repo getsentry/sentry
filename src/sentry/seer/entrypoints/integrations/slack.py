@@ -80,8 +80,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
         except ValueError:
             logger.warning(
-                "invalid_autofix_stopping_point",
+                "entrypoint.invalid_autofix_stopping_point",
                 extra={
+                    "entrypoint_key": self.key,
                     "stopping_point": action.value,
                     "action_id": action.action_id,
                     "group_id": self.group.id,
@@ -123,8 +124,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
         except (IntegrationError, TypeError, KeyError):
             logger.warning(
-                "slack.autofix.update_message_failed",
+                "entrypoint.update_message_failed",
                 extra={
+                    "entrypoint_key": SlackEntrypoint.key,
                     "channel_id": self.channel_id,
                     "message_ts": self.thread_ts,
                     "organization_id": self.organization_id,
@@ -171,6 +173,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         logging_ctx = {
             "event_type": event_type,
             "cache_payload": cache_payload,
+            "entrypoint_key": SlackEntrypoint.key,
         }
         integration = integration_service.get_integration(
             integration_id=cache_payload["integration_id"],
@@ -179,7 +182,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             status=ObjectStatus.ACTIVE,
         )
         if not integration:
-            logger.warning("integration_not_found", extra=logging_ctx)
+            logger.warning("entrypoint.integration_not_found", extra=logging_ctx)
             return
 
         install = SlackIntegration(

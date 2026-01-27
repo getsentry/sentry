@@ -52,21 +52,21 @@ class SeerOperator[CachePayloadT]:
         self.logging_ctx: dict[str, str] = {"entrypoint_key": str(entrypoint.key)}
 
     @classmethod
-    def get_post_autofix_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
-        """
-        The autofix cache key is used to store entrypoint-specific cache payloads AFTER an autofix
-        run has been started, thus requires a run_id.
-        """
-        return f"seer:autofix:{entrypoint_key}:{run_id}"
-
-    @classmethod
     def get_pre_autofix_cache_key(cls, *, entrypoint_key: str, group_id: int) -> str:
         """
         The group cache key is used to store entrypoint-specific cache payloads BEFORE an autofix
         run has been started, thus requires a group_id. When an autofix run does start, Seer emits a
         webhook with the run_id and group_id, so we can relocate the cache to the post-autofix key.
         """
-        return f"seer:group:{entrypoint_key}:{group_id}"
+        return f"seer:pre_autofix:{entrypoint_key}:{group_id}"
+
+    @classmethod
+    def get_post_autofix_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
+        """
+        The autofix cache key is used to store entrypoint-specific cache payloads AFTER an autofix
+        run has been started, thus requires a run_id.
+        """
+        return f"seer:post_autofix:{entrypoint_key}:{run_id}"
 
     def trigger_autofix(
         self,
@@ -109,7 +109,7 @@ class SeerOperator[CachePayloadT]:
             elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                 payload = AutofixCreatePRPayload(type="create_pr")
             else:
-                logger.error("operator.invalid_stopping_point", extra=self.logging_ctx)
+                logger.warning("operator.invalid_stopping_point", extra=self.logging_ctx)
                 self.entrypoint.on_trigger_autofix_error(error="Invalid stopping point provided")
                 return
 
@@ -125,14 +125,14 @@ class SeerOperator[CachePayloadT]:
         # Let the entrypoint signal to the external service that no run was started :/
         if error_message:
             self.logging_ctx["error_message"] = error_message
-            logger.info("operator.trigger_autofix_error", extra=self.logging_ctx)
+            logger.warning("operator.trigger_autofix_error", extra=self.logging_ctx)
             self.entrypoint.on_trigger_autofix_error(error=error_message)
             return
 
         run_id = raw_response.data.get("run_id") if not run_id else run_id
         # Shouldn't ever happen, but if it we have no run_id, we can't listen for updates
         if not run_id:
-            logger.info("operator.trigger_autofix_no_run_id", extra=self.logging_ctx)
+            logger.warning("operator.trigger_autofix_no_run_id", extra=self.logging_ctx)
             self.entrypoint.on_trigger_autofix_error(error="An unknown error has occurred")
             return
 
@@ -222,7 +222,7 @@ def process_autofix_updates(
     logging_ctx = {"event_type": event_type, "run_id": run_id, "group_id": group_id}
 
     if not run_id and not group_id:
-        logger.error("operator.missing_identifiers", extra=logging_ctx)
+        logger.warning("operator.missing_identifiers", extra=logging_ctx)
         return
 
     if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
@@ -230,6 +230,8 @@ def process_autofix_updates(
         return
 
     for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+        group_cache_payload = None
+        run_cache_payload = None
         if group_id:
             pre_cache_key = SeerOperator.get_pre_autofix_cache_key(
                 entrypoint_key=entrypoint_key, group_id=group_id
