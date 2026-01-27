@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -136,27 +134,6 @@ function filterYAxisOptions() {
   };
 }
 
-const MOBILE_APP_SIZE_ALLOWED_KEYS = [
-  'app_id',
-  'app_name',
-  'build_configuration_name',
-  'platform_name',
-  'git_head_ref',
-  'git_base_ref',
-  'git_head_repo_name',
-  'git_pr_number',
-];
-
-function filterAttributes(
-  attributes: TagCollection,
-  allowedKeys: string[]
-): TagCollection {
-  const allowedSet = new Set(allowedKeys);
-  return Object.fromEntries(
-    Object.entries(attributes).filter(([key]) => allowedSet.has(key))
-  );
-}
-
 function getGroupByFieldOptions(
   _organization: Organization,
   tags?: TagCollection
@@ -196,7 +173,6 @@ function MobileAppSizeSearchBar({
     <PreprodSearchBar
       initialQuery={widgetQuery.conditions}
       projects={projects}
-      allowedKeys={MOBILE_APP_SIZE_ALLOWED_KEYS}
       onSearch={onSearch}
       portalTarget={portalTarget}
       searchSource="dashboards"
@@ -219,20 +195,11 @@ function useMobileAppSizeSearchBarDataProvider(
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
 
-  const filteredStringAttributes = useMemo(
-    () => filterAttributes(stringAttributes, MOBILE_APP_SIZE_ALLOWED_KEYS),
-    [stringAttributes]
-  );
-  const filteredNumberAttributes = useMemo(
-    () => filterAttributes(numberAttributes, MOBILE_APP_SIZE_ALLOWED_KEYS),
-    [numberAttributes]
-  );
-
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.PREPROD,
-      numberAttributes: filteredNumberAttributes,
-      stringAttributes: filteredStringAttributes,
+      numberAttributes,
+      stringAttributes,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
