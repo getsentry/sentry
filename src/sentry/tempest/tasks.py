@@ -93,6 +93,7 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
 
     start_time = time.time()
     error_type = None
+    timing_recorded = False
 
     try:
         response = fetch_latest_id_from_tempest(
@@ -105,6 +106,7 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
         # Record timing and response metrics
         duration_ms = (time.time() - start_time) * 1000
         metrics.timing("tempest.latest_id.duration", duration_ms, tags=tags)
+        timing_recorded = True
         metrics.distribution(
             "tempest.latest_id.response_size_bytes",
             len(response.content),
@@ -132,7 +134,10 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
                 metrics.incr("tempest.latest_id.success", tags={**tags, "result": "found"})
                 return
         elif "error" in result:
-            error_type = result["error"].get("type", "unknown")
+            error_obj = result["error"]
+            error_type = (
+                error_obj.get("type", "unknown") if isinstance(error_obj, dict) else "unknown"
+            )
             metrics.incr(
                 "tempest.latest_id.error",
                 tags={**tags, "error_type": error_type, "status_code": str(response.status_code)},
@@ -150,7 +155,10 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
                 credentials.save(update_fields=["message", "message_type"])
                 return
 
-        # Default in case things go wrong
+            # Known error type but not one we handle specially - already recorded metric above
+            return
+
+        # Default in case things go wrong (no "latest_id" or "error" key in response)
         metrics.incr(
             "tempest.latest_id.error",
             tags={
@@ -202,7 +210,8 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
 
     except Exception as e:
         duration_ms = (time.time() - start_time) * 1000
-        metrics.timing("tempest.latest_id.duration", duration_ms, tags=tags)
+        if not timing_recorded:
+            metrics.timing("tempest.latest_id.duration", duration_ms, tags=tags)
         metrics.incr("tempest.latest_id.error", tags={**tags, "error_type": "exception"})
         logger.exception(
             "Fetching the latest item id failed.",
@@ -255,6 +264,7 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
 
     start_time = time.time()
     batch_limit = options.get("tempest.poll-limit")
+    timing_recorded = False
 
     try:
         if credentials.latest_fetched_item_id is not None:
@@ -292,6 +302,7 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
         # Record timing and response metrics
         duration_ms = (time.time() - start_time) * 1000
         metrics.timing("tempest.crashes.duration", duration_ms, tags=tags)
+        timing_recorded = True
         metrics.distribution(
             "tempest.crashes.response_size_bytes",
             len(response.content),
@@ -355,7 +366,8 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
 
     except Exception as e:
         duration_ms = (time.time() - start_time) * 1000
-        metrics.timing("tempest.crashes.duration", duration_ms, tags=tags)
+        if not timing_recorded:
+            metrics.timing("tempest.crashes.duration", duration_ms, tags=tags)
         metrics.incr("tempest.crashes.error", tags={**tags, "error_type": "exception"})
         logger.exception(
             "Fetching the crashes failed.",
