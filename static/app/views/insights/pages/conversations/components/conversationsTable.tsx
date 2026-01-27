@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback} from 'react';
+import {Fragment, forwardRef, memo, useCallback, type ComponentPropsWithoutRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -130,14 +130,21 @@ function cleanMarkdownForCell(text: string): string {
     .trim();
 }
 
-function CellContent({text}: {text: string}) {
+type CellContentProps = ComponentPropsWithoutRef<'div'> & {
+  text: string;
+};
+
+const CellContent = forwardRef<HTMLDivElement, CellContentProps>(function CellContent(
+  {text, ...props},
+  ref
+) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
-    <SingleLineMarkdown>
+    <SingleLineMarkdown ref={ref} {...props}>
       <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
   );
-}
+});
 
 function UserNotInstrumentedTooltip() {
   return (
@@ -202,58 +209,50 @@ const BodyCell = memo(function BodyCell({
     case 'inputOutput': {
       return (
         <Stack width="100%">
-          <Tooltip
-            title={
-              dataRow.firstInput ? (
-                <TooltipContent text={dataRow.firstInput} />
-              ) : undefined
-            }
-            disabled={!dataRow.firstInput}
-            showOnlyOnOverflow
-            maxWidth={800}
-            isHoverable
-            delay={500}
+          <InputOutputRow
+            type="button"
+            onClick={() => openConversationViewDrawer(dataRow)}
           >
-            <InputOutputRow
-              type="button"
-              onClick={() => openConversationViewDrawer(dataRow)}
-            >
-              <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
-              <Flex flex="1" minWidth="0">
-                {dataRow.firstInput ? (
+            <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
+            <Flex flex="1" minWidth="0">
+              {dataRow.firstInput ? (
+                <Tooltip
+                  title={<TooltipContent text={dataRow.firstInput} />}
+                  showOnlyOnOverflow
+                  maxWidth={800}
+                  isHoverable
+                  delay={500}
+                  skipWrapper
+                >
                   <CellContent text={dataRow.firstInput} />
-                ) : (
-                  <Text variant="muted">&mdash;</Text>
-                )}
-              </Flex>
-            </InputOutputRow>
-          </Tooltip>
-          <Tooltip
-            title={
-              dataRow.lastOutput ? (
-                <TooltipContent text={dataRow.lastOutput} />
-              ) : undefined
-            }
-            disabled={!dataRow.lastOutput}
-            showOnlyOnOverflow
-            maxWidth={800}
-            isHoverable
-            delay={500}
+                </Tooltip>
+              ) : (
+                <Text variant="muted">&mdash;</Text>
+              )}
+            </Flex>
+          </InputOutputRow>
+          <InputOutputRow
+            type="button"
+            onClick={() => openConversationViewDrawer(dataRow)}
           >
-            <InputOutputRow
-              type="button"
-              onClick={() => openConversationViewDrawer(dataRow)}
-            >
-              <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
-              <Flex flex="1" minWidth="0">
-                {dataRow.lastOutput ? (
+            <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
+            <Flex flex="1" minWidth="0">
+              {dataRow.lastOutput ? (
+                <Tooltip
+                  title={<TooltipContent text={dataRow.lastOutput} />}
+                  showOnlyOnOverflow
+                  maxWidth={800}
+                  isHoverable
+                  delay={500}
+                  skipWrapper
+                >
                   <CellContent text={dataRow.lastOutput} />
-                ) : (
-                  <Text variant="muted">&mdash;</Text>
-                )}
-              </Flex>
-            </InputOutputRow>
-          </Tooltip>
+                </Tooltip>
+              ) : (
+                <Text variant="muted">&mdash;</Text>
+              )}
+            </Flex>
+          </InputOutputRow>
         </Stack>
       );
     }
