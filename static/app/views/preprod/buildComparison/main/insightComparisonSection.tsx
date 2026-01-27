@@ -25,6 +25,7 @@ const FILE_DIFF_INSIGHT_TYPES = [
   'large_images',
   'large_videos',
   'large_audio',
+  'large_audios',
   'hermes_debug_info',
   'unnecessary_files',
   'webp_optimization',
