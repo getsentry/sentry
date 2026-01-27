@@ -115,13 +115,14 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
           onColumnsChange={setFields as any}
           stringTags={stringTags}
           numberTags={numberTags}
+          booleanTags={booleanTags}
           handleReset={() => setFields(null)}
           isDocsButtonHidden
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, stringTags, numberTags]);
+  }, [booleanTags, fields, numberTags, setFields, stringTags]);
 
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
