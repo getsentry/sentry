@@ -696,6 +696,25 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert (resolved_column, virtual_context) == (p95_column, p95_context)
 
+    def test_p95_transaction_duration(self) -> None:
+        """Test that transaction.duration is correctly resolved as a millisecond type for p95()."""
+        resolved_column, virtual_context = self.resolver.resolve_column("p95(transaction.duration)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_P95,
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="p95(transaction.duration)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_transaction_duration_attribute(self) -> None:
+        """Test that transaction.duration attribute is correctly resolved."""
+        resolved_column, virtual_context = self.resolver.resolve_attribute("transaction.duration")
+        assert resolved_column.public_alias == "transaction.duration"
+        assert resolved_column.internal_name == "sentry.duration_ms"
+        assert resolved_column.search_type == "millisecond"
+        assert virtual_context is None
+
 
 def test_loads_deprecated_attrs_json() -> None:
     with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:

@@ -148,6 +148,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="transaction.duration",
+            internal_name="sentry.duration_ms",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
             public_alias="is_transaction",
             internal_name="sentry.is_segment",
             search_type="boolean",
