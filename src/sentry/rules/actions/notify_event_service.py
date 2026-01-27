@@ -85,15 +85,25 @@ def send_incident_alert_notification(
     if notification_context.sentry_app_id is None:
         raise ValueError("Sentry app ID is required")
 
+    # Extract metric_value, handling dict and None cases
+    metric_value: float
+    if metric_issue_context.metric_value is None:
+        metric_value = 0.0
+    elif isinstance(metric_issue_context.metric_value, dict):
+        # If metric_value is a dict, try to extract the 'value' key
+        metric_value = float(metric_issue_context.metric_value.get("value", 0.0))
+    else:
+        metric_value = float(metric_issue_context.metric_value)
+
     success = integration_service.send_incident_alert_notification(
-        sentry_app_id=notification_context.sentry_app_id,
+        sentry_app_id=int(notification_context.sentry_app_id),
         new_status=metric_issue_context.new_status.value,
         incident_attachment_json=json.dumps(incident_attachment),
         organization_id=organization.id,
-        # TODO(iamrajjoshi): The rest of the params are unused
-        action_id=-1,
-        incident_id=-1,
-        metric_value=-1,
+        action_id=notification_context.id,
+        incident_id=metric_issue_context.id,
+        metric_value=metric_value,
+        notification_uuid=notification_uuid,
     )
     return success
 
