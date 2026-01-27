@@ -75,4 +75,3 @@ class UrlsPluginTest(TestCase):
         result = self.plugin.get_tag_values(event)
 
         assert result == []
-
