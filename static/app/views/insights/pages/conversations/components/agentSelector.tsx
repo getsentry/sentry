@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -42,13 +43,23 @@ export function AgentSelector() {
   // Use nuqs to manage both agent and cursor state
   const [{agent: selectedAgents}, setQueryStates] = useQueryStates(
     {
-      [AGENT_URL_PARAM]: parseAsArrayOf(parseAsString)
-        .withDefault(getAgentFilterFromStorage(organization.slug))
-        .withOptions({clearOnDefault: true}),
+      [AGENT_URL_PARAM]: parseAsArrayOf(parseAsString),
       [TableUrlParams.CURSOR]: parseAsString,
     },
     {history: 'replace'}
   );
+
+  // Initialize from localStorage on mount if URL is empty
+  const hasInitialized = useRef(false);
+  useEffect(() => {
+    if (!hasInitialized.current && !selectedAgents) {
+      const storedAgents = getAgentFilterFromStorage(organization.slug);
+      if (storedAgents.length > 0) {
+        setQueryStates({[AGENT_URL_PARAM]: storedAgents});
+      }
+      hasInitialized.current = true;
+    }
+  }, [selectedAgents, organization.slug, setQueryStates]);
 
   // Sync to localStorage whenever agents change
   useEffect(() => {
@@ -69,18 +80,15 @@ export function AgentSelector() {
     const currentProjects = pageFilters.selection.projects;
     const prevProjects = prevProjectsRef.current;
 
-    // Compare projects arrays to detect changes
-    const projectsChanged =
-      currentProjects.length !== prevProjects.length ||
-      currentProjects.some((project, index) => project !== prevProjects[index]);
+    const projectsChanged = !isEqual(prevProjects, currentProjects);
 
     if (projectsChanged) {
       // Clear agent filter from URL and localStorage
-      setQueryStates({
-        [AGENT_URL_PARAM]: undefined,
-        [TableUrlParams.CURSOR]: undefined,
-      });
       localStorage.removeItem(makeAgentFilterStorageKey(organization.slug));
+      setQueryStates({
+        [AGENT_URL_PARAM]: [],
+        [TableUrlParams.CURSOR]: null,
+      });
 
       // Update ref for next comparison
       prevProjectsRef.current = currentProjects;
@@ -176,8 +184,8 @@ export function AgentSelector() {
         // Update URL and clear pagination cursor
         // localStorage sync happens in useEffect
         setQueryStates({
-          [AGENT_URL_PARAM]: values.length > 0 ? values : undefined,
-          [TableUrlParams.CURSOR]: undefined,
+          [AGENT_URL_PARAM]: values.length > 0 ? values : [],
+          [TableUrlParams.CURSOR]: null,
         });
       }}
     />
