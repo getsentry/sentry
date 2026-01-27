@@ -827,12 +827,11 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert summary.endswith("..."), "Truncated summary should end with '...'"
 
     def test_sibling_deduplication_after_reprocessing(self):
-        """Test that get_sibling_artifacts_for_commit() deduplicates by (app_id, artifact_type).
+        """Test that get_sibling_artifacts_for_commit() deduplicates by (app_id, artifact_type, build_configuration_id).
 
         When artifacts are reprocessed (e.g., CI retry), new artifacts are created
-        with the same (app_id, artifact_type). This test verifies that the sibling lookup
-        returns only one artifact per (app_id, artifact_type) to prevent duplicate rows
-        in status checks.
+        with the same (app_id, artifact_type, build_configuration_id). This test verifies that the sibling lookup
+        returns only one artifact per combination to prevent duplicate rows in status checks.
         """
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -933,8 +932,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         siblings_from_ios_new = list(ios_new.get_sibling_artifacts_for_commit())
         assert len(siblings_from_ios_new) == 2, (
-            f"Expected 2 siblings (one per app_id), got {len(siblings_from_ios_new)}. "
-            f"Deduplication by app_id should prevent showing all 4 artifacts."
+            f"Expected 2 siblings (one per app_id/artifact_type/build_config combo), got {len(siblings_from_ios_new)}. "
+            f"Deduplication should prevent showing all 4 artifacts."
         )
 
         sibling_ids_from_ios_new = {s.id for s in siblings_from_ios_new}
