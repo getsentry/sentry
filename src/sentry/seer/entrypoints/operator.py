@@ -201,6 +201,7 @@ class SeerOperator[CachePayloadT]:
             if not pre_cache_payload:
                 continue
             cache.set(post_cache_key, pre_cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
+            cache.delete(pre_cache_key)
 
 
 @instrumented_task(

@@ -192,55 +192,54 @@ class SeerOperatorTest(TestCase):
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
     )
-    @patch("sentry.seer.entrypoints.operator.cache.set")
-    @patch("sentry.seer.entrypoints.operator.cache.get")
-    def test_migrate_autofix_cache(self, mock_cache_get, mock_cache_set):
+    @patch("sentry.seer.entrypoints.operator.cache")
+    def test_migrate_autofix_cache(self, mock_cache):
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
-        mock_cache_get.side_effect = lambda k: (
+        mock_cache.get.side_effect = lambda k: (
             pre_cache_payload if k == self.pre_cache_key else None
         )
         SeerOperator.migrate_autofix_cache(group_id=MOCK_GROUP_ID, run_id=MOCK_RUN_ID)
-        mock_cache_set.assert_called_once_with(
+        mock_cache.set.assert_called_once_with(
             self.post_cache_key,
             pre_cache_payload,
             timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS,
         )
+        mock_cache.delete.assert_called_once_with(self.pre_cache_key)
 
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
     )
-    @patch("sentry.seer.entrypoints.operator.cache.set")
-    @patch("sentry.seer.entrypoints.operator.cache.get")
-    def test_migrate_autofix_cache_full_miss(self, mock_cache_get, mock_cache_set):
-        mock_cache_get.side_effect = lambda k: None
+    @patch("sentry.seer.entrypoints.operator.cache")
+    def test_migrate_autofix_cache_full_miss(self, mock_cache):
+        mock_cache.get.side_effect = lambda k: None
         SeerOperator.migrate_autofix_cache(group_id=MOCK_GROUP_ID, run_id=MOCK_RUN_ID)
-        mock_cache_set.assert_not_called()
+        mock_cache.set.assert_not_called()
 
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
     )
-    @patch("sentry.seer.entrypoints.operator.cache.set")
-    @patch("sentry.seer.entrypoints.operator.cache.get")
-    def test_migrate_autofix_cache_overwrite(self, mock_cache_get, mock_cache_set):
+    @patch("sentry.seer.entrypoints.operator.cache")
+    def test_migrate_autofix_cache_overwrite(self, mock_cache):
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         post_cache_payload = MockCachePayload(thread_id="post_cache_payload")
-        mock_cache_get.side_effect = lambda k: (
+        mock_cache.get.side_effect = lambda k: (
             post_cache_payload if k == self.post_cache_key else pre_cache_payload
         )
         # No overwrite by default
         SeerOperator.migrate_autofix_cache(group_id=MOCK_GROUP_ID, run_id=MOCK_RUN_ID)
-        mock_cache_set.assert_not_called()
+        mock_cache.set.assert_not_called()
         # With overwrite, the post cache should be set
         SeerOperator.migrate_autofix_cache(
             group_id=MOCK_GROUP_ID, run_id=MOCK_RUN_ID, overwrite=True
         )
-        mock_cache_set.assert_called_once_with(
+        mock_cache.set.assert_called_once_with(
             self.post_cache_key,
             pre_cache_payload,
             timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS,
         )
+        mock_cache.delete.assert_called_once_with(self.pre_cache_key)
 
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
