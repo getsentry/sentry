@@ -83,9 +83,7 @@ describe('useIssuesSeriesQuery', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: ['count(new_issues)'],
-            queryExtras: expect.objectContaining({
-              category: 'issue',
-            }),
+            category: 'issue',
           }),
         })
       );
@@ -200,7 +198,7 @@ describe('useIssuesTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          query: expect.objectContaining({
+          data: expect.objectContaining({
             sort: IssueSortOptions.DATE,
             expand: ['owners'],
           }),
@@ -255,7 +253,7 @@ describe('useIssuesTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          query: expect.objectContaining({
+          data: expect.objectContaining({
             limit: 50,
             cursor: 'test-cursor',
           }),

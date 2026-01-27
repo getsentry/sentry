@@ -108,11 +108,13 @@ export function useIssuesSeriesQuery(
         generatePathname: _generatePathname,
         dataset: _dataset,
         period,
+        queryExtras,
         ...restParams
       } = requestData;
 
       const queryParams = {
         ...restParams,
+        ...queryExtras,
         ...(period ? {statsPeriod: period} : {}),
       };
 
@@ -292,7 +294,7 @@ export function useIssuesTableQuery(
         `/organizations/${organization.slug}/issues/`,
         {
           method: 'GET' as const,
-          query: queryParams,
+          data: queryParams,
         },
       ];
 
