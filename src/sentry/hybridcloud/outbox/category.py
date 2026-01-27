@@ -314,6 +314,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.SERVICE_HOOK_UPDATE,
             OutboxCategory.SENTRY_APP_DELETE,
             OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
+            OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS,
         },
     )
     # No longer in use
