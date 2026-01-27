@@ -330,6 +330,28 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
             == self.event_c.event_id
         )
 
+    @patch("sentry.services.eventstore.snuba.backend.SnubaEventStorage.get_events_snql")
+    def test_recommended_event_timeout_fallback(self, mock_get_events: MagicMock) -> None:
+        """
+        Test that when the recommended event query times out, we fall back to the latest event.
+        """
+        from sentry.utils.snuba import SnubaError
+
+        # First call (for recommended event) raises SnubaError (timeout)
+        # Second call (for latest event fallback) returns the latest event
+        mock_get_events.side_effect = [
+            SnubaError("Read timeout"),
+            [self.event_a],  # Latest event
+        ]
+
+        # Should not raise, should return the latest event as fallback
+        result = self.group.get_recommended_event()
+        assert result is not None
+        assert result.event_id == self.event_a.event_id
+
+        # Verify both calls were made
+        assert mock_get_events.call_count == 2
+
 
 @freeze_time()
 class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTestCase):
