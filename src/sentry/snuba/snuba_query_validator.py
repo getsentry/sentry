@@ -216,6 +216,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     def _validate_aggregate(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
         aggregate = data.get("aggregate")
+        
+        # Skip validation if aggregate is not provided (e.g., during partial updates)
+        if aggregate is None:
+            return
+        
         event_types = data.get("event_types", [])
         allow_mri = features.has(
             "organizations:custom-metrics",
@@ -255,25 +260,28 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
-
-        if features.has(
-            "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
-            "organizations:insights-alerts",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ):
-            column = get_column_from_aggregate(
-                data["aggregate"],
-                allow_mri=True,
-                allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
-            )
-            if is_mri(column) and dataset != Dataset.PerformanceMetrics:
-                raise serializers.ValidationError(
-                    "You can use an MRI only on alerts on performance metrics"
+        aggregate = data.get("aggregate")
+        
+        # Skip aggregate-dependent validations if aggregate is not provided (e.g., during partial updates)
+        if aggregate is not None:
+            if features.has(
+                "organizations:custom-metrics",
+                self.context["organization"],
+                actor=self.context.get("user", None),
+            ) or features.has(
+                "organizations:insights-alerts",
+                self.context["organization"],
+                actor=self.context.get("user", None),
+            ):
+                column = get_column_from_aggregate(
+                    aggregate,
+                    allow_mri=True,
+                    allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
                 )
+                if is_mri(column) and dataset != Dataset.PerformanceMetrics:
+                    raise serializers.ValidationError(
+                        "You can use an MRI only on alerts on performance metrics"
+                    )
 
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 
@@ -297,6 +305,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 "This project does not have access to the `generic_metrics` dataset"
             )
 
+        # Skip query validation if aggregate is not provided (e.g., during partial updates)
+        if aggregate is None:
+            return
+
         projects = data.get("projects")
         if not projects:
             # We just need a valid project id from the org so that we can verify
@@ -308,7 +320,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             entity_subscription = get_entity_subscription(
                 query_type,
                 dataset=dataset,
-                aggregate=data["aggregate"],
+                aggregate=aggregate,
                 time_window=data["time_window"],
                 extra_fields={
                     "org_id": projects[0].organization_id,

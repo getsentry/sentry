@@ -1849,6 +1849,10 @@ EAP_FUNCTIONS = [
 def get_column_from_aggregate(
     aggregate: str, allow_mri: bool, allow_eap: bool = False
 ) -> str | None:
+    # Return None early if aggregate is None (defensive check for partial updates)
+    if aggregate is None:
+        return None
+    
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
@@ -1898,6 +1902,10 @@ def _get_column_from_aggregate_with_mri(aggregate: str) -> str | None:
 def check_aggregate_column_support(
     aggregate: str, allow_mri: bool = False, allow_eap: bool = False
 ) -> bool:
+    # Return False early if aggregate is None (defensive check for partial updates)
+    if aggregate is None:
+        return False
+    
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
     column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     match = is_function(aggregate)
