@@ -18,6 +18,7 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.api.paginator import OffsetPaginator
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.preprod.api.models.project_preprod_build_details_models import (
@@ -221,10 +222,14 @@ def apply_filters(
             )
 
             if search_term.isdigit():
-                search_query |= Q(
-                    commit_comparison__pr_number=int(search_term),
-                    commit_comparison__organization_id=organization.id,
-                )
+                search_id = int(search_term)
+                # Skip if value exceeds max for BoundedBigIntegerField
+                if search_id <= I64_MAX:
+                    search_query |= Q(id=search_id)
+                    search_query |= Q(
+                        commit_comparison__pr_number=search_id,
+                        commit_comparison__organization_id=organization.id,
+                    )
             queryset = queryset.filter(search_query)
             continue
 
