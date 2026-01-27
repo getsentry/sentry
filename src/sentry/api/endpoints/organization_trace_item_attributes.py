@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -129,13 +129,19 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
     itemType = serializers.ChoiceField(
-        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
+        [e.value for e in SupportedTraceItemType], required=False, source="item_type"
     )
+    dataset = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=False)
     attributeType = serializers.ChoiceField(
         ["string", "number", "boolean"], required=True, source="attribute_type"
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
+
+    def validate(self, attrs: Any) -> Any:
+        if attrs.get("item_type") is None and attrs.get("dataset") is None:
+            raise serializers.ValidationError("dataset is required if itemType is not passed")
+        return attrs
 
 
 def is_valid_item_type(item_type: str) -> bool:
@@ -253,11 +259,16 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
         attribute_type = serialized.get("attribute_type")
+        # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
+        # Dataset is going to replace item_type
+        dataset = serialized.get("dataset")
+        if dataset is None:
+            dataset = item_type
 
         max_attributes = options.get("explore.trace-items.keys.max")
         value_substring_match = translate_escape_sequences(substring_match)
-        trace_item_type = SupportedTraceItemType(item_type)
+        trace_item_type = SupportedTraceItemType(dataset)
         referrer = resolve_attribute_referrer(trace_item_type, attribute_type)
         column_definitions = get_column_definitions(trace_item_type)
         resolver = SearchResolver(
@@ -382,12 +393,17 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         sentry_sdk.set_tag("query.attribute_key", key)
 
         serialized = serializer.validated_data
-        item_type = serialized.get("item_type")
         substring_match = serialized.get("substring_match", "")
+        # Deprecating this so we're using the same param name as the events endpoints
+        item_type = serialized.get("item_type")
+        # Dataset is going to replace item_type
+        dataset = serialized.get("dataset")
+        if dataset is None:
+            dataset = item_type
 
         max_attribute_values = options.get("explore.trace-items.values.max")
 
-        definitions = get_column_definitions(SupportedTraceItemType(item_type))
+        definitions = get_column_definitions(SupportedTraceItemType(dataset))
 
         def data_fn(offset: int, limit: int):
             executor = TraceItemAttributeValuesAutocompletionExecutor(

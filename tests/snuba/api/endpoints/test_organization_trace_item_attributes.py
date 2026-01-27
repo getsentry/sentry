@@ -34,8 +34,8 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
     def do_request(self, query=None, features=None, **kwargs):
         if query is None:
             query = {}
-        if "itemType" not in query:
-            query["itemType"] = self.item_type.value
+        if "dataset" not in query:
+            query["dataset"] = self.item_type.value
         if "attributeType" not in query:
             query["attributeType"] = "string"
 
@@ -60,11 +60,11 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -404,11 +404,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -852,11 +852,11 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -1027,8 +1027,8 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
         if query is None:
             query = {}
 
-        if "itemType" not in query:
-            query["itemType"] = self.item_type.value
+        if "dataset" not in query:
+            query["dataset"] = self.item_type.value
         if "attributeType" not in query:
             query["attributeType"] = "string"
 
@@ -1053,11 +1053,11 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -1110,11 +1110,11 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
