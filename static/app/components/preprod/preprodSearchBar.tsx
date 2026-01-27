@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -10,6 +9,11 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface PreprodSearchBarProps {
   initialQuery: string;
+  /**
+   * Project IDs to scope the search to. In settings pages, get this from
+   * projectOutlet. In dashboard pages, get this from page filters.
+   */
+  projects: number[];
   /**
    * Optional list of attribute keys to show. If not provided, all attributes are shown.
    */
@@ -52,6 +56,7 @@ function filterAttributes(
  */
 export function PreprodSearchBar({
   initialQuery,
+  projects,
   allowedKeys,
   hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES,
   onChange,
@@ -63,9 +68,6 @@ export function PreprodSearchBar({
   searchSource = 'preprod',
 }: PreprodSearchBarProps) {
   const organization = useOrganization();
-  const {
-    selection: {projects},
-  } = usePageFilters();
 
   const traceItemAttributeConfig = {
     traceItemType: TraceItemDataset.PREPROD,

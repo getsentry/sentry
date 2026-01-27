@@ -435,6 +435,56 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_issue_reactions(self, get_jwt) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions?per_page={self.github_client.page_size}",
+            json=[
+                {"id": 1, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+                {"id": 2, "user": {"login": "other-user"}, "content": "heart"},
+            ],
+            headers={},
+        )
+        result = self.github_client.get_issue_reactions(repo=self.repo.name, issue_number="42")
+        assert len(result) == 2
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_issue_reaction(self, get_jwt) -> None:
+        response_data = {
+            "id": 1,
+            "node_id": "MDg6UmVhY3Rpb24x",
+            "user": {"login": "octocat", "id": 1},
+            "content": "eyes",
+        }
+        responses.add(
+            responses.POST,
+            f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions",
+            json=response_data,
+            status=201,
+        )
+
+        result = self.github_client.create_issue_reaction(
+            repo=self.repo.name, issue_number="42", reaction=GitHubReaction.EYES
+        )
+        assert result == response_data
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_delete_issue_reaction(self, get_jwt) -> None:
+        responses.add(
+            responses.DELETE,
+            f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions/123",
+            status=204,
+        )
+
+        result = self.github_client.delete_issue_reaction(
+            repo=self.repo.name, issue_number="42", reaction_id="123"
+        )
+        assert result is None or result == {}
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_merge_commit_sha_from_commit(self, get_jwt) -> None:
         merge_commit_sha = "jkl123"
         pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]

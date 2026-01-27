@@ -15,7 +15,7 @@
 !stylelint.config.js
 !tsconfig.json
 !config
-!webpack.config.js
+!rspack.config.ts
 !pnpm-lock.yaml
 !tests
 !fixtures

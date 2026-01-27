@@ -256,6 +256,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         List an Organization's Monitors
         """
         if not request.user.is_authenticated:
@@ -315,6 +317,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Create a Monitor for a project
         """
         detector_type = request.data.get("type")
@@ -372,7 +376,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Mutate an Organization's Monitors",
-        description=("Currently supports bulk enabling/disabling Monitors."),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -400,6 +403,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def put(self, request: Request, organization: Organization) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Bulk enable or disable an Organization's Monitors
         """
         if not request.user.is_authenticated:
@@ -476,6 +481,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Bulk delete Monitors for a given organization
         """
         if not request.user.is_authenticated:

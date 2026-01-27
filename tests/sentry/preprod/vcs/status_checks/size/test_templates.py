@@ -799,11 +799,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.slug}"
         ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}?project={self.project.slug}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/preprod/"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/"
 
         expected = f"""\
-## 2 Apps Analyzed
-
 ### Android Builds
 
 | Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
@@ -1127,12 +1125,10 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         )
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
-        settings_url = (
-            f"http://testserver/settings/projects/{self.project.slug}/preprod/?expanded=rule-1"
-        )
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
@@ -1145,8 +1141,6 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 `com.example.app` (Android)
 - **Download Size - Total Size** ≥ **52.4 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1224,10 +1218,10 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         )
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/preprod/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
@@ -1242,8 +1236,6 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 - **Download Size - Total Size** ≥ **52.4 MB**
 - **Install Size - Absolute Diff** ≥ **10.5 MB**
 - **Download Size - Relative Diff** ≥ **5.0%**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1331,10 +1323,10 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
         artifact1_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact1.id}?project={self.project.slug}"
         artifact2_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact2.id}?project={self.project.slug}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/preprod/?expanded=rule-1&expanded=rule-2"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1&expanded=rule-2"
 
         expected = f"""\
-## ❌ 2 Apps Failed Size Checks
+## ❌ 2 Failed Size Checks
 
 ### iOS Builds
 
@@ -1355,8 +1347,6 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 - **Download Size - Total Size** ≥ **52.4 MB**
 `com.example.app2` (Android)
 - **Install Size - Total Size** ≥ **104.9 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1434,12 +1424,10 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
         failed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{failed_artifact.id}?project={self.project.slug}"
         passed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{passed_artifact.id}?project={self.project.slug}"
-        settings_url = (
-            f"http://testserver/settings/projects/{self.project.slug}/preprod/?expanded=rule-1"
-        )
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
@@ -1452,11 +1440,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 `com.example.failed` (Android)
 - **Download Size - Total Size** ≥ **52.4 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
-## 1 App Analyzed
+## 1 Analyzed
 
 ### Android Builds
 

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -11,7 +11,10 @@ import {
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
+import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardingPanel';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -108,6 +111,17 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
   const pageLinks = getResponseHeader?.('Link') ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
   const showProjectColumn = selectedProjectIds.length > 1;
+  const projectId = selectedProjectIds[0];
+  const shouldShowOnboarding =
+    builds.length === 0 &&
+    !isLoadingBuilds &&
+    !buildsError &&
+    !hasSearchQuery &&
+    selectedProjectIds.length === 1;
+
+  const project = ProjectsStore.getById(projectId ?? '');
+  const platform = project?.platform;
+
   usePreprodBuildsAnalytics({
     builds,
     cursor,
@@ -119,6 +133,27 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     projectCount: selectedProjectIds.length,
     searchQuery,
   });
+
+  useEffect(() => {
+    if (shouldShowOnboarding && project && projectId) {
+      trackAnalytics('preprod.builds.onboarding.viewed', {
+        organization,
+        platform,
+        project_id: projectId,
+      });
+    }
+  }, [shouldShowOnboarding, project, projectId, organization, platform]);
+
+  const handleDocsClick = useCallback(
+    (linkType: 'product' | 'ios' | 'android' | 'flutter' | 'react-native') => {
+      trackAnalytics('preprod.builds.onboarding.docs_clicked', {
+        organization,
+        link_type: linkType,
+        platform,
+      });
+    },
+    [organization, platform]
+  );
 
   if (selectedProjectIds.length === 0) {
     return <LoadingIndicator />;
@@ -146,16 +181,23 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
 
       {buildsError && <LoadingError onRetry={refetch} />}
 
-      <PreprodBuildsTable
-        builds={builds}
-        display={activeDisplay}
-        isLoading={isLoadingBuilds}
-        error={!!buildsError}
-        pageLinks={pageLinks}
-        organizationSlug={organization.slug}
-        hasSearchQuery={hasSearchQuery}
-        showProjectColumn={showProjectColumn}
-      />
+      {shouldShowOnboarding && projectId ? (
+        <PreprodOnboardingPanel
+          platform={platform ?? null}
+          onDocsClick={handleDocsClick}
+        />
+      ) : (
+        <PreprodBuildsTable
+          builds={builds}
+          display={activeDisplay}
+          isLoading={isLoadingBuilds}
+          error={!!buildsError}
+          pageLinks={pageLinks}
+          organizationSlug={organization.slug}
+          hasSearchQuery={hasSearchQuery}
+          showProjectColumn={showProjectColumn}
+        />
+      )}
     </Stack>
   );
 }

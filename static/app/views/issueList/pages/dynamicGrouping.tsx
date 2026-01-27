@@ -57,6 +57,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {
+  getSortedClusterIds,
+  type ClusterSortInput,
+} from 'sentry/views/issueList/dynamicGrouping/clusterSorting';
+import {
   PENDING_CLUSTER_STATS,
   useClusterStats,
   useClusterStatsMap,
@@ -69,7 +73,6 @@ import {
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
 const CLUSTERS_PER_PAGE = 20;
-const MAX_NEW_ISSUES_FOR_SCORE = 10;
 const MIN_CLUSTERS_THRESHOLD = 10;
 const clusterQueryParser = parseAsInteger.withOptions({history: 'push'});
 
@@ -94,69 +97,6 @@ function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
 function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   const message = formatClusterInfoForClipboard(cluster);
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
-}
-
-// Higher tier means "more relevant to this user."
-function getAssignmentTier(
-  cluster: ClusterSummary,
-  userId: string,
-  userTeamIds: Set<string>
-): number {
-  let hasAssignment = false;
-  for (const entity of cluster.assignedTo ?? []) {
-    hasAssignment = true;
-    if (entity.type === 'user' && entity.id === userId) {
-      return 3;
-    }
-    if (entity.type === 'team' && userTeamIds.has(entity.id)) {
-      return 2;
-    }
-  }
-
-  return hasAssignment ? 1 : 0;
-}
-
-// Stats-driven urgency: regressions/escalations, new issues, volume, and recency.
-function getUrgencyScore(clusterStats: ClusterStats, now: number): number {
-  if (clusterStats.isPending) {
-    return 0;
-  }
-
-  let score = 0;
-  if (clusterStats.hasRegressedIssues) {
-    score += 400;
-  }
-  if (clusterStats.isEscalating) {
-    score += 300;
-  }
-
-  score += Math.min(clusterStats.newIssuesCount, MAX_NEW_ISSUES_FOR_SCORE) * 20;
-  score += Math.log1p(clusterStats.totalEvents) * 30;
-  score += Math.log1p(clusterStats.totalUsers) * 25;
-
-  if (clusterStats.lastSeen) {
-    const lastSeenMs = new Date(clusterStats.lastSeen).getTime();
-    const hoursSinceLastSeen = (now - lastSeenMs) / 3_600_000;
-    if (hoursSinceLastSeen <= 24) {
-      score += 120;
-    } else if (hoursSinceLastSeen <= 72) {
-      score += 60;
-    } else if (hoursSinceLastSeen <= 168) {
-      score += 20;
-    }
-  }
-
-  return score;
-}
-
-// Fixability score is already normalized (0..1); convert to a comparable weight.
-function getFixabilityScore(cluster: ClusterSummary): number {
-  return (cluster.fixability_score ?? 0) * 100;
-}
-
-// Small boost for larger clusters; capped to avoid overwhelming urgency/fixability.
-function getScopeScore(cluster: ClusterSummary): number {
-  return Math.min(cluster.group_ids.length, 10) * 5;
 }
 
 interface PreSortParams {
@@ -274,64 +214,6 @@ function applyStatusFilters({
       }
     }
     return true;
-  });
-}
-
-interface SortClustersParams {
-  clusterStatsById: Map<number, ClusterStats>;
-  clusters: ClusterSummary[];
-  disableFilters: boolean;
-  isUsingCustomData: boolean;
-  userId: string;
-  userTeamIds: Set<string>;
-}
-
-function getSortedClusters({
-  clusterStatsById,
-  clusters,
-  disableFilters,
-  isUsingCustomData,
-  userId,
-  userTeamIds,
-}: SortClustersParams): ClusterSummary[] {
-  if (isUsingCustomData && disableFilters) {
-    return clusters;
-  }
-
-  // Sort order: relevance → urgency → fixability → scope → stable source order.
-  const clusterIndex = new Map(
-    clusters.map((cluster, index) => [cluster.cluster_id, index])
-  );
-  const now = Date.now();
-
-  return [...clusters].sort((a, b) => {
-    const aTier = getAssignmentTier(a, userId, userTeamIds);
-    const bTier = getAssignmentTier(b, userId, userTeamIds);
-    if (aTier !== bTier) {
-      return bTier - aTier;
-    }
-
-    const aStats = clusterStatsById.get(a.cluster_id) ?? PENDING_CLUSTER_STATS;
-    const bStats = clusterStatsById.get(b.cluster_id) ?? PENDING_CLUSTER_STATS;
-    const aUrgency = getUrgencyScore(aStats, now);
-    const bUrgency = getUrgencyScore(bStats, now);
-    if (aUrgency !== bUrgency) {
-      return bUrgency - aUrgency;
-    }
-
-    const aFixability = getFixabilityScore(a);
-    const bFixability = getFixabilityScore(b);
-    if (aFixability !== bFixability) {
-      return bFixability - aFixability;
-    }
-
-    const aScope = getScopeScore(a);
-    const bScope = getScopeScore(b);
-    if (aScope !== bScope) {
-      return bScope - aScope;
-    }
-
-    return (clusterIndex.get(a.cluster_id) ?? 0) - (clusterIndex.get(b.cluster_id) ?? 0);
   });
 }
 
@@ -895,14 +777,32 @@ function DynamicGrouping() {
       isUsingCustomData,
     });
 
-    return getSortedClusters({
+    if (isUsingCustomData && disableFilters) {
+      return filteredClusters;
+    }
+
+    const sortInputs: ClusterSortInput[] = filteredClusters.map(cluster => ({
+      clusterId: cluster.cluster_id,
+      assignedTo: cluster.assignedTo?.map(entity => ({
+        id: entity.id,
+        type: entity.type,
+      })),
+      fixabilityScore: cluster.fixability_score,
+      issueCount: cluster.cluster_size ?? cluster.group_ids.length,
+    }));
+    const clustersById = new Map(
+      filteredClusters.map(cluster => [cluster.cluster_id, cluster])
+    );
+    const sortedClusterIds = getSortedClusterIds({
+      clusters: sortInputs,
       clusterStatsById,
-      clusters: filteredClusters,
-      disableFilters,
-      isUsingCustomData,
       userId: user.id,
       userTeamIds,
     });
+
+    return sortedClusterIds
+      .map(clusterId => clustersById.get(clusterId))
+      .filter(Boolean) as ClusterSummary[];
   }, [
     preSortClusters,
     clusterStatsById,
