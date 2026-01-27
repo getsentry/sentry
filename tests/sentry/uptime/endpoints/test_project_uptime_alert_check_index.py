@@ -6,7 +6,6 @@ from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.types import IncidentStatus
-from sentry.utils import json
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -106,7 +105,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert most_recent["uptimeCheckId"]
             assert most_recent["regionName"] == "Default Region"
             assert most_recent["checkStatusReason"] == "failure"
-            assert most_recent["assertionFailureData"] == json.dumps(MOCK_ASSERTION_FAILURE_DATA)
+            assert most_recent["assertionFailureData"] == MOCK_ASSERTION_FAILURE_DATA
 
             assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
             assert any(v for v in response.data if v["checkStatusReason"] is None)
