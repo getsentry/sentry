@@ -16,6 +16,20 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 import {useFeatureFilter} from './useFeatureFilter';
 
 const EXAMPLE_BUILDS_COUNT = 5;
+const FEATURE_FILTER_ALLOWED_KEYS = [
+  'app_id',
+  'app_name',
+  'build_configuration_name',
+  'platform_name',
+  'build_number',
+  'build_version',
+  'git_head_ref',
+  'git_base_ref',
+  'git_head_sha',
+  'git_base_sha',
+  'git_head_repo_name',
+  'git_pr_number',
+];
 
 interface FeatureFilterProps {
   settingsReadKey: string;
@@ -91,6 +105,7 @@ export function FeatureFilter({
           <PreprodSearchBar
             initialQuery={localQuery}
             projects={[Number(project.id)]}
+            allowedKeys={FEATURE_FILTER_ALLOWED_KEYS}
             onChange={handleQueryChange}
             onSearch={handleSearch}
             searchSource="preprod_feature_filter"
