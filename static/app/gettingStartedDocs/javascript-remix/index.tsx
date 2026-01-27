@@ -3,7 +3,7 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
-import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/utils';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
@@ -28,7 +28,7 @@ const docs: Docs = {
     docsPlatform: 'remix',
     packageName: '@sentry/remix',
   }),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+  agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/remix',
     configFileName: 'instrument.server.mjs',
   }),

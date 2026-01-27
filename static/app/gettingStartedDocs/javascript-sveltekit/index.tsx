@@ -3,7 +3,7 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
-import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/utils';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
@@ -24,7 +24,7 @@ const docs: Docs = {
     nodeProfilingLink:
       'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/node-profiling/',
   }),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+  agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/sveltekit',
     configFileName: 'instrumentation.server.js',
   }),
