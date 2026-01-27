@@ -660,10 +660,21 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             if self.conditions and not self._collapse("filtered")
             else None
         )
+        # Calculate lifetime bounds based on the earliest first_seen from the groups
+        # to avoid unbounded queries that scan all data from 2008
+        lifetime_start = None
+        if error_issue_list:
+            earliest_first_seen = min(
+                (group.first_seen for group in error_issue_list if group.first_seen),
+                default=None,
+            )
+            if earliest_first_seen:
+                lifetime_start = earliest_first_seen
+        
         lifetime_result = (
             (
                 self._parse_seen_stats_results(
-                    partial_execute_seen_stats_query(start=None, end=None),
+                    partial_execute_seen_stats_query(start=lifetime_start, end=None),
                     error_issue_list,
                     False,
                     self.environment_ids,

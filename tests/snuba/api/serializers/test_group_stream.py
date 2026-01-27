@@ -288,3 +288,55 @@ class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
             request=self.make_request(),
         )
         assert result[0]["id"] == str(group.id)
+
+    def test_lifetime_query_bounded_by_first_seen(self) -> None:
+        """Test that lifetime queries use group.first_seen as start time to avoid unbounded queries."""
+        # Create a group with a known first_seen timestamp
+        first_seen_time = before_now(days=30)
+        group = self.create_group(first_seen=first_seen_time)
+        organization_id = group.project.organization_id
+
+        # Serialize with a time range to trigger lifetime query
+        with mock.patch(
+            "sentry.api.serializers.models.group.aliased_query"
+        ) as mock_aliased_query:
+            # Mock the return value to avoid actual Snuba calls
+            mock_aliased_query.return_value = {
+                "data": [
+                    {
+                        "group_id": group.id,
+                        "times_seen": 10,
+                        "first_seen": first_seen_time,
+                        "last_seen": timezone.now(),
+                        "count": 5,
+                    }
+                ]
+            }
+
+            serializer = StreamGroupSerializerSnuba(
+                stats_period="24h",
+                start=before_now(days=7),
+                end=timezone.now(),
+                organization_id=organization_id,
+            )
+            serialize(
+                [group],
+                self.user,
+                serializer=serializer,
+                request=self.make_request(),
+            )
+
+            # Verify that aliased_query was called
+            assert mock_aliased_query.called
+
+            # Find the lifetime query call (should have start=first_seen_time, end=None)
+            lifetime_call = None
+            for call in mock_aliased_query.call_args_list:
+                kwargs = call.kwargs
+                # The lifetime query should have start set to first_seen and end=None
+                if kwargs.get("start") == first_seen_time and kwargs.get("end") is None:
+                    lifetime_call = call
+                    break
+
+            # Verify that the lifetime query was bounded by first_seen
+            assert lifetime_call is not None, "Lifetime query should use group.first_seen as start"
