@@ -29,5 +29,5 @@ export function AutoSaveContextProvider({
   children: React.ReactNode;
   value: AutoSaveContextValue;
 }) {
-  return <AutoSaveContext.Provider value={value}>{children}</AutoSaveContext.Provider>;
+  return <AutoSaveContext value={value}>{children}</AutoSaveContext>;
 }
