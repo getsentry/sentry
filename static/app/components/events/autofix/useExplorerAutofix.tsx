@@ -1,7 +1,10 @@
 import {useCallback, useState} from 'react';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {needsGitHubAuth} from 'sentry/components/events/autofix/useAutofix';
+import {
+  needsGitHubAuth,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import {
   setApiQueryData,
   useApiQuery,
@@ -408,7 +411,7 @@ export function useExplorerAutofix(
    * Trigger coding agent handoff for an existing run.
    */
   const triggerCodingAgentHandoff = useCallback(
-    async (runId: number, integration: {id: string | null; provider: string}) => {
+    async (runId: number, integration: CodingAgentIntegration) => {
       setWaitingForResponse(true);
 
       addLoadingMessage('Launching coding agent...');
