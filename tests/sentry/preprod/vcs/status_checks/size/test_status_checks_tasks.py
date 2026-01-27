@@ -291,12 +291,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert call_kwargs["sha"] == preprod_artifact.commit_comparison.head_sha
                 assert call_kwargs["title"] == "Size Analysis"
 
-                # When no rules are configured, IN_PROGRESS and FAILURE are converted to NEUTRAL
-                # to avoid blocking PR merges. When rules exist, actual status is preserved.
-                if expected_status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
-                    assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
-                else:
-                    assert call_kwargs["status"] == expected_status
+                # When no rules are configured, all statuses are converted to NEUTRAL.
+                # When rules exist, actual status is preserved.
+                assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
 
                 if expected_status == StatusCheckStatus.SUCCESS:
                     # SUCCESS only when processed AND has completed size metrics
@@ -454,8 +451,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         assert call_kwargs["title"] == "Size Analysis"
         assert call_kwargs["subtitle"] == "1 app analyzed, 1 app processing, 1 app errored"
-        # Mixed states include a FAILED artifact. With no rules configured,
-        # FAILURE is converted to NEUTRAL to avoid blocking PR merges.
+        # With no rules configured, status is always NEUTRAL.
         assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL
 
         summary = call_kwargs["summary"]

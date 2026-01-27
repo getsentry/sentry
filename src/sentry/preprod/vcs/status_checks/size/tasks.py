@@ -213,9 +213,9 @@ def create_preprod_status_check_task(
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
 
-    # Only convert to neutral when no rules are configured.
+    # When no rules are configured, always show neutral status.
     # When rules exist, show actual status (in_progress, failure, success).
-    if not rules and status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
+    if not rules:
         status = StatusCheckStatus.NEUTRAL
         completed_at = preprod_artifact.date_updated
 
