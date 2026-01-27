@@ -27,6 +27,7 @@ interface TopBarProps {
   isCopySessionEnabled: boolean;
   isEmptyState: boolean;
   isPolling: boolean;
+  isSeerDrawerOpen: boolean;
   isSessionHistoryOpen: boolean;
   onCopyLinkClick: () => void;
   onCopySessionClick: () => void;
@@ -47,6 +48,7 @@ function TopBar({
   blocks,
   isPolling,
   isEmptyState,
+  isSeerDrawerOpen,
   isSessionHistoryOpen,
   onCreatePR,
   onFeedbackClick,
@@ -157,6 +159,7 @@ function TopBar({
           onClick={onSizeToggleClick}
           priority="transparent"
           size="sm"
+          disabled={isSeerDrawerOpen}
           aria-label={
             panelSize === 'max'
               ? t('Shrink to medium size (/med-size)')
