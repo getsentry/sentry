@@ -1997,7 +1997,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["latestEventHasAttachments"] is True
 
     @with_feature("organizations:event-attachments")
-    @patch("sentry.models.Group.get_latest_event", return_value=None)
+    @patch(
+        "sentry.api.serializers.models.group_stream.StreamGroupSerializerSnuba._get_latest_events_batch",
+        return_value={},
+    )
     def test_expand_no_latest_event_has_no_attachments(self, mock_latest_event: MagicMock) -> None:
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
