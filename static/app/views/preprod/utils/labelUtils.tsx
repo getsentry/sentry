@@ -102,6 +102,7 @@ export function getLabels(
         buildConfiguration: t('Build configuration'),
         installUnavailableTooltip: t('This app cannot be installed.'),
       };
+    case 'apple':
     case 'ios':
     case 'macos':
     case undefined:
@@ -123,6 +124,8 @@ export function getLabels(
 
 export function getReadablePlatformLabel(platform: Platform): string {
   switch (platform) {
+    case 'apple':
+      return 'Apple';
     case 'ios':
       return 'iOS';
     case 'android':
