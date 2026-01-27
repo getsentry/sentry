@@ -1297,3 +1297,108 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 mock_provider.create_status_check.assert_called_once()
                 call_kwargs = mock_provider.create_status_check.call_args.kwargs
                 assert call_kwargs["status"] == expected_status
+
+    def test_no_n_plus_one_query_with_build_configurations(self):
+        """Test that accessing build_configuration.name doesn't trigger N+1 queries.
+
+        Regression test for SENTRY-5H2Y: Ensure that when multiple artifacts with build
+        configurations are processed, accessing build_configuration.name doesn't trigger
+        a separate query for each artifact.
+        """
+        from sentry.preprod.models import PreprodBuildConfiguration
+
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/n-plus-one",
+            base_ref="main",
+        )
+
+        # Create build configurations
+        debug_config = PreprodBuildConfiguration.objects.create(
+            project=self.project, name="Debug"
+        )
+        release_config = PreprodBuildConfiguration.objects.create(
+            project=self.project, name="Release"
+        )
+
+        # Create multiple artifacts with different build configurations
+        artifacts = []
+        for i in range(3):
+            build_config = debug_config if i % 2 == 0 else release_config
+            artifact = Factories.create_preprod_artifact(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+                app_id=f"com.example.app{i}",
+                build_version="1.0.0",
+                build_number=i + 1,
+                commit_comparison=commit_comparison,
+            )
+            artifact.build_configuration = build_config
+            artifact.save()
+
+            PreprodArtifactSizeMetrics.objects.create(
+                preprod_artifact=artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                min_download_size=1024 * 1024,
+                max_download_size=1024 * 1024,
+                min_install_size=2 * 1024 * 1024,
+                max_install_size=2 * 1024 * 1024,
+            )
+            artifacts.append(artifact)
+
+        # Configure a rule with build_configuration_name filter to exercise the code path
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", '
+            '"value": 100000000000, "filterQuery": "build_configuration_name:Debug"}]',
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            artifacts[0]
+        )
+
+        with client_patch, provider_patch:
+            # Track queries to ensure no N+1 queries
+            from django.test.utils import CaptureQueriesContext
+            from django.db import connection
+
+            with CaptureQueriesContext(connection) as queries:
+                with self.tasks():
+                    create_preprod_status_check_task(artifacts[0].id)
+
+            # Check that build_configuration was prefetched (no extra queries for each artifact)
+            # We should see queries for:
+            # 1. Fetching the initial artifact with relations
+            # 2. Fetching sibling artifacts (with select_related for build_configuration)
+            # 3. Fetching size metrics
+            # 4. Fetching approvals
+            # 5. Fetching base size metrics
+            # 6. Repository lookup
+            # 7. Integration lookup
+            # 8. Organization integration lookup
+            # 9. Update posted_status_checks
+            #
+            # We should NOT see N queries for PreprodBuildConfiguration (one per artifact)
+            query_sqls = [q["sql"] for q in queries.queries]
+            build_config_queries = [
+                q for q in query_sqls if "sentry_preprodbuildconfiguration" in q.lower()
+            ]
+
+            # With select_related, build_configuration should be joined in the main query,
+            # so we shouldn't have separate queries for it
+            # The query count might include the join, but there should be no extra queries
+            # beyond the initial fetch
+            assert len(build_config_queries) <= 1, (
+                f"Expected at most 1 query for build configurations (via JOIN), "
+                f"but got {len(build_config_queries)}. This indicates an N+1 query issue. "
+                f"Queries: {build_config_queries}"
+            )
+
+        mock_provider.create_status_check.assert_called_once()

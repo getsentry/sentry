@@ -92,7 +92,7 @@ def create_preprod_status_check_task(
 ) -> None:
     try:
         preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
-            "mobile_app_info"
+            "mobile_app_info", "project", "commit_comparison", "build_configuration"
         ).get(id=preprod_artifact_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
