@@ -625,8 +625,16 @@ class ReleaseSerializer(Serializer):
 
         # XXX: Legacy should be removed later
         if with_health_data:
+            # Deduplicate project_releases to prevent redundant project IDs in Snuba queries.
+            # The project_releases list can contain duplicates when using flatten=1,
+            # which causes the Snuba query to have repeated values in the WHERE clause
+            # (e.g., project_id IN array(1876737, 1876737, ..., 1876737)),
+            # leading to query timeouts (SENTRY-40GN).
+            unique_project_releases = list(
+                {(pr["project__id"], pr["release__version"]) for pr in project_releases}
+            )
             health_data = release_health.backend.get_release_health_data_overview(
-                [(pr["project__id"], pr["release__version"]) for pr in project_releases],
+                unique_project_releases,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
                 environments=environments,
