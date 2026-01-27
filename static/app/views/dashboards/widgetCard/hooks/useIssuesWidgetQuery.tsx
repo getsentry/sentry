@@ -75,7 +75,7 @@ export function useIssuesSeriesQuery(
 
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<IssuesSeriesResponse[] | undefined>(undefined);
-  const fetchFnRefsRef = useRef<Array<{current: (() => Promise<void>) | null}>>([]);
+  const fetchFnRefsRef = useRef<Array<{current: () => Promise<void>}>>([]);
 
   const filteredWidget = useMemo(
     () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
@@ -132,8 +132,12 @@ export function useIssuesSeriesQuery(
       ] satisfies ApiQueryKey;
     });
 
-    // Initialize fetchFnRefs array to match the number of queries
-    fetchFnRefsRef.current = keys.map(() => ({current: null}));
+    // Adjust fetchFnRefs array to match the number of queries while preserving existing refs
+    const noop = () => Promise.resolve();
+    while (fetchFnRefsRef.current.length < keys.length) {
+      fetchFnRefsRef.current.push({current: noop});
+    }
+    fetchFnRefsRef.current.length = keys.length;
 
     return keys;
   }, [filteredWidget, organization, pageFilters]);
@@ -252,7 +256,7 @@ export function useIssuesTableQuery(
 
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<IssuesTableResponse[] | undefined>(undefined);
-  const fetchFnRefsRef = useRef<Array<{current: (() => Promise<void>) | null}>>([]);
+  const fetchFnRefsRef = useRef<Array<{current: () => Promise<void>}>>([]);
 
   const filteredWidget = useMemo(
     () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
@@ -295,8 +299,12 @@ export function useIssuesTableQuery(
       return baseQueryKey;
     });
 
-    // Initialize fetchFnRefs array to match the number of queries
-    fetchFnRefsRef.current = keys.map(() => ({current: null}));
+    // Adjust fetchFnRefs array to match the number of queries while preserving existing refs
+    const noop = () => Promise.resolve();
+    while (fetchFnRefsRef.current.length < keys.length) {
+      fetchFnRefsRef.current.push({current: noop});
+    }
+    fetchFnRefsRef.current.length = keys.length;
 
     return keys;
   }, [filteredWidget, organization, pageFilters, cursor, limit]);
