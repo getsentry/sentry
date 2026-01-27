@@ -155,6 +155,7 @@ def handle_pull_request_event(
             repo=repo,
             pr_number=str(pr_number),
             comment_id=None,
+            extra=extra,
         )
 
     from .task import schedule_task
