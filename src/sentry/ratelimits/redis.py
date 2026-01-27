@@ -36,7 +36,7 @@ class RedisRateLimiter(RateLimiter):
     def _construct_redis_key(
         self,
         key: str,
-        project: Project | None = None,
+        project: Project | int | None = None,
         window: int | None = None,
         request_time: float | None = None,
     ) -> str:
@@ -55,8 +55,14 @@ class RedisRateLimiter(RateLimiter):
         key_hex = md5_text(key).hexdigest()
         bucket = _time_bucket(request_time, window)
 
+        project_id = None
+        if isinstance(project, Project):
+            project_id = project.id
+        elif isinstance(project, int):
+            project_id = project
+
         redis_key = f"rl:{key_hex}"
-        if project is not None:
+        if project_id is not None:
             redis_key += f":{project.id}"
         redis_key += f":{bucket}"
 
@@ -70,7 +76,7 @@ class RedisRateLimiter(RateLimiter):
             raise InvalidConfiguration(str(e))
 
     def current_value(
-        self, key: str, project: Project | None = None, window: int | None = None
+        self, key: str, project: Project | int | None = None, window: int | None = None
     ) -> int:
         """
         Get the current value stored in redis for the rate limit with key "key" and said window
@@ -91,7 +97,7 @@ class RedisRateLimiter(RateLimiter):
         return int(current_count)
 
     def is_limited_with_value(
-        self, key: str, limit: int, project: Project | None = None, window: int | None = None
+        self, key: str, limit: int, project: Project | int | None = None, window: int | None = None
     ) -> tuple[bool, int, int]:
         """
         Does a rate limit check as well as returning the new rate limit value and when the next
@@ -121,6 +127,8 @@ class RedisRateLimiter(RateLimiter):
 
         return result > limit, result, reset_time
 
-    def reset(self, key: str, project: Project | None = None, window: int | None = None) -> None:
+    def reset(
+        self, key: str, project: Project | int | None = None, window: int | None = None
+    ) -> None:
         redis_key = self._construct_redis_key(key, project=project, window=window)
         self.client.delete(redis_key)

@@ -14,23 +14,25 @@ class RateLimiter(Service):
     window = 60
 
     def is_limited(
-        self, key: str, limit: int, project: Project | None = None, window: int | None = None
+        self, key: str, limit: int, project: Project | int | None = None, window: int | None = None
     ) -> bool:
         is_limited, _, _ = self.is_limited_with_value(key, limit, project=project, window=window)
         return is_limited
 
     def current_value(
-        self, key: str, project: Project | None = None, window: int | None = None
+        self, key: str, project: Project | int | None = None, window: int | None = None
     ) -> int:
         return 0
 
     def is_limited_with_value(
-        self, key: str, limit: int, project: Project | None = None, window: int | None = None
+        self, key: str, limit: int, project: Project | int | None = None, window: int | None = None
     ) -> tuple[bool, int, int]:
         return False, 0, 0
 
     def validate(self) -> None:
         raise NotImplementedError
 
-    def reset(self, key: str, project: Project | None = None, window: int | None = None) -> None:
+    def reset(
+        self, key: str, project: Project | int | None = None, window: int | None = None
+    ) -> None:
         return
