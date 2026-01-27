@@ -134,6 +134,66 @@ class BuildMetricAlertChartTest(TestCase):
         assert mock_client_get.call_args[1]["params"]["dataset"] == "spans"
         assert mock_client_get.call_args[1]["params"]["query"] == "span.op:pageload"
 
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @patch("sentry.incidents.charts.client.get")
+    def test_api_error_with_invalid_issue_ids(
+        self, mock_client_get: MagicMock, mock_generate_chart: MagicMock
+    ) -> None:
+        """Test that chart generation handles API errors gracefully when issue IDs don't exist"""
+        from sentry.api.client import ApiError
+
+        # Simulate the API error that occurs when issue IDs don't exist
+        mock_client_get.side_effect = ApiError(
+            400,
+            {
+                "detail": "Issue IDs do not exist: ['PROJECT-123', 'PROJECT-456']",
+                "code": "parse_error",
+            },
+        )
+
+        alert_rule = self.create_alert_rule(
+            query="!issue:[PROJECT-123,PROJECT-456]",  # Non-existent issues
+            aggregate="count()",
+        )
+        incident = self.create_incident(
+            status=2,
+            organization=self.organization,
+            projects=[self.project],
+            alert_rule=alert_rule,
+            date_started=timezone.now() - datetime.timedelta(minutes=2),
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+
+        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
+            alert_rule, None, AlertRuleSerializer()
+        )
+        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+            incident, None, DetailedIncidentSerializer()
+        )
+
+        # Should not raise an exception, but instead generate chart with empty data
+        url = build_metric_alert_chart(
+            self.organization,
+            alert_rule_serialized_response=alert_rule_serialized_response,
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            snuba_query=alert_rule.snuba_query,
+            open_period_context=OpenPeriodContext.from_incident(incident),
+            selected_incident_serialized=incident_serialized_response,
+        )
+
+        # Chart should still be generated with empty data
+        assert url == "chart-url"
+        mock_client_get.assert_called()
+        mock_generate_chart.assert_called()
+
+        # Verify chart was called with empty timeseries data
+        chart_call_args = mock_generate_chart.call_args[0][1]
+        assert "timeseriesData" in chart_call_args
+        assert chart_call_args["timeseriesData"][0]["data"] == []
+
 
 class FetchOpenPeriodsTest(BaseMetricIssueTest):
     @freeze_time(frozen_time)

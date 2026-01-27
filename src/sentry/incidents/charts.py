@@ -85,6 +85,21 @@ def fetch_metric_alert_sessions_data(
             },
         )
         return resp.data
+    except client.ApiError as exc:
+        # Handle API errors gracefully (e.g., invalid issue IDs in query)
+        # Return empty data so chart generation can continue without crashing alerts
+        logger.warning(
+            "Failed to load sessions for chart due to API error: %s. Returning empty data.",
+            exc,
+            exc_info=True,
+            extra={
+                "organization_id": organization.id,
+                "query_params": query_params,
+                "status_code": exc.status_code,
+            },
+        )
+        # Return empty data structure to allow chart generation to continue
+        return {"groups": [], "intervals": []}
     except Exception as exc:
         logger.exception(
             "Failed to load sessions for chart: %s",
@@ -122,6 +137,21 @@ def fetch_metric_alert_events_timeseries(
             ],
         }
         return [series]
+    except client.ApiError as exc:
+        # Handle API errors gracefully (e.g., invalid issue IDs in query)
+        # Return empty data so chart generation can continue without crashing alerts
+        logger.warning(
+            "Failed to load events-stats for chart due to API error: %s. Returning empty data.",
+            exc,
+            exc_info=True,
+            extra={
+                "organization_id": organization.id,
+                "query_params": query_params,
+                "status_code": exc.status_code,
+            },
+        )
+        # Return empty series to allow chart generation to continue
+        return [{"seriesName": rule_aggregate, "data": []}]
     except Exception as exc:
         logger.error(
             "Failed to load events-stats for chart: %s",
