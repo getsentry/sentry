@@ -58,7 +58,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import aliased_query, raw_query
+from sentry.utils.snuba import SnubaError, aliased_query, raw_query
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -571,8 +571,6 @@ class GroupSerializerBase(Serializer, ABC):
                     cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
             except Exception as e:
                 # Handle Snuba query timeouts gracefully
-                from sentry.utils.snuba import SnubaError
-
                 if isinstance(e, SnubaError) and (
                     "timeout" in str(e).lower() or "timed out" in str(e).lower()
                 ):
