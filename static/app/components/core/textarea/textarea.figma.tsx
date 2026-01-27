@@ -24,6 +24,6 @@ figma.connect(
         disabled: true,
       }),
     },
-    example: props => <TextArea {...props} disabled={props.state} />,
+    example: props => <TextArea size={props.size} disabled={props.state} />,
   }
 );

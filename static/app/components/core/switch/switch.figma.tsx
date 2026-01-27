@@ -21,6 +21,6 @@ figma.connect(
       }),
       checked: figma.boolean('checked'),
     },
-    example: props => <Switch size={props.size} />,
+    example: props => <Switch size={props.size} checked={props.checked} />,
   }
 );
