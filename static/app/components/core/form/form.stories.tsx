@@ -21,8 +21,8 @@ const COUNTRY_OPTIONS = [
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const baseUserSchema = z.object({
-  age: z.number().gte(13, 'You must be 13 to make an account'),
-  firstName: z.string(),
+  age: z.number('Age is required').gte(13, 'You must be 13 to make an account'),
+  firstName: z.string().optional(),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   secret: z.string().optional(),
   address: z.object({
