@@ -246,6 +246,7 @@ export default typescript.config([
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
+    'figma.config.json',
     'fixtures/artifact_bundle/**/*',
     'fixtures/artifact_bundle_debug_ids/**/*',
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
@@ -1220,6 +1221,13 @@ export default typescript.config([
   {
     name: 'files/core-inspector',
     files: ['static/app/components/core/inspector.tsx'],
+    rules: {
+      'boundaries/element-types': 'off',
+    },
+  },
+  {
+    name: 'files/figma-code-connect',
+    files: ['**/*.figma.{tsx,jsx}'],
     rules: {
       'boundaries/element-types': 'off',
     },

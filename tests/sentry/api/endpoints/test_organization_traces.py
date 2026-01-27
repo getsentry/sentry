@@ -19,7 +19,6 @@ from sentry.utils.snuba import _snuba_query
 
 class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-traces"
-    is_eap: bool = True
 
     def setUp(self) -> None:
         super().setUp()
@@ -76,7 +75,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             timestamp=timestamp,
             duration=duration,
             organization_id=project.organization.id,
-            is_eap=True,
             environment=data.get("environment"),
             **kwargs,
         )
@@ -165,7 +163,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=1_000,
             exclusive_time=1_000,
             op="http.client",
-            is_eap=True,
         )
 
         timestamps.append(now - timedelta(days=1, minutes=19, seconds=40))
@@ -181,7 +178,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=3_000,
             exclusive_time=3_000,
             op="db.sql",
-            is_eap=self.is_eap,
         )
 
         timestamps.append(now - timedelta(days=1, minutes=19, seconds=45))
@@ -197,7 +193,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=3,
             exclusive_time=3,
             op="db.sql",
-            is_eap=True,
         )
 
         timestamps.append(now - timedelta(days=2, minutes=30))

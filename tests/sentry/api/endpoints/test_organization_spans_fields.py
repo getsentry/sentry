@@ -60,7 +60,6 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
-                is_eap=True,
             )
 
         for features in [
@@ -110,7 +109,6 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
                 duration=100,
                 exclusive_time=100,
                 measurements={tag: 0},
-                is_eap=True,
             )
 
         for features in [
@@ -154,7 +152,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
             "is_feature_enabled": False,
             "is_production": True,
         }
-        self.store_spans([span1, span2], is_eap=True)
+        self.store_spans([span1, span2])
 
         response = self.do_request(
             query={"dataset": "spans", "type": "boolean"},
@@ -220,7 +218,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         response = self.do_request("tag")
@@ -266,7 +263,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -314,7 +310,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -354,7 +349,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -395,7 +389,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -444,7 +437,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -485,7 +477,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -526,7 +517,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         for key in [
@@ -678,7 +668,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 timestamp=timestamp,
                 transaction="foo",
                 status=status,
-                is_eap=True,
             )
 
         response = self.do_request("span.status")
@@ -797,7 +786,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=100,
             exclusive_time=100,
             tags={"tag": "foo"},
-            is_eap=True,
         )
 
         response = self.do_request("tag")

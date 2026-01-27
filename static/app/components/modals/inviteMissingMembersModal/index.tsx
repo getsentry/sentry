@@ -221,12 +221,12 @@ export function InviteMissingMembersModal({
             checked={selectedAll}
           />,
           t('User Information'),
-          <StyledHeader key={1}>
+          <Flex gap="xs" key={1}>
             {t('Recent Commits')}
             <Tooltip title={t('Based on the last 30 days of commit data')}>
               <IconInfo size="xs" />
             </Tooltip>
-          </StyledHeader>,
+          </Flex>,
           t('Role'),
           t('Team'),
         ]}
@@ -334,11 +334,6 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
   overflow: scroll;
   max-height: 475px;
-`;
-
-const StyledHeader = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`

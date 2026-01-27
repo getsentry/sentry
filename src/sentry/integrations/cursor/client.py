@@ -57,7 +57,8 @@ class CursorAgentClient(CodingAgentClient):
             ),
             source=CursorAgentSource(
                 repository=f"https://github.com/{request.repository.owner}/{request.repository.name}",
-                ref=request.repository.branch_name,
+                # Use None for empty branch_name so Cursor uses repo's default branch
+                ref=request.repository.branch_name or None,
             ),
             webhook=CursorAgentLaunchRequestWebhook(url=webhook_url, secret=self.webhook_secret),
             target=CursorAgentLaunchRequestTarget(

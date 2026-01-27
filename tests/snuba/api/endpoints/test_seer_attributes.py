@@ -27,7 +27,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             transaction="foo",
             duration=100,
             exclusive_time=100,
-            is_eap=True,
         )
 
         with self.feature(
@@ -83,7 +82,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         with self.feature(
@@ -124,7 +122,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 tags={"test_tag": tag_value},
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         self.store_segment(
@@ -138,7 +135,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             tags={"another_tag": "another_value"},
             duration=100,
             exclusive_time=100,
-            is_eap=True,
         )
 
         with self.feature(

@@ -1,8 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {WidgetFixture} from 'sentry-fixture/widget';
 
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {WidgetType} from 'sentry/views/dashboards/types';
 
 import {MobileAppSizeConfig} from './mobileAppSize';
 
@@ -129,92 +127,6 @@ describe('MobileAppSizeConfig', () => {
       expect(result[1]!.seriesName).toBe('android');
       expect(result[0]!.data).toHaveLength(2);
       expect(result[0]!.data[0]!.value).toBe(1000000);
-    });
-  });
-
-  describe('getSeriesRequest', () => {
-    it('makes request with correct dataset and yAxis', async () => {
-      const api = new MockApiClient();
-      const widget = WidgetFixture({
-        widgetType: WidgetType.PREPROD_APP_SIZE,
-        queries: [
-          {
-            conditions: 'app_id:com.example.app',
-            aggregates: ['max(install_size)'],
-            fields: ['max(install_size)'],
-            columns: [],
-            fieldAliases: [],
-            name: '',
-            orderby: '',
-          },
-        ],
-      });
-
-      const mockRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
-        body: {
-          data: [[1609459200, [{count: 1000000}]]],
-          start: 1609459200,
-          end: 1609459200,
-          meta: {fields: {}},
-        },
-      });
-
-      await MobileAppSizeConfig.getSeriesRequest!(api, widget, 0, organization, {
-        datetime: {start: null, end: null, period: '14d', utc: false},
-        environments: [],
-        projects: [1],
-      });
-
-      expect(mockRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/events-stats/`,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: 'preprodSize',
-            yAxis: ['max(install_size)'],
-          }),
-        })
-      );
-    });
-
-    it('includes topEvents and field params when columns are specified', async () => {
-      const api = new MockApiClient();
-      const widget = WidgetFixture({
-        widgetType: WidgetType.PREPROD_APP_SIZE,
-        limit: 5,
-        queries: [
-          {
-            conditions: '',
-            aggregates: ['max(install_size)'],
-            fields: ['max(install_size)'],
-            columns: ['platform'],
-            fieldAliases: [],
-            name: '',
-            orderby: '',
-          },
-        ],
-      });
-
-      const mockRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-stats/`,
-        body: {},
-      });
-
-      await MobileAppSizeConfig.getSeriesRequest!(api, widget, 0, organization, {
-        datetime: {start: null, end: null, period: '14d', utc: false},
-        environments: [],
-        projects: [1],
-      });
-
-      expect(mockRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/events-stats/`,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            topEvents: 5,
-            field: ['platform', 'max(install_size)'],
-          }),
-        })
-      );
     });
   });
 

@@ -1,23 +1,16 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 
-import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconCodecov} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {openCodecovModal} from 'getsentry/actionCreators/modal';
 import PartnerPlanEndingBanner from 'getsentry/components/partnerPlanEndingBanner';
 import type {Subscription} from 'getsentry/types';
-import {
-  getPlanIcon,
-  hasAccessToSubscriptionOverview,
-  hasPartnerMigrationFeature,
-} from 'getsentry/utils/billing';
+import {getPlanIcon, hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
 
@@ -81,15 +74,6 @@ function SubscriptionHeader(props: Props) {
                 {t('Manage plan')}
               </LinkButton>
             )}
-            {hasAccessToSubscriptionOverview(subscription, organization) ? (
-              <Button
-                size="md"
-                icon={<IconCodecov />}
-                onClick={() => openCodecovModal({organization})}
-              >
-                {t('Try Codecov')}
-              </Button>
-            ) : null}
           </Flex>
         </Flex>
       </Flex>

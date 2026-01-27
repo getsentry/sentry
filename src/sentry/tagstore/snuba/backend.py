@@ -273,9 +273,9 @@ class SnubaTagStorage(TagStorage):
                 key=tag_key,
                 value=bucket.label,
                 times_seen=int(bucket.value),
-                # TODO: Find way to fetch first/last seen.
+                # TODO: Officially deprecate first seen.
                 first_seen=None,
-                last_seen=None,
+                last_seen=bucket.last_seen.ToDatetime(timezone.utc),
             )
             for bucket in value_buckets
         )
@@ -376,11 +376,15 @@ class SnubaTagStorage(TagStorage):
                     ):
                         return False
 
-                    snuba_values = {v.value: v for v in snuba.top_values}
-                    for eap_value in eap.top_values:
-                        if eap_value.value in snuba_values:
-                            if snuba_values[eap_value.value].times_seen < eap_value.times_seen:
-                                return False
+                    if snuba.top_values is not None and eap.top_values is not None:
+                        snuba_values = {v.value: v for v in snuba.top_values}
+                        for eap_value in eap.top_values:
+                            if eap_value.value in snuba_values:
+                                if snuba_values[eap_value.value].times_seen < eap_value.times_seen:
+                                    return False
+                                if snuba_values[eap_value.value].last_seen != eap_value.last_seen:
+                                    return False
+
                     return True
 
                 eap_output = self.__eap_get_tags_for_group(

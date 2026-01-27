@@ -92,7 +92,7 @@ class PushoverPlugin(CorePluginMixin, NotificationPlugin):
     def validate_config(self, project, config, actor=None):
         if int(config["priority"]) == 2 and config["retry"] < 30:
             retry = str(config["retry"])
-            self.logger.exception(str(f"Retry not 30 or higher. It is {retry}."))
+            self.logger.warning(str(f"Retry not 30 or higher. It is {retry}."))
             raise PluginError(f"Retry must be 30 or higher. It is {retry}.")
         return config
 

@@ -37,7 +37,7 @@ class GithubPluginIntegrationsWebhookEndpoint(GithubWebhookBase):
         return options.get("github.integration-hook-secret")
 
     def post(self, request: Request) -> HttpResponse:
-        logger.error(
+        logger.warning(
             "github_plugin.install.deprecation_check",
             extra={"meta": request.META},
         )

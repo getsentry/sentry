@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from pytest import fixture
 
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.interfaces.stacktrace import StacktraceOrder
 from sentry.models.deletedorganization import DeletedOrganization
@@ -300,10 +301,16 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_staff
 
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_superuser_with_permission_can_add_superuser(self) -> None:
         self.user.update(is_superuser=False)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
         self.login_as(user=self.superuser, superuser=True)
+
+        # Create org 1 and add user as member
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = self.create_organization(id=1, name="Default Org")
+            self.create_member(user=self.user, organization=org)
 
         resp = self.get_success_response(
             self.user.id,
@@ -314,7 +321,31 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert user.is_superuser
 
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_superuser_with_permission_cannot_add_superuser_without_org_1_membership(self) -> None:
+        self.user.update(is_superuser=False)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        # User is not a member of org 1
+        resp = self.get_error_response(
+            self.user.id,
+            isSuperuser="true",
+            status_code=403,
+        )
+        assert (
+            resp.data["detail"]
+            == "User must be a member to the default organization to enable SuperUser mode."
+        )
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+
     def test_superuser_with_permission_can_add_staff(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = self.create_organization(id=1, name="Default Org")
+            self.create_member(user=self.user, organization=org)
+
         self.user.update(is_staff=False)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
         self.login_as(user=self.superuser, superuser=True)
@@ -449,6 +480,68 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
             },
         )
 
+    def test_superuser_can_update_non_privileged_fields_without_permission(self) -> None:
+        """Test that superuser can update non-privileged fields even without users.admin permission"""
+        self.login_as(user=self.superuser, superuser=True)
+
+        # Create a verified email for the user before updating username
+        self.create_useremail(self.user, "newemail@example.com", is_verified=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            name="New Name",
+            username="newemail@example.com",
+        )
+        assert resp.data["id"] == str(self.user.id)
+        assert resp.data["name"] == "New Name"
+        assert resp.data["username"] == "newemail@example.com"
+
+        user = User.objects.get(id=self.user.id)
+        assert user.name == "New Name"
+        assert user.username == "newemail@example.com"
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_superuser_with_permission_can_remove_superuser(self) -> None:
+        """Test that superuser with permission can remove superuser status"""
+        # Add user to org 1 so they pass the user_can_elevate check
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = self.create_organization(id=1, name="Default Org")
+            self.create_member(user=self.user, organization=org)
+
+        self.user.update(is_superuser=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isSuperuser="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_superuser_with_permission_can_remove_staff(self) -> None:
+        """Test that superuser with permission can remove staff status"""
+        # Add user to org 1 so they pass the user_can_elevate check
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = self.create_organization(id=1, name="Default Org")
+            self.create_member(user=self.user, organization=org)
+
+        self.user.update(is_staff=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isStaff="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_staff
+
 
 @control_silo_test
 class UserDetailsStaffUpdateTest(UserDetailsTest):
@@ -538,11 +631,17 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         assert not user.is_staff
         assert not user.is_superuser
 
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_staff_with_permission_can_add_superuser(self) -> None:
         self.user.update(is_superuser=False)
 
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
         self.login_as(user=self.staff_user, staff=True)
+
+        # Create org 1 and add user as member
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = self.create_organization(id=1, name="Default Org")
+            self.create_member(user=self.user, organization=org)
 
         resp = self.get_success_response(
             self.user.id,
@@ -553,9 +652,30 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert user.is_superuser
 
-    def test_staff_with_permission_can_add_staff(self) -> None:
-        self.user.update(is_staff=False)
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_staff_with_permission_cannot_add_superuser_without_default_organization_membership(
+        self,
+    ) -> None:
+        self.user.update(is_superuser=False)
 
+        UserPermission.objects.create(user=self.staff_user, permission="users.admin")
+        self.login_as(user=self.staff_user, staff=True)
+
+        # User is not a member of org 1
+        resp = self.get_error_response(
+            self.user.id,
+            isSuperuser="true",
+            status_code=403,
+        )
+        assert (
+            resp.data["detail"]
+            == "User must be a member to the default organization to enable SuperUser mode."
+        )
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+
+    def test_staff_with_permission_can_add_staff(self) -> None:
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
         self.login_as(user=self.staff_user, staff=True)
 

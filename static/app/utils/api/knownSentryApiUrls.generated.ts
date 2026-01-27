@@ -470,8 +470,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/pr-comments/$repoName/$prNumber/'
   | '/organizations/$organizationIdOrSlug/preprod/quota/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/'
-  | '/organizations/$organizationIdOrSlug/prevent/ai/github/config/$gitOrganizationName/'
-  | '/organizations/$organizationIdOrSlug/prevent/ai/github/repos/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/sync/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/tokens/'
