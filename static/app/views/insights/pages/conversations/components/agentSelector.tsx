@@ -86,7 +86,7 @@ export function AgentSelector() {
       // Clear agent filter from URL and localStorage
       localStorage.removeItem(makeAgentFilterStorageKey(organization.slug));
       setQueryStates({
-        [AGENT_URL_PARAM]: [],
+        [AGENT_URL_PARAM]: null,
         [TableUrlParams.CURSOR]: null,
       });
 
@@ -184,7 +184,7 @@ export function AgentSelector() {
         // Update URL and clear pagination cursor
         // localStorage sync happens in useEffect
         setQueryStates({
-          [AGENT_URL_PARAM]: values.length > 0 ? values : [],
+          [AGENT_URL_PARAM]: values.length > 0 ? values : null,
           [TableUrlParams.CURSOR]: null,
         });
       }}
