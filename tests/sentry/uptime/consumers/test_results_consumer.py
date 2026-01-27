@@ -1,7 +1,9 @@
 import abc
+import base64
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
+from io import BytesIO
 from typing import Literal
 from unittest import mock
 from unittest.mock import MagicMock, call
@@ -27,6 +29,7 @@ from sentry.conf.types.kafka_definition import Topic as KafkaTopic
 from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import ObjectStatus
+from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
@@ -42,7 +45,7 @@ from sentry.uptime.autodetect.tasks import is_failed_url
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import UptimeResultsStrategyFactory
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
     disable_uptime_detector,
@@ -1290,14 +1293,15 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             37,
         )
 
-        five_min_sub = self.create_uptime_subscription(
+        # Test that region check does NOT run at non-matching minutes
+        five_min_sub_no_update = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=6).hex,
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
         )
-        self.create_uptime_detector(uptime_subscription=five_min_sub)
+        self.create_uptime_detector(uptime_subscription=five_min_sub_no_update)
         self.run_check_and_update_region_test(
-            five_min_sub,
+            five_min_sub_no_update,
             ["region1", "region2"],
             {},
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
@@ -1306,7 +1310,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=6,
         )
         self.run_check_and_update_region_test(
-            five_min_sub,
+            five_min_sub_no_update,
             ["region1", "region2"],
             {},
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
@@ -1315,7 +1319,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=35,
         )
         self.run_check_and_update_region_test(
-            five_min_sub,
+            five_min_sub_no_update,
             ["region1", "region2"],
             {},
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
@@ -1323,8 +1327,17 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             [],
             current_minute=49,
         )
+
+        # Test that region check DOES run at matching minute (fresh subscription to avoid dedup)
+        # Uses int=18 because 18 % 12 = 6, same as int=6, so it triggers at the same minute
+        five_min_sub_with_update = self.create_uptime_subscription(
+            subscription_id=uuid.UUID(int=18).hex,
+            region_slugs=["region1"],
+            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+        )
+        self.create_uptime_detector(uptime_subscription=five_min_sub_with_update)
         self.run_check_and_update_region_test(
-            five_min_sub,
+            five_min_sub_with_update,
             ["region1", "region2"],
             {},
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
@@ -1486,6 +1499,177 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             # Verify both results were queued
             backlog_key = build_backlog_key(str(self.subscription.id))
             assert cluster.zcard(backlog_key) == 2
+
+    def test_response_capture_created_on_failure(self) -> None:
+        """
+        Test that a response capture is created when a failure result contains response data.
+        """
+        response_body = b"<html><body>Server Error</body></html>"
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [
+            {
+                **request_info,
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "response_headers": [
+                    ["Content-Type", "text/html"],
+                    ["X-Custom-Header", "value"],
+                ],
+            }
+        ]
+
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 0
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            metrics.incr.assert_any_call(
+                "uptime.response_capture.created",
+                sample_rate=1.0,
+            )
+
+        captures = UptimeResponseCapture.objects.filter(uptime_subscription_id=self.subscription.id)
+        assert captures.count() == 1
+
+        capture = captures.first()
+        assert capture is not None
+        assert capture.scheduled_check_time_ms == result["scheduled_check_time_ms"]
+
+        file = File.objects.get(id=capture.file_id)
+        file_content = file.getfile().read()
+        assert b"Content-Type: text/html" in file_content
+        assert b"X-Custom-Header: value" in file_content
+        assert b"---BODY---" in file_content
+        assert response_body in file_content
+
+    def test_response_capture_skipped_without_response_data(self) -> None:
+        """
+        Test that no capture is created when the result doesn't contain response data.
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [{**request_info, "response_body": None}]
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            for call_args in metrics.incr.call_args_list:
+                assert call_args[0][0] != "uptime.response_capture.created"
+
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 0
+        )
+
+    def test_response_capture_skipped_when_already_exists(self) -> None:
+        """
+        Test that no duplicate capture is created when one already exists for
+        the same scheduled check time (e.g., on retry).
+        """
+        response_body = b"<html><body>Server Error</body></html>"
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [
+            {
+                **request_info,
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "response_headers": [["Content-Type", "text/html"]],
+            }
+        ]
+
+        # Pre-create a capture for the same scheduled check time
+        existing_file = File.objects.create(name="existing-response", type="uptime.response")
+        existing_file.putfile(BytesIO(b"existing content"))
+        UptimeResponseCapture.objects.create(
+            uptime_subscription=self.subscription,
+            file_id=existing_file.id,
+            scheduled_check_time_ms=result["scheduled_check_time_ms"],
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            # Should not have created a new capture
+            for call_args in metrics.incr.call_args_list:
+                assert call_args[0][0] != "uptime.response_capture.created"
+
+        # Still only one capture
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 1
+        )
+        # And only one file (the original)
+        assert File.objects.filter(type="uptime.response").count() == 1
+
+    def test_response_capture_toggle_disabled_on_failure(self) -> None:
+        """
+        Test that response capture is disabled on failure.
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        assert self.subscription.capture_response_on_failure is True
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics"),
+            self.feature("organizations:uptime"),
+            self.tasks(),
+        ):
+            self.send_result(result)
+
+        self.subscription.refresh_from_db()
+        assert self.subscription.capture_response_on_failure is False
+
+    def test_response_capture_toggle_enabled_on_success(self) -> None:
+        """
+        Test that response capture is re-enabled on success.
+        """
+        self.subscription.update(capture_response_on_failure=False)
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics"),
+            self.feature("organizations:uptime"),
+            self.tasks(),
+        ):
+            self.send_result(result)
+
+        self.subscription.refresh_from_db()
+        assert self.subscription.capture_response_on_failure is True
 
 
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)

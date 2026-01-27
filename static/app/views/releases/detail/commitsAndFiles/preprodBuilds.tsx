@@ -190,11 +190,7 @@ export default function PreprodBuilds() {
           </Flex>
         </Container>
         {showOnboarding ? (
-          <PreprodOnboarding
-            organizationSlug={organization.slug}
-            projectPlatform={projectPlatform || null}
-            projectSlug={projectSlug}
-          />
+          <PreprodOnboarding projectPlatform={projectPlatform || null} />
         ) : (
           <PreprodBuildsTable
             builds={builds}
