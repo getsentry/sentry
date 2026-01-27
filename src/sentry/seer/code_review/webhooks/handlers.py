@@ -47,13 +47,13 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
-    # The extracted important key values are used for debugging with logs
-    extra = extract_github_info(event, github_event=github_event.value)
-    extra["organization_slug"] = organization.slug
-
     # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
     if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
+
+    # The extracted important key values are used for debugging with logs
+    extra = extract_github_info(event, github_event=github_event.value)
+    extra["organization_slug"] = organization.slug
 
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
