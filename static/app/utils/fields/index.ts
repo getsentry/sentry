@@ -2515,7 +2515,7 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   build_configuration_name: {
-    desc: t('The name of the build configuration'),
+    desc: t('The name of the build configuration (e.g., Debug, Release)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2535,32 +2535,32 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   git_head_ref: {
-    desc: t('The Git branch or tag name of the HEAD commit'),
+    desc: t('The Git branch of the HEAD commit associated with a build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_base_ref: {
-    desc: t('The Git branch or tag name of the base commit for comparison'),
+    desc: t('The Git branch of the base commit for comparison associated with a build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_head_sha: {
-    desc: t('The Git SHA of the HEAD commit'),
+    desc: t('The Git SHA of the HEAD commit associated with a build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_base_sha: {
-    desc: t('The Git SHA of the base commit for comparison'),
+    desc: t('The Git SHA of the base commit for comparison associated with a build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_head_repo_name: {
-    desc: t('The repository name for the HEAD commit'),
+    desc: t('The repository name for the HEAD commit associated with a build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   git_pr_number: {
-    desc: t('The pull request number associated with this build'),
+    desc: t('The pull request number associated with a build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
