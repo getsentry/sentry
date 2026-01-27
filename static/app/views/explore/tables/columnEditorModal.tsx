@@ -27,6 +27,7 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
+  booleanTags: TagCollection;
   columns: readonly string[];
   numberTags: TagCollection;
   onColumnsChange: (columns: string[]) => void;
@@ -45,6 +46,7 @@ export function ColumnEditorModal({
   columns,
   onColumnsChange,
   requiredTags,
+  booleanTags,
   numberTags,
   stringTags,
   hiddenKeys,
@@ -54,7 +56,10 @@ export function ColumnEditorModal({
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
       ...columns
-        .filter(column => !(column in stringTags) && !(column in numberTags))
+        .filter(
+          column =>
+            !(column in stringTags) && !(column in numberTags) && !(column in booleanTags)
+        )
         .map(column => {
           const kind = classifyTagKey(column);
           const label = prettifyTagKey(column);
@@ -111,6 +116,24 @@ export function ColumnEditorModal({
           ),
         };
       }),
+      ...Object.values(booleanTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge kind={FieldKind.BOOLEAN} />,
+          key: `${tag.key}-${FieldKind.BOOLEAN}`,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={tag.key}
+              kind={FieldKind.BOOLEAN}
+              label={tag.name}
+              traceItemType={TraceItemDataset.SPANS}
+            />
+          ),
+        };
+      }),
     ];
     allTags = allTags
       .filter(tag => !(hiddenKeys ?? []).includes(tag.label))
@@ -126,7 +149,7 @@ export function ColumnEditorModal({
         return 0;
       });
     return allTags;
-  }, [columns, stringTags, numberTags, hiddenKeys]);
+  }, [booleanTags, columns, hiddenKeys, numberTags, stringTags]);
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.

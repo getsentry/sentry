@@ -185,9 +185,14 @@ export function adjustAliases(attribute: TraceItemResponseAttribute) {
 export function getTableHeaderLabel(
   field: OurLogFieldKey,
   stringAttributes?: TagCollection,
-  numberAttributes?: TagCollection
+  numberAttributes?: TagCollection,
+  booleanAttributes?: TagCollection
 ) {
-  const attribute = stringAttributes?.[field] ?? numberAttributes?.[field] ?? null;
+  const attribute =
+    stringAttributes?.[field] ??
+    numberAttributes?.[field] ??
+    booleanAttributes?.[field] ??
+    null;
 
   return (
     LogAttributesHumanLabel[field] ?? attribute?.name ?? prettifyAttributeName(field)

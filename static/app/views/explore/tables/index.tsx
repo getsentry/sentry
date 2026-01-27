@@ -53,6 +53,7 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const attributeBreakdownsEnabled = organization.features.includes(
     'performance-spans-suspect-attributes'
@@ -67,11 +68,12 @@ export function ExploreTables(props: ExploreTablesProps) {
           onColumnsChange={setFields}
           stringTags={stringTags}
           numberTags={numberTags}
+          booleanTags={booleanTags}
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, stringTags, numberTags]);
+  }, [booleanTags, fields, numberTags, setFields, stringTags]);
 
   const openAggregateColumnEditor = useCallback(() => {
     openModal(
@@ -82,11 +84,12 @@ export function ExploreTables(props: ExploreTablesProps) {
           onColumnsChange={setAggregateFields}
           stringTags={stringTags}
           numberTags={numberTags}
+          booleanTags={booleanTags}
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [aggregateFields, setAggregateFields, stringTags, numberTags]);
+  }, [aggregateFields, booleanTags, numberTags, setAggregateFields, stringTags]);
 
   return (
     <Fragment>

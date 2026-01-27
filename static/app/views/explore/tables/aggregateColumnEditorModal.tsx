@@ -63,6 +63,7 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
+  booleanTags: TagCollection;
   columns: AggregateField[];
   numberTags: TagCollection;
   onColumnsChange: (columns: WritableAggregateField[]) => void;
@@ -76,6 +77,7 @@ export function AggregateColumnEditorModal({
   closeModal,
   columns,
   onColumnsChange,
+  booleanTags,
   numberTags,
   stringTags,
 }: AggregateColumnEditorModalProps) {
@@ -131,6 +133,7 @@ export function AggregateColumnEditorModal({
                   options={[]}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
                   onColumnDelete={() => deleteColumnAtIndex(i)}
+                  booleanTags={booleanTags}
                   numberTags={numberTags}
                   stringTags={stringTags}
                   groupBys={groupBys}
@@ -196,6 +199,7 @@ export function AggregateColumnEditorModal({
 }
 
 interface ColumnEditorRowProps {
+  booleanTags: TagCollection;
   canDelete: boolean;
   column: Column<AggregateField>;
   groupBys: string[];
@@ -216,6 +220,7 @@ function ColumnEditorRow({
   onColumnDelete,
   numberTags,
   stringTags,
+  booleanTags,
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
@@ -246,12 +251,14 @@ function ColumnEditorRow({
           numberTags={numberTags}
           onChange={onColumnChange}
           stringTags={stringTags}
+          booleanTags={booleanTags}
         />
       ) : (
         <VisualizeSelector
           organization={organization}
           visualize={column.column}
           onChange={onColumnChange}
+          booleanTags={booleanTags}
           numberTags={numberTags}
           stringTags={stringTags}
         />
@@ -269,6 +276,7 @@ function ColumnEditorRow({
 }
 
 interface GroupBySelectorProps {
+  booleanTags: TagCollection;
   groupBy: GroupBy;
   groupBys: string[];
   numberTags: TagCollection;
@@ -282,11 +290,13 @@ function GroupBySelector({
   numberTags,
   onChange,
   stringTags,
+  booleanTags,
 }: GroupBySelectorProps) {
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,
+    booleanTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 
@@ -325,6 +335,7 @@ function GroupBySelector({
 }
 
 interface VisualizeSelectorProps {
+  booleanTags: TagCollection;
   numberTags: TagCollection;
   onChange: (visualize: Visualize) => void;
   organization: Organization;
@@ -462,6 +473,7 @@ function AggregateSelector({
 function EquationSelector({
   numberTags,
   stringTags,
+  booleanTags,
   onChange,
   visualize,
 }: VisualizeSelectorProps) {
@@ -504,6 +516,7 @@ function EquationSelector({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes: numberTags,
     stringAttributes: stringTags,
+    booleanAttributes: booleanTags,
   });
 
   return (

@@ -35,6 +35,7 @@ export function VisualizeEquation({
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
     return [
@@ -76,6 +77,7 @@ export function VisualizeEquation({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes: numberTags,
     stringAttributes: stringTags,
+    booleanAttributes: booleanTags,
   });
 
   return (

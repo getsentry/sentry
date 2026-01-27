@@ -19,6 +19,8 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export type TraceItemSearchQueryBuilderProps = {
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
@@ -75,6 +77,8 @@ function getTraceItemFieldDefinitionFunction(
 
 export function useTraceItemSearchQueryBuilderProps({
   itemType,
+  booleanAttributes,
+  booleanSecondaryAliases,
   numberAttributes,
   numberSecondaryAliases,
   stringAttributes,
@@ -100,12 +104,13 @@ export function useTraceItemSearchQueryBuilderProps({
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
-  const filterTags = useFilterTags(
+  const filterTags = useFilterTags({
     numberAttributes,
     stringAttributes,
     functionTags,
-    disallowHas ?? false
-  );
+    booleanAttributes,
+    disallowHas: disallowHas ?? false,
+  });
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: itemType,
@@ -116,6 +121,7 @@ export function useTraceItemSearchQueryBuilderProps({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes,
     stringAttributes,
+    booleanAttributes,
   });
 
   return useMemo(
@@ -141,11 +147,16 @@ export function useTraceItemSearchQueryBuilderProps({
       portalTarget,
       replaceRawSearchKeys,
       matchKeySuggestions,
-      filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
+      filterKeyAliases: {
+        ...numberSecondaryAliases,
+        ...stringSecondaryAliases,
+        ...booleanSecondaryAliases,
+      },
       caseInsensitive,
       onCaseInsensitiveClick,
     }),
     [
+      booleanSecondaryAliases,
       caseInsensitive,
       disallowFreeText,
       disallowLogicalOperators,
@@ -175,6 +186,8 @@ export function useTraceItemSearchQueryBuilderProps({
 export function TraceItemSearchQueryBuilder({
   autoFocus,
   initialQuery,
+  booleanSecondaryAliases,
+  booleanAttributes,
   numberSecondaryAliases,
   numberAttributes,
   stringSecondaryAliases,
@@ -201,6 +214,8 @@ export function TraceItemSearchQueryBuilder({
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
+    booleanAttributes,
+    booleanSecondaryAliases,
     numberAttributes,
     stringAttributes,
     numberSecondaryAliases,
@@ -245,27 +260,36 @@ function useFunctionTags(
   }, [itemType, supportedAggregates]);
 }
 
-function useFilterTags(
-  numberAttributes: TagCollection,
-  stringAttributes: TagCollection,
-  functionTags: TagCollection,
-  disallowHas: boolean
-) {
+function useFilterTags({
+  numberAttributes,
+  stringAttributes,
+  booleanAttributes,
+  functionTags,
+  disallowHas,
+}: {
+  booleanAttributes: TagCollection;
+  disallowHas: boolean;
+  functionTags: TagCollection;
+  numberAttributes: TagCollection;
+  stringAttributes: TagCollection;
+}) {
   return useMemo(() => {
     const tags: TagCollection = {
       ...functionTags,
       ...numberAttributes,
       ...stringAttributes,
+      ...booleanAttributes,
     };
 
     if (!disallowHas) {
       tags.has = getHasTag({
         ...numberAttributes,
         ...stringAttributes,
+        ...booleanAttributes,
       });
     }
     return tags;
-  }, [numberAttributes, stringAttributes, functionTags, disallowHas]);
+  }, [booleanAttributes, disallowHas, functionTags, numberAttributes, stringAttributes]);
 }
 
 function useFilterKeySections(

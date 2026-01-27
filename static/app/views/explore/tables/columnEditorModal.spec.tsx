@@ -52,6 +52,7 @@ describe('ColumnEditorModal', () => {
             onColumnsChange={() => {}}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={{}}
           />
         ),
         {onClose}
@@ -77,6 +78,7 @@ describe('ColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={{}}
           />
         ),
         {onClose: jest.fn()}
@@ -116,6 +118,7 @@ describe('ColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={{}}
           />
         ),
         {onClose: jest.fn()}
@@ -176,6 +179,7 @@ describe('ColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={{}}
           />
         ),
         {onClose: jest.fn()}

@@ -63,6 +63,14 @@ const numberTags: TagCollection = {
   },
 };
 
+const booleanTags: TagCollection = {
+  'feature.enabled': {
+    key: 'feature.enabled',
+    name: 'feature.enabled',
+    kind: FieldKind.BOOLEAN,
+  },
+};
+
 describe('AggregateColumnEditorModal', () => {
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
@@ -78,6 +86,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={() => {}}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose}
@@ -108,6 +117,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -173,6 +183,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -239,6 +250,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -255,6 +267,7 @@ describe('AggregateColumnEditorModal', () => {
 
     const options: string[] = [
       '\u2014',
+      'feature.enabled',
       'foo',
       'geo.city',
       'geo.country',
@@ -274,7 +287,7 @@ describe('AggregateColumnEditorModal', () => {
       expect(option).toHaveTextContent(options[i]!);
     });
 
-    await userEvent.click(groupByOptions[2]!);
+    await userEvent.click(groupByOptions[3]!);
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.city'},
@@ -311,6 +324,7 @@ describe('AggregateColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}

@@ -70,6 +70,7 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
+  const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags('boolean');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
@@ -114,13 +115,14 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
           onColumnsChange={setFields as any}
           stringTags={stringTags}
           numberTags={numberTags}
+          booleanTags={booleanTags}
           handleReset={() => setFields(null)}
           isDocsButtonHidden
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, stringTags, numberTags]);
+  }, [booleanTags, fields, numberTags, setFields, stringTags]);
 
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
@@ -148,9 +150,10 @@ function AIGenerationsPage({datePageFilterProps}: AIGenerationsPageProps) {
           </Flex>
           <SchemaHintsList
             supportedAggregates={DISABLE_AGGREGATES}
+            booleanTags={booleanTags}
             numberTags={numberTags}
             stringTags={stringTags}
-            isLoading={numberTagsLoading || stringTagsLoading}
+            isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
             exploreQuery={searchQuery ?? ''}
             source={SchemaHintsSources.AI_GENERATIONS}
           />
