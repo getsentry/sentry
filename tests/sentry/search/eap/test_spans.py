@@ -543,6 +543,56 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_issue_specific_filters_are_ignored(self) -> None:
+        """
+        Test that issue-specific filters like is:unresolved are gracefully ignored
+        for spans queries. These filters get translated to status/substatus filters
+        which are then removed by filter aliases since they don't apply to spans.
+        
+        Regression test for SENTRY-5HAR
+        """
+        # Single issue-specific filter should result in None (no filters)
+        where, having, _ = self.resolver.resolve_query("is:unresolved")
+        assert where is None
+        assert having is None
+        
+        # Multiple issue-specific filters should also result in None
+        where, having, _ = self.resolver.resolve_query("is:unresolved is:for_review")
+        assert where is None
+        assert having is None
+        
+        # Issue-specific filters combined with valid span filters
+        # The exact query from the error report
+        where, having, _ = self.resolver.resolve_query(
+            'is:unresolved release:"latest" is_transaction:true transaction:"*Flow C*"'
+        )
+        # Should have filters for release and transaction, but not status
+        assert where is not None
+        assert having is None
+        # Verify it's an AND filter with multiple conditions
+        assert where.HasField("and_filter")
+        # Should have 3 filters: release, is_transaction, transaction
+        assert len(where.and_filter.filters) == 3
+        
+    def test_issue_status_filters_variations(self) -> None:
+        """
+        Test various issue status filters to ensure they're all handled correctly.
+        """
+        status_filters = [
+            "is:resolved",
+            "is:ignored", 
+            "is:archived",
+            "is:assigned",
+            "is:unassigned",
+            "is:linked",
+            "is:unlinked",
+        ]
+        
+        for status_filter in status_filters:
+            where, having, _ = self.resolver.resolve_query(status_filter)
+            assert where is None, f"Expected {status_filter} to be ignored"
+            assert having is None
+
 
 class SearchResolverColumnTest(TestCase):
     def setUp(self) -> None:
