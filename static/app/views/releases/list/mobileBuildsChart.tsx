@@ -59,9 +59,10 @@ function getSeriesLabel(key: SeriesKey): string {
 function parseSeriesKey(key: string): SeriesKey {
   const [appId, platform, buildConfiguration] = key.split('|');
   return {
-    appId: appId === 'unknown' ? null : appId,
-    platform: platform === 'unknown' ? null : platform,
-    buildConfiguration: buildConfiguration === 'unknown' ? null : buildConfiguration,
+    appId: !appId || appId === 'unknown' ? null : appId,
+    platform: !platform || platform === 'unknown' ? null : platform,
+    buildConfiguration:
+      !buildConfiguration || buildConfiguration === 'unknown' ? null : buildConfiguration,
   };
 }
 
