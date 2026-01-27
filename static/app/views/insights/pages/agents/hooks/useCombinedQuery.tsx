@@ -17,7 +17,6 @@ export function useCombinedQuery(baseQuery = '') {
     },
   });
 
-  // Combine base query with agent filter
   const baseWithAgent = [baseQuery, agentQuery].filter(Boolean).join(' ');
 
   if (!query) {
