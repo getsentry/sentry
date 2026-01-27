@@ -575,3 +575,73 @@ class ProfilingGroupSerializerSnubaTest(
         assert result["lastSeen"] == (timestamp + timedelta(minutes=5))
         assert result["firstSeen"] == timestamp
         assert result["count"] == str(times + 1)
+
+
+class GroupSerializerSnubaTimeoutTest(APITestCase, SnubaTestCase):
+    """Test timeout handling in GroupSerializerSnuba._get_group_snuba_stats"""
+
+    def test_snuba_timeout_retry_with_shorter_window(self) -> None:
+        """When Snuba times out, should retry with a 7-day window"""
+        from unittest import mock
+
+        from sentry.utils.snuba import SnubaError
+
+        group = self.create_group()
+        user = self.create_user()
+
+        # Mock raw_query to timeout on first call, succeed on second
+        call_count = 0
+
+        def mock_raw_query(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                # First call: timeout
+                raise SnubaError("HTTPConnectionPool(host='snuba-api', port=80): Read timed out")
+            else:
+                # Second call: success with shorter time window
+                return {"data": [{"group_id": group.id, "unhandled": True}]}
+
+        with mock.patch("sentry.api.serializers.models.group.raw_query", side_effect=mock_raw_query):
+            result = serialize(group, user, serializer=GroupSerializerSnuba())
+            # Should succeed and return unhandled status
+            assert result["isUnhandled"] is True
+            # Should have been called twice (initial + retry)
+            assert call_count == 2
+
+    def test_snuba_timeout_graceful_degradation(self) -> None:
+        """When Snuba times out twice, should gracefully degrade"""
+        from unittest import mock
+
+        from sentry.utils.snuba import SnubaError
+
+        group = self.create_group()
+        user = self.create_user()
+
+        # Mock raw_query to always timeout
+        with mock.patch(
+            "sentry.api.serializers.models.group.raw_query",
+            side_effect=SnubaError("HTTPConnectionPool(host='snuba-api', port=80): Read timed out"),
+        ):
+            result = serialize(group, user, serializer=GroupSerializerSnuba())
+            # Should succeed but without unhandled status
+            assert result["id"] == str(group.id)
+            # isUnhandled should not be present or should be None
+            assert result.get("isUnhandled") is None
+
+    def test_snuba_non_timeout_error_reraises(self) -> None:
+        """Non-timeout errors should be re-raised"""
+        from unittest import mock
+
+        from sentry.utils.snuba import SnubaError
+
+        group = self.create_group()
+        user = self.create_user()
+
+        # Mock raw_query to raise a non-timeout error
+        with mock.patch(
+            "sentry.api.serializers.models.group.raw_query",
+            side_effect=SnubaError("Some other error"),
+        ):
+            with self.assertRaises(SnubaError):
+                serialize(group, user, serializer=GroupSerializerSnuba())
