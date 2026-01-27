@@ -166,6 +166,10 @@ export function useErrorsAndTransactionsSeriesQuery(
       if (queryParams.end) {
         queryParams.end = getUtcDateString(queryParams.end);
       }
+      // Convert boolean partial to string for API
+      if (queryParams.partial !== undefined) {
+        (queryParams as any).partial = queryParams.partial ? '1' : '0';
+      }
 
       return [
         `/organizations/${organization.slug}/events-stats/`,
