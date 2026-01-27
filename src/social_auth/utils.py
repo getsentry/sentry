@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs as urlparse_parse_qs
@@ -10,6 +11,7 @@ from urllib.request import urlopen
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
+from django.utils.dateparse import parse_datetime
 
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.users.services.user import RpcUser
@@ -101,6 +103,8 @@ def model_to_ctype(val):
         return {"pk": val.pk, "ctype": ContentType.objects.get_for_model(val).pk}
     if isinstance(val, RpcModel):
         return val.dict()
+    if isinstance(val, datetime):
+        return {"__datetime__": val.isoformat()}
     return val
 
 
@@ -111,6 +115,9 @@ def ctype_to_model(val):
         ModelClass = ctype.model_class()
         assert ModelClass is not None
         return ModelClass.objects.get(pk=val["pk"])
+
+    if isinstance(val, dict) and "__datetime__" in val:
+        return parse_datetime(val["__datetime__"])
 
     if isinstance(val, dict) and "username" in val and "name" in val:
         return RpcUser.parse_obj(val)

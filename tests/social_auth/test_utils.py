@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from django.contrib.contenttypes.models import ContentType
 
 from sentry.testutils.cases import TestCase
@@ -23,6 +25,11 @@ class TestSocialAuthUtils(TestCase):
         val = model_to_ctype(rpc_user)
         assert val == rpc_user.dict()
 
+        # Test datetime serialization
+        dt = datetime(2026, 1, 27, 15, 4, 33, 172220, tzinfo=timezone.utc)
+        val = model_to_ctype(dt)
+        assert val == {"__datetime__": "2026-01-27T15:04:33.172220+00:00"}
+
     def test_ctype_to_model(self) -> None:
         val = ctype_to_model(1)
         assert val == 1
@@ -36,3 +43,8 @@ class TestSocialAuthUtils(TestCase):
 
         rpc_user = serialize_rpc_user(user)
         assert ctype_to_model(rpc_user.dict()) == rpc_user
+
+        # Test datetime deserialization
+        dt_val = {"__datetime__": "2026-01-27T15:04:33.172220+00:00"}
+        dt = ctype_to_model(dt_val)
+        assert dt == datetime(2026, 1, 27, 15, 4, 33, 172220, tzinfo=timezone.utc)
