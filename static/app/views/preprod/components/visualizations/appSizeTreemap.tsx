@@ -216,7 +216,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       // Controls how many levels deep to render at once.
       // Users can click on nodes to drill down into deeper levels.
       // The breadcrumb shows the current path and allows navigating back up.
-      leafDepth: 3,
+      leafDepth: 4,
       breadcrumb: {
         show: true,
         left: '0',
