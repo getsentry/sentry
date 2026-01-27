@@ -201,9 +201,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
       booleanAttributes,
-      booleanSecondaryAliases,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
     });
@@ -250,6 +250,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           onColumnsChange={onColumnsChange}
           stringTags={stringAttributes}
           numberTags={numberAttributes}
+          booleanTags={booleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
           handleReset={() => {
             onColumnsChange(defaultLogFields());
@@ -259,7 +260,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, onColumnsChange, stringAttributes, numberAttributes]);
+  }, [booleanAttributes, fields, numberAttributes, onColumnsChange, stringAttributes]);
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = useCallback(
