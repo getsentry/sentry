@@ -16,6 +16,7 @@ export function getPlatformIconFromPlatform(platform: Platform): 'apple' | 'andr
   switch (platform) {
     case 'ios':
     case 'macos':
+    case 'apple':
       return 'apple';
     case 'android':
       return 'android';
