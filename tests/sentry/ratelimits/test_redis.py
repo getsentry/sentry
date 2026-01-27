@@ -1,4 +1,5 @@
 from time import time
+from unittest.mock import patch, MagicMock
 
 from sentry.ratelimits.redis import RedisRateLimiter
 from sentry.testutils.cases import TestCase
@@ -71,3 +72,20 @@ class RedisRateLimiterTest(TestCase):
             assert self.backend.is_limited("foo", 1, self.project)
             self.backend.reset("foo", self.project)
             assert not self.backend.is_limited("foo", 1, self.project)
+
+    def test_is_limited_with_value_empty_pipeline_result(self) -> None:
+        """Test that empty pipeline results are handled gracefully"""
+        with freeze_time("2000-01-01"):
+            # Mock the pipeline to return an empty list
+            mock_pipeline = MagicMock()
+            mock_pipeline.execute.return_value = []
+            
+            with patch.object(self.backend.client, 'pipeline', return_value=mock_pipeline):
+                limited, value, reset_time = self.backend.is_limited_with_value("foo", 10, window=5)
+                
+                # Should not be limited when pipeline fails
+                assert not limited
+                # Value should be 0 when pipeline fails
+                assert value == 0
+                # Reset time should still be calculated
+                assert reset_time == int(time() + 5)
