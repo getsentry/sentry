@@ -26,9 +26,7 @@ export function SlideOverPanelPlayground() {
   );
 }
 
-export function SlideOverPanelSkeletonPlayground(props: {
-  placement: 'right' | 'bottom' | 'left';
-}) {
+export function SlideOverPanelSkeletonPlayground() {
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
 
   const closePanel = useCallback(() => {
@@ -37,13 +35,11 @@ export function SlideOverPanelSkeletonPlayground(props: {
 
   return (
     <Fragment>
-      <Button onClick={() => setIsPanelOpen(true)}>
-        Open Panel on {props.placement}
-      </Button>
+      <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
       <AnimatePresence>
         {isPanelOpen && (
-          <SlideOverPanel placement={props.placement}>
+          <SlideOverPanel placement="right">
             {(options: {isOpening: boolean}) => {
               return options.isOpening ? (
                 <SkeletonPanelContents onClick={closePanel} />

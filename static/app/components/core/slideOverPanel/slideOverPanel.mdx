@@ -26,15 +26,17 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 
 <br />
 
-## Usage
+## Basic Usage
 
 ```jsx
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>;
 
 {
   isPanelOpen && (
-    <SlideOverPanel placement="right" padding="md">
-      <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
+    <SlideOverPanel placement="right">
+      <Container border="primary" height="100%" padding="md">
+        <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
+      </Container>
     </SlideOverPanel>
   );
 }
@@ -47,9 +49,7 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 In the example below, you can see that the panel contents take a very long time to render, but the panel opens right away, and can be closed while the content is still rendering.
 
 <Storybook.Demo>
-  {['right', 'bottom', 'left'].map(placement => (
-    <SlideOverPanelSkeletonPlayground key={placement} placement={placement} />
-  ))}
+  <SlideOverPanelSkeletonPlayground />
 </Storybook.Demo>
 
 <br />

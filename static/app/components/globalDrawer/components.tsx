@@ -75,7 +75,6 @@ function DrawerPanel({
         <DrawerSlidePanel
           placement="right"
           ref={mergeRefs(panelRef, ref)}
-          transition={transition}
           width="var(--drawer-width)" // Initial width only
           className="drawer-panel"
           css={drawerCss}

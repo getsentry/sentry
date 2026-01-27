@@ -1,7 +1,6 @@
 import {useEffect, useId, useState, useTransition} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
-import {motion, type Transition} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 import {Surface, type ContainerProps} from '@sentry/scraps/layout';
@@ -10,13 +9,10 @@ import {unreachable} from 'sentry/utils/unreachable';
 
 const MotionSurface = motion.create(Surface);
 
-interface SlideOverPanelProps extends Pick<ContainerProps<'aside'>, 'width'> {
+interface SlideOverPanelProps
+  extends Omit<React.ComponentProps<typeof MotionSurface>, 'children' | 'transition'> {
   children: React.ReactNode | ((props: {isOpening: boolean}) => React.ReactNode);
-  placement: 'right' | 'bottom' | 'left';
-  /**
-   * A Framer Motion `Transition` object that specifies the transition properties that apply when the panel opens and closes.
-   */
-  transition?: Transition;
+  placement: 'right' | 'left';
 }
 
 export function SlideOverPanel({children, ...props}: SlideOverPanelProps) {
@@ -53,7 +49,7 @@ export function SlideOverPanel({children, ...props}: SlideOverPanelProps) {
   const id = useId();
   return (
     <BoundaryContextProvider value={id}>
-      <AnimatedSurface
+      <MotionSurface
         as="aside"
         id={id}
         initial={COLLAPSED_STYLES[props.placement]}
@@ -64,13 +60,15 @@ export function SlideOverPanel({children, ...props}: SlideOverPanelProps) {
         overflow="auto"
         pointerEvents="auto"
         overscrollBehavior="contain"
-        position={props.placement === 'bottom' ? 'sticky' : 'fixed'}
-        transition={{
-          ...theme.motion.framer.spring.moderate,
-          ...props.transition,
-        }}
-        {...props}
-        {...getSlideoutPlacementStyles(props.placement, props.width, theme)}
+        transition={theme.motion.framer.spring.moderate}
+        // Polymorphism is not very well supported by emotion and in this case conflicts with the
+        // HTMLMotionProps type on the onAnimationStart and onDrag members.
+        {...(props as any)}
+        {...getSlideoutPlacementStyles(
+          {placement: props.placement, width: props.width},
+          theme
+        )}
+        style={{zIndex: theme.zIndex.drawer}}
       >
         {/* Render the child content. If it's a render prop, pass the `isOpening`
       prop. We expect the render prop to render a skeleton UI if `isOpening` is
@@ -81,56 +79,48 @@ export function SlideOverPanel({children, ...props}: SlideOverPanelProps) {
           : isOpening
             ? null
             : children}
-      </AnimatedSurface>
+      </MotionSurface>
     </BoundaryContextProvider>
   );
 }
 
 function getSlideoutPlacementStyles(
-  placement: 'right' | 'bottom' | 'left',
+  props: Pick<SlideOverPanelProps, 'placement' | 'width'>,
   theme: Theme
-): Pick<
-  ContainerProps,
-  'position' | 'height' | 'width' | 'right' | 'top' | 'bottom' | 'left' | 'minWidth'
-> {
-  switch (placement) {
+): ContainerProps {
+  switch (props.placement) {
     case 'right':
       return {
-        position: {'2xs': 'fixed', xs: 'fixed'},
-        height: {'2xs': `calc(100vh - ${theme.space.lg})`, xs: '100%'},
-        width: {'2xs': `calc(100vw - ${theme.space.lg})`, xs: RIGHT_SIDE_PANEL_WIDTH},
+        position: 'fixed',
+        height: {'2xs': `calc(100vh - ${theme.space.lg})`, sm: '100%'},
+        width:
+          typeof props.width === 'string'
+            ? {
+                '2xs': `calc(100vw - ${theme.space.lg})`,
+                sm: props.width ?? RIGHT_SIDE_PANEL_WIDTH,
+              }
+            : props.width,
         right: 0,
-        top: 0,
-        bottom: 0,
+        top: {'2xs': theme.space.md, sm: 0},
+        bottom: {'2xs': theme.space.md, sm: 0},
+        left: {'2xs': theme.space.md, sm: 'auto'},
       };
     case 'left':
       return {
-        position: {'2xs': 'fixed', xs: 'relative'},
-        width: LEFT_SIDE_PANEL_WIDTH,
+        position: {'2xs': 'fixed', sm: 'relative'},
+        width: props.width ?? LEFT_SIDE_PANEL_WIDTH,
         minWidth: '450px',
         height: '100%',
         left: 0,
-        top: 0,
-        bottom: 0,
-      };
-    case 'bottom':
-      return {
-        position: {'2xs': 'fixed', xs: 'sticky'},
-        width: '100%',
-        height: BOTTOM_SIDE_PANEL_HEIGHT,
-        bottom: 0,
-        left: 0,
-        right: 0,
+        top: {'2xs': '54px', sm: 0},
+        right: {'2xs': theme.space.md, sm: 'auto'},
+        bottom: {'2xs': theme.space.md, sm: 0},
       };
     default:
-      unreachable(placement);
-      throw new Error(`Invalid placement: ${placement}`);
+      unreachable(props.placement);
+      throw new Error(`Invalid placement: ${props.placement}`);
   }
 }
-
-const AnimatedSurface = styled(MotionSurface)<SlideOverPanelProps>`
-  z-index: ${p => p.theme.zIndex.modal - 1};
-`;
 
 const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
