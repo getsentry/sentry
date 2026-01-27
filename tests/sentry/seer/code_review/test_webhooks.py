@@ -798,6 +798,7 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            extra={},
         )
 
         self.mock_client.create_issue_reaction.assert_not_called()
@@ -821,6 +822,7 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            extra={},
         )
 
         self.mock_client.delete_issue_reaction.assert_not_called()
@@ -842,6 +844,7 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number=None,
             comment_id="123456",
+            extra={},
         )
 
         self.mock_client.delete_issue_reaction.assert_not_called()
@@ -865,6 +868,7 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            extra={},
         )
 
         assert self.mock_client.delete_issue_reaction.call_count == 2
@@ -890,6 +894,7 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id="123456",
+            extra={},
         )
 
         assert self.mock_client.delete_issue_reaction.call_count == 2
@@ -913,6 +918,7 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            extra={},
         )
 
         mock_record_error.assert_called_once_with(
@@ -943,6 +949,7 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            extra={},
         )
 
         mock_record_error.assert_called_once_with(
@@ -967,6 +974,7 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            extra={},
         )
 
         mock_record_error.assert_called_once_with(
