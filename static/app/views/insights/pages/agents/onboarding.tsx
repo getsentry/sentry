@@ -141,7 +141,6 @@ function StepRenderer({
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
-      optional={step.showOptionalLabel}
     >
       <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
       <GuidedSteps.ButtonWrapper>

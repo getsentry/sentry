@@ -34,10 +34,6 @@ interface BaseStepProps {
    */
   onOptionalToggleClick?: (showOptionalConfig: boolean) => void;
   /**
-   * When used with GuidedSteps component, displays an "Optional" label below the step title.
-   */
-  showOptionalLabel?: boolean;
-  /**
    * Additional items to be displayed to the right of the step title, e.g. a button to copy the configuration to the clipboard.
    */
   trailingItems?: React.ReactNode;
