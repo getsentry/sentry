@@ -778,6 +778,10 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET = "replays.query.query_replays_dataset"
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
+    REPLAYS_QUERY_BROWSE_SCALAR_CONDITIONS_SUBQUERY = "replays.query.browse_scalar_conditions_subquery"
+    REPLAYS_QUERY_BROWSE_AGGREGATED_CONDITIONS_SUBQUERY = (
+        "replays.query.browse_aggregated_conditions_subquery"
+    )
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
