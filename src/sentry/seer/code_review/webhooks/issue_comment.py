@@ -49,18 +49,13 @@ def handle_issue_comment_event(
     organization: Organization,
     repo: Repository,
     integration: RpcIntegration | None = None,
+    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
     Handle issue_comment webhook events for PR review commands.
     """
     github_event_action = event.get("action", "")
-    extra = {
-        "organization_id": organization.id,
-        "repo": repo.name,
-        "github_event": github_event,
-        "github_event_action": github_event_action,
-    }
     record_webhook_received(github_event, github_event_action)
 
     if github_event_action != GitHubIssueCommentAction.CREATED:

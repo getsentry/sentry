@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as constants from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
@@ -23,14 +23,18 @@ function TestComponent() {
   );
 }
 
+const TEN_MINUTES = 10 * 60 * 1000;
+
 describe('FrontendVersionProvider', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     MockApiClient.clearMockResponses();
     ConfigStore.set('sentryMode', 'SAAS');
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
   it('provides state="current" when server version matches current version', async () => {
@@ -47,6 +51,9 @@ describe('FrontendVersionProvider', () => {
         <TestComponent />
       </FrontendVersionProvider>
     );
+
+    // Advance past the initial delay before version checking starts
+    act(() => jest.advanceTimersByTime(TEN_MINUTES));
 
     expect(await screen.findByTestId('state')).toHaveTextContent('current');
     expect(await screen.findByTestId('deployed-version')).toHaveTextContent(commitSha);
@@ -68,6 +75,9 @@ describe('FrontendVersionProvider', () => {
         <TestComponent />
       </FrontendVersionProvider>
     );
+
+    // Advance past the initial delay before version checking starts
+    act(() => jest.advanceTimersByTime(TEN_MINUTES));
 
     expect(await screen.findByTestId('state')).toHaveTextContent('stale');
     expect(await screen.findByTestId('deployed-version')).toHaveTextContent(
@@ -92,6 +102,9 @@ describe('FrontendVersionProvider', () => {
         <TestComponent />
       </FrontendVersionProvider>
     );
+
+    // Advance past the initial delay before version checking starts
+    act(() => jest.advanceTimersByTime(TEN_MINUTES));
 
     expect(await screen.findByTestId('state')).toHaveTextContent('unknown');
     expect(await screen.findByTestId('deployed-version')).toHaveTextContent('null');

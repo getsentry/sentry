@@ -1,14 +1,13 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
+import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import {decodeList} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
@@ -20,12 +19,46 @@ const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
 
 export function AgentSelector() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {agent: selectedAgents = []} = useLocationQuery({
-    fields: {agent: decodeList},
-  });
+
+  // Project-scoped storage key - automatically resets when projects change
+  const projectKey = [...pageFilters.selection.projects].sort().join(',');
+  const storageKey = `conversations:agent-filter:${organization.slug}:${projectKey}`;
+
+  const [storedAgents, setStoredAgents] = useLocalStorageState<string[]>(storageKey, []);
+
+  // Use nuqs to manage both agent and cursor state
+  const [{agent: urlAgents}, setQueryStates] = useQueryStates(
+    {
+      [AGENT_URL_PARAM]: parseAsArrayOf(parseAsString),
+      [TableUrlParams.CURSOR]: parseAsString,
+    },
+    {history: 'replace'}
+  );
+
+  // On mount: restore stored agents to URL if URL is empty
+  const hasInitialized = useRef(false);
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      if (!urlAgents?.length && storedAgents.length > 0) {
+        setQueryStates({[AGENT_URL_PARAM]: storedAgents});
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reset when project changes
+  const prevProjectKey = useRef(projectKey);
+  useEffect(() => {
+    if (prevProjectKey.current !== projectKey) {
+      prevProjectKey.current = projectKey;
+      setQueryStates({[AGENT_URL_PARAM]: null, [TableUrlParams.CURSOR]: null});
+    }
+  }, [projectKey, setQueryStates]);
+
+  const selectedAgents = useMemo(() => urlAgents ?? [], [urlAgents]);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -112,13 +145,10 @@ export function AgentSelector() {
       )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);
-        navigate({
-          ...location,
-          query: {
-            ...location.query,
-            [AGENT_URL_PARAM]: values.length > 0 ? values : undefined,
-            [TableUrlParams.CURSOR]: undefined,
-          },
+        setStoredAgents(values);
+        setQueryStates({
+          [AGENT_URL_PARAM]: values.length > 0 ? values : null,
+          [TableUrlParams.CURSOR]: null,
         });
       }}
     />
