@@ -65,7 +65,7 @@ const userQuery = queryOptions({
 type User = z.infer<typeof baseUserSchema>;
 
 const userMutationOptions = mutationOptions({
-  mutationFn: async (variables: Partial<User>) => {
+  mutationFn: async (variables: Partial<User>): Promise<User> => {
     // eslint-disable-next-line no-console
     console.log('saving lastName', variables);
     await sleep(1000);
@@ -101,7 +101,7 @@ function TanStackAutoSave() {
         {field => (
           <field.Input
             label="First Name:"
-            value={field.state.value}
+            value={field.state.value ?? ''}
             onChange={field.handleChange}
           />
         )}
@@ -175,7 +175,7 @@ function TanStack() {
             {field => (
               <field.Input
                 label="Firstname:"
-                value={field.state.value}
+                value={field.state.value ?? ''}
                 onChange={field.handleChange}
               />
             )}
