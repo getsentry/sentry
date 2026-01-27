@@ -204,7 +204,6 @@ def create_preprod_status_check_task(
         status,
         preprod_artifact.project,
         triggered_rules,
-        approvals_map,
     )
 
     target_url = get_preprod_artifact_url(preprod_artifact)
