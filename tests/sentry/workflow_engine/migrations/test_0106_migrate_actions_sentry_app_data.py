@@ -45,6 +45,7 @@ class TestActionDataFallthroughType(TestMigrations):
         assert self.installation_uuid_action.config.get("target_identifier") == str(
             self.sentry_app.id
         )
+        assert self.installation_uuid_action.config.get("target_type") == ActionTarget.SENTRY_APP
 
         self.sentry_app_id_action.refresh_from_db()
         assert (
@@ -52,3 +53,4 @@ class TestActionDataFallthroughType(TestMigrations):
             == SentryAppIdentifier.SENTRY_APP_ID
         )
         assert self.sentry_app_id_action.config.get("target_identifier") == str(self.sentry_app.id)
+        assert self.sentry_app_id_action.config.get("target_type") == ActionTarget.SENTRY_APP

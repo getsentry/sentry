@@ -8,6 +8,7 @@ and perform RPC calls to propagate changes to Control Silo.
 
 from __future__ import annotations
 
+import copy
 import logging
 from typing import Any
 
@@ -43,11 +44,10 @@ logger = logging.getLogger(__name__)
 def update_sentry_app_action_data(
     shard_identifier: int,
     object_identifier: int,
-    region_name: str,
     **kwds: Any,
 ):
     try:
-        action = Action.objects.filter(
+        action = Action.objects.get(
             id=shard_identifier,
             type=Action.Type.SENTRY_APP,
             config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
@@ -55,10 +55,9 @@ def update_sentry_app_action_data(
         installs = app_service.get_many(
             filter={
                 "uuids": [action.config.get("target_identifier")],
-                "status": SentryAppInstallationStatus.INSTALLED.value,
+                "status": SentryAppInstallationStatus.INSTALLED,
             }
         )
-
         if len(installs) > 1:
             logger.info(
                 "Multiple sentry app installations found",
@@ -68,11 +67,14 @@ def update_sentry_app_action_data(
                 },
             )
             return
+
         if installs:
-            action.update(
-                config__target_identifier=str(installs[0].sentry_app_id),
-                config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
-            )
+            updated_config = copy.deepcopy(action.config)
+            updated_config["target_identifier"] = str(installs[0].sentry_app.id)
+            updated_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
+            action.update(config=updated_config)
+            action.save()
+
     except Action.DoesNotExist:
         logger.info("Could not update Action", extra={"action_id": shard_identifier})
 
