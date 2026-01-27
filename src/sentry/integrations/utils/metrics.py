@@ -9,6 +9,7 @@ from typing import Any, Self
 
 import sentry_sdk
 
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
@@ -350,6 +351,14 @@ class IntegrationEventLifecycle(EventLifecycle):
             # ApiHostError is raised from RestrictedIPAddress
             self.record_halt(exc_value)
             return
+
+        if exc_value is not None and isinstance(exc_value, IdentityNotValid):
+            # IdentityNotValid is expected when OAuth refresh tokens become invalid
+            # (user revoked access, changed password, token expired, etc.)
+            # This is not a system failure, so we record it as a halt instead.
+            self.record_halt(exc_value)
+            return
+
         super().__exit__(exc_type, exc_value, traceback)
 
 
@@ -496,3 +505,13 @@ class IntegrationProxyEvent(EventLifecycleMetric):
         return {
             "interaction_type": self.interaction_type,
         }
+
+    def capture(
+        self, assume_success: bool = True, sample_log_rate: float = 1.0
+    ) -> "IntegrationEventLifecycle":
+        """Open a context to measure the event.
+
+        Uses IntegrationEventLifecycle to properly handle expected exceptions
+        like IdentityNotValid as halts instead of failures.
+        """
+        return IntegrationEventLifecycle(self, assume_success, sample_log_rate)
