@@ -654,11 +654,10 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     def add_metrics(self, org, project, sample_rate):
         for mri in [TransactionMRI.COUNT_PER_ROOT_PROJECT, SpanMRI.COUNT_PER_ROOT_PROJECT]:
-            base_tags = {"transaction": "trans-x"}
             if sample_rate < 100:
                 self.store_performance_metric(
                     name=mri.value,
-                    tags={**base_tags, "decision": "drop"},
+                    tags={"transaction": "trans-x", "decision": "drop"},
                     minutes_before_now=2,
                     value=100 - sample_rate,
                     project_id=project.id,
@@ -667,7 +666,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             if sample_rate > 0:
                 self.store_performance_metric(
                     name=mri.value,
-                    tags={**base_tags, "decision": "keep"},
+                    tags={"transaction": "trans-x", "decision": "keep"},
                     minutes_before_now=2,
                     value=sample_rate,
                     project_id=project.id,
