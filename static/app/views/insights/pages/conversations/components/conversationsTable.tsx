@@ -1,7 +1,7 @@
-import {Fragment, memo, useCallback} from 'react';
+import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -19,6 +19,8 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {MarkedText} from 'sentry/utils/marked/markedText';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
@@ -43,7 +45,7 @@ export function ConversationsTable() {
 const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'conversationId', name: t('Conversation ID'), width: 0},
+  {key: 'conversationId', name: t('Conv. ID'), width: 0},
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
   {key: 'llmToolCalls', name: t('LLM/Tool Calls'), width: 140},
@@ -62,12 +64,17 @@ function ConversationsTableInner() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
+      <Flex
+        flex="1"
+        align="center"
+        gap="xs"
+        justify={rightAlignColumns.has(column.key) ? 'end' : 'start'}
+      >
         {column.key === 'user' && <IconUser size="xs" />}
         {column.name}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
         {column.key === 'inputOutput' && <CellExpander />}
-      </HeadCell>
+      </Flex>
     );
   }, []);
 
@@ -80,7 +87,7 @@ function ConversationsTableInner() {
 
   return (
     <Fragment>
-      <GridEditableContainer>
+      <Container>
         <GridEditable
           isLoading={isLoading}
           error={error}
@@ -94,7 +101,7 @@ function ConversationsTableInner() {
             onResizeColumn: handleResizeColumn,
           }}
         />
-      </GridEditableContainer>
+      </Container>
       <Pagination pageLinks={pageLinks} onCursor={setCursor} />
     </Fragment>
   );
@@ -102,6 +109,38 @@ function ConversationsTableInner() {
 
 function getUserDisplayName(user: ConversationUser): string {
   return user.email || user.username || user.ip_address || t('Unknown');
+}
+
+const TOOLTIP_MAX_CHARS = 2048;
+const CELL_MAX_CHARS = 256;
+
+function TooltipContent({text}: {text: string}) {
+  return (
+    <TooltipTextContainer>
+      <MarkedText text={ellipsize(text, TOOLTIP_MAX_CHARS)} />
+    </TooltipTextContainer>
+  );
+}
+
+function cleanMarkdownForCell(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
+    .replace(/^#{1,6}\s+(.+)$/gm, '**$1**') // headings -> bold text
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+type CellContentProps = ComponentPropsWithRef<'div'> & {
+  text: string;
+};
+
+function CellContent({text, ...props}: CellContentProps) {
+  const cleanedText = cleanMarkdownForCell(text);
+  return (
+    <SingleLineMarkdown {...props}>
+      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+    </SingleLineMarkdown>
+  );
 }
 
 function UserNotInstrumentedTooltip() {
@@ -166,58 +205,52 @@ const BodyCell = memo(function BodyCell({
       );
     case 'inputOutput': {
       return (
-        <InputOutputButton
-          type="button"
-          onClick={() => openConversationViewDrawer(dataRow)}
-        >
-          <Grid
-            areas={`
-              "inputLabel inputValue"
-              "outputLabel outputValue"
-            `}
-            columns="min-content 1fr"
-            gap="2xs md"
+        <Stack width="100%">
+          <InputOutputRow
+            type="button"
+            onClick={() => openConversationViewDrawer(dataRow)}
           >
-            <Container area="inputLabel">
-              <Text variant="muted">{t('Input')}</Text>
-            </Container>
-            <Container area="inputValue" minWidth="0px">
-              <Tooltip
-                title={dataRow.firstInput}
-                disabled={!dataRow.firstInput}
-                showOnlyOnOverflow
-                maxWidth={800}
-                isHoverable
-                delay={500}
-              >
-                {dataRow.firstInput ? (
-                  <Text ellipsis>{dataRow.firstInput}</Text>
-                ) : (
-                  <Text variant="muted">&mdash;</Text>
-                )}
-              </Tooltip>
-            </Container>
-            <Container area="outputLabel">
-              <Text variant="muted">{t('Output')}</Text>
-            </Container>
-            <Container area="outputValue" minWidth="0px">
-              <Tooltip
-                title={dataRow.lastOutput}
-                disabled={!dataRow.lastOutput}
-                showOnlyOnOverflow
-                maxWidth={800}
-                isHoverable
-                delay={500}
-              >
-                {dataRow.lastOutput ? (
-                  <Text ellipsis>{dataRow.lastOutput}</Text>
-                ) : (
-                  <Text variant="muted">&mdash;</Text>
-                )}
-              </Tooltip>
-            </Container>
-          </Grid>
-        </InputOutputButton>
+            <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
+            <Flex flex="1" minWidth="0">
+              {dataRow.firstInput ? (
+                <Tooltip
+                  title={<TooltipContent text={dataRow.firstInput} />}
+                  showOnlyOnOverflow
+                  maxWidth={800}
+                  isHoverable
+                  delay={500}
+                  skipWrapper
+                >
+                  <CellContent text={dataRow.firstInput} />
+                </Tooltip>
+              ) : (
+                <Text variant="muted">&mdash;</Text>
+              )}
+            </Flex>
+          </InputOutputRow>
+          <InputOutputRow
+            type="button"
+            onClick={() => openConversationViewDrawer(dataRow)}
+          >
+            <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
+            <Flex flex="1" minWidth="0">
+              {dataRow.lastOutput ? (
+                <Tooltip
+                  title={<TooltipContent text={dataRow.lastOutput} />}
+                  showOnlyOnOverflow
+                  maxWidth={800}
+                  isHoverable
+                  delay={500}
+                  skipWrapper
+                >
+                  <CellContent text={dataRow.lastOutput} />
+                </Tooltip>
+              ) : (
+                <Text variant="muted">&mdash;</Text>
+              )}
+            </Flex>
+          </InputOutputRow>
+        </Stack>
       );
     }
     case 'llmToolCalls':
@@ -243,9 +276,29 @@ const BodyCell = memo(function BodyCell({
   }
 });
 
-const GridEditableContainer = styled('div')`
-  position: relative;
-  margin-bottom: ${p => p.theme.space.md};
+const TooltipTextContainer = styled('div')`
+  text-align: left;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: inherit; /* makes sure headings are not too large */
+    font-weight: bold;
+    margin: 0;
+  }
+`;
+
+const SingleLineMarkdown = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  * {
+    display: inline;
+  }
 `;
 
 /**
@@ -256,20 +309,15 @@ const CellExpander = styled('div')`
   width: 100vw;
 `;
 
-const HeadCell = styled('div')<{align: 'left' | 'right'}>`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
-`;
-
 const ConversationIdButton = styled(Button)`
   font-weight: normal;
   padding: 0;
 `;
 
-const InputOutputButton = styled('button')`
+const InputOutputRow = styled('button')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
   background: transparent;
   border: none;
   padding: 0;
@@ -286,4 +334,8 @@ const InputOutputButton = styled('button')`
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.active};
   }
+`;
+
+const InputOutputLabel = styled(Text)`
+  width: 4em;
 `;

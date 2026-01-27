@@ -39,31 +39,6 @@ interface RequestMessage {
   parts?: Array<{type: string; content?: string; text?: string}>;
 }
 
-// often injected into AI prompts to indicate the role of the message
-const AI_PROMPT_TAGS = new Set([
-  'thinking',
-  'reasoning',
-  'instructions',
-  'user_message',
-  'maybe_relevant_context',
-]);
-
-/**
- * Escapes known AI prompt tags so they display as literal text rather than
- * being stripped by the HTML sanitizer.
- */
-function escapeXmlTags(text: string): string {
-  return text.replace(
-    /<(\/?)([a-z_][a-z0-9_:-]*)([^>]*)>/gi,
-    (match, slash, tagName, rest) => {
-      if (AI_PROMPT_TAGS.has(tagName.toLowerCase())) {
-        return `&lt;${slash}${tagName}${rest}&gt;`;
-      }
-      return match;
-    }
-  );
-}
-
 function getNodeTimestamp(node: AITraceSpanNode): number {
   return 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
 }
@@ -329,7 +304,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   <MessageText size="sm">
                     <MarkedText
                       as={TraceDrawerComponents.MarkdownContainer}
-                      text={escapeXmlTags(message.content)}
+                      text={message.content}
                     />
                   </MessageText>
                 </Container>
