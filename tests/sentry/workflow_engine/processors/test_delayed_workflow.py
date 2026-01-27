@@ -1317,3 +1317,93 @@ class TestEventKeyAndInstance:
         assert filtered.group_ids == {100}
         assert filtered.dcg_ids == {10, 1, 2, 3}
         assert 20 not in filtered.dcg_ids
+
+
+class TestSnubaTimeoutHandling(TestDelayedWorkflowBase):
+    """Test that Snuba timeout errors are handled correctly in delayed workflows"""
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.get_condition_group_results")
+    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    def test_read_timeout_error_no_retry(
+        self, mock_logger: MagicMock, mock_get_results: MagicMock
+    ) -> None:
+        """Test that ReadTimeoutError does not trigger a retry"""
+        from sentry.utils.snuba import SnubaError
+        from sentry.workflow_engine.processors.delayed_workflow import (
+            _process_workflows_for_project,
+        )
+        import urllib3.exceptions
+
+        # Setup: Make get_condition_group_results raise a SnubaError with ReadTimeoutError as cause
+        timeout_error = urllib3.exceptions.ReadTimeoutError(
+            pool=Mock(), url="/events/snql", message="Read timed out. (read timeout=30)"
+        )
+        snuba_error = SnubaError(timeout_error)
+        snuba_error.__cause__ = timeout_error
+        mock_get_results.side_effect = snuba_error
+
+        # Create event data with a workflow
+        event_key = EventKey(
+            workflow_id=self.workflow1.id,
+            group_id=self.group1.id,
+            when_dcg_id=self.workflow1.when_condition_group_id,
+            if_dcg_ids=frozenset([dcg.id for dcg in self.workflow1_if_dcgs]),
+            passing_dcg_ids=frozenset([self.workflow1_if_dcgs[0].id]),
+            original_key=f"{self.workflow1.id}:{self.group1.id}:{self.workflow1.when_condition_group_id}::{self.workflow1_if_dcgs[0].id}",
+        )
+        event_instance = EventInstance(
+            event_id=self.event1.event_id,
+            occurrence_id=None,
+            timestamp=self.event1.datetime,
+        )
+        event_data = EventRedisData(events={event_key: event_instance})
+
+        # Execute - should handle timeout gracefully without raising retry
+        _process_workflows_for_project(self.project, event_data)
+
+        # Verify warning was logged
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert call_args[0][0] == "delayed_workflow.snuba_timeout"
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.get_condition_group_results")
+    @patch("sentry.workflow_engine.processors.delayed_workflow.retry_task")
+    def test_other_snuba_error_triggers_retry(
+        self, mock_retry_task: MagicMock, mock_get_results: MagicMock
+    ) -> None:
+        """Test that non-timeout SnubaErrors still trigger retry"""
+        from sentry.utils.snuba import SnubaError
+        from sentry.workflow_engine.processors.delayed_workflow import (
+            _process_workflows_for_project,
+        )
+
+        # Setup: Make get_condition_group_results raise a SnubaError with non-timeout cause
+        generic_error = Exception("Some other error")
+        snuba_error = SnubaError(generic_error)
+        snuba_error.__cause__ = generic_error
+        mock_get_results.side_effect = snuba_error
+
+        # Create event data
+        event_key = EventKey(
+            workflow_id=self.workflow1.id,
+            group_id=self.group1.id,
+            when_dcg_id=self.workflow1.when_condition_group_id,
+            if_dcg_ids=frozenset([dcg.id for dcg in self.workflow1_if_dcgs]),
+            passing_dcg_ids=frozenset([self.workflow1_if_dcgs[0].id]),
+            original_key=f"{self.workflow1.id}:{self.group1.id}:{self.workflow1.when_condition_group_id}::{self.workflow1_if_dcgs[0].id}",
+        )
+        event_instance = EventInstance(
+            event_id=self.event1.event_id,
+            occurrence_id=None,
+            timestamp=self.event1.datetime,
+        )
+        event_data = EventRedisData(events={event_key: event_instance})
+
+        # Execute - should trigger retry
+        from sentry.taskworker.retry import RetryTaskError
+
+        with pytest.raises(RetryTaskError):
+            _process_workflows_for_project(self.project, event_data)
+
+        # Verify retry_task was called
+        mock_retry_task.assert_called_once()
