@@ -100,7 +100,9 @@ class SeerOperator[CachePayloadT]:
                 self.entrypoint.on_trigger_autofix_error(error="Invalid stopping point provided")
                 return
 
-            raw_response = update_autofix(run_id=run_id, payload=payload)
+            raw_response = update_autofix(
+                organization_id=group.organization.id, run_id=run_id, payload=payload
+            )
 
         # Type-safety...
         assert raw_response is not None
