@@ -26,6 +26,7 @@ class TempestTasksTest(TestCase):
     def test_fetch_latest_item_id_task(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"latest_id": 20001}
+        mock_fetch.return_value.content = b'{"latest_id": 20001}'
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -39,6 +40,7 @@ class TempestTasksTest(TestCase):
     def test_fetch_latest_item_id_task_no_id(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"latest_id": None}
+        mock_fetch.return_value.content = b'{"latest_id": null}'
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -56,6 +58,8 @@ class TempestTasksTest(TestCase):
         mock_fetch.return_value.json.return_value = {
             "error": {"type": "invalid_credentials", "message": "..."}
         }
+        mock_fetch.return_value.content = b'{"error": {"type": "invalid_credentials"}}'
+        mock_fetch.return_value.status_code = 401
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -73,6 +77,8 @@ class TempestTasksTest(TestCase):
                 "message": "...",
             }
         }
+        mock_fetch.return_value.content = b'{"error": {"type": "ip_not_allowlisted"}}'
+        mock_fetch.return_value.status_code = 403
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -90,6 +96,8 @@ class TempestTasksTest(TestCase):
                 "message": "...",
             }
         }
+        mock_fetch.return_value.content = b'{"error": {"type": "internal_error"}}'
+        mock_fetch.return_value.status_code = 500
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -115,6 +123,7 @@ class TempestTasksTest(TestCase):
     def test_poll_tempest_crashes_task(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"latest_id": 20002}
+        mock_fetch.return_value.content = b'{"latest_id": 20002}'
 
         # Set this value since the test assumes that there is already an ID in the DB
         self.credentials.latest_fetched_item_id = "42"
@@ -347,6 +356,7 @@ class TempestTasksLockingTest(TestCase):
         """Test that fetch_latest_item_id executes normally when lock is available."""
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"latest_id": 12345}
+        mock_fetch.return_value.content = b'{"latest_id": 12345}'
 
         # Call without holding the lock
         fetch_latest_item_id(self.credentials.id)
@@ -362,6 +372,7 @@ class TempestTasksLockingTest(TestCase):
         """Test that poll_tempest_crashes executes normally when lock is available."""
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"latest_id": 54321}
+        mock_fetch.return_value.content = b'{"latest_id": 54321}'
 
         self.credentials.latest_fetched_item_id = "42"
         self.credentials.save()
@@ -382,6 +393,7 @@ class TempestTasksLockingTest(TestCase):
         """Test that locks are per-credential: different credentials can run in parallel."""
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"latest_id": 99999}
+        mock_fetch.return_value.content = b'{"latest_id": 99999}'
 
         # Create another credential
         other_project = self.create_project()

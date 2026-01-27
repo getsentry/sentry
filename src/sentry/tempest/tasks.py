@@ -390,7 +390,7 @@ def fetch_latest_id_from_tempest(
 
     timeout = options.get("tempest.latest-id-timeout")
 
-    with sentry_sdk.start_span(op="http.client", description="POST /latest-id") as span:
+    with sentry_sdk.start_span(op="http.client", name="POST /latest-id") as span:
         span.set_data("tempest.org_id", org_id)
         span.set_data("tempest.project_id", project_id)
         span.set_data("tempest.timeout", timeout)
@@ -434,7 +434,7 @@ def fetch_items_from_tempest(
 
     timeout = options.get("tempest.crashes-timeout")
 
-    with sentry_sdk.start_span(op="http.client", description="POST /crashes") as span:
+    with sentry_sdk.start_span(op="http.client", name="POST /crashes") as span:
         span.set_data("tempest.org_id", org_id)
         span.set_data("tempest.project_id", project_id)
         span.set_data("tempest.offset", offset)
