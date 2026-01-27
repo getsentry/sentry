@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -22,7 +23,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory, type DataCategoryInfo, type PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -364,7 +364,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
             <div>
               <Layout.Main width="full">
                 <HookHeader organization={organization} />
-                <ControlsWrapper>{this.renderProjectPageControl()}</ControlsWrapper>
+                <Flex justify="between" align="center" marginBottom="xl" gap="xs">
+                  {this.renderProjectPageControl()}
+                </Flex>
                 {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
@@ -428,14 +430,6 @@ const DropdownDataCategory = styled(CompactSelect)`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-column: auto / span 1;
   }
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  margin-bottom: ${space(2)};
-  justify-content: space-between;
 `;
 
 const PageControl = styled('div')`
