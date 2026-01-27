@@ -271,23 +271,28 @@ def prep_search(
 
 
 def serialize_releases(request: Request, group: Group, versions: list[str]) -> list[dict[str, Any]]:
+    # Deduplicate versions to avoid redundant queries and processing
+    unique_versions = list(dict.fromkeys(versions))
+    
     releases = {
         release.version: release
         for release in Release.objects.filter(
             projects=group.project,
             organization_id=group.project.organization_id,
-            version__in=versions,
+            version__in=unique_versions,
         )
     }
     serialized_releases = serialize(
-        [releases.get(version) for version in versions],
+        [releases.get(version) for version in unique_versions],
         request.user,
     )
-    # Default to a dictionary if the release object wasn't found and not serialized
-    return [
-        item if item is not None else {"version": version}
-        for item, version in zip(serialized_releases, versions)
-    ]
+    # Create a mapping from version to serialized data
+    version_to_serialized = {
+        version: (item if item is not None else {"version": version})
+        for item, version in zip(serialized_releases, unique_versions)
+    }
+    # Return results in original order, including duplicates
+    return [version_to_serialized[version] for version in versions]
 
 
 def get_first_last_release(
