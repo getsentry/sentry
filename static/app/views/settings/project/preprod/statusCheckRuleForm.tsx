@@ -9,6 +9,7 @@ import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {SectionLabel} from './statusCheckSharedComponents';
 import type {StatusCheckRule} from './types';
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
+  const {project} = useProjectSettingsOutlet();
   const [metric, setMetric] = useState(rule.metric);
   const [measurement, setMeasurement] = useState(rule.measurement);
   const displayUnit = getDisplayUnit(measurement);
@@ -106,6 +108,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
         <SectionLabel>{t('For')}</SectionLabel>
         <PreprodSearchBar
           initialQuery={filterQuery}
+          projects={[Number(project.id)]}
           onChange={(query, _state) => handleQueryChange(query)}
           searchSource="preprod_status_check_filters"
           portalTarget={document.body}

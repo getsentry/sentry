@@ -38,7 +38,7 @@ export function TraceAutogroupedRow(
             <TraceRowConnectors node={props.node} manager={props.manager} />
             <TraceChildrenButton
               icon={
-                <TraceIcons.Chevron direction={props.node.expanded ? 'up' : 'down'} />
+                <TraceIcons.Chevron direction={props.node.expanded ? 'down' : 'right'} />
               }
               status={props.node.fetchStatus}
               expanded={!props.node.expanded}

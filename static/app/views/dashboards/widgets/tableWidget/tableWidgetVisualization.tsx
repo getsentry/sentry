@@ -51,6 +51,13 @@ type BaggageMaker = (
   meta: TabularMeta
 ) => RenderFunctionBaggage;
 
+type GetAllowedCellActionsFn = (cellInfo: {
+  column: TabularColumn;
+  columnIndex: number;
+  dataRow: TabularRow;
+  rowIndex: number;
+}) => Actions[];
+
 interface TableWidgetVisualizationProps {
   /**
    * The object that contains all the data needed to render the table
@@ -63,7 +70,7 @@ interface TableWidgetVisualizationProps {
   /**
    * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
    */
-  allowedCellActions?: Actions[];
+  allowedCellActions?: Actions[] | GetAllowedCellActionsFn;
   /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
@@ -272,6 +279,15 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const cell = valueRenderer(dataRow, baggage);
 
           const column = columnOrder[columnIndex]!;
+          const cellAllowedActions =
+            typeof allowedCellActions === 'function'
+              ? allowedCellActions({
+                  column,
+                  dataRow,
+                  columnIndex,
+                  rowIndex,
+                })
+              : allowedCellActions;
           const formattedColumn = {
             key: column.key,
             name: column.key,
@@ -298,7 +314,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
                     break;
                 }
               }}
-              allowActions={allowedCellActions}
+              allowActions={cellAllowedActions}
             >
               {cell}
             </CellAction>
