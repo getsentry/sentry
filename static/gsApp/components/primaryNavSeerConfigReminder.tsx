@@ -84,14 +84,14 @@ export default function PrimaryNavSeerConfigReminder() {
             <Text>
               {hasSeatBasedSeer
                 ? t(
-                    "Make sure you're getting the most out of Sentry. Finish setting up Seer to start using Root Cause Analysis and AI Code Review."
+                    'Seer is desperately waiting to fix your broken code. Please set it up. Your future self will thank you.'
                   )
                 : hasLegacySeer
                   ? t(
-                      'Your current Seer plan also includes access to AI Code Review. Finish setting up to get the most out of Sentry.'
+                      'Seer will catch issues in your (likely prompted) PRs. Don’t forget to configure it before you tag a human for review.'
                     )
                   : t(
-                      'Your current Seer plan also includes access to Issue Autofix. Finish setting up to get the most out of Sentry.'
+                      'Seer will automatically root cause your issues, but only if you let it. Don’t forget to set that up.'
                     )}
             </Text>
             <Flex>
