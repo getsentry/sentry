@@ -139,6 +139,7 @@ class TempestTasksTest(TestCase):
     def test_poll_tempest_crashes_invalid_json(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {"error": "Some internal server error"}
+        mock_fetch.return_value.content = b'{"error": "Some internal server error"}'
 
         # Set this value since the test assumes that there is already an ID in the DB
         self.credentials.latest_fetched_item_id = "42"
@@ -240,6 +241,7 @@ class TempestTasksTest(TestCase):
     ) -> None:
         """Test that project config is invalidated only when a new ProjectKey is created"""
         mock_fetch.return_value.json.return_value = {"latest_id": "123"}
+        mock_fetch.return_value.content = b'{"latest_id": "123"}'
 
         self.credentials.latest_fetched_item_id = "42"
         self.credentials.save()
