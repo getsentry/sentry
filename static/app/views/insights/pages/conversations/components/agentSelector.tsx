@@ -1,13 +1,12 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import localStorage from 'sentry/utils/localStorage';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -19,29 +18,18 @@ import {SpanFields} from 'sentry/views/insights/types';
 const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
 
-function makeAgentFilterStorageKey(orgSlug: string): string {
-  return `conversations:agent-filter:${orgSlug}`;
-}
-
-function getAgentFilterFromStorage(orgSlug: string): string[] {
-  const value = localStorage.getItem(makeAgentFilterStorageKey(orgSlug));
-  if (!value) {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 export function AgentSelector() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
 
+  // Project-scoped storage key - automatically resets when projects change
+  const projectKey = [...pageFilters.selection.projects].sort().join(',');
+  const storageKey = `conversations:agent-filter:${organization.slug}:${projectKey}`;
+
+  const [storedAgents, setStoredAgents] = useLocalStorageState<string[]>(storageKey, []);
+
   // Use nuqs to manage both agent and cursor state
-  const [{agent: selectedAgents}, setQueryStates] = useQueryStates(
+  const [{agent: urlAgents}, setQueryStates] = useQueryStates(
     {
       [AGENT_URL_PARAM]: parseAsArrayOf(parseAsString),
       [TableUrlParams.CURSOR]: parseAsString,
@@ -49,51 +37,28 @@ export function AgentSelector() {
     {history: 'replace'}
   );
 
-  // Initialize from localStorage on mount if URL is empty
+  // On mount: restore stored agents to URL if URL is empty
   const hasInitialized = useRef(false);
   useEffect(() => {
-    if (!hasInitialized.current && !selectedAgents) {
-      const storedAgents = getAgentFilterFromStorage(organization.slug);
-      if (storedAgents.length > 0) {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      if (!urlAgents?.length && storedAgents.length > 0) {
         setQueryStates({[AGENT_URL_PARAM]: storedAgents});
       }
-      hasInitialized.current = true;
     }
-  }, [selectedAgents, organization.slug, setQueryStates]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Sync to localStorage whenever agents change
+  // Reset when project changes
+  const prevProjectKey = useRef(projectKey);
   useEffect(() => {
-    const agents = selectedAgents ?? [];
-    if (agents.length > 0) {
-      localStorage.setItem(
-        makeAgentFilterStorageKey(organization.slug),
-        JSON.stringify(agents)
-      );
-    } else {
-      localStorage.removeItem(makeAgentFilterStorageKey(organization.slug));
+    if (prevProjectKey.current !== projectKey) {
+      prevProjectKey.current = projectKey;
+      setQueryStates({[AGENT_URL_PARAM]: null, [TableUrlParams.CURSOR]: null});
     }
-  }, [selectedAgents, organization.slug]);
+  }, [projectKey, setQueryStates]);
 
-  // Reset agent filter when project changes
-  const prevProjectsRef = useRef<number[]>(pageFilters.selection.projects);
-  useEffect(() => {
-    const currentProjects = pageFilters.selection.projects;
-    const prevProjects = prevProjectsRef.current;
-
-    const projectsChanged = !isEqual(prevProjects, currentProjects);
-
-    if (projectsChanged) {
-      // Clear agent filter from URL and localStorage
-      localStorage.removeItem(makeAgentFilterStorageKey(organization.slug));
-      setQueryStates({
-        [AGENT_URL_PARAM]: null,
-        [TableUrlParams.CURSOR]: null,
-      });
-
-      // Update ref for next comparison
-      prevProjectsRef.current = currentProjects;
-    }
-  }, [pageFilters.selection.projects, setQueryStates, organization.slug]);
+  const selectedAgents = useMemo(() => urlAgents ?? [], [urlAgents]);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -147,7 +112,7 @@ export function AgentSelector() {
     });
 
     // Ensure selected values are in the list
-    (selectedAgents ?? []).forEach(agent => {
+    selectedAgents.forEach(agent => {
       if (agent && !uniqueAgents.has(agent)) {
         list.push({label: agent, value: agent});
       }
@@ -163,7 +128,7 @@ export function AgentSelector() {
     <CompactSelect
       multiple
       style={{maxWidth: '200px'}}
-      value={selectedAgents ?? []}
+      value={selectedAgents}
       options={options}
       emptyMessage={t('No agents found')}
       loading={isPending}
@@ -180,9 +145,7 @@ export function AgentSelector() {
       )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);
-
-        // Update URL and clear pagination cursor
-        // localStorage sync happens in useEffect
+        setStoredAgents(values);
         setQueryStates({
           [AGENT_URL_PARAM]: values.length > 0 ? values : null,
           [TableUrlParams.CURSOR]: null,
