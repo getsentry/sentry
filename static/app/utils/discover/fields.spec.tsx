@@ -22,6 +22,12 @@ describe('parseFunction', () => {
     expect(parseFunction('foo.bar.is-Enterprise_42')).toBeNull();
   });
 
+  it('returns null on undefined or empty input', () => {
+    expect(parseFunction(undefined as any)).toBeNull();
+    expect(parseFunction(null as any)).toBeNull();
+    expect(parseFunction('')).toBeNull();
+  });
+
   it('handles 0 arg functions', () => {
     expect(parseFunction('count()')).toEqual({
       name: 'count',

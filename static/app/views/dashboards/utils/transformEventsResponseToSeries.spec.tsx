@@ -9,6 +9,23 @@ import type {
 import {transformEventsResponseToSeries} from './transformEventsResponseToSeries';
 
 describe('transformEventsResponseToSeries', () => {
+  it('returns empty array when aggregates is empty', () => {
+    const rawData: EventsStats = {
+      data: [
+        [1737731713, [{count: 17}]],
+        [1737731773, [{count: 22}, {count: 1}]],
+      ],
+    };
+
+    const widgetQuery = WidgetQueryFixture({
+      fields: [],
+      aggregates: [],
+      columns: [],
+    });
+
+    expect(transformEventsResponseToSeries(rawData, widgetQuery)).toEqual([]);
+  });
+
   it('converts a single series response to an array', () => {
     const rawData: EventsStats = {
       data: [

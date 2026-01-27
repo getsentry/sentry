@@ -922,6 +922,9 @@ export function getAggregateArg(field: string): string | null {
 }
 
 export function parseFunction(field: string): ParsedFunction | null {
+  if (!field) {
+    return null;
+  }
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
