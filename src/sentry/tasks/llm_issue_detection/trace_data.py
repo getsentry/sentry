@@ -17,6 +17,42 @@ logger = logging.getLogger(__name__)
 
 # Regex to match unescaped quotes (not preceded by backslash)
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
+LOWER_SPAN_LIMIT = 20
+UPPER_SPAN_LIMIT = 500
+
+
+def get_valid_trace_ids_by_span_count(
+    trace_ids: list[str],
+    snuba_params: SnubaParams,
+    config: SearchResolverConfig,
+) -> set[str]:
+    """
+    Query span counts for all trace_ids in one query.
+    Return set of trace_ids with valid span counts.
+
+    This filters out traces that are too small (lack context) or too large
+    (exceed LLM context limits) before sending to Seer for analysis.
+    """
+    if not trace_ids:
+        return set()
+
+    result = Spans.run_table_query(
+        params=snuba_params,
+        query_string=f"trace:[{','.join(trace_ids)}]",
+        selected_columns=["trace", "count()"],
+        orderby=None,
+        offset=0,
+        limit=len(trace_ids),
+        referrer=Referrer.ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT.value,
+        config=config,
+        sampling_mode="NORMAL",
+    )
+
+    return {
+        row["trace"]
+        for row in result.get("data", [])
+        if LOWER_SPAN_LIMIT <= row["count()"] <= UPPER_SPAN_LIMIT
+    }
 
 
 def get_project_top_transaction_traces_for_llm_detection(
@@ -26,6 +62,7 @@ def get_project_top_transaction_traces_for_llm_detection(
 ) -> list[TraceMetadata]:
     """
     Get top transactions by total time spent, return one semi-randomly chosen trace per transaction.
+    Filters traces by span count before returning.
     """
     try:
         project = Project.objects.get(id=project_id)
@@ -111,4 +148,12 @@ def get_project_top_transaction_traces_for_llm_detection(
         seen_names.add(normalized_name)
         seen_trace_ids.add(trace_id)
 
-    return trace_metadata
+    if not trace_metadata:
+        return []
+
+    all_trace_ids = [t.trace_id for t in trace_metadata]
+    valid_trace_ids = get_valid_trace_ids_by_span_count(
+        all_trace_ids, transaction_snuba_params, config
+    )
+
+    return [t for t in trace_metadata if t.trace_id in valid_trace_ids]
