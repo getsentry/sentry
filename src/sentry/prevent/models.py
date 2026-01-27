@@ -13,6 +13,8 @@ class PreventAIConfiguration(DefaultFieldsModel):
     """
     Model for managing configurations for Prevent AI features
     per Sentry organization and integration.
+
+    DEPRECATED: This model is no longer used and will be removed in a future PR.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
