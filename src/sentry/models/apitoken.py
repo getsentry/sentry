@@ -359,10 +359,14 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         """Create an ApiToken from an ApiGrant with full OAuth2 validation.
 
         This method performs comprehensive validation including:
-        - Application status verification
+        - Application status verification (for registered clients)
         - Grant expiry checks
         - redirect_uri binding (RFC 6749 §4.1.3)
         - PKCE verification (RFC 7636 §4.6)
+
+        Supports both traditional registered clients (with ApiApplication) and
+        CIMD clients (with cimd_client_id URL). CIMD clients don't have an
+        application to validate status against.
 
         All validations occur inside a lock to prevent TOCTOU race conditions.
         Failed validation attempts invalidate the grant per RFC 6749 §10.5.
@@ -394,11 +398,13 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 except ApiGrant.DoesNotExist:
                     raise InvalidGrantError("grant no longer exists")
 
-                # Re-validate inside lock to prevent race conditions
-                if grant.application.status != ApiApplicationStatus.active:
-                    with unguarded_write(using=router.db_for_write(ApiGrant)):
-                        grant.delete()
-                    raise InvalidGrantError("application not active")
+                # For registered clients (non-CIMD), validate application status
+                # CIMD clients don't have an application - they're validated via metadata fetch
+                if grant.application is not None:
+                    if grant.application.status != ApiApplicationStatus.active:
+                        with unguarded_write(using=router.db_for_write(ApiGrant)):
+                            grant.delete()
+                        raise InvalidGrantError("application not active")
 
                 if grant.is_expired():
                     with unguarded_write(using=router.db_for_write(ApiGrant)):
@@ -433,9 +439,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                     raise InvalidGrantError(error_reason)
 
                 # Create token and delete grant atomically
+                # For CIMD clients, application is None
                 with transaction.atomic(router.db_for_write(cls)):
                     api_token = cls.objects.create(
-                        application=grant.application,
+                        application=grant.application,  # None for CIMD clients
                         user=grant.user,
                         scope_list=grant.get_scopes(),
                         scoping_organization_id=grant.organization_id,
