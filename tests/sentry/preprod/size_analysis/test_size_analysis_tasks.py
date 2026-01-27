@@ -1045,3 +1045,89 @@ class RunSizeAnalysisComparisonTest(TestCase):
         )
         assert len(comparisons) == 1
         assert comparisons[0].state == PreprodArtifactSizeComparison.State.FAILED
+
+    def test_run_size_analysis_comparison_null_head_analysis_file_id(self):
+        """Test _run_size_analysis_comparison with null head analysis_file_id."""
+        # Create size metrics with null analysis_file_id (PENDING state)
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            app_id="com.example.app",
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        head_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            analysis_file_id=None,  # Null analysis_file_id
+        )
+
+        base_size_metrics = self._create_size_metrics_with_analysis_file(
+            {"analysis_duration": 0.4, "download_size": 800, "install_size": 1500}
+        )
+
+        with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
+            _run_size_analysis_comparison(
+                self.organization.id,
+                head_size_metrics,
+                base_size_metrics,
+            )
+
+            # Should log that head analysis is not ready
+            mock_logger.info.assert_called_with(
+                "preprod.size_analysis.compare.head_analysis_not_ready",
+                extra={
+                    "head_artifact_size_metric_id": head_size_metrics.id,
+                    "head_artifact_id": head_artifact.id,
+                    "head_metric_state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                },
+            )
+
+        # Verify no comparison was created (since we returned early)
+        comparisons = PreprodArtifactSizeComparison.objects.filter(
+            head_size_analysis=head_size_metrics,
+            base_size_analysis=base_size_metrics,
+        )
+        assert len(comparisons) == 0
+
+    def test_run_size_analysis_comparison_null_base_analysis_file_id(self):
+        """Test _run_size_analysis_comparison with null base analysis_file_id."""
+        head_size_metrics = self._create_size_metrics_with_analysis_file(
+            {"analysis_duration": 0.5, "download_size": 1000, "install_size": 2000}
+        )
+
+        # Create size metrics with null analysis_file_id (PENDING state)
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            app_id="com.example.app",
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        base_size_metrics = PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            analysis_file_id=None,  # Null analysis_file_id
+        )
+
+        with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
+            _run_size_analysis_comparison(
+                self.organization.id,
+                head_size_metrics,
+                base_size_metrics,
+            )
+
+            # Should log that base analysis is not ready
+            mock_logger.info.assert_called_with(
+                "preprod.size_analysis.compare.base_analysis_not_ready",
+                extra={
+                    "base_artifact_size_metric_id": base_size_metrics.id,
+                    "base_artifact_id": base_artifact.id,
+                    "base_metric_state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                },
+            )
+
+        # Verify no comparison was created (since we returned early)
+        comparisons = PreprodArtifactSizeComparison.objects.filter(
+            head_size_analysis=head_size_metrics,
+            base_size_analysis=base_size_metrics,
+        )
+        assert len(comparisons) == 0

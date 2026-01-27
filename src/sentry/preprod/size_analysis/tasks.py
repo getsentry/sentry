@@ -415,6 +415,19 @@ def _run_size_analysis_comparison(
             comparison.save()
         return
 
+    # Check if head analysis file exists (analysis_file_id can be None for PENDING metrics)
+    if head_size_metric.analysis_file_id is None:
+        logger.info(
+            "preprod.size_analysis.compare.head_analysis_not_ready",
+            extra={
+                "head_artifact_size_metric_id": head_size_metric.id,
+                "head_artifact_id": head_size_metric.preprod_artifact.id,
+                "head_metric_state": head_size_metric.state,
+            },
+        )
+        # Skip comparison since the head analysis hasn't completed yet
+        return
+
     try:
         head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
     except File.DoesNotExist:
@@ -428,6 +441,19 @@ def _run_size_analysis_comparison(
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
             comparison.state = PreprodArtifactSizeComparison.State.FAILED
             comparison.save()
+        return
+
+    # Check if base analysis file exists (analysis_file_id can be None for PENDING metrics)
+    if base_size_metric.analysis_file_id is None:
+        logger.info(
+            "preprod.size_analysis.compare.base_analysis_not_ready",
+            extra={
+                "base_artifact_size_metric_id": base_size_metric.id,
+                "base_artifact_id": base_size_metric.preprod_artifact.id,
+                "base_metric_state": base_size_metric.state,
+            },
+        )
+        # Skip comparison since the base analysis hasn't completed yet
         return
 
     try:
