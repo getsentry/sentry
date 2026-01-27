@@ -133,9 +133,10 @@ describe('LoaderScript', () => {
           ],
         },
         dynamicSdkLoaderOptions: {
+          hasDebug: false,
+          hasFeedback: false,
           hasPerformance: false,
           hasReplay: false,
-          hasDebug: false,
         },
       },
     ]);
@@ -282,9 +283,10 @@ describe('LoaderScript', () => {
           ],
         },
         dynamicSdkLoaderOptions: {
+          hasDebug: false,
+          hasFeedback: false,
           hasPerformance: false,
           hasReplay: false,
-          hasDebug: false,
         },
       },
     ]);

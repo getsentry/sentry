@@ -41,9 +41,10 @@ export function ProjectKeysFixture(params: ProjectKey[] = []): ProjectKey[] {
         ],
       },
       dynamicSdkLoaderOptions: {
+        hasDebug: false,
+        hasFeedback: false,
         hasPerformance: false,
         hasReplay: false,
-        hasDebug: false,
       },
     },
     ...params,

@@ -125,6 +125,7 @@ export type ProjectKey = {
   };
   dynamicSdkLoaderOptions: {
     hasDebug: boolean;
+    hasFeedback: boolean;
     hasPerformance: boolean;
     hasReplay: boolean;
   };
