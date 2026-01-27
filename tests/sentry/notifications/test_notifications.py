@@ -130,7 +130,7 @@ class ActivityNotificationTest(APITestCase):
         """
 
         # leave a comment
-        url = f"/api/0/issues/{self.group.id}/comments/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/comments/"
         with assume_test_silo_mode(SiloMode.REGION):
             with self.tasks():
                 response = self.client.post(url, format="json", data={"text": "blah blah"})

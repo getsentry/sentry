@@ -65,9 +65,7 @@ function getReplayTabs({
     // For video replays, we hide the memory tab (not applicable for mobile)
     [TabKey.MEMORY]: isVideoReplay ? null : t('Memory'),
     [TabKey.TAGS]: t('Tags'),
-    [TabKey.PLAYLIST]: organization.features.includes('replay-playlist-view')
-      ? t('Playlist')
-      : null,
+    [TabKey.PLAYLIST]: t('Playlist'),
   };
 }
 

@@ -124,6 +124,10 @@ def ensure_default_anomaly_detector(
         Detector.objects.filter(type=MetricIssue.slug, project=project).order_by("id").first()
     )
     if existing:
+        logger.info(
+            "create_default_anomaly_detector.already_exists",
+            extra={"project_id": project.id, "detector_id": existing.id},
+        )
         return existing
 
     lock = locks.get(
@@ -145,69 +149,76 @@ def ensure_default_anomaly_detector(
             if existing:
                 return existing
 
-            condition_group = DataConditionGroup.objects.create(
-                logic_type=DataConditionGroup.Type.ANY,
-                organization_id=project.organization_id,
-            )
+            try:
+                condition_group = DataConditionGroup.objects.create(
+                    logic_type=DataConditionGroup.Type.ANY,
+                    organization_id=project.organization_id,
+                )
 
-            DataCondition.objects.create(
-                comparison={
-                    "sensitivity": AnomalyDetectionSensitivity.LOW,
-                    "seasonality": AnomalyDetectionSeasonality.AUTO,
-                    "threshold_type": AnomalyDetectionThresholdType.ABOVE,
-                },
-                condition_result=DetectorPriorityLevel.HIGH,
-                type=Condition.ANOMALY_DETECTION,
-                condition_group=condition_group,
-            )
+                DataCondition.objects.create(
+                    comparison={
+                        "sensitivity": AnomalyDetectionSensitivity.LOW,
+                        "seasonality": AnomalyDetectionSeasonality.AUTO,
+                        "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+                    },
+                    condition_result=DetectorPriorityLevel.HIGH,
+                    type=Condition.ANOMALY_DETECTION,
+                    condition_group=condition_group,
+                )
 
-            detector = Detector.objects.create(
-                project=project,
-                name="High Error Count (Default)",
-                description="Automatically monitors for anomalous spikes in error count",
-                workflow_condition_group=condition_group,
-                type=MetricIssue.slug,
-                config={
-                    "detection_type": AlertRuleDetectionType.DYNAMIC.value,
-                    "comparison_delta": None,
-                },
-                owner_team_id=owner_team_id,
-                enabled=enabled,
-            )
+                detector = Detector.objects.create(
+                    project=project,
+                    name="High Error Count (Default)",
+                    description="Automatically monitors for anomalous spikes in error count",
+                    workflow_condition_group=condition_group,
+                    type=MetricIssue.slug,
+                    config={
+                        "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+                        "comparison_delta": None,
+                    },
+                    owner_team_id=owner_team_id,
+                    enabled=enabled,
+                )
 
-            snuba_query = create_snuba_query(
-                query_type=SnubaQuery.Type.ERROR,
-                dataset=Dataset.Events,
-                query="",
-                aggregate="count()",
-                time_window=timedelta(minutes=15),
-                resolution=timedelta(minutes=15),
-                environment=None,
-                event_types=[SnubaQueryEventType.EventType.ERROR],
-            )
+                snuba_query = create_snuba_query(
+                    query_type=SnubaQuery.Type.ERROR,
+                    dataset=Dataset.Events,
+                    query="",
+                    aggregate="count()",
+                    time_window=timedelta(minutes=15),
+                    resolution=timedelta(minutes=15),
+                    environment=None,
+                    event_types=[SnubaQueryEventType.EventType.ERROR],
+                )
 
-            query_subscription = create_snuba_subscription(
-                project=project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=snuba_query,
-            )
+                query_subscription = create_snuba_subscription(
+                    project=project,
+                    subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                    snuba_query=snuba_query,
+                )
 
-            data_source = DataSource.objects.create(
-                organization_id=project.organization_id,
-                source_id=str(query_subscription.id),
-                type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-            )
+                data_source = DataSource.objects.create(
+                    organization_id=project.organization_id,
+                    source_id=str(query_subscription.id),
+                    type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                )
 
-            DataSourceDetector.objects.create(
-                data_source=data_source,
-                detector=detector,
-            )
+                DataSourceDetector.objects.create(
+                    data_source=data_source,
+                    detector=detector,
+                )
+            except Exception:
+                logger.exception(
+                    "create_default_anomaly_detector.create_models_failed",
+                    extra={"project_id": project.id, "organization_id": project.organization_id},
+                )
+                raise
 
             try:
                 send_new_detector_data(detector)
             except Exception:
                 logger.exception(
-                    "Failed to send new detector data to Seer, detector not created",
+                    "create_default_anomaly_detector.send_to_seer_failed",
                     extra={"project_id": project.id, "organization_id": project.organization_id},
                 )
                 raise
@@ -221,10 +232,6 @@ def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
     return _ensure_detector(project, ErrorGroupType.slug), _ensure_detector(
         project, IssueStreamGroupType.slug
     )
-
-
-class SpecificDetectorNotFound(Exception):
-    pass
 
 
 @dataclass(frozen=True)
@@ -288,49 +295,28 @@ def get_detectors_for_event_data(
         )
 
     if detector is None and isinstance(event_data.event, GroupEvent):
-        try:
-            detector = _get_detector_for_event(event_data.event)
-        except (Detector.DoesNotExist, SpecificDetectorNotFound):
-            pass
-
+        detector = _get_detector_for_event(event_data.event)
     try:
         return EventDetectors(issue_stream_detector=issue_stream_detector, event_detector=detector)
     except ValueError:
         return None
 
 
-def _get_detector_for_event(event: GroupEvent) -> Detector:
+def _get_detector_for_event(event: GroupEvent) -> Detector | None:
     """
-    Returns the detector from the GroupEvent in event_data.
+    Returns the detector from the GroupEvent in event_data, or None if no detector is found.
     """
-
     issue_occurrence = event.occurrence
-
     try:
         if issue_occurrence is not None:
             detector_id = issue_occurrence.evidence_data.get("detector_id")
             if detector_id is None:
-                raise SpecificDetectorNotFound
-            detector = Detector.objects.get(id=detector_id)
+                return None
+            return Detector.objects.get(id=detector_id)
         else:
-            detector = Detector.get_error_detector_for_project(event.group.project_id)
+            return Detector.get_error_detector_for_project(event.group.project_id)
     except Detector.DoesNotExist:
-        metrics.incr("workflow_engine.detectors.error")
-        detector_id = (
-            issue_occurrence.evidence_data.get("detector_id") if issue_occurrence else None
-        )
-
-        logger.exception(
-            "Detector not found for event",
-            extra={
-                "event_id": event.event_id,
-                "group_id": event.group_id,
-                "detector_id": detector_id,
-            },
-        )
-        raise Detector.DoesNotExist("Detector not found for event")
-
-    return detector
+        return None
 
 
 def _get_detector_for_group(group: Group) -> Detector:

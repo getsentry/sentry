@@ -14,7 +14,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
-function getClientSideAgentMonitoringOnboardingConfig({
+function getClientSideConfig({
   integration,
   params,
   sentryImport,
@@ -192,7 +192,7 @@ const client = Sentry.instrumentGoogleGenAIClient(genAI, {
 });
 
 const response = await client.models.generateContent({
-  model: 'gemini-2.0-flash-001',
+  model: 'gemini-2.5-flash-lite',
   contents: 'Why is the sky blue?',
 });
             `,
@@ -321,7 +321,7 @@ export function agentMonitoring({
       return [
         {
           title: t('Configure'),
-          content: getClientSideAgentMonitoringOnboardingConfig({
+          content: getClientSideConfig({
             integration: selected,
             sentryImport: getImport(packageName, importMode).join('\n'),
             params,

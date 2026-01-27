@@ -586,6 +586,25 @@ class GitHubBaseClient(
         endpoint = f"/repos/{repo}/issues/{issue_number}"
         return self.patch(endpoint, data={"state": status})
 
+    def get_issue_reactions(self, repo: str, issue_number: str) -> list[Any]:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue
+        """
+        return self._get_with_pagination(f"/repos/{repo}/issues/{issue_number}/reactions")
+
+    def create_issue_reaction(self, repo: str, issue_number: str, reaction: GitHubReaction) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}/reactions"
+        return self.post(endpoint, data={"content": reaction.value})
+
+    def delete_issue_reaction(self, repo: str, issue_number: str, reaction_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-reaction
+        """
+        return self.delete(f"/repos/{repo}/issues/{issue_number}/reactions/{reaction_id}")
+
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
@@ -692,7 +711,7 @@ class GitHubBaseClient(
                 metrics.incr(
                     "integrations.github.get_blame_for_files.not_enough_requests_remaining"
                 )
-                logger.error(
+                logger.warning(
                     "sentry.integrations.github.get_blame_for_files.rate_limit",
                     extra={
                         "provider": IntegrationProviderSlug.GITHUB,
@@ -723,7 +742,7 @@ class GitHubBaseClient(
                     allow_text=False,
                 )
             except ValueError as e:
-                logger.exception(str(e), log_info)
+                logger.warning(str(e), log_info)
                 return []
             else:
                 self.set_cache(cache_key, response, 60)
