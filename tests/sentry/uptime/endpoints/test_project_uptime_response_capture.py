@@ -73,7 +73,7 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
         self.get_error_response(
             self.organization.slug,
             self.project.slug,
-            self.detector.id,  # Wrong detector
+            self.detector.id,
             capture.id,
             status_code=404,
         )
