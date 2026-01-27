@@ -63,7 +63,7 @@ class RedisRateLimiter(RateLimiter):
 
         redis_key = f"rl:{key_hex}"
         if project_id is not None:
-            redis_key += f":{project.id}"
+            redis_key += f":{project_id}"
         redis_key += f":{bucket}"
 
         return redis_key
