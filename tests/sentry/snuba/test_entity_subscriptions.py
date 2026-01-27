@@ -232,6 +232,39 @@ class EntitySubscriptionTestCase(TestCase):
             ),
         ]
 
+    def test_get_entity_subscription_for_metrics_dataset_for_sessions_with_environment(
+        self,
+    ) -> None:
+        # Regression test for SENTRY-5HAX: Environment string lookup failure
+        # When an environment is provided, it should be properly passed as an object
+        # rather than just a name string to avoid metrics indexer lookup failures
+        org_id = self.organization.id
+        use_case_id = UseCaseID.SESSIONS
+        environment = self.create_environment(name="Production", project=self.project)
+
+        aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.CRASH_RATE,
+            dataset=Dataset.Metrics,
+            aggregate=aggregate,
+            time_window=3600,
+            extra_fields={"org_id": self.organization.id},
+        )
+        assert isinstance(entity_subscription, MetricsCountersEntitySubscription)
+
+        # This should not raise IncompatibleMetricsQuery: "Environment: Production was not found"
+        snql_query = entity_subscription.build_query_builder(
+            "", [self.project.id], environment, {"organization_id": self.organization.id}
+        ).get_snql_query()
+
+        session_status = resolve_tag_key(use_case_id, org_id, "session.status")
+        session_status_crashed = resolve_tag_value(use_case_id, org_id, "crashed")
+        session_status_init = resolve_tag_value(use_case_id, org_id, "init")
+
+        # Verify the query was built successfully
+        assert snql_query is not None
+        assert snql_query.query.where is not None
+
     def test_get_entity_subscription_for_performance_transactions_dataset(self) -> None:
         aggregate = "percentile(transaction.duration,.95)"
         entity_subscription = get_entity_subscription(

@@ -442,7 +442,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             params = {}
 
         if environment:
-            params["environment"] = environment.name
+            params["environment_objects"] = [environment]
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
         params["project_id"] = project_ids
