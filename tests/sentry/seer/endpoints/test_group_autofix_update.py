@@ -52,6 +52,7 @@ class TestGroupAutofixUpdate(APITestCase):
                     "id": self.user.id,
                     "display_name": self.user.get_display_name(),
                 },
+                "organization_id": self.organization.id,
             }
         )
         expected_url = f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update"

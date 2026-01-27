@@ -65,6 +65,7 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
                         "display_name": user.get_display_name(),
                     }
                 ),
+                "organization_id": group.organization.id,
             }
         )
 
