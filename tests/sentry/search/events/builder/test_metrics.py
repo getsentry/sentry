@@ -3665,3 +3665,42 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
 
         assert result["data"] == [{"count": 1}]
+
+    def test_sum_with_counter_metric(self) -> None:
+        """Test that sum function works with counter metrics (prefix 'c')"""
+        # Store a custom counter metric similar to c:spans/ai.total_cost@usd
+        metric_id = indexer.resolve(
+            UseCaseID.TRANSACTIONS,
+            self.organization.id,
+            "c:spans/ai.total_cost@usd",
+        )
+        assert metric_id is not None
+        
+        # Store some counter metric values
+        for i in range(3):
+            self.store_transaction_metric(
+                value=10.0 * (i + 1),
+                metric="c:spans/ai.total_cost@usd",
+                internal_metric="c:spans/ai.total_cost@usd",
+                entity="metrics_counters",
+                timestamp=self.start + datetime.timedelta(minutes=i * 5),
+            )
+
+        # Build a query using sum with the counter metric
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            granularity=3600,
+            time_range_window=3600,
+            query="",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["sum(c:spans/ai.total_cost@usd)"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                skip_time_conditions=False,
+            ),
+        )
+
+        result = query.run_query("test_query")
+
+        # Verify the sum is correct (10 + 20 + 30 = 60)
+        assert result["data"] == [{"sum_c_spans_ai_total_cost_usd": 60.0}]
