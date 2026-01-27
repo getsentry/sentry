@@ -241,4 +241,64 @@ describe('MobileAppSizeConfig', () => {
       });
     });
   });
+
+  describe('getTableSortOptions', () => {
+    it('returns sort options based on columns and aggregates', () => {
+      const widgetQuery = {
+        conditions: '',
+        aggregates: ['max(install_size)', 'max(download_size)'],
+        fields: ['max(install_size)', 'max(download_size)'],
+        columns: ['platform', 'app_name'],
+        fieldAliases: [],
+        name: '',
+        orderby: '',
+      };
+
+      const result = MobileAppSizeConfig.getTableSortOptions!(organization, widgetQuery);
+
+      expect(result).toHaveLength(4);
+      expect(result).toEqual([
+        {label: 'max(install_size)', value: 'max(install_size)'},
+        {label: 'max(download_size)', value: 'max(download_size)'},
+        {label: 'platform', value: 'platform'},
+        {label: 'app_name', value: 'app_name'},
+      ]);
+    });
+
+    it('filters out empty fields', () => {
+      const widgetQuery = {
+        conditions: '',
+        aggregates: ['max(install_size)', ''],
+        fields: ['max(install_size)', ''],
+        columns: ['platform', ''],
+        fieldAliases: [],
+        name: '',
+        orderby: '',
+      };
+
+      const result = MobileAppSizeConfig.getTableSortOptions!(organization, widgetQuery);
+
+      expect(result).toHaveLength(2);
+      expect(result).toEqual([
+        {label: 'max(install_size)', value: 'max(install_size)'},
+        {label: 'platform', value: 'platform'},
+      ]);
+    });
+
+    it('returns empty array when no columns or aggregates', () => {
+      const widgetQuery = {
+        conditions: '',
+        aggregates: [],
+        fields: [],
+        columns: [],
+        fieldAliases: [],
+        name: '',
+        orderby: '',
+      };
+
+      const result = MobileAppSizeConfig.getTableSortOptions!(organization, widgetQuery);
+
+      expect(result).toHaveLength(0);
+    });
+  });
 });

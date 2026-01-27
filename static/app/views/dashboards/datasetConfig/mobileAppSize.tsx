@@ -1,7 +1,7 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
@@ -160,6 +160,18 @@ function getGroupByFieldOptions(
   return tagOptions;
 }
 
+function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const {columns, aggregates} = widgetQuery;
+  const options: Array<SelectValue<string>> = [];
+  [...aggregates, ...columns]
+    .filter(field => !!field)
+    .forEach(field => {
+      options.push({label: field, value: field});
+    });
+
+  return options;
+}
+
 function MobileAppSizeSearchBar({
   widgetQuery,
   onSearch,
@@ -231,6 +243,7 @@ export const MobileAppSizeConfig: DatasetConfig<
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   getGroupByFieldOptions,
+  getTableSortOptions,
   getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
     getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   getSeriesRequest: (
