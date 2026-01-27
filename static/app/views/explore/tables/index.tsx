@@ -68,11 +68,12 @@ export function ExploreTables(props: ExploreTablesProps) {
           onColumnsChange={setFields}
           stringTags={stringTags}
           numberTags={numberTags}
+          booleanTags={booleanTags}
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, stringTags, numberTags]);
+  }, [booleanTags, fields, numberTags, setFields, stringTags]);
 
   const openAggregateColumnEditor = useCallback(() => {
     openModal(
