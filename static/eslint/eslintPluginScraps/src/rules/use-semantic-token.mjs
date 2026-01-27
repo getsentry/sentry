@@ -19,7 +19,20 @@ export const useSemanticToken = {
         'Enforce that theme.tokens.* tokens are only used with appropriate CSS properties',
       category: 'Best Practices',
     },
-    schema: [],
+    schema: [
+      {
+        type: 'object',
+        properties: {
+          enabledCategories: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+          },
+        },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       invalidProperty: '`{{property}}` cannot use token `{{tokenPath}}`',
       invalidPropertyWithSuggestion:
@@ -28,6 +41,21 @@ export const useSemanticToken = {
   },
 
   create(context) {
+    const options = context.options[0] ?? {};
+    /** @type {Set<string> | null} */
+    const enabledCategories = options.enabledCategories
+      ? new Set(options.enabledCategories)
+      : null; // null means all enabled
+
+    /**
+     * Check if a category is enabled in the rule options.
+     * @param {string} categoryName
+     * @returns {boolean}
+     */
+    function isCategoryEnabled(categoryName) {
+      return enabledCategories === null || enabledCategories.has(categoryName);
+    }
+
     /**
      * Validate that a token is used with an allowed property for its category.
      * @param {import('estree').Node} node
@@ -43,6 +71,11 @@ export const useSemanticToken = {
 
       const normalizedProperty = normalizePropertyName(property);
       const rule = findRuleForToken(tokenInfo.tokenPath);
+
+      // Skip if this category is not enabled
+      if (rule && !isCategoryEnabled(rule.name)) {
+        return;
+      }
 
       if (rule && !rule.allowedProperties.has(normalizedProperty)) {
         const suggestedCategory = PROPERTY_TO_RULE.get(normalizedProperty);
