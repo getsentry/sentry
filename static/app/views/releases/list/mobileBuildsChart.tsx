@@ -1,12 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
-import type {LineSeriesOption} from 'echarts';
+import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'echarts';
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
@@ -60,10 +59,9 @@ function getSeriesLabel(key: SeriesKey): string {
 function parseSeriesKey(key: string): SeriesKey {
   const [appId, platform, buildConfiguration] = key.split('|');
   return {
-    appId: appId === 'unknown' ? null : (appId ?? null),
-    platform: platform === 'unknown' ? null : (platform ?? null),
-    buildConfiguration:
-      buildConfiguration === 'unknown' ? null : (buildConfiguration ?? null),
+    appId: appId === 'unknown' ? null : appId,
+    platform: platform === 'unknown' ? null : platform,
+    buildConfiguration: buildConfiguration === 'unknown' ? null : buildConfiguration,
   };
 }
 
@@ -76,12 +74,9 @@ export function MobileBuildsChart({
   const [metric, setMetric] = useState<SizeMetric>(SizeMetric.INSTALL_SIZE);
   const [legendSelected, setLegendSelected] = useState<Record<string, boolean>>({});
 
-  // Group builds by (app_id, platform, build_configuration) and transform to chart series
-  // Also create a lookup map: seriesKey -> dataIndex -> build
   const {series, seriesBuildLookup} = useMemo(() => {
     const grouped = new Map<string, BuildDetailsApiResponse[]>();
 
-    // Filter to builds with completed size info and group them
     for (const build of builds) {
       if (!isSizeInfoCompleted(build.size_info)) {
         continue;
@@ -93,12 +88,9 @@ export function MobileBuildsChart({
       grouped.set(key, existing);
     }
 
-    // Map from seriesId -> dataIndex -> build for click lookup
     const buildLookup = new Map<string, Map<number, BuildDetailsApiResponse>>();
 
-    // Transform grouped builds into chart series
     const chartSeries = Array.from(grouped.entries()).map(([key, groupBuilds]) => {
-      // Sort builds by date for consistent line drawing
       const sortedBuilds = [...groupBuilds].sort(
         (a, b) =>
           new Date(a.app_info.date_added ?? 0).getTime() -
@@ -109,7 +101,6 @@ export function MobileBuildsChart({
       const data: Array<{name: number; value: number}> = [];
 
       sortedBuilds.forEach(build => {
-        // Re-check isSizeInfoCompleted for TypeScript narrowing
         if (!isSizeInfoCompleted(build.size_info)) {
           return;
         }
@@ -202,7 +193,6 @@ export function MobileBuildsChart({
     return null;
   }
 
-  // Get min/max timestamps for x-axis
   const allTimestamps = series.flatMap(s => s.data.map(d => d.name));
   const minTime = Math.min(...allTimestamps);
   const maxTime = Math.max(...allTimestamps);
@@ -223,7 +213,6 @@ export function MobileBuildsChart({
           />
         </Flex>
         <TransitionChart loading={isLoading} reloading={false}>
-          <TransparentLoadingMask visible={false} />
           <LineChart
             height={200}
             grid={{left: '10px', right: '10px', top: '30px', bottom: '0px'}}
@@ -254,21 +243,29 @@ export function MobileBuildsChart({
               trigger: 'axis',
               valueFormatter: (value: number | string) =>
                 typeof value === 'number' ? formatBytesBase10(value) : value,
-              formatter: (seriesParams: any) => {
+              formatter: (seriesParams: TooltipComponentFormatterCallbackParams) => {
                 const params = Array.isArray(seriesParams)
                   ? seriesParams
                   : [seriesParams];
-                if (params.length === 0) {
+                const firstParam = params[0];
+                if (!firstParam) {
                   return '';
                 }
-                const timestamp = params[0]?.data?.[0] ?? params[0]?.name;
+                const timestamp = firstParam.name;
                 const formattedDate = moment(timestamp).format('MMM D, YYYY h:mm A');
 
                 const rows = params
-                  .map(
-                    (p: any) =>
-                      `<div><span class="tooltip-label">${p.marker}<strong>${p.seriesName}</strong></span> ${formatBytesBase10(p.data?.[1] ?? p.value)}</div>`
-                  )
+                  .map(param => {
+                    const rawValue = Array.isArray(param.value)
+                      ? param.value[1]
+                      : param.value;
+                    const numericValue = Number(rawValue);
+                    const formattedValue = Number.isFinite(numericValue)
+                      ? formatBytesBase10(numericValue)
+                      : '';
+                    const marker = typeof param.marker === 'string' ? param.marker : '';
+                    return `<div><span class="tooltip-label">${marker}<strong>${param.seriesName}</strong></span> ${formattedValue}</div>`;
+                  })
                   .join('');
 
                 return `<div class="tooltip-series">${rows}</div><div class="tooltip-footer">${formattedDate}</div>`;
