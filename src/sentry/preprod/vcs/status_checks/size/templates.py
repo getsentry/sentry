@@ -23,6 +23,7 @@ def format_status_check_messages(
     project: Project,
     triggered_rules: list[TriggeredRule] | None = None,
     approvals_map: dict[int, PreprodComparisonApproval] | None = None,
+    base_data_map: dict[tuple[int, int, str | None], tuple[PreprodArtifact, PreprodArtifactSizeMetrics]] | None = None,
 ) -> tuple[str, str, str]:
     """
     Args:
@@ -32,6 +33,7 @@ def format_status_check_messages(
         project: The project associated with the artifacts
         triggered_rules: List of triggered rules with artifact associations
         approvals_map: Dict mapping artifact_id to PreprodComparisonApproval
+        base_data_map: Dict mapping (artifact_id, metrics_artifact_type, identifier) to (base_artifact, base_metrics)
 
     Returns:
         tuple: (title, subtitle, summary)
@@ -114,7 +116,7 @@ def format_status_check_messages(
         # Failed apps section
         summary_parts.append(failed_header)
         summary_parts.append(
-            _format_artifact_summary(failed_artifacts, size_metrics_map, approvals_map)
+            _format_artifact_summary(failed_artifacts, size_metrics_map, approvals_map, base_data_map)
         )
         summary_parts.append(_format_failed_checks_details(triggered_rules, settings_url))
 
@@ -130,7 +132,7 @@ def format_status_check_messages(
             ) % {"count": passed_metrics_count}
             summary_parts.append(passed_header)
             summary_parts.append(
-                _format_artifact_summary(passed_artifacts, size_metrics_map, approvals_map)
+                _format_artifact_summary(passed_artifacts, size_metrics_map, approvals_map, base_data_map)
             )
 
         # Footer link
@@ -146,7 +148,7 @@ def format_status_check_messages(
     else:
         # Success or in-progress
         summary_parts = []
-        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map, approvals_map))
+        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map, approvals_map, base_data_map))
         summary_parts.append(_format_configure_link(project, settings_url))
 
         summary = "\n\n".join(summary_parts)
@@ -158,6 +160,7 @@ def _format_artifact_summary(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     approvals_map: dict[int, PreprodComparisonApproval] | None = None,
+    base_data_map: dict[tuple[int, int, str | None], tuple[PreprodArtifact, PreprodArtifactSizeMetrics]] | None = None,
 ) -> str:
     """Format summary for artifacts with size data."""
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
@@ -196,13 +199,14 @@ def _format_artifact_summary(
         if (
             size_metrics
             and size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+            and base_data_map
         ):
-            base_artifact = artifact.get_base_artifact_for_commit().first()
-            if base_artifact:
-                base_metrics = base_artifact.get_size_metrics(
-                    metrics_artifact_type=size_metrics.metrics_artifact_type,
-                    identifier=size_metrics.identifier,
-                ).first()
+            # Look up base data from pre-fetched map to avoid N+1 queries
+            base_data = base_data_map.get(
+                (artifact.id, size_metrics.metrics_artifact_type, size_metrics.identifier)
+            )
+            if base_data:
+                base_artifact, base_metrics = base_data
 
         # Install + Download sizes
         download_size_display, download_change, install_size_display, install_change = (

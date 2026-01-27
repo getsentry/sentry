@@ -92,7 +92,7 @@ def create_preprod_status_check_task(
 ) -> None:
     try:
         preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
-            "mobile_app_info"
+            "mobile_app_info", "commit_comparison", "project__organization"
         ).get(id=preprod_artifact_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
@@ -188,13 +188,13 @@ def create_preprod_status_check_task(
             approvals_map[approval.preprod_artifact_id] = approval
 
     rules = _get_status_check_rules(preprod_artifact.project)
-    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
+    base_data_map = _fetch_base_size_metrics(all_artifacts)
 
     status, triggered_rules = _compute_overall_status(
         all_artifacts,
         size_metrics_map,
         rules=rules,
-        base_size_metrics_map=base_size_metrics_map,
+        base_data_map=base_data_map,
         approvals_map=approvals_map,
     )
 
@@ -205,6 +205,7 @@ def create_preprod_status_check_task(
         preprod_artifact.project,
         triggered_rules,
         approvals_map,
+        base_data_map,
     )
 
     target_url = get_preprod_artifact_url(preprod_artifact)
@@ -388,8 +389,14 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
 
 def _fetch_base_size_metrics(
     artifacts: list[PreprodArtifact],
-) -> dict[int, PreprodArtifactSizeMetrics]:
-    """Fetch base artifact size metrics for head artifacts."""
+) -> dict[tuple[int, int, str | None], tuple[PreprodArtifact, PreprodArtifactSizeMetrics]]:
+    """
+    Fetch base artifacts and their size metrics for head artifacts.
+    
+    Returns:
+        Dict mapping (head_artifact_id, metrics_artifact_type, identifier) to 
+        (base_artifact, base_size_metrics) for efficient lookup in templates.
+    """
     if not artifacts:
         return {}
 
@@ -397,16 +404,26 @@ def _fetch_base_size_metrics(
     if not base_artifact_map:
         return {}
 
+    # Fetch all size metrics for base artifacts (not just MAIN_ARTIFACT)
     base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact_id__in=[ba.id for ba in base_artifact_map.values()],
-        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-    )
+    ).select_related("preprod_artifact")
 
-    result: dict[int, PreprodArtifactSizeMetrics] = {}
+    # Build a map of (base_artifact_id, metrics_artifact_type, identifier) -> base_metrics
+    base_metrics_by_artifact: dict[
+        tuple[int, int, str | None], PreprodArtifactSizeMetrics
+    ] = {}
     for metrics in base_size_metrics_qs:
-        for head_artifact_id, base_artifact in base_artifact_map.items():
-            if base_artifact.id == metrics.preprod_artifact_id:
-                result[head_artifact_id] = metrics
+        key = (metrics.preprod_artifact_id, metrics.metrics_artifact_type, metrics.identifier)
+        base_metrics_by_artifact[key] = metrics
+
+    # Build final result mapping (head_artifact_id, metrics_artifact_type, identifier) -> (base_artifact, base_metrics)
+    result: dict[tuple[int, int, str | None], tuple[PreprodArtifact, PreprodArtifactSizeMetrics]] = {}
+    for head_artifact_id, base_artifact in base_artifact_map.items():
+        for key, base_metrics in base_metrics_by_artifact.items():
+            if key[0] == base_artifact.id:
+                # Map from (head_artifact_id, metrics_artifact_type, identifier) to (base_artifact, base_metrics)
+                result[(head_artifact_id, key[1], key[2])] = (base_artifact, base_metrics)
 
     return result
 
@@ -591,7 +608,7 @@ def _compute_overall_status(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
-    base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
+    base_data_map: dict[tuple[int, int, str | None], tuple[PreprodArtifact, PreprodArtifactSizeMetrics]] | None = None,
     approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[StatusCheckStatus, list[TriggeredRule]]:
     triggered_rules: list[TriggeredRule] = []
@@ -636,9 +653,14 @@ def _compute_overall_status(
                 ]
                 main_metric = main_metrics_list[0] if main_metrics_list else None
 
-                base_main_metric = (
-                    base_size_metrics_map.get(artifact.id) if base_size_metrics_map else None
-                )
+                # Get base metrics for MAIN_ARTIFACT type
+                base_main_metric = None
+                if base_data_map and main_metric:
+                    base_data = base_data_map.get(
+                        (artifact.id, PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT, main_metric.identifier)
+                    )
+                    if base_data:
+                        _, base_main_metric = base_data
 
                 for rule in rules:
                     if _rule_matches_artifact(rule, context):
