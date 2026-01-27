@@ -13,15 +13,51 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import CommandPaletteModal from 'sentry/components/modals/deprecatedCommandPalette';
-import {setSearchMap} from 'sentry/components/search/sources/formSource';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 jest.mock('sentry/actionCreators/navigation');
 
+// Mock the formSource module to avoid require.context which isn't available in Jest
+jest.mock('sentry/components/search/sources/formSource', () => {
+  const actual = jest.requireActual('sentry/components/search/sources/formSource');
+  return {
+    ...actual,
+    __esModule: true,
+    default: function FormSource({children}: any) {
+      return children({
+        isLoading: false,
+        results: [
+          {
+            item: {
+              title: 'test 1',
+              description: 'Test field 1',
+              sourceType: 'field',
+              resultType: 'field',
+              to: '/test-1/',
+            },
+            refIndex: 0,
+            score: 1,
+          },
+          {
+            item: {
+              title: 'test 2',
+              description: 'Test field 2',
+              sourceType: 'field',
+              resultType: 'field',
+              to: '/test-2/',
+            },
+            refIndex: 1,
+            score: 1,
+          },
+        ],
+      });
+    },
+  };
+});
+
 describe('Command Palette Modal', () => {
   it('can open command palette modal and search', async () => {
     OrganizationsStore.load(OrganizationsFixture());
-    setSearchMap([]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

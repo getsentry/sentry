@@ -42,7 +42,7 @@ export function getDataForwarderFormGroups({
   projects: Project[];
   dataForwarder?: DataForwarder;
   provider?: DataForwarderProviderSlug;
-}): JsonFormObject[] {
+}): readonly JsonFormObject[] {
   return [
     getEnablementForm({dataForwarder}),
     ...getProviderForm({provider}),
@@ -54,7 +54,7 @@ function getProviderForm({
   provider,
 }: {
   provider?: DataForwarderProviderSlug;
-}): JsonFormObject[] {
+}): readonly JsonFormObject[] {
   switch (provider) {
     case DataForwarderProviderSlug.SQS:
       return [SQS_GLOBAL_CONFIGURATION_FORM];

@@ -6,7 +6,7 @@ import {t, tct} from 'sentry/locale';
 
 export const route = '/settings/:orgId/projects/:projectId/user-feedback/';
 
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     title: 'Settings',
     fields: [

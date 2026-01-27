@@ -1,11 +1,24 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
+/**
+ * Unified FormSearchContext type that includes all fields needed by any form factory.
+ * Individual form files may define their own subsets of this type.
+ */
+export type FormSearchContext = {
+  access: Set<string>;
+  organization: Organization | null;
+  team: Team | null;
+  user: User | null;
+};
 
 export const route = '/settings/account/details/';
 
 // For fields that are
 const getUserIsManaged = ({user}: any) => user.isManaged;
 
-const formGroups: JsonFormObject[] = [
+const baseFormGroups: readonly JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Account Details',
@@ -36,4 +49,37 @@ const formGroups: JsonFormObject[] = [
   },
 ];
 
-export default formGroups;
+/**
+ * Factory function to create account details form with userId field for search.
+ * Accepts FormSearchContext for consistency with other form factories.
+ */
+export function createAccountDetailsForm(
+  context: FormSearchContext
+): readonly JsonFormObject[] {
+  const {user} = context;
+
+  if (!user) {
+    return baseFormGroups;
+  }
+
+  return [
+    {
+      ...baseFormGroups[0]!,
+      fields: [
+        ...baseFormGroups[0]!.fields,
+        {
+          name: 'userId',
+          type: 'string',
+          disabled: true,
+          label: 'User ID',
+          setValue(_, _name) {
+            return user.id;
+          },
+          help: `The unique identifier for your account. It cannot be modified.`,
+        },
+      ],
+    },
+  ];
+}
+
+export default baseFormGroups;

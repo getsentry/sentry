@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
@@ -11,17 +10,17 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import type {FieldObject} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
+import {createTeamSettingsForm} from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -29,6 +28,7 @@ export default function TeamSettings() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const api = useApi();
+  const user = useUser();
   const {team} = useTeamDetailsOutlet();
 
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
@@ -56,24 +56,16 @@ export default function TeamSettings() {
   const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
   const isIdpProvisioned = team.flags['idp:provisioned'];
 
-  const forms = useMemo(() => {
-    const formsConfig = cloneDeep(teamSettingsFields);
-
-    const teamIdField: FieldObject = {
-      name: 'teamId',
-      type: 'string',
-      disabled: true,
-      label: t('Team ID'),
-      setValue(_, _name) {
-        return team.id;
-      },
-      help: `The unique identifier for this team. It cannot be modified.`,
-    };
-
-    formsConfig[0]!.fields = [...formsConfig[0]!.fields, teamIdField];
-
-    return formsConfig;
-  }, [team]);
+  const forms = useMemo(
+    () =>
+      createTeamSettingsForm({
+        user,
+        organization,
+        access: new Set(),
+        team,
+      }),
+    [user, organization, team]
+  );
 
   return (
     <Fragment>

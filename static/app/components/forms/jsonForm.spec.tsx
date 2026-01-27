@@ -17,7 +17,7 @@ describe('JsonForm', () => {
     });
 
     it('initiallyCollapsed json form prop collapses forms', () => {
-      const forms: JsonFormObject[] = [
+      const forms: readonly JsonFormObject[] = [
         {
           title: 'Form1 title',
           fields: [
@@ -60,7 +60,7 @@ describe('JsonForm', () => {
     });
 
     it('initiallyCollapsed prop from children form groups override json form initiallyCollapsed prop', () => {
-      const forms: JsonFormObject[] = [
+      const forms: readonly JsonFormObject[] = [
         {
           title: 'Form1 title',
           fields: [

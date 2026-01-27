@@ -10,7 +10,7 @@ const StyledExternalLink = styled(ExternalLink)`
   white-space: nowrap;
 `;
 
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     title: t('Service Data Usage'),
     fields: [

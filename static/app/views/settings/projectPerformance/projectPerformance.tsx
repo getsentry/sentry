@@ -608,7 +608,9 @@ function ProjectPerformance() {
     },
   ];
 
-  const project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
+  const project_owner_detector_settings = (
+    hasAccess: boolean
+  ): readonly JsonFormObject[] => {
     const disabledText = t('Detection of this issue has been disabled.');
 
     const disabledReason = hasAccess ? disabledText : null;
@@ -636,7 +638,7 @@ function ProjectPerformance() {
 
     const issueType = safeGetQsParam('issueType');
 
-    const baseDetectorFields: JsonFormObject[] = [
+    const baseDetectorFields: readonly JsonFormObject[] = [
       {
         title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
         fields: [

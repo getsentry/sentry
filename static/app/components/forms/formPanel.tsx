@@ -21,7 +21,7 @@ export interface FormPanelProps {
   /**
    * List of fields to render
    */
-  fields: FieldObject[];
+  fields: readonly FieldObject[];
   access?: Set<Scope>;
   additionalFieldProps?: Record<string, any>;
   /**

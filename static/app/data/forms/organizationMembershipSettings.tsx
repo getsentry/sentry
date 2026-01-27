@@ -5,7 +5,7 @@ import type {BaseRole} from 'sentry/types/organization';
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
 
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     title: 'Membership',
     fields: [

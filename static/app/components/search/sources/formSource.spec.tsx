@@ -1,80 +1,83 @@
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import FormSource, {
-  setSearchMap,
-  type FormSearchField,
-} from 'sentry/components/search/sources/formSource';
+import * as accountDetailsForm from 'sentry/data/forms/accountDetails';
+import * as organizationGeneralSettingsForm from 'sentry/data/forms/organizationGeneralSettings';
+import * as teamSettingsFieldsForm from 'sentry/data/forms/teamSettingsFields';
 
 describe('FormSource', () => {
-  const searchMap: FormSearchField[] = [
-    {
-      title: 'Test Field',
-      description: 'test-help',
-      route: '/route/',
-      field: {
-        name: 'test-field',
-        label: 'Test Field',
-        help: 'test-help',
-        type: 'text',
-      },
-    },
-    {
-      title: 'Foo Field',
-      description: 'foo-help',
-      route: '/foo/',
-      field: {
-        name: 'foo-field',
-        label: 'Foo Field',
-        help: 'foo-help',
-        type: 'text',
-      },
-    },
-  ];
+  const user = UserFixture();
+  const organization = OrganizationFixture();
 
-  beforeEach(() => {
-    setSearchMap(searchMap);
-  });
+  describe('factory forms', () => {
+    const searchContext: accountDetailsForm.FormSearchContext = {
+      user,
+      organization,
+      access: new Set(['org:write']),
+      team: null,
+    };
 
-  it('can find a form field', async () => {
-    const mock = jest.fn().mockReturnValue(null);
-    render(<FormSource query="te">{mock}</FormSource>);
+    it('creates accountDetails form with userId field', () => {
+      const result = accountDetailsForm.createAccountDetailsForm(searchContext);
+      const fields = result[0]?.fields;
 
-    await waitFor(() =>
-      expect(mock).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          results: [
-            expect.objectContaining({
-              item: {
-                field: {
-                  label: 'Test Field',
-                  name: 'test-field',
-                  help: 'test-help',
-                  type: 'text',
-                },
-                title: 'Test Field',
-                description: 'test-help',
-                route: '/route/',
-                resultType: 'field',
-                sourceType: 'field',
-                to: {pathname: '/route/', hash: '#test-field'},
-                resolvedTs: expect.anything(),
-              },
-            }),
-          ],
-        })
-      )
-    );
-  });
+      expect(fields).toBeDefined();
 
-  it('does not find any form field', async () => {
-    const mock = jest.fn().mockReturnValue(null);
-    render(<FormSource query="invalid">{mock}</FormSource>);
+      const userIdField = fields?.find(
+        field => typeof field !== 'function' && field.name === 'userId'
+      );
 
-    await waitFor(() =>
-      expect(mock).toHaveBeenCalledWith({
-        isLoading: false,
-        results: [],
-      })
-    );
+      expect(userIdField).toMatchObject({
+        name: 'userId',
+        type: 'string',
+        label: 'User ID',
+      });
+    });
+
+    it('creates organizationGeneralSettings form with factory-added fields', () => {
+      const result =
+        organizationGeneralSettingsForm.createOrganizationGeneralSettingsForm(
+          searchContext
+        );
+      const fields = result[0]?.fields;
+
+      expect(fields).toBeDefined();
+
+      const organizationIdField = fields?.find(
+        field => typeof field !== 'function' && field.name === 'organizationId'
+      );
+      expect(organizationIdField).toMatchObject({
+        name: 'organizationId',
+        type: 'string',
+        label: 'Organization ID',
+      });
+
+      const hideAiFeaturesField = fields?.find(
+        field => typeof field !== 'function' && field.name === 'hideAiFeatures'
+      );
+      expect(hideAiFeaturesField).toBeDefined();
+
+      const codecovField = fields?.find(
+        field => typeof field !== 'function' && field.name === 'codecovAccess'
+      );
+      expect(codecovField).toBeDefined();
+    });
+
+    it('creates teamSettingsFields form with teamId field', () => {
+      const result = teamSettingsFieldsForm.createTeamSettingsForm(searchContext);
+      const fields = result[0]?.fields;
+
+      expect(fields).toBeDefined();
+
+      const teamIdField = fields?.find(
+        field => typeof field !== 'function' && field.name === 'teamId'
+      );
+
+      expect(teamIdField).toMatchObject({
+        name: 'teamId',
+        type: 'string',
+        label: 'Team ID',
+      });
+    });
   });
 });

@@ -31,7 +31,7 @@ export default function ProjectReplaySettings() {
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
   const hasAccess = hasWriteAccess || hasAdminAccess;
 
-  const formGroups: JsonFormObject[] = [
+  const formGroups: readonly JsonFormObject[] = [
     {
       title: t('Replay Issues'),
       fields: [

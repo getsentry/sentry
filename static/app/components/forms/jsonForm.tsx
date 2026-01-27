@@ -26,7 +26,7 @@ interface JsonFormProps
   /**
    * Fields that are grouped by "section"
    */
-  forms?: JsonFormObject[];
+  forms?: readonly JsonFormObject[];
 
   /**
    * INTERNAL FIELD: used by the `collapsible` field type to adjust rendering of the form title
@@ -96,7 +96,7 @@ function JsonForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.hash]);
 
-  const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {
+  const shouldDisplayForm = (fieldList: readonly FieldObject[]): boolean => {
     const fieldsWithVisibleProp = fieldList.filter(
       (field): field is Field => typeof field !== 'function' && defined(field?.visible)
     );
@@ -139,7 +139,7 @@ function JsonForm({
     title: formTitle,
     initiallyCollapsed: formInitiallyCollapsed,
   }: {
-    fields: FieldObject[];
+    fields: readonly FieldObject[];
     formPanelProps: ChildFormPanelProps;
     initiallyCollapsed?: boolean;
     title?: React.ReactNode;

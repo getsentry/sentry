@@ -504,7 +504,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     disabled: ({model}) => model?.getValue('autoOpenPr') === true,
   } satisfies FieldObject;
 
-  const seerFormGroups: JsonFormObject[] = [
+  const seerFormGroups: readonly JsonFormObject[] = [
     {
       title: (
         <div>

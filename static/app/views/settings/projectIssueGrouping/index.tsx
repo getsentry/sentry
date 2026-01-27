@@ -90,20 +90,20 @@ export default function ProjectIssueGrouping() {
         <JsonForm
           {...jsonFormProps}
           title={t('Fingerprint Rules')}
-          fields={[fields.fingerprintingRules]}
+          fields={[fields.fingerprintingRules!]}
         />
 
         <JsonForm
           {...jsonFormProps}
           title={t('Stack Trace Rules')}
-          fields={[fields.groupingEnhancements]}
+          fields={[fields.groupingEnhancements!]}
         />
 
         {activeSuperUser && (
           <JsonForm
             {...jsonFormProps}
             title={t('Derived Grouping Enhancements')}
-            fields={[fields.derivedGroupingEnhancements]}
+            fields={[fields.derivedGroupingEnhancements!]}
             disabled
           />
         )}

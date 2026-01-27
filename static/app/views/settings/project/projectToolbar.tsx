@@ -25,7 +25,7 @@ export default function ProjectToolbarSettings() {
     fields: {domain: decodeScalar},
   });
 
-  const formGroups: JsonFormObject[] = [
+  const formGroups: readonly JsonFormObject[] = [
     {
       title: 'Settings',
       fields: [

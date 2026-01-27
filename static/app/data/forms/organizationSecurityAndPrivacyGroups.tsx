@@ -9,7 +9,7 @@ import {
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/security-and-privacy/';
-const formGroups: JsonFormObject[] = [
+const formGroups: readonly JsonFormObject[] = [
   {
     title: t('Security & Privacy'),
     fields: [

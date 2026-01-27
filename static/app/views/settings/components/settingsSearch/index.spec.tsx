@@ -7,16 +7,48 @@ import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibr
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {setSearchMap} from 'sentry/components/search/sources/formSource';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
 jest.mock('sentry/actionCreators/navigation');
 
+// Mock the formSource module to avoid require.context which isn't available in Jest
+jest.mock('sentry/components/search/sources/formSource', () => {
+  const actual = jest.requireActual('sentry/components/search/sources/formSource');
+  return {
+    ...actual,
+    __esModule: true,
+    default: function FormSource({children}: any) {
+      return children({
+        isLoading: false,
+        results: [
+          {
+            item: {
+              title: 'test-1',
+              description: 'Test field 1',
+              sourceType: 'field',
+              resultType: 'field',
+              to: '/test-1/',
+            },
+            refIndex: 0,
+            score: 1,
+          },
+        ],
+      });
+    },
+  };
+});
+
 describe('SettingsSearch', () => {
   beforeEach(() => {
-    OrganizationsStore.load(OrganizationsFixture());
-    setSearchMap([]);
+    // Use a different name and slug for organization to avoid conflicts with form search results
+    OrganizationsStore.load([
+      ...OrganizationsFixture().map(org => ({
+        ...org,
+        name: 'My Organization',
+        slug: 'my-org',
+      })),
+    ]);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

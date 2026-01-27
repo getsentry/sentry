@@ -388,10 +388,10 @@ export default function IntegrationDetailedView() {
     renderTopButton,
   ]);
 
-  const getSlackFeatures = useCallback((): [JsonFormObject[], Data] => {
+  const getSlackFeatures = useCallback((): [readonly JsonFormObject[], Data] => {
     const hasIntegration = configurations ? configurations.length > 0 : false;
 
-    const forms: JsonFormObject[] = [
+    const forms: readonly JsonFormObject[] = [
       {
         fields: [
           {
@@ -430,10 +430,10 @@ export default function IntegrationDetailedView() {
     return [forms, initialData];
   }, [organization, configurations]);
 
-  const getGithubFeatures = useCallback((): [JsonFormObject[], Data] => {
+  const getGithubFeatures = useCallback((): [readonly JsonFormObject[], Data] => {
     const hasIntegration = configurations ? configurations.length > 0 : false;
 
-    const forms: JsonFormObject[] = [
+    const forms: readonly JsonFormObject[] = [
       {
         fields: [
           {
@@ -472,10 +472,10 @@ export default function IntegrationDetailedView() {
     return [forms, initialData];
   }, [organization, configurations]);
 
-  const getGitlabFeatures = useCallback((): [JsonFormObject[], Data] => {
+  const getGitlabFeatures = useCallback((): [readonly JsonFormObject[], Data] => {
     const hasIntegration = configurations ? configurations.length > 0 : false;
 
-    const forms: JsonFormObject[] = [
+    const forms: readonly JsonFormObject[] = [
       {
         fields: [
           {
@@ -505,7 +505,7 @@ export default function IntegrationDetailedView() {
     const endpoint = `/organizations/${organization.slug}/`;
     const hasOrgWrite = organization.access.includes('org:write');
 
-    let forms: JsonFormObject[], initialData: Data;
+    let forms: readonly JsonFormObject[], initialData: Data;
     switch (provider?.key) {
       case 'github': {
         [forms, initialData] = getGithubFeatures();

@@ -2,7 +2,7 @@ import type {JsonFormObject} from 'sentry/components/forms/types';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-const forms: JsonFormObject[] = [
+const forms: readonly JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Application Details',
