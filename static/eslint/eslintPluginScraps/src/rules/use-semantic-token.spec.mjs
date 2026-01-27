@@ -44,7 +44,7 @@ const invalidInteractiveTokenPairs = [
  * @returns {{code: string}}
  */
 const makeValidCase = (property, tokenPath) => ({
-  code: `const Component = styled.div\`
+  code: `const Component = styled('div')\`
   ${property}: \${p => p.theme.tokens.${tokenPath}};
 \`;`,
 });
@@ -55,7 +55,7 @@ const makeValidCase = (property, tokenPath) => ({
  * @returns {{code: string, errors: Array<{messageId: string, data: {tokenPath: string, property: string}}>}}
  */
 const makeInvalidCase = (property, tokenPath) => ({
-  code: `const Component = styled.div\`
+  code: `const Component = styled('div')\`
   ${property}: \${p => p.theme.tokens.${tokenPath}};
 \`;`,
   errors: [{messageId: 'invalidProperty', data: {tokenPath, property}}],
@@ -68,24 +68,24 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       makeValidCase('color', tokenPath)
     ),
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   color: \${p => p.theme.tokens.content.primary};
   text-decoration-color: \${p => p.theme.tokens.content.secondary};
   caret-color: \${p => p.theme.tokens.content.accent};
 \`;`,
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   color: \${theme.tokens.content.primary};
 \`;`,
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   background: \${p => p.theme.tokens.background.primary};
 \`;`,
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   border-color: \${p => p.theme.tokens.border.primary};
 \`;`,
     },
@@ -100,13 +100,13 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   background: red;
   color: blue;
 \`;`,
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   a:hover {
     color: \${p => p.theme.tokens.content.primary};
   }
@@ -122,7 +122,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   &:hover {
     color: \${p => p.theme.tokens.content.accent};
   }
@@ -132,14 +132,14 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   &::before {
     color: \${p => p.theme.tokens.content.secondary};
   }
 \`;`,
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   @media (max-width: 768px) {
     color: \${p => p.theme.tokens.content.primary};
   }
@@ -155,7 +155,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       makeInvalidCase(property, tokenPath)
     ),
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   background: \${p => p.theme.tokens.content.primary};
   border-color: \${p => p.theme.tokens.content.accent};
   fill: \${p => p.theme.tokens.content.danger};
@@ -198,7 +198,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       ],
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   background: \${theme.tokens.content.primary};
 \`;`,
       errors: [
@@ -209,7 +209,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       ],
     },
     {
-      code: `const Component = styled.div\`
+      code: `const Component = styled('div')\`
   box-shadow: 0 0 5px \${p => p.theme.tokens.content.primary};
 \`;`,
       errors: [
