@@ -274,13 +274,6 @@ export function openPromotionReminderModal(
   });
 }
 
-export async function openCodecovModal(options: {organization: Organization}) {
-  const {default: Modal, modalCss} = await import(
-    'getsentry/components/codecovPromotionModal'
-  );
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss, closeEvents: 'none'});
-}
-
 const HeaderText = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;

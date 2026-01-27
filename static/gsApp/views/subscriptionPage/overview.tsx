@@ -12,13 +12,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {
-  openCodecovModal,
-  openOnDemandBudgetEditModal,
-} from 'getsentry/actionCreators/modal';
+import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {CustomerUsage, PromotionData, Subscription} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
@@ -73,15 +69,6 @@ function Overview({subscription, promotionData}: Props) {
         });
         return;
       }
-    }
-
-    // open the codecov modal if the query param is present
-    if (
-      location.query?.open_codecov_modal === '1' &&
-      // self serve or has billing perms can view it
-      hasAccessToSubscriptionOverview(subscription, organization)
-    ) {
-      openCodecovModal({organization});
     }
 
     // Open on-demand budget modal if hash fragment present
