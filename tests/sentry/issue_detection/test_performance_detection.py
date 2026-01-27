@@ -10,11 +10,16 @@ from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOn
 from sentry.issue_detection.detectors.utils import total_span_time
 from sentry.issue_detection.performance_detection import (
     PERFORMANCE_DETECTOR_CONFIG_MAPPINGS,
+    SETTINGS_PROJECT_OPTION_KEY,
     EventPerformanceProblem,
     SettingsMode,
     _detect_performance_problems,
     detect_performance_problems,
     get_detection_settings,
+    reset_performance_settings,
+    reset_wfe_detector_configs,
+    sync_project_options_to_wfe_detectors,
+    update_performance_settings,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
@@ -29,6 +34,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
+from sentry.workflow_engine.models.detector import Detector
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
@@ -810,3 +816,204 @@ class WFEDetectorConfigTest(TestCase):
             assert group_type is not None, (
                 f"wfe_detector_type '{mapping.wfe_detector_type}' is not a registered GroupType slug"
             )
+
+
+@pytest.mark.django_db
+class WFEDetectorSyncTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+
+    def test_sync_skips_nonexistent_detector(self) -> None:
+        settings_data = {
+            "slow_db_queries_detection_enabled": True,
+            "slow_db_query_duration_threshold": 3000,
+        }
+
+        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+
+        assert DetectorType.SLOW_DB_QUERY not in updated
+        assert not Detector.objects.filter(
+            project=self.project, type="performance_slow_db_query"
+        ).exists()
+
+    def test_sync_updates_existing_detector(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            type="performance_slow_db_query",
+            name="Test",
+            enabled=False,
+            config={"duration_threshold": 1000},
+        )
+
+        settings_data = {
+            "slow_db_queries_detection_enabled": True,
+            "slow_db_query_duration_threshold": 5000,
+        }
+
+        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+
+        assert DetectorType.SLOW_DB_QUERY in updated
+
+        detector.refresh_from_db()
+        assert detector.enabled is True
+        assert detector.config["duration_threshold"] == 5000
+
+    def test_sync_skips_update_when_config_already_matches(self) -> None:
+        self.create_detector(
+            project=self.project,
+            type="performance_slow_db_query",
+            name="Test",
+            enabled=True,
+            config={"duration_threshold": 5000, "some_other_field": "preserved"},
+        )
+
+        settings_data = {
+            "slow_db_queries_detection_enabled": True,
+            "slow_db_query_duration_threshold": 5000,
+        }
+
+        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+
+        # Should not be marked as updated since merged config is identical
+        assert DetectorType.SLOW_DB_QUERY not in updated
+
+    def test_sync_skips_hardcoded_fields(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            type="performance_slow_db_query",
+            name="Test",
+            enabled=False,
+            config={},
+        )
+
+        settings_data = {
+            "slow_db_queries_detection_enabled": True,
+            "slow_db_query_duration_threshold": 2000,
+        }
+
+        sync_project_options_to_wfe_detectors(self.project, settings_data)
+
+        detector.refresh_from_db()
+        assert "allowed_span_ops" not in detector.config
+        assert detector.config["duration_threshold"] == 2000
+
+
+@pytest.mark.django_db
+class WFEDetectorResetTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+
+    def test_reset_clears_config_fields(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            type="performance_slow_db_query",
+            name="Test",
+            enabled=True,
+            config={"duration_threshold": 5000},
+        )
+
+        reset_wfe_detector_configs(self.project, unchanged_options={})
+
+        detector.refresh_from_db()
+        assert detector.config == {}
+        assert detector.enabled is False
+
+    def test_reset_preserves_unchanged_options(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            type="performance_slow_db_query",
+            name="Test",
+            enabled=True,
+            config={"duration_threshold": 5000},
+        )
+
+        unchanged_options = {
+            "slow_db_query_duration_threshold": 5000,
+            "slow_db_queries_detection_enabled": True,
+        }
+        reset_wfe_detector_configs(self.project, unchanged_options)
+
+        detector.refresh_from_db()
+        assert detector.config["duration_threshold"] == 5000
+        assert detector.enabled is True
+
+    def test_reset_skips_nonexistent_detectors(self) -> None:
+        updated = reset_wfe_detector_configs(self.project, unchanged_options={})
+
+        assert len(updated) == 0
+        assert (
+            Detector.objects.filter(project=self.project, type="performance_slow_db_query").count()
+            == 0
+        )
+
+
+@pytest.mark.django_db
+class AtomicPerformanceSettingsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+
+    def test_update_performance_settings_updates_project_option(self) -> None:
+        settings = {"slow_db_query_duration_threshold": 3000}
+
+        update_performance_settings(self.project, settings, sync_detectors=False)
+
+        saved_settings = self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)
+        assert saved_settings["slow_db_query_duration_threshold"] == 3000
+
+    def test_update_performance_settings_syncs_detectors_when_enabled(self) -> None:
+        self.create_detector(
+            project=self.project,
+            type="performance_slow_db_query",
+            name="Test",
+            enabled=False,
+            config={},
+        )
+
+        settings = {
+            "slow_db_queries_detection_enabled": True,
+            "slow_db_query_duration_threshold": 4000,
+        }
+
+        updated = update_performance_settings(self.project, settings, sync_detectors=True)
+
+        assert DetectorType.SLOW_DB_QUERY in updated
+
+        saved_settings = self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)
+        assert saved_settings["slow_db_query_duration_threshold"] == 4000
+
+        detector = Detector.objects.get(project=self.project, type="performance_slow_db_query")
+        assert detector.enabled is True
+        assert detector.config["duration_threshold"] == 4000
+
+    def test_reset_performance_settings_updates_project_option(self) -> None:
+        self.project.update_option(
+            SETTINGS_PROJECT_OPTION_KEY,
+            {"slow_db_query_duration_threshold": 5000, "some_other_option": True},
+        )
+
+        unchanged = {"slow_db_query_duration_threshold": 5000}
+        reset_performance_settings(self.project, unchanged, sync_detectors=False)
+
+        saved_settings = self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)
+        assert saved_settings == {"slow_db_query_duration_threshold": 5000}
+        assert "some_other_option" not in saved_settings
+
+    def test_reset_performance_settings_resets_detectors_when_enabled(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            type="performance_slow_db_query",
+            name="Test",
+            enabled=True,
+            config={"duration_threshold": 5000},
+        )
+
+        updated = reset_performance_settings(self.project, {}, sync_detectors=True)
+
+        assert DetectorType.SLOW_DB_QUERY in updated
+
+        detector.refresh_from_db()
+        assert detector.enabled is False
+        assert detector.config == {}
