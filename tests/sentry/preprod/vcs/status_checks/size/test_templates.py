@@ -681,9 +681,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         # Watch artifact should show N/A (no matching base watch metrics)
         lines = summary.split("\n")
         watch_line = next(line for line in lines if ", Watch)" in line)
-        # Count N/A occurrences in the watch line - should be 3 (change columns + approval)
+        # Count N/A occurrences in the watch line - should be 2 (change columns)
         na_count = watch_line.count("N/A")
-        assert na_count >= 2  # At least 2 N/A for the change columns
+        assert na_count == 2  # 2 N/A for the change columns
 
     def test_android_app_shows_uncompressed_label(self):
         """Test that Android apps show 'Uncompressed' instead of 'Install' in column header."""
@@ -804,15 +804,15 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         expected = f"""\
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.android`]({android_url}) | -- | 1.0.0 (1) | 1.0 MB (N/A) | 2.1 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.android`]({android_url}) | -- | 1.0.0 (1) | 1.0 MB (N/A) | 2.1 MB (N/A) |
 
 ### iOS Builds
 
-| Name | Configuration | Version | Download Size | Install Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (iOS)<br>`com.example.ios`]({ios_url}) | -- | 2.0.0 (2) | 2.1 MB (N/A) | 3.1 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Install Size |
+|------|--------------|---------|----------|------------------|
+| [-- (iOS)<br>`com.example.ios`]({ios_url}) | -- | 2.0.0 (2) | 2.1 MB (N/A) | 3.1 MB (N/A) |
 
 [Configure test_project status check rules]({settings_url})\
 """
@@ -1132,9 +1132,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) |
 
 <details>
 <summary>1 Failed Check</summary>
@@ -1225,9 +1225,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) |
 
 <details>
 <summary>3 Failed Checks</summary>
@@ -1330,15 +1330,15 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 ### iOS Builds
 
-| Name | Configuration | Version | Download Size | Install Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (iOS)<br>`com.example.app1`]({artifact1_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Install Size |
+|------|--------------|---------|----------|------------------|
+| [-- (iOS)<br>`com.example.app1`]({artifact1_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) |
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.app2`]({artifact2_url}) | -- | 2.0.0 (2) | 83.9 MB (N/A) | 157.3 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.app2`]({artifact2_url}) | -- | 2.0.0 (2) | 83.9 MB (N/A) | 157.3 MB (N/A) |
 
 <details>
 <summary>2 Failed Checks</summary>
@@ -1431,9 +1431,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.failed`]({failed_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.failed`]({failed_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) |
 
 <details>
 <summary>1 Failed Check</summary>
@@ -1446,9 +1446,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.passed`]({passed_url}) | -- | 2.0.0 (2) | 21.0 MB (N/A) | 41.9 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.passed`]({passed_url}) | -- | 2.0.0 (2) | 21.0 MB (N/A) | 41.9 MB (N/A) |
 
 [Configure test_project status check rules]({settings_url})\
 """
