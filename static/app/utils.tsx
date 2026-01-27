@@ -41,30 +41,36 @@ export function percent(value: number, totalValue: number): number {
 }
 
 /**
- * Converts a multi-line textarea input value into an array,
- * eliminating empty lines
+ * Converts a multi-line textarea input value into an array, eliminating empty lines.
+ * Safely handles unknown input types for form field getValue callbacks.
  */
-export function extractMultilineFields(value: string): string[] {
-  return value
-    .split('\n')
-    .map(f => f.trim())
-    .filter(f => f !== '');
+export function extractMultilineFields(value: unknown): string[] {
+  // User input
+  if (typeof value === 'string') {
+    return value
+      .split('\n')
+      .map(f => f.trim())
+      .filter(f => f !== '');
+  }
+  // API response / undo form save action
+  if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
+    return value;
+  }
+
+  return [];
 }
 
 /**
- * If the value is of type Array, converts it to type string, keeping the line breaks, if there is any
+ * Converts a value to a multi-line string for display in textarea.
+ * Safely handles unknown input types for form field setValue callbacks.
  */
-export function convertMultilineFieldValue<T extends string | string[]>(
-  value: T
-): string {
-  if (Array.isArray(value)) {
+export function convertMultilineFieldValue(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
     return value.join('\n');
   }
-
-  if (typeof value === 'string') {
-    return value.split('\n').join('\n');
-  }
-
   return '';
 }
 

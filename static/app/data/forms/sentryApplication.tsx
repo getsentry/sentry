@@ -1,7 +1,7 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {Field} from 'sentry/components/forms/types';
 import {tct} from 'sentry/locale';
-import {extractMultilineFields} from 'sentry/utils';
+import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 
 const getPublicFormFields = (): Field[] => [
   {
@@ -113,9 +113,8 @@ const getPublicFormFields = (): Field[] => [
     placeholder: 'e.g. example.com',
     label: 'Authorized JavaScript Origins',
     help: 'Separate multiple entries with a newline.',
-    getValue: (val: string) => extractMultilineFields(val),
-    setValue: (val: string[] | undefined | null) =>
-      (val && typeof val.join === 'function' && val.join('\n')) || '',
+    getValue: extractMultilineFields,
+    setValue: convertMultilineFieldValue,
   },
 ];
 

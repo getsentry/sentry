@@ -152,27 +152,8 @@ export const fields = {
         </Hovercard>
       ),
     }),
-    getValue: (val: unknown) => {
-      if (typeof val === 'string') {
-        return extractMultilineFields(val);
-      }
-
-      if (Array.isArray(val) && val.every(item => typeof item === 'string')) {
-        return val;
-      }
-
-      return [];
-    },
-    setValue: (val: unknown) => {
-      if (
-        typeof val === 'string' ||
-        (Array.isArray(val) && val.every(item => typeof item === 'string'))
-      ) {
-        return convertMultilineFieldValue(val);
-      }
-
-      return '';
-    },
+    getValue: extractMultilineFields,
+    setValue: convertMultilineFieldValue,
   },
   scrapeJavaScript: {
     name: 'scrapeJavaScript',

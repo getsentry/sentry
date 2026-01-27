@@ -169,8 +169,8 @@ const formGroups: JsonFormObject[] = [
         'aria-label': t(
           'Enter additional field names to match against when scrubbing data. Separate multiple entries with a newline'
         ),
-        getValue: val => extractMultilineFields(val),
-        setValue: val => convertMultilineFieldValue(val),
+        getValue: extractMultilineFields,
+        setValue: convertMultilineFieldValue,
       },
       {
         name: 'safeFields',
@@ -187,8 +187,8 @@ const formGroups: JsonFormObject[] = [
         'aria-label': t(
           'Enter field names which data scrubbers should ignore. Separate multiple entries with a newline'
         ),
-        getValue: val => extractMultilineFields(val),
-        setValue: val => convertMultilineFieldValue(val),
+        getValue: extractMultilineFields,
+        setValue: convertMultilineFieldValue,
       },
     ],
   },
