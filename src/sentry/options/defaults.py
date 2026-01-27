@@ -288,18 +288,7 @@ register(
 )
 
 # Staff
-register(
-    "staff.ga-rollout",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "staff.user-email-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
+# (No longer needed - staff is now GA)
 # Superuser read/write
 register(
     "superuser.read-write.ga-rollout",

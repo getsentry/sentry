@@ -7,7 +7,6 @@ from sentry.relocation.api.endpoints.artifacts.index import ERR_NEED_RELOCATION_
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 RELOCATION_ADMIN_PERMISSION = "relocation.admin"
@@ -20,7 +19,7 @@ class GetRelocationArtifactsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(email="owner@example.com", is_superuser=False, is_staff=False)
-        self.superuser = self.create_user(is_superuser=True)
+        self.superuser = self.create_user(is_superuser=True, is_staff=True)
         self.staff_user = self.create_user(is_staff=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
@@ -73,18 +72,12 @@ class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
         self.relocation_storage.save(f"{dir}/out/baseline-config.tar", StringIO("1234567890abcd"))
         self.relocation_storage.save(f"{dir}/out/colliding-users.tar", StringIO("1234567890abcde"))
 
-    def test_good_with_superuser(self) -> None:
+    def test_bad_with_superuser(self) -> None:
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
-        self.login_as(user=self.superuser, superuser=True)
-        response = self.get_success_response(str(self.relocation.uuid))
+        self.login_as(user=self.superuser, staff=False, superuser=True)
+        # Should NOT allow superuser who is not staff; must return 403
+        self.get_error_response(str(self.relocation.uuid), status_code=403)
 
-        assert len(response.data["files"]) == 15
-        for file_info in response.data["files"]:
-            file_name = f"runs/{self.relocation.uuid}/{file_info['path']}"
-            file_size = file_info["bytes"]
-            assert self.relocation_storage.size(file_name) == file_size
-
-    @override_options({"staff.ga-rollout": True})
     def test_good_with_staff(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)
@@ -99,7 +92,6 @@ class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
 
 
 class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
-    @override_options({"staff.ga-rollout": True})
     def test_bad_unprivileged_user(self) -> None:
         self.login_as(user=self.owner, superuser=False, staff=False)
 
@@ -117,7 +109,6 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
         self.get_error_response(str(self.relocation.uuid), status_code=403)
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_staff_disabled(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=False)
@@ -128,7 +119,7 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.get_error_response(str(self.relocation.uuid), status_code=403)
 
     def test_bad_has_superuser_but_no_relocation_admin_permission(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
         does_not_exist_uuid = uuid4().hex
@@ -140,7 +131,6 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
 
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_has_staff_but_no_relocation_admin_permission(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
 
@@ -154,7 +144,6 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
 
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_relocation_not_found(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)

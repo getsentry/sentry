@@ -8,13 +8,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Final
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 
-from sentry import options
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
 from sentry.users.models.user import User
@@ -52,21 +50,6 @@ def is_active_staff(request: HttpRequest) -> bool:
         return True
     staff = getattr(request, "staff", None) or Staff(request)
     return staff.is_active
-
-
-# TODO(schew2381): Delete after staff is GA'd and the options are removed
-def has_staff_option(user: User | AnonymousUser) -> bool:
-    """
-    This checks two options, the first being whether or not staff has been GA'd.
-    If not, it falls back to checking the second option which by email specifies which
-    users staff is enabled for.
-    """
-    if options.get("staff.ga-rollout"):
-        return True
-
-    if (email := getattr(user, "email", None)) is None:
-        return False
-    return email in options.get("staff.user-email-allowlist")
 
 
 def _seconds_to_timestamp(seconds: str) -> datetime:

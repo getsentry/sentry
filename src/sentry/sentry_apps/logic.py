@@ -19,7 +19,6 @@ from sentry.analytics.events.internal_integration_created import InternalIntegra
 from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
 from sentry.analytics.events.sentry_app_updated import SentryAppUpdatedEvent
 from sentry.api.helpers.slugs import sentry_slugify
-from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
@@ -97,11 +96,9 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
 # TODO(schew2381): Delete this method after staff is GA'd and the options are removed
 def _is_elevated_user(user) -> bool:
     """
-    This is a temporary helper method that checks if the user can become staff
-    if staff mode is enabled. Otherwise, it defaults to checking that the user
-    can become a superuser.
+    Checks if the user is staff.
     """
-    return user.is_staff if has_staff_option(user) else user.is_superuser
+    return user.is_staff
 
 
 @dataclasses.dataclass

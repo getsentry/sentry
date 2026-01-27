@@ -9,7 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
+from sentry.api.permissions import StaffPermission
 from sentry.api.serializers import serialize
 from sentry.relocation.api.endpoints import (
     ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP,
@@ -33,7 +33,7 @@ class RelocationUnpauseEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
+    permission_classes = (StaffPermission,)
 
     def _unpause(self, request: Request, relocation: Relocation) -> Response | None:
         """

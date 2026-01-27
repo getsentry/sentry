@@ -14,7 +14,6 @@ from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.tasks.process import MAX_FAST_TASK_ATTEMPTS
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 
@@ -28,7 +27,7 @@ class RecoverRelocationTest(APITestCase):
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
-        self.superuser = self.create_user(is_superuser=True)
+        self.superuser = self.create_user(is_superuser=True, is_staff=True)
         self.staff_user = self.create_user(is_staff=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
@@ -44,7 +43,6 @@ class RecoverRelocationTest(APITestCase):
             latest_task_attempts=MAX_FAST_TASK_ATTEMPTS,
         )
 
-    @override_options({"staff.ga-rollout": True})
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_good_recover_without_pause_as_staff(self, async_task_scheduled: Mock) -> None:
         self.login_as(user=self.staff_user, staff=True)
@@ -61,7 +59,7 @@ class RecoverRelocationTest(APITestCase):
 
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_good_recover_without_pause_as_superuser(self, async_task_scheduled: Mock) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
@@ -73,7 +71,6 @@ class RecoverRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
-    @override_options({"staff.ga-rollout": True})
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_good_recover_with_pause_as_staff(self, async_task_scheduled: Mock) -> None:
         self.login_as(user=self.staff_user, staff=True)
@@ -92,7 +89,7 @@ class RecoverRelocationTest(APITestCase):
 
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_good_recover_with_pause_as_superuser(self, async_task_scheduled: Mock) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             self.relocation.uuid, untilStep=Relocation.Step.VALIDATING.name, status_code=200
         )
@@ -107,13 +104,13 @@ class RecoverRelocationTest(APITestCase):
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
     def test_bad_not_found(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(does_not_exist_uuid, status_code=404)
 
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_bad_not_yet_failed(self, async_task_scheduled: Mock) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
         response = self.get_error_response(self.relocation.uuid, status_code=400)
@@ -127,7 +124,7 @@ class RecoverRelocationTest(APITestCase):
 
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_bad_invalid_pause_step(self, async_task_scheduled: Mock) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_error_response(
             self.relocation.uuid, untilStep="nonexistent", status_code=400
         )
@@ -141,7 +138,7 @@ class RecoverRelocationTest(APITestCase):
 
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_bad_unknown_pause_step(self, async_task_scheduled: Mock) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_error_response(
             self.relocation.uuid, untilStep=Relocation.Step.UNKNOWN.name, status_code=400
         )
@@ -155,7 +152,7 @@ class RecoverRelocationTest(APITestCase):
 
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_bad_already_completed_pause_step(self, async_task_scheduled: Mock) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         response = self.get_error_response(
             self.relocation.uuid, untilStep=Relocation.Step.PREPROCESSING.name, status_code=400
         )
@@ -169,7 +166,7 @@ class RecoverRelocationTest(APITestCase):
 
     @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.delay")
     def test_bad_cannot_recover_at_validation_step(self, async_task_scheduled: Mock) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.latest_task = OrderedTask.VALIDATING_POLL.name
         self.relocation.save()

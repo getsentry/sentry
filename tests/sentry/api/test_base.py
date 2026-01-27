@@ -606,7 +606,7 @@ class FunctionSiloLimitTest(APITestCase):
 class SuperuserPermissionTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.request = self.make_request(user=self.user, method="GET")
+        self.request = self.make_request(user=self.user, method="GET", is_superuser=False)
         self.superuser_permission_view = DummySuperuserPermissionEndpoint().as_view()
         self.superuser_or_any_permission_view = DummySuperuserOrAnyPermissionEndpoint().as_view()
 

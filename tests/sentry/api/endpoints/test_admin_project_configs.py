@@ -25,7 +25,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         self.proj2 = self.create_project(
             name="proj2", organization=self.org, teams=[self.first_team]
         )
-        self.superuser = self.create_user(
+        self.staff_user = self.create_user(
             "superuser@example.com", is_superuser=True, is_staff=True, is_active=True
         )
         self.path = "sentry-api-0-internal-project-config"
@@ -68,7 +68,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         Asking for a project will return all project configs from all public
         keys in redis
         """
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
 
         url = self.get_url(proj_id=self.proj1.id)
         response = self.client.get(url)
@@ -83,7 +83,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         Asking for a particular public key will return only the project config
         for that public key
         """
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
 
         url = self.get_url(key=self.p1_pk.public_key)
         response = self.client.get(url)
@@ -100,7 +100,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         """
         outdated = {"configs": {self.p2_pk.public_key: None}}
 
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
 
         url = self.get_url(proj_id=self.proj2.id)
         response = self.client.get(url)
@@ -119,7 +119,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         Asking for an inexistent project will return 404
         """
         inexistent_project_id = 2 ^ 32
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
 
         url = self.get_url(proj_id=inexistent_project_id)
         response = self.client.get(url)
@@ -130,7 +130,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         Asking for an inexistent project key will return an empty result
         """
         inexistent = 123
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
 
         url = self.get_url(key=inexistent)
         response = self.client.get(url)
@@ -146,19 +146,19 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
     def test_invalidate_project_config_non_superuser(self) -> None:
         url = self.get_url()
         data = {"projectId": self.project.id}
-        self.login_as(self.user, superuser=False)
+        self.login_as(self.user, staff=False)
         response = self.client.post(url, data=data)
         assert response.status_code == 403
 
     def test_invalidate_project_config_missing_project_id(self) -> None:
         url = self.get_url()
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
         response = self.client.post(url)
         assert response.status_code == 400
 
     def test_invalidate_project_config_cached_project(self) -> None:
         url = self.get_url()
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
         data = {"projectId": self.proj2.id}
         projectconfig_cache.backend.set_many(
             {
@@ -170,7 +170,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
 
     def test_invalidate_project_config_cached_project_sets_correct_config(self) -> None:
         url = self.get_url()
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
         data = {"projectId": self.proj2.id}
         projectconfig_cache.backend.set_many(
             {
@@ -183,21 +183,21 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
 
     def test_invalidate_project_config_uncached_project(self) -> None:
         url = self.get_url()
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
         data = {"projectId": self.proj1.id}
         response = self.client.post(url, data=data)
         assert response.status_code == 201
 
     def test_invalidate_project_config_uncached_project_returns_correct_config(self) -> None:
         url = self.get_url()
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
         data = {"projectId": self.proj1.id}
         response = self.client.post(url, data=data)
         assert response.status_code == 201
 
     def test_invalidate_project_config_with_multiple_project_keys(self) -> None:
         url = self.get_url()
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
 
         # Create new project with two keys
         test_project = self.create_project(
@@ -229,7 +229,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         initial_cached_config = projectconfig_cache.backend.get(self.p2_pk.public_key)
         assert initial_cached_config is None
 
-        self.login_as(self.superuser, superuser=True)
+        self.login_as(self.staff_user, staff=True)
 
         url = self.get_url(proj_id=self.proj2.id)
         response = self.client.get(url)

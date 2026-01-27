@@ -1,8 +1,4 @@
-from collections.abc import Generator
 from unittest.mock import MagicMock, patch
-
-from django.test import override_settings
-from pytest import fixture
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.interfaces.stacktrace import StacktraceOrder
@@ -11,7 +7,6 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -27,7 +22,6 @@ class UserDetailsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
-        self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
         self.login_as(user=self.user)
 
@@ -51,16 +45,6 @@ class UserDetailsGetTest(UserDetailsTest):
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
 
-    def test_superuser_simple(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_success_response(self.user.id)
-
-        assert resp.data["id"] == str(self.user.id)
-        assert "identities" in resp.data
-        assert len(resp.data["identities"]) == 0
-
-    @override_options({"staff.ga-rollout": True})
     def test_staff_simple(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
 
@@ -69,22 +53,6 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["id"] == str(self.user.id)
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
-
-    def test_superuser_includes_roles_and_permissions(self) -> None:
-        self.add_user_permission(self.superuser, "users.admin")
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_success_response(self.superuser.id)
-
-        assert resp.data["id"] == str(self.superuser.id)
-        assert "permissions" in resp.data
-        assert resp.data["permissions"] == ["users.admin"]
-
-        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
-        role.users.add(self.superuser)
-
-        resp = self.get_success_response(self.superuser.id)
-        assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
     def test_staff_includes_roles_and_permissions(self) -> None:
         self.add_user_permission(self.staff_user, "users.admin")
@@ -209,255 +177,8 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
 
 @control_silo_test
-class UserDetailsSuperuserUpdateTest(UserDetailsTest):
-    method = "put"
-
-    def test_superuser_can_change_is_active(self) -> None:
-        self.user.update(is_active=True)
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_success_response(
-            self.user.id,
-            isActive="false",
-        )
-        assert resp.data["id"] == str(self.user.id)
-
-        user = User.objects.get(id=self.user.id)
-        assert not user.is_active
-
-    def test_superuser_with_permission_can_change_is_active(self) -> None:
-        self.user.update(is_active=True)
-        UserPermission.objects.create(user=self.superuser, permission="users.admin")
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_success_response(
-            self.user.id,
-            isActive="false",
-        )
-        assert resp.data["id"] == str(self.user.id)
-
-        user = User.objects.get(id=self.user.id)
-        assert not user.is_active
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_cannot_change_is_active(self) -> None:
-        self.user.update(is_active=True)
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        self.login_as(user=superuser, superuser=True)
-
-        self.get_error_response(
-            self.user.id,
-            isActive="false",
-            status_code=403,
-        )
-
-        self.user.refresh_from_db()
-        assert self.user.is_active
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_write_can_change_is_active(self) -> None:
-        self.user.update(is_active=True)
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        self.add_user_permission(superuser, "superuser.write")
-        self.login_as(user=superuser, superuser=True)
-
-        resp = self.get_success_response(
-            self.user.id,
-            isActive="false",
-        )
-        assert resp.data["id"] == str(self.user.id)
-
-        self.user.refresh_from_db()
-        assert not self.user.is_active
-
-    def test_superuser_cannot_add_superuser(self) -> None:
-        self.user.update(is_superuser=False)
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_error_response(
-            self.user.id,
-            isSuperuser="true",
-            status_code=403,
-        )
-        assert resp.data["detail"] == "Missing required permission to add superuser."
-
-        user = User.objects.get(id=self.user.id)
-        assert not user.is_superuser
-
-    def test_superuser_cannot_add_staff(self) -> None:
-        self.user.update(is_staff=False)
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_error_response(
-            self.user.id,
-            isStaff="true",
-            status_code=403,
-        )
-        assert resp.data["detail"] == "Missing required permission to add admin."
-
-        user = User.objects.get(id=self.user.id)
-        assert not user.is_staff
-
-    def test_superuser_with_permission_can_add_superuser(self) -> None:
-        self.user.update(is_superuser=False)
-        UserPermission.objects.create(user=self.superuser, permission="users.admin")
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_success_response(
-            self.user.id,
-            isSuperuser="true",
-        )
-        assert resp.data["id"] == str(self.user.id)
-
-        user = User.objects.get(id=self.user.id)
-        assert user.is_superuser
-
-    def test_superuser_with_permission_can_add_staff(self) -> None:
-        self.user.update(is_staff=False)
-        UserPermission.objects.create(user=self.superuser, permission="users.admin")
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_success_response(
-            self.user.id,
-            isStaff="true",
-        )
-        assert resp.data["id"] == str(self.user.id)
-
-        user = User.objects.get(id=self.user.id)
-        assert user.is_staff
-
-    @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_is_active_changed(self, mock_audit_logger: MagicMock) -> None:
-        self.user.update(is_active=True)
-        self.login_as(user=self.superuser, superuser=True)
-
-        self.get_success_response(
-            self.user.id,
-            isActive="false",
-        )
-
-        mock_audit_logger.info.assert_called_once_with(
-            "user.edit",
-            extra={
-                "user_id": self.user.id,
-                "actor_id": self.superuser.id,
-                "form_data": {"isActive": "false"},
-                "changed_fields": {"is_active"},
-            },
-        )
-
-    @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_is_staff_changed(self, mock_audit_logger: MagicMock) -> None:
-        self.user.update(is_staff=False)
-        UserPermission.objects.create(user=self.superuser, permission="users.admin")
-        self.login_as(user=self.superuser, superuser=True)
-
-        self.get_success_response(
-            self.user.id,
-            isStaff="true",
-        )
-
-        mock_audit_logger.info.assert_called_once_with(
-            "user.edit",
-            extra={
-                "user_id": self.user.id,
-                "actor_id": self.superuser.id,
-                "form_data": {"isStaff": "true"},
-                "changed_fields": {"is_staff"},
-            },
-        )
-
-    @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_is_superuser_changed(
-        self, mock_audit_logger: MagicMock
-    ) -> None:
-        self.user.update(is_superuser=False)
-        UserPermission.objects.create(user=self.superuser, permission="users.admin")
-        self.login_as(user=self.superuser, superuser=True)
-
-        self.get_success_response(
-            self.user.id,
-            isSuperuser="true",
-        )
-
-        mock_audit_logger.info.assert_called_once_with(
-            "user.edit",
-            extra={
-                "user_id": self.user.id,
-                "actor_id": self.superuser.id,
-                "form_data": {"isSuperuser": "true"},
-                "changed_fields": {"is_superuser"},
-            },
-        )
-
-    @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_not_emitted_when_is_active_unchanged(
-        self, mock_audit_logger: MagicMock
-    ) -> None:
-        self.user.update(is_active=True)
-        self.login_as(user=self.superuser, superuser=True)
-
-        self.get_success_response(
-            self.user.id,
-            isActive="true",  # Same as current value
-        )
-
-        mock_audit_logger.info.assert_not_called()
-
-    @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_not_emitted_for_non_privileged_fields(
-        self, mock_audit_logger: MagicMock
-    ) -> None:
-        self.login_as(user=self.superuser, superuser=True)
-
-        # Only change name, not any privileged fields
-        self.get_success_response(
-            self.user.id,
-            name="New Name",
-        )
-
-        # Verify name was updated
-        user = User.objects.get(id=self.user.id)
-        assert user.name == "New Name"
-
-        # Audit log should NOT be called for non-privileged field changes
-        mock_audit_logger.info.assert_not_called()
-
-    @patch("sentry.users.api.endpoints.user_details.audit_logger")
-    def test_audit_log_emitted_when_multiple_privileged_fields_changed(
-        self, mock_audit_logger: MagicMock
-    ) -> None:
-        self.user.update(is_active=True, is_staff=False)
-        UserPermission.objects.create(user=self.superuser, permission="users.admin")
-        self.login_as(user=self.superuser, superuser=True)
-
-        self.get_success_response(
-            self.user.id,
-            isActive="false",
-            isStaff="true",
-        )
-
-        mock_audit_logger.info.assert_called_once_with(
-            "user.edit",
-            extra={
-                "user_id": self.user.id,
-                "actor_id": self.superuser.id,
-                "form_data": {"isActive": "false", "isStaff": "true"},
-                "changed_fields": {"is_active", "is_staff"},
-            },
-        )
-
-
-@control_silo_test
 class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
-
-    @fixture(autouse=True)
-    def _activate_staff_mode(self) -> Generator[None]:
-        with override_options({"staff.ga-rollout": True}):
-            yield
 
     def test_staff_can_change_is_active(self) -> None:
         self.user.update(is_active=True)
@@ -514,29 +235,6 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_staff
-
-    def test_superuser_cannot_add_superuser_or_staff_with_feature_flag(self) -> None:
-        self.user.update(is_staff=False)
-
-        self.login_as(user=self.superuser, superuser=True)
-
-        resp = self.get_error_response(
-            self.user.id,
-            isStaff="true",
-            status_code=403,
-        )
-        assert resp.data["detail"] == "Missing required permission to add admin."
-
-        resp = self.get_error_response(
-            self.user.id,
-            isSuperuser="true",
-            status_code=403,
-        )
-        assert resp.data["detail"] == "Missing required permission to add superuser."
-
-        user = User.objects.get(id=self.user.id)
-        assert not user.is_staff
-        assert not user.is_superuser
 
     def test_staff_with_permission_can_add_superuser(self) -> None:
         self.user.update(is_superuser=False)
@@ -742,19 +440,6 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         # Cannot hard delete your own account
         self.get_error_response(self.user.id, hardDelete=True, organizations=[], status_code=403)
 
-    def test_superuser_hard_delete_account_without_permission(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
-        user2 = self.create_user(email="user2@example.com")
-
-        # failed authorization, user does not have users.admin permission to hard delete another user
-        response = self.get_error_response(
-            user2.id, hardDelete=True, organizations=[], status_code=403
-        )
-
-        assert response.data["detail"] == "Missing required permission to hard delete account."
-        assert User.objects.filter(id=user2.id).exists()
-
-    @override_options({"staff.ga-rollout": True})
     def test_staff_hard_delete_account_without_permission(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
@@ -767,17 +452,6 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
-    def test_superuser_hard_delete_account_with_permission(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
-        user2 = self.create_user(email="user2@example.com")
-
-        # Add users.admin permission to superuser
-        UserPermission.objects.create(user=self.superuser, permission="users.admin")
-
-        self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
-        assert not User.objects.filter(id=user2.id).exists()
-
-    @override_options({"staff.ga-rollout": True})
     def test_staff_hard_delete_account_with_permission(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
@@ -787,20 +461,3 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
 
         self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
-
-    @override_options({"staff.ga-rollout": True})
-    def test_superuser_cannot_hard_delete_with_active_option(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
-        user2 = self.create_user(email="user2@example.com")
-
-        # Add users.admin permission to superuser
-        UserPermission.objects.create(user=self.superuser, permission="users.admin")
-
-        # Superusers will eventually be prevented from hard deleting accounts
-        # once the feature flag is removed
-        response = self.get_error_response(
-            user2.id, hardDelete=True, organizations=[], status_code=403
-        )
-
-        assert response.data["detail"] == "Missing required permission to hard delete account."
-        assert User.objects.filter(id=user2.id).exists()

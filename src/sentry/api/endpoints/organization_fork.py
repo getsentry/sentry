@@ -12,7 +12,7 @@ from sentry.analytics.events.relocation_forked import RelocationForkedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
+from sentry.api.permissions import StaffPermission
 from sentry.api.serializers import serialize
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.organization import OrganizationStatus
@@ -51,7 +51,7 @@ class OrganizationForkEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
+    permission_classes = (StaffPermission,)
 
     def post(self, request: Request, organization_id_or_slug) -> Response:
         """
