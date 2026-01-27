@@ -352,6 +352,7 @@ def get_autofix_state(
         {
             "group_id": group_id,
             "run_id": run_id,
+            "organization_id": organization_id,
             "check_repo_access": check_repo_access,
             "is_user_fetching": is_user_fetching,
         }
