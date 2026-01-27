@@ -1,5 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
@@ -28,7 +30,7 @@ export default function RepositoryProjectPathConfigRow({
   return (
     <Fragment>
       <NameRepoColumn>
-        <ProjectRepoHolder>
+        <Stack>
           <RepoName>{pathConfig.repoName}</RepoName>
           <ProjectAndBranch>
             <IdBadge
@@ -39,7 +41,7 @@ export default function RepositoryProjectPathConfigRow({
             />
             <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
           </ProjectAndBranch>
-        </ProjectRepoHolder>
+        </Stack>
       </NameRepoColumn>
       <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
       <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
@@ -78,11 +80,6 @@ export default function RepositoryProjectPathConfigRow({
   );
 }
 
-const ProjectRepoHolder = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const RepoName = styled(`span`)`
   padding-bottom: ${space(1)};
 `;
@@ -116,7 +113,8 @@ export const InputPathColumn = styled(Column)`
   grid-area: input-path;
 `;
 
-export const ButtonWrapper = styled('span')`
-  display: flex;
-  gap: ${space(1)};
-`;
+export function ButtonWrapper(
+  props: Omit<FlexProps<'span'>, 'as'> & {children?: ReactNode}
+) {
+  return <Flex<'span'> gap="md" {...props} as="span" />;
+}
