@@ -45,7 +45,7 @@ function GroupStatusChart({
 }: Props) {
   const theme = useTheme();
   const graphOptions = useMemo<{
-    colors: [string] | undefined;
+    colors: [string, string] | undefined;
     emphasisColors: [string] | undefined;
     series: Series[];
   }>(() => {
@@ -58,7 +58,6 @@ function GroupStatusChart({
 
     const marklineColor = theme.colors.gray400;
     const marklineLabelColor = theme.tokens.content.secondary;
-    const chartColor = theme.tokens.graphics.neutral.moderate;
 
     const markLine = MarkLine({
       silent: true,
@@ -85,31 +84,32 @@ function GroupStatusChart({
       },
     });
 
-    if (showSecondaryPoints && secondaryStats?.length) {
-      const series: Series[] = [
-        {
-          seriesName: t('Total Events'),
-          data: secondaryStats.map(asChartPoint),
-          markLine: showMarkLine && max > 0 ? markLine : undefined,
-        },
-        {
-          seriesName: t('Matching Events'),
-          data: stats.map(asChartPoint),
-        },
-      ];
+    const series: Series[] =
+      showSecondaryPoints && secondaryStats?.length
+        ? [
+            {
+              seriesName: t('Total Events'),
+              data: secondaryStats.map(asChartPoint),
+              markLine: showMarkLine && max > 0 ? markLine : undefined,
+            },
+            {
+              seriesName: t('Matching Events'),
+              data: stats.map(asChartPoint),
+            },
+          ]
+        : [
+            {
+              seriesName: t('Events'),
+              data: stats.map(asChartPoint),
+              markLine: showMarkLine && max > 0 ? markLine : undefined,
+            },
+          ];
 
-      return {colors: undefined, emphasisColors: undefined, series};
-    }
-
-    const series: Series[] = [
-      {
-        seriesName: t('Events'),
-        data: stats.map(asChartPoint),
-        markLine: showMarkLine && max > 0 ? markLine : undefined,
-      },
-    ];
-
-    return {colors: [chartColor], emphasisColors: [chartColor], series};
+    return {
+      colors: [theme.tokens.dataviz.semantic.other, theme.tokens.dataviz.semantic.accent],
+      emphasisColors: [theme.tokens.dataviz.semantic.other],
+      series,
+    };
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (
