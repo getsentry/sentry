@@ -117,6 +117,14 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_installation_by_uuid(self, *, uuid: str) -> RpcSentryAppInstallation | None:
+        """
+        Get a sentryapp install by uuid
+        """
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
         pass
 

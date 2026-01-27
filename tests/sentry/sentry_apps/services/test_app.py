@@ -240,6 +240,24 @@ def test_get_installation_org_id_by_token_id() -> None:
 
 @django_db_all(transaction=True)
 @all_silo_test
+def test_get_installation_by_uuid() -> None:
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+    app = Factories.create_sentry_app(
+        name="demo-app",
+        user=user,
+        published=True,
+    )
+    install = Factories.create_sentry_app_installation(
+        organization=org,
+        slug=app.slug,
+    )
+    result = app_service.get_installation_by_uuid(uuid=install.uuid)
+    assert result.uuid == install.uuid
+
+
+@django_db_all(transaction=True)
+@all_silo_test
 def test_get_sentry_apps_for_organization() -> None:
     org = Factories.create_organization()
     other_org = Factories.create_organization()

@@ -92,6 +92,15 @@ class DatabaseBackedAppService(AppService):
             return None
         return install.organization_id
 
+    def get_installation_by_uuid(self, *, uuid: str) -> RpcSentryAppInstallation | None:
+        try:
+            install = SentryAppInstallation.objects.select_related("sentry_app").get(
+                uuid=uuid, status=SentryAppInstallationStatus.INSTALLED
+            )
+            return serialize_sentry_app_installation(install)
+        except SentryAppInstallation.DoesNotExist:
+            return None
+
     def get_sentry_app_by_slug(self, *, slug: str) -> RpcSentryApp | None:
         try:
             sentry_app = SentryApp.objects.get(slug=slug)
