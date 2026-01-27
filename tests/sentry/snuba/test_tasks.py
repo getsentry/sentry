@@ -485,6 +485,22 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
             )
             delete_subscription_from_snuba(sub.id)
 
+    def test_delete_subscription_with_url_tag(self) -> None:
+        """Test that subscriptions with url tags can be deleted even if not in default tags."""
+        subscription_id = f"1/{uuid4().hex}"
+        # This query uses 'url' which is not in default metric tags
+        # but should still be deletable with skip_field_validation_for_entity_subscription_deletion
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            dataset=Dataset.PerformanceMetrics,
+            subscription_id=subscription_id,
+            query="((event.type:transaction) and ( ( url:https://api.example.com/api/v3/todos/*/complete ) or url:https://api.example.com/api/v3/todos/*/start )) AND (event.type:transaction)",
+            aggregate="p99(transaction.duration)",
+        )
+        # Should not raise IncompatibleMetricsQuery or SubscriptionError
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
 
 class BuildSnqlQueryTest(TestCase):
     aggregate_mappings: dict[SnubaQuery.Type, dict[Dataset, dict[str, Any]]] = {

@@ -531,6 +531,11 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return str(DATASETS[self.dataset][col])
         tag_id = self.resolve_tag_key(col)
         if tag_id is None:
+            # When deleting subscriptions, skip validation for unknown fields
+            if self.builder_config.skip_field_validation_for_entity_subscription_deletion:
+                # Return a placeholder to allow query building to complete
+                # The subscription will be deleted regardless of field validity
+                return f"tags[{col}]"
             raise InvalidSearchQuery(f"Unknown field: {col}")
         if self.is_performance:
             return f"tags_raw[{tag_id}]"
@@ -768,6 +773,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
         if self.use_default_tags:
             if value in self.default_metric_tags:
+                return self.resolve_metric_index(value)
+            elif self.builder_config.skip_field_validation_for_entity_subscription_deletion:
+                # When deleting subscriptions, skip validation and try to resolve anyway
                 return self.resolve_metric_index(value)
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
