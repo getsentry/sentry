@@ -688,6 +688,7 @@ export default function CustomerDetails() {
                 orgId,
                 subscription,
                 billingConfig,
+                organization,
                 onSuccess: reloadData,
               }),
           },
