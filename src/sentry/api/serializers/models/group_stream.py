@@ -248,13 +248,22 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
             stats = {g.id: tsdb.backend.make_series(0, **query_params) for g in groups}
         else:
             org_id = groups[0].project.organization_id if groups else None
-            stats = tsdb.backend.get_range(
-                model=TSDBModel.group,
-                keys=[g.id for g in groups],
-                environment_ids=[environment.id] if environment is not None else None,
-                **query_params,
-                tenant_ids={"organization_id": org_id} if org_id else None,
-            )
+            
+            # Batch groups to avoid Snuba timeouts with large queries
+            # We batch in chunks of 25 to keep query size manageable
+            BATCH_SIZE = 25
+            stats = {}
+            
+            for i in range(0, len(groups), BATCH_SIZE):
+                batch = groups[i : i + BATCH_SIZE]
+                batch_stats = tsdb.backend.get_range(
+                    model=TSDBModel.group,
+                    keys=[g.id for g in batch],
+                    environment_ids=[environment.id] if environment is not None else None,
+                    **query_params,
+                    tenant_ids={"organization_id": org_id} if org_id else None,
+                )
+                stats.update(batch_stats)
 
         return stats
 
@@ -607,19 +616,27 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         )
 
         results = {}
+        
+        # Batch groups to avoid Snuba timeouts with large queries
+        # We batch in chunks of 25 to keep query size manageable
+        BATCH_SIZE = 25
 
         if error_issue_ids:
-            results.update(
-                get_range(model=TSDBModel.group, keys=error_issue_ids, conditions=error_conditions)
-            )
-        if generic_issue_ids:
-            results.update(
-                get_range(
-                    model=TSDBModel.group_generic,
-                    keys=generic_issue_ids,
-                    conditions=issue_conditions,
+            for i in range(0, len(error_issue_ids), BATCH_SIZE):
+                batch = error_issue_ids[i : i + BATCH_SIZE]
+                results.update(
+                    get_range(model=TSDBModel.group, keys=batch, conditions=error_conditions)
                 )
-            )
+        if generic_issue_ids:
+            for i in range(0, len(generic_issue_ids), BATCH_SIZE):
+                batch = generic_issue_ids[i : i + BATCH_SIZE]
+                results.update(
+                    get_range(
+                        model=TSDBModel.group_generic,
+                        keys=batch,
+                        conditions=issue_conditions,
+                    )
+                )
         return results
 
     def _seen_stats_error(
