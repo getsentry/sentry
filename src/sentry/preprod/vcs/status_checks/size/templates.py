@@ -5,11 +5,7 @@ from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.project import Project
-from sentry.preprod.models import (
-    PreprodArtifact,
-    PreprodArtifactSizeMetrics,
-    PreprodComparisonApproval,
-)
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.types import TriggeredRule
 
@@ -22,7 +18,6 @@ def format_status_check_messages(
     overall_status: StatusCheckStatus,
     project: Project,
     triggered_rules: list[TriggeredRule] | None = None,
-    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[str, str, str]:
     """
     Args:
@@ -31,7 +26,6 @@ def format_status_check_messages(
         overall_status: The overall status of the check
         project: The project associated with the artifacts
         triggered_rules: List of triggered rules with artifact associations
-        approvals_map: Dict mapping artifact_id to PreprodComparisonApproval
 
     Returns:
         tuple: (title, subtitle, summary)
@@ -113,9 +107,7 @@ def format_status_check_messages(
 
         # Failed apps section
         summary_parts.append(failed_header)
-        summary_parts.append(
-            _format_artifact_summary(failed_artifacts, size_metrics_map, approvals_map)
-        )
+        summary_parts.append(_format_artifact_summary(failed_artifacts, size_metrics_map))
         summary_parts.append(_format_failed_checks_details(triggered_rules, settings_url))
 
         # Passed apps section (if any)
@@ -129,9 +121,7 @@ def format_status_check_messages(
                 passed_metrics_count,
             ) % {"count": passed_metrics_count}
             summary_parts.append(passed_header)
-            summary_parts.append(
-                _format_artifact_summary(passed_artifacts, size_metrics_map, approvals_map)
-            )
+            summary_parts.append(_format_artifact_summary(passed_artifacts, size_metrics_map))
 
         # Footer link
         summary_parts.append(_format_configure_link(project, settings_url))
@@ -146,7 +136,7 @@ def format_status_check_messages(
     else:
         # Success or in-progress
         summary_parts = []
-        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map, approvals_map))
+        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map))
         summary_parts.append(_format_configure_link(project, settings_url))
 
         summary = "\n\n".join(summary_parts)
@@ -157,7 +147,6 @@ def format_status_check_messages(
 def _format_artifact_summary(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
-    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> str:
     """Format summary for artifacts with size data."""
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
@@ -227,13 +216,7 @@ def _format_artifact_summary(
             f"{artifact.build_configuration.name or '--'}" if artifact.build_configuration else "--"
         )
 
-        approval = approvals_map.get(artifact.id) if approvals_map else None
-        if approval:
-            approval_text = "✅ Approved"
-        else:
-            approval_text = str(_("N/A"))
-
-        row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} | {approval_text} |"
+        row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} |"
 
         group_key = "android" if artifact.is_android() else "ios"
         grouped_rows[group_key].append(row)
@@ -242,8 +225,8 @@ def _format_artifact_summary(
 
     def _render_table(rows: list[str], install_label: str) -> str:
         return _(
-            "| Name | Configuration | Version | Download Size | {install_label} | Approval |\n"
-            "|------|--------------|---------|----------|-----------------|----------|\n"
+            "| Name | Configuration | Version | Download Size | {install_label} |\n"
+            "|------|--------------|---------|----------|------------------|\n"
             "{table_rows}"
         ).format(table_rows="\n".join(rows), install_label=install_label)
 
