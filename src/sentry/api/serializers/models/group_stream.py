@@ -8,6 +8,7 @@ from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
+from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
 
 from sentry import features, release_health, tsdb
 from sentry.api.serializers import serialize
@@ -47,7 +48,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import resolve_column, resolve_conditions
+from sentry.utils.snuba import bulk_snuba_queries, resolve_column, resolve_conditions
 
 
 def get_actions(group: Group) -> list[tuple[str, str]]:
@@ -492,8 +493,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if self._expand("latestEventHasAttachments") and features.has(
             "organizations:event-attachments", item.project.organization
         ):
+            # Batch query for latest events to avoid N+1 queries
+            latest_events_map = self._get_latest_events_batch(item_list)
+            
             for item in item_list:
-                latest_event = item.get_latest_event()
+                latest_event = latest_events_map.get(item.id)
                 if latest_event is not None:
                     num_attachments = EventAttachment.objects.filter(
                         project_id=latest_event.project_id, event_id=latest_event.event_id
@@ -501,6 +505,96 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     attrs[item]["latestEventHasAttachments"] = num_attachments > 0
 
         return attrs
+
+    def _get_latest_events_batch(
+        self, item_list: Sequence[Group]
+    ) -> dict[int, Any]:
+        """
+        Batch query to get latest events for multiple groups.
+        Returns a dict mapping group_id to latest event (GroupEvent).
+        """
+        if not item_list:
+            return {}
+        
+        from sentry.services.eventstore import eventstore
+        from sentry.services.eventstore.models import Event
+        from sentry.utils.snuba import _prepare_start_end
+        
+        # Build a separate query for each group
+        requests = []
+        
+        for group in item_list:
+            # Determine dataset based on issue category
+            if group.issue_category == GroupCategory.ERROR:
+                dataset = Dataset.Events
+            else:
+                dataset = Dataset.IssuePlatform
+            
+            # Prepare start and end times
+            start, end = _prepare_start_end(
+                None,  # start
+                None,  # end
+                group.project.organization_id,
+                [group.id],
+            )
+            
+            # Build the query for this group
+            snql_request = Request(
+                dataset=dataset.value,
+                app_id="eventstore",
+                query=Query(
+                    match=Entity(dataset.value),
+                    select=[
+                        Column("event_id"),
+                        Column("group_id"),
+                        Column("project_id"),
+                        Column("timestamp"),
+                    ],
+                    where=[
+                        Condition(Column("timestamp"), Op.GTE, start),
+                        Condition(Column("timestamp"), Op.LT, end),
+                        Condition(Column("project_id"), Op.IN, [group.project.id]),
+                        Condition(Column("group_id"), Op.IN, [group.id]),
+                    ],
+                    orderby=[
+                        OrderBy(Column("timestamp"), Direction.DESC),
+                        OrderBy(Column("event_id"), Direction.DESC),
+                    ],
+                    limit=Limit(1),
+                ),
+                tenant_ids={
+                    "organization_id": group.project.organization_id,
+                    "referrer": "Group.get_latest_batch",
+                },
+            )
+            requests.append(snql_request)
+        
+        # Execute all queries in batch
+        try:
+            results = bulk_snuba_queries(
+                requests,
+                referrer="Group.get_latest_batch",
+                use_cache=False,
+            )
+        except Exception:
+            # If batch query fails, return empty dict to avoid breaking the entire response
+            return {}
+        
+        # Map results back to group IDs
+        latest_events_map = {}
+        for idx, result in enumerate(results):
+            if "error" not in result and result.get("data"):
+                group = item_list[idx]
+                event_data = result["data"][0]
+                # Create an Event object from the Snuba data
+                event = Event(
+                    event_id=event_data["event_id"],
+                    project_id=event_data["project_id"],
+                    snuba_data=event_data,
+                )
+                latest_events_map[group.id] = event.for_group(group)
+        
+        return latest_events_map
 
     def serialize(  # type: ignore[override]  # intentionally different shape
         self,
