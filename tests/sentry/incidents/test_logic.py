@@ -811,6 +811,49 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         ).exists()
         assert mock_seer_request.call_count == 0
 
+    @with_feature("organizations:mep-use-default-tags")
+    def test_create_alert_rule_invalid_metric_tag(self) -> None:
+        """Test that creating an alert rule with an invalid metric tag raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            create_alert_rule(
+                self.organization,
+                [self.project],
+                name="Invalid Tag Alert",
+                query="transaction:/products customerType:enterprise",
+                aggregate="p95(transaction.duration)",
+                time_window=10,
+                threshold_type=AlertRuleThresholdType.ABOVE,
+                threshold_period=1,
+                query_type=SnubaQuery.Type.PERFORMANCE,
+                dataset=Dataset.PerformanceMetrics,
+            )
+        
+        assert "customerType is not a tag in the metrics dataset" in str(exc_info.value)
+        # Ensure no alert rule or subscription was created
+        assert not AlertRule.objects.filter(name="Invalid Tag Alert").exists()
+        assert not SnubaQuery.objects.filter(
+            query="transaction:/products customerType:enterprise"
+        ).exists()
+
+    @with_feature("organizations:mep-use-default-tags")
+    def test_create_alert_rule_valid_metric_tag(self) -> None:
+        """Test that creating an alert rule with a valid metric tag succeeds."""
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            name="Valid Tag Alert",
+            query="transaction:/products environment:production",
+            aggregate="p95(transaction.duration)",
+            time_window=10,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            threshold_period=1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
+        )
+        
+        assert alert_rule.name == "Valid Tag Alert"
+        assert alert_rule.snuba_query.query == "transaction:/products environment:production"
+
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
@@ -1892,6 +1935,33 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert [snuba_event_type.type for snuba_event_type in updated_event_types] == [
             SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value
         ]
+
+    @with_feature("organizations:mep-use-default-tags")
+    def test_update_alert_rule_invalid_metric_tag(self) -> None:
+        """Test that updating an alert rule with an invalid metric tag raises ValidationError."""
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            name="Test Alert",
+            query="transaction:/products",
+            aggregate="p95(transaction.duration)",
+            time_window=10,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            threshold_period=1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
+        )
+        
+        with pytest.raises(ValidationError) as exc_info:
+            update_alert_rule(
+                alert_rule,
+                query="transaction:/products customerType:enterprise",
+            )
+        
+        assert "customerType is not a tag in the metrics dataset" in str(exc_info.value)
+        # Ensure the query was not updated
+        alert_rule.refresh_from_db()
+        assert alert_rule.snuba_query.query == "transaction:/products"
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):

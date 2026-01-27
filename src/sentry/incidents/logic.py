@@ -24,6 +24,7 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.incidents import tasks
 from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.models.alert_rule import (
@@ -522,6 +523,59 @@ def _owner_kwargs_from_actor(actor: Actor | None) -> _OwnerKwargs:
     return _OwnerKwargs(user_id=None, team_id=None)
 
 
+def validate_alert_rule_query(
+    organization: Organization,
+    projects: Sequence[Project],
+    query: str,
+    aggregate: str,
+    time_window: int,
+    environment: Environment | None,
+    query_type: SnubaQuery.Type,
+    dataset: Dataset,
+) -> None:
+    """
+    Validates that an alert rule query is compatible with the dataset and feature flags.
+    
+    :param organization: The organization for the alert rule
+    :param projects: Projects that the alert rule will apply to
+    :param query: The query string to validate
+    :param aggregate: The aggregate function used in the alert
+    :param time_window: Time period to aggregate over, in minutes
+    :param environment: Optional environment that this rule applies to
+    :param query_type: The SnubaQuery.Type of the query
+    :param dataset: The dataset that this query will be executed on
+    :raises ValidationError: If the query is invalid for the dataset
+    """
+    # Get the entity subscription that corresponds to the dataset and query type
+    entity_subscription = get_entity_subscription_from_snuba_query(
+        snuba_query_model=type(
+            "TempSnubaQuery",
+            (),
+            {
+                "type": query_type.value,
+                "dataset": dataset.value,
+                "aggregate": aggregate,
+                "time_window": int(timedelta(minutes=time_window).total_seconds()),
+            },
+        )(),
+        organization_id=organization.id,
+    )
+    
+    # Try to build the query builder - this will raise exceptions for invalid queries
+    try:
+        entity_subscription.build_query_builder(
+            query=query,
+            project_ids=[p.id for p in projects],
+            environment=environment,
+            params={
+                "organization_id": organization.id,
+                "project_id": [p.id for p in projects],
+            },
+        )
+    except (IncompatibleMetricsQuery, InvalidSearchQuery) as e:
+        raise ValidationError(str(e))
+
+
 def create_alert_rule(
     organization: Organization,
     projects: Sequence[Project],
@@ -614,6 +668,18 @@ def create_alert_rule(
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
+
+    # Validate the query before creating the alert rule to catch invalid tags early
+    validate_alert_rule_query(
+        organization=organization,
+        projects=projects,
+        query=query,
+        aggregate=aggregate,
+        time_window=time_window,
+        environment=environment,
+        query_type=query_type,
+        dataset=dataset,
+    )
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
         # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
@@ -919,6 +985,31 @@ def update_alert_rule(
                 else (snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS)
             ):
                 raise ValidationError(INVALID_TIME_WINDOW)
+
+    # Validate the query if it's being updated
+    if query is not None or aggregate is not None or time_window is not None:
+        validate_query = query if query is not None else snuba_query.query
+        validate_aggregate = aggregate if aggregate is not None else snuba_query.aggregate
+        validate_time_window = (
+            time_window if time_window is not None else snuba_query.time_window // 60
+        )
+        validate_dataset = dataset if dataset is not None else Dataset(snuba_query.dataset)
+        validate_query_type = (
+            query_type if query_type is not None else SnubaQuery.Type(snuba_query.type)
+        )
+        validate_environment = environment if environment is not None else snuba_query.environment
+        validate_projects = projects if projects is not None else alert_rule.projects.all()
+
+        validate_alert_rule_query(
+            organization=organization,
+            projects=validate_projects,
+            query=validate_query,
+            aggregate=validate_aggregate,
+            time_window=validate_time_window,
+            environment=validate_environment,
+            query_type=validate_query_type,
+            dataset=validate_dataset,
+        )
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
