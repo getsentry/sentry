@@ -75,7 +75,8 @@ export function VisualizationWidget({
         const errorDisplay =
           renderErrorMessage && errorMessage ? renderErrorMessage(errorMessage) : null;
 
-        if (loading) {
+        // Show loading state if still loading or if data hasn't been fetched yet
+        if (loading || !timeseriesResults) {
           return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
         }
         if (errorDisplay) {
