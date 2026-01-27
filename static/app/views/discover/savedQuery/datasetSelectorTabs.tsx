@@ -1,3 +1,5 @@
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+
 import {TabList} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -118,12 +120,19 @@ export function DatasetSelectorTabs(props: Props) {
     query: 'is_transaction:true',
   });
 
-  const options = [
+  const options: Array<{
+    label: string;
+    value: SavedQueryDatasets;
+    tooltip?: TooltipProps;
+  }> = [
     {
       value: SavedQueryDatasets.ERRORS,
       label: DATASET_LABEL_MAP[SavedQueryDatasets.ERRORS],
     },
-    {
+  ];
+
+  if (!deprecatingTransactionsDataset || value === SavedQueryDatasets.TRANSACTIONS) {
+    options.push({
       value: SavedQueryDatasets.TRANSACTIONS,
       label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
       tooltip: deprecatingTransactionsDataset
@@ -132,8 +141,8 @@ export function DatasetSelectorTabs(props: Props) {
             isHoverable: true,
           }
         : undefined,
-    },
-  ];
+    });
+  }
 
   if (value === 'discover') {
     options.push({

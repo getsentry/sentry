@@ -709,7 +709,7 @@ export class Results extends Component<Props, State> {
 
     if (
       this.state.showTransactionsDeprecationAlert &&
-      organization.features.includes('performance-transaction-deprecation-banner') &&
+      organization.features.includes('discover-saved-queries-deprecation') &&
       dataset === DiscoverDatasets.TRANSACTIONS
     ) {
       return (
