@@ -32,11 +32,11 @@ def time_since(value: datetime) -> str | date:
         return value.date()
     with translation.override("en"):
         diff = timesince(value, now)
-    if diff == timesince(now, now):
-        return "Just now"
-    if diff == "1 day":
-        return "Yesterday"
-    return f"{diff} ago"
+        if diff == timesince(now, now):
+            return "Just now"
+        if diff == "1 day":
+            return "Yesterday"
+        return f"{diff} ago"
 
 
 def get_relative_time(
