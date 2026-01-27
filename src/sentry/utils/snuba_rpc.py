@@ -45,6 +45,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from urllib3.response import BaseHTTPResponse
+from django.conf import settings
 
 from sentry.utils import json, metrics
 from sentry.utils.snuba import SnubaError, _snuba_pool
@@ -149,7 +150,7 @@ def _make_rpc_requests(
         thread_isolation_scope=sentry_sdk.get_isolation_scope(),
         thread_current_scope=sentry_sdk.get_current_scope(),
     )
-    with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10) as query_thread_pool:
+    with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=settings.SENTRY_SNUBA_MAX_CONCURRENT_QUERIES) as query_thread_pool:
         response = [
             result
             for result in query_thread_pool.map(
