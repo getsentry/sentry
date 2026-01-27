@@ -71,10 +71,6 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         referenced in the rules. Users must either have team:admin scope or be
         a member of each team they're assigning ownership to.
         """
-        request = self.context.get("request")
-        if not request or (request.access and request.access.has_scope("team:admin")):
-            return
-
         team_slugs = {
             owner.get("identifier")
             for rule in rules
@@ -84,7 +80,14 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         if not team_slugs:
             return
 
-        user = getattr(request, "user", None)
+        request = self.context.get("request")
+
+        # Users with team:admin scope can assign any team as owner
+        if request and request.access and request.access.has_scope("team:admin"):
+            return
+
+        # Fail closed: if we can't verify the user, deny the action
+        user = getattr(request, "user", None) if request else None
         if not user or not user.is_authenticated:
             raise serializers.ValidationError(
                 {"raw": "You do not have permission to assign ownership to one or more teams."}
