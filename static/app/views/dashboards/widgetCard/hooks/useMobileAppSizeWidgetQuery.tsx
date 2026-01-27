@@ -43,7 +43,6 @@ function applyDashboardFilters(
 
     filtered.queries.forEach(query => {
       if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
         if (query.conditions && !skipParens) {
           query.conditions = `(${query.conditions})`;
         }
@@ -54,11 +53,9 @@ function applyDashboardFilters(
     processedWidget = filtered;
   }
 
-  // Clean widget to remove empty/invalid fields before API request
   return cleanWidgetForRequest(processedWidget);
 }
 
-// Stable empty array to prevent infinite rerenders
 const EMPTY_ARRAY: any[] = [];
 
 /**
@@ -80,13 +77,11 @@ export function useMobileAppSizeSeriesQuery(
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<MobileAppSizeSeriesResponse[] | undefined>(undefined);
 
-  // Apply dashboard filters
   const filteredWidget = useMemo(
     () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  // Build query keys for all widget queries
   const queryKeys = useMemo(() => {
     const keys = filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
@@ -98,12 +93,10 @@ export function useMobileAppSizeSeriesQuery(
         getReferrer(filteredWidget.displayType)
       );
 
-      // Add sampling mode if provided
       if (samplingMode) {
         requestData.sampling = samplingMode;
       }
 
-      // Transform requestData into proper query params
       const {
         organization: _org,
         includeAllArgs: _includeAllArgs,
@@ -125,7 +118,6 @@ export function useMobileAppSizeSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      // Build the API query key for events-stats endpoint
       return [
         `/organizations/${organization.slug}/events-stats/`,
         {
@@ -137,7 +129,6 @@ export function useMobileAppSizeSeriesQuery(
     return keys;
   }, [filteredWidget, organization, pageFilters, samplingMode]);
 
-  // Create stable queryFn that uses queue
   const createQueryFn = useCallback(
     () =>
       async (context: any): Promise<ApiResult<MobileAppSizeSeriesResponse>> => {
@@ -155,7 +146,6 @@ export function useMobileAppSizeSeriesQuery(
           });
         }
 
-        // Fallback: call directly if queue not available
         return fetchDataQuery<MobileAppSizeSeriesResponse>(context);
       },
     [queue]
@@ -213,19 +203,16 @@ export function useMobileAppSizeSeriesQuery(
       const responseData = q.data[0];
       rawData[requestIndex] = responseData;
 
-      // Use the config's transformSeries method
       const transformedResult = MobileAppSizeConfig.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
       );
 
-      // Maintain color consistency
       transformedResult.forEach((result: Series, resultIndex: number) => {
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      // Get result types from config
       const resultTypes = MobileAppSizeConfig.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
@@ -236,7 +223,6 @@ export function useMobileAppSizeSeriesQuery(
       }
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
     if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
@@ -245,7 +231,6 @@ export function useMobileAppSizeSeriesQuery(
       }
     }
 
-    // Store current rawData for next comparison
     if (finalRawData !== prevRawDataRef.current) {
       prevRawDataRef.current = finalRawData;
     }
