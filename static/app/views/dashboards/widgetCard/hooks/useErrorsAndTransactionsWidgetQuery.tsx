@@ -274,7 +274,8 @@ export function useErrorsAndTransactionsSeriesQuery(
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    const error = queryResults.find(q => q?.error)?.error as any;
+    const errorMessage = error?.responseJSON?.detail || error?.message;
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
@@ -486,7 +487,8 @@ export function useErrorsAndTransactionsTableQuery(
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    const error = queryResults.find(q => q?.error)?.error as any;
+    const errorMessage = error?.responseJSON?.detail || error?.message;
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
