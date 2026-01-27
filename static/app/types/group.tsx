@@ -999,6 +999,7 @@ export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string;
+  eventId: string | null;
   id: string;
   isOpen: boolean;
   lastChecked: string;
