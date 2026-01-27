@@ -110,7 +110,7 @@ function IntegrationRow(props: Props) {
             {renderDetails()}
           </IntegrationDetails>
         </TitleContainer>
-        <Flex justify="end" wrap="wrap" flex="3" padding="0 xl" gap="md">
+        <Flex justify="end" wrap="wrap" flex={3} padding="0 xl" gap="md">
           {categories?.map(category => (
             <Tag key={category} variant={category === publishStatus ? 'info' : 'muted'}>
               {category === 'api' ? 'API' : startCase(category)}
