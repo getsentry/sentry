@@ -283,6 +283,9 @@ const BodyCell = memo(function BodyCell({
 
 const TooltipTextContainer = styled('div')`
   text-align: left;
+  max-width: min(800px, 60vw);
+  max-height: 50vh;
+  overflow: hidden;
 
   h1,
   h2,
@@ -290,7 +293,7 @@ const TooltipTextContainer = styled('div')`
   h4,
   h5,
   h6 {
-    font-size: inherit; /* makes sure headings are not too large */
+    font-size: inherit;
     font-weight: bold;
     margin: 0;
   }

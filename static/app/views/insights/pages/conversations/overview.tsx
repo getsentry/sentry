@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -51,9 +51,16 @@ function ConversationsOverviewPage({
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
-    parseAsString.withDefault(DEFAULT_QUERY).withOptions({history: 'replace'})
+    parseAsString.withOptions({history: 'replace'})
   );
   const {unsetCursor} = useTableCursor();
+
+  useEffect(() => {
+    if (searchQuery === null) {
+      setSearchQuery(DEFAULT_QUERY);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {tags: numberTags = [], isLoading: numberTagsLoading} =
     useTraceItemTags('number');
