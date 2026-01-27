@@ -20,7 +20,10 @@ import type {
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import {isSizeInfoCompleted} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  getMainArtifactSizeMetric,
+  isSizeInfoCompleted,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 export enum SizeMetric {
@@ -111,9 +114,7 @@ export function MobileBuildsChart({
           return;
         }
 
-        // Get the main artifact size metric (first one with MAIN_ARTIFACT type)
-        const sizeMetrics = build.size_info.size_metrics;
-        const mainMetric = sizeMetrics[0];
+        const mainMetric = getMainArtifactSizeMetric(build.size_info);
         if (!mainMetric) {
           return;
         }
