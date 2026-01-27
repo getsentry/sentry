@@ -2,7 +2,11 @@ from typing import cast
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
+from sentry.spans.consumers.process_segments.enrichment import (
+    MAX_AGENT_NAME_ANCESTOR_HOPS,
+    TreeEnricher,
+    compute_breakdowns,
+)
 from sentry.spans.consumers.process_segments.shim import make_compatible
 from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 from tests.sentry.spans.consumers.process import build_mock_span
@@ -651,8 +655,8 @@ def test_enrich_gen_ai_agent_name_only_from_invoke_agent_parent() -> None:
     assert attribute_value(child, "gen_ai.agent.name") is None
 
 
-def test_enrich_gen_ai_agent_name_not_from_grandparent() -> None:
-    """Test that gen_ai.agent.name is NOT inherited from grandparent, only from immediate parent."""
+def test_enrich_gen_ai_agent_name_from_grandparent() -> None:
+    """Test that gen_ai.agent.name is inherited from grandparent gen_ai.invoke_agent span."""
     grandparent_span = build_mock_span(
         project_id=1,
         is_segment=True,
@@ -692,7 +696,7 @@ def test_enrich_gen_ai_agent_name_not_from_grandparent() -> None:
     grandparent, parent, child = compatible_spans
     assert attribute_value(grandparent, "gen_ai.agent.name") == "GrandparentAgent"
     assert attribute_value(parent, "gen_ai.agent.name") is None
-    assert attribute_value(child, "gen_ai.agent.name") is None
+    assert attribute_value(child, "gen_ai.agent.name") == "GrandparentAgent"
 
 
 def test_enrich_gen_ai_agent_name_from_immediate_parent_fallback_to_span_op() -> None:
@@ -725,3 +729,102 @@ def test_enrich_gen_ai_agent_name_from_immediate_parent_fallback_to_span_op() ->
     parent, child = compatible_spans
     assert attribute_value(parent, "gen_ai.agent.name") == "MyAgent"
     assert attribute_value(child, "gen_ai.agent.name") == "MyAgent"
+
+
+def test_enrich_gen_ai_agent_name_respects_max_depth() -> None:
+    """Test that ancestor search stops at MAX_AGENT_NAME_ANCESTOR_HOPS."""
+    # Create a chain: agent -> N intermediates -> gen_ai child
+    # where N = MAX_AGENT_NAME_ANCESTOR_HOPS, making agent N+1 hops away (beyond limit)
+    spans = []
+
+    # Root agent span (too far - beyond MAX_AGENT_NAME_ANCESTOR_HOPS)
+    agent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="span_0",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455620.0,
+        span_op="gen_ai.invoke_agent",
+        attributes={"gen_ai.agent.name": {"type": "string", "value": "TooFarAgent"}},
+    )
+    spans.append(agent_span)
+
+    # Create MAX_AGENT_NAME_ANCESTOR_HOPS intermediate spans
+    for i in range(1, MAX_AGENT_NAME_ANCESTOR_HOPS + 1):
+        spans.append(
+            build_mock_span(
+                project_id=1,
+                span_id=f"span_{i}",
+                parent_span_id=f"span_{i - 1}",
+                start_timestamp=1609455600.0 + i,
+                end_timestamp=1609455619.0 - i,
+                span_op="some.operation",
+            )
+        )
+
+    # Leaf gen_ai span (MAX_AGENT_NAME_ANCESTOR_HOPS + 1 hops from agent)
+    leaf_id = MAX_AGENT_NAME_ANCESTOR_HOPS + 1
+    leaf = build_mock_span(
+        project_id=1,
+        span_id=f"span_{leaf_id}",
+        parent_span_id=f"span_{MAX_AGENT_NAME_ANCESTOR_HOPS}",
+        start_timestamp=1609455610.0,
+        end_timestamp=1609455611.0,
+        attributes={"gen_ai.operation.name": {"type": "string", "value": "run"}},
+    )
+    spans.append(leaf)
+
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    # Should NOT inherit because agent is beyond MAX_AGENT_NAME_ANCESTOR_HOPS
+    assert attribute_value(compatible_spans[-1], "gen_ai.agent.name") is None
+
+
+def test_enrich_gen_ai_agent_name_from_deep_ancestor() -> None:
+    """Test that agent name is inherited from ancestor within MAX_AGENT_NAME_ANCESTOR_HOPS."""
+    # Create a chain: agent -> (MAX_AGENT_NAME_ANCESTOR_HOPS - 1) intermediates -> gen_ai child
+    # This puts the agent exactly at MAX_AGENT_NAME_ANCESTOR_HOPS hops away (at the limit)
+    spans = []
+
+    agent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="span_0",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455620.0,
+        span_op="gen_ai.invoke_agent",
+        attributes={"gen_ai.agent.name": {"type": "string", "value": "DeepAgent"}},
+    )
+    spans.append(agent_span)
+
+    # Create MAX_AGENT_NAME_ANCESTOR_HOPS - 1 intermediate spans
+    for i in range(1, MAX_AGENT_NAME_ANCESTOR_HOPS):
+        spans.append(
+            build_mock_span(
+                project_id=1,
+                span_id=f"span_{i}",
+                parent_span_id=f"span_{i - 1}",
+                start_timestamp=1609455600.0 + i,
+                end_timestamp=1609455619.0 - i,
+                span_op="some.operation",
+            )
+        )
+
+    # Leaf gen_ai span (exactly MAX_AGENT_NAME_ANCESTOR_HOPS hops from agent)
+    leaf_id = MAX_AGENT_NAME_ANCESTOR_HOPS
+    leaf = build_mock_span(
+        project_id=1,
+        span_id=f"span_{leaf_id}",
+        parent_span_id=f"span_{MAX_AGENT_NAME_ANCESTOR_HOPS - 1}",
+        start_timestamp=1609455610.0,
+        end_timestamp=1609455611.0,
+        attributes={"gen_ai.operation.name": {"type": "string", "value": "run"}},
+    )
+    spans.append(leaf)
+
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    # Should inherit because agent is exactly at MAX_AGENT_NAME_ANCESTOR_HOPS
+    assert attribute_value(compatible_spans[-1], "gen_ai.agent.name") == "DeepAgent"
