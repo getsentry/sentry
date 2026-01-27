@@ -1,14 +1,13 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
+import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import {decodeList} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import localStorage from 'sentry/utils/localStorage';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
@@ -19,13 +18,74 @@ import {SpanFields} from 'sentry/views/insights/types';
 const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
 
+function makeAgentFilterStorageKey(orgSlug: string): string {
+  return `conversations:agent-filter:${orgSlug}`;
+}
+
+function getAgentFilterFromStorage(orgSlug: string): string[] {
+  const value = localStorage.getItem(makeAgentFilterStorageKey(orgSlug));
+  if (!value) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export function AgentSelector() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {agent: selectedAgents = []} = useLocationQuery({
-    fields: {agent: decodeList},
-  });
+
+  // Use nuqs to manage both agent and cursor state
+  const [{agent: selectedAgents}, setQueryStates] = useQueryStates(
+    {
+      [AGENT_URL_PARAM]: parseAsArrayOf(parseAsString)
+        .withDefault(getAgentFilterFromStorage(organization.slug))
+        .withOptions({clearOnDefault: true}),
+      [TableUrlParams.CURSOR]: parseAsString,
+    },
+    {history: 'replace'}
+  );
+
+  // Sync to localStorage whenever agents change
+  useEffect(() => {
+    const agents = selectedAgents ?? [];
+    if (agents.length > 0) {
+      localStorage.setItem(
+        makeAgentFilterStorageKey(organization.slug),
+        JSON.stringify(agents)
+      );
+    } else {
+      localStorage.removeItem(makeAgentFilterStorageKey(organization.slug));
+    }
+  }, [selectedAgents, organization.slug]);
+
+  // Reset agent filter when project changes
+  const prevProjectsRef = useRef<number[]>(pageFilters.selection.projects);
+  useEffect(() => {
+    const currentProjects = pageFilters.selection.projects;
+    const prevProjects = prevProjectsRef.current;
+
+    // Compare projects arrays to detect changes
+    const projectsChanged =
+      currentProjects.length !== prevProjects.length ||
+      currentProjects.some((project, index) => project !== prevProjects[index]);
+
+    if (projectsChanged) {
+      // Clear agent filter from URL and localStorage
+      setQueryStates({
+        [AGENT_URL_PARAM]: undefined,
+        [TableUrlParams.CURSOR]: undefined,
+      });
+      localStorage.removeItem(makeAgentFilterStorageKey(organization.slug));
+
+      // Update ref for next comparison
+      prevProjectsRef.current = currentProjects;
+    }
+  }, [pageFilters.selection.projects, setQueryStates, organization.slug]);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -79,7 +139,7 @@ export function AgentSelector() {
     });
 
     // Ensure selected values are in the list
-    selectedAgents.forEach(agent => {
+    (selectedAgents ?? []).forEach(agent => {
       if (agent && !uniqueAgents.has(agent)) {
         list.push({label: agent, value: agent});
       }
@@ -95,7 +155,7 @@ export function AgentSelector() {
     <CompactSelect
       multiple
       style={{maxWidth: '200px'}}
-      value={selectedAgents}
+      value={selectedAgents ?? []}
       options={options}
       emptyMessage={t('No agents found')}
       loading={isPending}
@@ -112,13 +172,12 @@ export function AgentSelector() {
       )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);
-        navigate({
-          ...location,
-          query: {
-            ...location.query,
-            [AGENT_URL_PARAM]: values.length > 0 ? values : undefined,
-            [TableUrlParams.CURSOR]: undefined,
-          },
+
+        // Update URL and clear pagination cursor
+        // localStorage sync happens in useEffect
+        setQueryStates({
+          [AGENT_URL_PARAM]: values.length > 0 ? values : undefined,
+          [TableUrlParams.CURSOR]: undefined,
         });
       }}
     />
