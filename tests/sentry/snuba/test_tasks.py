@@ -485,6 +485,24 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
             )
             delete_subscription_from_snuba(sub.id)
 
+    def test_delete_subscription_with_transaction_duration_filter(self) -> None:
+        """Test that subscriptions with transaction.duration in query can be deleted.
+        
+        This tests the fix for SENTRY-5HAG where transaction.duration in the query
+        would fail validation during deletion even with skip_field_validation flag.
+        """
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            dataset=Dataset.PerformanceMetrics,
+            subscription_id=subscription_id,
+            query='transaction.duration:<15m transaction:"dashboard load"',
+            aggregate="failure_rate()",
+        )
+        # This should not raise an error with the fix
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
 
 class BuildSnqlQueryTest(TestCase):
     aggregate_mappings: dict[SnubaQuery.Type, dict[Dataset, dict[str, Any]]] = {

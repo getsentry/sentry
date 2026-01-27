@@ -769,6 +769,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         if self.use_default_tags:
             if value in self.default_metric_tags:
                 return self.resolve_metric_index(value)
+            elif self.builder_config.skip_field_validation_for_entity_subscription_deletion:
+                # Skip validation when deleting entity subscriptions to allow cleanup
+                # of subscriptions that may have invalid or outdated field references
+                return self.resolve_metric_index(value)
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
         else:
