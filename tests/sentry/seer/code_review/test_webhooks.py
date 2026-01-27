@@ -801,9 +801,7 @@ class AddEyesReactionTest(TestCase):
         )
 
         self.mock_client.create_issue_reaction.assert_not_called()
-        mock_logger.warning.assert_called_once_with(
-            "github.webhook.pull_request.missing-integration", extra={}
-        )
+        mock_logger.warning.assert_called_once_with("github.webhook.missing-integration", extra={})
 
     def test_adds_eyes_to_pr(self) -> None:
         self.mock_client.get_issue_reactions.return_value = [
@@ -918,9 +916,7 @@ class AddEyesReactionTest(TestCase):
             extra={},
         )
 
-        mock_logger.warning.assert_called_once_with(
-            "github.webhook.pull_request.reaction-failed", extra={}
-        )
+        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", extra={})
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
@@ -947,9 +943,7 @@ class AddEyesReactionTest(TestCase):
             extra={},
         )
 
-        mock_logger.warning.assert_called_once_with(
-            "github.webhook.pull_request.reaction-failed", extra={}
-        )
+        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", extra={})
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
@@ -970,6 +964,4 @@ class AddEyesReactionTest(TestCase):
             extra={},
         )
 
-        mock_logger.warning.assert_called_once_with(
-            "github.webhook.pull_request.reaction-failed", extra={}
-        )
+        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", extra={})
