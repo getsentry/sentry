@@ -707,6 +707,59 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             tags[0].times_seen == 2
         )  # Isn't 3 because start was limited by the ReleaseProjectEnvironment entry
 
+    def test_get_release_tags_fallback_to_release_date_added(self) -> None:
+        """
+        Test that when no ReleaseProjectEnvironment exists, we fall back to
+        Release.date_added instead of defaulting to 2008, which would cause timeouts.
+        """
+        # Create a new release without any ReleaseProjectEnvironment
+        new_release_version = "new-release-999"
+        release_date = self.now - timedelta(hours=2)
+        release = Release.objects.create(
+            version=new_release_version,
+            organization=self.organization,
+            date_added=release_date,
+        )
+        release.add_project(self.proj1)
+
+        # Store an event with this release
+        self.store_event(
+            data={
+                "event_id": "7" * 32,
+                "message": "message with new release",
+                "platform": "python",
+                "environment": None,
+                "fingerprint": ["group-3"],
+                "timestamp": (self.now - timedelta(hours=1)).isoformat(),
+                "tags": {
+                    "sentry:release": new_release_version,
+                },
+            },
+            project_id=self.proj1.id,
+        )
+
+        # Call get_release_tags - this should not timeout because it uses
+        # Release.date_added as the start date instead of defaulting to 2008
+        tags = list(
+            self.ts.get_release_tags(
+                self.proj1.organization_id, [self.proj1.id], None, [new_release_version]
+            )
+        )
+
+        # Verify we got the tag
+        assert len(tags) == 1
+        assert tags[0].key == "sentry:release"
+        assert tags[0].value == new_release_version
+        assert tags[0].times_seen == 1
+
+        # Verify the min_start_date fallback logic works
+        min_start = self.ts.get_min_start_date(
+            self.proj1.organization_id, [self.proj1.id], None, [new_release_version]
+        )
+        # Should be close to the release date_added (within a few seconds due to processing)
+        assert min_start is not None
+        assert abs((min_start - release_date).total_seconds()) < 5
+
     def test_get_tag_value_paginator(self) -> None:
         from sentry.tagstore.types import TagValue
 
