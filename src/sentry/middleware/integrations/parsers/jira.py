@@ -51,7 +51,21 @@ class JiraRequestParser(BaseRequestParser):
         try:
             return parse_integration_from_request(request=self.request, provider=self.provider)
         except AtlassianConnectValidationError as e:
-            sentry_sdk.capture_exception(e)
+            # Check if this is a known issue with Jira's placeholder replacement
+            # Jira sometimes fails to replace {issue.key} placeholders, resulting in
+            # URLs like /extensions/jira/issue/PROJ-123/undefined/ without JWT tokens
+            if "undefined" in self.request.path and "No token parameter" in str(e):
+                logger.warning(
+                    "jira.integration.malformed_url",
+                    extra={
+                        "path": self.request.path,
+                        "error": str(e),
+                        "issue": "Jira failed to replace URL placeholder",
+                    },
+                )
+            else:
+                # For other validation errors, capture to Sentry for investigation
+                sentry_sdk.capture_exception(e)
         return None
 
     def get_response(self) -> HttpResponseBase:

@@ -54,6 +54,61 @@ class JiraRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
+    def test_get_integration_from_request_malformed_url(self) -> None:
+        """Test that malformed URLs with 'undefined' are logged but not captured to Sentry"""
+        from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
+
+        # Simulate Jira's placeholder replacement failure
+        request = self.factory.get(path=f"{self.path_base}/issue/PPPT-630/undefined/")
+        parser = JiraRequestParser(request, self.get_response)
+
+        with patch(
+            "sentry.middleware.integrations.parsers.jira.parse_integration_from_request"
+        ) as mock_parse, patch(
+            "sentry.middleware.integrations.parsers.jira.logger"
+        ) as mock_logger, patch(
+            "sentry.middleware.integrations.parsers.jira.sentry_sdk"
+        ) as mock_sentry:
+            # Simulate the validation error that would occur with missing token
+            mock_parse.side_effect = AtlassianConnectValidationError("No token parameter")
+
+            result = parser.get_integration_from_request()
+
+            # Should return None
+            assert result is None
+            # Should log a warning
+            mock_logger.warning.assert_called_once()
+            # Should NOT capture exception to Sentry
+            mock_sentry.capture_exception.assert_not_called()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_get_integration_from_request_other_validation_errors(self) -> None:
+        """Test that other validation errors are still captured to Sentry"""
+        from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
+
+        # Request with valid URL but other validation error
+        request = self.factory.get(path=f"{self.path_base}/issue/PPPT-630/")
+        parser = JiraRequestParser(request, self.get_response)
+
+        with patch(
+            "sentry.middleware.integrations.parsers.jira.parse_integration_from_request"
+        ) as mock_parse, patch(
+            "sentry.middleware.integrations.parsers.jira.sentry_sdk"
+        ) as mock_sentry:
+            # Simulate a different validation error
+            error = AtlassianConnectValidationError("Signature is invalid")
+            mock_parse.side_effect = error
+
+            result = parser.get_integration_from_request()
+
+            # Should return None
+            assert result is None
+            # Should capture exception to Sentry
+            mock_sentry.capture_exception.assert_called_once_with(error)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
     def test_get_response_routing_to_control(self) -> None:
         paths = [
             "/ui-hook/",
