@@ -120,7 +120,7 @@ export function FeatureFilter({
           <PreprodBuildsTable
             builds={builds}
             isLoading={buildsQuery.isLoading}
-            error={!!buildsQuery.error}
+            error={buildsQuery.error}
             organizationSlug={organization.slug}
             hasSearchQuery={!!localQuery}
           />
