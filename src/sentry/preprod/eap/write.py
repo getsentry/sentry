@@ -24,6 +24,8 @@ from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 
+THIRTEEN_MONTHS = 396  # 13 months in days
+
 
 def produce_preprod_size_metric_to_eap(
     size_metric: PreprodArtifactSizeMetrics,
@@ -114,7 +116,7 @@ def produce_preprod_size_metric_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=90,  # Default retention for preprod data
+        retention_days=THIRTEEN_MONTHS,  # Default retention for preprod data
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
@@ -226,7 +228,7 @@ def produce_preprod_build_distribution_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=90,
+        retention_days=THIRTEEN_MONTHS,
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
