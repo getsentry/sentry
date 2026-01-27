@@ -105,9 +105,13 @@ def create_uptime_response_capture(
     """
     Create a response capture from a check result if it contains response data.
 
-    Returns the created capture, or None if there's no response data in result
-    or if a capture already exists for this scheduled check time.
+    Returns the created capture, or None if response capture is disabled,
+    there's no response data in result, or a capture already exists for this
+    scheduled check time.
     """
+    if not subscription.response_capture_enabled:
+        return None
+
     # Check if we already have a capture for this scheduled check time
     # to avoid creating duplicates on retries.
     scheduled_check_time_ms = int(result["scheduled_check_time_ms"])
