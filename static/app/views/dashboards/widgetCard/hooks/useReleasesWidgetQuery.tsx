@@ -5,6 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import type {ApiResult} from 'sentry/api';
+import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -186,7 +187,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       ? typeof error.responseJSON.detail === 'string'
         ? error.responseJSON.detail
         : error.responseJSON.detail.message
-      : error?.message;
+      : error?.message || t('An unknown error occurred.');
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
@@ -372,7 +373,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       ? typeof error.responseJSON.detail === 'string'
         ? error.responseJSON.detail
         : error.responseJSON.detail.message
-      : error?.message;
+      : error?.message || t('An unknown error occurred.');
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
