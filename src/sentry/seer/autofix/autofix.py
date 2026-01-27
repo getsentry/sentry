@@ -717,6 +717,7 @@ def trigger_autofix(
 
 def update_autofix(
     *,
+    organization_id: int,
     run_id: int,
     payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
 ) -> Response:
@@ -725,7 +726,7 @@ def update_autofix(
     """
 
     path = "/v1/automation/autofix/update"
-    data = AutofixUpdateRequest(run_id=run_id, payload=payload)
+    data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}{path}",

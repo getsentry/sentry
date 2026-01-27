@@ -218,6 +218,8 @@ class SeerOperatorTest(TestCase):
         )
 
         mock_update_autofix.assert_called_once()
-        payload = mock_update_autofix.call_args.kwargs["payload"]
+        call_kwargs = mock_update_autofix.call_args.kwargs
+        assert call_kwargs["organization_id"] == self.group.organization.id
+        payload = call_kwargs["payload"]
         assert payload["type"] == "select_root_cause"
         assert payload["stopping_point"] == "code_changes"

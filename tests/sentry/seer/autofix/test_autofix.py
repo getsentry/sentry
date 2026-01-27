@@ -1511,7 +1511,9 @@ class UpdateAutofixTest(TestCase):
         mock_response.raise_for_status.side_effect = Exception("bad request, fix something")
         mock_post.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 500
         assert response.data["detail"] == "Failed to update autofix run"
@@ -1525,7 +1527,9 @@ class UpdateAutofixTest(TestCase):
         mock_response.json.side_effect = Exception("Invalid JSON")
         mock_post.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 500
         assert response.data["detail"] == "Seer returned an invalid response"
@@ -1539,7 +1543,9 @@ class UpdateAutofixTest(TestCase):
         mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
         mock_post.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 200
         assert response.data == mock_response.json.return_value
