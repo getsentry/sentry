@@ -12,6 +12,7 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {
   useDefaultMaxPickableDays,
   useMaxPickableDays,
@@ -206,8 +207,9 @@ type ComponentHooks = {
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
+  'component:disabled-detector-action': React.ComponentType<{detector: Detector}>;
   'component:disabled-detector-alert': React.ComponentType<{
-    detector: import('sentry/types/workflowEngine/detectors').Detector;
+    detector: Detector;
     message: string;
   }>;
   'component:disabled-member': () => React.ComponentType;

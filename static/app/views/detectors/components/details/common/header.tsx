@@ -1,13 +1,11 @@
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import Hook from 'sentry/components/hook';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  DisableDetectorAction,
-  EditDetectorAction,
-} from 'sentry/views/detectors/components/details/common/actions';
+import {EditDetectorAction} from 'sentry/views/detectors/components/details/common/actions';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {
   makeMonitorBasePathname,
@@ -58,7 +56,7 @@ function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
   return (
     <DetailLayout.Actions>
       <MonitorFeedbackButton />
-      <DisableDetectorAction detector={detector} />
+      <Hook name="component:disabled-detector-action" detector={detector} />
       <EditDetectorAction detector={detector} />
     </DetailLayout.Actions>
   );

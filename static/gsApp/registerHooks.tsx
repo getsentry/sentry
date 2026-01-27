@@ -73,6 +73,7 @@ import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
 import {CodecovSettingsLink} from './components/codecovSettingsLink';
+import {DisabledDetectorAction} from './components/disabledDetectorAction';
 import PrimaryNavigationQuotaExceeded from './components/navBillingStatus';
 import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
@@ -254,6 +255,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:scm-multi-org-install-button': () => GithubInstallationSelectInstallButton,
   'component:metric-alert-quota-message': MetricAlertQuotaMessage,
   'component:metric-alert-quota-icon': MetricAlertQuotaIcon,
+  'component:disabled-detector-action': DisabledDetectorAction,
   'component:disabled-detector-alert': AnomalyDetectionDisabledAlert,
 
   /**
