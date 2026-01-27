@@ -475,7 +475,7 @@ function getAgentMonitoringConfigStep({
           type: 'alert',
           alertType: 'info',
           text: tct(
-            "Below you'll find setup instructions for server-side on Node.js. For other runtimes, like the Browser, follow the [link:manual instrumentation guide].",
+            "Below you'll find setup instructions for server-side on Node.js. For other runtimes, like the Browser, the instrumentation needs to be manually enabled. [link:See the docs] for more information.",
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/ai-agent-monitoring-browser/" />
