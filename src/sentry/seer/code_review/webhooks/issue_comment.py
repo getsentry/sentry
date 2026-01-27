@@ -94,6 +94,7 @@ def handle_issue_comment_event(
             repo=repo,
             pr_number=str(pr_number) if pr_number else None,
             comment_id=str(comment_id),
+            extra=extra,
         )
 
     target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)

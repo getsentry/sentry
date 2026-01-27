@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import enum
+import logging
 from collections.abc import Mapping
 from enum import Enum, StrEnum
 from typing import Any
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
@@ -18,6 +21,13 @@ from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeRe
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
+
+logger = logging.getLogger(__name__)
+
+
+class Log(enum.StrEnum):
+    MISSING_INTEGRATION = "github.webhook.missing-integration"
+    REACTION_FAILED = "github.webhook.reaction-failed"
 
 
 class ClientError(Exception):
@@ -407,6 +417,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
     repo: Repository,
     pr_number: str | None,
     comment_id: str | None,
+    extra: Mapping[str, str | None],
 ) -> None:
     """
     Delete existing :tada: or :eyes: reaction on the PR description and add :eyes: reaction on the originating issue comment or PR description.
@@ -417,6 +428,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
             github_event_action,
             CodeReviewErrorType.MISSING_INTEGRATION,
         )
+        logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
         return
 
     try:
@@ -436,22 +448,26 @@ def delete_existing_reactions_and_add_eyes_reaction(
                         )
                     ):
                         client.delete_issue_reaction(repo.name, pr_number, str(reaction.get("id")))
-            except Exception:
+            except Exception as e:
                 # Continue even if this fails
                 record_webhook_handler_error(
                     github_event,
                     github_event_action,
                     CodeReviewErrorType.REACTION_FAILED,
                 )
+                logger.warning(Log.REACTION_FAILED.value, extra=extra)
+                sentry_sdk.capture_exception(e)
 
         # Add :eyes: on the originating issue comment or pr description
         if github_event == GithubWebhookType.PULL_REQUEST:
             client.create_issue_reaction(repo.name, pr_number, GitHubReaction.EYES)
         elif github_event == GithubWebhookType.ISSUE_COMMENT:
             client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
-    except Exception:
+    except Exception as e:
         record_webhook_handler_error(
             github_event,
             github_event_action,
             CodeReviewErrorType.REACTION_FAILED,
         )
+        logger.warning(Log.REACTION_FAILED.value, extra=extra)
+        sentry_sdk.capture_exception(e)
