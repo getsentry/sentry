@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -57,9 +57,32 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     [setConversationDrawerQueryState, organization]
   );
 
-  const selectedNode =
-    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
-    getDefaultSelectedNode(nodes);
+  const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
+
+  const selectedNode = useMemo(() => {
+    if (selectedNodeKey) {
+      const found = nodes.find(node => node.id === selectedNodeKey);
+      if (found) {
+        return found;
+      }
+    }
+    return nodes.find(node => node.id === defaultNodeId);
+  }, [nodes, selectedNodeKey, defaultNodeId]);
+
+  useEffect(() => {
+    if (isLoading || !defaultNodeId) {
+      return;
+    }
+
+    const isCurrentSpanValid =
+      selectedNodeKey && nodes.some(node => node.id === selectedNodeKey);
+
+    if (!isCurrentSpanValid) {
+      setConversationDrawerQueryState({
+        spanId: defaultNodeId,
+      });
+    }
+  }, [isLoading, defaultNodeId, selectedNodeKey, nodes, setConversationDrawerQueryState]);
 
   return (
     <Stack height="100%">
@@ -94,7 +117,7 @@ export function useConversationViewDrawer({
   const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlConversationDrawer();
 
   const openConversationViewDrawer = useCallback(
-    (conversation: UseConversationsOptions) => {
+    (conversation: UseConversationsOptions, initialSpanId?: string) => {
       trackAnalytics('agent-monitoring.conversation-drawer.open', {
         organization,
       });
@@ -106,6 +129,7 @@ export function useConversationViewDrawer({
         drawerWidth: `${DRAWER_WIDTH}px`,
         resizable: true,
         conversationId: conversation.conversationId,
+        spanId: initialSpanId,
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -113,9 +137,9 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId} = drawerUrlState;
+    const {conversationId, spanId} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
-      openConversationViewDrawer({conversationId});
+      openConversationViewDrawer({conversationId}, spanId ?? undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);

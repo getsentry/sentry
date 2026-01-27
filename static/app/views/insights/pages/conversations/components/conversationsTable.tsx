@@ -166,7 +166,8 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: Conversation;
 }) {
-  const {openConversationViewDrawer} = useConversationViewDrawer();
+  const {openConversationViewDrawer, isConversationViewDrawerOpen} =
+    useConversationViewDrawer();
 
   switch (column.key) {
     case 'conversationId':
@@ -220,6 +221,8 @@ const BodyCell = memo(function BodyCell({
                   isHoverable
                   delay={500}
                   skipWrapper
+                  position="right"
+                  disabled={isConversationViewDrawerOpen}
                 >
                   <CellContent text={dataRow.firstInput} />
                 </Tooltip>
@@ -242,6 +245,8 @@ const BodyCell = memo(function BodyCell({
                   isHoverable
                   delay={500}
                   skipWrapper
+                  position="right"
+                  disabled={isConversationViewDrawerOpen}
                 >
                   <CellContent text={dataRow.lastOutput} />
                 </Tooltip>
@@ -278,6 +283,9 @@ const BodyCell = memo(function BodyCell({
 
 const TooltipTextContainer = styled('div')`
   text-align: left;
+  max-width: min(800px, 60vw);
+  max-height: 50vh;
+  overflow: hidden;
 
   h1,
   h2,
@@ -285,7 +293,7 @@ const TooltipTextContainer = styled('div')`
   h4,
   h5,
   h6 {
-    font-size: inherit; /* makes sure headings are not too large */
+    font-size: inherit;
     font-weight: bold;
     margin: 0;
   }
