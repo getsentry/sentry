@@ -63,57 +63,58 @@ export const useSemanticToken = {
      * @param {import('estree').Node} [valueNode]
      */
     function validateToken(node, property, valueNode) {
-      // Try to find the specific token node for precise highlighting
-      const tokenInfo = findTokenNode(valueNode || node);
-      if (!tokenInfo) {
-        return; // Not a token reference matching any rule
-      }
+      // Find all token nodes for precise highlighting
+      const tokenInfos = findAllTokenNodes(valueNode || node);
 
       const normalizedProperty = normalizePropertyName(property);
-      const rule = findRuleForToken(tokenInfo.tokenPath);
 
-      // Skip if this category is not enabled
-      if (rule && !isCategoryEnabled(rule.name)) {
-        return;
-      }
+      for (const tokenInfo of tokenInfos) {
+        const rule = findRuleForToken(tokenInfo.tokenPath);
 
-      if (rule && !rule.allowedProperties.has(normalizedProperty)) {
-        const suggestedCategory = PROPERTY_TO_RULE.get(normalizedProperty);
+        // Skip if this category is not enabled
+        if (rule && !isCategoryEnabled(rule.name)) {
+          continue;
+        }
 
-        if (suggestedCategory) {
-          context.report({
-            node: tokenInfo.node,
-            messageId: 'invalidPropertyWithSuggestion',
-            data: {
-              tokenPath: tokenInfo.tokenPath,
-              property: normalizedProperty,
-              suggestedCategory,
-            },
-          });
-        } else {
-          context.report({
-            node: tokenInfo.node,
-            messageId: 'invalidProperty',
-            data: {
-              tokenPath: tokenInfo.tokenPath,
-              property: normalizedProperty,
-            },
-          });
+        if (rule && !rule.allowedProperties.has(normalizedProperty)) {
+          const suggestedCategory = PROPERTY_TO_RULE.get(normalizedProperty);
+
+          if (suggestedCategory) {
+            context.report({
+              node: tokenInfo.node,
+              messageId: 'invalidPropertyWithSuggestion',
+              data: {
+                tokenPath: tokenInfo.tokenPath,
+                property: normalizedProperty,
+                suggestedCategory,
+              },
+            });
+          } else {
+            context.report({
+              node: tokenInfo.node,
+              messageId: 'invalidProperty',
+              data: {
+                tokenPath: tokenInfo.tokenPath,
+                property: normalizedProperty,
+              },
+            });
+          }
         }
       }
     }
 
     /**
-     * Find a token usage node and extract the full token path.
+     * Find all token usage nodes and extract their full token paths.
      * e.g., theme.tokens.content.primary → tokenPath: 'content.primary'
      * e.g., theme.tokens.interactive.chonky.neutral → tokenPath: 'interactive.chonky.neutral'
      *
      * @param {any} node
-     * @returns {{node: any, tokenPath: string, tokenName: string} | null}
+     * @param {Array<{node: any, tokenPath: string, tokenName: string}>} [results]
+     * @returns {Array<{node: any, tokenPath: string, tokenName: string}>}
      */
-    function findTokenNode(node) {
+    function findAllTokenNodes(node, results = []) {
       if (!node || typeof node !== 'object') {
-        return null;
+        return results;
       }
 
       // Check if this node is a MemberExpression chain that includes 'tokens'
@@ -142,9 +143,12 @@ export const useSemanticToken = {
           const tokenPath = pathParts.slice(tokensIndex + 1).join('.');
           const tokenName = pathParts[pathParts.length - 1];
 
-          // Only return if this token path matches any rule
+          // Only add if this token path matches any rule
           if (findRuleForToken(tokenPath) && tokenName) {
-            return {node, tokenPath, tokenName};
+            results.push({node, tokenPath, tokenName});
+            // Skip recursing into this node's children since we've already
+            // captured the full token path - recursing would find partial paths
+            return results;
           }
         }
       }
@@ -157,20 +161,14 @@ export const useSemanticToken = {
         const child = node[key];
         if (Array.isArray(child)) {
           for (const item of child) {
-            const result = findTokenNode(item);
-            if (result) {
-              return result;
-            }
+            findAllTokenNodes(item, results);
           }
         } else if (child && typeof child === 'object' && child.type) {
-          const result = findTokenNode(child);
-          if (result) {
-            return result;
-          }
+          findAllTokenNodes(child, results);
         }
       }
 
-      return null;
+      return results;
     }
 
     /**

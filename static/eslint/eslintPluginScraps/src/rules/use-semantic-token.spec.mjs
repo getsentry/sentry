@@ -219,5 +219,21 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
         },
       ],
     },
+    // Multiple tokens in a single expression (ternary)
+    {
+      code: `const Component = styled('div')\`
+  background: \${p => foo ? p.theme.tokens.content.primary : p.theme.tokens.content.accent};
+\`;`,
+      errors: [
+        {
+          messageId: 'invalidProperty',
+          data: {tokenPath: 'content.primary', property: 'background'},
+        },
+        {
+          messageId: 'invalidProperty',
+          data: {tokenPath: 'content.accent', property: 'background'},
+        },
+      ],
+    },
   ],
 });
