@@ -99,7 +99,7 @@ export const Title = styled('div')`
 `;
 
 export const ScoreWrapper = styled((props: FlexProps<'div'>) => {
-  return <Flex {...props} align="baseline" maxWidth="100%" />;
+  return <Flex align="baseline" maxWidth="100%" {...props} />;
 })``;
 
 export const Score = styled('span')`
