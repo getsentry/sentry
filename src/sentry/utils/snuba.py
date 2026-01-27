@@ -6,6 +6,7 @@ import logging
 import math
 import os
 import re
+import threading
 import time
 from collections import namedtuple
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
@@ -57,6 +58,12 @@ ROUND_DOWN = object()
 # We limit the number of fields an user can ask for
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 50
+
+# Global semaphore to limit concurrent Snuba queries across all requests
+# This prevents exceeding Snuba's ConcurrentRateLimitAllocationPolicy
+# Default is 20, which is below Snuba's typical limit of 22 to provide a safety margin
+_MAX_CONCURRENT_SNUBA_QUERIES = getattr(settings, "SENTRY_MAX_CONCURRENT_SNUBA_QUERIES", 20)
+_snuba_query_semaphore = threading.BoundedSemaphore(_MAX_CONCURRENT_SNUBA_QUERIES)
 
 SAFE_FUNCTIONS = frozenset(["NOT IN"])
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -1416,27 +1423,30 @@ def _snuba_query(
                 # but we still want to know a general sense of how referrers impact performance
                 sentry_sdk.set_tag("query.referrer", referrer)
 
-                if isinstance(request.query, MetricsQuery):
-                    return (
-                        referrer,
-                        _raw_mql_query(request, headers),
-                        snuba_request.forward,
-                        snuba_request.reverse,
-                    )
-                elif isinstance(request.query, DeleteQuery):
-                    return (
-                        referrer,
-                        _raw_delete_query(request, headers),
-                        snuba_request.forward,
-                        snuba_request.reverse,
-                    )
+                # Use global semaphore to limit concurrent queries across all requests
+                # This prevents exceeding Snuba's ConcurrentRateLimitAllocationPolicy
+                with _snuba_query_semaphore:
+                    if isinstance(request.query, MetricsQuery):
+                        return (
+                            referrer,
+                            _raw_mql_query(request, headers),
+                            snuba_request.forward,
+                            snuba_request.reverse,
+                        )
+                    elif isinstance(request.query, DeleteQuery):
+                        return (
+                            referrer,
+                            _raw_delete_query(request, headers),
+                            snuba_request.forward,
+                            snuba_request.reverse,
+                        )
 
-                return (
-                    referrer,
-                    _raw_snql_query(request, headers),
-                    snuba_request.forward,
-                    snuba_request.reverse,
-                )
+                    return (
+                        referrer,
+                        _raw_snql_query(request, headers),
+                        snuba_request.forward,
+                        snuba_request.reverse,
+                    )
             except urllib3.exceptions.HTTPError as err:
                 raise SnubaError(err)
 

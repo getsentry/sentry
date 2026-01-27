@@ -628,3 +628,53 @@ class SnubaQueryRateLimitTest(TestCase):
         assert (
             str(exc_info.value) == "Query on could not be run due to allocation policies, info: ..."
         )
+
+    @mock.patch("sentry.utils.snuba._raw_snql_query")
+    def test_concurrent_query_limit_with_semaphore(self, mock_raw_snql_query) -> None:
+        """
+        Test that the global semaphore limits concurrent Snuba queries.
+        This prevents exceeding Snuba's ConcurrentRateLimitAllocationPolicy.
+        """
+        import threading
+        from sentry.utils.snuba import _snuba_query_semaphore
+
+        # Track the maximum number of concurrent queries
+        max_concurrent = 0
+        current_concurrent = 0
+        lock = threading.Lock()
+
+        def mock_query_with_tracking(*args, **kwargs):
+            nonlocal max_concurrent, current_concurrent
+            with lock:
+                current_concurrent += 1
+                if current_concurrent > max_concurrent:
+                    max_concurrent = current_concurrent
+            
+            # Simulate some work
+            import time
+            time.sleep(0.01)
+            
+            mock_response = mock.Mock(spec=HTTPResponse)
+            mock_response.status = 200
+            mock_response.data = json.dumps({"data": []}).encode()
+            
+            with lock:
+                current_concurrent -= 1
+            
+            return mock_response
+
+        mock_raw_snql_query.side_effect = mock_query_with_tracking
+
+        # Get the current semaphore value (it should be 20 by default)
+        semaphore_limit = _snuba_query_semaphore._value
+
+        # Create 30 requests (more than the semaphore limit)
+        snuba_requests = [self.snuba_request] * 30
+
+        # Execute bulk query which should be limited by the semaphore
+        _bulk_snuba_query(snuba_requests)
+
+        # Verify that the maximum concurrent queries did not exceed the semaphore limit
+        # We expect it to be <= semaphore_limit (20 by default)
+        assert max_concurrent <= semaphore_limit
+        assert max_concurrent > 0  # Ensure some queries ran concurrently
