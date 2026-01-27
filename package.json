@@ -137,7 +137,7 @@
     "jsonrepair": "^3.8.0",
     "less": "4.3.0",
     "less-loader": "^12.2.0",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.23",
     "marked": "15.0.9",
     "marked-highlight": "2.2.1",
     "mobx": "6.13.7",
