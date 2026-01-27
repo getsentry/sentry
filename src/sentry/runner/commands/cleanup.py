@@ -615,6 +615,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.monitors.models import MonitorCheckIn
     from sentry.preprod.models import PreprodArtifact
     from sentry.replays.models import ReplayRecordingSegment
+    from sentry.uptime.models import UptimeResponseCapture
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
@@ -630,6 +631,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
+        (UptimeResponseCapture, "date_added", "date_added"),
     ]
 
 
