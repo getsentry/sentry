@@ -158,7 +158,7 @@ export function useIssuesSeriesQuery(
                 const result = await fetchDataQuery<IssuesSeriesResponse>(context);
                 resolve(result);
               } catch (error) {
-                reject(error);
+                reject(error instanceof Error ? error : new Error(String(error)));
               }
             };
             queue.addItem({fetchDataRef: fetchFnRef});
@@ -325,7 +325,7 @@ export function useIssuesTableQuery(
                 const result = await fetchDataQuery<IssuesTableResponse>(context);
                 resolve(result);
               } catch (error) {
-                reject(error);
+                reject(error instanceof Error ? error : new Error(String(error)));
               }
             };
             queue.addItem({fetchDataRef: fetchFnRef});
