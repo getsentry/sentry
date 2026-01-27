@@ -880,9 +880,24 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
 
     try:
         condition_group_results = get_condition_group_results(condition_groups)
-    except SnubaError:
+    except SnubaError as e:
         # We expect occasional errors, so we report as info and retry.
         sentry_sdk.capture_exception(level="info")
+        
+        # Don't retry on timeout errors - they're unlikely to succeed on retry
+        # and retrying immediately just adds load to Snuba
+        import urllib3.exceptions
+        if isinstance(e.__cause__, urllib3.exceptions.ReadTimeoutError):
+            logger.warning(
+                "delayed_workflow.snuba_timeout",
+                extra={
+                    "condition_groups": repr_keys(condition_groups),
+                    "error": str(e),
+                },
+            )
+            # Don't retry, let the task fail
+            return
+        
         retry_task()
 
     logger.debug(

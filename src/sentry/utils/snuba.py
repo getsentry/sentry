@@ -1494,8 +1494,16 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
 
         with sentry_sdk.start_span(op="snuba_snql.run", name=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
+            
+            # Use a longer timeout for workflow engine queries which may need to process
+            # large batches of events across longer time windows
+            timeout = settings.SENTRY_SNUBA_TIMEOUT
+            if hasattr(request, 'parent_api') and request.parent_api and 'workflow_engine' in request.parent_api:
+                # Match the processing deadline duration for workflow tasks (60s)
+                timeout = 60
+            
             return _snuba_pool.urlopen(
-                "POST", f"/{request.dataset}/snql", body=body, headers=headers
+                "POST", f"/{request.dataset}/snql", body=body, headers=headers, timeout=timeout
             )
 
 
