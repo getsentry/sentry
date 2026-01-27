@@ -755,10 +755,24 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
         return self._indexer_cache[value]
 
-    def resolve_tag_value(self, value: str) -> int | str | None:
+    def resolve_tag_value(self, value: str, tag_name: str | None = None) -> int | str | None:
         # We only use the indexer for alerts queries
         if self.is_performance or self.use_metrics_layer:
             return value
+        
+        # For release tags, extract the version part from package@version format
+        # since the metrics indexer stores only the version, not the full package@version string
+        if tag_name == "release" and "@" in value:
+            import re
+            # Match package@version or package@version+build patterns
+            match = re.match(r"^[^@]+@([^+]+)(?:\+.*)?$", value)
+            if match:
+                version_only = match.group(1)
+                # Try to resolve the version-only format first
+                result = self.resolve_metric_index(version_only)
+                if result is not None:
+                    return result
+        
         return self.resolve_metric_index(value)
 
     def resolve_tag_key(self, value: str) -> int | str | None:
@@ -806,7 +820,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             if isinstance(value, list):
                 resolved_value = []
                 for item in value:
-                    resolved_item = self.resolve_tag_value(item)
+                    resolved_item = self.resolve_tag_value(item, name)
                     if (
                         resolved_item is None
                         and not self.builder_config.skip_field_validation_for_entity_subscription_deletion
@@ -815,7 +829,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                     resolved_value.append(resolved_item)
                 value = resolved_value
             else:
-                resolved_item = self.resolve_tag_value(value)
+                resolved_item = self.resolve_tag_value(value, name)
                 if (
                     resolved_item is None
                     and not self.builder_config.skip_field_validation_for_entity_subscription_deletion
