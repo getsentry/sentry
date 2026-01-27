@@ -1,10 +1,4 @@
-import {
-  forwardRef,
-  Fragment,
-  memo,
-  useCallback,
-  type ComponentPropsWithoutRef,
-} from 'react';
+import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -136,21 +130,18 @@ function cleanMarkdownForCell(text: string): string {
     .trim();
 }
 
-type CellContentProps = ComponentPropsWithoutRef<'div'> & {
+type CellContentProps = ComponentPropsWithRef<'div'> & {
   text: string;
 };
 
-const CellContent = forwardRef<HTMLDivElement, CellContentProps>(function CellContent(
-  {text, ...props},
-  ref
-) {
+function CellContent({text, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
-    <SingleLineMarkdown ref={ref} {...props}>
+    <SingleLineMarkdown {...props}>
       <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
   );
-});
+}
 
 function UserNotInstrumentedTooltip() {
   return (
