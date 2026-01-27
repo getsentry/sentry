@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -130,7 +131,9 @@ export function ServiceEntrySpansTable({
     <Fragment>
       <Header>
         <CompactSelect
-          triggerProps={{prefix: t('Filter'), size: 'xs'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
+          )}
           value={selected.value}
           options={options}
           onChange={opt => handleDropdownChange(opt.value)}

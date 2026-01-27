@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
+import {Container} from '@sentry/scraps/layout';
+
 import Accordion from 'sentry/components/container/accordion';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -269,7 +271,7 @@ export function SetupReplaysCTA({
   }
 
   return (
-    <CenteredContent>
+    <Container padding="2xl">
       <h3>{t('Get to the root cause faster')}</h3>
       <p>
         {t(
@@ -304,7 +306,7 @@ export function SetupReplaysCTA({
         </StyledHeaderContainer>
         <Accordion items={FAQ} expandedIndex={expanded} setExpandedIndex={setExpanded} />
       </StyledWidgetContainer>
-    </CenteredContent>
+    </Container>
   );
 }
 
@@ -348,10 +350,6 @@ const StyledWidgetContainer = styled(WidgetContainer)`
   margin: ${space(4)} 0 ${space(1)} 0;
 `;
 
-const CenteredContent = styled('div')`
-  padding: ${space(3)};
-`;
-
 const AnswerContent = styled('div')`
   display: grid;
   gap: ${space(2)};
@@ -359,13 +357,13 @@ const AnswerContent = styled('div')`
 `;
 
 const QuestionContent = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   cursor: pointer;
 `;
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   gap: ${space(0.5)};

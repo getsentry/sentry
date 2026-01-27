@@ -5,6 +5,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {getOption, getOptionField} from './options';
@@ -30,7 +31,7 @@ type FieldDef = {
 
 export default function AdminSettings() {
   const {data, isPending, isError} = useApiQuery<Record<string, FieldDef>>(
-    ['/internal/options/'],
+    [getApiUrl('/internal/options/')],
     {
       staleTime: 0,
     }

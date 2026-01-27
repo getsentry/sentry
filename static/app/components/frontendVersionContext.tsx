@@ -1,9 +1,21 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useEffect, useState} from 'react';
 
 import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApiQuery} from 'sentry/utils/queryClient';
+
+/**
+ * Delay before starting to check for new versions. This prevents users from
+ * being prompted to reload immediately after opening the app.
+ */
+const VERSION_CHECK_DELAY_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Static check for whether version checking can be enabled. These values are
+ * determined at build time and never change at runtime.
+ */
+const IS_PRODUCTION_BUILD = NODE_ENV === 'production' && !DEPLOY_PREVIEW_CONFIG;
 
 interface FrontendVersionResponse {
   /**
@@ -70,20 +82,25 @@ const FrontendVersionContext = createContext<VersionStatus>({
 export function FrontendVersionProvider({children, force, releaseVersion}: Props) {
   const {sentryMode} = useLegacyStore(ConfigStore);
 
-  const enabled =
-    !force &&
-    //
-    // We only make stale version assessments when talking to SAAS Sentry.
-    sentryMode === 'SAAS' &&
-    //
-    // We only make stale version assessments when the frontend is running a
-    // production build.
-    NODE_ENV === 'production' &&
-    //
-    // We do not make stale version assessments when running deployment
-    // previews, these are inherinetly a differning version from what is
-    // deployed in production SAAS.
-    !DEPLOY_PREVIEW_CONFIG;
+  // Version checking only applies to production SAAS builds
+  const isSaas = sentryMode === 'SAAS';
+  const canCheckVersion = !force && IS_PRODUCTION_BUILD && isSaas;
+
+  const [delayElapsed, setDelayElapsed] = useState(false);
+
+  useEffect(() => {
+    if (!canCheckVersion) {
+      return () => {};
+    }
+
+    const timer = setTimeout(() => {
+      setDelayElapsed(true);
+    }, VERSION_CHECK_DELAY_MS);
+
+    return () => clearTimeout(timer);
+  }, [canCheckVersion]);
+
+  const enabled = canCheckVersion && delayElapsed;
 
   const {data: frontendVersionData} = useApiQuery<FrontendVersionResponse>(
     ['/internal/frontend-version/'],

@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button, StyledButton} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -192,7 +195,9 @@ export default function RequestLog({app}: RequestLogProps) {
 
         <RequestLogFilters>
           <CompactSelect
-            triggerProps={{children: eventType}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps}>{eventType}</OverlayTrigger.Button>
+            )}
             value={eventType}
             options={getEventTypes(app).map(type => ({
               value: type,
@@ -202,10 +207,10 @@ export default function RequestLog({app}: RequestLogProps) {
           />
 
           <StyledErrorsOnlyButton onClick={handleChangeErrorsOnly}>
-            <ErrorsOnlyCheckbox>
+            <Flex align="center" gap="md">
               <Checkbox checked={errorsOnly} onChange={() => {}} />
               {t('Errors Only')}
-            </ErrorsOnlyCheckbox>
+            </Flex>
           </StyledErrorsOnlyButton>
         </RequestLogFilters>
       </div>
@@ -303,12 +308,6 @@ const RequestLogFilters = styled('div')`
   > :first-child ${StyledButton} {
     border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   }
-`;
-
-const ErrorsOnlyCheckbox = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledErrorsOnlyButton = styled(Button)`

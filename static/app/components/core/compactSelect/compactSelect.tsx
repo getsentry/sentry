@@ -77,7 +77,6 @@ export function CompactSelect<Value extends SelectKey>({
   emptyMessage,
   size = 'md',
   closeOnSelect,
-  triggerProps,
   menuWidth,
   ...controlProps
 }: SelectProps<Value>) {
@@ -165,7 +164,7 @@ export function CompactSelect<Value extends SelectKey>({
       menuWidth={menuWidth ?? measuredMenuWidth}
       // decrease height to 1px during measuring so that scrollbars are shown & measured
       menuHeight={needsMeasuring ? '1px' : undefined}
-      triggerProps={{...triggerProps, id: triggerId}}
+      triggerId={triggerId}
       disabled={controlDisabled}
       grid={grid}
       size={size}

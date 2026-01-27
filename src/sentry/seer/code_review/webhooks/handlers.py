@@ -12,6 +12,7 @@ from sentry.models.repository import Repository
 
 from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
+from ..utils import extract_github_info
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
 from .pull_request import handle_pull_request_event
@@ -39,7 +40,7 @@ def handle_webhook_event(
     Handle GitHub webhook events.
 
     Args:
-        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
+        github_event: The GitHub webhook event type (e.g., GithubWebhookType.CHECK_RUN)
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
         repo: The repository that the webhook event is for
@@ -50,12 +51,13 @@ def handle_webhook_event(
     if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
 
+    # The extracted important key values are used for debugging with logs
+    extra = extract_github_info(event, github_event=github_event.value)
+    extra["organization_slug"] = organization.slug
+
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
-        logger.warning(
-            "github.webhook.handler.not_found",
-            extra={"github_event": github_event.value},
-        )
+        logger.warning("github.webhook.handler.not_found", extra=extra)
         return
 
     from ..utils import get_pr_author_id
@@ -82,4 +84,6 @@ def handle_webhook_event(
         organization=organization,
         repo=repo,
         integration=integration,
+        org_code_review_settings=preflight.settings,
+        extra=extra,
     )

@@ -237,35 +237,37 @@ def handle_owner_assignment(job):
     project, group = event.project, event.group
 
     assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
-    assignees_exists = cache.get(assignee_key)
-    if assignees_exists is None:
-        assignees_exists = group.assignee_set.exists()
+    assignee_cache_value = cache.get(assignee_key)
+
+    # Debounce assignee existence check if ownership rules haven't changed since the last time assignee was checked
+    assignee_exists = None
+    if assignee_cache_value is not None:
+        # Cache stores (value, timestamp) tuple for timestamp-based invalidation
+        if isinstance(assignee_cache_value, tuple):
+            cached_assignee_exists, assignee_debounce_time = assignee_cache_value
+            ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+            if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
+                assignee_exists = cached_assignee_exists
+        else:  # TODO(shashank): for backwards compatibility, remove this and the above tuple check once rolled out for 24hrs
+            assignee_exists = assignee_cache_value
+
+    if assignee_exists is None:
+        assignee_exists = group.assignee_set.exists()
         cache.set(
             assignee_key,
-            assignees_exists,
-            (ASSIGNEE_EXISTS_DURATION if assignees_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
+            (assignee_exists, timezone.now().timestamp()),
+            (ASSIGNEE_EXISTS_DURATION if assignee_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
         )
 
-    if assignees_exists:
+    if assignee_exists:
         metrics.incr("sentry.task.post_process.handle_owner_assignment.assignee_exists")
         return
 
     issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
     issue_owners_debounce_time = cache.get(issue_owners_key)
 
-    # Debounce check with timestamp-based invalidation:
-    # - issue_owners_debounce_time is None: no debounce, process ownership
-    # - issue_owners_debounce_time is True: legacy format, debounce (backwards compatibility)
-    # - issue_owners_debounce_time is float: compare timestamps
-    #   - If ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time: debounce
-    #   - If ownership_changed_at >= issue_owners_debounce_time: ownership rules changed, re-evaluate
+    # Debounce if ownership rules haven't changed since the last evaluation of issue owners
     if issue_owners_debounce_time is not None:
-        # TODO(shashank): once rolled out for 24hrs, remove this legacy cache format check and the comment line above. prob will need to remove some tests in test_post_process.py as well.
-        if issue_owners_debounce_time is True:
-            # Backwards compatibility: old cache format, debounce
-            metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
-            return
-
         ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
         if ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time:
             metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")

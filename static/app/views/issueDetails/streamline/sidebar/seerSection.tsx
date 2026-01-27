@@ -116,11 +116,9 @@ export default function SeerSection({
 
   const organization = useOrganization();
   const removeConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
-  const isExplorerEnabled =
-    organization.features.includes('seer-explorer') &&
-    organization.features.includes('autofix-on-explorer');
+  const isExplorerEnabled = organization.features.includes('seer-explorer');
 
-  // Get explorer artifacts when autofix-on-explorer is enabled
+  // Get explorer artifacts when autofix on explorer is enabled
   const {runState: explorerRunState} = useExplorerAutofix(group.id, {
     enabled: isExplorerEnabled,
   });
@@ -288,7 +286,7 @@ const ExpandButton = styled(Button)`
   position: absolute;
   bottom: -${space(1)};
   right: 0;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   border: none;
   box-shadow: none;
@@ -299,7 +297,7 @@ const ExpandButton = styled(Button)`
 `;
 
 const HeaderContainer = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

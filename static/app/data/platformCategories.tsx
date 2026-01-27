@@ -383,6 +383,20 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
+  'android',
+  'go',
+  'go-echo',
+  'go-fasthttp',
+  'go-fiber',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-negroni',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'java-spring',
+  'java-spring-boot',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -445,6 +459,9 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
 export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
 
 export const limitedMetricsSupportPrefixes: Set<string> = new Set([
+  'android',
+  'go',
+  'java',
   'javascript',
   'node',
   'python',
@@ -777,7 +794,7 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);
 
-export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+export const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-astro',
   'javascript-nextjs',
   'javascript-nuxt',
@@ -786,6 +803,10 @@ export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
+] as const;
+
+export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...javascriptMetaFrameworks,
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);

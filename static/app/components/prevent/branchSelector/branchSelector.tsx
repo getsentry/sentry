@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -145,7 +145,7 @@ export function BranchSelector() {
       closeOnSelect
       trigger={triggerProps => {
         return (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             data-test-id="page-filter-branch-selector"
             {...triggerProps}
           >
@@ -157,7 +157,7 @@ export function BranchSelector() {
                 <TriggerLabel>{branch || ALL_BRANCHES}</TriggerLabel>
               </Flex>
             </TriggerLabelWrap>
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         );
       }}
       menuWidth="22em"
@@ -195,7 +195,7 @@ const IconContainer = styled('div')`
 
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
   margin: -${space(0.5)} -${space(0.5)};
