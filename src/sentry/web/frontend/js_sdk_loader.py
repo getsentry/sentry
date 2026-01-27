@@ -152,9 +152,9 @@ class JavaScriptSdkLoader(View):
         # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
         #
-        # If we are loading replay, feedback, or logs+metrics, do not add the es5 modifier, as those
-        # bundles are ES6 only.
-        if is_v7_sdk and not has_replay and not has_feedback and not has_logs_and_metrics:
+        # If we are loading replay or feedback, do not add the es5 modifier, as those bundles are ES6 only.
+        # Note: logs+metrics bundles don't exist for v7 (they require v10+)
+        if is_v7_sdk and not has_replay and not has_feedback:
             bundle_kind_modifier += ".es5"
 
         if has_debug:
