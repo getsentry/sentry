@@ -97,9 +97,11 @@ function QuotaExceededContent({
   exceededCategories: DataCategory[];
   isDismissed: boolean;
   onClick: ({
+    categories,
     eventTypes,
     isManual,
   }: {
+    categories: DataCategory[];
     eventTypes: EventType[];
     isManual?: boolean;
   }) => void;
@@ -172,6 +174,7 @@ function QuotaExceededContent({
                 onClick={() =>
                   onClick({
                     eventTypes: paygIneligibleEventTypes,
+                    categories: paygIneligibleCategories,
                     isManual: true,
                   })
                 }
@@ -256,7 +259,7 @@ function QuotaExceededContent({
               notificationType="overage_critical"
               referrer={`overage-alert-${eventTypes.join('-')}`}
               source="nav-quota-overage"
-              handleRequestSent={() => onClick({eventTypes: allEventTypes})}
+              handleRequestSent={() => onClick({eventTypes, categories: otherCategories})}
             />
             {!isDismissed && (
               <Button
@@ -264,6 +267,7 @@ function QuotaExceededContent({
                 onClick={() =>
                   onClick({
                     eventTypes: allEventTypes,
+                    categories: exceededCategories,
                     isManual: true,
                   })
                 }
@@ -328,7 +332,9 @@ function QuotaExceededContent({
             notificationType="overage_critical"
             referrer={`overage-alert-${eventTypes.join('-')}`}
             source="nav-quota-overage"
-            handleRequestSent={() => onClick({eventTypes})}
+            handleRequestSent={() =>
+              onClick({eventTypes, categories: exceededCategories})
+            }
           />
           {!isDismissed && (
             <Button
@@ -336,6 +342,7 @@ function QuotaExceededContent({
               onClick={() =>
                 onClick({
                   eventTypes,
+                  categories: exceededCategories,
                   isManual: true,
                 })
               }
@@ -482,14 +489,22 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
   }
 
   const onDismiss = ({
+    categories,
     eventTypes,
     isManual = false,
   }: {
+    categories: DataCategory[];
     eventTypes: EventType[];
     isManual?: boolean;
   }) => {
-    promptsToCheck.forEach(prompt => {
-      snoozePrompt(prompt);
+    // Only snooze prompts for the specific categories passed, not all prompts
+    const promptsToSnooze = categories.map(
+      category => `${snakeCase(category)}_overage_alert`
+    );
+    promptsToSnooze.forEach(prompt => {
+      if (promptsToCheck.includes(prompt)) {
+        snoozePrompt(prompt);
+      }
     });
     if (isManual) {
       const analyticsEvent = 'quota_alert.clicked_snooze';
