@@ -6,6 +6,7 @@ on:
       - 'src/sentry/issues/**'
       - 'src/sentry/preprod/**'
       - 'src/sentry/releases/**'
+      - 'src/sentry/workflow_engine/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
