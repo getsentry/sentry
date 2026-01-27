@@ -43,11 +43,13 @@ describe('ReleasesList', () => {
 
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData(projects));
-    PageFiltersStore.onInitializeUrlState({
-      projects: [],
-      environments: [],
-      datetime: {period: null, utc: null, start: null, end: null},
-    });
+    act(() =>
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {period: null, utc: null, start: null, end: null},
+      })
+    );
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       body: [
@@ -674,6 +676,11 @@ describe('ReleasesList', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/branch/values/`,
+      body: [],
+    });
+
     render(<ReleasesList />, {
       organization,
       initialRouterConfig: {
@@ -684,15 +691,11 @@ describe('ReleasesList', () => {
       },
     });
 
-    expect(
-      await screen.findByPlaceholderText(
-        'Search by build, SHA, branch name, or pull request'
-      )
-    ).toBeInTheDocument();
+    expect(await screen.findByTestId('query-builder-input')).toBeInTheDocument();
 
     await waitFor(() =>
       expect(buildsMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+        `/organizations/${organization.slug}/builds/`,
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
@@ -703,17 +706,13 @@ describe('ReleasesList', () => {
       )
     );
 
-    const searchInput = screen.getByPlaceholderText(
-      'Search by build, SHA, branch name, or pull request'
-    );
+    const searchInput = screen.getByTestId('query-builder-input');
 
-    // Clear the input first
-    await userEvent.clear(searchInput);
-
-    // Type the search term and press Enter to submit
-    await userEvent.type(searchInput, 'branch:main{enter}');
+    // Type additional search term and press Enter to submit
+    await userEvent.type(searchInput, ' branch:main{enter}');
 
     // Wait for the API call with the complete search query
+    // Note: The SearchQueryBuilder appends to the existing query rather than replacing
     await waitFor(() =>
       expect(buildsMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/builds/`,
@@ -721,7 +720,7 @@ describe('ReleasesList', () => {
           query: expect.objectContaining({
             per_page: 25,
             statsPeriod: '14d',
-            query: 'branch:main',
+            query: 'sha:abcdef1 branch:main',
           }),
         })
       )
