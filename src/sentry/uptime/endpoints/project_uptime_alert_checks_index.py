@@ -7,6 +7,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
+    Assertion,
     CheckStatus,
     CheckStatusReasonType,
 )
@@ -219,7 +220,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             assertion_failure_data=assertion_failure_data,
         )
 
-    def _extract_assertion_failure_data(self, val: AttributeValue | None) -> Any | None:
+    def _extract_assertion_failure_data(self, val: AttributeValue | None) -> Assertion | None:
         """
         Extract assertion failure data from attribute value.
 
