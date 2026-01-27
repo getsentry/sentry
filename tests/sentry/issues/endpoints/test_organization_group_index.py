@@ -2016,6 +2016,48 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Expand should not execute since there is no latest event
         assert "latestEventHasAttachments" not in response.data[0]
 
+    @with_feature("organizations:event-attachments")
+    def test_expand_latest_event_has_attachments_batched(self) -> None:
+        """Test that latestEventHasAttachments works correctly with multiple groups (batched queries)."""
+        # Create multiple groups with events
+        event1 = self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        event3 = self.store_event(
+            data={"timestamp": before_now(seconds=300).isoformat(), "fingerprint": ["group-3"]},
+            project_id=self.project.id,
+        )
+
+        # Add attachment only to event2
+        EventAttachment.objects.create(
+            group_id=event2.group.id,
+            event_id=event2.event_id,
+            project_id=event2.project_id,
+            name="attachment.png",
+            content_type="image/png",
+        )
+
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["latestEventHasAttachments"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 3
+
+        # Find each group in the response
+        groups_by_id = {int(g["id"]): g for g in response.data}
+        
+        # Verify each group has the correct latestEventHasAttachments value
+        assert groups_by_id[event1.group.id]["latestEventHasAttachments"] is False
+        assert groups_by_id[event2.group.id]["latestEventHasAttachments"] is True
+        assert groups_by_id[event3.group.id]["latestEventHasAttachments"] is False
+
     def test_expand_owners(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
