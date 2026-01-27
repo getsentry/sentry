@@ -3,8 +3,8 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/javascript/profiling';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/utils';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
 import {mcp} from './mcp';
@@ -23,7 +23,10 @@ const docs: Docs = {
     docsLink:
       'https://docs.sentry.io/platforms/javascript/guides/solidstart/profiling/browser-profiling/',
   }),
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    packageName: '@sentry/solidstart',
+    configFileName: 'instrument.server.mjs',
+  }),
   logsOnboarding: logsFullStack({
     docsPlatform: 'solidstart',
     packageName: '@sentry/solidstart',
