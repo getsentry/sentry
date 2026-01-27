@@ -1,5 +1,4 @@
-import {ExternalLink} from '@sentry/scraps/link';
-
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   ContentBlock,
   DocsParams,
