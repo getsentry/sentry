@@ -243,11 +243,11 @@ class ScimTokenDisplay:
     """
     Represents a SCIM token for display purposes.
 
-    If the token was created more than TOKEN_VISIBILITY_WINDOW_MINUTES minutes ago,
+    If the token was created more than TOKEN_VISIBILITY_WINDOW_SECONDS seconds ago,
     is_visible will be False and only the last 4 characters should be shown.
     """
 
-    TOKEN_VISIBILITY_WINDOW_MINUTES = 5
+    TOKEN_VISIBILITY_WINDOW_SECONDS = 300  # 5 minutes
 
     def __init__(
         self,
@@ -287,7 +287,7 @@ def get_scim_token_for_display(
 
     is_visible = (
         timezone.now() - token_info.date_added
-    ).total_seconds() < ScimTokenDisplay.TOKEN_VISIBILITY_WINDOW_MINUTES * 60
+    ).total_seconds() < ScimTokenDisplay.TOKEN_VISIBILITY_WINDOW_SECONDS
 
     return ScimTokenDisplay(
         token=token_info.token if is_visible else None,
