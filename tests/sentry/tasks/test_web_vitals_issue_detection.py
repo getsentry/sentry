@@ -192,7 +192,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                 ]
             )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
             self.mock_seer_ack(),
@@ -311,7 +311,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                 ]
             )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
             self.mock_seer_ack(),
@@ -388,7 +388,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             for _ in range(10)
         ]  # web vital issue detection requires at least 10 samples to create an issue
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Create an existing issue group so that the web vital issue detection does not produce a new occurrence
         group = self.create_group(project=project)
@@ -443,7 +443,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             for _ in range(9)
         ]
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
             self.mock_seer_ack(),
@@ -525,7 +525,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
             self.mock_seer_ack(),
@@ -635,7 +635,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                 ]
             )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         with (
             self.mock_seer_ack(),

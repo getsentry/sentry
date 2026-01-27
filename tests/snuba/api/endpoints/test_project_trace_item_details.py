@@ -178,7 +178,7 @@ class ProjectTraceItemDetailsEndpointTest(
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
@@ -242,7 +242,7 @@ class ProjectTraceItemDetailsEndpointTest(
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request(
             "spans",
@@ -424,7 +424,7 @@ class ProjectTraceItemDetailsEndpointTest(
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
@@ -497,7 +497,7 @@ class ProjectTraceItemDetailsEndpointTest(
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_spans([span_1], is_eap=True)
+        self.store_spans([span_1])
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200

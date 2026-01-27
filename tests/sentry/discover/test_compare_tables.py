@@ -260,7 +260,6 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             timestamp=timestamp,
             duration=duration,
             organization_id=project.organization.id,
-            is_eap=True,
             **kwargs,
         )
 
