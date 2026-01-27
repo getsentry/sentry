@@ -8,12 +8,15 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+
+from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
 
 # XXX: This needs to be a shared enum with the Seer repository
@@ -323,3 +326,61 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
         return str(user_id)
 
     return None
+
+
+def delete_existing_reactions_and_add_eyes_reaction(
+    github_event: GithubWebhookType,
+    github_event_action: str,
+    integration: RpcIntegration | None,
+    organization_id: int,
+    repo: Repository,
+    pr_number: str | None,
+    comment_id: str | None,
+) -> None:
+    """
+    Delete existing :tada: or :eyes: reaction on the PR description and add :eyes: reaction on the originating issue comment or PR description.
+    """
+    if integration is None:
+        record_webhook_handler_error(
+            github_event,
+            github_event_action,
+            CodeReviewErrorType.MISSING_INTEGRATION,
+        )
+        return
+
+    try:
+        client = integration.get_installation(organization_id=organization_id).get_client()
+
+        if pr_number:
+            # Delete existing :tada: or :eyes: reaction on the PR description
+            try:
+                existing_reactions = client.get_issue_reactions(repo.name, pr_number)
+                for reaction in existing_reactions:
+                    if (
+                        reaction.get("user", {}).get("login") == "sentry[bot]"
+                        and reaction.get("id")
+                        and (
+                            reaction.get("content") == GitHubReaction.HOORAY.value
+                            or reaction.get("content") == GitHubReaction.EYES.value
+                        )
+                    ):
+                        client.delete_issue_reaction(repo.name, pr_number, str(reaction.get("id")))
+            except Exception:
+                # Continue even if this fails
+                record_webhook_handler_error(
+                    github_event,
+                    github_event_action,
+                    CodeReviewErrorType.REACTION_FAILED,
+                )
+
+        # Add :eyes: on the originating issue comment or pr description
+        if github_event == GithubWebhookType.PULL_REQUEST:
+            client.create_issue_reaction(repo.name, pr_number, GitHubReaction.EYES)
+        elif github_event == GithubWebhookType.ISSUE_COMMENT:
+            client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
+    except Exception:
+        record_webhook_handler_error(
+            github_event,
+            github_event_action,
+            CodeReviewErrorType.REACTION_FAILED,
+        )
