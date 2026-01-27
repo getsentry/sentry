@@ -199,12 +199,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   const prevLoadingRef = useRef(false);
 
   // Call onDataFetchStart when loading begins
+  // Convert loading to a stable boolean to avoid undefined in dependency array
+  const isLoadingNow = hookResults?.loading ?? false;
   useEffect(() => {
     if (!hasHookApproach) {
       return;
     }
-
-    const isLoadingNow = hookResults?.loading ?? false;
 
     // Detect transition from not loading to loading (fetch start)
     if (isLoadingNow && !prevLoadingRef.current) {
@@ -212,7 +212,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     }
 
     prevLoadingRef.current = isLoadingNow;
-  }, [hasHookApproach, hookResults?.loading, onDataFetchStart]);
+  }, [hasHookApproach, isLoadingNow, onDataFetchStart]);
 
   // Watch for when hook data changes and call callbacks
   useEffect(() => {
