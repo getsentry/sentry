@@ -1,6 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {logs} from './logs';
 import {mcp} from './mcp';
@@ -14,7 +14,9 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
   logsOnboarding: logs,
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring({
+    packageName: '@sentry/aws-serverless',
+  }),
   mcpOnboarding: mcp,
   platformOptions,
   metricsOnboarding: metrics,

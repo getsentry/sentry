@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Any
 
 import orjson
@@ -14,18 +14,10 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
+from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
-
-
-# XXX: This needs to be a shared enum with the Seer repository
-# Look at CodecovTaskRequest.request_type in Seer repository for the possible request types
-class RequestType(StrEnum):
-    # It triggers PR review events on Seer side
-    PR_REVIEW = "pr-review"
-    # It triggers PR closed events on Seer side
-    PR_CLOSED = "pr-closed"
 
 
 class ClientError(Exception):
@@ -34,17 +26,30 @@ class ClientError(Exception):
     pass
 
 
-# XXX: This needs to be a shared enum with the Seer repository
-# In Seer, src/seer/automation/codegen/types.py:PrReviewTrigger
-class SeerCodeReviewTrigger(StrEnum):
-    UNKNOWN = "unknown"
-    ON_COMMAND_PHRASE = "on_command_phrase"
-    ON_READY_FOR_REVIEW = "on_ready_for_review"
-    ON_NEW_COMMIT = "on_new_commit"
+def convert_enum_keys_to_strings(obj: Any) -> Any:
+    """
+    Recursively convert enum keys in dictionaries to their string values.
 
-    @classmethod
-    def _missing_(cls: type[SeerCodeReviewTrigger], value: object) -> SeerCodeReviewTrigger:
-        return cls.UNKNOWN
+    This is needed because Pydantic v1 converts string keys to enum members when parsing,
+    but JSON serialization requires string keys. Enum values are also converted to strings.
+
+    Args:
+        obj: The object to process (can be dict, list, enum, or primitive)
+
+    Returns:
+        A copy of the object with all enum keys and values converted to strings
+    """
+    if isinstance(obj, dict):
+        return {
+            (k.value if isinstance(k, Enum) else k): convert_enum_keys_to_strings(v)
+            for k, v in obj.items()
+        }
+    elif isinstance(obj, list):
+        return [convert_enum_keys_to_strings(item) for item in obj]
+    elif isinstance(obj, Enum):
+        return obj.value
+    else:
+        return obj
 
 
 # These values need to match the value defined in the Seer API.
@@ -171,7 +176,7 @@ def transform_webhook_to_codegen_request(
     target_commit_sha: str,
 ) -> dict[str, Any] | None:
     """
-    Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
+    Transform a GitHub webhook payload into SeerCodeReviewRequest format for Seer.
 
     Args:
         github_event: The GitHub webhook event type
@@ -182,7 +187,7 @@ def transform_webhook_to_codegen_request(
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
 
     Returns:
-        Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
+        Dictionary in SeerCodeReviewRequest format with request_type, data, and external_owner_id,
         or None if the event is not PR-related (e.g., issue_comment on regular issues)
     """
     payload = None
@@ -198,7 +203,10 @@ def transform_webhook_to_codegen_request(
 
 
 def _common_codegen_request_payload(
-    request_type: RequestType, repo: Repository, target_commit_sha: str, organization: Organization
+    request_type: SeerCodeReviewRequestType,
+    repo: Repository,
+    target_commit_sha: str,
+    organization: Organization,
 ) -> dict[str, Any]:
     return {
         # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
@@ -225,7 +233,7 @@ def transform_issue_comment_to_codegen_request(
     Transform an issue comment on a PR into a CodecovTaskRequest for Seer.
     """
     payload = _common_codegen_request_payload(
-        RequestType.PR_REVIEW,  # An issue comment on a PR is a PR review request
+        SeerCodeReviewRequestType.PR_REVIEW,  # An issue comment on a PR is a PR review request
         repo=repo,
         target_commit_sha=target_commit_sha,
         organization=organization,
@@ -256,7 +264,9 @@ def transform_pull_request_to_codegen_request(
             review_request_trigger = SeerCodeReviewTrigger.ON_NEW_COMMIT
 
     request_type = (
-        RequestType.PR_REVIEW if github_event_action != "closed" else RequestType.PR_CLOSED
+        SeerCodeReviewRequestType.PR_REVIEW
+        if github_event_action != "closed"
+        else SeerCodeReviewRequestType.PR_CLOSED
     )
     payload = _common_codegen_request_payload(
         request_type,
