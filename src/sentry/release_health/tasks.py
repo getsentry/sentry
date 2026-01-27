@@ -89,7 +89,7 @@ def process_projects_with_sessions(org_id, project_ids) -> None:
 
         adopted_ids = adopt_releases(org_id, filtered_totals)
 
-        cleanup_adopted_releases(project_ids, adopted_ids)
+        cleanup_adopted_releases(list(existing_project_ids), adopted_ids)
 
 
 def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
