@@ -69,7 +69,7 @@ describe('getWidgetExploreUrl', () => {
     expectUrl(url).toMatch({
       path: '/organizations/org-slug/explore/logs/',
       params: [
-        ['aggregateField', '{"chartType":1,"yAxes":["count()"]}'],
+        ['aggregateField', '{"chartType":1,"yAxes":["count(message)"]}'],
         ['interval', '3h'],
         ['logsGroupBy', ''],
         ['mode', 'aggregate'],

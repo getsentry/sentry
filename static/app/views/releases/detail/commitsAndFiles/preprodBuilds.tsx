@@ -196,7 +196,7 @@ export default function PreprodBuilds() {
             builds={builds}
             display={activeDisplay}
             isLoading={isLoadingBuilds}
-            error={!!buildsError}
+            error={buildsError}
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
             onRowClick={handleBuildRowClick}
