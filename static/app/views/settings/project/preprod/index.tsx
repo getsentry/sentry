@@ -5,6 +5,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -56,6 +57,7 @@ export default function PreprodSettings() {
             settingsReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
             title={t('Build Distribution')}
             successMessage={t('Distribution filter updated')}
+            display={PreprodBuildsDisplay.DISTRIBUTION}
           >
             <Text>
               {t(
