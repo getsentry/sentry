@@ -19,8 +19,11 @@ from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.utils.dates import get_timezone_choices
 
 logger = logging.getLogger(__name__)
+
+TIMEZONE_CHOICES = get_timezone_choices()
 
 
 class SearchAgentTranslateSerializer(serializers.Serializer):
@@ -39,6 +42,12 @@ class SearchAgentTranslateSerializer(serializers.Serializer):
         required=False,
         default="Traces",
         help_text="Search strategy to use.",
+    )
+    timezone = serializers.ChoiceField(
+        choices=TIMEZONE_CHOICES,
+        required=False,
+        allow_null=True,
+        help_text="User's timezone (IANA timezone name, e.g., 'America/Los_Angeles').",
     )
     options = serializers.DictField(
         required=False,
@@ -61,6 +70,7 @@ def send_translate_agentic_request(
     natural_language_query: str,
     strategy: str = "Traces",
     model_name: str | None = None,
+    timezone: str | None = None,
 ) -> Any:
     """
     Sends a request to seer to translate a natural language query using the agentic search API.
@@ -72,6 +82,9 @@ def send_translate_agentic_request(
         "natural_language_query": natural_language_query,
         "strategy": strategy,
     }
+
+    if timezone is not None:
+        body_dict["timezone"] = timezone
 
     options: dict[str, Any] = {}
     if model_name is not None:
@@ -118,6 +131,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         validated_data = serializer.validated_data
         natural_language_query = validated_data["natural_language_query"]
         strategy = validated_data.get("strategy", "Traces")
+        timezone = validated_data.get("timezone")
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
 
@@ -152,5 +166,6 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             natural_language_query,
             strategy=strategy,
             model_name=model_name,
+            timezone=timezone,
         )
         return Response(data)
