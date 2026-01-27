@@ -212,10 +212,9 @@ def create_preprod_status_check_task(
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
 
-    # Convert in-progress and failure to neutral to avoid blocking PR merges:
-    # - IN_PROGRESS: Can get stuck due to GitHub API rate limiting
-    # - FAILURE: No approval flow exists yet to allow users to merge despite failures
-    if status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
+    # When no rules are configured, always show neutral status.
+    # When rules exist, show actual status (in_progress, failure, success).
+    if not rules:
         status = StatusCheckStatus.NEUTRAL
         completed_at = preprod_artifact.date_updated
 
