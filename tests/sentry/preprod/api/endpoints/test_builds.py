@@ -501,7 +501,7 @@ class BuildsEndpointTest(APITestCase):
         assert data[0]["app_info"]["app_id"] == "pr123.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_platform_name_ios(self) -> None:
+    def test_query_platform_name_apple(self) -> None:
         from sentry.preprod.models import PreprodArtifact
 
         self.create_preprod_artifact(
@@ -511,7 +511,7 @@ class BuildsEndpointTest(APITestCase):
             app_id="android.app", artifact_type=PreprodArtifact.ArtifactType.APK
         )
 
-        response = self._request({"query": "platform_name:ios"})
+        response = self._request({"query": "platform_name:apple"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
@@ -552,7 +552,7 @@ class BuildsEndpointTest(APITestCase):
             app_id="android.aab", artifact_type=PreprodArtifact.ArtifactType.AAB
         )
 
-        response = self._request({"query": "platform_name:[ios,android]"})
+        response = self._request({"query": "platform_name:[apple,android]"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 3
@@ -573,7 +573,7 @@ class BuildsEndpointTest(APITestCase):
             app_id="android.aab", artifact_type=PreprodArtifact.ArtifactType.AAB
         )
 
-        response = self._request({"query": "!platform_name:[ios]"})
+        response = self._request({"query": "!platform_name:[apple]"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 2
@@ -867,7 +867,7 @@ class QuerysetForQueryTest(APITestCase):
             app_id="android.app", artifact_type=PreprodArtifact.ArtifactType.APK
         )
 
-        queryset = queryset_for_query("platform_name:ios", self.organization)
+        queryset = queryset_for_query("platform_name:apple", self.organization)
         results = list(queryset)
         assert len(results) == 1
         assert results[0].id == ios_artifact.id
@@ -939,7 +939,7 @@ class QuerysetForQueryTest(APITestCase):
         # Test multiple filters combined
         assert (
             artifact_matches_query(
-                artifact, "platform_name:ios git_head_ref:feature/test", self.organization
+                artifact, "platform_name:apple git_head_ref:feature/test", self.organization
             )
             is True
         )
