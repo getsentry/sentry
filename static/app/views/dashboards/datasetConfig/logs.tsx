@@ -70,7 +70,14 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
       acc[AggregationKey.COUNT] = {
         isSortable: true,
         outputType: null,
-        parameters: [],
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['string'],
+            defaultValue: 'message',
+            required: true,
+          },
+        ],
       };
     } else if (aggregate === AggregationKey.COUNT_UNIQUE) {
       acc[AggregationKey.COUNT_UNIQUE] = {
