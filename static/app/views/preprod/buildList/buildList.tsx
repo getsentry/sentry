@@ -96,7 +96,7 @@ export default function BuildList() {
               <PreprodBuildsTable
                 builds={builds}
                 isLoading={isLoading}
-                error={!!error}
+                error={error}
                 pageLinks={pageLinks}
                 organizationSlug={organization.slug}
               />
