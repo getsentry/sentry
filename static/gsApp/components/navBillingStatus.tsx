@@ -1,3 +1,4 @@
+import type React from 'react';
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import snakeCase from 'lodash/snakeCase';
@@ -8,6 +9,7 @@ import {Flex} from '@sentry/scraps/layout';
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -38,6 +40,53 @@ const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
   size: 'xs',
 };
 
+/**
+ * Categories that are ineligible for PAYG (pay-as-you-go/on-demand) billing.
+ * These require special handling with a "Contact Sales" CTA instead of the
+ * standard AddEventsCTA, as customers cannot purchase additional quota
+ * through self-serve.
+ *
+ * Currently includes: SIZE_ANALYSIS, INSTALLABLE_BUILD
+ */
+const PAYG_INELIGIBLE_CATEGORIES = [
+  DataCategory.SIZE_ANALYSIS,
+  DataCategory.INSTALLABLE_BUILD,
+] as const;
+
+function isPaygIneligibleCategory(category: DataCategory): boolean {
+  return PAYG_INELIGIBLE_CATEGORIES.includes(
+    category as (typeof PAYG_INELIGIBLE_CATEGORIES)[number]
+  );
+}
+
+function getPaygIneligibleSubheader(
+  paygIneligibleCategories: DataCategory[],
+  subscription: Subscription
+): React.ReactNode {
+  const paygIneligibleCategoryList = listDisplayNames({
+    plan: subscription.planDetails,
+    categories: paygIneligibleCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+    shouldTitleCase: true,
+  });
+  return tct('[categories] - Quota Exceeded', {categories: paygIneligibleCategoryList});
+}
+
+function getPaygIneligibleBodyCopy(
+  paygIneligibleCategories: DataCategory[],
+  subscription: Subscription
+): React.ReactNode {
+  const paygIneligibleCategoryList = listDisplayNames({
+    plan: subscription.planDetails,
+    categories: paygIneligibleCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+  });
+  return tct(
+    'Your organization has used your full quota of [categories] this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:',
+    {categories: paygIneligibleCategoryList}
+  );
+}
+
 function QuotaExceededContent({
   exceededCategories,
   subscription,
@@ -48,18 +97,26 @@ function QuotaExceededContent({
   exceededCategories: DataCategory[];
   isDismissed: boolean;
   onClick: ({
+    categories,
     eventTypes,
     isManual,
   }: {
+    categories: DataCategory[];
     eventTypes: EventType[];
     isManual?: boolean;
   }) => void;
   organization: Organization;
   subscription: Subscription;
 }) {
+  // Separate PAYG-ineligible categories from other categories
+  const paygIneligibleCategories = exceededCategories.filter(isPaygIneligibleCategory);
+  const otherCategories = exceededCategories.filter(
+    cat => !isPaygIneligibleCategory(cat)
+  );
+
   const seatCategories: DataCategory[] = [];
   const usageCategories: DataCategory[] = [];
-  const eventTypes: EventType[] = exceededCategories.map(category => {
+  const eventTypes: EventType[] = otherCategories.map(category => {
     const categoryInfo = getCategoryInfoFromPlural(category);
     if (categoryInfo?.tallyType === 'seat') {
       seatCategories.push(category);
@@ -68,6 +125,14 @@ function QuotaExceededContent({
     }
     return (categoryInfo?.name ?? category) as EventType;
   });
+
+  // Get event types for PAYG-ineligible categories (for analytics/dismiss)
+  const paygIneligibleEventTypes: EventType[] = paygIneligibleCategories.map(category => {
+    const categoryInfo = getCategoryInfoFromPlural(category);
+    return (categoryInfo?.name ?? category) as EventType;
+  });
+
+  const allEventTypes = [...eventTypes, ...paygIneligibleEventTypes];
 
   const usageCategoryList = listDisplayNames({
     plan: subscription.planDetails,
@@ -80,6 +145,144 @@ function QuotaExceededContent({
     hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
 
+  // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
+  if (paygIneligibleCategories.length > 0 && otherCategories.length === 0) {
+    return (
+      <Container>
+        <Header>
+          <HeaderTitle>{t('Billing Status')}</HeaderTitle>
+        </Header>
+        <Body>
+          <Title>
+            {getPaygIneligibleSubheader(paygIneligibleCategories, subscription)}
+          </Title>
+          <Description>
+            {getPaygIneligibleBodyCopy(paygIneligibleCategories, subscription)}
+          </Description>
+          <Flex justify="between" align="center">
+            <LinkButton
+              priority="primary"
+              href="mailto:sales@sentry.io"
+              external
+              size="xs"
+            >
+              {t('Contact Sales')}
+            </LinkButton>
+            {!isDismissed && (
+              <Button
+                aria-label={t('Dismiss alert for the rest of the billing cycle')}
+                onClick={() =>
+                  onClick({
+                    eventTypes: paygIneligibleEventTypes,
+                    categories: paygIneligibleCategories,
+                    isManual: true,
+                  })
+                }
+                {...COMMON_BUTTON_PROPS}
+              >
+                {t('Dismiss')}
+              </Button>
+            )}
+          </Flex>
+        </Body>
+      </Container>
+    );
+  }
+
+  // If BOTH PAYG-ineligible and other categories are exceeded, show both sections
+  if (paygIneligibleCategories.length > 0 && otherCategories.length > 0) {
+    return (
+      <Container>
+        <Header>
+          <HeaderTitle>{t('Billing Status')}</HeaderTitle>
+        </Header>
+        <Body>
+          {/* PAYG-ineligible categories section */}
+          <Title>
+            {getPaygIneligibleSubheader(paygIneligibleCategories, subscription)}
+          </Title>
+          <Description>
+            {getPaygIneligibleBodyCopy(paygIneligibleCategories, subscription)}
+          </Description>
+          <Flex justify="start" align="center">
+            <LinkButton
+              priority="primary"
+              href="mailto:sales@sentry.io"
+              external
+              size="xs"
+            >
+              {t('Contact Sales')}
+            </LinkButton>
+          </Flex>
+
+          {/* Standard categories section */}
+          <Title>
+            {otherCategories.length === 1
+              ? tct('[category] Quota Exceeded', {
+                  category: getSingularCategoryName({
+                    plan: subscription.planDetails,
+                    category: otherCategories[0]!,
+                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                    title: true,
+                  }),
+                })
+              : t('Additional Quotas Exceeded')}
+          </Title>
+          {usageCategories.length > 0 && (
+            <Description>
+              {tct(
+                'You have used up your quota for [usageCategoryList]. Monitoring and new data [descriptor]are paused until your quota resets.',
+                {
+                  usageCategoryList,
+                  descriptor: usageCategories.length > 1 ? t('for these features ') : '',
+                }
+              )}
+            </Description>
+          )}
+          {seatCategories.length > 0 && (
+            <Description>
+              {tct(
+                '[prefix] reached your quota for [seatCategoryList]. Existing monitors remain active, but you cannot add new ones until your quota resets.',
+                {
+                  prefix: usageCategories.length > 0 ? t('You have also') : t('You have'),
+                  seatCategoryList,
+                }
+              )}
+            </Description>
+          )}
+          <Flex justify="between" align="center">
+            <AddEventsCTA
+              organization={organization}
+              subscription={subscription}
+              buttonProps={COMMON_BUTTON_PROPS}
+              eventTypes={eventTypes}
+              notificationType="overage_critical"
+              referrer={`overage-alert-${eventTypes.join('-')}`}
+              source="nav-quota-overage"
+              handleRequestSent={() => onClick({eventTypes, categories: otherCategories})}
+            />
+            {!isDismissed && (
+              <Button
+                aria-label={t('Dismiss alert for the rest of the billing cycle')}
+                onClick={() =>
+                  onClick({
+                    eventTypes: allEventTypes,
+                    categories: exceededCategories,
+                    isManual: true,
+                  })
+                }
+                {...COMMON_BUTTON_PROPS}
+              >
+                {t('Dismiss')}
+              </Button>
+            )}
+          </Flex>
+        </Body>
+      </Container>
+    );
+  }
+
+  // Standard content for PAYG-eligible categories only
   return (
     <Container>
       <Header>
@@ -129,7 +332,9 @@ function QuotaExceededContent({
             notificationType="overage_critical"
             referrer={`overage-alert-${eventTypes.join('-')}`}
             source="nav-quota-overage"
-            handleRequestSent={() => onClick({eventTypes})}
+            handleRequestSent={() =>
+              onClick({eventTypes, categories: exceededCategories})
+            }
           />
           {!isDismissed && (
             <Button
@@ -137,6 +342,7 @@ function QuotaExceededContent({
               onClick={() =>
                 onClick({
                   eventTypes,
+                  categories: exceededCategories,
                   isManual: true,
                 })
               }
@@ -283,14 +489,22 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
   }
 
   const onDismiss = ({
+    categories,
     eventTypes,
     isManual = false,
   }: {
+    categories: DataCategory[];
     eventTypes: EventType[];
     isManual?: boolean;
   }) => {
-    promptsToCheck.forEach(prompt => {
-      snoozePrompt(prompt);
+    // Only snooze prompts for the specific categories passed, not all prompts
+    const promptsToSnooze = categories.map(
+      category => `${snakeCase(category)}_overage_alert`
+    );
+    promptsToSnooze.forEach(prompt => {
+      if (promptsToCheck.includes(prompt)) {
+        snoozePrompt(prompt);
+      }
     });
     if (isManual) {
       const analyticsEvent = 'quota_alert.clicked_snooze';
