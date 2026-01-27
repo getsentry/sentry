@@ -566,7 +566,7 @@ function getAgentMonitoringConfigStep({
     },
     },
     },
-    // });`,
+    });`,
                   },
                 ],
               },
