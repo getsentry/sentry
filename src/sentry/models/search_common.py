@@ -12,3 +12,7 @@ class SearchType(IntEnum):
     TRANSACTION = 7
     LOG = 8
     TRACEMETRIC = 9
+    PREPROD_APP_SIZE = 10
+
+
+# This and static/app/types/group.tsx must be updated together.
