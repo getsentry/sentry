@@ -303,7 +303,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable Mobile Vitals Insights module on dashboards platform
     manager.add("organizations:insights-mobile-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Mobile Session Health module on dashboards platform
-    manager.add("organizations:insights-mobile-session-health-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:insights-mobile-session-health-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable web vitals module dashboard on dashboards platform
     manager.add("organizations:insights-web-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable all registered prebuilt dashboards to be synced to the database
