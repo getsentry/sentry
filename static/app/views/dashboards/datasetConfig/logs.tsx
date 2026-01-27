@@ -49,16 +49,16 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['count()'],
+  fields: ['count(message)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count(message)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count(message)',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['count', '', undefined, undefined],
+  function: ['count', 'message', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 
