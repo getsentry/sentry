@@ -49,14 +49,18 @@ export function AgentSelector() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reset when project changes
+  // Reset and restore when project changes
   const prevProjectKey = useRef(projectKey);
   useEffect(() => {
     if (prevProjectKey.current !== projectKey) {
       prevProjectKey.current = projectKey;
-      setQueryStates({[AGENT_URL_PARAM]: null, [TableUrlParams.CURSOR]: null});
+      // Restore stored agents for the new project selection, or clear if none stored
+      setQueryStates({
+        [AGENT_URL_PARAM]: storedAgents.length > 0 ? storedAgents : null,
+        [TableUrlParams.CURSOR]: null,
+      });
     }
-  }, [projectKey, setQueryStates]);
+  }, [projectKey, setQueryStates, storedAgents]);
 
   const selectedAgents = useMemo(() => urlAgents ?? [], [urlAgents]);
 
