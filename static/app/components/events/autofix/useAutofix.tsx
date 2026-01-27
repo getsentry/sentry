@@ -356,7 +356,7 @@ function getErrorMessage(error: RequestError, agentName: string): string {
   return t('Failed to launch %s', agentName);
 }
 
-function needsGitHubAuth(error: RequestError): boolean {
+export function needsGitHubAuth(error: RequestError): boolean {
   const detail = error.responseJSON?.detail;
   return (
     typeof detail === 'string' &&
