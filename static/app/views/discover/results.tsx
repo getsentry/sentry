@@ -36,6 +36,7 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -974,7 +975,12 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
-      `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          queryId: decodeScalar(location.query.id)!,
+        },
+      }),
     ],
     [organization, location.query.id]
   );

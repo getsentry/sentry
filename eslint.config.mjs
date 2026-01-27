@@ -385,6 +385,7 @@ export default typescript.config([
       'no-self-compare': 'error',
       'no-sequences': 'error',
       'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
+      'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
@@ -533,6 +534,7 @@ export default typescript.config([
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
         }

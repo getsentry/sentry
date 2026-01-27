@@ -12,6 +12,7 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
@@ -242,7 +243,16 @@ const makeFetchEventAttachmentsQueryKey = ({
   projectSlug,
   eventId,
 }: FetchEventAttachmentParameters): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`,
+  getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug!,
+        eventId,
+      },
+    }
+  ),
 ];
 
 export const useFetchEventAttachments = (
@@ -293,7 +303,17 @@ export const useDeleteEventAttachmentOptimistic = (
     ...incomingOptions,
     mutationFn: ({orgSlug, projectSlug, eventId, attachmentId}) => {
       return api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/${attachmentId}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/$attachmentId/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug,
+              eventId,
+              attachmentId,
+            },
+          }
+        ),
         {method: 'DELETE'}
       );
     },

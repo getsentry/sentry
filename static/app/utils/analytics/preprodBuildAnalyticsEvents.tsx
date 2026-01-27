@@ -46,6 +46,16 @@ export type PreprodBuildEventParameters = {
     query_status: 'success' | 'error';
     cursor?: string | null;
   };
+  'preprod.builds.onboarding.docs_clicked': {
+    link_type: 'product' | 'ios' | 'android' | 'flutter' | 'react-native';
+    organization: Organization;
+    platform: string | undefined;
+  };
+  'preprod.builds.onboarding.viewed': {
+    organization: Organization;
+    platform: string | undefined;
+    project_id: string;
+  };
   'preprod.builds.release.build_row_clicked': BasePreprodBuildEvent;
   'preprod.releases.mobile-builds.tab-clicked': {
     organization: Organization;
@@ -71,6 +81,8 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.compare.trigger_comparison':
     'Preprod Build Comparison: Compare Triggered',
   'preprod.builds.install_modal.opened': 'Preprod Builds: Install Modal Opened',
+  'preprod.builds.onboarding.viewed': 'Preprod Builds: Onboarding Viewed',
+  'preprod.builds.onboarding.docs_clicked': 'Preprod Builds: Onboarding Docs Clicked',
   'preprod.releases.mobile-builds.tab-clicked':
     'Preprod Releases: Mobile Builds Tab Clicked',
 };

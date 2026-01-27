@@ -11,7 +11,11 @@ from sentry.uptime.consumers.results_consumer import (
     get_host_provider_if_valid,
     process_result_internal,
 )
-from sentry.uptime.models import UptimeSubscription, get_detector
+from sentry.uptime.models import (
+    UptimeSubscription,
+    get_detector,
+    load_regions_for_uptime_subscription,
+)
 from sentry.uptime.utils import (
     build_backlog_key,
     build_backlog_schedule_lock_key,
@@ -68,6 +72,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
         backlog_key, 0, -1, withscores=True
     )
     host_provider = get_host_provider_if_valid(subscription)
+    subscription_regions = load_regions_for_uptime_subscription(subscription.id)
 
     for result_json, scheduled_time_ms in queued_results_raw:
         if int(scheduled_time_ms) != expected_next_ms:
@@ -93,6 +98,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
             result,
             {**metric_tags},
             cluster,
+            subscription_regions,
         )
         cluster.zrem(backlog_key, result_json)
         metrics.incr("uptime.backlog.removed", amount=1, sample_rate=1.0, tags=metric_tags)
@@ -133,6 +139,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
                 result,
                 metric_tags,
                 cluster,
+                subscription_regions,
             )
             cluster.zrem(backlog_key, result_json)
             metrics.incr("uptime.backlog.removed", amount=1, sample_rate=1.0, tags=metric_tags)

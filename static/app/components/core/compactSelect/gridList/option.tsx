@@ -89,27 +89,25 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
         ? leadingItems({disabled: isDisabled, isFocused, isSelected})
         : leadingItems;
 
-    if (hideCheck && !leading) {
-      return null;
+    if (hideCheck) {
+      return leading;
     }
 
     return (
       <Fragment>
-        {!hideCheck && (
-          <LeadWrap role="presentation">
-            {multiple ? (
-              <Checkbox
-                {...checkboxProps}
-                size={checkboxSize}
-                checked={isSelected}
-                disabled={isDisabled}
-                readOnly
-              />
-            ) : (
-              isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
-            )}
-          </LeadWrap>
-        )}
+        <LeadWrap role="presentation">
+          {multiple ? (
+            <Checkbox
+              {...checkboxProps}
+              size={checkboxSize}
+              checked={isSelected}
+              disabled={isDisabled}
+              readOnly
+            />
+          ) : (
+            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+          )}
+        </LeadWrap>
         {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
       </Fragment>
     );
