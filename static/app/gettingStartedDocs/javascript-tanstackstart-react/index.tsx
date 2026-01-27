@@ -2,7 +2,7 @@ import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
-import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/utils';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 import {mcp} from './mcp';
 import {onboarding} from './onboarding';
@@ -16,7 +16,7 @@ const docs: Docs = {
     nodeProfilingLink:
       'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/profiling/node-profiling/',
   }),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+  agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/tanstackstart-react',
     configFileName: 'app/ssr.tsx',
   }),

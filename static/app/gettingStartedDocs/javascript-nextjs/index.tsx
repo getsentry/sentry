@@ -3,7 +3,7 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
-import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/utils';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {tct} from 'sentry/locale';
 
 import {crashReport} from './crashReport';
@@ -87,7 +87,7 @@ const docs: Docs = {
     docsPlatform: 'nextjs',
     packageName: '@sentry/nextjs',
   }),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+  agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/nextjs',
     configFileName: 'sentry.server.config.ts',
   }),

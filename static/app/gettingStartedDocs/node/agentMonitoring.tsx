@@ -153,10 +153,12 @@ function getConfigureStep({
   params,
   integration,
   packageName,
+  configFileName,
 }: {
   integration: AgentIntegration;
   packageName: `@sentry/${string}`;
   params: DocsParams;
+  configFileName?: string;
 }): OnboardingStep[] {
   // Meta-frameworks can run on multiple runtimes (Node.js server-side, Browser client-side, etc.).
   // We only show Node.js instructions here to keep onboarding simple.
@@ -282,7 +284,7 @@ const mastra = new Mastra({
                 type: 'code',
                 tabs: [
                   {
-                    label: 'JavaScript',
+                    label: configFileName ?? 'JavaScript',
                     language: 'javascript',
                     code: `${getImport(packageName).join('\n')}
 
@@ -464,7 +466,9 @@ const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
 
 export const agentMonitoring = ({
   packageName = '@sentry/node',
+  configFileName,
 }: {
+  configFileName?: string;
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
   install: params =>
@@ -484,6 +488,7 @@ export const agentMonitoring = ({
       params,
       integration: selected,
       packageName,
+      configFileName,
     });
   },
   verify: getVerifyStep,
