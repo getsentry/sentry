@@ -10,7 +10,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
-from sentry.issue_detection.performance_detection import get_merged_settings
+from sentry.issue_detection.performance_detection import (
+    get_merged_settings,
+    reset_performance_settings,
+    update_performance_settings,
+)
 from sentry.issues.grouptype import (
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
@@ -309,10 +313,13 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        project.update_option(
-            SETTINGS_PROJECT_OPTION_KEY,
-            {**performance_issue_settings_default, **performance_issue_settings, **data},
-        )
+        merged_settings = {
+            **performance_issue_settings_default,
+            **performance_issue_settings,
+            **data,
+        }
+        sync_detectors = features.has("projects:workflow-engine-performance-detectors", project)
+        update_performance_settings(project, merged_settings, sync_detectors=sync_detectors)
 
         if body_has_admin_options or body_has_management_options:
             self.create_audit_entry(
@@ -343,6 +350,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
                     if option in management_options or option in disabled_options
                 }
             )
-            project.update_option(SETTINGS_PROJECT_OPTION_KEY, unchanged_options)
+            sync_detectors = features.has("projects:workflow-engine-performance-detectors", project)
+            reset_performance_settings(project, unchanged_options, sync_detectors=sync_detectors)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

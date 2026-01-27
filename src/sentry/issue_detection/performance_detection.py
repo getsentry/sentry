@@ -9,8 +9,10 @@ from enum import IntEnum
 from typing import Any
 
 import sentry_sdk
+from django.db import transaction
 
 from sentry import features, nodestore, options, projectoptions
+from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -455,6 +457,180 @@ def _get_wfe_detector_configs(project: Project) -> dict[DetectorType, dict[str, 
         }
 
     return wfe_configs
+
+
+def sync_project_options_to_wfe_detectors(
+    project: Project, settings_data: dict[str, Any]
+) -> dict[DetectorType, bool]:
+    """
+    Sync ProjectOption settings to WFE Detector configs.
+
+    For each detector type with WFE mapping, updates or creates a Detector with:
+    - Detector.enabled from detection_enabled setting
+    - Detector.config from mapped config fields
+
+    Returns dict of DetectorType -> bool indicating which detectors were updated.
+    """
+    updated: dict[DetectorType, bool] = {}
+
+    # Get all existing detectors for this project
+    wfe_types = [
+        mapping.wfe_detector_type for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
+    ]
+    existing_detectors = {
+        d.type: d for d in Detector.objects.filter(project=project, type__in=wfe_types)
+    }
+
+    for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+        # Build new config from settings_data
+        new_config: dict[str, Any] = {}
+        new_enabled: bool | None = None
+
+        # Extract detection_enabled
+        if mapping.detection_enabled_key in settings_data:
+            new_enabled = settings_data[mapping.detection_enabled_key]
+
+        # Extract config fields using option_keys mapping
+        # option_keys maps: wfe_field -> project_option_key
+        for wfe_field, project_option_key in mapping.option_keys.items():
+            if project_option_key in settings_data:
+                new_config[wfe_field] = settings_data[project_option_key]
+
+        # Skip if no relevant settings provided
+        if new_enabled is None and not new_config:
+            continue
+
+        # Update existing Detector only (don't create new ones)
+        detector = existing_detectors.get(mapping.wfe_detector_type)
+        if not detector:
+            continue
+
+        changed = False
+        if new_enabled is not None and detector.enabled != new_enabled:
+            detector.enabled = new_enabled
+            detector.status = ObjectStatus.ACTIVE if new_enabled else ObjectStatus.DISABLED
+            changed = True
+        if new_config:
+            merged_config = {**detector.config, **new_config}
+            if detector.config != merged_config:
+                detector.config = merged_config
+                changed = True
+        if changed:
+            detector.save()
+            updated[detector_type] = True
+
+    return updated
+
+
+def reset_wfe_detector_configs(
+    project: Project, unchanged_options: dict[str, Any]
+) -> dict[DetectorType, bool]:
+    """
+    Reset WFE Detector configs to defaults, preserving only unchanged_options.
+
+    Used when DELETE is called on performance settings - clears custom config values
+    while preserving management/disabled options that shouldn't be reset.
+
+    Returns dict of DetectorType -> bool indicating which detectors were updated.
+    """
+    updated: dict[DetectorType, bool] = {}
+
+    # Get all existing detectors for this project
+    wfe_types = [
+        mapping.wfe_detector_type for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
+    ]
+    existing_detectors = {
+        d.type: d for d in Detector.objects.filter(project=project, type__in=wfe_types)
+    }
+
+    for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
+        detector = existing_detectors.get(mapping.wfe_detector_type)
+        if not detector:
+            continue
+
+        # Build config with only fields that should be preserved
+        # option_keys maps: wfe_field -> project_option_key
+        preserved_config: dict[str, Any] = {}
+        for wfe_field, project_option_key in mapping.option_keys.items():
+            # Keep field if its ProjectOption key is in unchanged_options
+            if project_option_key in unchanged_options:
+                if wfe_field in detector.config:
+                    preserved_config[wfe_field] = detector.config[wfe_field]
+
+        # Update detector if config changed
+        changed = False
+        if detector.config != preserved_config:
+            detector.config = preserved_config
+            changed = True
+
+        # Reset detection_enabled if not in unchanged_options
+        if mapping.detection_enabled_key not in unchanged_options:
+            # Reset to default (disabled) since we're clearing customizations
+            if detector.enabled:
+                detector.enabled = False
+                detector.status = ObjectStatus.DISABLED
+                changed = True
+
+        if changed:
+            detector.save()
+            updated[detector_type] = True
+
+    return updated
+
+
+SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
+
+
+@transaction.atomic
+def update_performance_settings(
+    project: Project,
+    merged_settings: dict[str, Any],
+    sync_detectors: bool = False,
+) -> dict[DetectorType, bool]:
+    """
+    Atomically update ProjectOption and optionally sync to WFE Detectors.
+
+    Args:
+        project: The project to update settings for
+        merged_settings: The complete merged settings to save
+        sync_detectors: Whether to sync settings to WFE Detectors
+
+    Returns:
+        Dict of DetectorType -> bool indicating which detectors were updated
+        (empty if sync_detectors is False)
+    """
+    project.update_option(SETTINGS_PROJECT_OPTION_KEY, merged_settings)
+
+    if sync_detectors:
+        return sync_project_options_to_wfe_detectors(project, merged_settings)
+
+    return {}
+
+
+@transaction.atomic
+def reset_performance_settings(
+    project: Project,
+    unchanged_options: dict[str, Any],
+    sync_detectors: bool = False,
+) -> dict[DetectorType, bool]:
+    """
+    Atomically reset ProjectOption and optionally reset WFE Detector configs.
+
+    Args:
+        project: The project to reset settings for
+        unchanged_options: Settings that should be preserved (not reset)
+        sync_detectors: Whether to reset WFE Detector configs
+
+    Returns:
+        Dict of DetectorType -> bool indicating which detectors were updated
+        (empty if sync_detectors is False)
+    """
+    project.update_option(SETTINGS_PROJECT_OPTION_KEY, unchanged_options)
+
+    if sync_detectors:
+        return reset_wfe_detector_configs(project, unchanged_options)
+
+    return {}
 
 
 # Gets the thresholds to perform performance detection.

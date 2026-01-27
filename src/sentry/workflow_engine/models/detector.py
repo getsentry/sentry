@@ -186,6 +186,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
 
+    def toggle(self, enabled: bool) -> None:
+        """Toggle the detector's enabled state and update status accordingly."""
+        new_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+        self.update(enabled=enabled, status=new_status)
+
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
