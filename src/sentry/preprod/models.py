@@ -188,21 +188,22 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
-        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type).
+        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type, build_configuration_id).
 
-        When multiple artifacts exist for the same (app_id, artifact_type) combination
+        When multiple artifacts exist for the same (app_id, artifact_type, build_configuration_id) combination
         (e.g., due to reprocessing or CI retries), this method returns only one artifact
         per combination to prevent duplicate rows in status checks:
-        - For the calling artifact's (app_id, artifact_type): Returns the calling artifact itself
+        - For the calling artifact's combination: Returns the calling artifact itself
         - For other combinations: Returns the earliest (oldest) artifact for that combination
 
-        Note: Deduplication by both app_id and artifact_type is necessary because
-        iOS and Android apps can share the same app_id (e.g., "com.example.app").
+        Note: Deduplication by app_id, artifact_type, and build_configuration_id is necessary because:
+        - iOS and Android apps can share the same app_id (e.g., "com.example.app")
+        - The same app can have multiple build configurations (e.g., Release, AdHoc, Debug)
 
         Results are filtered by the current artifact's organization for security.
 
         Returns:
-            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type),
+            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type, build_configuration_id),
             ordered by app_id
         """
         if not self.commit_comparison:
@@ -215,17 +216,21 @@ class PreprodArtifact(DefaultFieldsModel):
             )
             .select_related("build_configuration", "commit_comparison")
             .prefetch_related("mobile_app_info")
-            .order_by("app_id", "artifact_type", "date_added")
+            .order_by("app_id", "artifact_type", "build_configuration_id", "date_added")
         )
 
         artifacts_by_key = defaultdict(list)
         for artifact in all_artifacts:
-            key = (artifact.app_id, artifact.artifact_type)
+            key = (artifact.app_id, artifact.artifact_type, artifact.build_configuration_id)
             artifacts_by_key[key].append(artifact)
 
         selected_artifacts = []
-        for (app_id, artifact_type), artifacts in artifacts_by_key.items():
-            if self.app_id == app_id and self.artifact_type == artifact_type:
+        for (app_id, artifact_type, build_config_id), artifacts in artifacts_by_key.items():
+            if (
+                self.app_id == app_id
+                and self.artifact_type == artifact_type
+                and self.build_configuration_id == build_config_id
+            ):
                 # Find the prefetched version of self to preserve prefetched relations
                 self_artifact = next((a for a in artifacts if a.id == self.id), None)
                 selected_artifacts.append(self_artifact or artifacts[0])
