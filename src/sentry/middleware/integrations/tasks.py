@@ -118,6 +118,7 @@ class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
     name="sentry.middleware.integrations.tasks.convert_to_async_slack_response",
     namespace=integrations_control_tasks,
     retry=Retry(times=2, delay=5),
+    processing_deadline_duration=35,
     silo_mode=SiloMode.CONTROL,
 )
 def convert_to_async_slack_response(
@@ -145,6 +146,7 @@ class _AsyncDiscordDispatcher(_AsyncRegionDispatcher):
     name="sentry.middleware.integrations.tasks.convert_to_async_discord_response",
     namespace=integrations_control_tasks,
     retry=Retry(times=2, delay=5),
+    processing_deadline_duration=35,
     silo_mode=SiloMode.CONTROL,
 )
 def convert_to_async_discord_response(

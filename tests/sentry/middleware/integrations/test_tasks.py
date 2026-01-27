@@ -144,6 +144,11 @@ class AsyncSlackResponseTest(TestCase):
         assert slack_response.call_count == 0
         mock_logger_info.assert_called
 
+    def test_task_processing_deadline_duration(self) -> None:
+        """Verify that the task has a processing deadline exceeding the HTTP timeout."""
+        # The HTTP client has a 30-second timeout, so the task deadline should be greater
+        assert convert_to_async_slack_response.processing_deadline_duration == 35
+
 
 @control_silo_test
 class AsyncDiscordResponseTest(TestCase):
@@ -255,3 +260,8 @@ class AsyncDiscordResponseTest(TestCase):
             response_url=self.response_url,
         )
         assert discord_response.call_count == 0
+
+    def test_task_processing_deadline_duration(self) -> None:
+        """Verify that the task has a processing deadline exceeding the HTTP timeout."""
+        # The HTTP client has a 30-second timeout, so the task deadline should be greater
+        assert convert_to_async_discord_response.processing_deadline_duration == 35
