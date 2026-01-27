@@ -599,9 +599,8 @@ class SearchResolver:
                             comparison_filter=ComparisonFilter(
                                 key=resolved_column.proto_definition,
                                 op=operator,
-                                value=self._resolve_search_value(
-                                    resolved_column, term.operator, value
-                                ),
+                                # Create AttributeValue directly to skip validation for empty strings
+                                value=AttributeValue(val_str=""),
                             )
                         )
                     )
@@ -617,9 +616,8 @@ class SearchResolver:
                             comparison_filter=ComparisonFilter(
                                 key=resolved_column.proto_definition,
                                 op=operator,
-                                value=self._resolve_search_value(
-                                    resolved_column, term.operator, value
-                                ),
+                                # Create AttributeValue directly to skip validation for empty strings
+                                value=AttributeValue(val_str=""),
                             )
                         )
                     )

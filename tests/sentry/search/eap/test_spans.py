@@ -21,6 +21,8 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
+    ExistsFilter,
+    NotFilter,
     OrFilter,
     TraceItemFilter,
 )
@@ -100,6 +102,37 @@ class SearchResolverQueryTest(TestCase):
     def test_invalid_uuid_validation(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             self.resolver.resolve_query("id:hello")
+
+    def test_trace_empty_string(self) -> None:
+        # Test that trace:"" doesn't fail validation
+        where, having, _ = self.resolver.resolve_query('trace:""')
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        not_filter=NotFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    exists_filter=ExistsFilter(
+                                        key=AttributeKey(
+                                            name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING
+                                        )
+                                    )
+                                )
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING),
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
 
     def test_not_in_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("!span.description:[foo,bar,baz]")
