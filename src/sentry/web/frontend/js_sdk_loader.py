@@ -145,6 +145,9 @@ class JavaScriptSdkLoader(View):
         if is_greater_or_equal_v10_sdk and has_logs_and_metrics:
             bundle_kind_modifier += ".logs.metrics"
             is_lazy = False
+        else:
+            # If SDK < 10.0.0, disable logs+metrics feature even if user requested it
+            has_logs_and_metrics = False
 
         # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
