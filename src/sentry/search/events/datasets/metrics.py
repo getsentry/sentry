@@ -471,6 +471,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_sum,
                     snql_gauge=self._resolve_sum,
+                    snql_counter=self._resolve_sum,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
