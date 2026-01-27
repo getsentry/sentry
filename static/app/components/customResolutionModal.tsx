@@ -199,7 +199,12 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
             </ExternalLink>
           ) : (
             // Placeholder to maintain layout when no version is selected
-            <Container as="span" minHeight="1.2em" aria-hidden="true" />
+            <Container
+              as="span"
+              display="inline-block"
+              minHeight="1.2em"
+              aria-hidden="true"
+            />
           )}
         </Container>
       </Body>

@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
@@ -25,22 +25,22 @@ function ProjectIcon({projectPlatforms, allProjects, className}: ProjectIconProp
       break;
     case 1:
       renderedIcons = (
-        <Container width="18px" height="18px" position="relative">
+        <Grid width="18px" height="18px" position="relative">
           <StyledPlatformIcon platform={projectPlatforms[0]!} size={18} />
           <BorderOverlay />
-        </Container>
+        </Grid>
       );
       break;
     default:
       renderedIcons = (
-        <Container width="18px" height="18px" position="relative">
+        <Grid width="18px" height="18px" position="relative">
           {projectPlatforms.slice(0, 2).map((platform, index) => (
             <PlatformIconWrapper key={platform} index={index}>
               <StyledPlatformIcon platform={platform} size={14} />
               <BorderOverlay />
             </PlatformIconWrapper>
           ))}
-        </Container>
+        </Grid>
       );
   }
 

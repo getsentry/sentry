@@ -253,7 +253,7 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 
 function SectionSeparator() {
   return (
-    <Container margin="lg 0" data-separator>
+    <Container margin="lg 0" display="none" data-separator>
       <Separator />
     </Container>
   );
