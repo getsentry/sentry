@@ -35,7 +35,10 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
-from sentry.workflow_engine.models.detector import enforce_config_schema
+from sentry.workflow_engine.models.detector import (
+    enforce_config_schema,
+    invalidate_detectors_by_data_source_cache,
+)
 from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
 
 
@@ -140,6 +143,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
+    def _invalidate_cache_by_detector(self, detector: Detector) -> None:
+        """Invalidate detector cache for all data sources associated with the detector."""
+        data_sources = detector.data_sources.values_list("source_id", "type")
+        for source_id, source_type in data_sources:
+            invalidate_detectors_by_data_source_cache(source_id, source_type)
+
     def enforce_quota(self, validated_data) -> None:
         """
         Enforce quota limits for detector creation.
@@ -202,6 +211,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
             instance.save()
 
+        self._invalidate_cache_by_detector(instance)
+
         create_audit_entry(
             request=self.context["request"],
             organization=self.context["organization"],
@@ -221,10 +232,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         They should call super().delete() to perform the actual deletion.
         """
         assert self.instance is not None
+
         RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
+        self._invalidate_cache_by_detector(self.instance)
 
-    def _create_data_source(self, validated_data_source, detector: Detector):
+    def _create_data_source(self, validated_data_source, detector: Detector) -> None:
         data_source_creator = validated_data_source["_creator"]
         data_source = data_source_creator.create()
 
@@ -234,6 +247,14 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             type=validated_data_source["data_source_type"],
         )
         DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
+
+        # Invalidate cache after transaction commits
+        source_id = detector_data_source.source_id
+        source_type = detector_data_source.type
+        transaction.on_commit(
+            lambda: invalidate_detectors_by_data_source_cache(source_id, source_type),
+            using=router.db_for_write(Detector),
+        )
 
     def create(self, validated_data):
         # If quotas are exceeded, we will prevent creation of new detectors.
