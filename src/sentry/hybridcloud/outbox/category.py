@@ -64,6 +64,7 @@ class OutboxCategory(IntEnum):
     SENTRY_APP_DELETE = 41
     SENTRY_APP_INSTALLATION_DELETE = 42
     IDENTITY_UPDATE = 43
+    SENTRY_APP_NORMALIZE_ACTIONS = 44
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:

@@ -98,6 +98,18 @@ def process_sentry_app_installation_deletes(
     )
 
 
+@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS)
+def update_sentry_app_action_data(
+    shard_identifier: int,
+    object_identifier: int,
+    region_name: str,
+    **kwds: Any,
+):
+    action_service.update_sentry_app_identifier(
+        region_name=region_name, action_id=object_identifier
+    )
+
+
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
 def process_api_application_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (

@@ -1,3 +1,4 @@
+from sentry.sentry_apps.services.app.service import app_service
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import ActionService
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
@@ -78,3 +79,21 @@ class DatabaseBackedActionService(ActionService):
             type=Action.Type.WEBHOOK,
             config__target_identifier=sentry_app_slug,
         ).update(status=status)
+
+    def update_sentry_app_identifier(self, *, region_name: str, action_id: int) -> None:
+        actions = Action.objects.filter(
+            id=action_id,
+            type=Action.Type.SENTRY_APP,
+            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+        )
+        for action in actions:
+            installation = app_service.get_installation_by_uuid(
+                uuid=action.config.get("target_identifier")
+            )
+            if installation:
+                action.update(
+                    config__target_identifier=str(
+                        installation.sentry_app_id,
+                        config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
+                    )
+                )
