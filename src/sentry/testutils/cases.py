@@ -1138,10 +1138,10 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span, is_eap=False):
+    def store_span(self, span, is_eap=True):
         self.store_spans([span], is_eap=is_eap)
 
-    def store_spans(self, spans, is_eap=False):
+    def store_spans(self, spans, is_eap=True):
         if is_eap:
             files = {}
             for i, span in enumerate(spans):
@@ -1302,7 +1302,7 @@ class BaseSpansTestCase(SnubaTestCase):
         status: str | None = None,
         environment: str | None = None,
         organization_id: int = 1,
-        is_eap: bool = False,
+        is_eap: bool = True,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1376,7 +1376,7 @@ class BaseSpansTestCase(SnubaTestCase):
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
-        is_eap: bool = False,
+        is_eap: bool = True,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -2265,10 +2265,10 @@ class ProfilesSnubaTestCase(
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
 
-    def store_span(self, span, is_eap=False):
+    def store_span(self, span, is_eap=True):
         self.store_spans([span], is_eap=is_eap)
 
-    def store_spans(self, spans, is_eap=False):
+    def store_spans(self, spans, is_eap=True):
         if is_eap:
             files = {}
             for i, span in enumerate(spans):
@@ -3682,7 +3682,7 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
-        is_eap: bool = False,
+        is_eap: bool = True,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
