@@ -58,6 +58,10 @@ export interface PlatformOption<Value extends string = string> {
   items: Array<{
     label: string;
     value: Value;
+    /**
+     * Optional leading items to display before the label (e.g., icons)
+     */
+    leadingItems?: React.ReactNode;
   }>;
   /**
    * The name of the option
