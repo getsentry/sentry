@@ -97,7 +97,18 @@ def send_and_save_webhook_request(
             }
         )
 
-        assert url is not None
+        # Validate URL is present and has a valid scheme
+        if not url or not isinstance(url, str):
+            raise SentryAppSentryError(
+                message=f"{SentryAppWebhookFailureReason.INVALID_WEBHOOK_URL}",
+            )
+        
+        # Check for valid URL scheme (http or https)
+        if not url.startswith(("http://", "https://")):
+            raise SentryAppSentryError(
+                message=f"{SentryAppWebhookFailureReason.INVALID_WEBHOOK_URL}",
+            )
+
         try:
             response = safe_urlopen(
                 url=url,

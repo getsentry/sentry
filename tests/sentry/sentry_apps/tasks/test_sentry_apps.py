@@ -179,6 +179,92 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_empty_webhook_url(self, mock_record: MagicMock, safe_urlopen: MagicMock) -> None:
+        """Test that an empty webhook URL raises INVALID_WEBHOOK_URL error."""
+        # Create a sentry app with an empty webhook_url
+        from sentry.sentry_apps.models.sentry_app import SentryApp
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            sentry_app_with_empty_url = SentryApp.objects.create(
+                name="EmptyURLApp",
+                application=self.create_application(organization=self.organization),
+                proxy_user=self.create_user(),
+                owner_id=self.organization.id,
+                scope_list=["project:read"],
+                webhook_url="",  # Empty webhook URL
+            )
+            install = self.create_sentry_app_installation(
+                organization=self.organization, slug=sentry_app_with_empty_url.slug
+            )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group_event = GroupEvent.from_event(event, event.group)
+
+        send_alert_webhook_v2(
+            instance_id=group_event.event_id,
+            group_id=group_event.group_id,
+            occurrence_id=None,
+            rule_label=self.rule.label,
+            sentry_app_id=sentry_app_with_empty_url.id,
+        )
+
+        # safe_urlopen should not be called because validation fails first
+        assert not safe_urlopen.called
+
+        # Verify the error is INVALID_WEBHOOK_URL
+        assert_failure_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.INVALID_WEBHOOK_URL
+            ),
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_none_webhook_url(self, mock_record: MagicMock, safe_urlopen: MagicMock) -> None:
+        """Test that a None webhook URL raises INVALID_WEBHOOK_URL error."""
+        # Create a sentry app with a None webhook_url
+        from sentry.sentry_apps.models.sentry_app import SentryApp
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            sentry_app_with_none_url = SentryApp.objects.create(
+                name="NoneURLApp",
+                application=self.create_application(organization=self.organization),
+                proxy_user=self.create_user(),
+                owner_id=self.organization.id,
+                scope_list=["project:read"],
+                webhook_url=None,  # None webhook URL
+            )
+            install = self.create_sentry_app_installation(
+                organization=self.organization, slug=sentry_app_with_none_url.slug
+            )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group_event = GroupEvent.from_event(event, event.group)
+
+        send_alert_webhook_v2(
+            instance_id=group_event.event_id,
+            group_id=group_event.group_id,
+            occurrence_id=None,
+            rule_label=self.rule.label,
+            sentry_app_id=sentry_app_with_none_url.id,
+        )
+
+        # safe_urlopen should not be called because validation fails first
+        assert not safe_urlopen.called
+
+        # Verify the error is INVALID_WEBHOOK_URL
+        assert_failure_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.INVALID_WEBHOOK_URL
+            ),
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app_in_future(self, safe_urlopen: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
