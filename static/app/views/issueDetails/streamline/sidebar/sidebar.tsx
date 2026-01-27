@@ -55,11 +55,13 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.lg})`);
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
-  const showSeerSection =
-    (organization.features.includes('gen-ai-features') &&
-      issueTypeConfig.issueSummary.enabled &&
-      !organization.hideAiFeatures) ||
-    issueTypeConfig.resources;
+  // Check if Seer (AI features) will be shown - must match SeerSection's logic
+  // SeerSection shows "Seer" title when the issue type supports it AND AI features are allowed
+  const hasSeerFeatures =
+    organization.features.includes('gen-ai-features') &&
+    !organization.hideAiFeatures &&
+    (issueTypeConfig.issueSummary.enabled || issueTypeConfig.autofix);
+  const showSeerSection = hasSeerFeatures || issueTypeConfig.resources;
 
   if (!shouldDisplaySidebar) {
     return null;
@@ -70,9 +72,9 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       tourContext={IssueDetailsTourContext}
       id={IssueDetailsTour.SIDEBAR}
       demoTourId={DemoTourStep.ISSUES_DETAIL_SIDEBAR}
-      title={showSeerSection ? t('Automate root cause') : t('Share updates')}
+      title={hasSeerFeatures ? t('Automate root cause') : t('Share updates')}
       description={
-        showSeerSection
+        hasSeerFeatures
           ? tct(
               'Use [link:Seer] to investigate this issue faster. You can also add comments for your team and link tickets to track progress.',
               {
