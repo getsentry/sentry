@@ -68,8 +68,8 @@ export function matchesTokenPattern(tokenPath, pattern) {
   // Each segment must appear in order, with .* meaning "one or more path segments"
   let regexStr = '^';
   segments.forEach((segment, index) => {
-    // Escape dots for regex
-    regexStr += segment.replace(/\./g, '\\.');
+    // Escape all regex metacharacters in the segment so it is treated literally
+    regexStr += segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     // Add wildcard matching between segments
     if (index < segments.length - 1) {
