@@ -2,7 +2,7 @@ import React, {Children, useRef, useState, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container as LayoutContainer} from '@sentry/scraps/layout';
 
 import {Link} from 'sentry/components/core/link';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
@@ -210,9 +210,9 @@ function Container({children}: {children: React.ReactNode}) {
   const columnSize = Math.ceil(cards.length / columnCount);
   for (let i = 0; i < cards.length; i += columnSize) {
     columns.push(
-      <Container column="span 1" key={i}>
+      <LayoutContainer column="span 1" key={i}>
         {cards.slice(i, i + columnSize)}
-      </Container>
+      </LayoutContainer>
     );
   }
 

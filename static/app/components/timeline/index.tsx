@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex, Container as LayoutContainer} from '@sentry/scraps/layout';
 
 import {space} from 'sentry/styles/space';
 
@@ -61,7 +61,7 @@ function Item({
         {titleTrailingItems}
       </Flex>
       {timestamp ?? <div />}
-      <Container justifySelf="center" width="0" height="100%" column="span 1" />
+      <LayoutContainer justifySelf="center" width="0" height="100%" column="span 1" />
       <Content>{children}</Content>
     </Row>
   );

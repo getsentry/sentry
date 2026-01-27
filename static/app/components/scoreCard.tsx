@@ -98,9 +98,9 @@ export const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-export function ScoreWrapper(props: ContainerProps<'div'>) {
+export const ScoreWrapper = styled((props: ContainerProps<'div'>) => {
   return <Container {...props} />;
-}
+})``;
 
 export const Score = styled('span')`
   flex-shrink: 1;
