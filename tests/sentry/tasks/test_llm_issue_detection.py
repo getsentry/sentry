@@ -374,7 +374,7 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
             start_ts=self.ten_mins_ago + timedelta(seconds=2),
         )
 
-        self.store_spans([span1, span2, span3], is_eap=True)
+        self.store_spans([span1, span2, span3])
 
         evidence_traces = get_project_top_transaction_traces_for_llm_detection(
             self.project.id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=30

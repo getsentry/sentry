@@ -364,7 +364,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
                 )
             )
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         self.metrics.incr.reset_mock()
         self.send_update(2, timedelta(minutes=-9))

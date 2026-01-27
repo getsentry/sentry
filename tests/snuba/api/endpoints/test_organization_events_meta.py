@@ -54,7 +54,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.data["count"] == 1
 
     def test_spans_dataset(self) -> None:
-        self.store_spans([self.create_span(start_ts=self.min_ago)], is_eap=True)
+        self.store_spans([self.create_span(start_ts=self.min_ago)])
 
         with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"dataset": "spans"})
@@ -577,7 +577,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             duration=200,
             start_ts=self.ten_mins_ago,
         )
-        self.store_span(span, is_eap=True)
+        self.store_span(span)
 
         response = self.client.get(
             url,
@@ -625,7 +625,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             ),
         ]
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self.client.get(
             url,
@@ -712,7 +712,6 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
 
         self.store_spans(
             spans,
-            is_eap=True,
         )
 
         response = self.do_request(

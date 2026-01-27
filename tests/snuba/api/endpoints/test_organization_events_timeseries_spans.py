@@ -102,7 +102,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self._do_request(
             data={
@@ -142,7 +142,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def test_handle_nans_from_snuba(self) -> None:
         self.store_spans(
             [self.create_span({"description": "foo"}, start_ts=self.start)],
-            is_eap=True,
         )
 
         response = self._do_request(
@@ -176,7 +175,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 self.create_span({"description": "bar"}, start_ts=self.start),
                 self.create_span({"description": "bar"}, start_ts=self.two_days_ago),
             ],
-            is_eap=True,
         )
         seven_days_ago = self.two_days_ago - timedelta(days=5)
 
@@ -287,7 +285,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self._do_request(
             data={
@@ -331,7 +329,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for hour, duration in enumerate(event_durations)
             ],
-            is_eap=True,
         )
 
         response = self._do_request(
@@ -382,7 +379,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self._do_request(
             data={
@@ -453,7 +450,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     duration=1998,
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=6)
@@ -552,7 +548,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     duration=1998,
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=6)
@@ -611,7 +606,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     duration=1999,
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=6)
@@ -702,7 +696,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for transaction in ["foo", "bar"]
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=6)
@@ -771,7 +764,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for transaction, duration in [("foo", 2000), ("bar", 1999), ("quz", 100)]
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=6)
@@ -840,7 +832,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
                 for transaction in ["foo", "bar", "baz"]
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=6)
@@ -981,7 +972,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 duration=1,
             )
         )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         self.end = self.start + timedelta(minutes=6)
         response = self._do_request(
@@ -1071,7 +1062,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 start_ts=self.start + timedelta(minutes=1),
             )
         )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         self.end = self.start + timedelta(minutes=6)
         response = self._do_request(
@@ -1198,7 +1189,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self._do_request(
             data={
@@ -1253,7 +1244,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         y_axes = [
             "count()",
@@ -1322,7 +1313,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self._do_request(
             data={
@@ -1384,7 +1375,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     duration=1998,
                 ),
             ],
-            is_eap=True,
         )
         event_counts = [0, 1, 0, 0, 0, 0]
 
@@ -1447,7 +1437,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                         for minute in range(count)
                     ],
                 )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self._do_request(
             data={
@@ -1498,7 +1488,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self._do_request(
             data={
@@ -1577,7 +1567,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         for querystring in [f"project:{self.project.slug}", f"project:[{self.project.slug}]"]:
             response = self._do_request(
@@ -1643,7 +1633,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         for querystring in ["device.class:low", "device.class:[low,medium]"]:
             response = self._do_request(
@@ -1700,7 +1690,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
-            is_eap=True,
         )
 
         response = self._do_request(
@@ -1775,7 +1764,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.day_ago + timedelta(minutes=2),
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=3)
@@ -1838,7 +1826,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.start + timedelta(minutes=2),
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=3)
@@ -1889,7 +1876,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.start + timedelta(minutes=2),
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=3)
@@ -1938,7 +1924,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         span2["span_id"] = "b" * 16
         self.store_spans(
             [span, span2],
-            is_eap=True,
         )
         self.end = self.start + timedelta(minutes=3)
         response = self._do_request(
@@ -2023,7 +2008,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         span2["span_id"] = "b" * 16
         self.store_spans(
             [span, span2],
-            is_eap=True,
         )
         self.end = self.start + timedelta(minutes=3)
         response = self._do_request(
@@ -2119,7 +2103,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.start + timedelta(minutes=2),
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=3)
@@ -2170,7 +2153,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.start + timedelta(minutes=2),
                 ),
             ],
-            is_eap=True,
         )
 
         equation = "equation|count() * 2 + 2 - 2 / 2"
@@ -2222,7 +2204,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.start + timedelta(minutes=2),
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=3)
@@ -2310,7 +2291,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     start_ts=self.start + timedelta(minutes=2),
                 ),
             ],
-            is_eap=True,
         )
 
         self.end = self.start + timedelta(minutes=3)
@@ -2404,7 +2384,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         response = self._do_request(
             data={
@@ -2459,7 +2439,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     for minute in range(count)
                 ],
             )
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
         response = self._do_request(
             data={
                 "start": self.start,
@@ -2541,7 +2521,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 start_ts=self.start + timedelta(minutes=2),
             ),
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
         response = self._do_request(
             data={
                 "start": self.start,

@@ -40,7 +40,6 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -92,7 +91,6 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -157,7 +155,6 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -220,7 +217,6 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
@@ -278,7 +274,6 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(
