@@ -136,30 +136,18 @@ export function useErrorsAndTransactionsSeriesQuery(
         getReferrer(filteredWidget.displayType)
       );
 
-      const queryExtras = getQueryExtraForSplittingDiscover(
+      const splitDiscoverExtras = getQueryExtraForSplittingDiscover(
         filteredWidget,
         organization,
         !!useOnDemandMetrics
       );
-
-      if (useOnDemandMetrics) {
-        requestData.queryExtras = {
-          ...requestData.queryExtras,
-          ...(queryExtras as Record<string, any>),
-          dataset: DiscoverDatasets.METRICS_ENHANCED,
-        };
-      } else {
-        requestData.queryExtras = {
-          ...requestData.queryExtras,
-          ...(queryExtras as Record<string, any>),
-        };
-      }
 
       const {
         organization: _org,
         includeAllArgs: _includeAllArgs,
         includePrevious: _includePrevious,
         generatePathname: _generatePathname,
+        queryExtras: requestQueryExtras,
         period,
         ...restParams
       } = requestData;
@@ -167,6 +155,9 @@ export function useErrorsAndTransactionsSeriesQuery(
       const queryParams = {
         ...restParams,
         ...(period ? {statsPeriod: period} : {}),
+        ...requestQueryExtras,
+        ...splitDiscoverExtras,
+        ...(useOnDemandMetrics ? {dataset: DiscoverDatasets.METRICS_ENHANCED} : {}),
       };
 
       if (queryParams.start) {
@@ -275,12 +266,28 @@ export function useErrorsAndTransactionsSeriesQuery(
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
     const error = queryResults.find(q => q?.error)?.error as any;
-    const errorMessage = error?.responseJSON?.detail || error?.message;
+
+    const errorMessage = (() => {
+      if (!error) {
+        return undefined;
+      }
+
+      if (error.responseJSON?.detail) {
+        if (typeof error.responseJSON.detail === 'string') {
+          return error.responseJSON.detail;
+        }
+        if (error.responseJSON.detail.message) {
+          return error.responseJSON.detail.message;
+        }
+        return error.message || 'An unknown error occurred.';
+      }
+
+      return error.message || 'An unknown error occurred.';
+    })();
 
     if (!allHaveData || isFetching) {
-      const loading = isFetching || !errorMessage;
       return {
-        loading,
+        loading: isFetching,
         errorMessage,
         rawData: EMPTY_ARRAY,
       };
@@ -396,12 +403,9 @@ export function useErrorsAndTransactionsTableQuery(
           organization,
           !!useOnDemandMetrics
         ),
+        useOnDemandMetrics: !!useOnDemandMetrics,
+        onDemandType: 'dynamic_query',
       };
-
-      if (useOnDemandMetrics) {
-        queryExtras.useOnDemandMetrics = true;
-        queryExtras.onDemandType = 'dynamic_query';
-      }
 
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
@@ -488,12 +492,28 @@ export function useErrorsAndTransactionsTableQuery(
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.[0]);
     const error = queryResults.find(q => q?.error)?.error as any;
-    const errorMessage = error?.responseJSON?.detail || error?.message;
+
+    const errorMessage = (() => {
+      if (!error) {
+        return undefined;
+      }
+
+      if (error.responseJSON?.detail) {
+        if (typeof error.responseJSON.detail === 'string') {
+          return error.responseJSON.detail;
+        }
+        if (error.responseJSON.detail.message) {
+          return error.responseJSON.detail.message;
+        }
+        return error.message || 'An unknown error occurred.';
+      }
+
+      return error.message || 'An unknown error occurred.';
+    })();
 
     if (!allHaveData || isFetching) {
-      const loading = isFetching || !errorMessage;
       return {
-        loading,
+        loading: isFetching,
         errorMessage,
         rawData: EMPTY_ARRAY,
       };
