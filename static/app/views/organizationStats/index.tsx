@@ -263,7 +263,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
-        return organization.features.includes('seer-billing');
+        return (
+          organization.features.includes('seer-billing') &&
+          organization.features.includes('seer-added')
+        );
       }
       if ([DataCategory.LOG_BYTE].includes(opt.value)) {
         return organization.features.includes('ourlogs-enabled');
