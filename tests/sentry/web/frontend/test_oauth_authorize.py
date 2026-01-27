@@ -1699,10 +1699,11 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
             f"{self.path}?response_type=code&client_id={cimd_client_id}&redirect_uri=https://myclient.example.com/callback"
         )
 
-        # Should return 400 with fetch error since metadata can't be retrieved
+        # Should return 400 with safe error showing only hostname (per RFC)
         assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
-        assert "Unable to fetch client metadata" in resp.context["error"]
+        # Error message should show only hostname, not internal error details
+        assert "Unable to verify client: myclient.example.com" in resp.context["error"]
 
     def test_http_url_rejected(self) -> None:
         """Test that HTTP (non-HTTPS) URLs are rejected as invalid."""
@@ -1824,10 +1825,11 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
             f"{self.path}?response_type=code&client_id={query_client_id}&redirect_uri=https://myclient.example.com/callback"
         )
 
-        # Should return 400 with fetch error since metadata can't be retrieved
+        # Should return 400 with safe error showing only hostname (per RFC)
         assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
-        assert "Unable to fetch client metadata" in resp.context["error"]
+        # Error message should show only hostname, not internal error details
+        assert "Unable to verify client: myclient.example.com" in resp.context["error"]
 
     def test_cimd_url_various_valid_paths(self) -> None:
         """Test various valid CIMD URL path formats are detected as CIMD (will fail to fetch)."""
@@ -1846,5 +1848,6 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
             )
 
             # All should be detected as CIMD and return 400 (fetch fails)
+            # Error shows safe message with hostname only (per RFC)
             assert resp.status_code == 400, f"URL {cimd_url} should be detected as valid CIMD"
-            assert "Unable to fetch client metadata" in resp.context["error"]
+            assert "Unable to verify client:" in resp.context["error"]

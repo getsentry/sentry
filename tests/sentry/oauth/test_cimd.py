@@ -11,6 +11,7 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.oauth.cimd import (
     CIMDCache,
     CIMDClient,
+    CIMDError,
     CIMDFetchError,
     CIMDValidationError,
     validate_cimd_document,
@@ -827,3 +828,194 @@ class CIMDClientCacheIntegrationTest(TestCase):
         custom_cache = CIMDCache()
         client = CIMDClient(cache=custom_cache)
         assert client._cache is custom_cache
+
+
+class CIMDErrorHandlingTest(TestCase):
+    """Tests for CIMD error classes and safe error messaging.
+
+    Per RFC, if metadata fetch fails, display only the client_id hostname
+    to the user (don't show potentially spoofed metadata).
+    """
+
+    def test_cimd_error_stores_client_id_url(self):
+        """CIMDError should store the client_id_url."""
+        error = CIMDError("Test error", "https://example.com/oauth/client")
+        assert error.client_id_url == "https://example.com/oauth/client"
+
+    def test_cimd_error_without_client_id_url(self):
+        """CIMDError should work without client_id_url."""
+        error = CIMDError("Test error")
+        assert error.client_id_url is None
+
+    def test_get_safe_hostname_extracts_hostname(self):
+        """get_safe_hostname should extract hostname from client_id URL."""
+        error = CIMDError("Test error", "https://example.com/oauth/client")
+        assert error.get_safe_hostname() == "example.com"
+
+    def test_get_safe_hostname_with_port(self):
+        """get_safe_hostname should extract hostname even with port."""
+        error = CIMDError("Test error", "https://example.com:8443/oauth/client")
+        assert error.get_safe_hostname() == "example.com"
+
+    def test_get_safe_hostname_without_url(self):
+        """get_safe_hostname should return 'unknown' when no URL."""
+        error = CIMDError("Test error")
+        assert error.get_safe_hostname() == "unknown"
+
+    def test_get_safe_hostname_with_none_url(self):
+        """get_safe_hostname should return 'unknown' when URL is None."""
+        error = CIMDError("Test error", None)
+        assert error.get_safe_hostname() == "unknown"
+
+    def test_safe_message_includes_hostname_only(self):
+        """safe_message should include only hostname, not the full URL."""
+        error = CIMDError("Internal details here", "https://example.com/oauth/client")
+        assert error.safe_message == "Unable to verify client: example.com"
+        assert "/oauth/client" not in error.safe_message
+        assert "Internal details" not in error.safe_message
+
+    def test_safe_message_without_url(self):
+        """safe_message should use 'unknown' when no URL available."""
+        error = CIMDError("Internal details here")
+        assert error.safe_message == "Unable to verify client: unknown"
+
+    def test_cimd_fetch_error_inherits_safe_message(self):
+        """CIMDFetchError should inherit safe_message from CIMDError."""
+        error = CIMDFetchError("Connection timed out", "https://api.example.com/client")
+        assert error.safe_message == "Unable to verify client: api.example.com"
+        assert "timed out" not in error.safe_message
+
+    def test_cimd_validation_error_inherits_safe_message(self):
+        """CIMDValidationError should inherit safe_message from CIMDError."""
+        error = CIMDValidationError(
+            "client_id mismatch: got 'https://evil.com' expected 'https://good.com'",
+            "https://good.com/oauth/client",
+        )
+        assert error.safe_message == "Unable to verify client: good.com"
+        assert "evil.com" not in error.safe_message
+        assert "mismatch" not in error.safe_message
+
+    def test_error_message_still_available_for_logging(self):
+        """The original error message should still be accessible via str() for logging."""
+        error = CIMDFetchError(
+            "HTTP 500 fetching client metadata document", "https://example.com/c"
+        )
+        assert "HTTP 500" in str(error)
+        assert "Unable to verify client" not in str(error)
+
+
+class CIMDExceptionClientIdUrlPropagationTest(TestCase):
+    """Tests to verify client_id_url is properly propagated through exceptions."""
+
+    def setUp(self):
+        super().setUp()
+        self.client = CIMDClient()
+        self.test_url = "https://example.com/oauth/client"
+
+    @responses.activate
+    def test_fetch_error_includes_client_id_url(self):
+        """CIMDFetchError from fetch should include client_id_url."""
+        responses.add(
+            responses.GET,
+            self.test_url,
+            status=500,
+        )
+
+        with pytest.raises(CIMDFetchError) as exc_info:
+            self.client.fetch_metadata(self.test_url)
+
+        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.get_safe_hostname() == "example.com"
+
+    @responses.activate
+    def test_fetch_timeout_includes_client_id_url(self):
+        """CIMDFetchError from timeout should include client_id_url."""
+        responses.add(
+            responses.GET,
+            self.test_url,
+            body=Timeout("Connection timed out"),
+        )
+
+        with pytest.raises(CIMDFetchError) as exc_info:
+            self.client.fetch_metadata(self.test_url)
+
+        assert exc_info.value.client_id_url == self.test_url
+
+    @responses.activate
+    def test_fetch_connection_error_includes_client_id_url(self):
+        """CIMDFetchError from connection error should include client_id_url."""
+        responses.add(
+            responses.GET,
+            self.test_url,
+            body=RequestsConnectionError("Connection refused"),
+        )
+
+        with pytest.raises(CIMDFetchError) as exc_info:
+            self.client.fetch_metadata(self.test_url)
+
+        assert exc_info.value.client_id_url == self.test_url
+
+    def test_restricted_ip_includes_client_id_url(self):
+        """CIMDFetchError from restricted IP should include client_id_url."""
+        with patch("sentry.oauth.cimd.safe_urlopen") as mock_urlopen:
+            mock_urlopen.side_effect = RestrictedIPAddress("127.0.0.1")
+
+            with pytest.raises(CIMDFetchError) as exc_info:
+                self.client.fetch_metadata(self.test_url)
+
+            assert exc_info.value.client_id_url == self.test_url
+
+    @responses.activate
+    def test_invalid_json_includes_client_id_url(self):
+        """CIMDFetchError from invalid JSON should include client_id_url."""
+        responses.add(
+            responses.GET,
+            self.test_url,
+            body="not valid json",
+            status=200,
+            content_type="application/json",
+        )
+
+        with pytest.raises(CIMDFetchError) as exc_info:
+            self.client.fetch_metadata(self.test_url)
+
+        assert exc_info.value.client_id_url == self.test_url
+
+    def test_validation_missing_client_id_includes_url(self):
+        """CIMDValidationError for missing client_id should include URL."""
+        document = {"client_name": "Test"}
+
+        with pytest.raises(CIMDValidationError) as exc_info:
+            validate_cimd_document(document, self.test_url)
+
+        assert exc_info.value.client_id_url == self.test_url
+
+    def test_validation_client_id_mismatch_includes_url(self):
+        """CIMDValidationError for client_id mismatch should include URL."""
+        document = {"client_id": "https://other.com/client"}
+
+        with pytest.raises(CIMDValidationError) as exc_info:
+            validate_cimd_document(document, self.test_url)
+
+        assert exc_info.value.client_id_url == self.test_url
+
+    def test_validation_prohibited_field_includes_url(self):
+        """CIMDValidationError for prohibited field should include URL."""
+        document = {"client_id": self.test_url, "client_secret": "secret"}
+
+        with pytest.raises(CIMDValidationError) as exc_info:
+            validate_cimd_document(document, self.test_url)
+
+        assert exc_info.value.client_id_url == self.test_url
+
+    def test_validation_invalid_auth_method_includes_url(self):
+        """CIMDValidationError for invalid auth method should include URL."""
+        document = {
+            "client_id": self.test_url,
+            "token_endpoint_auth_method": "client_secret_basic",
+        }
+
+        with pytest.raises(CIMDValidationError) as exc_info:
+            validate_cimd_document(document, self.test_url)
+
+        assert exc_info.value.client_id_url == self.test_url

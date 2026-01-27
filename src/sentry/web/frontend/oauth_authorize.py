@@ -17,7 +17,7 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
-from sentry.oauth.cimd import CIMDClient, CIMDFetchError, CIMDValidationError
+from sentry.oauth.cimd import CIMDClient, CIMDError
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -586,24 +586,15 @@ class OAuthAuthorizeView(AuthLoginView):
         cimd_client = CIMDClient()
         try:
             metadata = cimd_client.fetch_and_validate(client_id)
-        except CIMDFetchError as e:
+        except CIMDError as e:
             logger.warning(
-                "oauth.cimd.fetch-error",
+                "oauth.cimd.error",
                 extra={"client_id": client_id, "error": str(e)},
             )
+            # Per RFC: show only hostname to user, not potentially spoofed metadata
             return self.respond(
                 "sentry/oauth-error.html",
-                {"error": f"Unable to fetch client metadata: {e}"},
-                status=400,
-            )
-        except CIMDValidationError as e:
-            logger.warning(
-                "oauth.cimd.validation-error",
-                extra={"client_id": client_id, "error": str(e)},
-            )
-            return self.respond(
-                "sentry/oauth-error.html",
-                {"error": f"Invalid client metadata: {e}"},
+                {"error": e.safe_message},
                 status=400,
             )
 
@@ -795,16 +786,15 @@ class OAuthAuthorizeView(AuthLoginView):
             try:
                 metadata = cimd_client.fetch_and_validate(client_id)
                 application = CIMDClientInfo.from_metadata(metadata, client_id)
-            except (CIMDFetchError, CIMDValidationError) as e:
+            except CIMDError as e:
                 logger.warning(
-                    "oauth.cimd.post-validation-error",
+                    "oauth.cimd.post-error",
                     extra={"client_id": client_id, "error": str(e)},
                 )
+                # Per RFC: show only hostname to user, not potentially spoofed metadata
                 return self.respond(
                     "sentry/oauth-error.html",
-                    {
-                        "error": "Client metadata is no longer valid. Please re-initiate the authorization flow."
-                    },
+                    {"error": e.safe_message},
                 )
         else:
             # Traditional registered client
