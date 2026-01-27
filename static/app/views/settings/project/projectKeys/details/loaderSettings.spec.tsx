@@ -11,15 +11,17 @@ import {KeySettings} from './keySettings';
 import {LoaderSettings} from './loaderSettings';
 
 const dynamicSdkLoaderOptions = {
+  hasDebug: false,
+  hasFeedback: false,
   hasPerformance: false,
   hasReplay: true,
-  hasDebug: false,
 };
 
 const fullDynamicSdkLoaderOptions = {
+  hasDebug: true,
+  hasFeedback: true,
   hasPerformance: true,
   hasReplay: true,
-  hasDebug: true,
 };
 
 function renderMockRequests(
@@ -68,6 +70,7 @@ describe('Loader Script Settings', () => {
 
     expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
+    expect(screen.getByText('Enable User Feedback')).toBeInTheDocument();
     expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
     const performanceCheckbox = screen.getByRole('checkbox', {
@@ -81,6 +84,12 @@ describe('Loader Script Settings', () => {
     });
     expect(replayCheckbox).toBeEnabled();
     expect(replayCheckbox).toBeChecked();
+
+    const feedbackCheckbox = screen.getByRole('checkbox', {
+      name: 'Enable User Feedback',
+    });
+    expect(feedbackCheckbox).toBeEnabled();
+    expect(feedbackCheckbox).not.toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
       name: 'Enable SDK debugging',
@@ -193,9 +202,10 @@ describe('Loader Script Settings', () => {
           data: {
             browserSdkVersion: '6.x',
             dynamicSdkLoaderOptions: {
+              hasDebug: true,
+              hasFeedback: false,
               hasPerformance: false,
               hasReplay: false,
-              hasDebug: true,
             },
           },
         })
@@ -203,7 +213,7 @@ describe('Loader Script Settings', () => {
     });
   });
 
-  it('disabled performance & replay when SDK version <7 is selected', () => {
+  it('disabled performance, replay & feedback when SDK version <7 is selected', () => {
     const {organization, project} = initializeOrg();
     const params = {
       projectSlug: project.slug,
@@ -213,9 +223,10 @@ describe('Loader Script Settings', () => {
     const data = {
       ...(ProjectKeysFixture()[0] as ProjectKey),
       dynamicSdkLoaderOptions: {
+        hasDebug: true,
+        hasFeedback: false,
         hasPerformance: false,
         hasReplay: false,
-        hasDebug: true,
       },
       browserSdkVersion: '6.x',
     } as ProjectKey;
@@ -240,6 +251,11 @@ describe('Loader Script Settings', () => {
     });
     expect(replayCheckbox).not.toBeChecked();
 
+    const feedbackCheckbox = screen.getByRole('checkbox', {
+      name: 'Enable User Feedback',
+    });
+    expect(feedbackCheckbox).not.toBeChecked();
+
     const debugCheckbox = screen.getByRole('checkbox', {
       name: 'Enable SDK debugging',
     });
@@ -247,7 +263,7 @@ describe('Loader Script Settings', () => {
 
     expect(
       screen.getAllByText('Only available in SDK version 7.x and above')
-    ).toHaveLength(2);
+    ).toHaveLength(3);
   });
 
   it('shows replay message when it is enabled', () => {

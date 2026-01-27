@@ -592,6 +592,7 @@ function ExplorerPanel() {
         blocks={blocks}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
+        isSeerDrawerOpen={isSeerDrawerOpen}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
         readOnly={readOnly}
         onCreatePR={createPR}
