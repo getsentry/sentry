@@ -501,7 +501,7 @@ class BuildsEndpointTest(APITestCase):
         assert data[0]["app_info"]["app_id"] == "pr123.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_platform_name_ios(self) -> None:
+    def test_query_platform_name_apple(self) -> None:
         from sentry.preprod.models import PreprodArtifact
 
         self.create_preprod_artifact(
