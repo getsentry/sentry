@@ -1,4 +1,10 @@
-import {Fragment, forwardRef, memo, useCallback, type ComponentPropsWithoutRef} from 'react';
+import {
+  forwardRef,
+  Fragment,
+  memo,
+  useCallback,
+  type ComponentPropsWithoutRef,
+} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
