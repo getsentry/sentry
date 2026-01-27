@@ -140,7 +140,7 @@ export function AutoSaveField<
   });
 
   return (
-    <AutoSaveContextProvider value={{isPending: mutation.isPending}}>
+    <AutoSaveContextProvider value={{status: mutation.status}}>
       <form.AppField name={name}>{field => children(field as never)}</form.AppField>
     </AutoSaveContextProvider>
   );

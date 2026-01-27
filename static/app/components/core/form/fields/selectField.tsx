@@ -35,7 +35,7 @@ export function SelectField({
         <Select
           {...fieldProps}
           {...props}
-          disabled={props.disabled || autoSaveContext?.isPending}
+          disabled={props.disabled || autoSaveContext?.status === 'pending'}
           components={{...props.components, Input: SelectInput}}
           onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
         />

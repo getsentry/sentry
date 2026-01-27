@@ -5,7 +5,7 @@ import {createContext, useContext} from 'react';
  * Consumed by field components to automatically apply mutation state
  */
 interface AutoSaveContextValue {
-  isPending: boolean;
+  status: 'pending' | 'error' | 'idle' | 'success';
 }
 
 const AutoSaveContext = createContext<AutoSaveContextValue | null>(null);

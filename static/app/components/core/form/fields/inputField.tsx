@@ -1,5 +1,4 @@
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {Spinner} from '@sentry/scraps/form/spinner';
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 
@@ -20,17 +19,15 @@ export function InputField({
 
   return (
     <BaseField label={label} hintText={hintText} required={required}>
-      {fieldProps => (
+      {(fieldProps, {indicator}) => (
         <InputGroup>
           <InputGroup.Input
             {...fieldProps}
             {...props}
-            disabled={props.disabled || autoSaveContext?.isPending}
+            disabled={props.disabled || autoSaveContext?.status === 'pending'}
             onChange={e => onChange(e.target.value)}
           />
-          <InputGroup.TrailingItems>
-            {autoSaveContext?.isPending ? <Spinner /> : null}
-          </InputGroup.TrailingItems>
+          <InputGroup.TrailingItems>{indicator}</InputGroup.TrailingItems>
         </InputGroup>
       )}
     </BaseField>
