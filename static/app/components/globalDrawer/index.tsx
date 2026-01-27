@@ -73,7 +73,7 @@ export interface DrawerOptions {
   //
   // Custom framer motion transition for the drawer
   //
-  transitionProps?: Transition;
+  transition?: Transition;
 }
 
 interface DrawerRenderProps {
@@ -208,7 +208,7 @@ export function GlobalDrawer({children}: any) {
               onClose={handleClose}
               ref={panelRef}
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
-              transitionProps={currentDrawerConfig?.options?.transitionProps}
+              transition={currentDrawerConfig?.options?.transition}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
               resizable={currentDrawerConfig?.options?.resizable}

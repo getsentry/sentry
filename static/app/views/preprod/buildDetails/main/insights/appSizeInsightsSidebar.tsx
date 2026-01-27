@@ -95,11 +95,7 @@ export function AppSizeInsightsSidebar({
         )}
       </AnimatePresence>
       {isOpen && (
-        <SlideOverPanel
-          position="right"
-          panelWidth={`${constrainedWidth}px`}
-          ariaLabel={t('App size insights details')}
-        >
+        <SlideOverPanel placement="right" width={`${constrainedWidth}px`}>
           <Flex height="100%" direction="column">
             <Header padding="xl" align="center" justify="between">
               <Flex align="center" gap="sm">

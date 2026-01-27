@@ -26,17 +26,15 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 
 <br />
 
-## Basic Usage
+## Usage
 
 ```jsx
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>;
 
 {
   isPanelOpen && (
-    <SlideOverPanel position="right">
-      <Container border="primary" height="100%" padding="md">
-        <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
-      </Container>
+    <SlideOverPanel placement="right" padding="md">
+      <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
     </SlideOverPanel>
   );
 }
@@ -49,7 +47,9 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 In the example below, you can see that the panel contents take a very long time to render, but the panel opens right away, and can be closed while the content is still rendering.
 
 <Storybook.Demo>
-  <SlideOverPanelSkeletonPlayground />
+  {['right', 'bottom', 'left'].map(placement => (
+    <SlideOverPanelSkeletonPlayground key={placement} placement={placement} />
+  ))}
 </Storybook.Demo>
 
 <br />
@@ -62,7 +62,7 @@ To enable a loading skeleton, pass a render prop as the children to `SlideOverPa
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
 {isPanelOpen && (
-  <SlideOverPanel position="right">
+  <SlideOverPanel placement="right">
     {(options: {isOpening: boolean}) => {
       return options.isOpening ? (
         <SkeletonPanelContents onClick={closePanel} />
@@ -83,7 +83,7 @@ Generally, we recommend not animating the panel on close, and simply removing it
 
 <AnimatePresence>
   {isPanelOpen && (
-    <SlideOverPanel position="right">
+    <SlideOverPanel placement="right">
       {(options: {isOpening: boolean}) => {
         return options.isOpening ? (
           <SkeletonPanelContents onClick={closePanel} />

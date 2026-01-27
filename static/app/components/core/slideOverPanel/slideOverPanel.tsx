@@ -1,62 +1,26 @@
 import {useEffect, useId, useState, useTransition} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
-import {css, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type Transition} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
+import {Surface, type ContainerProps} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
+import {unreachable} from 'sentry/utils/unreachable';
 
-const RIGHT_SIDE_PANEL_WIDTH = '50vw';
-const LEFT_SIDE_PANEL_WIDTH = '40vw';
-const PANEL_HEIGHT = '50vh';
+const MotionSurface = motion.create(Surface);
 
-const OPEN_STYLES = {
-  bottom: {transform: 'translateX(0) translateY(0)', opacity: 1},
-  right: {transform: 'translateX(0) translateY(0)', opacity: 1},
-  left: {transform: 'translateX(0) translateY(0)', opacity: 1},
-};
-
-const COLLAPSED_STYLES = {
-  bottom: {transform: `translateX(0) translateY(${PANEL_HEIGHT})`, opacity: 0},
-  right: {transform: `translateX(${RIGHT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
-  left: {transform: `translateX(-${LEFT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
-};
-
-interface ChildRenderProps {
-  isOpening: boolean;
-}
-
-type ChildRenderFunction = (renderPropProps: ChildRenderProps) => React.ReactNode;
-
-type SlideOverPanelProps = {
-  children: React.ReactNode | ChildRenderFunction;
-  ariaLabel?: string;
-  className?: string;
-  'data-test-id'?: string;
-  panelWidth?: string;
-  position?: 'right' | 'bottom' | 'left';
-  ref?: React.Ref<HTMLDivElement>;
+interface SlideOverPanelProps extends Pick<ContainerProps<'aside'>, 'width'> {
+  children: React.ReactNode | ((props: {isOpening: boolean}) => React.ReactNode);
+  placement: 'right' | 'bottom' | 'left';
   /**
    * A Framer Motion `Transition` object that specifies the transition properties that apply when the panel opens and closes.
    */
-  transitionProps?: Transition;
-};
+  transition?: Transition;
+}
 
-export function SlideOverPanel({
-  'data-test-id': testId,
-  ariaLabel,
-  children,
-  className,
-  position,
-  transitionProps = {},
-  panelWidth,
-  ref,
-}: SlideOverPanelProps) {
+export function SlideOverPanel({children, ...props}: SlideOverPanelProps) {
   const theme = useTheme();
-
-  const [isTransitioning, startTransition] = useTransition();
 
   // Defer rendering the children on initial mount. Here's how the flow works:
   //
@@ -75,6 +39,7 @@ export function SlideOverPanel({
   // contents in a lower priority lane. When the render is complete, the content
   // is displayed.
   // Subsequent updates of the `children` are not deferred.
+  const [isTransitioning, startTransition] = useTransition();
   const [isContentVisible, setIsContentVisible] = useState<boolean>(false);
 
   useEffect(() => {
@@ -83,111 +48,105 @@ export function SlideOverPanel({
     });
   }, []);
 
+  const isOpening = isTransitioning || !isContentVisible;
+
   const id = useId();
-
-  const renderFunctionProps: ChildRenderProps = {
-    isOpening: isTransitioning || !isContentVisible,
-  };
-
-  const openStyle = position ? OPEN_STYLES[position] : OPEN_STYLES.right;
-
-  const collapsedStyle = position ? COLLAPSED_STYLES[position] : COLLAPSED_STYLES.right;
-
   return (
     <BoundaryContextProvider value={id}>
-      <_SlideOverPanel
-        ref={ref}
+      <AnimatedSurface
+        as="aside"
         id={id}
-        initial={collapsedStyle}
-        animate={openStyle}
-        exit={collapsedStyle}
-        position={position}
+        initial={COLLAPSED_STYLES[props.placement]}
+        animate={OPEN_STYLES[props.placement]}
+        exit={COLLAPSED_STYLES[props.placement]}
+        variant="primary"
+        role="complementary"
+        overflow="auto"
+        pointerEvents="auto"
+        overscrollBehavior="contain"
+        position={props.placement === 'bottom' ? 'sticky' : 'fixed'}
         transition={{
           ...theme.motion.framer.spring.moderate,
-          ...transitionProps,
+          ...props.transition,
         }}
-        role="complementary"
-        aria-hidden={false}
-        aria-label={ariaLabel ?? 'slide out drawer'}
-        className={className}
-        data-test-id={testId}
-        panelWidth={panelWidth}
+        {...props}
+        {...getSlideoutPlacementStyles(props.placement, props.width, theme)}
       >
         {/* Render the child content. If it's a render prop, pass the `isOpening`
       prop. We expect the render prop to render a skeleton UI if `isOpening` is
       true. If `children` is not a render prop, render nothing while
       transitioning. */}
         {typeof children === 'function'
-          ? children(renderFunctionProps)
-          : renderFunctionProps.isOpening
+          ? children({isOpening})
+          : isOpening
             ? null
             : children}
-      </_SlideOverPanel>
+      </AnimatedSurface>
     </BoundaryContextProvider>
   );
 }
 
-const _SlideOverPanel = styled(motion.div, {
-  shouldForwardProp: prop =>
-    ['initial', 'animate', 'exit', 'transition'].includes(prop) || isPropValid(prop),
-})<{
-  panelWidth?: string;
-  position?: 'right' | 'bottom' | 'left';
-}>`
-  position: fixed;
-
-  top: ${p => (p.position === 'left' ? '54px' : space(2))};
-  right: ${p => (p.position === 'left' ? space(2) : 0)};
-  bottom: ${space(2)};
-  left: ${p => (p.position === 'left' ? 0 : space(2))};
-
-  overflow: auto;
-  pointer-events: auto;
-  overscroll-behavior: contain;
-
-  z-index: ${p => p.theme.zIndex.modal - 1};
-
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
-
-  text-align: left;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    ${p =>
-      p.position === 'bottom'
-        ? css`
-            position: sticky;
-
-            width: 100%;
-            height: ${PANEL_HEIGHT};
-
-            right: 0;
-            bottom: 0;
-            left: 0;
-          `
-        : p.position === 'right'
-          ? css`
-              position: fixed;
-
-              width: ${p.panelWidth ?? RIGHT_SIDE_PANEL_WIDTH};
-              height: 100%;
-
-              top: 0;
-              right: 0;
-              bottom: 0;
-              left: auto;
-            `
-          : css`
-              position: relative;
-
-              width: ${p.panelWidth ?? LEFT_SIDE_PANEL_WIDTH};
-              min-width: 450px;
-              height: 100%;
-
-              top: 0;
-              right: auto;
-              bottom: 0;
-              left: auto;
-            `}
+function getSlideoutPlacementStyles(
+  placement: 'right' | 'bottom' | 'left',
+  theme: Theme
+): Pick<
+  ContainerProps,
+  'position' | 'height' | 'width' | 'right' | 'top' | 'bottom' | 'left' | 'minWidth'
+> {
+  switch (placement) {
+    case 'right':
+      return {
+        position: {'2xs': 'fixed', xs: 'fixed'},
+        height: {'2xs': `calc(100vh - ${theme.space.lg})`, xs: '100%'},
+        width: {'2xs': `calc(100vw - ${theme.space.lg})`, xs: RIGHT_SIDE_PANEL_WIDTH},
+        right: 0,
+        top: 0,
+        bottom: 0,
+      };
+    case 'left':
+      return {
+        position: {'2xs': 'fixed', xs: 'relative'},
+        width: LEFT_SIDE_PANEL_WIDTH,
+        minWidth: '450px',
+        height: '100%',
+        left: 0,
+        top: 0,
+        bottom: 0,
+      };
+    case 'bottom':
+      return {
+        position: {'2xs': 'fixed', xs: 'sticky'},
+        width: '100%',
+        height: BOTTOM_SIDE_PANEL_HEIGHT,
+        bottom: 0,
+        left: 0,
+        right: 0,
+      };
+    default:
+      unreachable(placement);
+      throw new Error(`Invalid placement: ${placement}`);
   }
+}
+
+const AnimatedSurface = styled(MotionSurface)<SlideOverPanelProps>`
+  z-index: ${p => p.theme.zIndex.modal - 1};
 `;
+
+const RIGHT_SIDE_PANEL_WIDTH = '50vw';
+const LEFT_SIDE_PANEL_WIDTH = '40vw';
+const BOTTOM_SIDE_PANEL_HEIGHT = '50vh';
+
+const OPEN_STYLES = {
+  bottom: {transform: 'translateX(0) translateY(0)', opacity: 1},
+  right: {transform: 'translateX(0) translateY(0)', opacity: 1},
+  left: {transform: 'translateX(0) translateY(0)', opacity: 1},
+};
+
+const COLLAPSED_STYLES = {
+  bottom: {
+    transform: `translateX(0) translateY(${BOTTOM_SIDE_PANEL_HEIGHT})`,
+    opacity: 0,
+  },
+  right: {transform: `translateX(${RIGHT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
+  left: {transform: `translateX(-${LEFT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
+};

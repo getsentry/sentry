@@ -44,14 +44,14 @@ interface DrawerPanelProps {
   drawerWidth?: DrawerOptions['drawerWidth'];
   ref?: React.Ref<HTMLDivElement>;
   resizable?: DrawerOptions['resizable'];
-  transitionProps?: Transition;
+  transition?: Transition;
 }
 
 function DrawerPanel({
   ref,
   ariaLabel,
   children,
-  transitionProps,
+  transition,
   onClose,
   drawerWidth,
   drawerKey,
@@ -73,11 +73,10 @@ function DrawerPanel({
     <DrawerContainer>
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
-          ariaLabel={ariaLabel}
-          position="right"
+          placement="right"
           ref={mergeRefs(panelRef, ref)}
-          transitionProps={transitionProps}
-          panelWidth="var(--drawer-width)" // Initial width only
+          transition={transition}
+          width="var(--drawer-width)" // Initial width only
           className="drawer-panel"
           css={drawerCss}
         >

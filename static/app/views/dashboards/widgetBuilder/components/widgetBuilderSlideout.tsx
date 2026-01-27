@@ -246,9 +246,9 @@ function WidgetBuilderSlideout({
 
   return (
     <SlideOverPanel
-      position="left"
+      placement="left"
       data-test-id="widget-slideout"
-      transitionProps={animationTransitionSettings}
+      transition={animationTransitionSettings}
     >
       {({isOpening}) => {
         if (isOpening) {
