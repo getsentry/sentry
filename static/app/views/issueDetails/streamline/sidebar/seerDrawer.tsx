@@ -213,10 +213,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   }
 
   // Route to Explorer-based drawer if both feature flags are enabled
-  if (
-    isSeerExplorerEnabled(organization) &&
-    organization.features.includes('autofix-on-explorer')
-  ) {
+  if (isSeerExplorerEnabled(organization)) {
     return (
       <ExplorerSeerDrawer
         group={group}
@@ -521,9 +518,7 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
-    const isExplorerVersion =
-      isSeerExplorerEnabled(organization) &&
-      organization.features.includes('autofix-on-explorer');
+    const isExplorerVersion = isSeerExplorerEnabled(organization);
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
