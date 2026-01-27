@@ -64,6 +64,7 @@ export enum SavedSearchType {
   LOG = 8,
   TRACEMETRIC = 9,
   PREPROD_APP_SIZE = 10,
+  // This and src/sentry/models/search_common.py must be updated together.
 }
 
 export enum IssueCategory {
