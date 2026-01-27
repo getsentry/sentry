@@ -460,9 +460,9 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
 
-  it('shows Seer categories when seer-billing feature flag is enabled', async () => {
+  it('shows Seer categories for old usage-based Seer plan (seer-added)', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'seer-billing'],
+      features: ['team-insights', 'seer-billing', 'seer-added'],
     });
 
     render(<OrganizationStats />, {
@@ -477,6 +477,20 @@ describe('OrganizationStats', () => {
   it('does not show Seer categories when seer-billing feature flag is disabled', async () => {
     const newOrg = OrganizationFixture({
       features: ['team-insights'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.queryByRole('option', {name: 'Issue Fixes'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
+  });
+
+  it('does not show Seer categories for seat-based Seer plan', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'seer-billing', 'seat-based-seer-enabled'],
     });
 
     render(<OrganizationStats />, {
