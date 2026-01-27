@@ -216,12 +216,15 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: DocsParams) => [
-    {
-      type: StepType.VERIFY,
-      content: [metricsVerify(params)],
-    },
-  ],
+  verify: (params: DocsParams) =>
+    params.isMetricsSelected
+      ? [
+          {
+            type: StepType.VERIFY,
+            content: [metricsVerify(params)],
+          },
+        ]
+      : [],
   nextSteps: (params: DocsParams) => {
     const steps = [];
 
