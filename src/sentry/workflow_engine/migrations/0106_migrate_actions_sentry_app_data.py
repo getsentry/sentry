@@ -4,7 +4,7 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
-from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.models.outbox import RegionOutbox
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -18,13 +18,12 @@ def migrate_action_sentry_app_data(
             type="sentry_app", config__sentry_app_identifier="sentry_app_installation_uuid"
         )
     ):
-        ControlOutbox(
-            shard_scope=6,  # OutboxScope.APP_SCOPE
+        RegionOutbox(
+            shard_scope=12,  # OutboxScope.ACTION_SCOPE
             shard_identifier=action.id,
             object_identifier=action.id,
             category=44,  # OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS
-            region_name="control",
-        )
+        ).save()
 
 
 class Migration(CheckedMigration):

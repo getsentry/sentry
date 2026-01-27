@@ -314,7 +314,6 @@ class OutboxScope(IntEnum):
             OutboxCategory.SERVICE_HOOK_UPDATE,
             OutboxCategory.SENTRY_APP_DELETE,
             OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
-            OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS,
         },
     )
     # No longer in use
@@ -331,6 +330,8 @@ class OutboxScope(IntEnum):
         10, {OutboxCategory.RELOCATION_EXPORT_REQUEST, OutboxCategory.RELOCATION_EXPORT_REPLY}
     )
     API_TOKEN_SCOPE = scope_categories(11, {OutboxCategory.API_TOKEN_UPDATE})
+
+    ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
 
     def __str__(self) -> str:
         return self.name

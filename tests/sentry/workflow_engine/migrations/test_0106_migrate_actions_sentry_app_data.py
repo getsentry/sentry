@@ -37,23 +37,6 @@ class TestActionDataFallthroughType(TestMigrations):
         )
 
     def test_migration(self) -> None:
-        assert (
-            len(
-                Action.objects.filter(
-                    config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
-                )
-            )
-            == 0
-        )
-        assert (
-            len(
-                Action.objects.filter(
-                    config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID
-                )
-            )
-            == 2
-        )
-
         self.installation_uuid_action.refresh_from_db()
         assert (
             self.installation_uuid_action.config.get("sentry_app_identifier")

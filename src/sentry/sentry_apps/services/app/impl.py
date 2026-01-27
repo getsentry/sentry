@@ -81,15 +81,6 @@ class DatabaseBackedAppService(AppService):
         except SentryAppInstallation.DoesNotExist:
             return None
 
-    def get_installation_by_uuid(self, *, uuid: int) -> RpcSentryAppInstallation | None:
-        try:
-            install = SentryAppInstallation.objects.select_related("sentry_app").get(
-                uuid=uuid, status=SentryAppInstallationStatus.INSTALLED
-            )
-            return serialize_sentry_app_installation(install)
-        except SentryAppInstallation.DoesNotExist:
-            return None
-
     def get_installation_org_id_by_token_id(self, token_id: int) -> int | None:
         filters: SentryAppInstallationFilterArgs = {
             "status": SentryAppInstallationStatus.INSTALLED,

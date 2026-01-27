@@ -97,11 +97,6 @@ class AppService(RpcService):
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         pass
 
-    @rpc_method
-    @abc.abstractmethod
-    def get_installation_by_uuid(self, *, id: int) -> RpcSentryAppInstallation | None:
-        pass
-
     def installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         """
         Get a sentryapp install by id
