@@ -64,7 +64,10 @@ function WidgetBuilderDatasetSelector() {
     });
   }
 
-  if (hasTraceMetricsDashboards) {
+  if (
+    organization.features.includes('tracemetrics-enabled') &&
+    hasTraceMetricsDashboards
+  ) {
     datasetOptions.push({
       value: WidgetType.TRACEMETRICS,
       label: t('Metrics'),
