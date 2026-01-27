@@ -759,6 +759,17 @@ class BuildsEndpointTest(APITestCase):
         assert data[0]["app_info"]["app_id"] == "app1"
 
     @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_by_build_id(self) -> None:
+        artifact1 = self.create_preprod_artifact(app_id="app1")
+        self.create_preprod_artifact(app_id="app2")
+
+        response = self._request({"query": str(artifact1.id)})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == str(artifact1.id)
+
+    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_no_matches(self) -> None:
         self.create_preprod_artifact(app_id="com.example.app")
         self.create_preprod_artifact(app_id="com.other.app")
