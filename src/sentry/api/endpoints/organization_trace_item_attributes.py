@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
+    TraceItemAttributeNamesResponse,
     TraceItemAttributeValuesRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
@@ -284,27 +285,36 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
         def data_fn(offset: int, limit: int):
             with sentry_sdk.start_span(op="filter", name="hardcoded_aliases") as span:
-                aliased_attributes = set()
+                all_aliased_attributes = []
                 # our aliases don't exist in the db, so filter over our aliases
-                if substring_match:
-                    for column in column_definitions.columns.values():
+                # virtually page through defined aliases before we hit the db
+                if substring_match and offset <= len(column_definitions.columns):
+                    for index, column in enumerate(column_definitions.columns.values()):
                         if (
                             column.proto_type == attr_type
                             and substring_match in column.public_alias
+                            and not column.secondary_alias
+                            and not column.private
                         ):
-                            aliased_attributes.add(column)
+                            all_aliased_attributes.append(column)
+                aliased_attributes = all_aliased_attributes[offset : offset + limit - 1]
             with sentry_sdk.start_span(op="query", name="attribute_names") as span:
-                rpc_request = TraceItemAttributeNamesRequest(
-                    meta=meta,
-                    limit=limit,
-                    page_token=PageToken(offset=offset),
-                    type=attr_type,
-                    value_substring_match=value_substring_match,
-                    intersecting_attributes_filter=query_filter,
-                )
+                if len(aliased_attributes) < limit - 1:
+                    offset -= len(all_aliased_attributes) - len(aliased_attributes)
+                    limit -= len(aliased_attributes)
+                    rpc_request = TraceItemAttributeNamesRequest(
+                        meta=meta,
+                        limit=limit,
+                        page_token=PageToken(offset=offset),
+                        type=attr_type,
+                        value_substring_match=value_substring_match,
+                        intersecting_attributes_filter=query_filter,
+                    )
 
-                with handle_query_errors():
-                    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+                    with handle_query_errors():
+                        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+                else:
+                    rpc_response = TraceItemAttributeNamesResponse()
 
                 if use_sentry_conventions:
                     attribute_keys = {}
