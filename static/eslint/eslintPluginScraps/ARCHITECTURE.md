@@ -454,7 +454,7 @@ Ensure semantic tokens are applied to correct CSS properties (primary) and selec
 
 1. Find declarations whose value is a member chain under `theme.tokens.<semanticGroup>`
 2. Determine the canonical property name for the declaration (normalized).
-3. Validate against configured `semanticTokens` allowed list.
+3. Validate against configured `useSemanticToken` allowed list.
 
 **Key Behavior**
 
