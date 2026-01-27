@@ -1,5 +1,8 @@
+import {Fragment} from 'react';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import Hook from 'sentry/components/hook';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -33,25 +36,35 @@ export function DisabledAlert({detector, message}: DisabledAlertProps) {
 
   return (
     <Alert.Container>
-      <Alert
-        variant="muted"
-        trailingItems={
-          <Button
-            size="xs"
-            icon={<IconPlay />}
-            onClick={handleEnable}
-            disabled={isEnabling || !canEdit}
-            aria-label={t('Enable')}
-            title={
-              canEdit ? undefined : t('You do not have permission to enable this monitor')
-            }
-          >
-            {t('Enable')}
-          </Button>
+      <Hook name="component:disabled-detector-alert" detector={detector}>
+        {({hooks}) =>
+          hooks.length > 0 ? (
+            <Fragment>{hooks as React.ReactNode}</Fragment>
+          ) : (
+            <Alert
+              variant="muted"
+              trailingItems={
+                <Button
+                  size="xs"
+                  icon={<IconPlay />}
+                  onClick={handleEnable}
+                  disabled={isEnabling || !canEdit}
+                  aria-label={t('Enable')}
+                  title={
+                    canEdit
+                      ? undefined
+                      : t('You do not have permission to enable this monitor')
+                  }
+                >
+                  {t('Enable')}
+                </Button>
+              }
+            >
+              {message}
+            </Alert>
+          )
         }
-      >
-        {message}
-      </Alert>
+      </Hook>
     </Alert.Container>
   );
 }

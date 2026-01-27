@@ -1,10 +1,11 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import Hook from 'sentry/components/hook';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -51,9 +52,17 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
   }
 
   return (
-    <Button size="sm" onClick={toggleDisabled} disabled={isUpdating}>
-      {detector.enabled ? t('Disable') : t('Enable')}
-    </Button>
+    <Hook name="component:disabled-detector-action" detector={detector}>
+      {({hooks}) =>
+        hooks.length > 0 ? (
+          <Fragment>{hooks as React.ReactNode}</Fragment>
+        ) : (
+          <Button size="sm" onClick={toggleDisabled} disabled={isUpdating}>
+            {detector.enabled ? t('Disable') : t('Enable')}
+          </Button>
+        )
+      }
+    </Hook>
   );
 }
 
