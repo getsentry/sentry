@@ -16,6 +16,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Or, Query, Relationship
 
 from sentry.incidents.logic import query_datasets_to_type
+from sentry.models.environment import Environment
 from sentry.models.group import GroupStatus
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -91,6 +92,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
         aggregate=None,
         time_window=None,
         query_extra=None,
+        environment=None,
     ):
         if status is None:
             status = self.expected_status
@@ -111,6 +113,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             query=query,
             time_window=time_window,
             resolution=resolution,
+            environment=environment,
         )
         return QuerySubscription.objects.create(
             snuba_query=snuba_query,
@@ -399,6 +402,33 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             )
             delete_subscription_from_snuba(sub.id)
             assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_release_stage_with_environment(self) -> None:
+        """Test that update_subscription_in_snuba works with release.stage filter and environment."""
+        # Create an environment
+        environment = Environment.objects.create(
+            organization_id=self.organization.id,
+            name="production",
+        )
+
+        # Create a subscription with release.stage filter and environment
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            subscription_id=subscription_id,
+            query="release.stage:adopted",
+            aggregate="count()",
+            environment=environment,
+        )
+
+        # This should not raise InvalidSearchQuery anymore
+        update_subscription_in_snuba(sub.id)
+
+        # Verify subscription was updated successfully
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+        assert sub.subscription_id != subscription_id
 
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
