@@ -216,12 +216,6 @@ function useNavigationActions(): CommandPaletteAction[] {
     }),
     makeCommandPaletteLink({
       display: {
-        label: t('AI Code Review'),
-      },
-      to: `${prefix}/prevent/ai-code-review/new/`,
-    }),
-    makeCommandPaletteLink({
-      display: {
         label: t('Tokens'),
       },
       to: `${prefix}/prevent/tokens/`,

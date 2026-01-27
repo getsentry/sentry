@@ -2424,7 +2424,7 @@ function buildRoutes(): RouteObject[] {
     children: [
       {
         index: true,
-        redirectTo: 'ai-code-review/new/',
+        redirectTo: 'tests/',
       },
       {
         path: 'tests/',

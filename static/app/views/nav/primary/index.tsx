@@ -71,7 +71,7 @@ function showPreventNav(organization: Organization) {
   // only people with test analytics can see the prevent nav
   // Legacy Seer and New Seer orgs are getting a Seer Config Reminder icon, which
   // means that the only Prevent sub-nav item remaining is the Tests item.
-  return organization.features.includes('prevent-test-analytics ');
+  return organization.features.includes('prevent-test-analytics');
 }
 
 export function PrimaryNavigationItems() {
