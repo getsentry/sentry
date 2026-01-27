@@ -9,6 +9,7 @@ from requests.exceptions import Timeout
 
 from sentry.exceptions import RestrictedIPAddress
 from sentry.oauth.cimd import (
+    CIMDCache,
     CIMDClient,
     CIMDFetchError,
     CIMDValidationError,
@@ -594,3 +595,235 @@ class CIMDValidationTest(TestCase):
         }
         # Should not raise
         validate_cimd_document(document, self.test_url)
+
+
+class CIMDCacheTest(TestCase):
+    """Tests for CIMD metadata caching layer."""
+
+    def setUp(self):
+        super().setUp()
+        self.cache = CIMDCache()
+        self.test_url = "https://example.com/oauth/client"
+        self.test_metadata = {
+            "client_id": self.test_url,
+            "client_name": "Test Application",
+            "redirect_uris": ["https://example.com/callback"],
+        }
+
+    def test_get_cache_key_deterministic(self):
+        """Cache key should be deterministic for the same URL."""
+        key1 = self.cache.get_cache_key(self.test_url)
+        key2 = self.cache.get_cache_key(self.test_url)
+        assert key1 == key2
+
+    def test_get_cache_key_unique_for_different_urls(self):
+        """Different URLs should produce different cache keys."""
+        key1 = self.cache.get_cache_key(self.test_url)
+        key2 = self.cache.get_cache_key("https://other.com/client")
+        assert key1 != key2
+
+    def test_get_cache_key_format(self):
+        """Cache key should have expected prefix."""
+        key = self.cache.get_cache_key(self.test_url)
+        assert key.startswith("cimd:metadata:")
+
+    def test_set_and_get_metadata(self):
+        """Successfully cache and retrieve metadata."""
+        self.cache.set(self.test_url, self.test_metadata)
+        result = self.cache.get(self.test_url)
+        assert result == self.test_metadata
+
+    def test_get_returns_none_for_uncached(self):
+        """Return None when metadata is not cached."""
+        result = self.cache.get("https://not-cached.com/client")
+        assert result is None
+
+    def test_delete_removes_cached_metadata(self):
+        """Delete should remove metadata from cache."""
+        self.cache.set(self.test_url, self.test_metadata)
+        self.cache.delete(self.test_url)
+        result = self.cache.get(self.test_url)
+        assert result is None
+
+    def test_calculate_ttl_default(self):
+        """Use default TTL when no Cache-Control header."""
+        ttl = self.cache._calculate_ttl(None)
+        assert ttl == CIMDCache.DEFAULT_TTL
+
+    def test_calculate_ttl_from_max_age(self):
+        """Parse max-age from Cache-Control header."""
+        ttl = self.cache._calculate_ttl("max-age=600")
+        assert ttl == 600
+
+    def test_calculate_ttl_from_max_age_with_other_directives(self):
+        """Parse max-age even with other Cache-Control directives."""
+        ttl = self.cache._calculate_ttl("public, max-age=1800, must-revalidate")
+        assert ttl == 1800
+
+    def test_calculate_ttl_enforces_max_bound(self):
+        """TTL should not exceed MAX_TTL."""
+        ttl = self.cache._calculate_ttl("max-age=999999")
+        assert ttl == CIMDCache.MAX_TTL
+
+    def test_calculate_ttl_enforces_min_bound(self):
+        """TTL should not be less than MIN_TTL."""
+        ttl = self.cache._calculate_ttl("max-age=1")
+        assert ttl == CIMDCache.MIN_TTL
+
+    def test_calculate_ttl_handles_zero_max_age(self):
+        """Zero max-age should be clamped to MIN_TTL."""
+        ttl = self.cache._calculate_ttl("max-age=0")
+        assert ttl == CIMDCache.MIN_TTL
+
+    def test_calculate_ttl_handles_non_numeric_max_age(self):
+        """Non-numeric max-age should use DEFAULT_TTL (regex won't match)."""
+        ttl = self.cache._calculate_ttl("max-age=invalid")
+        assert ttl == CIMDCache.DEFAULT_TTL
+
+    def test_calculate_ttl_handles_empty_string(self):
+        """Empty string should use DEFAULT_TTL."""
+        ttl = self.cache._calculate_ttl("")
+        assert ttl == CIMDCache.DEFAULT_TTL
+
+    def test_ttl_bounds_constants(self):
+        """Verify TTL bounds are set to expected values."""
+        assert CIMDCache.DEFAULT_TTL == 900  # 15 minutes
+        assert CIMDCache.MAX_TTL == 3600  # 1 hour
+        assert CIMDCache.MIN_TTL == 60  # 1 minute
+
+
+class CIMDClientCacheIntegrationTest(TestCase):
+    """Tests for CIMDClient caching integration."""
+
+    def setUp(self):
+        super().setUp()
+        self.cache = CIMDCache()
+        self.client = CIMDClient(cache=self.cache)
+        self.test_url = "https://example.com/oauth/client"
+        self.test_metadata = {
+            "client_id": self.test_url,
+            "client_name": "Test Application",
+            "redirect_uris": ["https://example.com/callback"],
+        }
+
+    @responses.activate
+    def test_fetch_and_validate_caches_valid_metadata(self):
+        """Valid metadata should be cached after fetch."""
+        responses.add(
+            responses.GET,
+            self.test_url,
+            json=self.test_metadata,
+            status=200,
+            content_type="application/json",
+        )
+
+        self.client.fetch_and_validate(self.test_url)
+
+        # Verify it's in the cache
+        cached = self.cache.get(self.test_url)
+        assert cached == self.test_metadata
+
+    @responses.activate
+    def test_fetch_and_validate_returns_cached_metadata(self):
+        """Should return cached metadata without fetching."""
+        # Pre-populate cache
+        self.cache.set(self.test_url, self.test_metadata)
+
+        # No HTTP responses registered - fetch would fail if attempted
+        result = self.client.fetch_and_validate(self.test_url)
+
+        assert result == self.test_metadata
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_fetch_and_validate_skip_cache_bypasses_cache(self):
+        """skip_cache=True should fetch even when cached."""
+        # Pre-populate cache with old data
+        old_metadata = {
+            "client_id": self.test_url,
+            "client_name": "Old Name",
+        }
+        self.cache.set(self.test_url, old_metadata)
+
+        # New data from server
+        responses.add(
+            responses.GET,
+            self.test_url,
+            json=self.test_metadata,
+            status=200,
+            content_type="application/json",
+        )
+
+        result = self.client.fetch_and_validate(self.test_url, skip_cache=True)
+
+        assert result == self.test_metadata
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_fetch_and_validate_respects_cache_control_header(self):
+        """Cache TTL should respect Cache-Control header."""
+        responses.add(
+            responses.GET,
+            self.test_url,
+            json=self.test_metadata,
+            status=200,
+            content_type="application/json",
+            headers={"Cache-Control": "max-age=1800"},
+        )
+
+        with patch.object(self.cache, "set", wraps=self.cache.set) as mock_set:
+            self.client.fetch_and_validate(self.test_url)
+            mock_set.assert_called_once()
+            # Verify the cache_control header was passed
+            _, kwargs = mock_set.call_args
+            # The third positional arg or cache_control kwarg
+            assert "1800" in str(mock_set.call_args)
+
+    @responses.activate
+    def test_fetch_and_validate_does_not_cache_on_fetch_error(self):
+        """Fetch errors should not result in caching."""
+        responses.add(
+            responses.GET,
+            self.test_url,
+            status=500,
+        )
+
+        with pytest.raises(CIMDFetchError):
+            self.client.fetch_and_validate(self.test_url)
+
+        # Verify nothing was cached
+        assert self.cache.get(self.test_url) is None
+
+    @responses.activate
+    def test_fetch_and_validate_does_not_cache_on_validation_error(self):
+        """Validation errors should not result in caching."""
+        invalid_metadata = {
+            "client_id": "https://different.com/client",  # Mismatch
+            "client_name": "Test",
+        }
+        responses.add(
+            responses.GET,
+            self.test_url,
+            json=invalid_metadata,
+            status=200,
+            content_type="application/json",
+        )
+
+        with pytest.raises(CIMDValidationError):
+            self.client.fetch_and_validate(self.test_url)
+
+        # Verify nothing was cached
+        assert self.cache.get(self.test_url) is None
+
+    def test_client_uses_default_cache_when_none_provided(self):
+        """CIMDClient should use module-level cache by default."""
+        from sentry.oauth.cimd import cimd_cache
+
+        client = CIMDClient()
+        assert client._cache is cimd_cache
+
+    def test_client_uses_provided_cache(self):
+        """CIMDClient should use provided cache instance."""
+        custom_cache = CIMDCache()
+        client = CIMDClient(cache=custom_cache)
+        assert client._cache is custom_cache

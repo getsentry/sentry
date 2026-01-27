@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 from urllib.parse import urlparse
 
 import orjson
@@ -9,6 +11,7 @@ from requests.exceptions import Timeout
 
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.utils.cache import cache
 
 logger = logging.getLogger("sentry.oauth.cimd")
 
@@ -139,6 +142,97 @@ def _validate_optional_string_array(document: dict, field: str) -> None:
             raise CIMDValidationError(f"{field} must contain only strings")
 
 
+class CIMDCache:
+    """
+    Caching layer for CIMD metadata documents.
+
+    Per RFC, authorization servers SHOULD respect HTTP cache headers and MAY
+    define custom cache lifetime bounds. This implementation:
+    - Caches validated metadata documents keyed by URL hash
+    - Respects HTTP Cache-Control max-age directive
+    - Enforces upper/lower TTL bounds for security
+    - Never caches error responses or invalid documents
+    """
+
+    # Cache TTL bounds in seconds
+    DEFAULT_TTL = 900  # 15 minutes
+    MAX_TTL = 3600  # 1 hour (upper bound per RFC guidance)
+    MIN_TTL = 60  # 1 minute (prevent hammering)
+
+    CACHE_KEY_PREFIX = "cimd:metadata"
+
+    def get_cache_key(self, client_id_url: str) -> str:
+        """Generate a cache key from the client_id URL."""
+        url_hash = hashlib.sha256(client_id_url.encode()).hexdigest()[:32]
+        return f"{self.CACHE_KEY_PREFIX}:{url_hash}"
+
+    def get(self, client_id_url: str) -> dict | None:
+        """
+        Retrieve cached CIMD metadata for a client_id URL.
+
+        Args:
+            client_id_url: The client_id URL to look up.
+
+        Returns:
+            Cached metadata dictionary, or None if not cached.
+        """
+        key = self.get_cache_key(client_id_url)
+        return cache.get(key)
+
+    def set(self, client_id_url: str, metadata: dict, cache_control: str | None = None) -> None:
+        """
+        Cache validated CIMD metadata.
+
+        Args:
+            client_id_url: The client_id URL the metadata was fetched from.
+            metadata: The validated metadata document.
+            cache_control: HTTP Cache-Control header value from the response.
+        """
+        key = self.get_cache_key(client_id_url)
+        ttl = self._calculate_ttl(cache_control)
+        cache.set(key, metadata, ttl)
+        logger.debug(
+            "cimd.cache.set",
+            extra={
+                "client_id_url": client_id_url,
+                "ttl": ttl,
+                "cache_control": cache_control,
+            },
+        )
+
+    def delete(self, client_id_url: str) -> None:
+        """Remove cached metadata for a client_id URL."""
+        key = self.get_cache_key(client_id_url)
+        cache.delete(key)
+
+    def _calculate_ttl(self, cache_control: str | None) -> int:
+        """
+        Calculate TTL from Cache-Control header, applying bounds.
+
+        Parses the max-age directive from Cache-Control and clamps it
+        between MIN_TTL and MAX_TTL.
+
+        Args:
+            cache_control: HTTP Cache-Control header value, or None.
+
+        Returns:
+            TTL in seconds, bounded by MIN_TTL and MAX_TTL.
+        """
+        ttl = self.DEFAULT_TTL
+
+        if cache_control:
+            # Parse max-age directive (e.g., "max-age=3600" or "public, max-age=600")
+            match = re.search(r"max-age=(\d+)", cache_control, re.IGNORECASE)
+            if match:
+                ttl = int(match.group(1))
+
+        return max(self.MIN_TTL, min(ttl, self.MAX_TTL))
+
+
+# Module-level cache instance for convenience
+cimd_cache = CIMDCache()
+
+
 class CIMDClient:
     """
     Client for fetching OAuth Client ID Metadata Documents (CIMD).
@@ -160,19 +254,64 @@ class CIMDClient:
     # Timeout for HTTP requests in seconds
     TIMEOUT = 15
 
-    def fetch_metadata(self, client_id_url: str) -> dict:
+    def __init__(self, cache: CIMDCache | None = None):
         """
-        Fetch and return CIMD metadata document from the client_id URL.
+        Initialize the CIMD client.
+
+        Args:
+            cache: Optional cache instance. If not provided, uses the module-level
+                   cimd_cache instance.
+        """
+        self._cache = cache if cache is not None else cimd_cache
+
+    def fetch_and_validate(self, client_id_url: str, *, skip_cache: bool = False) -> dict:
+        """
+        Fetch, validate, and cache CIMD metadata document.
+
+        This is the primary method for retrieving CIMD metadata. It:
+        1. Checks the cache for existing valid metadata
+        2. If not cached, fetches from the client_id URL
+        3. Validates the document per RFC requirements
+        4. Caches valid metadata respecting HTTP Cache-Control headers
 
         Args:
             client_id_url: The client_id URL which must be a valid HTTPS URL.
-                           URL validation should be done before calling this method.
+            skip_cache: If True, bypasses cache lookup (but still caches results).
 
         Returns:
-            Parsed JSON metadata document as a dictionary.
+            Validated metadata document as a dictionary.
 
         Raises:
-            CIMDFetchError: If the metadata cannot be fetched or is invalid.
+            CIMDFetchError: If the metadata cannot be fetched.
+            CIMDValidationError: If the metadata fails validation.
+        """
+        # Check cache first (unless explicitly skipped)
+        if not skip_cache:
+            cached = self._cache.get(client_id_url)
+            if cached is not None:
+                logger.debug(
+                    "cimd.cache.hit",
+                    extra={"client_id_url": client_id_url},
+                )
+                return cached
+
+        # Fetch and parse
+        metadata, cache_control = self._fetch_metadata_with_headers(client_id_url)
+
+        # Validate (may raise CIMDValidationError)
+        validate_cimd_document(metadata, client_id_url)
+
+        # Cache valid metadata
+        self._cache.set(client_id_url, metadata, cache_control)
+
+        return metadata
+
+    def _fetch_metadata_with_headers(self, client_id_url: str) -> tuple[dict, str | None]:
+        """
+        Fetch CIMD metadata and return it along with Cache-Control header.
+
+        Returns:
+            Tuple of (metadata dict, Cache-Control header value or None).
         """
         try:
             response = safe_urlopen(
@@ -257,4 +396,27 @@ class CIMDClient:
             )
             raise CIMDFetchError("Client metadata document must be a JSON object")
 
+        # Extract Cache-Control header for caching
+        cache_control = response.headers.get("Cache-Control")
+
+        return metadata, cache_control
+
+    def fetch_metadata(self, client_id_url: str) -> dict:
+        """
+        Fetch and return CIMD metadata document from the client_id URL.
+
+        This method fetches without caching or validation. For most use cases,
+        prefer `fetch_and_validate()` which includes caching and validation.
+
+        Args:
+            client_id_url: The client_id URL which must be a valid HTTPS URL.
+                           URL validation should be done before calling this method.
+
+        Returns:
+            Parsed JSON metadata document as a dictionary.
+
+        Raises:
+            CIMDFetchError: If the metadata cannot be fetched or is invalid.
+        """
+        metadata, _ = self._fetch_metadata_with_headers(client_id_url)
         return metadata
