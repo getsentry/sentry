@@ -183,7 +183,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     mepSetting,
     samplingMode,
     enabled: !isChartDisplay && !disabled && !propsLoading,
-    limit,
+    limit: limit ?? DEFAULT_TABLE_LIMIT,
     cursor,
   });
 
