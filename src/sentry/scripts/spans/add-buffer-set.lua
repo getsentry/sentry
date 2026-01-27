@@ -47,7 +47,7 @@ local start_time_ms = get_time_ms()
 local set_span_id = parent_span_id
 local redirect_depth = 0
 
-local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
+local main_redirect_key = string.format("span-buf:ssr:{%s}", project_and_trace)
 
 -- Navigates the tree up to the highest level parent span we can find. Such
 -- span is needed to know the segment we need to merge the subsegment into.

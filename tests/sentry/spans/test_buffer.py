@@ -1129,6 +1129,69 @@ def test_dual_write_content_matches(compression_level) -> None:
         assert span_ids == {"a" * 16, "b" * 16, "c" * 16}
 
 
+def test_dual_write_separate_redirect_tables() -> None:
+    """Test that ZSET and SET use separate redirect tables that contain equivalent mappings."""
+    opts = {
+        **DEFAULT_OPTIONS,
+        "spans.buffer.write-to-zset": True,
+        "spans.buffer.write-to-set": True,
+    }
+    with override_options(opts):
+        buffer = SpansBuffer(assigned_shards=list(range(32)))
+        buffer.client.flushdb()
+
+        # Create spans where child arrives before parent to exercise redirect logic
+        spans = [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+                end_timestamp=1700000000.0,
+            ),
+        ]
+
+        process_spans(spans, buffer, now=0)
+
+        # Verify separate redirect tables exist
+        zset_redirect_key = f"span-buf:sr:{{1:{'a' * 32}}}".encode("ascii")
+        set_redirect_key = f"span-buf:ssr:{{1:{'a' * 32}}}".encode("ascii")
+
+        zset_redirects = buffer.client.hgetall(zset_redirect_key)
+        set_redirects = buffer.client.hgetall(set_redirect_key)
+
+        # Both should have redirect entries
+        assert len(zset_redirects) > 0, "ZSET redirect table should have entries"
+        assert len(set_redirects) > 0, "SET redirect table should have entries"
+
+        # Both should have equivalent mappings (same span_id -> parent_span_id)
+        assert zset_redirects == set_redirects, "Redirect tables should have equivalent mappings"
+
+        # Flush and verify cleanup
+        rv = buffer.flush_segments(now=11)
+        buffer.done_flush_segments(rv)
+
+        # Both redirect tables should be cleaned up
+        zset_redirects_after = buffer.client.hgetall(zset_redirect_key)
+        set_redirects_after = buffer.client.hgetall(set_redirect_key)
+        assert len(zset_redirects_after) == 0, "ZSET redirect table should be cleaned up"
+        assert len(set_redirects_after) == 0, "SET redirect table should be cleaned up"
+
+        assert_clean(buffer.client)
+
+
 @mock.patch("sentry.spans.buffer.emit_observability_metrics")
 def test_dual_write_emits_set_metrics(emit_observability_metrics: mock.MagicMock) -> None:
     """Test that SET-specific metrics are emitted separately in dual write mode."""

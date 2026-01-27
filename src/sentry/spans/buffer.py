@@ -788,12 +788,14 @@ class SpansBuffer:
                     p.zrem(flushed_segment.queue_key, zset_key, set_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    zset_redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    set_redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
-                        p.hdel(
-                            redirect_map_key,
-                            *[output_span.payload["span_id"] for output_span in span_batch],
-                        )
+                        span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                        if write_to_zset:
+                            p.hdel(zset_redirect_map_key, *span_ids)
+                        if write_to_set:
+                            p.hdel(set_redirect_map_key, *span_ids)
 
                 p.execute()
