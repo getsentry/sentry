@@ -153,14 +153,10 @@ function getConfigureStep({
   params,
   integration,
   packageName,
-  importMode,
-  configFileName,
 }: {
   integration: AgentIntegration;
   packageName: `@sentry/${string}`;
   params: DocsParams;
-  configFileName?: string;
-  importMode?: 'esm' | 'cjs' | 'esm-only';
 }): OnboardingStep[] {
   // Meta-frameworks can run on multiple runtimes (Node.js server-side, Browser client-side, etc.).
   // We only show Node.js instructions here to keep onboarding simple.
@@ -286,9 +282,9 @@ const mastra = new Mastra({
                 type: 'code',
                 tabs: [
                   {
-                    label: configFileName ?? 'JavaScript',
+                    label: 'JavaScript',
                     language: 'javascript',
-                    code: `${getImport(packageName, importMode).join('\n')}
+                    code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -468,11 +464,7 @@ const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
 
 export const agentMonitoring = ({
   packageName = '@sentry/node',
-  configFileName,
-  importMode,
 }: {
-  configFileName?: string;
-  importMode?: 'esm' | 'cjs' | 'esm-only';
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
   install: params =>
@@ -485,7 +477,6 @@ export const agentMonitoring = ({
     if (selected === AgentIntegration.MANUAL) {
       return getManualConfigureStep(params, {
         packageName,
-        importMode,
       });
     }
 
@@ -493,8 +484,6 @@ export const agentMonitoring = ({
       params,
       integration: selected,
       packageName,
-      importMode,
-      configFileName,
     });
   },
   verify: getVerifyStep,
