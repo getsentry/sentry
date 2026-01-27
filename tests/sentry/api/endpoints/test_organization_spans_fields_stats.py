@@ -7,7 +7,6 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
-    is_eap = True
     view = "sentry-api-0-organization-spans-fields-stats"
 
     def setUp(self) -> None:
@@ -55,7 +54,6 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
             duration=100,
             exclusive_time=100,
             tags=tags,
-            is_eap=self.is_eap,
         )
 
     def test_no_project(self) -> None:
