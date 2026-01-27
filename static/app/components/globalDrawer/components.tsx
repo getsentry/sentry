@@ -1,7 +1,6 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
-import type {Transition} from 'framer-motion';
 
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
@@ -44,14 +43,12 @@ interface DrawerPanelProps {
   drawerWidth?: DrawerOptions['drawerWidth'];
   ref?: React.Ref<HTMLDivElement>;
   resizable?: DrawerOptions['resizable'];
-  transition?: Transition;
 }
 
 function DrawerPanel({
   ref,
   ariaLabel,
   children,
-  transition,
   onClose,
   drawerWidth,
   drawerKey,

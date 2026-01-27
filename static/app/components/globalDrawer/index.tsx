@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import type {Interpolation, Theme} from '@emotion/react';
-import {AnimatePresence, type Transition} from 'framer-motion';
+import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -70,10 +70,6 @@ export interface DrawerOptions {
    * If true (default), closes the drawer when the location changes
    */
   shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
-  //
-  // Custom framer motion transition for the drawer
-  //
-  transition?: Transition;
 }
 
 interface DrawerRenderProps {
@@ -208,7 +204,6 @@ export function GlobalDrawer({children}: any) {
               onClose={handleClose}
               ref={panelRef}
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
-              transition={currentDrawerConfig?.options?.transition}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
               resizable={currentDrawerConfig?.options?.resizable}

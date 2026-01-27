@@ -39,7 +39,6 @@ export function useReleasesDrawer() {
           },
           ariaLabel: t('Releases drawer'),
           drawerKey: 'releases-drawer',
-          transition: {stiffness: 1000},
           onClose: () => {
             navigate({
               query: cleanLocationQuery(location.query),
