@@ -232,6 +232,37 @@ class EntitySubscriptionTestCase(TestCase):
             ),
         ]
 
+    def test_get_entity_subscription_for_metrics_dataset_with_release_filter(self) -> None:
+        """Test that release filters with package@version format are resolved correctly"""
+        org_id = self.organization.id
+        use_case_id = UseCaseID.SESSIONS
+        
+        # Index only the version part (simulating how metrics are stored)
+        version_only = "22.5.5"
+        release_tag = resolve_tag_key(use_case_id, org_id, "release")
+        indexer.record(use_case_id=use_case_id, org_id=org_id, string=version_only)
+        
+        aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.CRASH_RATE,
+            dataset=Dataset.Metrics,
+            aggregate=aggregate,
+            time_window=3600,
+            extra_fields={"org_id": self.organization.id},
+        )
+        
+        # Build query with full release string (package@version format)
+        full_release = f"application.monitoring.javascript@{version_only}"
+        snql_query = entity_subscription.build_query_builder(
+            f"release:{full_release}",
+            [self.project.id],
+            None,
+            {"organization_id": self.organization.id}
+        ).get_snql_query()
+        
+        # Should successfully build the query without raising IncompatibleMetricsQuery
+        assert snql_query is not None
+
     def test_get_entity_subscription_for_performance_transactions_dataset(self) -> None:
         aggregate = "percentile(transaction.duration,.95)"
         entity_subscription = get_entity_subscription(
