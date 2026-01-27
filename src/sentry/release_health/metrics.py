@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
@@ -337,38 +338,42 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             raw_result = get_series(projects=projects, metrics_query=query, use_case_id=USE_CASE_ID)
             return _convert_results(raw_result["groups"], total)
 
-        # XXX(markus): Four queries are quite horrible for this... the old code
-        # sufficed with two. From what I understand, ClickHouse would have to
-        # gain a function uniqCombined64MergeIf, i.e. a conditional variant of
-        # what we already use.
-        #
-        # Alternatively we may want to use a threadpool here to send the
-        # queries in parallel.
-
         # NOTE: referrers are spelled out as single static string literal so
         # S&S folks can search for it more easily. No string formatting
         # business please!
 
-        # Count of sessions/users for given list of environments and timerange, per-project
-        sessions_per_project: dict[int, int] = _count_sessions(
-            total=True,
-            project_ids=project_ids,
-            referrer=Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_TOTAL_SESSIONS,
-        )
-        users_per_project: dict[int, int] = _count_users(
-            total=True, referrer=Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_TOTAL_USERS
-        )
+        # Execute all four queries in parallel to avoid sequential timeout issues
+        # See: Fixes SENTRY-55MA
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            # Submit all 4 queries to run in parallel
+            future_sessions_per_project = executor.submit(
+                _count_sessions,
+                True,
+                project_ids,
+                Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_TOTAL_SESSIONS,
+            )
+            future_users_per_project = executor.submit(
+                _count_users,
+                True,
+                Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_TOTAL_USERS,
+            )
+            future_sessions_per_release = executor.submit(
+                _count_sessions,
+                False,
+                project_ids,
+                Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_RELEASES_SESSIONS,
+            )
+            future_users_per_release = executor.submit(
+                _count_users,
+                False,
+                Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_RELEASES_USERS,
+            )
 
-        # Count of sessions/users for given list of environments and timerange AND GIVEN RELEASES, per-project
-        sessions_per_release: dict[tuple[int, str], int] = _count_sessions(
-            total=False,
-            project_ids=project_ids,
-            referrer=Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_RELEASES_SESSIONS,
-        )
-        users_per_release: dict[tuple[int, str], int] = _count_users(
-            total=False,
-            referrer=Referrer.RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_RELEASES_USERS,
-        )
+            # Wait for all queries to complete and get results
+            sessions_per_project: dict[int, int] = future_sessions_per_project.result()
+            users_per_project: dict[int, int] = future_users_per_project.result()
+            sessions_per_release: dict[tuple[int, str], int] = future_sessions_per_release.result()
+            users_per_release: dict[tuple[int, str], int] = future_users_per_release.result()
 
         rv = {}
 
