@@ -149,7 +149,7 @@ function ReleaseHeader({
               borderless
               size="zero"
               text={version}
-              title={version}
+              tooltipProps={{title: version}}
               aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>

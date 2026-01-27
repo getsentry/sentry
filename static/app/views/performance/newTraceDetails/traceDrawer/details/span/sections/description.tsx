@@ -287,7 +287,7 @@ function ResourceImage(props: {
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}
-          title={t('Copy file name')}
+          tooltipProps={{title: t('Copy file name')}}
         />
       </Flex>
       {showImage && !hasError ? (

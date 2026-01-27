@@ -143,7 +143,7 @@ function BranchButton({change}: {change: AutofixCodebaseChange}) {
         }
         icon={<IconCopy size="xs" />}
         aria-label={t('Copy branch in %s', change.repo_name)}
-        title={t('Copy branch in %s', change.repo_name)}
+        tooltipProps={{title: t('Copy branch in %s', change.repo_name)}}
       />
       <CodeText>{change.branch_name}</CodeText>
     </CopyContainer>
@@ -286,7 +286,7 @@ export function AutofixChanges({
               <Button
                 size="zero"
                 borderless
-                title={t('Chat with Seer')}
+                tooltipProps={{title: t('Chat with Seer')}}
                 onClick={handleSelectFirstChange}
                 analyticsEventName="Autofix: Changes Chat"
                 analyticsEventKey="autofix.changes.chat"
@@ -697,7 +697,7 @@ function SetupAndCreateBranchButton({
         analyticsEventName="Autofix: Create Branch Setup Clicked"
         analyticsEventKey="autofix.create_branch_setup_clicked"
         analyticsParams={{group_id: groupId}}
-        title={t('Enable write access to create branches')}
+        tooltipProps={{title: t('Enable write access to create branches')}}
       >
         {t('Check Out Locally')}
       </Button>
@@ -745,7 +745,7 @@ function SetupAndCreatePRsButton({
         analyticsEventName="Autofix: Create PR Setup Clicked"
         analyticsEventKey="autofix.create_pr_setup_clicked"
         analyticsParams={{group_id: groupId}}
-        title={t('Enable write access to create pull requests')}
+        tooltipProps={{title: t('Enable write access to create pull requests')}}
       >
         {t('Draft PR')}
       </Button>

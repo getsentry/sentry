@@ -103,7 +103,7 @@ export function CopyBreadcrumbsDropdown({
     <DropdownMenu
       size="xs"
       triggerProps={{
-        title: t('Copy Breadcrumbs'),
+        tooltipProps: {title: t('Copy Breadcrumbs')},
         icon: <IconCopy />,
         size: 'xs',
         borderless,

@@ -46,9 +46,9 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
               icon={<IconAdd />}
               busy={isAddingDashboardTemplate}
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              title={limitMessage}
               tooltipProps={{
                 isHoverable: true,
+                title: limitMessage,
               }}
             >
               {t('Add Dashboard')}

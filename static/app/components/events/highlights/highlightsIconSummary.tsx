@@ -133,7 +133,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
                 borderless
                 size="zero"
                 icon={<IconAttachment variant="muted" />}
-                title={t('View Screenshot')}
+                tooltipProps={{title: t('View Screenshot')}}
                 onClick={() => {
                   const downloadUrl = `/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/attachments/${screenshot.id}/`;
                   openModal(

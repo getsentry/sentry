@@ -114,7 +114,9 @@ function PanelHeader({
           to={`${productLink}?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
           icon={<IconSettings />}
           aria-label={t('Configure %s', displayName)}
-          title={tct('Configure [productName]', {productName: displayName})}
+          tooltipProps={{
+            title: tct('Configure [productName]', {productName: displayName}),
+          }}
           analyticsEventName="Subscription Settings: Product Link Clicked"
           analyticsEventKey="subscription_settings.product_link_clicked"
           analyticsParams={{

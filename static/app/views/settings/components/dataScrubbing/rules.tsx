@@ -35,9 +35,11 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
                 onClick={() => onEditRule(id)}
                 icon={<IconEdit />}
                 disabled={disabled}
-                title={
-                  disabled ? t('You do not have permission to edit rules') : undefined
-                }
+                tooltipProps={{
+                  title: disabled
+                    ? t('You do not have permission to edit rules')
+                    : undefined,
+                }}
               />
             )}
             {onDeleteRule && (
@@ -54,9 +56,11 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
                   size="sm"
                   icon={<IconDelete />}
                   disabled={disabled}
-                  title={
-                    disabled ? t('You do not have permission to delete rules') : undefined
-                  }
+                  tooltipProps={{
+                    title: disabled
+                      ? t('You do not have permission to delete rules')
+                      : undefined,
+                  }}
                 />
               </ConfirmDelete>
             )}

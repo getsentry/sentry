@@ -272,7 +272,7 @@ export function ProjectPageFilter({
               borderless
               size="zero"
               icon={<IconOpen />}
-              title={t('Project Details')}
+              tooltipProps={{title: t('Project Details')}}
               aria-label={t('Project Details')}
               to={
                 makeProjectsPathname({
@@ -286,7 +286,7 @@ export function ProjectPageFilter({
               borderless
               size="zero"
               icon={<IconSettings />}
-              title={t('Project Settings')}
+              tooltipProps={{title: t('Project Settings')}}
               aria-label={t('Project Settings')}
               to={`/settings/${organization.slug}/projects/${project.slug}/`}
               visible={isFocused}

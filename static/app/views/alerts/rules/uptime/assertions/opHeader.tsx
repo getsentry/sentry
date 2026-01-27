@@ -109,7 +109,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                   size="zero"
                   borderless
                   showChevron={false}
-                  title={keyCombinedTooltip}
+                  tooltipProps={{title: keyCombinedTooltip}}
                   aria-label={t('key comparison %s', keyCombinedLabel)}
                 >
                   <Text monospace>{keyCombinedLabel}</Text>
@@ -185,7 +185,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                   size="zero"
                   borderless
                   showChevron={false}
-                  title={valueCombinedTooltip}
+                  tooltipProps={{title: valueCombinedTooltip}}
                   aria-label={t('value comparison %s', valueCombinedLabel)}
                 >
                   <Text monospace>{valueCombinedLabel}</Text>

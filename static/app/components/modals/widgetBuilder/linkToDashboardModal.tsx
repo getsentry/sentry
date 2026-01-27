@@ -185,7 +185,7 @@ export function LinkToDashboardModal({
         <StyledButtonBar gap="lg">
           <Button
             disabled={!canSubmit}
-            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             onClick={() => linkToDashboard()}
             aria-label={t('Link to dashboard')}
           >

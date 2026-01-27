@@ -15,7 +15,7 @@ export default function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
 
   return isFinished ? (
     <Button
-      title={t('Restart Replay')}
+      tooltipProps={{title: t('Restart Replay')}}
       icon={<IconRefresh />}
       onClick={() => {
         userAction({type: 'jumpToOffset', offsetMs: 0});
@@ -27,7 +27,7 @@ export default function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
     />
   ) : (
     <Button
-      title={isPlaying ? t('Pause') : t('Play')}
+      tooltipProps={{title: isPlaying ? t('Pause') : t('Play')}}
       icon={isPlaying ? <IconPause /> : <IconPlay />}
       onClick={() => userAction(isPlaying ? {type: 'pause'} : {type: 'play'})}
       aria-label={isPlaying ? t('Pause') : t('Play')}

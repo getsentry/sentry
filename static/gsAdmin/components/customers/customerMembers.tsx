@@ -23,7 +23,7 @@ const getRow = (row: any) => [
         priority="link"
         href={`mailto:${row.email}`}
         icon={<IconMail size="xs" />}
-        title="Send email"
+        tooltipProps={{title: 'Send email'}}
         aria-label="Send email"
       />
       {row.user ? (

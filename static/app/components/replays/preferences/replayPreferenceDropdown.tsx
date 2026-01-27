@@ -49,7 +49,7 @@ export default function ReplayPreferenceDropdown({
       trigger={triggerProps => (
         <OverlayTrigger.IconButton
           {...triggerProps}
-          title={t('Settings')}
+          tooltipProps={{title: t('Settings')}}
           aria-label={t('Settings')}
           icon={<IconSettings />}
         />

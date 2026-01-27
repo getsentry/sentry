@@ -31,7 +31,7 @@ export function NewDetectorFooter({
         priority="primary"
         type="submit"
         disabled={!!disabledCreate}
-        title={disabledCreate}
+        tooltipProps={{title: disabledCreate}}
       >
         {t('Create Monitor')}
       </Button>

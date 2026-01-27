@@ -57,7 +57,7 @@ export function OrganizationSampleRateInput({
         <Flex gap="md">
           {showBulkEditButton && (
             <Button
-              title={t('Proportionally scale project rates')}
+              tooltipProps={{title: t('Proportionally scale project rates')}}
               aria-label={t('Proportionally scale project rates')}
               borderless
               size="sm"

@@ -267,8 +267,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                 <Flex justify="start" align="center" wrap="wrap" flexGrow={1} gap="md">
                   <ButtonBar merged gap="0">
                     <Button
-                      title={t('Previous Thread')}
-                      tooltipProps={{delay: 1000}}
+                      tooltipProps={{title: t('Previous Thread'), delay: 1000}}
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous Thread')}
                       size="xs"
@@ -277,8 +276,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                       }}
                     />
                     <Button
-                      title={t('Next Thread')}
-                      tooltipProps={{delay: 1000}}
+                      tooltipProps={{title: t('Next Thread'), delay: 1000}}
                       icon={<IconChevron direction="right" />}
                       aria-label={t('Next Thread')}
                       size="xs"

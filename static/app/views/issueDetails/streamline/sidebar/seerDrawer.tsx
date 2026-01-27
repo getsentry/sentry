@@ -425,7 +425,7 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
                 external
                 href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 size="xs"
-                title={t('Project Settings for Seer')}
+                tooltipProps={{title: t('Project Settings for Seer')}}
                 aria-label={t('Project Settings for Seer')}
                 icon={<IconSettings />}
               />
@@ -437,13 +437,13 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
                   reset();
                   aiConfig.refetchAutofixSetup?.();
                 }}
-                title={
-                  autofixData?.last_triggered_at
+                tooltipProps={{
+                  title: autofixData?.last_triggered_at
                     ? tct('Last run at [date]', {
                         date: <DateTime date={lastTriggeredAt} />,
                       })
-                    : null
-                }
+                    : null,
+                }}
                 disabled={!autofixData}
               >
                 {t('Start Over')}

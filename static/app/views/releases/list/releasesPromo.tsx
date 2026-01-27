@@ -226,13 +226,13 @@ sentry-cli releases finalize "$VERSION"`;
           disabled={false}
           menuFooter={({closeOverlay}) => (
             <Button
-              title={
-                canMakeIntegration
+              tooltipProps={{
+                title: canMakeIntegration
                   ? undefined
                   : t(
                       'You must be an organization owner, manager or admin to create an integration.'
-                    )
-              }
+                    ),
+              }}
               size="xs"
               borderless
               disabled={!canMakeIntegration}

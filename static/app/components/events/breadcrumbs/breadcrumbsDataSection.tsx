@@ -131,14 +131,16 @@ export default function BreadcrumbsDataSection({
         aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
         size="xs"
-        title={t('Open Search')}
+        tooltipProps={{title: t('Open Search')}}
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
       />
       <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
-        title={tct('Use [format] Timestamps', {
-          format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
-        })}
+        tooltipProps={{
+          title: tct('Use [format] Timestamps', {
+            format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
+          }),
+        }}
         icon={
           timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
             <IconClock size="xs" />

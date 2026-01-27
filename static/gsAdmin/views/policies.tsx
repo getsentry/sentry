@@ -33,9 +33,11 @@ export default function Policies() {
           onClick={() => openModal(deps => <AddPolicyModal {...deps} />)}
           size="sm"
           disabled={!hasPermission}
-          title={
-            hasPermission ? undefined : "You don't have the policies.admin permission"
-          }
+          tooltipProps={{
+            title: hasPermission
+              ? undefined
+              : "You don't have the policies.admin permission",
+          }}
         >
           Add Policy
         </Button>
