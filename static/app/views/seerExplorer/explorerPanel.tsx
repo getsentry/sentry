@@ -4,7 +4,6 @@ import {createPortal} from 'react-dom';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isSeerExplorerEnabled} from 'sentry/utils/seerFeatures';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,6 +31,7 @@ import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   getExplorerUrl,
   getLangfuseUrl,
+  isSeerExplorerEnabled,
   useCopySessionDataToClipboard,
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';

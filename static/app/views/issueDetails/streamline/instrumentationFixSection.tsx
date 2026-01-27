@@ -24,11 +24,11 @@ import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {isSeerExplorerEnabled} from 'sentry/utils/seerFeatures';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface InstrumentationFixSectionProps {
   event: Event;

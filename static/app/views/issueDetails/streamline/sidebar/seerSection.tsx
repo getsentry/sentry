@@ -22,13 +22,13 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {isSeerExplorerEnabled} from 'sentry/utils/seerFeatures';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {SeerSectionCtaButton} from './seerSectionCtaButton';
 

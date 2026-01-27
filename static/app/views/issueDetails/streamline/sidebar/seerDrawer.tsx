@@ -33,7 +33,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {isSeerExplorerEnabled} from 'sentry/utils/seerFeatures';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,6 +40,7 @@ import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerDrawerProps {
   event: Event;
