@@ -932,7 +932,7 @@ def get_issue_and_event_response(
             extra={
                 "organization_id": organization.id,
                 "issue_id": group.id,
-                "timedelta": end - start,
+                "timedelta": (end - start) if start and end else None,
                 "start": start,
                 "end": end,
             },
