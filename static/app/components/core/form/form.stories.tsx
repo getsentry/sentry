@@ -5,13 +5,12 @@ import {mutationOptions, queryOptions, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {AutoSaveField} from '@sentry/scraps/form/fields/autoSaveField';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form/scrapsForm';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
-
-import {AutoSaveField} from './autoSaveField.tanstack';
-import {defaultFormOptions, useScrapsForm} from './index.tanstack';
 
 const COUNTRY_OPTIONS = [
   {value: 'US', label: 'United States'},

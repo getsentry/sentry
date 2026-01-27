@@ -1,9 +1,10 @@
-import {createContext, useContext} from 'react';
+import {useId} from 'react';
 import type {DeepKeys, DeepValue, FieldApi} from '@tanstack/react-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import type {z} from 'zod';
 
-import {useScrapsForm, type BoundFieldComponents} from './index.tanstack';
+import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
+import {useScrapsForm, type BoundFieldComponents} from '@sentry/scraps/form/scrapsForm';
 
 /** Form data type coming from the schema */
 type SchemaFieldName<TSchema extends z.ZodObject<z.ZodRawShape>> = Extract<
@@ -53,44 +54,7 @@ type AutoSaveFieldRenderArg<
 };
 
 /**
- * Context for auto-save mutation state
- * Consumed by field components to automatically apply mutation state
- */
-interface AutoSaveContextValue {
-  isPending: boolean;
-}
-
-const AutoSaveContext = createContext<AutoSaveContextValue | null>(null);
-
-/**
- * Hook to access auto-save context
- * Returns null if not within AutoSaveField
- */
-export function useAutoSaveContext() {
-  return useContext(AutoSaveContext);
-}
-
-/**
- * Provider for auto-save context
- * Wraps fields to provide mutation state
- */
-function AutoSaveContextProvider({
-  value,
-  children,
-}: {
-  children: React.ReactNode;
-  value: AutoSaveContextValue;
-}) {
-  return <AutoSaveContext.Provider value={value}>{children}</AutoSaveContext.Provider>;
-}
-
-/**
- * AutoSaveField Component
- *
  * A component that provides field props and mutation state via render prop.
- * Clean API matching RHF's pattern but for TanStack Form.
- *
- * Field components automatically consume the context and apply disabled state.
  *
  * @example
  * <AutoSaveField
@@ -152,10 +116,11 @@ export function AutoSaveField<
 >(props: AutoSaveFieldProps<TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, children} = props;
 
+  const id = useId();
   const mutation = useMutation(mutationOptions);
 
   const form = useScrapsForm({
-    formId: `auto-save-${name}`,
+    formId: `${name}-${id}-(auto-save)`,
     defaultValues: {[name]: initialValue},
     validators: {
       onChange: schema.pick({[name]: true}) as never,
