@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -514,7 +516,7 @@ function IntegrationSettingsHeader({
 
 function IntegrationResultsEmpty({searchTerm}: {searchTerm: string}) {
   return (
-    <EmptyResultsContainer>
+    <Stack justify="center" align="center" height="200px">
       <EmptyResultsBody>
         {tct('No Integrations found for "[searchTerm]".', {searchTerm})}
       </EmptyResultsBody>
@@ -528,7 +530,7 @@ function IntegrationResultsEmpty({searchTerm}: {searchTerm: string}) {
           ),
         })}
       </EmptyResultsBody>
-    </EmptyResultsContainer>
+    </Stack>
   );
 }
 
@@ -536,14 +538,6 @@ const ActionContainer = styled('div')`
   display: grid;
   grid-template-columns: 240px auto;
   gap: ${space(2)};
-`;
-
-const EmptyResultsContainer = styled('div')`
-  height: 200px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 `;
 
 const EmptyResultsBody = styled('div')`
