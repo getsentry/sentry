@@ -928,6 +928,55 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data["name"] == "AUniqueName"
         assert resp.data["resolveThreshold"] == 75
 
+    def test_partial_update_without_aggregate(self) -> None:
+        """Test that partial updates without the aggregate field don't cause TypeError."""
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        
+        # Create a partial update that only includes triggers and resolveThreshold
+        # This mimics the bug scenario where aggregate is not provided
+        partial_update_data = {
+            "resolveThreshold": 0.05,
+            "triggers": [
+                {
+                    "actions": [
+                        {
+                            "type": "email",
+                            "targetType": "user",
+                            "targetIdentifier": str(self.user.id),
+                        }
+                    ],
+                    "alertThreshold": 0.15,
+                    "label": "critical",
+                },
+                {
+                    "actions": [
+                        {
+                            "type": "email",
+                            "targetType": "user",
+                            "targetIdentifier": str(self.user.id),
+                        }
+                    ],
+                    "alertThreshold": 0.1,
+                    "label": "warning",
+                },
+            ],
+        }
+        
+        with self.feature("organizations:incidents"):
+            # This should not raise TypeError about None being passed to regex
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **partial_update_data
+            )
+        
+        # Verify the update was successful
+        assert resp.data["resolveThreshold"] == 0.05
+        # The aggregate should remain unchanged from the original alert rule
+        assert resp.data["aggregate"] == self.alert_rule.snuba_query.aggregate
+
     def test_delete_trigger(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
