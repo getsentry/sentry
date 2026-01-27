@@ -58,39 +58,31 @@ function isPaygIneligibleCategory(category: DataCategory): boolean {
   );
 }
 
-function getPaygIneligibleSubheader(paygIneligibleCategories: DataCategory[]): string {
-  const hasSizeAnalysis = paygIneligibleCategories.includes(DataCategory.SIZE_ANALYSIS);
-  const hasInstallableBuild = paygIneligibleCategories.includes(
-    DataCategory.INSTALLABLE_BUILD
-  );
-
-  if (hasSizeAnalysis && hasInstallableBuild) {
-    return t('Size Analysis & Build Distribution - Quota Exceeded');
-  }
-  if (hasSizeAnalysis) {
-    return t('Size Analysis Builds - Quota Exceeded');
-  }
-  return t('Build Distribution - Quota Exceeded');
+function getPaygIneligibleSubheader(
+  paygIneligibleCategories: DataCategory[],
+  subscription: Subscription
+): string {
+  const paygIneligibleCategoryList = listDisplayNames({
+    plan: subscription.planDetails,
+    categories: paygIneligibleCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+    shouldTitleCase: true,
+  });
+  return tct('[categories] - Quota Exceeded', {categories: paygIneligibleCategoryList});
 }
 
-function getPaygIneligibleBodyCopy(paygIneligibleCategories: DataCategory[]): string {
-  const hasSizeAnalysis = paygIneligibleCategories.includes(DataCategory.SIZE_ANALYSIS);
-  const hasInstallableBuild = paygIneligibleCategories.includes(
-    DataCategory.INSTALLABLE_BUILD
-  );
-
-  if (hasSizeAnalysis && hasInstallableBuild) {
-    return t(
-      'Your organization has used your full quota of Size Analysis builds and Build Distribution installs this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:'
-    );
-  }
-  if (hasSizeAnalysis) {
-    return t(
-      'Your organization has used your full quota of Size Analysis builds uploaded this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:'
-    );
-  }
-  return t(
-    'Your organization has used your full quota of Build Distribution installs this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:'
+function getPaygIneligibleBodyCopy(
+  paygIneligibleCategories: DataCategory[],
+  subscription: Subscription
+): string {
+  const paygIneligibleCategoryList = listDisplayNames({
+    plan: subscription.planDetails,
+    categories: paygIneligibleCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+  });
+  return tct(
+    'Your organization has used your full quota of [categories] this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:',
+    {categories: paygIneligibleCategoryList}
   );
 }
 
@@ -158,8 +150,12 @@ function QuotaExceededContent({
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
         <Body>
-          <Title>{getPaygIneligibleSubheader(paygIneligibleCategories)}</Title>
-          <Description>{getPaygIneligibleBodyCopy(paygIneligibleCategories)}</Description>
+          <Title>
+            {getPaygIneligibleSubheader(paygIneligibleCategories, subscription)}
+          </Title>
+          <Description>
+            {getPaygIneligibleBodyCopy(paygIneligibleCategories, subscription)}
+          </Description>
           <Flex justify="between" align="center">
             <LinkButton
               priority="primary"
@@ -198,8 +194,12 @@ function QuotaExceededContent({
         </Header>
         <Body>
           {/* PAYG-ineligible categories section */}
-          <Title>{getPaygIneligibleSubheader(paygIneligibleCategories)}</Title>
-          <Description>{getPaygIneligibleBodyCopy(paygIneligibleCategories)}</Description>
+          <Title>
+            {getPaygIneligibleSubheader(paygIneligibleCategories, subscription)}
+          </Title>
+          <Description>
+            {getPaygIneligibleBodyCopy(paygIneligibleCategories, subscription)}
+          </Description>
           <Flex justify="start" align="center">
             <LinkButton
               priority="primary"

@@ -479,7 +479,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          /Your organization has used your full quota of Size Analysis builds uploaded this billing period/
+          /Your organization has used your full quota of size analysis builds this billing period/
         )
       ).toBeInTheDocument();
       expect(
@@ -530,11 +530,11 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
 
       expect(
-        await screen.findByText('Build Distribution - Quota Exceeded')
+        await screen.findByText('Build Distribution Installs - Quota Exceeded')
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          /Your organization has used your full quota of Build Distribution installs this billing period/
+          /Your organization has used your full quota of build distribution installs this billing period/
         )
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Contact Sales'})).toHaveAttribute(
@@ -586,11 +586,13 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
 
       expect(
-        await screen.findByText('Size Analysis & Build Distribution - Quota Exceeded')
+        await screen.findByText(
+          'Size Analysis Builds and Build Distribution Installs - Quota Exceeded'
+        )
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          /Your organization has used your full quota of Size Analysis builds and Build Distribution installs this billing period/
+          /Your organization has used your full quota of size analysis builds and build distribution installs this billing period/
         )
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Contact Sales'})).toHaveAttribute(
@@ -638,7 +640,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          /Your organization has used your full quota of Size Analysis builds uploaded this billing period/
+          /Your organization has used your full quota of size analysis builds this billing period/
         )
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Contact Sales'})).toHaveAttribute(
