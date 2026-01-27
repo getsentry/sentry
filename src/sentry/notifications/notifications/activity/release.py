@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 import orjson
 from sentry_relay.processing import parse_release
 
+from sentry.integrations.slack.utils.constants import SLACK_ACTIONS_BLOCK_ELEMENT_LIMIT
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -154,6 +155,17 @@ class ReleaseActivityNotification(ActivityNotification):
         if self.release:
             release = get_release(self.activity, self.project.organization)
             if release:
+                # Limit projects to Slack's actions block element limit to prevent API errors
+                # when there are too many projects associated with a release
+                max_projects = (
+                    SLACK_ACTIONS_BLOCK_ELEMENT_LIMIT
+                    if provider == ExternalProviders.SLACK
+                    else None
+                )
+                projects = list(self.release.projects.all())
+                if max_projects is not None:
+                    projects = projects[:max_projects]
+
                 return [
                     MessageAction(
                         name=project.slug,
@@ -163,7 +175,7 @@ class ReleaseActivityNotification(ActivityNotification):
                             query=f"project={project.id}&unselectedSeries=Healthy&referrer={self.metrics_key}&notification_uuid={self.notification_uuid}",
                         ),
                     )
-                    for project in self.release.projects.all()
+                    for project in projects
                 ]
         return []
 
