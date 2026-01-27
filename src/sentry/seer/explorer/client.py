@@ -484,6 +484,7 @@ class SeerExplorerClient:
         path = "/v1/automation/explorer/update"
         payload = {
             "run_id": run_id,
+            "organization_id": self.organization.id,
             "payload": {
                 "type": "create_pr",
                 "repo_name": repo_name,
