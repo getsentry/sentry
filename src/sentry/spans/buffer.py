@@ -473,14 +473,33 @@ class SpansBuffer:
         the value will be None.
         """
         if write_to_zset:
-            if not self.add_buffer_sha or not self.client.script_exists(self.add_buffer_sha)[0]:
+            needs_loading = not self.add_buffer_sha
+            if not needs_loading:
+                # Check if script exists on all cluster nodes
+                script_exists = self.client.script_exists(self.add_buffer_sha)
+                # script_exists returns a list in cluster mode, True/False in standalone
+                if isinstance(script_exists, list):
+                    # In cluster mode, ensure all nodes have the script
+                    needs_loading = not all(script_exists)
+                else:
+                    needs_loading = not script_exists
+
+            if needs_loading:
                 self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
 
         if write_to_set:
-            if (
-                not self.add_buffer_set_sha
-                or not self.client.script_exists(self.add_buffer_set_sha)[0]
-            ):
+            needs_loading = not self.add_buffer_set_sha
+            if not needs_loading:
+                # Check if script exists on all cluster nodes
+                script_exists = self.client.script_exists(self.add_buffer_set_sha)
+                # script_exists returns a list in cluster mode, True/False in standalone
+                if isinstance(script_exists, list):
+                    # In cluster mode, ensure all nodes have the script
+                    needs_loading = not all(script_exists)
+                else:
+                    needs_loading = not script_exists
+
+            if needs_loading:
                 self.add_buffer_set_sha = self.client.script_load(add_buffer_set_script.script)
 
         return (
