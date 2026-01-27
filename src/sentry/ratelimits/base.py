@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from sentry.models.project import Project
 from sentry.utils.services import Service
-
-if TYPE_CHECKING:
-    from sentry.models.project import Project
 
 
 class RateLimiter(Service):

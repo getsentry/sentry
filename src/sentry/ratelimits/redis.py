@@ -2,18 +2,16 @@ from __future__ import annotations
 
 import logging
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from django.conf import settings
 from redis.exceptions import RedisError
 
 from sentry.exceptions import InvalidConfiguration
+from sentry.models.project import Project
 from sentry.ratelimits.base import RateLimiter
 from sentry.utils import redis
 from sentry.utils.hashlib import md5_text
-
-if TYPE_CHECKING:
-    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
