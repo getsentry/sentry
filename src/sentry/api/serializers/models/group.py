@@ -535,11 +535,15 @@ class GroupSerializerBase(Serializer, ABC):
             unhandled[item.id] = cache_data.get(cache_key)
 
         filter_keys: dict[str, list[int]] = {}
+        project_ids_set: set[int] = set()
         for item in item_list:
             if unhandled.get(item.id) is not None:
                 continue
-            filter_keys.setdefault("project_id", []).append(item.project_id)
+            project_ids_set.add(item.project_id)
             filter_keys.setdefault("group_id", []).append(item.id)
+        
+        if project_ids_set:
+            filter_keys["project_id"] = list(project_ids_set)
 
         if filter_keys:
             rv = raw_query(
