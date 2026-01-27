@@ -205,11 +205,30 @@ class SearchResolver:
         if querystring is None:
             return None, None, []
         try:
+            # Build is_filter_translation for common issue-specific filters
+            # These will be handled by filter_aliases to become no-ops for spans/transactions
+            from sentry.models.group import STATUS_QUERY_CHOICES
+            from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+
+            is_filter_translation: dict[str, tuple[str, int]] = {
+                "assigned": ("unassigned", False),
+                "unassigned": ("unassigned", True),
+                "for_review": ("for_review", True),
+                "linked": ("linked", True),
+                "unlinked": ("linked", False),
+            }
+            for status_key, status_value in STATUS_QUERY_CHOICES.items():
+                is_filter_translation[status_key] = ("status", status_value)
+
+            for substatus_key, substatus_value in SUBSTATUS_UPDATE_CHOICES.items():
+                is_filter_translation[substatus_key] = ("substatus", substatus_value)
+
             parsed_terms = event_search.parse_search_query(
                 querystring,
                 config=event_search.SearchConfig.create_from(
                     event_search.default_config,
                     wildcard_free_text=True,
+                    is_filter_translation=is_filter_translation,
                 ),
                 params=self.params.filter_params,
                 get_field_type=self.get_field_type,

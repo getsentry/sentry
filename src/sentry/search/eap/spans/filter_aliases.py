@@ -238,6 +238,17 @@ def trace_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> 
     return [search_filter]
 
 
+def issue_specific_filter_converter(
+    params: SnubaParams, search_filter: SearchFilter
+) -> list[SearchFilter]:
+    """
+    Convert issue-specific filters (status, substatus, unassigned, for_review, linked)
+    to no-ops for spans/transactions since these concepts don't exist in the spans dataset.
+    This allows queries migrated from issue-based alerts to work without errors.
+    """
+    return []
+
+
 SPAN_FILTER_ALIAS_DEFINITIONS = {
     constants.RELEASE_ALIAS: release_filter_converter,
     constants.RELEASE_STAGE_ALIAS: release_stage_filter_converter,
@@ -245,4 +256,10 @@ SPAN_FILTER_ALIAS_DEFINITIONS = {
     constants.SEMVER_PACKAGE_ALIAS: semver_package_filter_converter,
     constants.SEMVER_BUILD_ALIAS: semver_build_filter_converter,
     constants.TRACE: trace_filter_converter,
+    # Issue-specific filters that should be ignored for spans
+    "status": issue_specific_filter_converter,
+    "substatus": issue_specific_filter_converter,
+    "unassigned": issue_specific_filter_converter,
+    "for_review": issue_specific_filter_converter,
+    "linked": issue_specific_filter_converter,
 }
