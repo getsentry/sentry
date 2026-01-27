@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
