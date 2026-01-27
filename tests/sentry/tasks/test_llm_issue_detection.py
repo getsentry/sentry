@@ -19,6 +19,7 @@ from sentry.tasks.llm_issue_detection.detection import (
 )
 from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
+    get_valid_trace_ids_by_span_count,
 )
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -186,6 +187,14 @@ class LLMIssueDetectionTest(TestCase):
                 ],
                 "meta": {},
             },
+            # Fourth call: span count query
+            {
+                "data": [
+                    {"trace": "trace_id_1", "count()": 50},
+                    {"trace": "trace_id_2", "count()": 100},
+                ],
+                "meta": {},
+            },
         ]
 
         # Seer returns 202 for async processing
@@ -195,7 +204,7 @@ class LLMIssueDetectionTest(TestCase):
 
         detect_llm_issues_for_project(self.project.id)
 
-        assert mock_spans_query.call_count == 3  # 1 for transactions, 2 for traces
+        assert mock_spans_query.call_count == 4  # 1 transactions, 2 traces, 1 span count
         assert mock_seer_request.call_count == 1  # Single batch request
 
         seer_call = mock_seer_request.call_args.kwargs
@@ -237,6 +246,7 @@ class LLMIssueDetectionTest(TestCase):
                 "meta": {},
             },
             {"data": [{"trace": "trace_id_1", "precise.start_ts": 1234}], "meta": {}},
+            {"data": [{"trace": "trace_id_1", "count()": 50}], "meta": {}},
         ]
 
         mock_error_response = Mock()
@@ -305,6 +315,44 @@ class TestTraceProcessingFunctions:
             mock_pipeline.execute.assert_called_once()
 
 
+class TestGetValidTraceIdsBySpanCount:
+    @pytest.mark.parametrize(
+        ("query_result", "expected"),
+        [
+            # All valid
+            (
+                {"data": [{"trace": "a", "count()": 50}, {"trace": "b", "count()": 100}]},
+                {"a", "b"},
+            ),
+            # Some below lower limit
+            (
+                {"data": [{"trace": "a", "count()": 10}, {"trace": "b", "count()": 50}]},
+                {"b"},
+            ),
+            # Some above upper limit
+            (
+                {"data": [{"trace": "a", "count()": 50}, {"trace": "b", "count()": 600}]},
+                {"a"},
+            ),
+            # Empty result
+            ({"data": []}, set()),
+        ],
+    )
+    @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
+    def test_filters_by_span_count(
+        self, mock_spans_query: Mock, query_result: dict, expected: set
+    ) -> None:
+        mock_spans_query.return_value = query_result
+        mock_snuba_params = Mock()
+        mock_config = Mock()
+
+        result = get_valid_trace_ids_by_span_count(
+            ["a", "b", "c", "d"], mock_snuba_params, mock_config
+        )
+
+        assert result == expected
+
+
 class TestGetProjectTopTransactionTracesForLLMDetection(
     APITransactionTestCase, SnubaTestCase, SpanTestCase
 ):
@@ -312,7 +360,11 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
-    def test_returns_deduped_transaction_traces(self) -> None:
+    @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
+    def test_returns_deduped_transaction_traces(self, mock_span_count) -> None:
+        # Mock span count check to return all traces as valid
+        mock_span_count.side_effect = lambda trace_ids, *args: set(trace_ids)
+
         trace_id_1 = uuid.uuid4().hex
         span1 = self.create_span(
             {
