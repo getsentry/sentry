@@ -5,7 +5,7 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {InputField} from './fields/inputField';
 import {NumberField} from './fields/numberField';
 import {SelectField} from './fields/selectField';
-import {fieldContext, formContext, useFormContext} from './context';
+import {fieldContext, formContext, useFormContext} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid() {

@@ -1,5 +1,7 @@
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {Input, type InputProps} from '@sentry/scraps/input';
+import {Spinner} from '@sentry/scraps/form/spinner';
+import {type InputProps} from '@sentry/scraps/input';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
 
 import {BaseField, type BaseFieldProps} from './baseField';
 
@@ -19,13 +21,18 @@ export function NumberField({
   return (
     <BaseField label={label} hintText={hintText} required={required}>
       {fieldProps => (
-        <Input
-          {...fieldProps}
-          {...props}
-          type="number"
-          disabled={props.disabled || autoSaveContext?.isPending}
-          onChange={e => onChange(Number(e.target.value))}
-        />
+        <InputGroup>
+          <InputGroup.Input
+            {...fieldProps}
+            {...props}
+            type="number"
+            disabled={props.disabled || autoSaveContext?.isPending}
+            onChange={e => onChange(e.target.valueAsNumber)}
+          />
+          <InputGroup.TrailingItems>
+            {autoSaveContext?.isPending ? <Spinner /> : null}
+          </InputGroup.TrailingItems>
+        </InputGroup>
       )}
     </BaseField>
   );
