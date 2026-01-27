@@ -510,7 +510,7 @@ class TestSpanMetricQuery(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         )
 
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            org_ids=[org.id], measure=SamplingMeasure.SPANS
+            org_ids=[org.id], measure=SamplingMeasure.SEGMENTS
         )
 
         # Should only count the is_segment=true metrics (5 + 10 = 15)

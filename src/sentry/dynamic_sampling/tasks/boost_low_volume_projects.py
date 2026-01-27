@@ -143,21 +143,21 @@ def partition_by_measure(
         )
         return {SamplingMeasure.TRANSACTIONS: sorted(filtered_org_ids)}
 
-    segment_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
-    segment_org_ids = segment_org_ids & filtered_org_ids
-    transactions_org_ids = filtered_org_ids - segment_org_ids
+    span_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
+    span_org_ids = span_org_ids & filtered_org_ids
+    transactions_org_ids = filtered_org_ids - span_org_ids
 
     logger.info(
         "dynamic_sampling.partition_by_measure.options_check",
-        extra={"segment_org_ids": segment_org_ids},
+        extra={"span_org_ids": span_org_ids},
     )
 
-    metrics.incr("dynamic_sampling.partition_by_measure.segments", amount=len(segment_org_ids))
+    metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(span_org_ids))
     metrics.incr(
         "dynamic_sampling.partition_by_measure.transactions", amount=len(transactions_org_ids)
     )
     return {
-        SamplingMeasure.SEGMENTS: sorted(segment_org_ids),
+        SamplingMeasure.SPANS: sorted(span_org_ids),
         SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
     }
 

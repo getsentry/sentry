@@ -96,10 +96,10 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
         return proj
 
-    def create_project_and_add_segment_metrics(self, name, count, org, tags=None, is_old=True):
-        """Create a project with span metrics using is_segment=true for counting root spans.
+    def create_project_and_add_span_metrics(self, name, count, org, tags=None, is_old=True):
+        """Create a project with span metrics for SPANS measure (AM3/project mode).
 
-        Also stores a minimal TransactionMRI metric for org discovery (GetActiveOrgs uses this).
+        Also stores a TransactionMRI metric for org discovery (GetActiveOrgs uses this).
         """
         if tags is None:
             tags = {"transaction": "foo_transaction"}
@@ -121,12 +121,10 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             org_id=org.id,
         )
 
-        # Store SpanMRI metric with is_segment=true for SEGMENTS measure queries
-        segment_tags = tags.copy()
-        segment_tags["is_segment"] = "true"
+        # Store SpanMRI metric for SPANS measure queries (no is_segment filter)
         self.store_performance_metric(
             name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags=segment_tags,
+            tags=tags,
             minutes_before_now=30,
             value=count,
             project_id=proj.id,
@@ -219,21 +217,21 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_boost_low_volume_projects_with_segments_measure(
+    def test_boost_low_volume_projects_with_spans_measure(
         self,
         get_blended_sample_rate,
     ):
-        """Test boost_low_volume_projects using span metrics with is_segment=true filter."""
+        """Test boost_low_volume_projects using span metrics (AM3/project mode)."""
         get_blended_sample_rate.return_value = 0.25
         test_org = self.create_old_organization(name="sample-org")
 
-        # Create projects with segment metrics (SpanMRI with is_segment=true)
-        proj_a = self.create_project_and_add_segment_metrics("a", 9, test_org)
-        proj_b = self.create_project_and_add_segment_metrics("b", 7, test_org)
-        proj_c = self.create_project_and_add_segment_metrics("c", 3, test_org)
-        proj_d = self.create_project_and_add_segment_metrics("d", 1, test_org)
+        # Create projects with span metrics (SpanMRI without is_segment filter)
+        proj_a = self.create_project_and_add_span_metrics("a", 9, test_org)
+        proj_b = self.create_project_and_add_span_metrics("b", 7, test_org)
+        proj_c = self.create_project_and_add_span_metrics("c", 3, test_org)
+        proj_d = self.create_project_and_add_span_metrics("d", 1, test_org)
 
-        # Enable SEGMENTS measure via feature flag and options
+        # Enable SPANS measure via feature flag and options
         with self.options(
             {
                 "dynamic-sampling.check_span_feature_flag": True,
