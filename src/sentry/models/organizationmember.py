@@ -648,8 +648,30 @@ class OrganizationMember(ReplicatedRegionModel):
         from sentry.identity.services.identity import identity_service
 
         if payload and payload.get("user_id") is not None:
+            # Before deleting identities, null out any
+            # OrganizationIntegration.default_auth_id references to prevent stale refs
+            from sentry.integrations.models.organization_integration import (
+                OrganizationIntegration,
+            )
+            from sentry.users.models.identity import Identity
+
+            user_id = payload["user_id"]
+
+            # Find all Identity IDs for this user
+            identity_ids = list(
+                Identity.objects.filter(user_id=user_id).values_list("id", flat=True)
+            )
+
+            if identity_ids:
+                # Null out default_auth_id on OrganizationIntegrations
+                # that reference these identities
+                OrganizationIntegration.objects.filter(
+                    organization_id=shard_identifier,
+                    default_auth_id__in=identity_ids,
+                ).update(default_auth_id=None)
+            
             identity_service.delete_identities(
-                user_id=payload["user_id"], organization_id=shard_identifier
+                user_id=user_id, organization_id=shard_identifier
             )
         organizationmember_mapping_service.delete(
             organizationmember_id=identifier,

@@ -257,6 +257,52 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert not qs.exists()
             self.assert_org_member_mapping_not_exists(org_member=member)
 
+    def test_delete_member_nulls_organization_integration_default_auth_id(self) -> None:
+        """Test that deleting an organization member nulls out default_auth_id on OrganizationIntegration.
+        
+        Regression test for SENTRY-5HBG: When a user is removed from an organization,
+        their Identity records may be referenced by OrganizationIntegration.default_auth_id.
+        If the Identity is deleted but default_auth_id isn't nulled out, it creates a stale
+        reference that causes IntegrationConfigurationError when the integration is used.
+        """
+        from sentry.integrations.models.integration import Integration
+        from sentry.integrations.models.organization_integration import (
+            OrganizationIntegration,
+        )
+        from sentry.users.models.identity import Identity, IdentityProvider
+
+        org = self.create_organization()
+        user = self.create_user()
+        member = self.create_member(user_id=user.id, organization_id=org.id)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create an IdentityProvider and Identity for the user
+            idp = IdentityProvider.objects.create(type="gitlab", external_id="test-gitlab")
+            identity = Identity.objects.create(
+                idp=idp, user_id=user.id, external_id="test-external-id"
+            )
+
+            # Create an Integration and OrganizationIntegration with default_auth_id
+            integration = Integration.objects.create(
+                provider="gitlab", external_id="test-integration", name="Test Integration"
+            )
+            org_integration = OrganizationIntegration.objects.create(
+                organization_id=org.id, integration=integration, default_auth_id=identity.id
+            )
+
+            # Verify the default_auth_id is set
+            assert org_integration.default_auth_id == identity.id
+
+        # Delete the organization member
+        with outbox_runner():
+            member.delete()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Verify that default_auth_id was nulled out
+            org_integration.refresh_from_db()
+            assert org_integration.default_auth_id is None
+            self.assert_org_member_mapping_not_exists(org_member=member)
+
     def test_delete_expired_SCIM_enabled(self) -> None:
         organization = self.create_organization()
         org3 = self.create_organization()
