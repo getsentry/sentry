@@ -62,7 +62,7 @@ export function GroupDetailsLayout({
             tourContext={IssueDetailsTourContext}
             title={t('See overall impact')}
             description={t(
-              'Frequency over time, total affected users, and where it occurs (environment, release, device, browser, and more).'
+              'Here you’ll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.).'
             )}
             position="bottom"
           >
