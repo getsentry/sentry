@@ -44,6 +44,7 @@ import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
@@ -107,6 +108,10 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                       resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
                   </PageFilterBar>
+                  <AgentSelector
+                    storageKeyPrefix="agents:agent-filter"
+                    referrer={Referrer.AGENT_SELECTOR}
+                  />
                   {!showOnboarding && (
                     <Flex flex={2}>
                       <TraceItemSearchQueryBuilder
