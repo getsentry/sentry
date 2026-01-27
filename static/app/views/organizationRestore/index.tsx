@@ -12,6 +12,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -35,7 +36,9 @@ type BodyProps = {
 };
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
-  const endpoint = `/organizations/${orgSlug}/`;
+  const endpoint = getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+    path: {organizationIdOrSlug: orgSlug},
+  });
   const {isPending, isError, data} = useApiQuery<Organization>([endpoint], {
     staleTime: 0,
   });

@@ -1,6 +1,7 @@
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getSessionsInterval} from 'sentry/utils/sessions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,7 +18,9 @@ export default function useErroredSessions({pageFilters}: {pageFilters?: PageFil
     error,
   } = useApiQuery<SessionApiResponse>(
     [
-      `/organizations/${organization.slug}/sessions/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
