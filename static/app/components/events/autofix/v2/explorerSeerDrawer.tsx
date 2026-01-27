@@ -10,6 +10,7 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button, ButtonBar} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
@@ -135,8 +136,8 @@ function DrawerNavigator({
 /**
  * Explorer-based Seer Drawer component.
  *
- * This is the new UI for Autofix when both seer-explorer and autofix-on-explorer
- * feature flags are enabled. It uses the Explorer agent for all analysis instead
+ * This is the new UI for Autofix when seer-explorer is enabled.
+ * It uses the Explorer agent for all analysis instead
  * of the legacy Celery pipeline.
  */
 export function ExplorerSeerDrawer({
@@ -206,9 +207,9 @@ export function ExplorerSeerDrawer({
   }, [runState?.run_id]);
 
   const handleCodingAgentHandoff = useCallback(
-    async (integrationId: number) => {
+    async (integration: CodingAgentIntegration) => {
       if (runState?.run_id) {
-        await triggerCodingAgentHandoff(runState.run_id, integrationId);
+        await triggerCodingAgentHandoff(runState.run_id, integration);
       }
     },
     [triggerCodingAgentHandoff, runState?.run_id]

@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {
   fireEvent,
   render,
@@ -57,9 +59,23 @@ describe('ProjectPageFilter', () => {
 
   it('handles multiple selection', async () => {
     const onChange = jest.fn();
-    const {rerender} = render(
-      <HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />
-    );
+    function ControlledHybridFilter() {
+      const [value, setValue] = useState<string[]>([]);
+
+      return (
+        <HybridFilter
+          {...props}
+          defaultValue={[]}
+          value={value}
+          onChange={newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          }}
+        />
+      );
+    }
+
+    render(<ControlledHybridFilter />);
 
     // Clicking on the checkboxes in Option One & Option Two _adds_ the options to the
     // current selection state (multiple selection mode)
@@ -73,15 +89,6 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
     expect(onChange).toHaveBeenCalledWith(expect.arrayContaining(['one', 'two']));
 
-    // HybridFilter is controlled-only, so we need to rerender it with new value
-    rerender(
-      <HybridFilter
-        {...props}
-        value={['one', 'two']}
-        defaultValue={[]}
-        onChange={onChange}
-      />
-    );
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
     // Ctrl-clicking on Option One & Option Two _removes_ them to the current selection

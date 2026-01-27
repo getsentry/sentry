@@ -1,5 +1,4 @@
-import {ExternalLink} from '@sentry/scraps/link';
-
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   ContentBlock,
   DocsParams,
@@ -7,14 +6,15 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getAgentMonitoringInstallStep,
-  getAgentMonitoringManualConfigStep,
-  getImport,
-} from 'sentry/gettingStartedDocs/node/utils';
+  getAgentIntegration,
+  getInstallStep,
+  getManualConfigureStep,
+} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {getImport} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
-function getClientSideAgentMonitoringOnboardingConfig({
+function getClientSideConfig({
   integration,
   params,
   sentryImport,
@@ -302,17 +302,16 @@ export function agentMonitoring({
 } = {}): OnboardingConfig {
   return {
     install: params =>
-      getAgentMonitoringInstallStep(params, {
+      getInstallStep(params, {
         packageName,
       }),
     configure: params => {
-      const selected =
-        (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
+      const selected = getAgentIntegration(params);
 
       const importMode = 'esm-only';
 
       if (selected === AgentIntegration.MANUAL) {
-        return getAgentMonitoringManualConfigStep(params, {
+        return getManualConfigureStep(params, {
           packageName,
           importMode,
         });
@@ -321,7 +320,7 @@ export function agentMonitoring({
       return [
         {
           title: t('Configure'),
-          content: getClientSideAgentMonitoringOnboardingConfig({
+          content: getClientSideConfig({
             integration: selected,
             sentryImport: getImport(packageName, importMode).join('\n'),
             params,

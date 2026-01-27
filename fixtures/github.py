@@ -3553,12 +3553,17 @@ CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE = b"""{
     "installation": {"id": 12345},
     "repository": {
         "id": 35129377,
+        "name": "sentry",
         "full_name": "getsentry/sentry",
-        "html_url": "https://github.com/getsentry/sentry"
+        "html_url": "https://github.com/getsentry/sentry",
+        "owner": {
+            "login": "getsentry",
+            "id": 1396951
+        }
     },
     "check_run": {
         "external_id": "4663713",
-        "html_url": "https://github.com/test/repo/runs/4"
+        "html_url": "https://github.com/getsentry/sentry/runs/4"
     },
     "sender": {
         "id": 12345678,
@@ -3571,8 +3576,19 @@ CHECK_RUN_COMPLETED_EVENT_EXAMPLE = b"""{
     "installation": {"id": 12345},
     "repository": {
         "id": 35129377,
+        "name": "sentry",
         "full_name": "getsentry/sentry",
-        "html_url": "https://github.com/getsentry/sentry"
+        "html_url": "https://github.com/getsentry/sentry",
+        "owner": {
+            "login": "getsentry",
+            "id": 1396951
+        }
+    },
+    "check_run": {
+        "id": 9876543,
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/getsentry/sentry/runs/9876543"
     },
     "sender": {
         "id": 12345678,

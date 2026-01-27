@@ -8,7 +8,7 @@ from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.seer.code_review.utils import RequestType, SeerCodeReviewTrigger
+from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 
@@ -73,7 +73,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             call_kwargs = self.mock_seer.call_args[1]
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
             payload = call_kwargs["payload"]
-            assert payload["request_type"] == RequestType.PR_REVIEW.value
+            assert payload["request_type"] == SeerCodeReviewRequestType.PR_REVIEW.value
 
             self.mock_reaction.assert_called_once_with(
                 event["repository"]["full_name"],
@@ -247,7 +247,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             call_kwargs = self.mock_seer.call_args[1]
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
             payload = call_kwargs["payload"]
-            assert payload["request_type"] == RequestType.PR_CLOSED.value
+            assert payload["request_type"] == SeerCodeReviewRequestType.PR_CLOSED.value
             assert payload["data"]["config"]["trigger"] == SeerCodeReviewTrigger.UNKNOWN.value
             assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
             assert payload["data"]["config"]["trigger_comment_id"] is None
@@ -373,4 +373,4 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
             payload = call_kwargs["payload"]
-            assert payload["request_type"] == RequestType.PR_CLOSED.value
+            assert payload["request_type"] == SeerCodeReviewRequestType.PR_CLOSED.value

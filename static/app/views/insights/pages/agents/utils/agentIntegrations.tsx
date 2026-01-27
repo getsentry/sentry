@@ -26,6 +26,20 @@ export const AGENT_INTEGRATION_LABELS = {
   [AgentIntegration.MANUAL]: 'Other',
 };
 
+export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
+  [AgentIntegration.OPENAI]: 'openai',
+  [AgentIntegration.OPENAI_AGENTS]: 'openai',
+  [AgentIntegration.ANTHROPIC]: 'anthropic',
+  [AgentIntegration.GOOGLE_GENAI]: 'gemini',
+  [AgentIntegration.LANGCHAIN]: 'langchain',
+  [AgentIntegration.LANGGRAPH]: 'langchain',
+  [AgentIntegration.LITTELLM]: 'litellm',
+  [AgentIntegration.MASTRA]: 'mastra',
+  [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
+  [AgentIntegration.VERCEL_AI]: 'vercel',
+  [AgentIntegration.MANUAL]: 'default',
+};
+
 export const PYTHON_AGENT_INTEGRATIONS = [
   AgentIntegration.OPENAI_AGENTS,
   AgentIntegration.ANTHROPIC,
