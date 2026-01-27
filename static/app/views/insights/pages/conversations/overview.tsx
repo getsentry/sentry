@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -37,6 +37,7 @@ import {ConversationsTable} from 'sentry/views/insights/pages/conversations/comp
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
+const DEFAULT_QUERY = 'has:user';
 
 interface ConversationsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -53,6 +54,13 @@ function ConversationsOverviewPage({
     parseAsString.withOptions({history: 'replace'})
   );
   const {unsetCursor} = useTableCursor();
+
+  useEffect(() => {
+    if (searchQuery === null) {
+      setSearchQuery(DEFAULT_QUERY);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {tags: numberTags = [], isLoading: numberTagsLoading} =
     useTraceItemTags('number');

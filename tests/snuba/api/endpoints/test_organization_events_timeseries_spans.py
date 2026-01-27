@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -2515,3 +2516,67 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             },
         )
         assert response.status_code == 400, response.content
+
+    def test_with_no_value_release_data(self) -> None:
+        spans = [
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"release": None},
+                },
+                start_ts=self.start + timedelta(minutes=1),
+            ),
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"release": "1.0.0"},
+                },
+                start_ts=self.start + timedelta(minutes=2),
+            ),
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"release": "2.0.0"},
+                },
+                start_ts=self.start + timedelta(minutes=2),
+            ),
+        ]
+        self.store_spans(spans, is_eap=True)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "4h",
+                "yAxis": "count(span.duration)",
+                "groupBy": "release",
+                "project": self.project.id,
+                "sort": "-count_span_duration",
+                "dataset": "spans",
+                "topEvents": 5,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 3
+
+        time_series_by_release: dict[str | None, Any] = {}
+        for ts in response.data["timeSeries"]:
+            if ts["groupBy"] is None:
+                time_series_by_release["Other"] = ts
+            else:
+                release_value = ts["groupBy"][0]["value"]
+                time_series_by_release[release_value] = ts
+
+        assert None in time_series_by_release
+        assert "1.0.0" in time_series_by_release
+        assert "2.0.0" in time_series_by_release
+        assert "Other" not in time_series_by_release
+
+        # All releases including None should now have data
+        assert len(time_series_by_release[None]["values"]) > 0
+        assert len(time_series_by_release["1.0.0"]["values"]) > 0
+        assert len(time_series_by_release["2.0.0"]["values"]) > 0
+
+        # Verify the None release actually has the span with no release
+        none_values = [v for v in time_series_by_release[None]["values"] if v["value"] > 0]
+        assert len(none_values) > 0, "None release should have at least one data point"

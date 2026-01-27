@@ -28,6 +28,7 @@ import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
+  isSizeInfoPending,
   isSizeInfoProcessing,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -116,9 +117,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   const sizeInfo = buildDetailsData?.size_info;
   const isLoadingRequests = isAppSizeLoading || isBuildDetailsPending;
-  const isSizeNotStarted = sizeInfo === undefined;
+  const isSizeStarted = sizeInfo !== undefined && sizeInfo !== null;
   const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
-  const showNoSizeRequested = !isLoadingRequests && isSizeNotStarted;
+  const showNoSizeRequested = !isLoadingRequests && !isSizeStarted;
 
   if (isLoadingRequests) {
     return (
@@ -142,6 +143,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   const isWaitingForData = !appSizeData && !isAppSizeError;
+
+  if (isSizeInfoPending(sizeInfo)) {
+    return (
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildProcessing
+          title={t('Queued for analysis')}
+          message={t('Your build is in the queue and will start processing soon...')}
+        />
+      </Flex>
+    );
+  }
 
   if (isSizeInfoProcessing(sizeInfo) || isWaitingForData) {
     return (

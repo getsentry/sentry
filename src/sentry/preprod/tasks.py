@@ -27,7 +27,12 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
-from sentry.preprod.quota import has_installable_quota, has_size_quota
+from sentry.preprod.quotas import (
+    has_installable_quota,
+    has_size_quota,
+    should_run_distribution,
+    should_run_size,
+)
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -132,6 +137,7 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_bundle_error",
             }
         )
 
@@ -139,9 +145,20 @@ def assemble_preprod_artifact(
 
     try:
         requested_features: list[PreprodFeature] = []
-        if has_size_quota(organization):
+
+        artifact = PreprodArtifact.objects.get(id=artifact_id)
+
+        if should_run_size(artifact):
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-        if has_installable_quota(organization):
+            PreprodArtifactSizeMetrics.objects.get_or_create(
+                preprod_artifact=artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                defaults={
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                },
+            )
+
+        if should_run_distribution(artifact):
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         produce_preprod_artifact_to_kafka(
@@ -170,6 +187,7 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
             }
         )
         return
@@ -192,6 +210,7 @@ def create_preprod_artifact(
     checksum: str,
     build_configuration_name: str | None = None,
     release_notes: str | None = None,
+    install_groups: list[str] | None = None,
     head_sha: str | None = None,
     base_sha: str | None = None,
     provider: str | None = None,
@@ -263,10 +282,14 @@ def create_preprod_artifact(
                     name=build_configuration_name,
                 )
 
-            # Prepare extras data if release_notes is provided
-            extras = None
-            if release_notes:
-                extras = {"release_notes": release_notes}
+            # Prepare extras data if release_notes, install_groups is provided
+            extras: dict[str, str | list[str]] | None = None
+            if release_notes or install_groups:
+                extras = {}
+                if release_notes:
+                    extras["release_notes"] = release_notes
+                if install_groups:
+                    extras["install_groups"] = install_groups
 
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
@@ -274,14 +297,6 @@ def create_preprod_artifact(
                 state=PreprodArtifact.ArtifactState.UPLOADING,
                 commit_comparison=commit_comparison,
                 extras=extras,
-            )
-
-            PreprodArtifactSizeMetrics.objects.get_or_create(
-                preprod_artifact=preprod_artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                defaults={
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
-                },
             )
 
             logger.info(
@@ -398,7 +413,7 @@ def _assemble_preprod_artifact_size_analysis(
 
     preprod_artifact = None
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -631,6 +646,7 @@ def _assemble_preprod_artifact_size_analysis(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_completion",
             }
         )
 
@@ -700,7 +716,7 @@ def _assemble_preprod_artifact_installable_app(
     assemble_result: AssembleResult, project: Project, artifact_id: int, org_id: int
 ) -> None:
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -873,7 +889,7 @@ def detect_expired_preprod_artifacts() -> None:
             )
             try:
                 create_preprod_status_check_task.apply_async(
-                    kwargs={"preprod_artifact_id": artifact_id}
+                    kwargs={"preprod_artifact_id": artifact_id, "caller": "expired_artifact"}
                 )
             except Exception:
                 logger.exception(

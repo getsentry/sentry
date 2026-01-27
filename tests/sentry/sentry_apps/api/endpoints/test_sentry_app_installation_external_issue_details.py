@@ -1,7 +1,9 @@
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
+@control_silo_test
 class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-external-issue-details"
     method = "delete"
@@ -30,9 +32,11 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test_deletes_external_issue(self) -> None:
-        assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
         self.get_success_response(self.install.uuid, self.external_issue.id, status_code=204)
-        assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
     def test_handles_non_existing_external_issue(self) -> None:
         self.get_error_response(self.install.uuid, 999999, status_code=404)
@@ -56,7 +60,8 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         )
 
         self.get_error_response(evil_install.uuid, self.external_issue.id, status_code=404)
-        assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
     def test_handles_invalid_external_issue_id_format(self) -> None:
         """Test that non-numeric external_issue_id returns 400 error"""
@@ -64,4 +69,5 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         self.get_error_response(self.install.uuid, "test-issue-id-123", status_code=400)
 
         # Ensure the external issue still exists after failed attempts
-        assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()

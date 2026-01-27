@@ -83,6 +83,14 @@ function WidgetBuilderDatasetSelector() {
     details: t('Session data from releases'),
   });
 
+  if (organization.features.includes('preprod-app-size-dashboard')) {
+    datasetOptions.push({
+      value: WidgetType.PREPROD_APP_SIZE,
+      label: t('Mobile Builds'),
+      details: t('Mobile app size metrics'),
+    });
+  }
+
   datasetOptions.push(transactionsOption);
 
   return (

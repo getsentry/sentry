@@ -31,8 +31,14 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     type = DetectorType.CONSECUTIVE_HTTP_OP
     settings_key = DetectorType.CONSECUTIVE_HTTP_OP
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None
@@ -113,6 +119,21 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         offender_span_ids = [span["span_id"] for span in self.consecutive_http_spans]
         desc: str = self.consecutive_http_spans[0].get("description", "")
 
+        evidence_data = {
+            "parent_span_ids": [],
+            "cause_span_ids": [],
+            "offender_span_ids": offender_span_ids,
+            "op": "http",
+            "transaction_name": self._event.get("transaction", ""),
+            "repeating_spans": get_span_evidence_value(self.consecutive_http_spans[0]),
+            "repeating_spans_compact": get_span_evidence_value(
+                self.consecutive_http_spans[0], include_op=False
+            ),
+            "num_repeating_spans": str(len(self.consecutive_http_spans)),
+        }
+        if self.detector_id is not None:
+            evidence_data["detector_id"] = self.detector_id
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "http",
@@ -132,18 +153,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
                     important=True,
                 )
             ],
-            evidence_data={
-                "parent_span_ids": [],
-                "cause_span_ids": [],
-                "offender_span_ids": offender_span_ids,
-                "op": "http",
-                "transaction_name": self._event.get("transaction", ""),
-                "repeating_spans": get_span_evidence_value(self.consecutive_http_spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(
-                    self.consecutive_http_spans[0], include_op=False
-                ),
-                "num_repeating_spans": str(len(self.consecutive_http_spans)),
-            },
+            evidence_data=evidence_data,
         )
 
         self._reset_variables()

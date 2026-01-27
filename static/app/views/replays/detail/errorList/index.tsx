@@ -3,6 +3,8 @@ import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import {Flex} from 'sentry/components/core/layout/flex';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -130,7 +132,7 @@ export default function ErrorList() {
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
-          <OverflowHidden>
+          <Grid height="100%" overflow="hidden" position="relative">
             <AutoSizer onResize={onWrapperResize}>
               {({height, width}) => (
                 <MultiGrid
@@ -174,7 +176,7 @@ export default function ErrorList() {
                 tableHeaderHeight={HEADER_HEIGHT}
               />
             ) : null}
-          </OverflowHidden>
+          </Grid>
         ) : (
           <Placeholder height="100%" />
         )}
@@ -182,13 +184,6 @@ export default function ErrorList() {
     </Flex>
   );
 }
-
-const OverflowHidden = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  display: grid;
-`;
 
 const ErrorTable = styled('div')`
   display: flex;

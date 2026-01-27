@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.models.authidentity import AuthIdentity
@@ -42,9 +43,10 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config"
     method = "get"
 
-    def _setup_identities(self):
-        super()._setup_identities()
+    def _setup_identities(self) -> tuple[UserSocialAuth, Identity, AuthIdentity]:
+        result = super()._setup_identities()
         Identity.objects.create(user=self.user, idp=self.slack_idp)
+        return result
 
     @patch(
         "sentry.users.api.serializers.user_identity_config.is_login_provider",
@@ -203,9 +205,9 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
 
     def _verify_identities(
         self,
-        social_ident,
-        global_ident,
-        org_ident,
+        social_ident: dict[str, Any],
+        global_ident: dict[str, Any],
+        org_ident: dict[str, Any],
     ) -> None:
         # Verify social identity
         assert social_ident["category"] == "social-identity"

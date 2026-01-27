@@ -154,11 +154,11 @@ describe('CronDetectorsList', () => {
       incident_updates: [],
     });
 
-    fetchMock.mockResponse(req =>
-      req.url.includes('status.sentry.io/api/v2/incidents.json')
+    fetchMock.mockResponse(req => {
+      return req.url.includes('status.sentry.io/api/v2/incidents.json')
         ? Promise.resolve(JSON.stringify({incidents: [incident]}))
-        : Promise.reject({status: 404})
-    );
+        : Promise.reject(new Error('not found'));
+    });
 
     const {router} = render(<CronDetectorsList />, {organization, initialRouterConfig});
 

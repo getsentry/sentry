@@ -221,12 +221,12 @@ export function InviteMissingMembersModal({
             checked={selectedAll}
           />,
           t('User Information'),
-          <StyledHeader key={1}>
+          <Flex gap="xs" key={1}>
             {t('Recent Commits')}
             <Tooltip title={t('Based on the last 30 days of commit data')}>
               <IconInfo size="xs" />
             </Tooltip>
-          </StyledHeader>,
+          </Flex>,
           t('Role'),
           t('Team'),
         ]}
@@ -336,11 +336,6 @@ const StyledPanelTable = styled(PanelTable)`
   max-height: 475px;
 `;
 
-const StyledHeader = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
-
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;
 `;
@@ -348,15 +343,15 @@ const StyledPanelItem = styled(PanelItem)`
 const ContentRow = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   gap: ${space(0.75)};
 `;
 
 const MemberEmail = styled('div')`
   display: block;
   max-width: 150px;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   overflow: hidden;

@@ -94,6 +94,11 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
     query = createTraceMetricFilter(state.traceMetric);
   }
 
+  if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
+    enabled = organization.features.includes('preprod-app-size-dashboard');
+    traceItemType = TraceItemDataset.PREPROD;
+  }
+
   return (
     <TraceItemAttributeProvider
       traceItemType={traceItemType}
@@ -527,8 +532,8 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   height: 95%;
   color: ${p => p.theme.tokens.content.secondary};
   font-style: italic;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const WidgetPreviewPlaceholder = styled('div')`

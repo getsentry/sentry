@@ -323,67 +323,56 @@ def run_missing_sdk_integration_detector_for_project(
     )
 
     prompt = f"""# Objective
+Find missing Sentry SDK integrations for the project `{project.slug}` in repository `{repo_name}`.
 
-Identify missing Sentry SDK integrations for a project by analyzing its code repository.
+# Locate Project Directory
+The project should be at: `{source_root or "/"}`
 
-# Context
+If this path doesn't exist or contains no dependency files:
+1. Check the repository root
+2. Look for a directory named `{project.slug}`
+3. Check common monorepo locations: `packages/`, `apps/`, `services/`
 
-- **Project**: {project.slug}
-- **Repository**: {repo_name}
-- **Source Root**: {source_root or "/"}
-- **Platform**: {project.platform}
-- **SDK Integrations Documentation**: {integration_docs_url}
+Once located, analyze ONLY that directory. Do not read files from parent or sibling directories.
 
-# Instructions
+# Steps
 
-Follow these steps in order:
+1. **Read Dependencies**
+   Read the {project.platform} dependency file from the project directory:
+   - JavaScript/Node: `package.json`
+   - Python: `requirements.txt`, `pyproject.toml`, or `setup.py`
+   - Ruby: `Gemfile`
+   - Go: `go.mod`
+   - Java: `pom.xml` or `build.gradle`
+   - PHP: `composer.json`
 
-## Step 1: Locate the Project Directory
+2. **Read Sentry Configuration**
+   Search for Sentry initialization (`Sentry.init` or `sentry_sdk.init`) within the project directory and note configured integrations.
 
-The repository may contain multiple projects. Use the **Source Root** path to identify the correct project directory.
-- If the Source Root is "/" or empty, the project is at the repository root
-- Otherwise, navigate to the Source Root path within the repository
+3. **Read SDK Integrations Docs**
+   Fetch the integrations table from: {integration_docs_url}
+   Note integration names and whether they are auto-enabled.
 
-All subsequent steps should be scoped to this directory.
+4. **Read Missing Integrations Docs**
+   For each identified missing integration, read the documentation link for that integration and double check if it is really tied to a specific package in the project's dependencies and if it is applicable to the project.
 
-## Step 2: Identify Project Dependencies
+# Acceptance Criteria
 
-Locate and analyze dependency files within the project directory, like:
-- `package.json` (Node.js/JavaScript)
-- `requirements.txt`, `pyproject.toml`, `setup.py` (Python)
-- `Gemfile` (Ruby)
-- `go.mod` (Go)
-- `pom.xml`, `build.gradle` (Java)
-- `composer.json` (PHP)
+Only report an integration if ALL of the following are true. Check each criterion one by one:
 
-Extract the list of libraries and frameworks the project uses.
+1. [ ] The integration has a **specific package dependency** (e.g., `zodErrorsIntegration` requires `zod`)
+2. [ ] That package exists in the project's dependency file
+3. [ ] The integration is NOT marked as auto-enabled in the docs
+4. [ ] The integration is NOT already configured in `Sentry.init`
+5. [ ] The integration is NOT explicitly disabled in `Sentry.init`
 
-## Step 3: Review Available Sentry Integrations
-
-Reference the SDK integrations documentation to identify which integrations:
-- Are available for the detected libraries/frameworks
-- Require manual configuration (not auto-enabled by default)
-
-## Step 4: Check Current Sentry Configuration
-
-Search for existing Sentry initialization code (e.g., `Sentry.init`, `sentry_sdk.init`) within the project directory.
-Note which integrations are already explicitly configured.
-
-## Step 5: Determine Missing Integrations
-
-Compare the available integrations (Step 3) against the configured integrations (Step 4).
-An integration is "missing" if:
-- A library/framework in the project has a corresponding Sentry integration
-- The integration requires manual setup
-- The integration is NOT already configured
+General-purpose integrations that don't require a specific package (e.g., `extraErrorDataIntegration`, `replayIntegration`, `feedbackIntegration`, `captureConsoleIntegration`) will never pass criterion 1.
 
 # Output
 
-Return a JSON array of strings containing the missing SDK integration names.
-
-Example: `["celery", "redis", "sqlalchemy"]`
-
-If no missing integrations are found, return an empty array: `[]`"""
+Return a JSON array of missing integration names using exact names from the docs.
+Example: `["zodErrorsIntegration"]`
+If none missing: `[]`"""
 
     try:
         run_id = client.start_run(
@@ -406,6 +395,7 @@ If no missing integrations are found, return an empty array: `[]`"""
                 "project_slug": project.slug,
                 "platform": project.platform,
                 "repo_name": repo_name,
+                "run_id": run_id,
             },
         )
 

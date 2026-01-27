@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -63,13 +65,13 @@ function SubscriptionBox({
   return (
     <Tooltip disabled={!disabled} title={message} key={resource}>
       <SubscriptionGridItem disabled={disabled}>
-        <SubscriptionInfo>
+        <Stack alignSelf="center">
           <SubscriptionTitle>
             {resource}
             {isNew && <FeatureBadge type="new" />}
           </SubscriptionTitle>
           <SubscriptionDescription>{DESCRIPTIONS[resource]}</SubscriptionDescription>
-        </SubscriptionInfo>
+        </Stack>
         <Checkbox
           key={`${resource}${checked}`}
           aria-label={resource}
@@ -99,20 +101,14 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   box-sizing: border-box;
 `;
 
-const SubscriptionInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-self: center;
-`;
-
 const SubscriptionDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SubscriptionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1;
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
