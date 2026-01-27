@@ -5,7 +5,7 @@ import type {Op} from 'sentry/views/alerts/rules/uptime/types';
 export type ConnectorType = 'vertical' | 'horizontal';
 
 export type Connector = {
-  level: number;
+  depth: number;
   type: ConnectorType;
 };
 
@@ -50,7 +50,7 @@ export abstract class TreeNode<T extends Op = Op> {
     let ancestor = this.parent;
     while (ancestor && ancestor.parent) {
       if (!ancestor.isLastChild) {
-        connectors.push({type: 'vertical', level: ancestor.depth - 1});
+        connectors.push({type: 'vertical', depth: ancestor.depth - 1});
       }
       ancestor = ancestor.parent;
     }
@@ -58,13 +58,13 @@ export abstract class TreeNode<T extends Op = Op> {
     // Vertical line at the immediate parent's position.
     connectors.push({
       type: 'vertical',
-      level: this.depth - 1,
+      depth: this.depth - 1,
     });
 
     // Horizontal connector from parent column to this column.
     connectors.push({
       type: 'horizontal',
-      level: this.depth - 1,
+      depth: this.depth - 1,
     });
 
     return connectors;
