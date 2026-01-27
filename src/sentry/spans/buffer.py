@@ -455,6 +455,7 @@ class SpansBuffer:
         metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
+        metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(tree_items))
 
         try:
             if write_to_zset:
