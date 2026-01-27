@@ -88,9 +88,9 @@ describe('Assertion Failure TreeNode model', () => {
       );
 
       expect(greatGrandchild.connectors).toEqual([
-        {type: 'vertical', level: 0}, // connector for root -> secondChild
-        {type: 'vertical', level: 2}, // connector for grandchild -> greatGrandchild
-        {type: 'horizontal', level: 2},
+        {type: 'vertical', depth: 0}, // connector for root -> secondChild
+        {type: 'vertical', depth: 2}, // connector for grandchild -> greatGrandchild
+        {type: 'horizontal', depth: 2},
       ]);
 
       expect(secondChild.value.id).toBe('op-3');
