@@ -1688,21 +1688,21 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
             owner=self.user, redirect_uris="https://example.com"
         )
 
-    def test_cimd_url_detected_and_returns_not_implemented(self) -> None:
-        """Test that valid CIMD URL client_ids are detected and return 501 (not yet implemented)."""
+    def test_cimd_url_detected_and_fetch_fails(self) -> None:
+        """Test that valid CIMD URL client_ids are detected but fail when metadata can't be fetched."""
         self.login_as(self.user)
 
-        # Valid CIMD URL with path
+        # Valid CIMD URL with path - but no actual metadata endpoint exists
         cimd_client_id = "https://myclient.example.com/oauth-metadata.json"
 
         resp = self.client.get(
             f"{self.path}?response_type=code&client_id={cimd_client_id}&redirect_uri=https://myclient.example.com/callback"
         )
 
-        # Should return 501 Not Implemented until CIMD is fully implemented
-        assert resp.status_code == 501
+        # Should return 400 with fetch error since metadata can't be retrieved
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
-        assert "CIMD" in resp.context["error"]
+        assert "Unable to fetch client metadata" in resp.context["error"]
 
     def test_http_url_rejected(self) -> None:
         """Test that HTTP (non-HTTPS) URLs are rejected as invalid."""
@@ -1824,13 +1824,13 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
             f"{self.path}?response_type=code&client_id={query_client_id}&redirect_uri=https://myclient.example.com/callback"
         )
 
-        # Should return 501 Not Implemented (detected as valid CIMD URL)
-        assert resp.status_code == 501
+        # Should return 400 with fetch error since metadata can't be retrieved
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
-        assert "CIMD" in resp.context["error"]
+        assert "Unable to fetch client metadata" in resp.context["error"]
 
     def test_cimd_url_various_valid_paths(self) -> None:
-        """Test various valid CIMD URL path formats."""
+        """Test various valid CIMD URL path formats are detected as CIMD (will fail to fetch)."""
         self.login_as(self.user)
 
         valid_cimd_urls = [
@@ -1845,5 +1845,6 @@ class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
                 f"{self.path}?response_type=code&client_id={cimd_url}&redirect_uri=https://example.com/callback"
             )
 
-            # All should be detected as CIMD and return 501
-            assert resp.status_code == 501, f"URL {cimd_url} should be detected as valid CIMD"
+            # All should be detected as CIMD and return 400 (fetch fails)
+            assert resp.status_code == 400, f"URL {cimd_url} should be detected as valid CIMD"
+            assert "Unable to fetch client metadata" in resp.context["error"]
