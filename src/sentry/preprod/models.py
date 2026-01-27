@@ -59,6 +59,21 @@ class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
             download_size=Subquery(main_metrics.values("max_download_size")[:1]),
         )
 
+    def annotate_platform_name(self) -> Self:
+        # Import here to avoid circular import since PreprodArtifact
+        # is defined later in this file
+        from sentry.preprod.models import PreprodArtifact
+
+        return self.annotate(
+            platform_name=Case(
+                When(artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE, then=Value("apple")),
+                When(artifact_type=PreprodArtifact.ArtifactType.AAB, then=Value("android")),
+                When(artifact_type=PreprodArtifact.ArtifactType.APK, then=Value("android")),
+                default=Value(None),
+                output_field=models.CharField(),
+            )
+        )
+
 
 class PreprodArtifactModelManager(BaseManager["PreprodArtifact"]):
     def get_queryset(self) -> PreprodArtifactQuerySet:
