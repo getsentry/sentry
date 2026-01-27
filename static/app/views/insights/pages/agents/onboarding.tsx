@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
@@ -48,6 +49,7 @@ import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/quer
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
 import {
+  AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
@@ -244,6 +246,9 @@ export function Onboarding() {
         ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
             value: integration,
+            leadingItems: (
+              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+            ),
           }))
         : (hasServerSideNode
             ? NODE_AGENT_INTEGRATIONS
@@ -253,6 +258,9 @@ export function Onboarding() {
           ).map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
             value: integration,
+            leadingItems: (
+              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+            ),
           })),
     },
   };
