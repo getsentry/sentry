@@ -108,6 +108,32 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert get_release_tags.call_count == 1
 
+    def test_first_last_same_release(self) -> None:
+        """Test that when first and last release are the same, we only query once."""
+        self.login_as(user=self.user)
+
+        # Create events with the same release - first and last will be the same
+        event = self.store_event(
+            data={"release": "1.0", "timestamp": before_now(days=3).isoformat()},
+            project_id=self.project.id,
+        )
+
+        group = event.group
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+        with mock.patch("sentry.tagstore.backend.get_release_tags") as get_release_tags:
+            get_release_tags.return_value = []
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200
+            # Should only call get_release_tags once even though first and last are the same
+            assert get_release_tags.call_count == 1
+            # Verify the versions parameter doesn't have duplicates
+            call_args = get_release_tags.call_args
+            versions = call_args[1]["versions"]
+            # Even if first and last are the same, we should only query for unique versions
+            assert len(versions) == len(set(versions)), "Versions list should not contain duplicates"
+
     def test_first_release_only(self) -> None:
         self.login_as(user=self.user)
 
