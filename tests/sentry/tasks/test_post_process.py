@@ -1567,6 +1567,7 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
                 path="sentry/models/release.py",
                 ref="master",
                 repo=self.repo,
+                revision=None,
                 commit=CommitInfo(
                     commitId="asdfwreqr",
                     committedDate=(timezone.now() - timedelta(days=2)),

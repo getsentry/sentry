@@ -22,6 +22,7 @@ class EventFrame:
     function: str | None = None
     package: str | None = None
     module: str | None = None
+    revision: str | None = None
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> EventFrame:
