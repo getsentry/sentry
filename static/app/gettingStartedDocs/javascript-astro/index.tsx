@@ -3,8 +3,8 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/utils';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
 import {mcp} from './mcp';
@@ -32,7 +32,10 @@ const docs: Docs = {
     docsPlatform: 'astro',
     packageName: '@sentry/astro',
   }),
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    packageName: '@sentry/astro',
+    configFileName: 'sentry.server.config.js',
+  }),
   mcpOnboarding: mcp,
 };
 
