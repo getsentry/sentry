@@ -66,7 +66,28 @@ def process_projects_with_sessions(org_id, project_ids) -> None:
 
         totals = release_monitor.fetch_project_release_health_totals(org_id, project_ids)
 
-        adopted_ids = adopt_releases(org_id, totals)
+        # Filter out projects that no longer exist in the database
+        # Snuba can return stale data for deleted projects, causing Project.DoesNotExist errors
+        existing_project_ids = set(
+            Project.objects.filter(
+                organization_id=org_id, id__in=list(totals.keys())
+            ).values_list("id", flat=True)
+        )
+
+        # Filter totals to only include existing projects
+        filtered_totals = {
+            project_id: project_totals
+            for project_id, project_totals in totals.items()
+            if project_id in existing_project_ids
+        }
+
+        if len(filtered_totals) < len(totals):
+            metrics.incr(
+                "sentry.tasks.process_projects_with_sessions.filtered_deleted_projects",
+                amount=len(totals) - len(filtered_totals),
+            )
+
+        adopted_ids = adopt_releases(org_id, filtered_totals)
 
         cleanup_adopted_releases(project_ids, adopted_ids)
 
