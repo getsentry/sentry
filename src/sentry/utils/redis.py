@@ -187,6 +187,7 @@ class RedisClusterManager:
                     max_connections=16,
                     max_connections_per_node=True,
                     readonly_mode=readonly_mode,
+                    reinitialize_steps=1,
                     **client_args,
                 )
             else:
