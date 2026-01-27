@@ -98,8 +98,11 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
 
+    # User-controlled setting to enable/disable response capture feature entirely.
+    response_capture_enabled = models.BooleanField(default=True, db_default=True)
+
     # Whether to capture response body and headers on check failures.
-    # Used for debugging - can be disabled after first capture to reduce bandwidth.
+    # System-managed flag - disabled after first capture to reduce bandwidth.
     capture_response_on_failure = models.BooleanField(default=True, db_default=True)
 
     # runtime assertion executed by the checker against the response body

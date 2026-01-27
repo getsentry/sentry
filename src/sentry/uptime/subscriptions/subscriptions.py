@@ -177,6 +177,7 @@ def update_uptime_subscription(
     body: str | None | NotSet = NOT_SET,
     trace_sampling: bool | NotSet = NOT_SET,
     assertion: Any | NotSet = NOT_SET,
+    response_capture_enabled: bool | NotSet = NOT_SET,
 ):
     """
     Updates an existing uptime subscription. This updates the row in postgres, and fires a task that will send the
@@ -193,6 +194,16 @@ def update_uptime_subscription(
     new_interval_seconds = default_if_not_set(subscription.interval_seconds, interval_seconds)
     interval_updated = new_interval_seconds != subscription.interval_seconds
 
+    new_response_capture_enabled = default_if_not_set(
+        subscription.response_capture_enabled, response_capture_enabled
+    )
+
+    # When disabling response capture, also disable the system flag so the
+    # checker stops sending response data
+    new_capture_response_on_failure = subscription.capture_response_on_failure
+    if not new_response_capture_enabled:
+        new_capture_response_on_failure = False
+
     subscription.update(
         status=UptimeSubscription.Status.UPDATING.value,
         url=url,
@@ -205,6 +216,8 @@ def update_uptime_subscription(
         body=default_if_not_set(subscription.body, body),
         trace_sampling=default_if_not_set(subscription.trace_sampling, trace_sampling),
         assertion=default_if_not_set(subscription.assertion, assertion),
+        response_capture_enabled=new_response_capture_enabled,
+        capture_response_on_failure=new_capture_response_on_failure,
     )
 
     # Associate active regions with this subscription
@@ -376,6 +389,7 @@ def update_uptime_detector(
     recovery_threshold: int | NotSet = NOT_SET,
     downtime_threshold: int | NotSet = NOT_SET,
     assertion: Any | NotSet = NOT_SET,
+    response_capture_enabled: bool | NotSet = NOT_SET,
 ):
     """
     Updates a uptime detector and its associated uptime subscription.
@@ -399,6 +413,7 @@ def update_uptime_detector(
             body=body,
             trace_sampling=trace_sampling,
             assertion=assertion,
+            response_capture_enabled=response_capture_enabled,
         )
 
         owner_user_id = detector.owner_user_id
@@ -671,7 +686,12 @@ def set_response_capture_enabled(subscription: UptimeSubscription, enabled: bool
 
     Updates the capture_response_on_failure flag in the database.
     Returns True if a change was made, False otherwise.
+
+    Note: Will not re-enable capture if the user has disabled the feature entirely.
     """
+    if enabled and not subscription.response_capture_enabled:
+        return False
+
     if subscription.capture_response_on_failure == enabled:
         return False
 
