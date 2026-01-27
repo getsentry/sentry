@@ -25,7 +25,7 @@
  *
  * @type {TokenRule[]}
  */
-export const TOKEN_RULES = [
+const TOKEN_RULES = [
   {
     name: 'content',
     tokenPatterns: [
@@ -57,7 +57,7 @@ export const TOKEN_RULES = [
  * @param {string} pattern - e.g., 'content.*' or 'interactive.*.content'
  * @returns {boolean}
  */
-export function matchesTokenPattern(tokenPath, pattern) {
+function matchesTokenPattern(tokenPath, pattern) {
   // Split pattern by '.*' to get fixed segments, filtering out empty strings
   const segments = pattern.split('.*').filter(s => s !== '');
 
