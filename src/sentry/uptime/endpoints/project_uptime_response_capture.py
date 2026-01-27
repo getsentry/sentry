@@ -11,10 +11,12 @@ from sentry.apidocs.parameters import GlobalParams, UptimeParams
 from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
-from sentry.uptime.models import UptimeResponseCapture, get_uptime_subscription
+from sentry.uptime.models import (
+    RESPONSE_BODY_SEPARATOR,
+    UptimeResponseCapture,
+    get_uptime_subscription,
+)
 from sentry.workflow_engine.models import Detector
-
-RESPONSE_BODY_SEPARATOR = b"\r\n\r\n---BODY---\r\n\r\n"
 
 
 def parse_response_content(content: bytes) -> tuple[list[list[str]], bytes]:
