@@ -52,7 +52,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
             "Without this, the task will fail immediately despite times=3."
         )
 
-        assert task.retry._times == 3, "Task should retry 3 times"
+        assert task.retry._times == 5, "Task should retry 5 times"
         assert task.retry._delay == 60, "Task should delay 60 seconds between retries"
 
         from urllib3.exceptions import MaxRetryError
@@ -383,7 +383,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         mock_request.side_effect = MaxRetryError(None, "test", reason="Connection failed")  # type: ignore[arg-type]
 
-        # With MAX_RETRIES=3, there are 2 delays between 3 attempts: (3-1) * 60s = 120s
+        # With MAX_RETRIES=5, there are 4 delays between 5 attempts: (5-1) * 60s = 240s
         enqueued_at_str = (
             datetime.now(timezone.utc)
             - timedelta(seconds=DELAY_BETWEEN_RETRIES * (MAX_RETRIES - 1))
@@ -415,9 +415,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert "tags" in call_kwargs
         assert "status" in call_kwargs["tags"]
 
-        # With MAX_RETRIES=3, there are 2 delays: (3-1) * 60s = 120s
-        # Allow tolerance for test execution time (3 attempts add overhead)
-        expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 120,000ms
+        # With MAX_RETRIES=5, there are 4 delays: (5-1) * 60s = 240s
+        # Allow tolerance for test execution time (5 attempts add overhead)
+        expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 240,000ms
         assert (
             expected_latency_ms - 1000 <= call_args[1] <= expected_latency_ms + 5000
         ), f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"

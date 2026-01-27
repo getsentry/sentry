@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 PREFIX = "seer.code_review.task"
-MAX_RETRIES = 3
+MAX_RETRIES = 5
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
 METRICS_PREFIX = "seer.code_review.task"
