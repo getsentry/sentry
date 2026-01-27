@@ -1,6 +1,5 @@
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
@@ -127,7 +126,6 @@ export function transformIssuesResponseToTable(
   _organization: Organization,
   pageFilters: PageFilters
 ): TableData {
-  GroupStore.add(data);
   const transformedTableResults: TableDataRow[] = [];
   data.forEach(
     ({
