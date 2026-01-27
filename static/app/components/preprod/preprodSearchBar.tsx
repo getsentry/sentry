@@ -27,9 +27,6 @@ interface PreprodSearchBarProps {
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
-  /**
-   * List of attribute keys to hide from the search bar. Defaults to HIDDEN_PREPROD_ATTRIBUTES.
-   */
   hiddenKeys?: string[];
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
   onSearch?: (query: string) => void;
@@ -80,11 +77,15 @@ export function PreprodSearchBar({
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number', hiddenKeys);
 
   const filteredStringAttributes = useMemo(
-    () => filterAttributes(stringAttributes, allowedKeys),
+    () => ({
+      ...filterAttributes(stringAttributes, allowedKeys),
+    }),
     [stringAttributes, allowedKeys]
   );
   const filteredNumberAttributes = useMemo(
-    () => filterAttributes(numberAttributes, allowedKeys),
+    () => ({
+      ...filterAttributes(numberAttributes, allowedKeys),
+    }),
     [numberAttributes, allowedKeys]
   );
 

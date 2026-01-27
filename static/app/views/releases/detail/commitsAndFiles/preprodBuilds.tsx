@@ -1,12 +1,13 @@
 import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
+import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -22,10 +23,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import PreprodBuildsSearchBar from 'sentry/views/preprod/components/preprodBuildsSearchBar';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import {PreprodOnboarding} from './preprodOnboarding';
@@ -96,12 +95,11 @@ export default function PreprodBuilds() {
     error: buildsError,
     refetch,
     getResponseHeader,
-  }: UseApiQueryResult<
-    ListBuildsApiResponse,
-    RequestError
-  > = useApiQuery<ListBuildsApiResponse>(
+  }: UseApiQueryResult<BuildDetailsApiResponse[], RequestError> = useApiQuery<
+    BuildDetailsApiResponse[]
+  >(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: queryParams},
@@ -112,7 +110,7 @@ export default function PreprodBuilds() {
     }
   );
 
-  const handleSearch = (query: string) => {
+  const handleSearch = (query: string, _state?: {queryIsValid: boolean}) => {
     setLocalSearchQuery(query);
   };
 
@@ -130,7 +128,7 @@ export default function PreprodBuilds() {
     [location]
   );
 
-  const builds = buildsData?.builds || [];
+  const builds = buildsData ?? [];
   const pageLinks = getResponseHeader?.('Link') || null;
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
@@ -171,23 +169,13 @@ export default function PreprodBuilds() {
         />
         {buildsError && <LoadingError onRetry={refetch} />}
         <Container paddingBottom="md">
-          <Flex
-            align={{xs: 'stretch', sm: 'center'}}
-            direction={{xs: 'column', sm: 'row'}}
-            gap="md"
-            wrap="wrap"
-          >
-            <PreprodBuildsSearchBar
-              onChange={handleSearch}
-              query={localSearchQuery}
-              disabled={isLoadingBuilds}
-              displayOptions={
-                hasDistributionFeature
-                  ? {selected: activeDisplay, onSelect: handleDisplayChange}
-                  : undefined
-              }
-            />
-          </Flex>
+          <PreprodBuildsSearchControls
+            initialQuery={localSearchQuery}
+            display={activeDisplay}
+            projects={[Number(projectId)]}
+            onChange={handleSearch}
+            onDisplayChange={handleDisplayChange}
+          />
         </Container>
         {showOnboarding ? (
           <PreprodOnboarding projectPlatform={projectPlatform || null} />
