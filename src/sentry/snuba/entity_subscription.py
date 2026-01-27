@@ -211,7 +211,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
 
         query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
         if environment:
-            params["environment"] = environment.name
+            params["environment_objects"] = [environment]
 
         query_builder_cls = DiscoverQueryBuilder
         parser_config_overrides: MutableMapping[str, Any] = {"blocked_keys": ALERT_BLOCKED_FIELDS}
