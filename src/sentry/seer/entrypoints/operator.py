@@ -222,7 +222,7 @@ def process_autofix_updates(
     group_id = event_payload.get("group_id")
     logging_ctx = {"event_type": event_type, "run_id": run_id, "group_id": group_id}
 
-    if not run_id and not group_id:
+    if not run_id or not group_id:
         logger.warning("operator.missing_identifiers", extra=logging_ctx)
         return
 
@@ -231,28 +231,26 @@ def process_autofix_updates(
         return
 
     for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
-        group_cache_payload = None
-        run_cache_payload = None
-        if group_id:
-            pre_cache_key = SeerOperator.get_pre_autofix_cache_key(
-                entrypoint_key=entrypoint_key, group_id=group_id
-            )
-            logging_ctx["pre_cache_key"] = pre_cache_key
-            group_cache_payload = cache.get(pre_cache_key)
-        if run_id:
-            post_cache_key = SeerOperator.get_post_autofix_cache_key(
-                entrypoint_key=entrypoint_key, run_id=run_id
-            )
-            logging_ctx["post_cache_key"] = post_cache_key
-            run_cache_payload = cache.get(post_cache_key)
+        pre_cache_key = SeerOperator.get_pre_autofix_cache_key(
+            entrypoint_key=entrypoint_key, group_id=group_id
+        )
+        logging_ctx["pre_cache_key"] = pre_cache_key
+        pre_cache_payload = cache.get(pre_cache_key)
+
+        post_cache_key = SeerOperator.get_post_autofix_cache_key(
+            entrypoint_key=entrypoint_key, run_id=run_id
+        )
+        logging_ctx["post_cache_key"] = post_cache_key
+        post_cache_payload = cache.get(post_cache_key)
 
         # We prefer the run cache payload since it's more narrow
         # A group can have multiple runs, and that means many threads to post updates to.
         # A run has a single group, and (usually) a single thread to post updates to.
-        cache_payload = run_cache_payload or group_cache_payload
+        cache_payload = post_cache_payload or pre_cache_payload
         if not cache_payload:
             logger.info("operator.no_cache_payload", extra=logging_ctx)
             continue
+        logging_ctx["cache_source"] = "run_id" if post_cache_payload else "group_id"
         try:
             entrypoint_cls.on_autofix_update(
                 event_type=event_type, event_payload=event_payload, cache_payload=cache_payload

@@ -150,7 +150,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         integration_id: int,
         thread_ts: str,
         channel_id: str,
-    ):
+    ) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
             thread_ts=thread_ts,
             channel_id=channel_id,
