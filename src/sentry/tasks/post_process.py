@@ -741,11 +741,13 @@ def update_event_group(event: Event, group_state: GroupState) -> GroupEvent:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
-    from sentry.models.group import get_group_with_redirect
+    from sentry.models.group import Group, get_group_with_redirect
 
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
-    rebound_group = get_group_with_redirect(group_state["id"])[0]
+    # For newly created groups, we must read from primary to avoid replication lag issues
+    queryset = Group.objects.all() if group_state.get("is_new") else None
+    rebound_group = get_group_with_redirect(group_state["id"], queryset=queryset)[0]
     # We buffer updates to last_seen, assume it's at least >= the event datetime
     rebound_group.last_seen = max(event.datetime, rebound_group.last_seen)
 

@@ -4363,3 +4363,69 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         # should not be called when feature flag is disabled
         assert mock_forward.call_count == 0
+
+
+class UpdateEventGroupTest(TestCase, SnubaTestCase):
+    """Test the update_event_group function to ensure it handles new groups correctly."""
+
+    def test_update_event_group_with_new_group_reads_from_primary(self):
+        """
+        When processing a newly created group, update_event_group should pass a queryset
+        to get_group_with_redirect to ensure it reads from the primary database,
+        avoiding replication lag issues.
+        """
+        from sentry.tasks.post_process import update_event_group
+
+        event = self.store_event(data={"message": "test"}, project_id=self.project.id)
+        group = event.group
+
+        group_state = {
+            "id": group.id,
+            "is_new": True,
+            "is_regression": False,
+            "is_new_group_environment": True,
+        }
+
+        with patch("sentry.tasks.post_process.get_group_with_redirect") as mock_get_group:
+            mock_get_group.return_value = (group, False)
+
+            update_event_group(event, group_state)
+
+            # Verify that get_group_with_redirect was called with a queryset for new groups
+            assert mock_get_group.call_count == 1
+            call_args = mock_get_group.call_args
+            # The first positional argument is the group ID
+            assert call_args[0][0] == group.id
+            # The queryset should be passed as a keyword argument
+            assert "queryset" in call_args[1]
+            assert call_args[1]["queryset"] is not None
+
+    def test_update_event_group_with_existing_group_uses_cache(self):
+        """
+        When processing an existing group, update_event_group should NOT pass a queryset
+        to get_group_with_redirect, allowing it to use the cache with replica reads.
+        """
+        from sentry.tasks.post_process import update_event_group
+
+        event = self.store_event(data={"message": "test"}, project_id=self.project.id)
+        group = event.group
+
+        group_state = {
+            "id": group.id,
+            "is_new": False,
+            "is_regression": False,
+            "is_new_group_environment": False,
+        }
+
+        with patch("sentry.tasks.post_process.get_group_with_redirect") as mock_get_group:
+            mock_get_group.return_value = (group, False)
+
+            update_event_group(event, group_state)
+
+            # Verify that get_group_with_redirect was called without a queryset for existing groups
+            assert mock_get_group.call_count == 1
+            call_args = mock_get_group.call_args
+            # The first positional argument is the group ID
+            assert call_args[0][0] == group.id
+            # The queryset should be None for existing groups (allowing cache usage)
+            assert call_args[1]["queryset"] is None
