@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from django.contrib.contenttypes.models import ContentType
 
@@ -31,6 +31,21 @@ class TestSocialAuthUtils(TestCase):
         val = model_to_ctype(dt)
         assert val == {"__datetime__": "2026-01-27T15:04:33.172220+00:00"}
 
+        # Test date serialization
+        d = date(2026, 1, 27)
+        val = model_to_ctype(d)
+        assert val == {"__date__": "2026-01-27"}
+
+        # Test time serialization
+        t = time(15, 4, 33, 172220)
+        val = model_to_ctype(t)
+        assert val == {"__time__": "15:04:33.172220"}
+
+        # Test timedelta serialization
+        td = timedelta(days=1, hours=2, minutes=3, seconds=4)
+        val = model_to_ctype(td)
+        assert val == {"__timedelta__": 93784.0}
+
     def test_ctype_to_model(self) -> None:
         val = ctype_to_model(1)
         assert val == 1
@@ -49,6 +64,21 @@ class TestSocialAuthUtils(TestCase):
         dt_val = {"__datetime__": "2026-01-27T15:04:33.172220+00:00"}
         dt = ctype_to_model(dt_val)
         assert dt == datetime(2026, 1, 27, 15, 4, 33, 172220, tzinfo=timezone.utc)
+
+        # Test date deserialization
+        d_val = {"__date__": "2026-01-27"}
+        d = ctype_to_model(d_val)
+        assert d == date(2026, 1, 27)
+
+        # Test time deserialization
+        t_val = {"__time__": "15:04:33.172220"}
+        t = ctype_to_model(t_val)
+        assert t == time(15, 4, 33, 172220)
+
+        # Test timedelta deserialization
+        td_val = {"__timedelta__": 93784.0}
+        td = ctype_to_model(td_val)
+        assert td == timedelta(days=1, hours=2, minutes=3, seconds=4)
 
     def test_session_dict_json_serialization(self) -> None:
         """Test that session data with datetime objects can be JSON serialized."""

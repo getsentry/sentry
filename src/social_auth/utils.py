@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs as urlparse_parse_qs
@@ -11,7 +11,7 @@ from urllib.request import urlopen
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime, parse_duration, parse_time
 
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.users.services.user import RpcUser
@@ -105,6 +105,12 @@ def model_to_ctype(val):
         return val.dict()
     if isinstance(val, datetime):
         return {"__datetime__": val.isoformat()}
+    if isinstance(val, date):
+        return {"__date__": val.isoformat()}
+    if isinstance(val, time):
+        return {"__time__": val.isoformat()}
+    if isinstance(val, timedelta):
+        return {"__timedelta__": val.total_seconds()}
     return val
 
 
@@ -118,6 +124,15 @@ def ctype_to_model(val):
 
     if isinstance(val, dict) and "__datetime__" in val:
         return parse_datetime(val["__datetime__"])
+
+    if isinstance(val, dict) and "__date__" in val:
+        return parse_date(val["__date__"])
+
+    if isinstance(val, dict) and "__time__" in val:
+        return parse_time(val["__time__"])
+
+    if isinstance(val, dict) and "__timedelta__" in val:
+        return timedelta(seconds=val["__timedelta__"])
 
     if isinstance(val, dict) and "username" in val and "name" in val:
         return RpcUser.parse_obj(val)
