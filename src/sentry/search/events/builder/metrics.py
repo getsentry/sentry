@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
@@ -763,7 +764,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         # For release tags, extract the version part from package@version format
         # since the metrics indexer stores only the version, not the full package@version string
         if tag_name == "release" and "@" in value:
-            import re
             # Match package@version or package@version+build patterns
             match = re.match(r"^[^@]+@([^+]+)(?:\+.*)?$", value)
             if match:
