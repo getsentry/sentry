@@ -845,6 +845,60 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert projects_2[project_a.id]["newGroups"] == 1
         assert projects_2[project_b.id]["newGroups"] == 4
 
+    @patch("sentry.release_health.backend.get_release_health_data_overview")
+    def test_deduplicates_project_releases_for_health_data(
+        self, mock_get_health_data: MagicMock
+    ) -> None:
+        """Test that duplicate (project_id, release_version) tuples are deduplicated
+        before calling get_release_health_data_overview to prevent Snuba timeout issues."""
+        from sentry.api.serializers.models.release import ReleaseSerializer
+
+        user = self.create_user()
+        project = self.create_project()
+        release_version = uuid4().hex
+
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=release_version
+        )
+        release.add_project(project)
+
+        # Mock the health data response
+        mock_get_health_data.return_value = {
+            (project.id, release_version): {
+                "has_health_data": True,
+                "adoption": 50.0,
+                "sessions_adoption": 50.0,
+            }
+        }
+
+        # Create a scenario with duplicate ReleaseProject entries
+        # (this can happen with flatten=1 and certain pagination scenarios)
+        ReleaseProject.objects.create(
+            release=release, project=project, new_groups=1
+        )
+        ReleaseProject.objects.create(
+            release=release, project=project, new_groups=1
+        )
+
+        serializer = ReleaseSerializer()
+        serializer.get_attrs(
+            item_list=[release],
+            user=user,
+            with_health_data=True,
+            health_stats_period="24h",
+        )
+
+        # Verify that get_release_health_data_overview was called
+        assert mock_get_health_data.called
+        
+        # Get the first positional argument (the project_releases list)
+        called_project_releases = mock_get_health_data.call_args[0][0]
+        
+        # Verify that the list was deduplicated
+        # Even though we have 2 ReleaseProject entries, only 1 unique tuple should be passed
+        assert len(called_project_releases) == 1
+        assert called_project_releases[0] == (project.id, release_version)
+
 
 class ReleaseRefsSerializerTest(TestCase):
     def test_simple(self) -> None:
