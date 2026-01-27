@@ -1,8 +1,8 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoringFullStack} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/utils';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
@@ -24,7 +24,7 @@ const docs: Docs = {
     nodeProfilingLink:
       'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/node-profiling/',
   }),
-  agentMonitoringOnboarding: agentMonitoringFullStack({
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     packageName: '@sentry/react-router',
     configFileName: 'instrument.server.mjs',
   }),

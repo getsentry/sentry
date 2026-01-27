@@ -10,10 +10,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {
-  AGENT_INTEGRATION_LABELS,
-  AgentIntegration,
-} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 function getInstallSnippet({
   params,
@@ -451,43 +448,7 @@ Sentry.profiler.stopProfiler();
   ],
 });
 
-export const vercelAiExtraInstrumentation: ContentBlock[] = [
-  {
-    type: 'text',
-    text: tct(
-      'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
-      {
-        code: <code />,
-        link: (
-          <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
-        ),
-      }
-    ),
-  },
-  {
-    type: 'code',
-    tabs: [
-      {
-        label: 'JavaScript',
-        language: 'javascript',
-        code: `const { generateText } = require('ai');
-const { openai } = require('@ai-sdk/openai');
-
-const result = await generateText({
-model: openai("gpt-4o"),
-prompt: "Tell me a joke",
-experimental_telemetry: {
-isEnabled: true,
-recordInputs: true,
-recordOutputs: true,
-},
-});`,
-      },
-    ],
-  },
-];
-
-export function getAgentMonitoringConfigStep({
+function getAgentMonitoringConfigStep({
   params,
   integration,
   packageName,
@@ -500,92 +461,144 @@ export function getAgentMonitoringConfigStep({
   configFileName?: string;
   importMode?: 'esm' | 'cjs' | 'esm-only';
 }): OnboardingStep[] {
-  const content: ContentBlock[] = [];
+  // Meta-frameworks can run on multiple runtimes (Node.js server-side, Browser client-side, etc.).
+  // We only show Node.js instructions here to keep onboarding simple.
+  // For other runtimes, we show an alert linking to the docs.
+  const isMetaFramework = javascriptMetaFrameworks.includes(params.platformKey);
 
-  if (integration === AgentIntegration.MASTRA) {
-    content.push(
-      {
-        type: 'text',
-        text: tct(
-          'Configure Mastra to use Sentry by adding the [code:SentryExporter] to your Mastra observability config. For more details, see the [link:@mastra/sentry package].',
-          {
-            code: <code />,
-            link: <ExternalLink href="https://www.npmjs.com/package/@mastra/sentry" />,
-          }
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `import { Mastra } from '@mastra/core';
-import { SentryExporter } from '@mastra/sentry';
+  const manualInstrumentationAlert: ContentBlock[] = isMetaFramework
+    ? [
+        {
+          type: 'alert',
+          alertType: 'info',
+          text: tct(
+            "Below you'll find setup instructions for server-side on Node.js. For other runtimes, like the Browser, follow the [link:manual instrumentation guide], or use an AI coding agent to do it for you.",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/ai-agent-monitoring-browser/" />
+              ),
+            }
+          ),
+          trailingItems: <CopyLLMPromptButton />,
+        },
+      ]
+    : [];
 
-const mastra = new Mastra({
-// ... your existing config
-observability: {
-configs: {
-sentry: {
-  serviceName: 'my-service',
-  exporters: [
-    new SentryExporter({
-      dsn: '${params.dsn.public}',
-      tracesSampleRate: 1.0,
-    }),
-  ],
-},
-},
-},
-});`,
+  const vercelAiExtraInstrumentation: ContentBlock[] =
+    integration === AgentIntegration.VERCEL_AI
+      ? [
+          {
+            type: 'text',
+            text: tct(
+              'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+              {
+                code: <code />,
+                link: (
+                  <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+                ),
+              }
+            ),
           },
-        ],
-      }
-    );
-  } else {
-    content.push(
-      {
-        type: 'text',
-        text: tct(
-          'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
           {
-            integration: AGENT_INTEGRATION_LABELS[integration] ?? integration,
-          }
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: configFileName ?? 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName, importMode).join('\n')}
+            type: 'code',
+            tabs: [
+              {
+                label: 'JavaScript',
+                language: 'javascript',
+                code: `const { generateText } = require('ai');
+      const { openai } = require('@ai-sdk/openai');
 
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  // Add data like inputs and responses to/from LLMs and tools;
-  // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
-  sendDefaultPii: true,
-});`,
-          },
-        ],
+      const result = await generateText({
+      model: openai("gpt-4o"),
+      prompt: "Tell me a joke",
+      experimental_telemetry: {
+      isEnabled: true,
+      recordInputs: true,
+      recordOutputs: true,
       },
-      ...(integration === AgentIntegration.VERCEL_AI ? vercelAiExtraInstrumentation : [])
-    );
-  }
+      });`,
+              },
+            ],
+          },
+        ]
+      : [];
 
   return [
     {
-      type: StepType.CONFIGURE,
-      content,
+      title: t('Configure'),
+      content:
+        integration === AgentIntegration.MASTRA
+          ? [
+              {
+                type: 'text',
+                text: tct(
+                  'Configure Mastra to use Sentry by adding the [code:SentryExporter] to your Mastra observability config. For more details, see the [link:@mastra/sentry package].',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://www.npmjs.com/package/@mastra/sentry" />
+                    ),
+                  }
+                ),
+              },
+              {
+                type: 'code',
+                tabs: [
+                  {
+                    label: 'JavaScript',
+                    language: 'javascript',
+                    code: `import { Mastra } from '@mastra/core';
+    import { SentryExporter } from '@mastra/sentry';
+
+    const mastra = new Mastra({
+    // ... your existing config
+    observability: {
+    configs: {
+    sentry: {
+      serviceName: 'my-service',
+      exporters: [
+        new SentryExporter({
+          dsn: '${params.dsn.public}',
+           // Tracing must be enabled for agent monitoring to work
+          tracesSampleRate: 1.0,
+        }),
+      ],
+    },
+    },
+    },
+    // });`,
+                  },
+                ],
+              },
+            ]
+          : [
+              ...manualInstrumentationAlert,
+              {
+                type: 'code',
+                tabs: [
+                  {
+                    label: configFileName ?? 'JavaScript',
+                    language: 'javascript',
+                    code: `${getImport(packageName, importMode).join('\n')}
+
+        Sentry.init({
+          dsn: "${params.dsn.public}",
+          // Tracing must be enabled for agent monitoring to work
+          tracesSampleRate: 1.0,
+          // Add data like inputs and responses to/from LLMs and tools;
+          // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
+          sendDefaultPii: true,
+        });`,
+                  },
+                ],
+              },
+              ...vercelAiExtraInstrumentation,
+            ],
     },
   ];
 }
 
-export function getAgentMonitoringVerifyStep(params: DocsParams): OnboardingStep[] {
+function getAgentMonitoringVerifyStep(params: DocsParams): OnboardingStep[] {
   const content: ContentBlock[] = [
     {
       type: 'text',
@@ -783,7 +796,7 @@ export const getNodeAgentMonitoringOnboarding = ({
       configFileName,
     });
   },
-  verify: params => getAgentMonitoringVerifyStep(params),
+  verify: getAgentMonitoringVerifyStep,
 });
 
 export const getNodeMcpOnboarding = ({

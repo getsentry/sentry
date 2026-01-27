@@ -7,10 +7,8 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getAgentMonitoringConfigStep,
   getAgentMonitoringInstallStep,
   getAgentMonitoringManualConfigStep,
-  getAgentMonitoringVerifyStep,
   getImport,
 } from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
@@ -342,38 +340,5 @@ export function agentMonitoring({
         ],
       },
     ],
-  };
-}
-
-export function agentMonitoringFullStack({
-  packageName,
-  configFileName,
-}: {
-  configFileName: string;
-  packageName: `@sentry/${string}`;
-}): OnboardingConfig {
-  return {
-    install: params =>
-      getAgentMonitoringInstallStep(params, {
-        packageName,
-      }),
-    configure: params => {
-      const selected =
-        (params.platformOptions as any)?.integration ?? AgentIntegration.VERCEL_AI;
-
-      if (selected === AgentIntegration.MANUAL) {
-        return getAgentMonitoringManualConfigStep(params, {
-          packageName,
-        });
-      }
-
-      return getAgentMonitoringConfigStep({
-        params,
-        integration: selected,
-        packageName,
-        configFileName,
-      });
-    },
-    verify: params => getAgentMonitoringVerifyStep(params),
   };
 }
