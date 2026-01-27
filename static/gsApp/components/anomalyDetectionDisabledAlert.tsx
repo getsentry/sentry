@@ -23,6 +23,9 @@ export function AnomalyDetectionDisabledAlert({
 
   // For anomaly detectors without feature, show upgrade message without Enable button
   if (isAnomalyDetector && !hasFeature) {
+    if (detector.enabled) {
+      return null;
+    }
     return (
       <Alert.Container>
         <Alert variant="muted">
