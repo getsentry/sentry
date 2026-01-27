@@ -443,12 +443,15 @@ class SnubaEventStorage(EventStorage):
             if event.datetime > timezone.now() - timedelta(hours=1):
                 # XXX: This is a hack to bust the snuba cache. We want to avoid the case where
                 # we cache an empty result, since this can result in us failing to fetch new events
-                # in some cases.
+                # in some cases. Use a small random offset from the event's timestamp to avoid
+                # scanning excessive data ranges.
+                random_offset_seconds = random.randint(0, 3600)  # Random offset within 1 hour
+                cache_bust_timestamp = event.datetime - timedelta(seconds=random_offset_seconds)
                 raw_query_kwargs["conditions"] = [
                     [
                         "timestamp",
                         ">",
-                        datetime.fromtimestamp(random.randint(0, 1000000000)),
+                        cache_bust_timestamp,
                     ]
                 ]
             dataset = (
