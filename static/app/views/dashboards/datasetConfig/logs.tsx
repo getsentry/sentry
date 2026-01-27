@@ -259,7 +259,7 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT
   ) {
-    return true; // COUNT() doesn't need parameters for logs
+    return option.value.meta.name === 'message';
   }
 
   const expectedDataTypes =
