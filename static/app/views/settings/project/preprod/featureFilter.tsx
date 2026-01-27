@@ -5,6 +5,7 @@ import {Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
@@ -37,6 +38,7 @@ interface FeatureFilterProps {
   successMessage: string;
   title: string;
   children?: React.ReactNode;
+  display?: PreprodBuildsDisplay;
 }
 
 export function FeatureFilter({
@@ -44,6 +46,7 @@ export function FeatureFilter({
   successMessage,
   settingsReadKey,
   settingsWriteKey,
+  display,
   children,
 }: FeatureFilterProps) {
   const organization = useOrganization();
@@ -123,6 +126,7 @@ export function FeatureFilter({
             error={!!buildsQuery.error}
             organizationSlug={organization.slug}
             hasSearchQuery={!!localQuery}
+            display={display}
           />
         </Stack>
       </PanelBody>
