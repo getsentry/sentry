@@ -2,10 +2,12 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -53,6 +55,11 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.lg})`);
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
+  const showSeerSection =
+    (organization.features.includes('gen-ai-features') &&
+      issueTypeConfig.issueSummary.enabled &&
+      !organization.hideAiFeatures) ||
+    issueTypeConfig.resources;
 
   if (!shouldDisplaySidebar) {
     return null;
@@ -63,19 +70,27 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       tourContext={IssueDetailsTourContext}
       id={IssueDetailsTour.SIDEBAR}
       demoTourId={DemoTourStep.ISSUES_DETAIL_SIDEBAR}
-      title={t('Share updates')}
-      description={t(
-        'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
-      )}
+      title={showSeerSection ? t('Automate root cause') : t('Share updates')}
+      description={
+        showSeerSection
+          ? tct(
+              'Use [link:Seer] to investigate this issue faster. You can also add comments for your team and link tickets to track progress.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />
+                ),
+              }
+            )
+          : t(
+              'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
+            )
+      }
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
       <Side>
         <FirstLastSeenSection group={group} />
         <StyledBreak />
-        {((organization.features.includes('gen-ai-features') &&
-          issueTypeConfig.issueSummary.enabled &&
-          !organization.hideAiFeatures) ||
-          issueTypeConfig.resources) && (
+        {showSeerSection && (
           <ErrorBoundary mini>
             <SeerSection group={group} project={project} event={event} />
           </ErrorBoundary>

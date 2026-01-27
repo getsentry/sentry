@@ -216,9 +216,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.NAVIGATION}
-        title={t('Compare different examples')}
+        title={t('Compare events')}
         description={t(
-          'You can quickly navigate between different examples in this issue to find their similarities (and differences).'
+          'Review the events associated with an issue. Compare the first, latest, or recommended event to see what changed.'
         )}
       >
         <NavigationWrapper>
