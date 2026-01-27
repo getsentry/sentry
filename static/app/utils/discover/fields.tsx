@@ -922,6 +922,9 @@ export function getAggregateArg(field: string): string | null {
 }
 
 export function parseFunction(field: string): ParsedFunction | null {
+  if (!field) {
+    return null;
+  }
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
@@ -1144,6 +1147,9 @@ export function explodeField(field: Field): Column {
  * Get the alias that the API results will have for a given aggregate function name
  */
 export function getAggregateAlias(field: string): string {
+  if (!field) {
+    return '';
+  }
   const result = parseFunction(field);
 
   if (!result) {

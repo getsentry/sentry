@@ -29,6 +29,11 @@ export function transformEventsResponseToSeries(
     seriesWithOrdering.push([0, transformEventsStatsToSeries(data, prefixedName, field)]);
   } else if (isMultiSeriesEventsStats(data)) {
     Object.keys(data).forEach(seriesName => {
+      if (seriesName === 'order') {
+        // `order` is a special key on multi-series responses, we can skip over it
+        return;
+      }
+
       const seriesData = data[seriesName]!;
       const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
 
