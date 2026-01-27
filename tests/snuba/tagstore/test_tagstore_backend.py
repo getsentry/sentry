@@ -707,6 +707,40 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             tags[0].times_seen == 2
         )  # Isn't 3 because start was limited by the ReleaseProjectEnvironment entry
 
+    def test_get_release_tags_without_release_project_environment(self) -> None:
+        """Test that get_release_tags uses a default 90-day lookback when no RPE records exist."""
+        # Create a project without any ReleaseProjectEnvironment records
+        proj2 = self.create_project()
+        
+        # Store an event with a release tag 30 days ago (within 90-day window)
+        thirty_days_ago = self.now - timedelta(days=30)
+        self.store_event(
+            data={
+                "event_id": "7" * 32,
+                "message": "message 4",
+                "platform": "python",
+                "fingerprint": ["group-3"],
+                "timestamp": thirty_days_ago.isoformat(),
+                "tags": {
+                    "sentry:release": "200",
+                },
+            },
+            project_id=proj2.id,
+        )
+        
+        # Query for release tags - should find the event even without RPE records
+        tags = list(
+            self.ts.get_release_tags(proj2.organization_id, [proj2.id], None, ["200"])
+        )
+        
+        # Should find the tag since it's within the 90-day default window
+        assert len(tags) == 1
+        assert tags[0].key == "sentry:release"
+        assert tags[0].value == "200"
+        assert tags[0].times_seen == 1
+        assert tags[0].first_seen == thirty_days_ago
+        assert tags[0].last_seen == thirty_days_ago
+
     def test_get_tag_value_paginator(self) -> None:
         from sentry.tagstore.types import TagValue
 

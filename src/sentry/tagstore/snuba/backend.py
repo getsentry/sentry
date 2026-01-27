@@ -1059,6 +1059,10 @@ class SnubaTagStorage(TagStorage):
             ["max", SEEN_COLUMN, "last_seen"],
         ]
         start = self.get_min_start_date(organization_id, project_ids, environment_id, versions)
+        # If no ReleaseProjectEnvironment records exist, use a default lookback of 90 days
+        # to prevent unbounded queries that can timeout
+        if start is None:
+            start = datetime.now(timezone.utc) - timedelta(days=90)
         result = snuba.query(
             dataset=Dataset.Events,
             start=start,
