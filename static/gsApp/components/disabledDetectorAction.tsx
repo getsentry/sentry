@@ -17,7 +17,7 @@ export function DisabledDetectorAction({detector}: {detector: Detector}) {
   if (isAnomalyDetector && !hasFeature) {
     return (
       <Button size="sm" disabled>
-        {detector.enabled ? t('Disable') : t('Enable')}
+        {t('Enable')}
       </Button>
     );
   }
