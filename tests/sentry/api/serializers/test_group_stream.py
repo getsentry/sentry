@@ -82,3 +82,45 @@ class StreamGroupSerializerTestCase(
         assert serialized["issueType"] == str(ProfileFileIOGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1
+
+    def test_get_latest_events_batch(self) -> None:
+        """Test that _get_latest_events_batch correctly retrieves latest events for multiple groups."""
+        # Create multiple events with different groups
+        event1 = self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        # Create a newer event for group-1 to test that we get the latest
+        event1_newer = self.store_event(
+            data={"timestamp": before_now(seconds=300).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+
+        serializer = StreamGroupSerializerSnuba(
+            stats_period="24h", organization_id=self.organization.id
+        )
+        groups = [event1.group, event2.group]
+        
+        # Call the batch method
+        latest_events_map = serializer._get_latest_events_batch(groups)
+        
+        # Verify we got results for both groups
+        assert len(latest_events_map) == 2
+        assert event1.group.id in latest_events_map
+        assert event2.group.id in latest_events_map
+        
+        # Verify we got the latest event for group-1 (event1_newer, not event1)
+        assert latest_events_map[event1.group.id].event_id == event1_newer.event_id
+        assert latest_events_map[event2.group.id].event_id == event2.event_id
+
+    def test_get_latest_events_batch_empty(self) -> None:
+        """Test that _get_latest_events_batch handles empty list correctly."""
+        serializer = StreamGroupSerializerSnuba(
+            stats_period="24h", organization_id=self.organization.id
+        )
+        latest_events_map = serializer._get_latest_events_batch([])
+        assert latest_events_map == {}
