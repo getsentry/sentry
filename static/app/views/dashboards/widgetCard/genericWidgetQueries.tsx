@@ -171,7 +171,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     enabled: isChartDisplay && !disabled && !propsLoading,
     limit,
     cursor,
-    afterFetchData: afterFetchSeriesData,
   });
 
   const hookTableResults = config.useTableQuery?.({
@@ -186,7 +185,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     enabled: !isChartDisplay && !disabled && !propsLoading,
     limit,
     cursor,
-    afterFetchData: afterFetchTableData,
   });
 
   // Use the appropriate results based on display type

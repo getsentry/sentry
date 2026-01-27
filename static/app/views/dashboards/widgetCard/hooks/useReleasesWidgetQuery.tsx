@@ -59,7 +59,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     pageFilters,
     enabled,
     dashboardFilters,
-    afterFetchData,
     skipDashboardFilterParens,
   } = params;
 
@@ -209,10 +208,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       const responseData = q.data[0];
       rawData[requestIndex] = responseData;
 
-      if (afterFetchData) {
-        afterFetchData(responseData);
-      }
-
       const transformedResult = ReleasesConfig.transformSeries?.(
         responseData,
         filteredWidget.queries[requestIndex]!,
@@ -262,7 +257,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     cursor,
     limit,
     dashboardFilters,
-    afterFetchData,
     skipDashboardFilterParens,
   } = params;
 
@@ -401,10 +395,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       const responseData = q.data[0];
       const responseMeta = q.data[2];
       rawData[i] = responseData;
-
-      if (afterFetchData) {
-        afterFetchData(responseData);
-      }
 
       const tableData = ReleasesConfig.transformTable?.(
         responseData,
