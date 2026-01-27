@@ -37,6 +37,7 @@ import {ConversationsTable} from 'sentry/views/insights/pages/conversations/comp
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
+const DEFAULT_QUERY = 'has:user';
 
 interface ConversationsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -50,7 +51,7 @@ function ConversationsOverviewPage({
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
-    parseAsString.withOptions({history: 'replace'})
+    parseAsString.withDefault(DEFAULT_QUERY).withOptions({history: 'replace'})
   );
   const {unsetCursor} = useTableCursor();
 

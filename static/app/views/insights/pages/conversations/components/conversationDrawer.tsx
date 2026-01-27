@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -57,9 +57,40 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     [setConversationDrawerQueryState, organization]
   );
 
-  const selectedNode =
-    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
-    getDefaultSelectedNode(nodes);
+  // Use primitive string ID to avoid re-render issues from node reference changes
+  const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
+
+  // Compute selected node
+  const selectedNode = useMemo(() => {
+    if (selectedNodeKey) {
+      const found = nodes.find(node => node.id === selectedNodeKey);
+      if (found) {
+        return found;
+      }
+    }
+    return nodes.find(node => node.id === defaultNodeId);
+  }, [nodes, selectedNodeKey, defaultNodeId]);
+
+  // Sync default selection to URL when:
+  // - Nodes have loaded
+  // - No valid spanId in URL OR spanId doesn't match any node
+  // Uses primitive defaultNodeId to prevent unnecessary effect runs
+  useEffect(() => {
+    if (isLoading || !defaultNodeId) {
+      return; // Wait for nodes to load and have a default
+    }
+
+    // Check if current URL spanId is valid (exists in nodes)
+    const isCurrentSpanValid =
+      selectedNodeKey && nodes.some(node => node.id === selectedNodeKey);
+
+    if (!isCurrentSpanValid) {
+      // Sync default to URL - this causes ONE re-render, which is expected
+      setConversationDrawerQueryState({
+        spanId: defaultNodeId,
+      });
+    }
+  }, [isLoading, defaultNodeId, selectedNodeKey, nodes, setConversationDrawerQueryState]);
 
   return (
     <Stack height="100%">
@@ -94,7 +125,7 @@ export function useConversationViewDrawer({
   const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlConversationDrawer();
 
   const openConversationViewDrawer = useCallback(
-    (conversation: UseConversationsOptions) => {
+    (conversation: UseConversationsOptions, initialSpanId?: string) => {
       trackAnalytics('agent-monitoring.conversation-drawer.open', {
         organization,
       });
@@ -106,6 +137,7 @@ export function useConversationViewDrawer({
         drawerWidth: `${DRAWER_WIDTH}px`,
         resizable: true,
         conversationId: conversation.conversationId,
+        spanId: initialSpanId, // Pass spanId to preserve URL state
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -113,9 +145,10 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId} = drawerUrlState;
+    const {conversationId, spanId} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
-      openConversationViewDrawer({conversationId});
+      // Pass spanId to preserve URL state on restoration
+      openConversationViewDrawer({conversationId}, spanId ?? undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);

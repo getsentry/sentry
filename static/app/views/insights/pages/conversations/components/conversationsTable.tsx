@@ -166,7 +166,8 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: Conversation;
 }) {
-  const {openConversationViewDrawer} = useConversationViewDrawer();
+  const {openConversationViewDrawer, isConversationViewDrawerOpen} =
+    useConversationViewDrawer();
 
   switch (column.key) {
     case 'conversationId':
@@ -220,6 +221,8 @@ const BodyCell = memo(function BodyCell({
                   isHoverable
                   delay={500}
                   skipWrapper
+                  position="right"
+                  disabled={isConversationViewDrawerOpen}
                 >
                   <CellContent text={dataRow.firstInput} />
                 </Tooltip>
@@ -242,6 +245,8 @@ const BodyCell = memo(function BodyCell({
                   isHoverable
                   delay={500}
                   skipWrapper
+                  position="right"
+                  disabled={isConversationViewDrawerOpen}
                 >
                   <CellContent text={dataRow.lastOutput} />
                 </Tooltip>
