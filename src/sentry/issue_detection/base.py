@@ -58,10 +58,18 @@ class PerformanceDetector(ABC):
 
     type: ClassVar[DetectorType]
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
         self.settings = settings[self.settings_key]
         self._event = event
         self.stored_problems: dict[str, PerformanceProblem] = {}
+        self.organization = organization
+        self.detector_id = detector_id
 
     def find_span_prefix(self, settings: dict[str, Any], span_op: str) -> str | bool:
         allowed_span_ops = settings.get("allowed_span_ops", [])

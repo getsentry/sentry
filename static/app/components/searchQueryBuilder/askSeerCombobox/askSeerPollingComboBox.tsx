@@ -553,7 +553,7 @@ const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: text;
 
   border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};

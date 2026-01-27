@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
@@ -14,7 +16,7 @@ type Props = React.PropsWithChildren<{
 
 function DisabledAlertWizard({organization}: Props) {
   return (
-    <Wrapper>
+    <Flex justify="between" align="center" wrap="wrap">
       <Description>{t('Upgrade your plan to create this type of alert')}</Description>
       <ButtonBar>
         <Button
@@ -31,18 +33,11 @@ function DisabledAlertWizard({organization}: Props) {
           {t('Set Conditions')}
         </Button>
       </ButtonBar>
-    </Wrapper>
+    </Flex>
   );
 }
 
 export default DisabledAlertWizard;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-`;
 
 const Description = styled('div')`
   margin: ${space(1)} ${space(1)} ${space(1)} 0;

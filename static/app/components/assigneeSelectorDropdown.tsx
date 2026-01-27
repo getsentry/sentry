@@ -2,11 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {
-  SelectTrigger,
-  type SelectTriggerProps,
-} from '@sentry/scraps/compactSelect/trigger';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -111,7 +108,7 @@ interface AssigneeSelectorDropdownProps {
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
-  trigger?: (props: SelectTriggerProps, isOpen: boolean) => React.ReactNode;
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
 }
 
 function AssigneeAvatar({
@@ -510,7 +507,7 @@ export default function AssigneeSelectorDropdown({
     return options;
   };
 
-  const makeTrigger = (props: SelectTriggerProps) => {
+  const makeTrigger = (props: TriggerProps) => {
     const avatarElement = (
       <AssigneeAvatar
         assignedTo={group.assignedTo}
@@ -585,7 +582,7 @@ const AssigneeWrapper = styled('div')`
   text-align: left;
 `;
 
-const AssigneeTrigger = styled(SelectTrigger.Button)`
+const AssigneeTrigger = styled(OverlayTrigger.Button)`
   z-index: 0;
   padding-left: ${space(0.5)};
   padding-right: ${space(0.5)};

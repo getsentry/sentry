@@ -291,7 +291,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
                 )
 
             except OrganizationIntegration.DoesNotExist:
-                logger.exception("The Opsgenie post_install step failed.")
+                logger.warning("The Opsgenie post_install step failed.")
                 return
 
             key = integration.metadata["api_key"]
