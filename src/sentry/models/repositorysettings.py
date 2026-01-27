@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
+from django.db.models.functions import Now
 
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
@@ -45,6 +46,8 @@ class RepositorySettings(Model):
         models.CharField(max_length=32, choices=CodeReviewTrigger.as_choices()),
         default=list,
     )
+    date_added = models.DateTimeField(db_default=Now())
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     class Meta:
         app_label = "sentry"
