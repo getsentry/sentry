@@ -52,7 +52,6 @@ export function EventUserFeedback({
               }
               size="zero"
               tooltipProps={{delay: 0}}
-              translucentBorder
               icon={<StyledIconCopy size="xs" />}
             >
               {report.email}

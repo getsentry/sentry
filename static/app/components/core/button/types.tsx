@@ -51,11 +51,6 @@ export interface DO_NOT_USE_CommonButtonProps {
    * Additional properties for the Tooltip when `title` is set.
    */
   tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
-  /**
-   * Userful in scenarios where the border of the button should blend with the
-   * background behind the button.
-   */
-  translucentBorder?: boolean;
 }
 
 type ButtonElementProps = Omit<

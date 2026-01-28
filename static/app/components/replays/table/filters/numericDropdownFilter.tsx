@@ -82,7 +82,6 @@ export default function NumericDropdownFilter({
           data-visible-on-hover
           icon={<IconEllipsis size="xs" />}
           size="zero"
-          translucentBorder
         />
       )}
     />
