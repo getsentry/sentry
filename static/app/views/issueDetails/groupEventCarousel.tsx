@@ -399,7 +399,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 size="zero"
                 title={event.id}
                 tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
-                translucentBorder
               >
                 <EventId>
                   {getShortEventId(event.id)}

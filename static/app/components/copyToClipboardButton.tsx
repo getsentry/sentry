@@ -23,7 +23,6 @@ export function CopyToClipboardButton({
 
   return (
     <Button
-      translucentBorder
       onClick={e => {
         copy(text).then(onCopy).catch(onError);
         props.onClick?.(e);
