@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -88,6 +89,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const [searchQuery, setSearchQuery] = useQueryParamState<string>({
     fieldName: 'search',
   });
+
+  const [highlightInsights, setHighlightInsights] = useQueryState(
+    'highlightInsights',
+    parseAsBoolean.withDefault(true)
+  );
 
   const [selectedCategoriesParam, setSelectedCategoriesParam] =
     useQueryParamState<string>({
@@ -309,6 +315,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                 : undefined
             }
             onSearchChange={value => setSearchQuery(value || undefined)}
+            highlightInsights={highlightInsights}
+            onHighlightInsightsChange={setHighlightInsights}
           />
         ) : (
           <Alert variant="info">No files found matching "{searchQuery}"</Alert>
@@ -329,6 +337,8 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             : undefined
         }
         onSearchChange={value => setSearchQuery(value || undefined)}
+        highlightInsights={highlightInsights}
+        onHighlightInsightsChange={setHighlightInsights}
       />
     ) : (
       <Alert variant="info">No files found matching "{searchQuery}"</Alert>

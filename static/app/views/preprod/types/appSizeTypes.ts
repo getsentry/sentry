@@ -63,6 +63,7 @@ interface TreemapElementMisc {
 
 export interface TreemapElement {
   children: TreemapElement[];
+  flagged_insights: string[];
   is_dir: boolean;
   name: string;
   size: number;
