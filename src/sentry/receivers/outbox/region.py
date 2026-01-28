@@ -67,6 +67,15 @@ def update_sentry_app_action_data(
             )
             return
 
+        if not installs:
+            logger.info(
+                "No sentry app installation found",
+                extra={
+                    "action_id": action.id,
+                    "installation_uuid": action.config.get("target_identifier"),
+                },
+            )
+
         if installs:
             action.config["target_identifier"] = str(installs[0].sentry_app.id)
             action.config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
