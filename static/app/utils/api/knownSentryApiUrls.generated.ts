@@ -724,6 +724,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/checks/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/response-captures/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/response-captures/$captureId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-feedback/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-issue/'
