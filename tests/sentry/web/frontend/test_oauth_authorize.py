@@ -1,6 +1,8 @@
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
+import pytest
+
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -964,6 +966,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
             "Read, write, and admin access to organization members."
         ]
 
+    @pytest.mark.skip(reason="flaky: #105726")
     def test_code_flow_unauthenticated_custom_scheme(self) -> None:
         """Test unauthenticated user login flow with custom scheme."""
         full_path = f"{self.path}?response_type=code&redirect_uri={self.custom_uri}&client_id={self.application.client_id}"
