@@ -50,13 +50,13 @@ system:
           frame*
             function*
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "OpenAdapter10"
           frame

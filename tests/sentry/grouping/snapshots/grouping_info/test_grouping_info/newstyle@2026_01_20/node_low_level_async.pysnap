@@ -43,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (function:processTicksAndRejections -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (function:processTicksAndRejections -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -78,7 +78,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (function:runMicrotasks -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (function:runMicrotasks -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -161,7 +161,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by built-in stack trace rule (function:processTicksAndRejections -group)",
+                    "hint": "ignored by built-in stacktrace rule (function:processTicksAndRejections -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -196,7 +196,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by built-in stack trace rule (function:runMicrotasks -group)",
+                    "hint": "ignored by built-in stacktrace rule (function:runMicrotasks -group)",
                     "id": "frame",
                     "name": null,
                     "values": [

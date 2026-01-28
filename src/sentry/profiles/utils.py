@@ -158,7 +158,7 @@ PROFILE_FILTERS = {
 }
 
 
-# This support applying a subset of stack trace rules to the profile (matchers and actions).
+# This support applying a subset of stacktrace rules to the profile (matchers and actions).
 #
 # Matchers allowed:
 #
