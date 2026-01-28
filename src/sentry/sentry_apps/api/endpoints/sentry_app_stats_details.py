@@ -26,12 +26,9 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
 
         installations = SentryAppInstallation.with_deleted.filter(
             sentry_app_id=sentry_app.id, date_added__range=(query_args["start"], query_args["end"])
-        ).values_list("date_added", "date_deleted", "organization_id")
+        ).values_list("date_added", "organization_id")
         install_count = SentryAppInstallation.with_deleted.filter(
             sentry_app_id=sentry_app.id
-        ).count()
-        uninstall_count = SentryAppInstallation.with_deleted.filter(
-            sentry_app_id=sentry_app.id, date_deleted__isnull=False
         ).count()
 
         rollup, series = tsdb.backend.get_optimal_rollup_series(
@@ -39,23 +36,15 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
         )
 
         install_stats = dict.fromkeys(series, 0)
-        uninstall_stats = dict.fromkeys(series, 0)
 
-        for date_added, date_deleted, organization_id in installations:
+        for date_added, organization_id in installations:
             install_norm_epoch = tsdb.backend.normalize_to_epoch(date_added, rollup)
             if install_norm_epoch in install_stats:
                 install_stats[install_norm_epoch] += 1
 
-            if date_deleted is not None:
-                uninstall_norm_epoch = tsdb.backend.normalize_to_epoch(date_deleted, rollup)
-                if uninstall_norm_epoch in uninstall_stats:
-                    uninstall_stats[uninstall_norm_epoch] += 1
-
         result = {
             "totalInstalls": install_count,
-            "totalUninstalls": uninstall_count,
             "installStats": sorted(install_stats.items(), key=lambda x: x[0]),
-            "uninstallStats": sorted(uninstall_stats.items(), key=lambda x: x[0]),
         }
 
         return Response(result)

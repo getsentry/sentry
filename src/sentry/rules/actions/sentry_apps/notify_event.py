@@ -100,12 +100,6 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             raise ValidationError("Could not identify integration from the installation uuid.")
         sentry_app = installations[0].sentry_app
 
-        # Ensure the uuid does not match a deleted installation
-        if installations[0].date_deleted is not None:
-            raise ValidationError(
-                f"The installation provided is out of date, please reinstall the {sentry_app.name} integration."
-            )
-
         alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
 
         incoming_settings = self.data.get("settings")

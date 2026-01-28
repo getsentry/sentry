@@ -1,5 +1,4 @@
 import pytest
-from django.db import connections, router
 
 from sentry import deletions
 from sentry.constants import ObjectStatus
@@ -8,7 +7,6 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import Action
@@ -25,20 +23,12 @@ class TestSentryAppDeletionTask(TestCase):
             name="blah", organization=self.org, scopes=("project:read",)
         )
 
-    def test_deletes_app_installations(self) -> None:
-        install = self.create_sentry_app_installation(
-            organization=self.org, slug=self.sentry_app.slug, user=self.user
-        )
-        deletions.exec_sync(self.sentry_app)
-        assert not SentryAppInstallation.objects.filter(pk=install.id).exists()
-
-    @override_options({"sentry-apps.hard-delete": True})
     def test_hard_deletes_app_installations(self) -> None:
         install = self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, user=self.user
         )
         deletions.exec_sync(self.sentry_app)
-        assert not SentryAppInstallation.with_deleted.filter(pk=install.id).exists()
+        assert not SentryAppInstallation.objects.filter(pk=install.id).exists()
 
     def test_deletes_api_application(self) -> None:
         application = self.sentry_app.application
@@ -50,30 +40,11 @@ class TestSentryAppDeletionTask(TestCase):
         deletions.exec_sync(self.sentry_app)
         assert not User.objects.filter(pk=proxy_user.id).exists()
 
-    def test_soft_deletes_sentry_app(self) -> None:
-        deletions.exec_sync(self.sentry_app)
-
-        with pytest.raises(SentryApp.DoesNotExist):
-            SentryApp.objects.get(pk=self.sentry_app.id)
-
-        # The QuerySet will automatically NOT include deleted installs, so we
-        # use a raw sql query to ensure it still exists.
-        c = connections[router.db_for_write(SentryApp)].cursor()
-        c.execute(
-            "SELECT count(1) "
-            "FROM sentry_sentryapp "
-            "WHERE id = %s AND date_deleted IS NOT NULL",
-            [self.sentry_app.id],
-        )
-
-        assert c.fetchone()[0] == 1
-
-    @override_options({"sentry-apps.hard-delete": True})
     def test_hard_deletes_sentry_app(self) -> None:
         deletions.exec_sync(self.sentry_app)
 
         with pytest.raises(SentryApp.DoesNotExist):
-            SentryApp.with_deleted.get(pk=self.sentry_app.id)
+            SentryApp.objects.get(pk=self.sentry_app.id)
 
     def test_disables_actions(self) -> None:
         action = self.create_action(
