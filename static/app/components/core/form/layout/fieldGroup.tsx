@@ -1,5 +1,8 @@
+import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 
 export function FieldGroup({
@@ -16,3 +19,14 @@ export function FieldGroup({
     </Panel>
   );
 }
+
+const PanelBody = styled(Container)`
+  > * {
+    padding: ${p => p.theme.space.xl};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;

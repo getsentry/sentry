@@ -1,11 +1,17 @@
 import {Fragment} from 'react';
 import {TanStackDevtools} from '@tanstack/react-devtools';
 import {formDevtoolsPlugin} from '@tanstack/react-form-devtools';
-import {mutationOptions, queryOptions, useQuery} from '@tanstack/react-query';
+import {
+  mutationOptions,
+  queryOptions,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveField} from '@sentry/scraps/form/fields/autoSaveField';
+import {AutoSaveField} from '@sentry/scraps/form/field/autoSaveField';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form/scrapsForm';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -64,46 +70,49 @@ const userQuery = queryOptions({
 
 type User = z.infer<typeof baseUserSchema>;
 
-const userMutationOptions = mutationOptions({
-  mutationFn: async (variables: Partial<User>): Promise<User> => {
-    // eslint-disable-next-line no-console
-    console.log('saving lastName', variables);
-    await sleep(1000);
-    return {
-      firstName: 'John',
-      lastName: 'Doe',
-      age: 23,
-      address: {
-        street: '123 Main St',
-        city: 'Anytown',
-        country: 'US',
-      },
-      ...variables,
-    };
-  },
-});
+const userMutationOptions = (client: QueryClient) =>
+  mutationOptions({
+    mutationFn: async (variables: Partial<User>): Promise<User> => {
+      // eslint-disable-next-line no-console
+      console.log('saving user', variables);
+      await sleep(1000);
+      return {
+        firstName: 'John',
+        lastName: 'Doe',
+        age: 23,
+        address: {
+          street: '123 Main St',
+          city: 'Anytown',
+          country: 'US',
+        },
+        ...variables,
+      };
+    },
+    onSuccess: data => {
+      client.setQueryData(['user', 'example'], data);
+    },
+  });
 
-function TanStackAutoSave() {
+function AutoSaveExample() {
   const user = useQuery(userQuery);
+  const client = useQueryClient();
 
   if (user.isPending) {
     return <div>Loading...</div>;
   }
 
   return (
-    <Stack gap="lg">
+    <Stack gap="xl">
       <AutoSaveField
         name="firstName"
         schema={baseUserSchema}
         initialValue={user.data?.firstName ?? ''}
-        mutationOptions={userMutationOptions}
+        mutationOptions={userMutationOptions(client)}
       >
         {field => (
-          <field.Input
-            label="First Name:"
-            value={field.state.value ?? ''}
-            onChange={field.handleChange}
-          />
+          <field.Layout.Row label="First Name:" hintText="Your given name">
+            <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
+          </field.Layout.Row>
         )}
       </AutoSaveField>
 
@@ -111,16 +120,12 @@ function TanStackAutoSave() {
         name="lastName"
         schema={baseUserSchema}
         initialValue={user.data?.lastName ?? ''}
-        mutationOptions={userMutationOptions}
+        mutationOptions={userMutationOptions(client)}
       >
         {field => (
-          <field.Input
-            label="Last Name:"
-            required
-            hintText="Your family name"
-            value={field.state.value}
-            onChange={field.handleChange}
-          />
+          <field.Layout.Row label="Last Name:" hintText="Your family name" required>
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
         )}
       </AutoSaveField>
 
@@ -128,22 +133,19 @@ function TanStackAutoSave() {
         name="age"
         schema={baseUserSchema}
         initialValue={user.data?.age ?? 0}
-        mutationOptions={userMutationOptions}
+        mutationOptions={userMutationOptions(client)}
       >
         {field => (
-          <field.Number
-            label="Age:"
-            required
-            value={field.state.value}
-            onChange={field.handleChange}
-          />
+          <field.Layout.Row label="Age:" hintText="Minimum 13" required>
+            <field.Number value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
         )}
       </AutoSaveField>
     </Stack>
   );
 }
 
-function TanStack() {
+function BasicForm() {
   const user = useQuery(userQuery);
 
   const form = useScrapsForm({
@@ -174,32 +176,26 @@ function TanStack() {
         <form.FieldGroup title="Peronal Information">
           <form.AppField name="firstName">
             {field => (
-              <field.Input
-                label="Firstname:"
-                value={field.state.value ?? ''}
-                onChange={field.handleChange}
-              />
+              <field.Layout.Row label="First Name:" hintText="Your given name">
+                <field.Input
+                  value={field.state.value ?? ''}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Row>
             )}
           </form.AppField>
           <form.AppField name="lastName">
             {field => (
-              <field.Input
-                label="Lastname:"
-                required
-                hintText="Your family name"
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
+              <field.Layout.Row label="Last Name:" hintText="Your family name" required>
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
             )}
           </form.AppField>
           <form.AppField name="age">
             {field => (
-              <field.Number
-                label="Age:"
-                required
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
+              <field.Layout.Row label="Age:" hintText="Minimum 13" required>
+                <field.Number value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
             )}
           </form.AppField>
           <form.Subscribe selector={state => state.values.age === 42}>
@@ -212,12 +208,16 @@ function TanStack() {
                   }}
                 >
                   {field => (
-                    <field.Input
+                    <field.Layout.Row
                       label="Secret:"
+                      hintText="Secret is required when age is 42"
                       required
-                      value={field.state.value ?? ''}
-                      onChange={field.handleChange}
-                    />
+                    >
+                      <field.Input
+                        value={field.state.value ?? ''}
+                        onChange={field.handleChange}
+                      />
+                    </field.Layout.Row>
                   )}
                 </form.AppField>
               ) : null
@@ -228,40 +228,34 @@ function TanStack() {
         <form.FieldGroup title="Address Information">
           <form.AppField name="address.street">
             {field => (
-              <field.Input
-                label="Street:"
-                required
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
+              <field.Layout.Row label="Street:" required>
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
             )}
           </form.AppField>
           <form.AppField name="address.city">
             {field => (
-              <field.Input
-                required
-                label="City:"
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
+              <field.Layout.Row label="City:" required>
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
             )}
           </form.AppField>
           <form.AppField name="address.country">
             {field => (
-              <field.Select
-                required
-                label="Country:"
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={COUNTRY_OPTIONS}
-              />
+              <field.Layout.Row label="Country:" required>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={COUNTRY_OPTIONS}
+                />
+              </field.Layout.Row>
             )}
           </form.AppField>
         </form.FieldGroup>
 
-        <Flex gap="md">
-          <form.SubmitButton>Submit</form.SubmitButton>
+        <Flex gap="md" justify="end">
           <Button onClick={() => form.reset()}>Reset</Button>
+          <form.SubmitButton>Submit</form.SubmitButton>
         </Flex>
       </form>
     </form.AppForm>
@@ -269,18 +263,19 @@ function TanStack() {
 }
 
 export default Storybook.story('Form', story => {
-  story('TanStackAutoSave', () => {
+  story('Basic', () => {
     return (
       <Fragment>
-        <TanStackAutoSave />
+        <BasicForm />
+        <TanStackDevtools plugins={[formDevtoolsPlugin()]} />
       </Fragment>
     );
   });
-  story('TanStack', () => {
+
+  story('AutoSave', () => {
     return (
       <Fragment>
-        <TanStack />
-        <TanStackDevtools plugins={[formDevtoolsPlugin()]} />
+        <AutoSaveExample />
       </Fragment>
     );
   });

@@ -1,11 +1,13 @@
 import {createFormHook, formOptions, revalidateLogic} from '@tanstack/react-form';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {FieldGroup} from '@sentry/scraps/form/fields/fieldGroup';
+import {Meta} from '@sentry/scraps/form/field/meta';
+import {Layout} from '@sentry/scraps/form/layout';
+import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
-import {InputField} from './fields/inputField';
-import {NumberField} from './fields/numberField';
-import {SelectField} from './fields/selectField';
+import {InputField} from './field/inputField';
+import {NumberField} from './field/numberField';
+import {SelectField} from './field/selectField';
 import {fieldContext, formContext, useFormContext} from './formContext';
 
 export const defaultFormOptions = formOptions({
@@ -26,6 +28,8 @@ const fieldComponents = {
   Input: InputField,
   Number: NumberField,
   Select: SelectField,
+  Meta,
+  Layout,
 } as const;
 
 export type BoundFieldComponents = typeof fieldComponents;
