@@ -87,7 +87,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
             id=agent_id,
             status=CodingAgentStatus.RUNNING,
             provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
-            name="GitHub Copilot",
+            name=f"{owner}/{repo}: GitHub Copilot",
             started_at=task_response.task.created_at,
             agent_url=None,
         )
