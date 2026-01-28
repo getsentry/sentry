@@ -9,7 +9,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
  * Delay before starting to check for new versions. This prevents users from
  * being prompted to reload immediately after opening the app.
  */
-const VERSION_CHECK_DELAY_MS = 10 * 60 * 1000; // 10 minutes
+const VERSION_CHECK_DELAY_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Static check for whether version checking can be enabled. These values are

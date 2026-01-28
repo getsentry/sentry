@@ -58,7 +58,13 @@ export function AgentSelector() {
     }
   }, [projectKey, setQueryStates]);
 
-  const selectedAgents = useMemo(() => urlAgents ?? [], [urlAgents]);
+  const selectedAgents = useMemo(() => {
+    // Prevent cache pollution during project transitions
+    if (prevProjectKey.current !== projectKey) {
+      return [];
+    }
+    return urlAgents ?? [];
+  }, [urlAgents, projectKey]);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
