@@ -6,7 +6,11 @@ from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifactData,
     GithubCopilotTaskStatusResponse,
 )
-from sentry.seer.autofix.coding_agent import _launch_agents_for_repos, poll_github_copilot_agents
+from sentry.seer.autofix.coding_agent import (
+    _launch_agents_for_repos,
+    launch_coding_agents_for_run,
+    poll_github_copilot_agents,
+)
 from sentry.seer.autofix.utils import (
     AutofixRequest,
     AutofixState,
@@ -702,3 +706,66 @@ class TestPollGithubCopilotAgents(TestCase):
 
         # Should not raise - invalid agent ID should be skipped
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
+
+
+class TestLaunchCodingAgentsForRun(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.run_id = 12345
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_background_agent",
+            external_id="test-integration",
+        )
+
+    @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.coding_agent.features.has")
+    @patch("sentry.seer.autofix.coding_agent._validate_and_get_integration")
+    def test_no_repos_configured_returns_empty_result_without_error(
+        self, mock_validate_integration, mock_features_has, mock_get_autofix_state
+    ):
+        """Test that launch_coding_agents_for_run handles no repos gracefully."""
+        # Enable required feature
+        mock_features_has.return_value = True
+
+        # Create autofix state with no repos
+        autofix_state = AutofixState(
+            run_id=self.run_id,
+            request=AutofixRequest(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                issue={"id": 1, "title": "Test Issue"},
+                repos=[],  # No repos configured
+            ),
+            updated_at=datetime.now(UTC),
+            status="COMPLETED",
+            steps=[
+                {
+                    "key": "root_cause_analysis",
+                    "causes": [
+                        {
+                            # No relevant_repos in the cause
+                        }
+                    ],
+                }
+            ],
+        )
+        mock_get_autofix_state.return_value = autofix_state
+
+        mock_installation = MagicMock()
+        mock_validate_integration.return_value = (self.integration, mock_installation)
+
+        # Should not raise, should return empty results
+        result = launch_coding_agents_for_run(
+            organization_id=self.organization.id,
+            run_id=self.run_id,
+            integration_id=self.integration.id,
+            trigger_source=AutofixTriggerSource.ROOT_CAUSE,
+        )
+
+        # Assert: Verify empty result is returned
+        assert result == {"successes": [], "failures": []}
+        # Installation should not be called since there are no repos
+        mock_installation.launch.assert_not_called()
