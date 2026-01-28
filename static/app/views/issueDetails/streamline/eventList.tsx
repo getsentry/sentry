@@ -110,6 +110,7 @@ export function EventList({group}: EventListProps) {
                   pageCount={pageEventsCount}
                   totalCount={totalEventsCount}
                   tableUnits={t('events')}
+                  paginatorType="cursor"
                 />
               </HeaderItem>
               <HeaderItem>

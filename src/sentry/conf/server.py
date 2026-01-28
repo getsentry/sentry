@@ -1429,6 +1429,9 @@ SENTRY_PROJECT_KEY: int | None = None
 # Used as a default when in SINGLE_ORGANIZATION mode.
 SENTRY_ORGANIZATION: int | None = None
 
+# Default organization ID for granting superuser privileges (typically organization 1 in SaaS mode)
+SENTRY_DEFAULT_ORGANIZATION_ID = 1
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority

@@ -188,6 +188,53 @@ class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
         artifacts = list(artifact.get_sibling_artifacts_for_commit())
         assert len(artifacts) == 0
 
+    def test_get_sibling_artifacts_for_commit_different_build_configurations(self):
+        """Test that artifacts with same app_id/artifact_type but different build configs are all returned."""
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create build configurations
+        release_config = self.create_preprod_build_configuration(
+            project=self.project, name="Release"
+        )
+        adhoc_config = self.create_preprod_build_configuration(project=self.project, name="AdHoc")
+
+        # Create artifacts with same app_id and artifact_type but different build configs
+        release_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=commit_comparison,
+            build_configuration=release_config,
+        )
+
+        adhoc_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=commit_comparison,
+            build_configuration=adhoc_config,
+        )
+
+        # Both artifacts should be returned as siblings (different build configs = different artifacts)
+        siblings_from_release = list(release_artifact.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_release) == 2
+        assert set(siblings_from_release) == {release_artifact, adhoc_artifact}
+
+        siblings_from_adhoc = list(adhoc_artifact.get_sibling_artifacts_for_commit())
+        assert len(siblings_from_adhoc) == 2
+        assert set(siblings_from_adhoc) == {release_artifact, adhoc_artifact}
+
 
 @region_silo_test
 class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
