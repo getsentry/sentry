@@ -243,13 +243,10 @@ def handle_owner_assignment(job):
     assignee_exists = None
     if assignee_cache_value is not None:
         # Cache stores (value, timestamp) tuple for timestamp-based invalidation
-        if isinstance(assignee_cache_value, tuple):
-            cached_assignee_exists, assignee_debounce_time = assignee_cache_value
-            ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
-            if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
-                assignee_exists = cached_assignee_exists
-        else:  # TODO(shashank): for backwards compatibility, remove this and the above tuple check once rolled out for 24hrs
-            assignee_exists = assignee_cache_value
+        cached_assignee_exists, assignee_debounce_time = assignee_cache_value
+        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+        if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
+            assignee_exists = cached_assignee_exists
 
     if assignee_exists is None:
         assignee_exists = group.assignee_set.exists()
