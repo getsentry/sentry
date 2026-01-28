@@ -1,6 +1,7 @@
 import pytest
 from rest_framework.exceptions import ValidationError
 
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 
@@ -73,6 +74,34 @@ class TestToValidIntId:
         with pytest.raises(ValidationError) as exc_info:
             to_valid_int_id("detectorId", -1)
         assert "detectorId" in exc_info.value.detail
+
+    def test_raise_404_on_non_numeric_string(self) -> None:
+        with pytest.raises(ResourceDoesNotExist):
+            to_valid_int_id("test_id", "not_a_number", raise_404=True)
+
+    def test_raise_404_on_negative_number(self) -> None:
+        with pytest.raises(ResourceDoesNotExist):
+            to_valid_int_id("test_id", -1, raise_404=True)
+
+        with pytest.raises(ResourceDoesNotExist):
+            to_valid_int_id("test_id", "-1", raise_404=True)
+
+    def test_raise_404_on_exceeds_max_value(self) -> None:
+        too_large = BoundedBigAutoField.MAX_VALUE + 1
+        with pytest.raises(ResourceDoesNotExist):
+            to_valid_int_id("test_id", too_large, raise_404=True)
+
+        with pytest.raises(ResourceDoesNotExist):
+            to_valid_int_id("test_id", str(too_large), raise_404=True)
+
+    def test_raise_404_on_empty_string(self) -> None:
+        with pytest.raises(ResourceDoesNotExist):
+            to_valid_int_id("test_id", "", raise_404=True)
+
+    def test_raise_404_valid_input_still_works(self) -> None:
+        assert to_valid_int_id("test_id", 123, raise_404=True) == 123
+        assert to_valid_int_id("test_id", "456", raise_404=True) == 456
+        assert to_valid_int_id("test_id", 0, raise_404=True) == 0
 
 
 class TestToValidIntIdList:
