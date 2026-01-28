@@ -1,3 +1,10 @@
+/**
+ * ESLint rule: no-token-import
+ *
+ * Disallows imports from the scraps token path except within
+ * the designated theme directory.
+ */
+
 const TOKEN_PATH = 'utils/theme/scraps';
 const EXCEPT_DIR_NAME = 'static/app/utils/theme';
 
@@ -15,7 +22,7 @@ function isForbiddenImportPath(importPath) {
 /**
  * @type {import('eslint').Rule.RuleModule}
  */
-const noTokenImport = {
+export const noTokenImport = {
   meta: {
     type: 'problem',
     docs: {
@@ -48,5 +55,3 @@ const noTokenImport = {
     };
   },
 };
-
-export default noTokenImport;
