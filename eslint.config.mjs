@@ -902,14 +902,6 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
           // Allow @figma/code-connect only in *.figma.tsx files
           paths: restrictedImportPaths.filter(({name}) => name !== '@figma/code-connect'),
         },
