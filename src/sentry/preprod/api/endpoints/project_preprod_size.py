@@ -97,10 +97,6 @@ def do_put(
             metrics.state = put.state
             metrics.error_code = put.error_code
             metrics.error_message = put.error_message
-        case PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
-            metrics.state = put.state
-            metrics.error_code = put.error_code
-            metrics.error_message = put.error_message
         case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
             metrics.state = put.state
         case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
