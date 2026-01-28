@@ -212,7 +212,6 @@ const StyledIssueDiff = styled('div')<{isLoading: boolean}>`
   background-color: ${p => p.theme.tokens.background.secondary};
   overflow: auto;
   padding: ${p => p.theme.space.md};
-  flex: 1;
   display: flex;
   flex-direction: column;
 

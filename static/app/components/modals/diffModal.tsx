@@ -49,9 +49,9 @@ function DiffModal({
 
 const modalCss = css`
   position: absolute;
-  inset: ${space(3)};
   padding: 0;
-  width: calc(100% - ${space(4)});
+  inset: ${space(3)};
+  width: calc(100% - 2 * ${space(3)});
 `;
 
 export {modalCss};
