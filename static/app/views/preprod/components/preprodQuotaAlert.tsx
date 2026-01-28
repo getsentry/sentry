@@ -4,11 +4,7 @@ import {t, tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface PreprodQuotaAlertProps {
-  system?: boolean;
-}
-
-export function PreprodQuotaAlert({system}: PreprodQuotaAlertProps) {
+export function PreprodQuotaAlert({system}: {system?: boolean}) {
   const organization = useOrganization();
 
   const {data: quotaData} = useApiQuery<{
