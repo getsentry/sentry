@@ -126,8 +126,16 @@ class SizeInfoFailed(BaseModel):
     error_message: str
 
 
+class SizeInfoNotRan(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
+    )
+    error_code: int
+    error_message: str
+
+
 SizeInfo = Annotated[
-    SizeInfoPending | SizeInfoProcessing | SizeInfoCompleted | SizeInfoFailed,
+    SizeInfoPending | SizeInfoProcessing | SizeInfoCompleted | SizeInfoFailed | SizeInfoNotRan,
     Field(discriminator="state"),
 ]
 
@@ -264,6 +272,12 @@ def to_size_info(
             if error_code is None or error_message is None:
                 raise ValueError("FAILED state requires both error_code and error_message")
             return SizeInfoFailed(error_code=error_code, error_message=error_message)
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
+            error_code = main_metric.error_code
+            error_message = main_metric.error_message
+            if error_code is None or error_message is None:
+                raise ValueError("NOT_RAN state requires both error_code and error_message")
+            return SizeInfoNotRan(error_code=error_code, error_message=error_message)
         case _:
             raise ValueError(f"Unknown SizeAnalysisState {main_metric.state}")
 
