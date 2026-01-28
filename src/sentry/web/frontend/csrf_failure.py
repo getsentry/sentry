@@ -25,6 +25,7 @@ def view(request: HttpRequest, reason: str = "") -> HttpResponse:
     extras = {
         "reason": reason,
         "path": request.path,
+        "ip_address": request.META.get("REMOTE_ADDR"),
         "referer": request.META.get("HTTP_REFERER"),
         "origin": request.META.get("HTTP_ORIGIN"),
         "user_agent": request.META.get("HTTP_USER_AGENT"),

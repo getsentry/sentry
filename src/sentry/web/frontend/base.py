@@ -406,6 +406,7 @@ class BaseView(View, OrganizationMixin):
                     extra={
                         "path": request.path,
                         "method": request.method,
+                        "ip_address": request.META.get("REMOTE_ADDR"),
                         "csrf_cookie_present": bool(csrf_cookie),
                         "csrf_cookie_hash": (
                             hashlib.sha256(csrf_cookie.encode()).hexdigest()[:8]
