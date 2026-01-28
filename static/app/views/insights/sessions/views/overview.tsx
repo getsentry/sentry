@@ -22,7 +22,9 @@ import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/fil
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import useHasDashboardsPlatformizedMobileSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedMobileSessionHealth';
 import useHasDashboardsPlatformizedSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedSessionHealth';
+import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
 import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -133,8 +135,15 @@ function PageWithProviders() {
   const {view = ''} = useDomainViewFilters();
   const hasDashboardsPlatformizedSessionHealth =
     useHasDashboardsPlatformizedSessionHealth();
+  const hasDashboardsPlatformizedMobileSessionHealth =
+    useHasDashboardsPlatformizedMobileSessionHealth();
+
   if (hasDashboardsPlatformizedSessionHealth && view === FRONTEND_LANDING_SUB_PATH) {
     return <PlatformizedSessionsOverview />;
+  }
+
+  if (hasDashboardsPlatformizedMobileSessionHealth && view === MOBILE_LANDING_SUB_PATH) {
+    return <PlatformizedMobileSessionsOverview />;
   }
   return (
     <ModulePageProviders moduleName="sessions">
