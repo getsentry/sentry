@@ -20,7 +20,7 @@ import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/gen
 import {cleanWidgetForRequest} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
-import {getReleasesRequestData} from './utils/releasesUtils';
+import {getReleasesRequestData} from './utils/releases';
 
 function applyDashboardFilters(
   widget: Widget,
