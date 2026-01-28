@@ -161,6 +161,7 @@ class EapCheckEntrySerializerResponse(TypedDict):
     httpStatusCode: int | None
     durationMs: int
     traceId: str
+    traceItemId: str
     incidentStatus: int
     environment: str
     region: str
@@ -197,6 +198,7 @@ class EapCheckEntrySerializer(Serializer):
             "environment": obj.environment,
             "region": obj.region,
             "regionName": region_name,
+            "traceItemId": obj.trace_item_id,
         }
 
 

@@ -146,6 +146,9 @@ class EapCheckEntry:
     incident_status: IncidentStatus
     environment: str
     region: str
+    # TODO Abdullah Khan: Remove default values for trace_item_id
+    # and assertion_failure_data once getsentry is updated to use the new schema.
+    trace_item_id: str = ""
     # Parsed JSON, can be a dict, so exclude it from hashing/comparison.
     assertion_failure_data: Assertion | None = field(compare=False, default=None)
 
