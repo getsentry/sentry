@@ -211,7 +211,7 @@ class SeerOperator[CachePayloadT]:
     retry=None,
 )
 def process_autofix_updates(
-    *, event_type: SentryAppEventType, event_payload: dict[str, Any]
+    *, event_type: SentryAppEventType, event_payload: dict[str, Any], organization_id: int
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -228,6 +228,12 @@ def process_autofix_updates(
 
     if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
         logger.info("operator.skipping_update", extra=logging_ctx)
+        return
+
+    try:
+        Group.objects.get(id=group_id, project__organization_id=organization_id)
+    except Group.DoesNotExist:
+        logger.warning("operator.group_not_found", extra=logging_ctx)
         return
 
     for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
@@ -250,6 +256,9 @@ def process_autofix_updates(
         if not cache_payload:
             logger.info("operator.no_cache_payload", extra=logging_ctx)
             continue
+        if post_cache_payload:
+            cache.delete(pre_cache_key)
+
         logging_ctx["cache_source"] = "run_id" if post_cache_payload else "group_id"
         try:
             entrypoint_cls.on_autofix_update(

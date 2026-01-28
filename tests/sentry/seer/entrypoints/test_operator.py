@@ -250,17 +250,23 @@ class SeerOperatorTest(TestCase):
         process_autofix_updates(
             event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
             event_payload={},
+            organization_id=self.organization.id,
         )
         mock_logger.warning.assert_called_once_with("operator.missing_identifiers", extra=ANY)
 
         process_autofix_updates(
             event_type=SentryAppEventType.ISSUE_CREATED,
-            event_payload={"run_id": MOCK_RUN_ID},
+            event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+            organization_id=self.organization.id,
         )
         mock_logger.info.assert_called_once_with("operator.skipping_update", extra=ANY)
 
+    @patch("sentry.seer.entrypoints.operator.cache.delete")
     @patch("sentry.seer.entrypoints.operator.cache.get")
-    def test_process_autofix_updates_all_cache_hit(self, mock_cache_get):
+    def test_process_autofix_updates_all_cache_hit(self, mock_cache_get, mock_cache_delete):
+        pre_cache_key = SeerOperator.get_pre_autofix_cache_key(
+            entrypoint_key=MockEntrypoint.key, group_id=self.group.id
+        )
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         post_cache_payload = MockCachePayload(thread_id="post_cache_payload")
         mock_cache_get.side_effect = lambda k: (
@@ -268,13 +274,17 @@ class SeerOperatorTest(TestCase):
         )
         mock_entrypoint_cls = Mock(spec=SeerEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
-        event_payload = {"run_id": MOCK_RUN_ID, "group_id": MOCK_GROUP_ID}
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
         with patch.dict(
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
             {MockEntrypoint.key: mock_entrypoint_cls},
         ):
-            process_autofix_updates(event_type=event_type, event_payload=event_payload)
+            process_autofix_updates(
+                event_type=event_type,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
 
         mock_entrypoint_cls.on_autofix_update.assert_called_once_with(
             event_type=event_type,
@@ -282,6 +292,8 @@ class SeerOperatorTest(TestCase):
             # If both caches are hit, post should be used
             cache_payload=post_cache_payload,
         )
+        # When post cache exists, pre cache should be deleted
+        mock_cache_delete.assert_called_once_with(pre_cache_key)
 
     @patch("sentry.seer.entrypoints.operator.logger")
     @patch("sentry.seer.entrypoints.operator.cache.get")
@@ -289,32 +301,41 @@ class SeerOperatorTest(TestCase):
         mock_cache_get.side_effect = lambda k: None
         mock_entrypoint_cls = Mock(spec=SeerEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
-        event_payload = {"run_id": MOCK_RUN_ID, "group_id": MOCK_GROUP_ID}
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
         with patch.dict(
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
             {MockEntrypoint.key: mock_entrypoint_cls},
         ):
-            process_autofix_updates(event_type=event_type, event_payload=event_payload)
+            process_autofix_updates(
+                event_type=event_type,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
 
         mock_entrypoint_cls.on_autofix_update.assert_not_called()
         mock_logger.info.assert_called_once_with("operator.no_cache_payload", extra=ANY)
 
     @patch("sentry.seer.entrypoints.operator.cache.get")
     def test_process_autofix_updates_pre_cache_hit(self, mock_cache_get):
-        pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
-        mock_cache_get.side_effect = lambda k: (
-            pre_cache_payload if k == self.pre_cache_key else None
+        pre_cache_key = SeerOperator.get_pre_autofix_cache_key(
+            entrypoint_key=MockEntrypoint.key, group_id=self.group.id
         )
+        pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
+        mock_cache_get.side_effect = lambda k: (pre_cache_payload if k == pre_cache_key else None)
         mock_entrypoint_cls = Mock(spec=SeerEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
-        event_payload = {"run_id": MOCK_RUN_ID, "group_id": MOCK_GROUP_ID}
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
         with patch.dict(
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
             {MockEntrypoint.key: mock_entrypoint_cls},
         ):
-            process_autofix_updates(event_type=event_type, event_payload=event_payload)
+            process_autofix_updates(
+                event_type=event_type,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
 
         mock_entrypoint_cls.on_autofix_update.assert_called_once_with(
             event_type=event_type,

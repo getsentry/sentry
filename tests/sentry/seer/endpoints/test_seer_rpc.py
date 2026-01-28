@@ -1012,6 +1012,7 @@ class TestSeerRpcMethods(APITestCase):
             kwargs={
                 "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
                 "event_payload": event_payload,
+                "organization_id": self.organization.id,
             },
         )
         mock_broadcast.assert_called_once()

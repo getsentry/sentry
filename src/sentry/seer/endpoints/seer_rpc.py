@@ -612,6 +612,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
             kwargs={
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
+                "organization_id": organization_id,
             }
         )
 
