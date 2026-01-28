@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
 import {components as SelectComponents} from 'react-select/src/components';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -42,10 +42,10 @@ export function SelectField({
             IndicatorsContainer: ({
               children,
             }: React.ComponentProps<typeof SelectComponents.IndicatorsContainer>) => (
-              <Fragment>
+              <Flex padding="sm" gap="sm" align="center">
                 {indicator}
                 {children}
-              </Fragment>
+              </Flex>
             ),
           }}
           onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
