@@ -10,6 +10,7 @@ export interface TreemapControlButton {
   icon: React.ReactNode;
   onClick: () => void;
   title: string;
+  active?: boolean;
 }
 
 interface TreemapControlButtonsProps {
@@ -38,13 +39,14 @@ export function TreemapControlButtons({buttons}: TreemapControlButtonsProps) {
           icon={button.icon}
           onClick={button.onClick}
           disabled={button.disabled}
+          $active={button.active}
         />
       ))}
     </Flex>
   );
 }
 
-const TreemapControlButton = styled(Button)`
+const TreemapControlButton = styled(Button)<{$active?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,12 +55,12 @@ const TreemapControlButton = styled(Button)`
   min-height: 20px;
   max-height: 20px;
   padding: 0 ${p => p.theme.space.xs};
-  background: rgba(0, 0, 0, 0.8);
+  background: ${p => (p.$active ? p.theme.colors.blue400 : 'rgba(0, 0, 0, 0.8)')};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowMedium};
 
   &:hover {
     color: ${p => p.theme.colors.white};
-    background: rgba(0, 0, 0, 0.9);
+    background: ${p => (p.$active ? p.theme.colors.blue500 : 'rgba(0, 0, 0, 0.9)')};
   }
 `;

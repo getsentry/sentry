@@ -11,7 +11,13 @@ import {Heading} from '@sentry/scraps/text';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
+import {
+  IconClose,
+  IconContract,
+  IconExpand,
+  IconLightning,
+  IconSearch,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
@@ -21,13 +27,16 @@ import {
   type TreemapControlButton,
 } from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
+import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
 interface AppSizeTreemapProps {
   root: TreemapElement | null;
   searchQuery: string;
   alertMessage?: string;
+  highlightInsights?: boolean;
   onAlertClick?: () => void;
+  onHighlightInsightsChange?: (enabled: boolean) => void;
   onSearchChange?: (query: string) => void;
   unfilteredRoot?: TreemapElement;
 }
@@ -38,11 +47,15 @@ function FullscreenModalContent({
   alertMessage,
   onAlertClick,
   onSearchChange,
+  highlightInsights,
+  onHighlightInsightsChange,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
   alertMessage?: string;
+  highlightInsights?: boolean;
   onAlertClick?: () => void;
+  onHighlightInsightsChange?: (enabled: boolean) => void;
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
@@ -83,6 +96,8 @@ function FullscreenModalContent({
           searchQuery={localSearch}
           alertMessage={alertMessage}
           onAlertClick={onAlertClick}
+          highlightInsights={highlightInsights}
+          onHighlightInsightsChange={onHighlightInsightsChange}
         />
       </Container>
     </Flex>
@@ -91,8 +106,16 @@ function FullscreenModalContent({
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {root, searchQuery, unfilteredRoot, alertMessage, onAlertClick, onSearchChange} =
-    props;
+  const {
+    root,
+    searchQuery,
+    unfilteredRoot,
+    alertMessage,
+    onAlertClick,
+    onSearchChange,
+    highlightInsights,
+    onHighlightInsightsChange,
+  } = props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
@@ -127,8 +150,13 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
 
     // Use headerColor for parent nodes, regular color for leaf nodes
     const hasChildren = element.children && element.children.length > 0;
-    const borderColor =
-      hasChildren && categoryInfo.translucentColor
+    const hasFlaggedInsights =
+      element.flagged_insights && element.flagged_insights.length > 0;
+    const shouldHighlight = highlightInsights && hasFlaggedInsights;
+
+    const borderColor = shouldHighlight
+      ? theme.colors.red400
+      : hasChildren && categoryInfo.translucentColor
         ? categoryInfo.translucentColor
         : categoryInfo.color;
 
@@ -138,6 +166,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       path: element.path,
       category: element.type,
       misc: element.misc,
+      flaggedInsights: element.flagged_insights,
       itemStyle: {
         color: 'transparent',
         borderColor,
@@ -310,10 +339,17 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       const percent = ((value / totalSize) * 100).toFixed(2);
       const pathElement = params.data?.path
         ? `<p style="font-size: 12px; margin-bottom: -4px;">${params.data.path}</p>`
-        : null;
+        : '';
       const scaleElement = params.data?.misc?.scale
         ? `<span style="font-size: 10px; background-color: ${theme.tokens.background.secondary}; color: ${theme.tokens.content.primary}; padding: 4px; border-radius: 3px; font-weight: normal;">@${params.data.misc.scale}x</span>`
         : '';
+      const flaggedInsights: string[] = params.data?.flaggedInsights || [];
+      const insightBadgesHtml =
+        flaggedInsights.length > 0
+          ? `<div style="display: flex; flex-direction: column; gap: 4px; padding-top: 8px;">
+              ${flaggedInsights.map(insightKey => `<span style="display: inline-block; font-size: 11px; background-color: ${theme.colors.red100}; color: ${theme.colors.red400}; padding: 2px 6px; border-radius: 3px;">${getInsightConfig(insightKey).name}</span>`).join('')}
+            </div>`
+          : '';
 
       return `
             <div style="font-family: Rubik;">
@@ -326,15 +362,24 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                   <span style="font-size: 14px; font-weight: bold;">${params.name}</span>
                   ${scaleElement}
                 </div>
-                ${pathElement || ''}
+                ${pathElement}
                 <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value)} (${percent}%)</p>
               </div>
+              ${insightBadgesHtml}
             </div>
           `.trim();
     },
   };
 
   const treemapControlButtons: TreemapControlButton[] = [
+    {
+      ariaLabel: t('Toggle Insight Highlighting'),
+      title: highlightInsights ? t('Hide Insights') : t('Insights'),
+      icon: <IconLightning />,
+      onClick: () => onHighlightInsightsChange?.(!highlightInsights),
+      disabled: false,
+      active: highlightInsights,
+    },
     {
       ariaLabel: t('Recenter View'),
       title: t('Recenter'),
@@ -360,6 +405,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               alertMessage={alertMessage}
               onAlertClick={onAlertClick}
               onSearchChange={onSearchChange}
+              highlightInsights={highlightInsights}
+              onHighlightInsightsChange={onHighlightInsightsChange}
             />
           ) : (
             <Container height="100%" width="100%">
@@ -368,6 +415,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                 searchQuery={searchQuery}
                 alertMessage={alertMessage}
                 onAlertClick={onAlertClick}
+                highlightInsights={highlightInsights}
+                onHighlightInsightsChange={onHighlightInsightsChange}
               />
             </Container>
           ),
