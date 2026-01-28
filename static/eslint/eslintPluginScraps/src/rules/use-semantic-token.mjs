@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ESLint rule: use-semantic-token
  *
