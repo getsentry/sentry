@@ -291,7 +291,7 @@ export const useSemanticToken = {
         }
 
         // Only check properties that look like style declarations
-        if (!isStyleContext(node)) {
+        if (!isStyleContext(/** @type {import('estree').Node} */ (node))) {
           return;
         }
 
@@ -307,7 +307,11 @@ export const useSemanticToken = {
         }
 
         // Handle expression values (theme object references)
-        validateToken(node, propertyName, node.value);
+        validateToken(
+          /** @type {import('estree').Node} */ (node),
+          propertyName,
+          /** @type {import('estree').Node} */ (node.value)
+        );
       },
 
       // Handle CSS template literals (styled-components, emotion)
