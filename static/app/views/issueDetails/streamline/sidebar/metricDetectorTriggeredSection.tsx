@@ -258,6 +258,7 @@ function OpenInDestinationButton({
 }
 
 function TriggeredConditionDetails({
+  evidenceData,
   eventDateCreated,
   eventId,
   groupId,
