@@ -38,6 +38,14 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   const [displayValue, setDisplayValue] = useState(initialDisplayValue);
   const [filterQuery, setFilterQuery] = useState(rule.filterQuery ?? '');
 
+  const currentValueInBytes =
+    displayUnit === '%' ? displayValue : mbToBytes(displayValue);
+  const isDirty =
+    metric !== rule.metric ||
+    measurement !== rule.measurement ||
+    currentValueInBytes !== rule.value ||
+    filterQuery !== (rule.filterQuery ?? '');
+
   const handleSave = () => {
     const valueInBytes = displayUnit === '%' ? displayValue : mbToBytes(displayValue);
     onSave({
@@ -125,7 +133,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
       </Stack>
 
       <Flex gap="md" marginTop="sm">
-        <Button priority="primary" onClick={handleSave}>
+        <Button priority="primary" onClick={handleSave} disabled={!isDirty}>
           {t('Save Rule')}
         </Button>
         <Button onClick={handleDelete}>{t('Delete Rule')}</Button>
