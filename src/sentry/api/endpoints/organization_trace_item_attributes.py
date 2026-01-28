@@ -297,7 +297,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             and not column.private
                         ):
                             all_aliased_attributes.append(column)
-                aliased_attributes = all_aliased_attributes[offset : offset + limit - 1]
+                aliased_attributes = all_aliased_attributes[offset : offset + limit]
             with sentry_sdk.start_span(op="query", name="attribute_names") as span:
                 if len(aliased_attributes) < limit - 1:
                     offset -= len(all_aliased_attributes) - len(aliased_attributes)

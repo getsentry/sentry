@@ -893,9 +893,9 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             assert response.status_code == 200, response.content
 
             keys = {item["key"] for item in response.data}
-            assert len(keys) == 20
+            assert len(keys) == 21
             all_keys = all_keys.union(keys)
-            assert len(all_keys) == (i + 1) * 20
+            assert len(all_keys) == (i + 1) * 20 + 1
         # there's at least 64 total keys for this query, the next page should contain the first custom ones
         response = self.do_request(
             query={
