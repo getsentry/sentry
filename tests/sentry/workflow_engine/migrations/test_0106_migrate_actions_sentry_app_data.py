@@ -4,14 +4,13 @@ from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
-class TestActionDataFallthroughType(TestMigrations):
+class TestMigrateActionsSentryAppData(TestMigrations):
     migrate_from = "0105_add_incident_identifer_index"
     migrate_to = "0106_migrate_actions_sentry_app_data"
     app = "workflow_engine"
 
     def setup_initial_state(self) -> None:
         self.org = self.create_organization(name="test-org")
-        self.project = self.create_project(organization=self.org)
         self.user = self.create_user()
 
         self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)

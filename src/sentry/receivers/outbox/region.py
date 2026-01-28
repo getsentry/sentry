@@ -8,7 +8,6 @@ and perform RPC calls to propagate changes to Control Silo.
 
 from __future__ import annotations
 
-import copy
 import logging
 from typing import Any
 
@@ -69,10 +68,8 @@ def update_sentry_app_action_data(
             return
 
         if installs:
-            updated_config = copy.deepcopy(action.config)
-            updated_config["target_identifier"] = str(installs[0].sentry_app.id)
-            updated_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
-            action.update(config=updated_config)
+            action.config["target_identifier"] = str(installs[0].sentry_app.id)
+            action.config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
             action.save()
 
     except Action.DoesNotExist:
