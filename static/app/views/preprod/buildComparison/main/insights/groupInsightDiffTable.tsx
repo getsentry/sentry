@@ -252,7 +252,7 @@ export function GroupInsightItemDiffTable({
                     <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
                       <Text variant="muted">└ {diffItem.path ?? ''}</Text>
                     </SimpleTable.RowCell>
-                    <SimpleTable.RowCell />
+                    <SimpleTable.RowCell>{null}</SimpleTable.RowCell>
                   </SimpleTable.Row>
                 );
               })}
