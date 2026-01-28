@@ -43,7 +43,7 @@ def delete_replay(
     project_id: int,
     replay_id: str,
     has_seer_data: bool = False,
-    organization_id: int = 0,
+    organization_id: int | None = None,
     **kwargs: Any,
 ) -> None:
     """Asynchronously delete a replay."""
@@ -51,8 +51,11 @@ def delete_replay(
     publisher = initialize_replays_publisher(is_async=False)
     archive_replay(publisher, project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
-    if has_seer_data:
+
+    if has_seer_data and organization_id is not None:
+        # Note organization_id=None is a default, for backwards task compatibility.
         delete_seer_replay_data(organization_id, project_id, [replay_id])
+
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "finished"})
 
 
