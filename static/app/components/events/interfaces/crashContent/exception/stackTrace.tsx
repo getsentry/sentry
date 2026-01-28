@@ -1,5 +1,7 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {StacktraceFlamegraph} from 'sentry/components/events/interfaces/crashContent/stackTrace/flamegraph';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
@@ -66,6 +68,15 @@ function StackTrace({
 
   if (!data) {
     return null;
+  }
+
+  // Handle flamegraph view for all platforms
+  if (stackView === StackView.FLAMEGRAPH && data.frames) {
+    return (
+      <ErrorBoundary mini>
+        <StacktraceFlamegraph frames={data.frames} />
+      </ErrorBoundary>
+    );
   }
 
   const includeSystemFrames =

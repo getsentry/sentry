@@ -45,6 +45,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
+import {hasFlamegraphData} from './crashContent/stackTrace/flamegraph';
 import ThreadSelector from './threads/threadSelector';
 import findBestThread from './threads/threadSelector/findBestThread';
 import getThreadException from './threads/threadSelector/getThreadException';
@@ -256,6 +257,10 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     ) || activeThread?.stacktrace?.frames?.some(frame => !frame.inApp)
   );
 
+  const hasFlamegraphDataForThread =
+    !!exception?.values?.some(value => hasFlamegraphData(value.stacktrace?.frames)) ||
+    hasFlamegraphData(activeThread?.stacktrace?.frames);
+
   const threadComponent = (
     <Fragment>
       {hasMoreThanOneThread && (
@@ -334,13 +339,20 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         hasSystemFrames={
           exception?.values?.some(value => value.stacktrace?.hasSystemFrames) ?? false
         }
+        hasFlamegraphData={hasFlamegraphDataForThread}
       >
         <TraceEventDataSection
           type={SectionKey.THREADS}
           projectSlug={projectSlug}
           event={event}
           eventId={event.id}
-          title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
+          title={
+            hasFlamegraphDataForThread
+              ? t('Flamegraph')
+              : hasMoreThanOneThread
+                ? t('Thread Stack Trace')
+                : t('Stack Trace')
+          }
           platform={platform}
           isNestedSection={hasMoreThanOneThread}
           activeThreadId={activeThread?.id}
@@ -381,6 +393,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               value => (value.stacktrace?.frames ?? []).length > 1
             ) || (activeThread?.stacktrace?.frames ?? []).length > 1
           }
+          hasFlamegraphData={hasFlamegraphDataForThread}
           stackTraceNotFound={stackTraceNotFound}
         >
           <ThreadStackTraceContent

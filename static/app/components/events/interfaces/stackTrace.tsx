@@ -10,6 +10,7 @@ import type {Group} from 'sentry/types/group';
 import type {PlatformKey, Project} from 'sentry/types/project';
 
 import {StackTraceContent} from './crashContent/stackTrace';
+import {hasFlamegraphData} from './crashContent/stackTrace/flamegraph';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
@@ -59,6 +60,7 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
   const stackTraceNotFound = !(data.frames ?? []).length;
 
   const hasNonAppFrames = !!data.frames?.some(frame => !frame.inApp);
+  const hasFlamegraphDataForStackTrace = hasFlamegraphData(data.frames);
 
   return (
     <StacktraceContext
@@ -66,6 +68,7 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
       forceFullStackTrace={hasNonAppFrames ? !data.hasSystemFrames : true}
       defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
       hasSystemFrames={data.hasSystemFrames}
+      hasFlamegraphData={hasFlamegraphDataForStackTrace}
     >
       <TraceEventDataSection
         type={EntryType.STACKTRACE}
@@ -74,7 +77,7 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
         eventId={event.id}
         platform={platform}
         stackTraceNotFound={stackTraceNotFound}
-        title={t('Stack Trace')}
+        title={hasFlamegraphDataForStackTrace ? t('Flamegraph') : t('Stack Trace')}
         hasMinified={false}
         hasVerboseFunctionNames={
           !!data.frames?.some(
@@ -87,6 +90,7 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
         hasAbsoluteFilePaths={!!data.frames?.some(frame => !!frame.filename)}
         hasAbsoluteAddresses={!!data.frames?.some(frame => !!frame.instructionAddr)}
         hasNewestFirst={(data.frames ?? []).length > 1}
+        hasFlamegraphData={hasFlamegraphDataForStackTrace}
       >
         {stackTraceNotFound ? (
           <NoStackTraceMessage />
