@@ -1,3 +1,6 @@
+import {Fragment} from 'react';
+import {components as SelectComponents} from 'react-select/src/components';
+
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Select} from '@sentry/scraps/select';
 
@@ -16,10 +19,7 @@ function SelectInput({
 }
 
 export function SelectField({
-  label,
-  hintText,
   onChange,
-  required,
   ...props
 }: BaseFieldProps &
   Omit<React.ComponentProps<typeof Select>, 'value' | 'onChange' | 'onBlur'> & {
@@ -30,13 +30,24 @@ export function SelectField({
   const autoSaveContext = useAutoSaveContext();
 
   return (
-    <BaseField label={label} hintText={hintText} required={required}>
-      {fieldProps => (
+    <BaseField>
+      {(fieldProps, {indicator}) => (
         <Select
           {...fieldProps}
           {...props}
           disabled={props.disabled || autoSaveContext?.status === 'pending'}
-          components={{...props.components, Input: SelectInput}}
+          components={{
+            ...props.components,
+            Input: SelectInput,
+            IndicatorsContainer: ({
+              children,
+            }: React.ComponentProps<typeof SelectComponents.IndicatorsContainer>) => (
+              <Fragment>
+                {indicator}
+                {children}
+              </Fragment>
+            ),
+          }}
           onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
         />
       )}

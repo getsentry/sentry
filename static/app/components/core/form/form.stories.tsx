@@ -70,6 +70,32 @@ const userQuery = queryOptions({
 
 type User = z.infer<typeof baseUserSchema>;
 
+const addressMutationOptions = (client: QueryClient) =>
+  mutationOptions({
+    mutationFn: async (variables: Partial<User['address']>): Promise<User['address']> => {
+      // eslint-disable-next-line no-console
+      console.log('saving address', variables);
+      await sleep(1000);
+      return {
+        street: '123 Main St',
+        city: 'Anytown',
+        country: 'US',
+        ...variables,
+      };
+    },
+    onSuccess: data => {
+      client.setQueryData(['user', 'example'], oldData => {
+        if (!oldData) {
+          return oldData;
+        }
+        return {
+          ...oldData,
+          address: data,
+        };
+      });
+    },
+  });
+
 const userMutationOptions = (client: QueryClient) =>
   mutationOptions({
     mutationFn: async (variables: Partial<User>): Promise<User> => {
@@ -130,14 +156,18 @@ function AutoSaveExample() {
       </AutoSaveField>
 
       <AutoSaveField
-        name="age"
-        schema={baseUserSchema}
-        initialValue={user.data?.age ?? 0}
-        mutationOptions={userMutationOptions(client)}
+        name="country"
+        schema={baseUserSchema.shape.address}
+        initialValue={user.data?.address.country ?? ''}
+        mutationOptions={addressMutationOptions(client)}
       >
         {field => (
-          <field.Layout.Row label="Age:" hintText="Minimum 13" required>
-            <field.Number value={field.state.value} onChange={field.handleChange} />
+          <field.Layout.Row label="Country:" required>
+            <field.Select
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={COUNTRY_OPTIONS}
+            />
           </field.Layout.Row>
         )}
       </AutoSaveField>
