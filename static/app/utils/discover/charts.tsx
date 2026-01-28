@@ -5,13 +5,12 @@ import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {
   AggregationOutputType,
   DataUnit,
   RateUnit,
 } from 'sentry/utils/discover/fields';
-import {SizeUnit} from 'sentry/utils/discover/fields';
+import {ABYTE_UNITS, SizeUnit} from 'sentry/utils/discover/fields';
 import {axisDuration} from 'sentry/utils/duration/axisDuration';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
