@@ -106,7 +106,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                     PreprodArtifact.ArtifactType.AAB,
                     PreprodArtifact.ArtifactType.APK,
                 ]
-            elif provided_platform == "apple":
+            elif provided_platform == "ios":
                 filter_kwargs["artifact_type"] = PreprodArtifact.ArtifactType.XCARCHIVE
 
             if provided_codesigning_type:
