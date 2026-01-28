@@ -140,6 +140,7 @@ export enum BuildDetailsSizeAnalysisState {
   PROCESSING = 1,
   COMPLETED = 2,
   FAILED = 3,
+  NOT_RAN = 4,
 }
 
 interface PostedStatusChecks {
