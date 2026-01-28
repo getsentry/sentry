@@ -502,6 +502,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sampling_project_span_counts.py           @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py    @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_ai_conversation*.py                       @getsentry/telemetry-experience
+/src/sentry/api/serializers/rest_framework/ai_conversations.py                   @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_ai_conversation*.py                @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
@@ -525,6 +528,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
+/static/app/views/insights/pages/conversations/                                  @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 ## ML & AI
