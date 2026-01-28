@@ -104,7 +104,6 @@ function getSlideoutPlacementStyles(
         right: 0,
         top: {'2xs': theme.space.md, sm: 0},
         bottom: {'2xs': theme.space.md, sm: 0},
-        left: {'2xs': theme.space.md, sm: 'auto'},
       };
     case 'left':
       return {
@@ -119,7 +118,6 @@ function getSlideoutPlacementStyles(
         height: '100%',
         left: 0,
         top: {'2xs': '54px', sm: 0},
-        right: {'2xs': theme.space.md, sm: 'auto'},
         bottom: {'2xs': theme.space.md, sm: 0},
       };
     default:
