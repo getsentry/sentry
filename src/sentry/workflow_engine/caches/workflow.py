@@ -5,6 +5,10 @@ from sentry.utils.cache import cache
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.detector import Detector
 
+# TODO - Make this a sentry option? cache=0?1 could disable it w/o a deploy
+# Cache timeout for 5 minutes
+CACHE_TTL = 300
+
 
 def processing_workflow_cache_key(detector_id: int, env_id: int | None) -> str:
     return f"workflows_by_detector_env:{detector_id}:{env_id}"
@@ -42,6 +46,6 @@ def get_processing_workflows(detector: Detector, environment: Environment | None
             .distinct()
         )
 
-        cache.set(cache_key, workflows)
+        cache.set(cache_key, workflows, timeout=CACHE_TTL)
 
     return workflows

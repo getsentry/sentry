@@ -14,13 +14,11 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.owner_base import OwnerModel
-from sentry.workflow_engine.caches.workflow import invalidate_processing_workflows
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.models.data_condition_group import (
     DataConditionGroup,
     DataConditionGroupSnapshot,
 )
-from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.data_condition_group import TriggerResult
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
