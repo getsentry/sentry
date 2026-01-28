@@ -13,6 +13,7 @@ export enum ModuleName {
   SCREEN_LOAD = 'screen_load',
   APP_START = 'app_start',
   RESOURCE = 'resource',
+  AGENTS_LANDING = 'agents-landing',
   AGENT_MODELS = 'agent-models',
   AGENT_TOOLS = 'agent-tools',
   AI_GENERATIONS = 'ai-generations',
