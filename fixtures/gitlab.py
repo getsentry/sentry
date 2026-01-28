@@ -426,6 +426,156 @@ ISSUE_UNASSIGNED_EVENT = b"""{
 }
 """
 
+ISSUE_CLOSED_EVENT = b"""{
+  "object_kind": "issue",
+  "event_type": "issue",
+  "user": {
+    "id": 1,
+    "name": "Administrator",
+    "username": "root",
+    "avatar_url": "http://www.gravatar.com/avatar/avatar.jpg",
+    "email": "admin@example.com"
+  },
+  "project": {
+    "id": 15,
+    "name": "Sentry",
+    "description": "",
+    "web_url": "http://example.com/cool-group/sentry",
+    "avatar_url": null,
+    "git_ssh_url": "git@example.com:cool-group/sentry.git",
+    "git_http_url": "http://example.com/cool-group/sentry.git",
+    "namespace": "cool-group",
+    "visibility_level": 0,
+    "path_with_namespace": "cool-group/sentry",
+    "default_branch": "master",
+    "homepage": "http://example.com/cool-group/sentry",
+    "url": "git@example.com:cool-group/sentry.git",
+    "ssh_url": "git@example.com:cool-group/sentry.git",
+    "http_url": "http://example.com/cool-group/sentry.git"
+  },
+  "object_attributes": {
+    "id": 301,
+    "title": "Test issue",
+    "assignee_ids": [],
+    "assignee_id": null,
+    "author_id": 1,
+    "project_id": 15,
+    "created_at": "2023-01-01 00:00:00 UTC",
+    "updated_at": "2023-01-01 00:00:00 UTC",
+    "position": 0,
+    "branch_name": null,
+    "description": "Test issue description",
+    "milestone_id": null,
+    "state": "closed",
+    "iid": 23,
+    "url": "http://example.com/cool-group/sentry/issues/23",
+    "action": "close"
+  },
+  "assignees": [],
+  "labels": []
+}
+"""
+
+ISSUE_REOPENED_EVENT = b"""{
+  "object_kind": "issue",
+  "event_type": "issue",
+  "user": {
+    "id": 1,
+    "name": "Administrator",
+    "username": "root",
+    "avatar_url": "http://www.gravatar.com/avatar/avatar.jpg",
+    "email": "admin@example.com"
+  },
+  "project": {
+    "id": 15,
+    "name": "Sentry",
+    "description": "",
+    "web_url": "http://example.com/cool-group/sentry",
+    "avatar_url": null,
+    "git_ssh_url": "git@example.com:cool-group/sentry.git",
+    "git_http_url": "http://example.com/cool-group/sentry.git",
+    "namespace": "cool-group",
+    "visibility_level": 0,
+    "path_with_namespace": "cool-group/sentry",
+    "default_branch": "master",
+    "homepage": "http://example.com/cool-group/sentry",
+    "url": "git@example.com:cool-group/sentry.git",
+    "ssh_url": "git@example.com:cool-group/sentry.git",
+    "http_url": "http://example.com/cool-group/sentry.git"
+  },
+  "object_attributes": {
+    "id": 301,
+    "title": "Test issue",
+    "assignee_ids": [],
+    "assignee_id": null,
+    "author_id": 1,
+    "project_id": 15,
+    "created_at": "2023-01-01 00:00:00 UTC",
+    "updated_at": "2023-01-01 00:00:00 UTC",
+    "position": 0,
+    "branch_name": null,
+    "description": "Test issue description",
+    "milestone_id": null,
+    "state": "opened",
+    "iid": 23,
+    "url": "http://example.com/cool-group/sentry/issues/23",
+    "action": "reopen"
+  },
+  "assignees": [],
+  "labels": []
+}
+"""
+
+ISSUE_OPENED_EVENT = b"""{
+  "object_kind": "issue",
+  "event_type": "issue",
+  "user": {
+    "id": 1,
+    "name": "Administrator",
+    "username": "root",
+    "avatar_url": "http://www.gravatar.com/avatar/avatar.jpg",
+    "email": "admin@example.com"
+  },
+  "project": {
+    "id": 15,
+    "name": "Sentry",
+    "description": "",
+    "web_url": "http://example.com/cool-group/sentry",
+    "avatar_url": null,
+    "git_ssh_url": "git@example.com:cool-group/sentry.git",
+    "git_http_url": "http://example.com/cool-group/sentry.git",
+    "namespace": "cool-group",
+    "visibility_level": 0,
+    "path_with_namespace": "cool-group/sentry",
+    "default_branch": "master",
+    "homepage": "http://example.com/cool-group/sentry",
+    "url": "git@example.com:cool-group/sentry.git",
+    "ssh_url": "git@example.com:cool-group/sentry.git",
+    "http_url": "http://example.com/cool-group/sentry.git"
+  },
+  "object_attributes": {
+    "id": 301,
+    "title": "Test issue",
+    "assignee_ids": [],
+    "assignee_id": null,
+    "author_id": 1,
+    "project_id": 15,
+    "created_at": "2023-01-01 00:00:00 UTC",
+    "updated_at": "2023-01-01 00:00:00 UTC",
+    "position": 0,
+    "branch_name": null,
+    "description": "Test issue description",
+    "milestone_id": null,
+    "state": "opened",
+    "iid": 23,
+    "url": "http://example.com/cool-group/sentry/issues/23",
+    "action": "open"
+  },
+  "assignees": [],
+  "labels": []
+}
+"""
+
 COMPARE_RESPONSE = r"""
 {
   "commit": {

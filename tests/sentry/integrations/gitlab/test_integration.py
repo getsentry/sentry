@@ -838,6 +838,8 @@ class GitlabIssueSyncTest(GitLabTestCase):
             "sync_reverse_assignment",
             "sync_forward_assignment",
             "sync_comments",
+            "sync_status_reverse",
+            "resolution_strategy",
         ]
 
     @responses.activate

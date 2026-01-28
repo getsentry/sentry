@@ -217,6 +217,30 @@ class GitlabIntegration(
                         "label": _("Sync Sentry Comments to GitLab"),
                         "help": _("Post comments from Sentry issues to linked GitLab issues"),
                     },
+                    {
+                        "name": self.inbound_status_key,
+                        "type": "boolean",
+                        "label": _("Sync GitLab Status to Sentry"),
+                        "help": _(
+                            "When a GitLab issue is marked closed, resolve its linked issue in Sentry. "
+                            "When a GitLab issue is reopened, unresolve its linked Sentry issue."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.resolution_strategy_key,
+                        "label": "Resolve",
+                        "type": "select",
+                        "placeholder": "Resolve",
+                        "choices": [
+                            ("resolve", "Resolve"),
+                            ("resolve_current_release", "Resolve in Current Release"),
+                            ("resolve_next_release", "Resolve in Next Release"),
+                        ],
+                        "help": _(
+                            "Select what action to take on Sentry Issue when GitLab ticket is marked Closed."
+                        ),
+                    },
                 ]
             )
 

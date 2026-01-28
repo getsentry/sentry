@@ -5,6 +5,9 @@ import orjson
 from fixtures.gitlab import (
     EXTERNAL_ID,
     ISSUE_ASSIGNED_EVENT,
+    ISSUE_CLOSED_EVENT,
+    ISSUE_OPENED_EVENT,
+    ISSUE_REOPENED_EVENT,
     ISSUE_UNASSIGNED_EVENT,
     MERGE_REQUEST_OPENED_EVENT,
     PUSH_EVENT,
@@ -489,3 +492,68 @@ class WebhookTest(GitLabTestCase):
             call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
         )
         assert call_args[1]["assign"] is False
+
+
+class TestIssuesEventWebhookStatusSync(GitLabTestCase):
+    url = "/extensions/gitlab/webhook/"
+
+    @patch("sentry.integrations.gitlab.integration.GitlabIntegration.sync_status_inbound")
+    def test_close_event_triggers_sync(self, mock_sync_status: MagicMock) -> None:
+        response = self.client.post(
+            self.url,
+            data=ISSUE_CLOSED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+        assert mock_sync_status.called
+        call_args = mock_sync_status.call_args
+        assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
+        assert call_args[0][1] == {"action": "close"}
+
+    @patch("sentry.integrations.gitlab.integration.GitlabIntegration.sync_status_inbound")
+    def test_reopen_event_triggers_sync(self, mock_sync_status: MagicMock) -> None:
+        response = self.client.post(
+            self.url,
+            data=ISSUE_REOPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+        assert mock_sync_status.called
+        call_args = mock_sync_status.call_args
+        assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
+        assert call_args[0][1] == {"action": "reopen"}
+
+    @patch("sentry.integrations.gitlab.integration.GitlabIntegration.sync_status_inbound")
+    def test_open_event_does_not_trigger_sync(self, mock_sync_status: MagicMock) -> None:
+        response = self.client.post(
+            self.url,
+            data=ISSUE_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+        assert not mock_sync_status.called
+
+    @patch("sentry.integrations.gitlab.integration.GitlabIntegration.sync_status_inbound")
+    def test_sync_called_with_correct_params(self, mock_sync_status: MagicMock) -> None:
+        response = self.client.post(
+            self.url,
+            data=ISSUE_CLOSED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+        assert mock_sync_status.called
+        call_args = mock_sync_status.call_args
+        assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
+        assert call_args[0][1]["action"] == "close"
