@@ -23,7 +23,7 @@ function TestComponent() {
   );
 }
 
-const TEN_MINUTES = 10 * 60 * 1000;
+const ONE_HOUR = 60 * 60 * 1000;
 
 describe('FrontendVersionProvider', () => {
   beforeEach(() => {
@@ -53,7 +53,7 @@ describe('FrontendVersionProvider', () => {
     );
 
     // Advance past the initial delay before version checking starts
-    act(() => jest.advanceTimersByTime(TEN_MINUTES));
+    act(() => jest.advanceTimersByTime(ONE_HOUR));
 
     expect(await screen.findByTestId('state')).toHaveTextContent('current');
     expect(await screen.findByTestId('deployed-version')).toHaveTextContent(commitSha);
@@ -77,7 +77,7 @@ describe('FrontendVersionProvider', () => {
     );
 
     // Advance past the initial delay before version checking starts
-    act(() => jest.advanceTimersByTime(TEN_MINUTES));
+    act(() => jest.advanceTimersByTime(ONE_HOUR));
 
     expect(await screen.findByTestId('state')).toHaveTextContent('stale');
     expect(await screen.findByTestId('deployed-version')).toHaveTextContent(
@@ -104,7 +104,7 @@ describe('FrontendVersionProvider', () => {
     );
 
     // Advance past the initial delay before version checking starts
-    act(() => jest.advanceTimersByTime(TEN_MINUTES));
+    act(() => jest.advanceTimersByTime(ONE_HOUR));
 
     expect(await screen.findByTestId('state')).toHaveTextContent('unknown');
     expect(await screen.findByTestId('deployed-version')).toHaveTextContent('null');
