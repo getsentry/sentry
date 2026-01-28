@@ -204,7 +204,9 @@ function BasicForm() {
                 <form.AppField
                   name="secret"
                   validators={{
-                    onDynamic: z.string('Secret is required when age is 42'),
+                    onDynamic: z
+                      .string('Secret is required when age is 42')
+                      .min(1, 'Secret is required when age is 42'),
                   }}
                 >
                   {field => (
