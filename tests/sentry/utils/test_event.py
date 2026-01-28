@@ -120,7 +120,7 @@ class HasStacktraceTest(TestCase):
         """
         Test for native crashes where exception exists but has no stacktrace,
         and the actual stacktrace is in threads.
-        
+
         This is common for C, C++, Cocoa, and minidump crashes.
         """
         event_data = {
