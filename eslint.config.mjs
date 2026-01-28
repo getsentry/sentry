@@ -1093,10 +1093,6 @@ export default typescript.config([
         },
         // --- scraps core components ---
         {
-          type: 'core-button',
-          pattern: 'static/app/components/core/button',
-        },
-        {
           type: 'core',
           pattern: 'static/app/components/core',
         },
@@ -1234,10 +1230,6 @@ export default typescript.config([
               allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
-            {
-              from: ['core-button'],
-              allow: ['core*'],
-            },
             // todo: sentry* shouldn't be allowed
             {
               from: ['core'],
@@ -1284,6 +1276,7 @@ export default typescript.config([
                 'code/inlineCode.tsx',
                 'compactSelect/composite.tsx',
                 'compactSelect/control.tsx',
+                'compactSelect/listBox/index.tsx',
                 'compactSelect/types.tsx',
                 'compactSelect/utils.tsx',
                 'disclosure/disclosure.tsx',
