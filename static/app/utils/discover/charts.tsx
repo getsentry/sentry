@@ -5,15 +5,19 @@ import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {
   AggregationOutputType,
   DataUnit,
   RateUnit,
 } from 'sentry/utils/discover/fields';
+import {SizeUnit} from 'sentry/utils/discover/fields';
 import {axisDuration} from 'sentry/utils/duration/axisDuration';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {convertSize} from 'sentry/utils/unitConversion/convertSize';
+import {isASizeUnit} from 'sentry/views/dashboards/widgets/common/typePredicates';
 
 import {categorizeDuration} from './categorizeDuration';
 
@@ -24,13 +28,12 @@ import {categorizeDuration} from './categorizeDuration';
 export function tooltipFormatter(
   value: number | null,
   outputType: AggregationOutputType = 'number',
-  unit?: DataUnit,
-  sizeBase: 2 | 10 = 2
+  unit?: DataUnit
 ): string {
   if (!defined(value)) {
     return '\u2014';
   }
-  return tooltipFormatterUsingAggregateOutputType(value, outputType, unit, sizeBase);
+  return tooltipFormatterUsingAggregateOutputType(value, outputType, unit);
 }
 
 /**
@@ -39,8 +42,7 @@ export function tooltipFormatter(
 export function tooltipFormatterUsingAggregateOutputType(
   value: number | null,
   type: string,
-  unit?: DataUnit,
-  sizeBase: 2 | 10 = 2
+  unit?: DataUnit
 ): string {
   if (!defined(value)) {
     return '\u2014';
@@ -53,8 +55,16 @@ export function tooltipFormatterUsingAggregateOutputType(
       return formatPercentage(value, 2);
     case 'duration':
       return getDuration(value / 1000, 2, true);
-    case 'size':
-      return sizeBase === 10 ? formatBytesBase10(value) : formatBytesBase2(value);
+    case 'size': {
+      const unitString = unit ?? undefined;
+      const resolvedUnit = isASizeUnit(unitString) ? unitString : SizeUnit.BYTE;
+      const sizeInBytes = convertSize(value, resolvedUnit, SizeUnit.BYTE);
+      const formatter =
+        unitString && ABYTE_UNITS.includes(unitString)
+          ? formatBytesBase10
+          : formatBytesBase2;
+      return formatter(sizeInBytes);
+    }
     case 'rate':
       if (unit) {
         return formatRate(value, unit as RateUnit);
@@ -76,7 +86,7 @@ export function axisLabelFormatter(
   durationUnit?: number,
   rateUnit?: RateUnit,
   decimalPlaces?: number,
-  sizeBase: 2 | 10 = 2
+  sizeUnit?: DataUnit
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
@@ -85,7 +95,7 @@ export function axisLabelFormatter(
     durationUnit,
     rateUnit,
     decimalPlaces,
-    sizeBase
+    sizeUnit
   );
 }
 
@@ -99,7 +109,7 @@ export function axisLabelFormatterUsingAggregateOutputType(
   durationUnit?: number,
   rateUnit?: RateUnit,
   decimalPlaces = 0,
-  sizeBase: 2 | 10 = 2
+  sizeUnit?: DataUnit
 ): string {
   switch (type) {
     case 'integer':
@@ -109,8 +119,16 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return formatPercentage(value, decimalPlaces);
     case 'duration':
       return axisDuration(value, durationUnit);
-    case 'size':
-      return sizeBase === 10 ? formatBytesBase10(value, 0) : formatBytesBase2(value, 0);
+    case 'size': {
+      const unitString = sizeUnit ?? undefined;
+      const resolvedUnit = isASizeUnit(unitString) ? unitString : SizeUnit.BYTE;
+      const sizeInBytes = convertSize(value, resolvedUnit, SizeUnit.BYTE);
+      const formatter =
+        unitString && ABYTE_UNITS.includes(unitString)
+          ? formatBytesBase10
+          : formatBytesBase2;
+      return formatter(sizeInBytes, 0);
+    }
     case 'rate':
       return formatRate(value, rateUnit);
     default:
