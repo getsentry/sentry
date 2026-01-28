@@ -47,13 +47,12 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
     filterQuery !== (rule.filterQuery ?? '');
 
   const handleSave = () => {
-    const valueInBytes = displayUnit === '%' ? displayValue : mbToBytes(displayValue);
     onSave({
       ...rule,
       filterQuery,
       measurement,
       metric,
-      value: valueInBytes,
+      value: currentValueInBytes,
     });
   };
 
