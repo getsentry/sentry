@@ -250,11 +250,9 @@ export function GroupInsightItemDiffTable({
                       </Tag>
                     </SimpleTable.RowCell>
                     <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
-                      <Text variant="muted">{diffItem.path ?? ''}</Text>
+                      <Text variant="muted">└ {diffItem.path ?? ''}</Text>
                     </SimpleTable.RowCell>
-                    <DiffTableChangeAmountCell changeType={diffItem.type}>
-                      {formattedSizeDiff(diffItem.size_diff)}
-                    </DiffTableChangeAmountCell>
+                    <SimpleTable.RowCell>{null}</SimpleTable.RowCell>
                   </SimpleTable.Row>
                 );
               })}
