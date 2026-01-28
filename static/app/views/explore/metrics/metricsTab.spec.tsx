@@ -573,11 +573,13 @@ describe('MetricsTabContent', () => {
     const regionOption = await screen.findByRole('option', {name: 'test.region'});
     await userEvent.click(regionOption);
 
-    // Verify that the mode switched to aggregate in the URL
-    const metricQuery = router.location.query.metric;
+    let metricQuery = router.location.query.metric;
     expect(metricQuery).toBeDefined();
+
+    // Verify that the mode switched to aggregate in the URL
     let parsedQuery: ReturnType<typeof JSON.parse>;
     await waitFor(() => {
+      metricQuery = router.location.query.metric;
       parsedQuery = JSON.parse(metricQuery as string);
       expect(parsedQuery.mode).toBe('aggregate');
     });
