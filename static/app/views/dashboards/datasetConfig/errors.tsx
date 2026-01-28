@@ -1,6 +1,3 @@
-import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
-import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -20,19 +17,18 @@ import {
   getAggregations,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import {
+  useErrorsSeriesQuery,
+  useErrorsTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useErrorsWidgetQuery';
 import {useResultsSearchBarDataProvider} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -123,29 +119,8 @@ export const ErrorsConfig: DatasetConfig<
     DisplayType.TABLE,
     DisplayType.TOP_N,
   ],
-  getTableRequest: (
-    api: Client,
-    _widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    _onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    _mepSetting?: MEPState | null
-  ) => {
-    return getEventsRequest(
-      api,
-      query,
-      organization,
-      pageFilters,
-      limit,
-      cursor,
-      referrer
-    );
-  },
-  getSeriesRequest: getErrorsSeriesRequest,
+  useSeriesQuery: useErrorsSeriesQuery,
+  useTableQuery: useErrorsTableQuery,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
@@ -183,52 +158,6 @@ function getCustomEventsFieldRenderer(field: string, meta: MetaType, widget?: Wi
   return getFieldRenderer(field, meta, false);
 }
 
-function getEventsRequest(
-  api: Client,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  limit?: number,
-  cursor?: string,
-  referrer?: string
-) {
-  const url = `/organizations/${organization.slug}/events/`;
-  const eventView = eventViewFromWidget('', query, pageFilters);
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const params: DiscoverQueryRequestParams = {
-    per_page: limit,
-    cursor,
-    referrer,
-    dataset: DiscoverDatasets.ERRORS,
-  };
-
-  if (query.orderby) {
-    params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
-  }
-
-  return doDiscoverQuery<EventsTableData>(
-    api,
-    url,
-    {
-      ...eventView.generateQueryStringObject(),
-      ...params,
-    },
-    // Tries events request up to 10 times on rate limit
-    {
-      retry: hasQueueFeature
-        ? // The queue will handle retries, so we don't need to retry here
-          undefined
-        : {
-            statusCodes: [429],
-            tries: 10,
-          },
-    }
-  );
-}
-
 // The y-axis options are a strict set of available aggregates
 function filterYAxisOptions(_displayType: DisplayType) {
   return (option: FieldValueOption) => {
@@ -236,25 +165,4 @@ function filterYAxisOptions(_displayType: DisplayType) {
       option.value.meta.name as AggregationKey
     );
   };
-}
-
-function getErrorsSeriesRequest(
-  api: Client,
-  widget: Widget,
-  queryIndex: number,
-  organization: Organization,
-  pageFilters: PageFilters,
-  _onDemandControlContext?: OnDemandControlContext,
-  referrer?: string,
-  _mepSetting?: MEPState | null
-) {
-  const requestData = getSeriesRequestData(
-    widget,
-    queryIndex,
-    organization,
-    pageFilters,
-    DiscoverDatasets.ERRORS,
-    referrer
-  );
-  return doEventsRequest<true>(api, requestData);
 }
