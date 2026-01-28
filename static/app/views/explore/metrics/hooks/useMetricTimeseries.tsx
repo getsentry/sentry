@@ -88,7 +88,7 @@ function useMetricTimeseriesImpl({
       search,
       yAxis,
       interval,
-      fields: [...groupBys, visualize.yAxis],
+      fields: [...groupBys, ...yAxis],
       enabled: enabled && Boolean(traceMetric.name),
       topEvents,
       orderby: sortBys.map(formatSort),
