@@ -311,17 +311,21 @@ export function ComboBox({
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
+  const memoizedInputRef = useMemo(() => {
+    return mergeRefs(
+      ref,
+      inputRef,
+      autosizeInputRef,
+      triggerProps.ref as React.Ref<HTMLInputElement>
+    );
+  }, [ref, inputRef, autosizeInputRef, triggerProps.ref]);
+
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(
-          ref,
-          inputRef,
-          autosizeInputRef,
-          triggerProps.ref as React.Ref<HTMLInputElement>
-        )}
+        ref={memoizedInputRef}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}

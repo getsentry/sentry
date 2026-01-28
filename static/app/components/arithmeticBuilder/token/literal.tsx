@@ -1,5 +1,5 @@
 import type {ChangeEvent, FocusEvent} from 'react';
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
@@ -240,22 +240,20 @@ function InternalInput({item, state, token}: InternalInputProps) {
   );
 
   return (
-    <Fragment>
-      <InputBox
-        ref={inputRef}
-        inputLabel={t('Add a literal')}
-        inputValue={inputValue}
-        tabIndex={-1}
-        onClick={onClick}
-        onInputBlur={onInputBlur}
-        onInputChange={onInputChange}
-        onInputCommit={onInputCommit}
-        onInputEscape={onInputEscape}
-        onInputFocus={onInputFocus}
-        onKeyDown={onKeyDown}
-        onKeyDownCapture={onKeyDownCapture}
-      />
-    </Fragment>
+    <InputBox
+      ref={inputRef}
+      inputLabel={t('Add a literal')}
+      inputValue={inputValue}
+      tabIndex={-1}
+      onClick={onClick}
+      onInputBlur={onInputBlur}
+      onInputChange={onInputChange}
+      onInputCommit={onInputCommit}
+      onInputEscape={onInputEscape}
+      onInputFocus={onInputFocus}
+      onKeyDown={onKeyDown}
+      onKeyDownCapture={onKeyDownCapture}
+    />
   );
 }
 

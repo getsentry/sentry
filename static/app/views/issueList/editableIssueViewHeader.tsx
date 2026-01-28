@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -116,10 +116,14 @@ function EditingViewTitle({
     value: title,
   });
 
+  const memoizedInputRef = useMemo(() => {
+    return mergeRefs(inputRef, autosizeInputRef);
+  }, [inputRef, autosizeInputRef]);
+
   return (
     <StyledGrowingInput
       value={title}
-      ref={mergeRefs(inputRef, autosizeInputRef)}
+      ref={memoizedInputRef}
       onChange={handleOnChange}
       onKeyDown={handleOnKeyDown}
       onBlur={() => stopEditing()}

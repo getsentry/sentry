@@ -6,7 +6,7 @@ import type {
   MouseEventHandler,
   Ref,
 } from 'react';
-import {useCallback, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useTextField} from '@react-aria/textfield';
 import {mergeRefs} from '@react-aria/utils';
@@ -111,12 +111,16 @@ export function InputBox({
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
+  const memoizedInputRef = useMemo(() => {
+    return mergeRefs(ref, inputRef, autosizeInputRef);
+  }, [ref, inputRef, autosizeInputRef]);
+
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(ref, inputRef, autosizeInputRef)}
+        ref={memoizedInputRef}
         type="text"
         placeholder={placeholder}
         onBlur={handleInputBlur}
