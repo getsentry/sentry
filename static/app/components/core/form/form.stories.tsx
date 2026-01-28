@@ -11,9 +11,12 @@ import {
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveField} from '@sentry/scraps/form/field/autoSaveField';
-import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form/scrapsForm';
+import {
+  AutoSaveField,
+  defaultFormOptions,
+  FieldGroup,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
