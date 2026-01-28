@@ -401,7 +401,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
     if (rowIndex === selectedReplayIndex) {
       return (
         <PlayPauseButtonContainer>
-          <ReplayPlayPauseButton key="playPause-play" priority="default" size="sm" />
+          <ReplayPlayPauseButton key="playPause-play" priority="transparent" size="sm" />
         </PlayPauseButtonContainer>
       );
     }
