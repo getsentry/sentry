@@ -47,23 +47,31 @@ function FullscreenModalContent({
   alertMessage,
   onAlertClick,
   onSearchChange,
-  highlightInsights,
+  initialHighlightInsights,
   onHighlightInsightsChange,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
   alertMessage?: string;
-  highlightInsights?: boolean;
+  initialHighlightInsights?: boolean;
   onAlertClick?: () => void;
   onHighlightInsightsChange?: (enabled: boolean) => void;
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
+  const [localHighlightInsights, setLocalHighlightInsights] = useState(
+    initialHighlightInsights ?? false
+  );
   const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch, '');
 
   const handleSearchChange = (value: string) => {
     setLocalSearch(value);
     onSearchChange?.(value);
+  };
+
+  const handleHighlightInsightsChange = (enabled: boolean) => {
+    setLocalHighlightInsights(enabled);
+    onHighlightInsightsChange?.(enabled);
   };
 
   return (
@@ -96,8 +104,8 @@ function FullscreenModalContent({
           searchQuery={localSearch}
           alertMessage={alertMessage}
           onAlertClick={onAlertClick}
-          highlightInsights={highlightInsights}
-          onHighlightInsightsChange={onHighlightInsightsChange}
+          highlightInsights={localHighlightInsights}
+          onHighlightInsightsChange={handleHighlightInsightsChange}
         />
       </Container>
     </Flex>
@@ -405,7 +413,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               alertMessage={alertMessage}
               onAlertClick={onAlertClick}
               onSearchChange={onSearchChange}
-              highlightInsights={highlightInsights}
+              initialHighlightInsights={highlightInsights}
               onHighlightInsightsChange={onHighlightInsightsChange}
             />
           ) : (
