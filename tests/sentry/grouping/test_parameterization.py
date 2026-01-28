@@ -187,7 +187,7 @@ def test_parameterize_experimental(
 def test_fail_parameterize(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) == expected, f"Case {name} Failed"
+    assert parameterizer.parameterize_all(input) == expected
 
 
 # These are test cases were we're too aggressive
@@ -201,4 +201,4 @@ def test_fail_parameterize(
 def test_too_aggressive_parameterize(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) == expected, f"Case {name} Failed"
+    assert parameterizer.parameterize_all(input) == expected
