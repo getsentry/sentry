@@ -69,7 +69,7 @@ def get_detector_validator(
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, detector_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
-        validated_detector_id = to_valid_int_id("detector_id", detector_id)
+        validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
             detector = (
                 Detector.objects.with_type_filters()

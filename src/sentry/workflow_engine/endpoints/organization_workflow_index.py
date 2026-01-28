@@ -17,7 +17,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -102,7 +102,7 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
 
     def convert_args(self, request: Request, workflow_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
-        validated_workflow_id = to_valid_int_id("workflow_id", workflow_id)
+        validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
         try:
             kwargs["workflow"] = Workflow.objects.get(
                 organization=kwargs["organization"], id=validated_workflow_id

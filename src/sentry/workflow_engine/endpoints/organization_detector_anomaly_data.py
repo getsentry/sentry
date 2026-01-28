@@ -40,7 +40,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         self, detector_id: str, organization: Organization
     ) -> QuerySubscription:
         """Look up QuerySubscription from a detector ID."""
-        validated_detector_id = to_valid_int_id("detector_id", detector_id)
+        validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
             detector = Detector.objects.with_type_filters().get(
                 id=validated_detector_id, project__organization=organization
@@ -61,7 +61,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         self, alert_rule_id: str, organization: Organization
     ) -> QuerySubscription:
         """Look up QuerySubscription from a legacy alert rule ID."""
-        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id)
+        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
         try:
             alert_rule = AlertRule.objects.get(
                 id=validated_alert_rule_id, organization=organization

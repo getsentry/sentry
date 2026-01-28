@@ -142,13 +142,13 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
 
     @with_feature("organizations:anomaly-detection-threshold-data")
     def test_invalid_detector_id(self):
-        """Test that non-numeric detector IDs return 400"""
+        """Test that non-numeric detector IDs return 404"""
         self.get_error_response(
             self.organization.slug,
             "not-a-number",
             start="1729178100.0",
             end="1729179000.0",
-            status_code=400,
+            status_code=404,
         )
 
 
