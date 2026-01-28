@@ -197,7 +197,6 @@ export function IssueDiff({
           <LazyLoad
             key={index}
             LazyComponent={SplitDiffLazy}
-            loadingFallback={null}
             base={value}
             target={targetArray[index] ?? ''}
             type="lines"
