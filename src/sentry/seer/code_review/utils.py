@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import enum
+import logging
 from collections.abc import Mapping
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Any
 
 import orjson
@@ -14,18 +16,17 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
+from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
+logger = logging.getLogger(__name__)
 
-# XXX: This needs to be a shared enum with the Seer repository
-# Look at CodecovTaskRequest.request_type in Seer repository for the possible request types
-class RequestType(StrEnum):
-    # It triggers PR review events on Seer side
-    PR_REVIEW = "pr-review"
-    # It triggers PR closed events on Seer side
-    PR_CLOSED = "pr-closed"
+
+class Log(enum.StrEnum):
+    MISSING_INTEGRATION = "github.webhook.missing-integration"
+    REACTION_FAILED = "github.webhook.reaction-failed"
 
 
 class ClientError(Exception):
@@ -34,17 +35,30 @@ class ClientError(Exception):
     pass
 
 
-# XXX: This needs to be a shared enum with the Seer repository
-# In Seer, src/seer/automation/codegen/types.py:PrReviewTrigger
-class SeerCodeReviewTrigger(StrEnum):
-    UNKNOWN = "unknown"
-    ON_COMMAND_PHRASE = "on_command_phrase"
-    ON_READY_FOR_REVIEW = "on_ready_for_review"
-    ON_NEW_COMMIT = "on_new_commit"
+def convert_enum_keys_to_strings(obj: Any) -> Any:
+    """
+    Recursively convert enum keys in dictionaries to their string values.
 
-    @classmethod
-    def _missing_(cls: type[SeerCodeReviewTrigger], value: object) -> SeerCodeReviewTrigger:
-        return cls.UNKNOWN
+    This is needed because Pydantic v1 converts string keys to enum members when parsing,
+    but JSON serialization requires string keys. Enum values are also converted to strings.
+
+    Args:
+        obj: The object to process (can be dict, list, enum, or primitive)
+
+    Returns:
+        A copy of the object with all enum keys and values converted to strings
+    """
+    if isinstance(obj, dict):
+        return {
+            (k.value if isinstance(k, Enum) else k): convert_enum_keys_to_strings(v)
+            for k, v in obj.items()
+        }
+    elif isinstance(obj, list):
+        return [convert_enum_keys_to_strings(item) for item in obj]
+    elif isinstance(obj, Enum):
+        return obj.value
+    else:
+        return obj
 
 
 # These values need to match the value defined in the Seer API.
@@ -55,17 +69,17 @@ class SeerEndpoint(StrEnum):
     PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
 
 
-def get_seer_endpoint_for_event(github_event: GithubWebhookType) -> SeerEndpoint:
+def get_seer_endpoint_for_event(github_event: str) -> SeerEndpoint:
     """
     Get the appropriate Seer endpoint for a given GitHub webhook event.
 
     Args:
-        github_event: The GitHub webhook event type
+        github_event: The GitHub webhook event type (as string, after Celery deserialization)
 
     Returns:
         The SeerEndpoint to use for the event
     """
-    if github_event == GithubWebhookType.CHECK_RUN:
+    if github_event == GithubWebhookType.CHECK_RUN.value:
         return SeerEndpoint.PR_REVIEW_RERUN
     return SeerEndpoint.OVERWATCH_REQUEST
 
@@ -171,7 +185,7 @@ def transform_webhook_to_codegen_request(
     target_commit_sha: str,
 ) -> dict[str, Any] | None:
     """
-    Transform a GitHub webhook payload into CodecovTaskRequest format for Seer.
+    Transform a GitHub webhook payload into SeerCodeReviewRequest format for Seer.
 
     Args:
         github_event: The GitHub webhook event type
@@ -182,7 +196,7 @@ def transform_webhook_to_codegen_request(
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
 
     Returns:
-        Dictionary in CodecovTaskRequest format with request_type, data, and external_owner_id,
+        Dictionary in SeerCodeReviewRequest format with request_type, data, and external_owner_id,
         or None if the event is not PR-related (e.g., issue_comment on regular issues)
     """
     payload = None
@@ -198,7 +212,10 @@ def transform_webhook_to_codegen_request(
 
 
 def _common_codegen_request_payload(
-    request_type: RequestType, repo: Repository, target_commit_sha: str, organization: Organization
+    request_type: SeerCodeReviewRequestType,
+    repo: Repository,
+    target_commit_sha: str,
+    organization: Organization,
 ) -> dict[str, Any]:
     return {
         # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
@@ -225,7 +242,7 @@ def transform_issue_comment_to_codegen_request(
     Transform an issue comment on a PR into a CodecovTaskRequest for Seer.
     """
     payload = _common_codegen_request_payload(
-        RequestType.PR_REVIEW,  # An issue comment on a PR is a PR review request
+        SeerCodeReviewRequestType.PR_REVIEW,  # An issue comment on a PR is a PR review request
         repo=repo,
         target_commit_sha=target_commit_sha,
         organization=organization,
@@ -256,7 +273,9 @@ def transform_pull_request_to_codegen_request(
             review_request_trigger = SeerCodeReviewTrigger.ON_NEW_COMMIT
 
     request_type = (
-        RequestType.PR_REVIEW if github_event_action != "closed" else RequestType.PR_CLOSED
+        SeerCodeReviewRequestType.PR_REVIEW
+        if github_event_action != "closed"
+        else SeerCodeReviewRequestType.PR_CLOSED
     )
     payload = _common_codegen_request_payload(
         request_type,
@@ -328,6 +347,67 @@ def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
     return None
 
 
+def extract_github_info(
+    event: Mapping[str, Any], github_event: str | None = None
+) -> dict[str, str | None]:
+    """
+    Extract GitHub-related information from a webhook event payload.
+
+    Args:
+        event: The GitHub webhook event payload
+        github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
+
+    Returns:
+        Dictionary containing:
+            - github_owner: The repository owner/organization name
+            - github_repo_name: The repository name
+            - github_repo_full_name: The repository full name (owner/repo)
+            - github_event_url: URL to the specific event (check_run, pull_request, or comment)
+            - github_event: The GitHub event type
+            - github_event_action: The event action (e.g., "opened", "closed", "created")
+    """
+    result: dict[str, str | None] = {
+        "github_owner": None,
+        "github_repo_name": None,
+        "github_repo_full_name": None,
+        "github_event_url": None,
+        "github_event": github_event,
+        "github_event_action": None,
+    }
+
+    repository = event.get("repository", {})
+    if repository:
+        if owner := repository.get("owner", {}).get("login"):
+            result["github_owner"] = owner
+        if repo_name := repository.get("name"):
+            result["github_repo_name"] = repo_name
+        if owner_repo_name := repository.get("full_name"):
+            result["github_repo_full_name"] = owner_repo_name
+
+    if action := event.get("action"):
+        result["github_event_action"] = action
+
+    if pull_request := event.get("pull_request"):
+        if html_url := pull_request.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if check_run := event.get("check_run"):
+        if html_url := check_run.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if comment := event.get("comment"):
+        if html_url := comment.get("html_url"):
+            result["github_event_url"] = html_url
+
+    if issue := event.get("issue"):
+        if pull_request_data := issue.get("pull_request"):
+            if html_url := pull_request_data.get("html_url"):
+                if result["github_event_url"] is None:
+                    result["github_event_url"] = html_url
+
+    return result
+
+
 def delete_existing_reactions_and_add_eyes_reaction(
     github_event: GithubWebhookType,
     github_event_action: str,
@@ -336,6 +416,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
     repo: Repository,
     pr_number: str | None,
     comment_id: str | None,
+    extra: Mapping[str, str | None],
 ) -> None:
     """
     Delete existing :tada: or :eyes: reaction on the PR description and add :eyes: reaction on the originating issue comment or PR description.
@@ -346,6 +427,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
             github_event_action,
             CodeReviewErrorType.MISSING_INTEGRATION,
         )
+        logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
         return
 
     try:
@@ -372,6 +454,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
                     github_event_action,
                     CodeReviewErrorType.REACTION_FAILED,
                 )
+                logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
 
         # Add :eyes: on the originating issue comment or pr description
         if github_event == GithubWebhookType.PULL_REQUEST:
@@ -384,3 +467,4 @@ def delete_existing_reactions_and_add_eyes_reaction(
             github_event_action,
             CodeReviewErrorType.REACTION_FAILED,
         )
+        logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)

@@ -27,7 +27,6 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("prevent", "0002_alter_integration_id_not_null"),
-        ("sentry", "1020_alter_apiapplication_client_secret_nullable"),
     ]
 
     operations = [
