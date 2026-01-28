@@ -144,9 +144,9 @@ def test_parameterize_standard(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
     assert parameterizer.parameterize_all(input) == expected
-    assert f"prefix {parameterizer.parameterize_all(input)}" == f"prefix {expected}"
-    assert f"{parameterizer.parameterize_all(input)} suffix" == f"{expected} suffix"
-    assert f"prefix {parameterizer.parameterize_all(input)} suffix" == f"prefix {expected} suffix"
+    assert parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
+    assert parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
+    assert parameterizer.parameterize_all(f"prefix {input} suffix") == f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
@@ -154,20 +154,22 @@ def test_parameterize_standard_not_experimental(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
     assert parameterizer.parameterize_all(input) != expected
-    assert f"prefix {parameterizer.parameterize_all(input)}" != f"prefix {expected}"
-    assert f"{parameterizer.parameterize_all(input)} suffix" != f"{expected} suffix"
-    assert f"prefix {parameterizer.parameterize_all(input)} suffix" != f"prefix {expected} suffix"
+    assert parameterizer.parameterize_all(f"prefix {input}") != f"prefix {expected}"
+    assert parameterizer.parameterize_all(f"{input} suffix") != f"{expected} suffix"
+    assert parameterizer.parameterize_all(f"prefix {input} suffix") != f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_parameterize_experimental(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
 ) -> None:
-    parameterizer = experimental_parameterizer
-    assert parameterizer.parameterize_all(input) == expected
-    assert f"prefix {parameterizer.parameterize_all(input)}" == f"prefix {expected}"
-    assert f"{parameterizer.parameterize_all(input)} suffix" == f"{expected} suffix"
-    assert f"prefix {parameterizer.parameterize_all(input)} suffix" == f"prefix {expected} suffix"
+    assert experimental_parameterizer.parameterize_all(input) == expected
+    assert experimental_parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
+    assert experimental_parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
+    assert (
+        experimental_parameterizer.parameterize_all(f"prefix {input} suffix")
+        == f"prefix {expected} suffix"
+    )
 
 
 # These are test cases that we should fix
