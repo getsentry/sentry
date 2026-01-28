@@ -585,26 +585,17 @@ export function SearchQueryBuilderCombobox<
 
   const autosizeInput = useAutosizeInput({value: inputValue});
 
-  // Memoize the merged ref to avoid calling callback refs on every render.
-  // mergeRefs creates a new function each call, which causes React to call
-  // old ref with null and new ref with element on every render.
-  const mergedInputRef = useMemo(
-    () =>
-      mergeRefs(
-        ref,
-        inputRef,
-        autosizeInput,
-        triggerProps.ref as React.Ref<HTMLInputElement>
-      ),
-    [ref, autosizeInput, triggerProps.ref]
-  );
-
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergedInputRef}
+        ref={mergeRefs(
+          ref,
+          inputRef,
+          autosizeInput,
+          triggerProps.ref as React.Ref<HTMLInputElement>
+        )}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}
