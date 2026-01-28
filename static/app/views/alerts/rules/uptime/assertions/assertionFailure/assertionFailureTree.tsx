@@ -12,12 +12,12 @@ const CONNECTOR_THICKNESS_PX = 1;
 const DEPTH_OFFSET_PX = 10;
 const CONTENT_PADDING_PX = 10;
 
-function leftOffsetFromLevel(level: number): number {
+function leftOffsetFromDepth(depth: number): number {
   return (
-    level * INDENT_PX +
+    depth * INDENT_PX +
     Math.floor(INDENT_PX / 2) +
-    level * DEPTH_OFFSET_PX +
-    level * CONTENT_PADDING_PX
+    depth * DEPTH_OFFSET_PX +
+    depth * CONTENT_PADDING_PX
   );
 }
 
@@ -35,18 +35,18 @@ function ConnectorLine({
   const theme = useTheme();
 
   const midY = Math.floor(ROW_HEIGHT_PX / 2);
-  const isImmediateParentLevel = connector.level === nodeDepth - 1;
+  const isImmediateParentLevel = connector.depth === nodeDepth - 1;
 
   const box =
     connector.type === 'vertical'
       ? {
-          left: leftOffsetFromLevel(connector.level),
+          left: leftOffsetFromDepth(connector.depth),
           top: 0,
           width: CONNECTOR_THICKNESS_PX,
           height: isImmediateParentLevel && isLastChild ? midY : ROW_HEIGHT_PX,
         }
       : {
-          left: leftOffsetFromLevel(connector.level),
+          left: leftOffsetFromDepth(connector.depth),
           top: midY,
           width: INDENT_PX,
           height: CONNECTOR_THICKNESS_PX,
@@ -97,7 +97,7 @@ export function AssertionFailureTree({assertion}: {assertion: Assertion}) {
         const paddingLeft =
           node.depth === 0
             ? 0
-            : leftOffsetFromLevel(node.depth - 1) + INDENT_PX + CONTENT_PADDING_PX;
+            : leftOffsetFromDepth(node.depth - 1) + INDENT_PX + CONTENT_PADDING_PX;
 
         return (
           <div
