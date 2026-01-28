@@ -3,6 +3,7 @@ import {logs} from 'sentry/gettingStartedDocs/apple-ios/logs';
 import {onboarding} from 'sentry/gettingStartedDocs/apple-ios/onboarding';
 import {sessionReplay} from 'sentry/gettingStartedDocs/apple-ios/sessionReplay';
 import {crashReport} from 'sentry/gettingStartedDocs/apple-macos/crashReport';
+import {metrics} from 'sentry/gettingStartedDocs/apple-macos/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/apple-macos/profiling';
 
 const docs: Docs = {
@@ -12,6 +13,7 @@ const docs: Docs = {
   replayOnboarding: sessionReplay,
   profilingOnboarding: profiling,
   logsOnboarding: logs,
+  metricsOnboarding: metrics,
 };
 
 export default docs;
