@@ -371,6 +371,54 @@ class TestLaunchAgentsForRepos(TestCase):
         call_args = mock_get_prompt.call_args
         assert call_args[0][3] == "AIML-2301"
 
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    def test_no_repos_configured_returns_empty_result(self, mock_get_preferences):
+        """Test that when no repos are configured, function returns empty result instead of raising NotFound."""
+        from sentry.seer.models import PreferenceResponse
+
+        # Create autofix state with no repos
+        autofix_state_no_repos = AutofixState(
+            run_id=self.run_id,
+            request=AutofixRequest(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                issue={"id": 1, "title": "Test Issue"},
+                repos=[],  # No repos configured
+            ),
+            updated_at=datetime.now(UTC),
+            status="COMPLETED",
+            steps=[
+                {
+                    "key": "root_cause_analysis",
+                    "causes": [
+                        {
+                            # No relevant_repos in the cause
+                        }
+                    ],
+                }
+            ],
+        )
+
+        mock_get_preferences.return_value = PreferenceResponse(
+            preference=None, code_mapping_repos=[]
+        )
+
+        mock_installation = MagicMock()
+
+        # Should not raise NotFound, should return empty result
+        result = _launch_agents_for_repos(
+            installation=mock_installation,
+            autofix_state=autofix_state_no_repos,
+            run_id=self.run_id,
+            organization=self.organization,
+            trigger_source=AutofixTriggerSource.ROOT_CAUSE,
+        )
+
+        # Assert: Verify empty result is returned
+        assert result == {"successes": [], "failures": []}
+        # Installation should not be called since there are no repos
+        mock_installation.launch.assert_not_called()
+
 
 class TestPollGithubCopilotAgents(TestCase):
     def setUp(self):

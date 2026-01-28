@@ -253,9 +253,17 @@ def _launch_agents_for_repos(
     repos_to_launch = validated_repos or autofix_state_repos
 
     if not repos_to_launch:
-        raise NotFound(
-            "There are no repos in the Seer state to launch coding agents with, make sure you have repos connected to Seer and rerun this Issue Fix."
+        logger.warning(
+            "coding_agent.no_repos_to_launch",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "trigger_source": trigger_source,
+                "autofix_state_repos": list(autofix_state_repos),
+                "validated_repos": list(validated_repos),
+            },
         )
+        return {"successes": [], "failures": []}
 
     short_id = None
     if autofix_state:
