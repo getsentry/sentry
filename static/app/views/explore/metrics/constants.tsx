@@ -1,3 +1,5 @@
+import {Text} from '@sentry/scraps/text';
+
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -200,6 +202,7 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'per_second',
           value: 'per_second',
+          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
         {
           label: 'per_minute',
@@ -248,6 +251,7 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'avg',
           value: 'avg',
+          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
       ],
     },
@@ -264,6 +268,7 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'p75',
           value: 'p75',
+          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
         {
           label: 'p90',
