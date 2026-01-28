@@ -106,9 +106,7 @@ function ProductCard({icon, title, description}: ProductCardProps) {
       <ProductIcon>{icon}</ProductIcon>
       <Flex direction="column" gap="xs">
         <ProductTitle>{title}</ProductTitle>
-        <Text variant="muted" size="sm">
-          {description}
-        </Text>
+        <Text variant="muted">{description}</Text>
       </Flex>
     </ProductCardContainer>
   );
@@ -146,7 +144,7 @@ function NewWelcomeUI(props: StepProps) {
       <ContentWrapper {...fadeAway}>
         <Flex direction="column" gap="sm">
           <NewWelcomeTitle>{t('Welcome to Sentry')}</NewWelcomeTitle>
-          <Text variant="muted">
+          <Text variant="muted" size="lg" bold>
             {t(
               "Your code is probably broken, and we'll help you fix it faster. We're not just error monitoring anymore y'know."
             )}
@@ -155,7 +153,7 @@ function NewWelcomeUI(props: StepProps) {
 
         <TrialInfoLine>
           <IconCheckmark variant="success" size="sm" />
-          <Text>
+          <Text size="lg" bold>
             {t('Your 14-day business trial includes')}{' '}
             <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
               {t('unlimited access')}
@@ -185,7 +183,7 @@ function NewWelcomeUI(props: StepProps) {
                 <ProductTitle>{t('Seer: AI Debugging Agent')}</ProductTitle>
                 <FeatureBadge type="new" tooltipProps={{disabled: true}} />
               </Flex>
-              <Text variant="muted" size="sm">
+              <Text variant="muted">
                 {t(
                   "Analyze issues, review PRs, and propose code fixes. Because of course we have an AI tool, it's 2026."
                 )}
@@ -203,7 +201,7 @@ function NewWelcomeUI(props: StepProps) {
           </SeerIllustrationWrapper>
         </SeerCard>
 
-        <Text variant="muted" size="sm">
+        <Text variant="muted" bold>
           {t(
             "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
           )}
