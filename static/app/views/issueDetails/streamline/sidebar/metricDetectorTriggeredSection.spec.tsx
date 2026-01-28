@@ -17,6 +17,8 @@ describe('MetricDetectorTriggeredSection', () => {
     conditionResult: true,
   };
   const dataSource = SnubaQueryDataSourceFixture();
+  const openPeriodStartDate = '2024-01-01T00:00:00Z';
+  const openPeriodEndDate = '2024-01-01T00:05:00.000Z';
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -31,6 +33,19 @@ describe('MetricDetectorTriggeredSection', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [
+        {
+          id: '101',
+          start: openPeriodStartDate,
+          end: openPeriodEndDate,
+          isOpen: false,
+          eventId: 'event-1',
+          activities: [],
+        },
+      ],
     });
   });
 
@@ -136,18 +151,17 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   it('renders contributing issues section for errors dataset', async () => {
-    const eventDateCreated = '2024-01-01T00:00:00Z';
     // Start date is eventDateCreated minus the timeWindow (60 seconds) minus 1 extra minute
     const startDate = '2023-12-31T23:58:00.000Z';
-    const endDate = '2017-10-17T02:41:20.000Z'; // Mocked time in test env
 
     const contributingIssuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [GroupFixture()],
     });
-
     const event = EventFixture({
-      dateCreated: eventDateCreated,
+      dateCreated: openPeriodStartDate,
+      eventID: 'event-1',
+      groupID: '123',
       occurrence: {
         id: '1',
         eventId: 'event-1',
@@ -180,7 +194,7 @@ describe('MetricDetectorTriggeredSection', () => {
         query: expect.objectContaining({
           query: 'issue.type:error event.type:error is:unresolved',
           start: startDate,
-          end: endDate,
+          end: openPeriodEndDate,
         }),
       })
     );
@@ -239,7 +253,7 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2017-10-17T02%3A41%3A20.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
+      '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2024-01-01T00%3A05%3A00.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
     );
   });
 });
