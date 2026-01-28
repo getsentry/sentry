@@ -2,8 +2,9 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.signals import post_save, pre_save
+from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.models.activity import Activity
@@ -15,15 +16,17 @@ from sentry.models.grouphistory import (
     record_group_history,
     record_group_history_from_activity_type,
 )
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import buffer_incr_complete
+from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -74,10 +77,13 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
     """
     Creates GroupLinks and Activity entries for commits that reference issues.
 
-    Note: This function does NOT immediately resolve issues. Resolution happens
-    when a release is created that includes these commits, via update_group_resolutions()
-    in src/sentry/models/releases/set_commits.py. This prevents issues from being
-    resolved prematurely when commits are pushed to feature branches.
+    With the "organizations:defer-commit-resolution" feature flag:
+    - Flag ON (new behavior): Creates GroupLinks and Activity but does NOT immediately
+      resolve issues. Resolution happens when a release is created that includes these
+      commits, via update_group_resolutions() in src/sentry/models/releases/set_commits.py.
+      This prevents issues from being resolved prematurely when commits are pushed to
+      feature branches.
+    - Flag OFF (legacy behavior): Immediately resolves issues when commits are pushed.
     """
     groups = instance.find_referenced_groups()
 
@@ -99,6 +105,15 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
         repo = Repository.objects.get(id=instance.repository_id)
     except Repository.DoesNotExist:
         repo = None
+
+    # Check feature flag - determines whether to defer resolution to release creation
+    defer_resolution = False
+    if repo:
+        try:
+            org = Organization.objects.get_from_cache(id=repo.organization_id)
+            defer_resolution = features.has("organizations:defer-commit-resolution", org)
+        except Organization.DoesNotExist:
+            pass
 
     if instance.author:
         with in_test_hide_transaction_boundary():
@@ -148,6 +163,17 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                             reason=GroupSubscriptionReason.status_change,
                         )
 
+                if not defer_resolution:
+                    # Legacy behavior: Immediately resolve the issue
+                    Group.objects.filter(id=group.id).update(
+                        status=GroupStatus.RESOLVED,
+                        resolved_at=timezone.now(),
+                        substatus=None,
+                    )
+                    group.status = GroupStatus.RESOLVED
+                    group.substatus = None
+                    remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
+
                 activity_kwargs = {
                     "project_id": group.project_id,
                     "group": group,
@@ -176,6 +202,17 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                         id=repo.integration_id,
                         organization_id=repo.organization_id,
                     )
+                )
+
+            if not defer_resolution:
+                # Legacy behavior: Send resolution signal
+                issue_resolved.send_robust(
+                    organization_id=repo.organization_id if repo else group.organization.id,
+                    user=user_list[0] if user_list else None,
+                    group=group,
+                    project=group.project,
+                    resolution_type="with_commit",
+                    sender="resolved_with_commit",
                 )
 
 
