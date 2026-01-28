@@ -36,14 +36,18 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
+class SlackThreadDetails(TypedDict):
+    thread_ts: str
+    channel_id: str
+
+
 class SlackEntrypointCachePayload(TypedDict):
     organization_id: int
     project_id: int
     group_id: int
     integration_id: int
-    thread_ts: str
-    channel_id: str
     group_link: str
+    threads: list[SlackThreadDetails]
 
 
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
@@ -108,8 +112,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     def on_trigger_autofix_error(self, *, error: str) -> None:
         _send_thread_update(
             install=self.install,
-            channel_id=self.channel_id,
-            thread_ts=self.thread_ts,
+            threads=[SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)],
             data=SeerAutofixError(error_message=error),
             ephemeral_user_id=self.slack_request.user_id,
         )
@@ -117,8 +120,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         _send_thread_update(
             install=self.install,
-            channel_id=self.channel_id,
-            thread_ts=self.thread_ts,
+            threads=[SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)],
             data=SeerAutofixSuccess(
                 run_id=run_id,
                 organization_id=self.organization_id,
@@ -146,8 +148,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
-            thread_ts=self.thread_ts,
-            channel_id=self.channel_id,
+            threads=[SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)],
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
             project_id=self.group.project_id,
@@ -188,8 +189,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 root_cause = event_payload.get("root_cause", {})
                 _send_thread_update(
                     install=install,
-                    channel_id=cache_payload["channel_id"],
-                    thread_ts=cache_payload["thread_ts"],
+                    threads=cache_payload["threads"],
                     data=SeerAutofixUpdate(
                         run_id=event_payload["run_id"],
                         organization_id=cache_payload["organization_id"],
@@ -206,8 +206,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 solution = event_payload.get("solution", {})
                 _send_thread_update(
                     install=install,
-                    channel_id=cache_payload["channel_id"],
-                    thread_ts=cache_payload["thread_ts"],
+                    threads=cache_payload["threads"],
                     data=SeerAutofixUpdate(
                         run_id=event_payload["run_id"],
                         organization_id=cache_payload["organization_id"],
@@ -224,8 +223,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 changes = event_payload.get("changes", [])
                 _send_thread_update(
                     install=install,
-                    channel_id=cache_payload["channel_id"],
-                    thread_ts=cache_payload["thread_ts"],
+                    threads=cache_payload["threads"],
                     data=SeerAutofixUpdate(
                         run_id=event_payload["run_id"],
                         organization_id=cache_payload["organization_id"],
@@ -252,8 +250,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 summary = pull_requests[0].get("pr_url", "") if pull_requests else None
                 _send_thread_update(
                     install=install,
-                    channel_id=cache_payload["channel_id"],
-                    thread_ts=cache_payload["thread_ts"],
+                    threads=cache_payload["threads"],
                     data=SeerAutofixUpdate(
                         run_id=event_payload["run_id"],
                         organization_id=cache_payload["organization_id"],
@@ -278,8 +275,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
 def _send_thread_update(
     *,
     install: SlackIntegration,
-    channel_id: str,
-    thread_ts: str,
+    threads: list[SlackThreadDetails],
     data: NotificationData,
     ephemeral_user_id: str | None = None,
 ) -> None:
@@ -293,19 +289,20 @@ def _send_thread_update(
         data=data, template=template_cls(), provider=provider
     )
     # Skip over the notification service for now since threading isn't yet formalized.
-    if ephemeral_user_id:
-        install.send_threaded_ephemeral_message(
-            channel_id=channel_id,
-            thread_ts=thread_ts,
-            renderable=renderable,
-            slack_user_id=ephemeral_user_id,
-        )
-    else:
-        install.send_threaded_message(
-            channel_id=channel_id,
-            thread_ts=thread_ts,
-            renderable=renderable,
-        )
+    for thread in threads:
+        if ephemeral_user_id:
+            install.send_threaded_ephemeral_message(
+                channel_id=thread["channel_id"],
+                thread_ts=thread["thread_ts"],
+                renderable=renderable,
+                slack_user_id=ephemeral_user_id,
+            )
+        else:
+            install.send_threaded_message(
+                channel_id=thread["channel_id"],
+                thread_ts=thread["thread_ts"],
+                renderable=renderable,
+            )
 
 
 def _transform_block_actions(
@@ -376,10 +373,20 @@ def handle_prepare_autofix_update(
     """
     Use parameters to create a payload for the operator to populate the pre-autofix cache.
     This will allow for a future migration of the cache to post-autofix for subsequent updates.
+    Merges threads if an existing cache entry exists for this group.
     """
+    threads: list[SlackThreadDetails] = []
+    incoming_thread = SlackThreadDetails(thread_ts=thread_ts, channel_id=channel_id)
+    existing_cache = SeerOperatorAutofixCache.get_pre_autofix_cache(
+        entrypoint_key=str(SlackEntrypoint.key),
+        group_id=group.id,
+    )
+    if existing_cache and existing_cache["payload"]:
+        threads = existing_cache["payload"].get("threads", [])
+    threads.append(incoming_thread)
+
     cache_payload = SlackEntrypointCachePayload(
-        thread_ts=thread_ts,
-        channel_id=channel_id,
+        threads=threads,
         organization_id=organization_id,
         integration_id=integration_id,
         project_id=group.project_id,
@@ -396,6 +403,8 @@ def handle_prepare_autofix_update(
         extra={
             "cache_key": cache_result["key"],
             "cache_source": cache_result["source"],
-            **cache_payload,
+            "threads_count": len(threads),
+            "group_id": group.id,
+            "organization_id": organization_id,
         },
     )

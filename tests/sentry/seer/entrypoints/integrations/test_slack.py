@@ -8,6 +8,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.integrations.slack import (
     SlackEntrypoint,
     SlackEntrypointCachePayload,
+    SlackThreadDetails,
     _send_thread_update,
     _update_existing_message,
 )
@@ -92,8 +93,9 @@ class SlackEntrypointTest(TestCase):
         assert cache_payload["integration_id"] == self.integration.id
         assert cache_payload["project_id"] == self.group.project.id
         assert cache_payload["group_id"] == self.group.id
-        assert cache_payload["thread_ts"] == self.thread_ts
-        assert cache_payload["channel_id"] == self.channel_id
+        assert len(cache_payload["threads"]) == 1
+        assert cache_payload["threads"][0]["thread_ts"] == self.thread_ts
+        assert cache_payload["threads"][0]["channel_id"] == self.channel_id
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
     def test_on_autofix_update(self, mock_send_threaded_message):
@@ -124,9 +126,8 @@ class SlackEntrypointTest(TestCase):
         )
         install = self.integration.get_installation(organization_id=self.organization.id)
 
-        _send_thread_update(
-            install=install, channel_id=self.channel_id, thread_ts=self.thread_ts, data=data
-        )
+        threads = [SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)]
+        _send_thread_update(install=install, threads=threads, data=data)
         mock_send_threaded_message.assert_called_with(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
@@ -137,8 +138,7 @@ class SlackEntrypointTest(TestCase):
         mock_send_threaded_message.reset_mock()
         _send_thread_update(
             install=install,
-            channel_id=self.channel_id,
-            thread_ts=self.thread_ts,
+            threads=threads,
             data=data,
             ephemeral_user_id=self.slack_user_id,
         )
