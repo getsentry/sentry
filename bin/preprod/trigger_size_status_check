@@ -17,6 +17,7 @@ from sentry.preprod.models import (
     PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodComparisonApproval,
 )
 from sentry.preprod.vcs.status_checks.size.tasks import (
     _evaluate_rule_threshold,
@@ -376,7 +377,7 @@ def show_rule_evaluation(artifact_id: int) -> None:
 
     logger.info("\n📋 Rule Evaluation Results:")
 
-    base_metrics_map = _fetch_base_size_metrics(all_artifacts, artifact.project)
+    base_metrics_map = _fetch_base_size_metrics(all_artifacts)
 
     overall_triggered = False
 
@@ -502,6 +503,14 @@ def main() -> None:
                 preprod_artifact__in=existing_artifacts
             ).delete()
 
+            # Delete approvals (before artifacts due to foreign key)
+            approval_count = PreprodComparisonApproval.objects.filter(
+                preprod_artifact__in=existing_artifacts
+            ).count()
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact__in=existing_artifacts
+            ).delete()
+
             # Delete the artifacts
             artifact_count = existing_artifacts.count()
             existing_artifacts.delete()
@@ -511,16 +520,18 @@ def main() -> None:
             if base_comparison_count > 0:
                 base_commit_comparisons.delete()
                 logger.info(
-                    "  ✓ Deleted %s existing artifacts, %s size metrics, and %s base commit comparisons",
+                    "  ✓ Deleted %s existing artifacts, %s size metrics, %s approvals, and %s base commit comparisons",
                     artifact_count,
                     size_metrics_count,
+                    approval_count,
                     base_comparison_count,
                 )
             else:
                 logger.info(
-                    "  ✓ Deleted %s existing artifacts and %s size metrics",
+                    "  ✓ Deleted %s existing artifacts, %s size metrics, and %s approvals",
                     artifact_count,
                     size_metrics_count,
+                    approval_count,
                 )
         else:
             logger.info("  ✓ No existing artifacts found (clean slate)")
