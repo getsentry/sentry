@@ -450,11 +450,20 @@ Ensure semantic tokens are applied to correct CSS properties (primary) and selec
 - `theme.tokens.focus.*` → box-shadow or border properties, nested `:focus` selector
 - `theme.token.interactive.*` → per-token support inside `:hover`, `:active` selectors
 
+**Token Matching Strategy**
+
+Uses keyword detection with "most specific wins" precedence:
+
+- Check if token path contains a known category keyword (e.g., `content`, `background`, `border`, `link`)
+- If multiple keywords ever match, the **deepest/last keyword wins**
+- Example: `interactive.background.content` → content rule (content is deeper)
+
 **Detect**
 
-1. Find declarations whose value is a member chain under `theme.tokens.<semanticGroup>`
-2. Determine the canonical property name for the declaration (normalized).
-3. Validate against configured `useSemanticToken` allowed list.
+1. Find declarations whose value is a member chain under `theme.tokens.*`
+2. Extract token path and match against category keywords
+3. Determine the canonical property name for the declaration (normalized)
+4. Validate against configured allowed properties for the matched category
 
 **Key Behavior**
 
