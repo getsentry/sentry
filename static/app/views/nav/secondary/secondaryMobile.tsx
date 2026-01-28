@@ -63,6 +63,6 @@ const GroupHeader = styled('h2')`
 `;
 
 const HeaderLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

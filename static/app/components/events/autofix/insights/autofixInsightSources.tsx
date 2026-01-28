@@ -210,7 +210,7 @@ export const SourceCard = styled(Button)<{isHighlighted?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p =>
     p.isHighlighted ? p.theme.colors.white : p.theme.tokens.content.secondary};
   white-space: nowrap;
@@ -255,19 +255,19 @@ const OverlayButtonGroup = styled('div')`
   display: flex;
   justify-content: flex-end;
   gap: ${space(1)};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const OverlayTitle = styled('div')`
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const InsightTitle = styled('div')`
   padding-bottom: ${space(1)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 export function generateSourceCards(

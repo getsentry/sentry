@@ -208,7 +208,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             {"description": "test", "sentry_tags": {"status": "ok"}},
             start_ts=now,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         query = {
             "project": [self.project.id],
@@ -432,7 +432,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 },
                 start_ts=now - timedelta(minutes=i),
             )
-            self.store_spans([span], is_eap=True)
+            self.store_spans([span])
 
         query = {
             "project": [self.project.id],
@@ -470,7 +470,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             },
             start_ts=now,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         query = {
             "project": [self.project.id],

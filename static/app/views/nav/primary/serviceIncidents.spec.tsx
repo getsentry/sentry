@@ -22,7 +22,7 @@ describe('PrimaryNavigationServiceIncidents', () => {
     const mockFetchIncidents = fetchMock.mockResponse(req =>
       req.url.endsWith('incidents/unresolved.json')
         ? Promise.resolve(JSON.stringify({incidents: []}))
-        : Promise.reject()
+        : Promise.reject(new Error('not found'))
     );
 
     render(<PrimaryNavigationServiceIncidents />);
@@ -42,7 +42,7 @@ describe('PrimaryNavigationServiceIncidents', () => {
     fetchMock.mockResponse(req =>
       req.url.endsWith('incidents/unresolved.json')
         ? Promise.resolve(JSON.stringify({incidents: [incident]}))
-        : Promise.reject()
+        : Promise.reject(new Error('not found'))
     );
 
     render(<PrimaryNavigationServiceIncidents />);

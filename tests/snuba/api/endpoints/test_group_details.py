@@ -27,7 +27,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         environment = Environment.get_or_create(group.project, "production")
         environment2 = Environment.get_or_create(group.project, "staging")
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with mock.patch(
             "sentry.issues.endpoints.group_details.tsdb.backend.get_range",
@@ -73,7 +73,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         ][-1]
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -101,7 +101,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with mock.patch("sentry.tagstore.backend.get_release_tags") as get_release_tags:
             response = self.client.get(url, format="json")
@@ -126,7 +126,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -149,7 +149,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         group = event.group
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        url = f"/api/0/issues/{group.id}/?expand=inbox"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/?expand=inbox"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -168,7 +168,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
-        url = f"/api/0/issues/{group.id}/?expand=owners"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/?expand=owners"
 
         self.login_as(user=self.user)
         # Test with no owner
@@ -200,7 +200,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         group = event.group
         generate_and_save_forecasts([group])
 
-        url = f"/api/0/issues/{group.id}/?expand=forecast"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/?expand=forecast"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -216,7 +216,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             priority=PriorityLevel.LOW,
         )
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["priority"] == "low"
@@ -229,7 +229,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             status=GroupStatus.IGNORED,
             priority=PriorityLevel.LOW,
         )
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         get_response_before = self.client.get(url, format="json")
         assert get_response_before.status_code == 200, get_response_before.content
@@ -258,7 +258,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.put(
             url, {"assignedTo": "admin@localhost", "status": "unresolved"}, format="json"
         )
@@ -291,7 +291,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.get(url, {"collapse": ["stats"]}, format="json")
         assert response.status_code == 200
@@ -312,7 +312,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        url = f"/api/0/issues/{event.group.id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert int(response.data["id"]) == event.group.id
@@ -323,7 +323,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         """Test that a user cannot delete a error issue"""
         self.login_as(user=self.user)
         group = self.create_group(status=GroupStatus.RESOLVED, project=self.project)
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with patch(
             "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
@@ -350,7 +350,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project=self.project,
             type=PerformanceSlowDBQueryGroupType.type_id,
         )
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with patch(
             "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"

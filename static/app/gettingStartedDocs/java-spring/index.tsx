@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedback} from 'sentry/gettingStartedDocs/java/feedback';
+import {metrics} from 'sentry/gettingStartedDocs/java/metrics';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
@@ -16,6 +17,7 @@ const docs: Docs<PlatformOptions> = {
   replayOnboardingJsLoader,
   feedbackOnboardingJsLoader,
   logsOnboarding: logs,
+  metricsOnboarding: metrics,
 };
 
 export default docs;

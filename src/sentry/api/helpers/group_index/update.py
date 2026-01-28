@@ -47,7 +47,7 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
 from sentry.models.project import Project
-from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
@@ -839,6 +839,7 @@ def get_release_to_resolve_by(project: Project) -> Release | None:
 def most_recent_release(project: Project) -> Release | None:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .extra(select={"sort": "COALESCE(date_released, date_added)"})
         .order_by("-sort")
         .first()
@@ -862,6 +863,7 @@ def greatest_semver_release(project: Project) -> Release | None:
 def get_semver_releases(project: Project) -> QuerySet[Release]:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])

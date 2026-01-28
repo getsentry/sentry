@@ -12,6 +12,7 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -95,6 +96,9 @@ const makeDefaultMockData = (
           span_id: 'b0e6f15b45c36b12',
           op: 'ui.action.click',
           type: 'trace',
+        },
+        profile: {
+          profiler_id: 'a0f6f14c42c36b13',
         },
       },
     }),
@@ -322,7 +326,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/autofix/setup/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
     method: 'GET',
     body: AutofixSetupFixture({
       integration: {
@@ -336,7 +340,7 @@ const mockGroupApis = (
     }),
   });
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/autofix/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
     body: {
       steps: [],
     },
@@ -346,6 +350,15 @@ const mockGroupApis = (
     url: '/subscriptions/org-slug/',
     method: 'GET',
     body: {},
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/profiling/chunks/`,
+    body: {
+      chunk: {
+        profiler_id: event.contexts?.profile?.profiler_id,
+      },
+    },
   });
 };
 
@@ -555,6 +568,83 @@ describe('groupEventDetails', () => {
         screen.getByRole('button', {name: 'Collapse Suspect Root Cause Section'})
       ).toBeInTheDocument();
       expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
+    });
+
+    it('shows ANR profile section for Android ANR events', async () => {
+      const project = ProjectFixture({platform: 'android'});
+      const props = makeDefaultMockData(undefined, project);
+      ProjectsStore.loadInitialData([props.project]);
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        mockedTrace(props.project)
+      );
+
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('region', {name: 'profile-preview'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('ANR Profile')).toBeInTheDocument();
+    });
+
+    it('renders App Hang profile section for iOS ANR events', async () => {
+      const project = ProjectFixture({platform: 'apple-ios'});
+      const props = makeDefaultMockData(undefined, project);
+      ProjectsStore.loadInitialData([props.project]);
+
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        mockedTrace(props.project)
+      );
+
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('region', {name: 'profile-preview'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('App Hang Profile')).toBeInTheDocument();
+    });
+
+    it('does not render ANR profile section for js events', async () => {
+      const project = ProjectFixture({platform: 'javascript-electron'});
+      const props = makeDefaultMockData(undefined, project);
+      ProjectsStore.loadInitialData([props.project]);
+
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        mockedTrace(props.project)
+      );
+
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      // Wait for component to render by checking for an element that should be present
+      expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
+
+      // Check that profile-preview does not exist
+      expect(
+        screen.queryByRole('region', {name: 'profile-preview'})
+      ).not.toBeInTheDocument();
     });
 
     it('does not render root cause section if related perf issues do not exist', async () => {

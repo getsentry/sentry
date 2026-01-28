@@ -205,6 +205,7 @@ export interface InsightResults {
   hermes_debug_info?: HermesDebugInfoInsightResult;
   image_optimization?: ImageOptimizationInsightResult;
   large_audio?: LargeAudioFileInsightResult;
+  large_audios?: LargeAudioFileInsightResult;
   large_images?: LargeImageFileInsightResult;
   large_videos?: LargeVideoFileInsightResult;
   localized_strings?: LocalizedStringInsightResult;

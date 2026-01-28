@@ -39,3 +39,28 @@ def build_backlog_schedule_lock_key(subscription_id: str) -> str:
 
 def get_cluster() -> RedisCluster | StrictRedis:
     return redis.redis_clusters.get(settings.SENTRY_UPTIME_DETECTOR_CLUSTER)
+
+
+def generate_scheduled_check_times_ms(
+    base_time_ms: int,
+    interval_ms: int,
+    count: int,
+    forward: bool = True,
+) -> list[int]:
+    """
+    Generate a sequence of scheduled check times.
+
+    Args:
+        base_time_ms: The reference scheduled check time in milliseconds
+        interval_ms: The interval between checks in milliseconds
+        count: Number of times to generate
+        forward: If True, generate times forward from base (inclusive).
+                 If False, generate times backward ending at base (inclusive).
+
+    Returns:
+        List of scheduled check times in milliseconds, in ascending order.
+
+    """
+    start = 0 if forward else -(count - 1)
+    end = count if forward else 1
+    return [base_time_ms + (i * interval_ms) for i in range(start, end)]

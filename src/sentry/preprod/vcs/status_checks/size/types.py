@@ -46,3 +46,17 @@ class StatusCheckRule:
     measurement: str
     value: float
     filter_query: str = ""
+
+
+@dataclass
+class TriggeredRule:
+    """A rule that was triggered for a specific artifact.
+
+    Associates a StatusCheckRule with the artifact that caused it to trigger,
+    allowing for proper grouping and display in status check summaries.
+    """
+
+    rule: StatusCheckRule
+    artifact_id: int
+    app_id: str | None
+    platform: str | None

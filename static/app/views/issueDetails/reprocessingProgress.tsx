@@ -52,7 +52,7 @@ const Wrapper = styled('div')`
 
 const Content = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: grid;
   gap: ${space(1.5)};
   justify-items: center;
@@ -74,7 +74,7 @@ const Header = styled('div')`
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: 0;
 `;

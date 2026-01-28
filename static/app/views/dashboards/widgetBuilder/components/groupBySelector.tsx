@@ -14,6 +14,7 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
@@ -34,6 +35,8 @@ function WidgetBuilderGroupBySelector({
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricGroupByFields;
+  } else if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
+    hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES;
   }
   const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
   const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
@@ -47,13 +50,15 @@ function WidgetBuilderGroupBySelector({
     if (
       state.dataset === WidgetType.SPANS ||
       state.dataset === WidgetType.LOGS ||
-      state.dataset === WidgetType.TRACEMETRICS
+      state.dataset === WidgetType.TRACEMETRICS ||
+      state.dataset === WidgetType.PREPROD_APP_SIZE
     ) {
       return datasetConfig.getGroupByFieldOptions(organization, {
         ...numericSpanTags,
         ...stringSpanTags,
       });
     }
+
     return datasetConfig.getGroupByFieldOptions(organization, tags);
   }, [numericSpanTags, organization, state.dataset, stringSpanTags, tags]);
 

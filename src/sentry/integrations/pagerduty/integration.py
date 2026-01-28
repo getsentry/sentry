@@ -212,7 +212,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                     integration=integration, organization_id=organization.id
                 )
             except OrganizationIntegration.DoesNotExist:
-                logger.exception("The PagerDuty post_install step failed.")
+                logger.warning("The PagerDuty post_install step failed.")
                 return
 
             with transaction.atomic(router.db_for_write(OrganizationIntegration)):

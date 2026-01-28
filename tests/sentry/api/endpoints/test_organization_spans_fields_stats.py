@@ -7,7 +7,6 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
-    is_eap = True
     view = "sentry-api-0-organization-spans-fields-stats"
 
     def setUp(self) -> None:
@@ -55,7 +54,6 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
             duration=100,
             exclusive_time=100,
             tags=tags,
-            is_eap=self.is_eap,
         )
 
     def test_no_project(self) -> None:
@@ -141,16 +139,18 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
         attribute = next(a for a in distributions if a["attributeName"] == "browser")
         assert attribute
-        assert attribute["buckets"] == [
-            {"label": "chrome", "value": 4.0},
-            {"label": "safari", "value": 1.0},
-        ]
+        assert len(attribute["buckets"]) == 2
+        assert attribute["buckets"][0]["label"] == "chrome"
+        assert attribute["buckets"][0]["value"] == 4.0
+        assert attribute["buckets"][1]["label"] == "safari"
+        assert attribute["buckets"][1]["value"] == 1.0
         attribute = next(a for a in distributions if a["attributeName"] == "device")
         assert attribute
-        assert attribute["buckets"] == [
-            {"label": "desktop", "value": 3.0},
-            {"label": "mobile", "value": 2.0},
-        ]
+        assert len(attribute["buckets"]) == 2
+        assert attribute["buckets"][0]["label"] == "desktop"
+        assert attribute["buckets"][0]["value"] == 3.0
+        assert attribute["buckets"][1]["label"] == "mobile"
+        assert attribute["buckets"][1]["value"] == 2.0
 
     def test_filter_query(self) -> None:
         tags = [
@@ -167,6 +167,6 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         attribute = next(a for a in distributions if a["attributeName"] == "browser")
         assert attribute
         # the second span has a different device value, so it should not be included in the results
-        assert attribute["buckets"] == [
-            {"label": "chrome", "value": 1.0},
-        ]
+        assert len(attribute["buckets"]) == 1
+        assert attribute["buckets"][0]["label"] == "chrome"
+        assert attribute["buckets"][0]["value"] == 1.0

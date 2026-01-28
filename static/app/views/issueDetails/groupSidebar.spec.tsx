@@ -179,7 +179,7 @@ describe('GroupSidebar', () => {
       group = GroupFixture();
 
       MockApiClient.addMockResponse({
-        url: '/organization/org-slug/issues/1/',
+        url: '/organizations/org-slug/issues/1/',
         body: group,
       });
       MockApiClient.addMockResponse({
@@ -261,7 +261,7 @@ describe('GroupSidebar', () => {
       group = GroupFixture();
 
       MockApiClient.addMockResponse({
-        url: '/issues/1/',
+        url: '/organizations/org-slug/issues/1/',
         body: group,
       });
     });

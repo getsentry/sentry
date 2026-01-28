@@ -337,12 +337,12 @@ const StyledLink = styled(Link)`
 `;
 
 const TableBodyCell = styled(GridBodyCell)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   min-height: 12px;
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   height: 33px;
 `;

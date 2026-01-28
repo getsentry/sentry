@@ -39,7 +39,7 @@ export function WebVitalsWeightList({weights}: WebVitalsWeightListProps) {
 }
 
 const Content = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const List = styled('ul')`

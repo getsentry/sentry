@@ -84,8 +84,8 @@ const FrameContainer = styled('div')`
   gap: ${space(0.5)};
   padding: ${space(1.5)} ${space(2)};
 
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
 
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 

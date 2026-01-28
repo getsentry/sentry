@@ -27,7 +27,7 @@ const inlineStyle = (p: FieldDescriptionProps) =>
       `;
 
 export const FieldDescription = styled('label')<FieldDescriptionProps>`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   display: ${p => (p.displayNone ? 'none' : 'inline')};
   margin-bottom: 0;
 

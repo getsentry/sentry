@@ -10,7 +10,7 @@ describe('DiffModal', () => {
   it('renders', () => {
     const project = ProjectFixture();
     MockApiClient.addMockResponse({
-      url: '/issues/123/events/latest/',
+      url: '/organizations/org-slug/issues/123/events/latest/',
       body: {
         eventID: '456',
       },
@@ -20,7 +20,7 @@ describe('DiffModal', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/issues/234/events/latest/',
+      url: '/organizations/org-slug/issues/234/events/latest/',
       body: {
         eventID: '789',
       },

@@ -159,13 +159,13 @@ const Title = styled('h3')`
 const Subheader = styled('p')`
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.promotion};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   margin-bottom: ${space(1)};
 `;
 
 const Body = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(2)};
 `;
 
@@ -185,12 +185,12 @@ const ConsentInfo = styled('div')`
 
 const ConsentLabelHeader = styled('div')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 const ConsentLabelBody = styled('p')`
   margin-bottom: 0;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledIconWrapper = styled('span')`

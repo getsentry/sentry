@@ -16,6 +16,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   fetchMutation,
@@ -85,11 +86,20 @@ import {
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
 function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
-  return [`/customers/${orgId}/`];
+  return [
+    getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+  ];
 }
 
 function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
-  return [`/organizations/${orgId}/`, {query: {detailed: 0, include_feature_flags: 1}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {query: {detailed: 0, include_feature_flags: 1}},
+  ];
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {

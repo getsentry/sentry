@@ -57,10 +57,10 @@ function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   height: auto;
   line-height: 1;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 3px ${space(0.75)};
   vertical-align: middle;
 `;

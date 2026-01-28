@@ -7,6 +7,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -88,13 +89,17 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     label: replayRecord ? (
       <Flex>
         <Flex align="center" gap="sm">
-          {organization.features.includes('replay-playlist-view') && (
-            <div>
+          <div>
+            <Tooltip
+              title={t('Previous replay based on search query')}
+              disabled={!previousReplay}
+            >
               <LinkButton
                 size="zero"
                 borderless
                 icon={<IconChevron direction="left" size="xs" />}
                 disabled={!previousReplay}
+                aria-label={t('Previous replay based on search query')}
                 to={{
                   pathname: previousReplay
                     ? makeReplaysPathname({
@@ -111,11 +116,17 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
               />
+            </Tooltip>
+            <Tooltip
+              title={t('Next replay based on search query')}
+              disabled={!nextReplay}
+            >
               <LinkButton
                 size="zero"
                 borderless
                 icon={<IconChevron direction="right" size="xs" />}
                 disabled={!nextReplay}
+                aria-label={t('Next replay based on search query')}
                 to={{
                   pathname: nextReplay
                     ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
@@ -129,8 +140,8 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
               />
-            </div>
-          )}
+            </Tooltip>
+          </div>
           <Flex
             align="center"
             gap="xs"

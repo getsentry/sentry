@@ -74,7 +74,7 @@ function XAxis({
     axisLabel: {
       hideOverlap: true,
       color: theme.tokens.content.secondary,
-      fontFamily: theme.text.family,
+      fontFamily: theme.font.family.sans,
       margin: 12,
 
       // This was default with ChartZoom, we are making it default for all charts now

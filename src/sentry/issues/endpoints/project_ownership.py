@@ -18,6 +18,7 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.issues.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.signals import ownership_rule_created
@@ -64,6 +65,47 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
                     {"raw": "Codeowner type paths can only be added by importing CODEOWNER files"}
                 )
 
+    def _validate_team_ownership(self, rules):
+        """
+        Validate that the user has permission to assign ownership to the teams
+        referenced in the rules. Users must either have team:admin scope or be
+        a member of each team they're assigning ownership to.
+        """
+        team_slugs = {
+            owner.get("identifier")
+            for rule in rules
+            for owner in rule.get("owners", [])
+            if owner.get("type") == "team"
+        }
+        if not team_slugs:
+            return
+
+        request = self.context.get("request")
+
+        # Users with team:admin scope can assign any team as owner
+        if request and request.access and request.access.has_scope("team:admin"):
+            return
+
+        # Fail closed: if we can't verify the user, deny the action
+        user = getattr(request, "user", None) if request else None
+        if not user or not user.is_authenticated:
+            raise serializers.ValidationError(
+                {"raw": "You do not have permission to assign ownership to one or more teams."}
+            )
+
+        project = self.context["ownership"].project
+        user_team_count = OrganizationMemberTeam.objects.filter(
+            team__slug__in=team_slugs,
+            team__projectteam__project=project,
+            organizationmember__user_id=user.id,
+            is_active=True,
+        ).count()
+
+        if user_team_count < len(team_slugs):
+            raise serializers.ValidationError(
+                {"raw": "You do not have permission to assign ownership to one or more teams."}
+            )
+
     def get_max_length(self):
         organization = self.context["ownership"].project.organization
         if features.has("organizations:ownership-size-limit-xlarge", organization):
@@ -101,6 +143,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         )
         if schema:
             self._validate_no_codeowners(schema["rules"])
+            self._validate_team_ownership(schema["rules"])
 
         attrs["schema"] = schema
         return attrs
@@ -267,7 +310,9 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             raise PermissionDenied
 
         serializer = ProjectOwnershipRequestSerializer(
-            data=request.data, partial=True, context={"ownership": self.get_ownership(project)}
+            data=request.data,
+            partial=True,
+            context={"ownership": self.get_ownership(project), "request": request},
         )
         if serializer.is_valid():
             ownership = serializer.save()

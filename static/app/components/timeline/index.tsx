@@ -110,7 +110,7 @@ const Title = styled('div')`
   font-weight: bold;
   text-align: left;
   grid-column: span 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Spacer = styled('div')`
@@ -125,13 +125,13 @@ const Content = styled('div')`
   grid-column: span 2;
   color: ${p => p.theme.tokens.content.secondary};
   margin: ${space(0.25)} 0 0;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   word-wrap: break-word;
 `;
 
 const Text = styled('div')`
   text-align: left;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   &:only-child {
     margin-top: 0;
   }
@@ -142,8 +142,8 @@ const Data = styled('div')`
   padding: ${space(0.25)} ${space(0.75)};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.75)} 0 0 -${space(0.75)};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.secondary};
   position: relative;
   &:only-child {

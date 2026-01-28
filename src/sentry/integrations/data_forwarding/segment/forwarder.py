@@ -102,7 +102,7 @@ class SegmentForwarder(BaseDataForwarder):
                 )
                 response.raise_for_status()
         except Exception:
-            logger.exception(
+            logger.warning(
                 "segment.send_payload.error",
                 extra={"event_id": event.event_id, "project_id": event.project_id},
             )

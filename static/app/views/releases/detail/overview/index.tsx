@@ -568,7 +568,7 @@ const ReleaseDetailsPageFilters = styled('div')`
 `;
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p =>
     p.primary
       ? p.theme.tokens.interactive.link.accent.rest

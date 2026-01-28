@@ -100,7 +100,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
         )
 
         if not group:
-            _logger.error(
+            _logger.warning(
                 "slack.options_load.request-error",
                 extra={
                     "group_id": slack_request.group_id,

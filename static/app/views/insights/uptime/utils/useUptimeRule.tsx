@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -18,7 +19,16 @@ export function useUptimeRule(
   const organization = useOrganization();
 
   const queryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${projectSlug}/uptime/${detectorId}/`,
+    getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug,
+          uptimeDetectorId: detectorId,
+        },
+      }
+    ),
   ];
   return useApiQuery<UptimeRule>(queryKey, {staleTime: 0, ...options});
 }

@@ -12,11 +12,7 @@ interface BaseRouteObject {
    * Only enable this route when USING_CUSTOMER_DOMAIN is enabled
    */
   customerDomainOnlyRoute?: true;
-  /**
-   * Injects react router 3 style router props to the component.
-   * Including an `Outlet` component as a child element.
-   */
-  deprecatedRouteProps?: never;
+
   handle?: Record<string, unknown>;
   /**
    * Is a index route
@@ -70,23 +66,10 @@ type NoRouteProps = {
   routes?: never;
 };
 
-interface DeprecatedPropRoute extends Omit<BaseRouteObject, 'deprecatedRouteProps'> {
-  /**
-   * A react component that accepts legacy router props (location, params, router, etc.)
-   */
-  component: React.ComponentType<any>;
-  /**
-   * Passes legacy route props to the component.
-   */
-  deprecatedRouteProps: true;
-}
-
 interface RouteObject extends BaseRouteObject {
   /**
-   * A react component to render. Components that expect RouteComponentProps are
-   * not allowed here. Use deprecatedRouteProps: true on legacy components. New
-   * components should use the `use{Params,Location}` hooks.
-   * Components that expect RouteComponentProps are not allowed here - use deprecatedRouteProps: true instead.
+   * A react component to render. A Route component will not get and props.
+   * Use the `use{Params,Location}` hooks and `<Outlet/>` to access data.
    */
   component: React.ComponentType<NoRouteProps>;
 }
@@ -95,4 +78,4 @@ interface NoComponentRoute extends BaseRouteObject {
   component?: never;
 }
 
-export type SentryRouteObject = RouteObject | DeprecatedPropRoute | NoComponentRoute;
+export type SentryRouteObject = RouteObject | NoComponentRoute;

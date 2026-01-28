@@ -284,7 +284,7 @@ const StyledReadoutRibbon = styled(ReadoutRibbon)`
 const SectionTitle = styled('div')`
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 

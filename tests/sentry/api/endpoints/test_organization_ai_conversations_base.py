@@ -114,5 +114,5 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             extra_data,
             start_ts=timestamp,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
         return span

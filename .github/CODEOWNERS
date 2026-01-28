@@ -704,17 +704,16 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
 
-# Prevent
-/src/sentry/prevent/                                      @getsentry/coding-workflows
+# Coding Workflows
 /static/app/components/prevent/                           @getsentry/coding-workflows
 /static/app/views/prevent/                                @getsentry/coding-workflows
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows
-# End of Prevent
-
-# Coding Workflows
+/static/gsApp/views/seerAutomation/                       @getsentry/coding-workflows
+/src/sentry/prevent/                                      @getsentry/coding-workflows
 /src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows
 /src/sentry/seer/code_review/                                                @getsentry/coding-workflows
 /tests/sentry/seer/code_review/                                              @getsentry/coding-workflows
+
 # End of Coding Workflows
 
 # Conduit

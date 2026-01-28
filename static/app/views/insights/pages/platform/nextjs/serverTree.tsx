@@ -21,6 +21,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -167,7 +168,9 @@ export function ServerTree() {
 
   const treeRequest = useApiQuery<TreeResponse>(
     [
-      `/organizations/${organization.slug}/insights/tree/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/insights/tree/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pageFilterChartParams,
@@ -361,7 +364,7 @@ const HeaderCell = styled('div')`
   text-transform: uppercase;
   font-weight: 600;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   white-space: nowrap;
   line-height: 1;
@@ -392,8 +395,8 @@ const OneLineCodeBlock = styled('pre')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
   margin: 0;
@@ -404,7 +407,7 @@ const OneLineCodeBlock = styled('pre')`
 const TreeGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content min-content min-content;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   & > * {
     text-align: right;

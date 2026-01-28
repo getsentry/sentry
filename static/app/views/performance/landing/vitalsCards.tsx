@@ -187,7 +187,7 @@ function getColorStopsFromPercents(theme: Theme, percents: Percent[]) {
 }
 
 const BarDetail = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;

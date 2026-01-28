@@ -1,4 +1,5 @@
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -24,7 +25,12 @@ export function makeFetchGroupQueryKey({
     collapse: ['release', 'tags'],
   };
 
-  return [`/organizations/${organizationSlug}/issues/${groupId}/`, {query}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+      path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
+    }),
+    {query},
+  ];
 }
 
 interface UseGroupOptions {

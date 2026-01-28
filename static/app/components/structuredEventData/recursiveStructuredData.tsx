@@ -252,12 +252,12 @@ export function RecursiveStructuredData({
 }
 
 const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-property);
 `;
 
 const ValueBoolean = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-property);
 `;
 
@@ -279,7 +279,7 @@ const ValueMultiLineString = styled('pre')`
 `;
 
 const ValueStrippedString = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-keyword);
 `;
 

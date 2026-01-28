@@ -101,7 +101,7 @@ describe('ExternalIssueSidebarList', () => {
     });
 
     const unlinkMock = MockApiClient.addMockResponse({
-      url: `/issues/1/external-issues/1/`,
+      url: `/organizations/${organization.slug}/issues/1/external-issues/1/`,
       method: 'DELETE',
     });
 

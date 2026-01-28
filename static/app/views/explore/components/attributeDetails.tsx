@@ -52,11 +52,11 @@ function traceItemTypeToType(
 const Details = styled('div')`
   padding: ${space(0.75)} ${space(1)};
   max-width: 220px;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const DetailsLabel = styled('p')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   word-break: break-all;
   margin-bottom: ${space(1)};
 `;

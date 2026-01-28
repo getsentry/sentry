@@ -274,7 +274,7 @@ class Chart extends Component<ChartProps, ChartState> {
         color: theme.tokens.content.primary,
         verticalAlign: 'top',
         fontSize: 11,
-        fontFamily: theme.text.family,
+        fontFamily: theme.font.family.sans,
       },
       data: [
         ...timeSeries.map(s => s.seriesName),

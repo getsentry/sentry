@@ -565,14 +565,6 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=203,
-        name="PREVENT_CONFIG_EDIT",
-        api_name="prevent.config.edit",
-        template="prevent_ai.config.edit: {provider} {git_organization}",
-    )
-)
-default_manager.add(
-    AuditLogEvent(
         event_id=210,
         name="DETECTOR_ADD",
         api_name="detector.add",

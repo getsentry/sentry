@@ -1,10 +1,6 @@
 import pickBy from 'lodash/pickBy';
-import trimStart from 'lodash/trimStart';
 
-import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
 import {Link} from 'sentry/components/core/link';
-import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -12,28 +8,18 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
-  getEquationAliasIndex,
-  isEquation,
-  isEquationAlias,
   type Aggregation,
   type AggregationOutputType,
   type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {
-  doDiscoverQuery,
-  type DiscoverQueryExtras,
-  type DiscoverQueryRequestParams,
-} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {
@@ -41,8 +27,6 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -58,9 +42,7 @@ import {
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   isGroupedMultiSeriesEventsStats,
   isMultiSeriesEventsStats,
@@ -77,7 +59,6 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -278,33 +259,6 @@ export const SpansConfig: DatasetConfig<
     DisplayType.TOP_N,
     DisplayType.DETAILS,
   ],
-  getTableRequest: (
-    api: Client,
-    _widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    _onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    _mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => {
-    return getEventsRequest(
-      api,
-      query,
-      organization,
-      pageFilters,
-      limit,
-      cursor,
-      referrer,
-      undefined,
-      undefined,
-      samplingMode
-    );
-  },
-  getSeriesRequest,
   useSeriesQuery: useSpansSeriesQuery,
   useTableQuery: useSpansTableQuery,
   transformTable: transformEventsResponseToTable,
@@ -382,68 +336,6 @@ function filterYAxisOptions() {
   };
 }
 
-function getEventsRequest(
-  api: Client,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  limit?: number,
-  cursor?: string,
-  referrer?: string,
-  _mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras,
-  samplingMode?: SamplingMode
-) {
-  const url = `/organizations/${organization.slug}/events/`;
-  const eventView = eventViewFromWidget('', query, pageFilters);
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const params: DiscoverQueryRequestParams = {
-    per_page: limit,
-    cursor,
-    referrer,
-    dataset: DiscoverDatasets.SPANS,
-    ...queryExtras,
-  };
-
-  let orderBy = query.orderby;
-
-  if (orderBy) {
-    if (isEquationAlias(trimStart(orderBy, '-'))) {
-      const equations = query.fields?.filter(isEquation) ?? [];
-      const equationIndex = getEquationAliasIndex(trimStart(orderBy, '-'));
-
-      const orderby = equations[equationIndex];
-      if (orderby) {
-        orderBy = orderBy.startsWith('-') ? `-${orderby}` : orderby;
-      }
-    }
-    params.sort = toArray(orderBy);
-  }
-
-  return doDiscoverQuery<EventsTableData>(
-    api,
-    url,
-    {
-      ...eventView.generateQueryStringObject(),
-      ...params,
-      ...(samplingMode ? {sampling: samplingMode} : {}),
-    },
-    // Tries events request up to 3 times on rate limit
-    {
-      retry: hasQueueFeature
-        ? // The queue will handle retries, so we don't need to retry here
-          undefined
-        : {
-            statusCodes: [429],
-            tries: 10,
-          },
-    }
-  );
-}
-
 function getGroupByFieldOptions(
   organization: Organization,
   tags?: TagCollection,
@@ -459,33 +351,6 @@ function getGroupByFieldOptions(
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
-}
-
-function getSeriesRequest(
-  api: Client,
-  widget: Widget,
-  queryIndex: number,
-  organization: Organization,
-  pageFilters: PageFilters,
-  _onDemandControlContext?: OnDemandControlContext,
-  referrer?: string,
-  _mepSetting?: MEPState | null,
-  samplingMode?: SamplingMode
-) {
-  const requestData = getSeriesRequestData(
-    widget,
-    queryIndex,
-    organization,
-    pageFilters,
-    DiscoverDatasets.SPANS,
-    referrer
-  );
-
-  if (samplingMode) {
-    requestData.sampling = samplingMode;
-  }
-
-  return doEventsRequest<true>(api, requestData);
 }
 
 // Filters the primary options in the sort by selector

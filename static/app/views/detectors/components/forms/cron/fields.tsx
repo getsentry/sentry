@@ -3,6 +3,7 @@ import type {
   CronDetector,
   CronDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import {
   ScheduleType,
   type MonitorConfig,
@@ -34,17 +35,16 @@ interface CronDetectorFormData {
   scheduleCrontab: string;
   scheduleIntervalUnit: MonitorIntervalUnit;
   scheduleIntervalValue: number;
-  scheduleType: 'crontab' | 'interval';
+  scheduleType: ScheduleType;
   timezone: string;
   workflowIds: string[];
 }
 
 type CronDetectorFormFieldName = keyof CronDetectorFormData;
 
-const DEFAULT_CRON_DETECTOR_FORM_DATA_MAP: Record<
-  CronDetectorFormFieldName,
-  CronDetectorFormData[CronDetectorFormFieldName]
-> = {
+const DEFAULT_CRON_DETECTOR_FORM_DATA_MAP: {
+  [K in CronDetectorFormFieldName]: CronDetectorFormData[K];
+} = {
   checkinMargin: CRON_DEFAULT_CHECKIN_MARGIN,
   description: null,
   failureIssueThreshold: CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
@@ -67,7 +67,12 @@ export function useCronDetectorFormField<T extends CronDetectorFormFieldName>(
   name: T
 ): CronDetectorFormData[T] {
   const value = useFormField(name);
-  return value || DEFAULT_CRON_DETECTOR_FORM_DATA_MAP[name];
+
+  if (value === '' || !defined(value)) {
+    return DEFAULT_CRON_DETECTOR_FORM_DATA_MAP[name];
+  }
+
+  return value;
 }
 
 export function cronFormDataToEndpointPayload(

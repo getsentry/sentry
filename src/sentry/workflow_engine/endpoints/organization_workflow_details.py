@@ -34,12 +34,12 @@ from sentry.workflow_engine.models import Workflow
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Workflows"])
+@extend_schema(tags=["Monitors"])
 class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
 
@@ -60,6 +60,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     )
     def get(self, request: Request, organization: Organization, workflow: Workflow):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Returns an alert.
         """
         serialized_workflow = serialize(
@@ -70,7 +72,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         return Response(serialized_workflow)
 
     @extend_schema(
-        operation_id="Update an Alert",
+        operation_id="Update an Alert by ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,
@@ -87,6 +89,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     )
     def put(self, request: Request, organization: Organization, workflow: Workflow):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Updates an alert.
         """
         validator = WorkflowValidator(
@@ -151,6 +155,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     )
     def delete(self, request: Request, organization: Organization, workflow: Workflow):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Deletes an alert.
         """
         RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)

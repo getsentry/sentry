@@ -595,7 +595,7 @@ const BlockContent = styled(MarkedText)`
   h5,
   h6 {
     margin: 0;
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
 
   p:first-child,
@@ -654,7 +654,7 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
   padding: 0;
   cursor: pointer;
   text-align: left;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 
   &:hover {
     /* Apply highlighted styles and underline to ToolCallText on hover */
@@ -667,13 +667,13 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
 
 const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
   display: inline-block;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.interactive.link.accent.hover};
   flex-shrink: 0;
   margin-left: ${p => p.theme.space.xs};
   visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
-  font-family: ${p => p.theme.text.familyMono};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-family: ${p => p.theme.font.family.mono};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
@@ -689,14 +689,14 @@ const ActionButtonBar = styled(Flex)`
   bottom: ${p => p.theme.space['2xs']};
   right: ${p => p.theme.space.md};
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.primary};
 `;
 
 const TodoListContent = styled(MarkedText)`
   margin-top: ${p => p.theme.space.xs};
   margin-bottom: -${p => p.theme.space.xl};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
   color: ${p => p.theme.tokens.content.secondary};
 `;

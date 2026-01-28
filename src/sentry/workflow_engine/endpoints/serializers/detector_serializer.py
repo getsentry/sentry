@@ -39,10 +39,10 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     projectId: str
     name: str
     type: str
-    workflowIds: list[str]
+    workflowIds: list[str] | None
     dateCreated: datetime
     dateUpdated: datetime
-    dataSources: list[dict]
+    dataSources: list[dict] | None
     conditionGroup: dict | None
     config: dict
     enabled: bool
@@ -172,7 +172,9 @@ class DetectorSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs
+    ) -> DetectorSerializerResponse:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),

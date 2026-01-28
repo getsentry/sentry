@@ -1,0 +1,50 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "template": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "template",
+            "name": "template",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "filename",
+                "name": null,
+                "values": [
+                  "foo.html"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "context_line",
+                "name": null,
+                "values": [
+                  "{% invalid template tag %}"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "filename and context line",
+      "hash": "1f5bdebe3c9f414c7dbb4296a8353245",
+      "hint": null,
+      "key": "template",
+      "type": "component"
+    }
+  }
+}

@@ -232,7 +232,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
   );
 
   return (
-    <OpContainer label={t('Header')} onRemove={onRemove} inputId={inputId}>
+    <OpContainer label={t('Header')} onRemove={onRemove} inputId={inputId} op={value}>
       <Flex gap="sm" align="center" width="100%">
         {keyInput}
         {showValueInput && valueInput}

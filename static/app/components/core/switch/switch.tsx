@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onClick'> {
   ref?: React.Ref<HTMLInputElement>;
@@ -143,8 +145,6 @@ const FakeCheckbox = styled('div')<{
   height: ${p => toggleWrapperSize[p.size].height}px;
 `;
 
-const FakeCheckboxButton = styled('div')``;
-
 export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
   return (
     <SwitchWrapper>
@@ -153,7 +153,7 @@ export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
        */}
       <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} />
       <FakeCheckbox size={size}>
-        <FakeCheckboxButton />
+        <Container />
       </FakeCheckbox>
     </SwitchWrapper>
   );

@@ -69,6 +69,7 @@ class SiloRouter:
         "authidentity_duplicate": SiloMode.CONTROL,
         "authprovider_duplicate": SiloMode.CONTROL,
         "feedback_feedback": SiloMode.REGION,
+        "prevent_ai_configuration": SiloMode.REGION,
         "releases_commit": SiloMode.REGION,
         "releases_commitfilechange": SiloMode.REGION,
         "sentry_actor": SiloMode.REGION,

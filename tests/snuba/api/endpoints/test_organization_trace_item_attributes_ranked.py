@@ -62,7 +62,6 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=duration or 1000,
             ),
-            is_eap=True,
         )
 
     def test_no_project(self) -> None:

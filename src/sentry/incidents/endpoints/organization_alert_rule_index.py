@@ -607,7 +607,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Metric Alert Rules",
+        operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
@@ -623,6 +623,10 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
+        ## Deprecated
+        🚧 Use [Fetch an Organization's Monitors](/api/monitors/fetch-an-organizations-monitors) and [Fetch Alerts](/api/monitors/fetch-alerts) instead.
+
+
         Return a list of active metric alert rules bound to an organization.
 
         A metric alert rule is a configuration that defines the conditions for triggering an alert.
@@ -637,7 +641,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         return self.fetch_metric_alert(request, organization, alert_rules)
 
     @extend_schema(
-        operation_id="Create a Metric Alert Rule for an Organization",
+        operation_id="(DEPRECATED) Create a Metric Alert Rule for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=OrganizationAlertRuleIndexPostSerializer,
         responses={
@@ -651,6 +655,10 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
+        ## Deprecated
+        🚧 Use [Create a Monitor for a Project](/api/monitors/create-a-monitor-for-a-project) and [Create an Alert for an Organization](/api/monitors/create-an-alert-for-an-organization) instead.
+
+
         Create a new metric alert rule for the given organization.
 
         A metric alert rule is a configuration that defines the conditions for triggering an alert.

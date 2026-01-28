@@ -4,6 +4,7 @@ import type {Query} from 'history';
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,7 +22,12 @@ export function useCustomMeasurements(selection?: PageFilters) {
   }
 
   const {data, isPending, isError} = useApiQuery<MeasurementsMetaResponse>(
-    [`/organizations/${organization.slug}/measurements-meta/`, {query}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/measurements-meta/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query},
+    ],
     {
       staleTime: Infinity,
     }

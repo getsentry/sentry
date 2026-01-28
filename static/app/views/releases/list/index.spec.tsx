@@ -43,11 +43,13 @@ describe('ReleasesList', () => {
 
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData(projects));
-    PageFiltersStore.onInitializeUrlState({
-      projects: [],
-      environments: [],
-      datetime: {period: null, utc: null, start: null, end: null},
-    });
+    act(() =>
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {period: null, utc: null, start: null, end: null},
+      })
+    );
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       body: [
@@ -530,8 +532,13 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     const buildsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
-      body: {builds: []},
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
     });
 
     render(<ReleasesList />, {
@@ -544,10 +551,10 @@ describe('ReleasesList', () => {
       },
     });
 
-    expect(await screen.findByText(/No mobile builds found/)).toBeInTheDocument();
+    expect(await screen.findByText(/Upload Mobile Builds to Sentry/)).toBeInTheDocument();
 
     expect(buildsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+      `/organizations/${organization.slug}/builds/`,
       expect.objectContaining({
         query: expect.objectContaining({per_page: 25, statsPeriod: '7d'}),
       })
@@ -570,36 +577,39 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
-      body: {
-        builds: [
-          {
-            id: 'build-id',
-            project_id: 15,
-            project_slug: 'mobile-project-4',
-            state: 1,
-            app_info: {
-              app_id: 'com.example.app',
-              name: 'Example App',
-              platform: 'android',
-              build_number: '1',
-              version: '1.0.0',
-              date_added: '2024-01-01T00:00:00Z',
-            },
-            distribution_info: {
-              is_installable: true,
-              download_count: 12,
-              release_notes: null,
-            },
-            size_info: {},
-            vcs_info: {
-              head_sha: 'abcdef1',
-              pr_number: 123,
-              head_ref: 'main',
-            },
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [
+        {
+          id: 'build-id',
+          project_id: 15,
+          project_slug: 'mobile-project-4',
+          state: 1,
+          app_info: {
+            app_id: 'com.example.app',
+            name: 'Example App',
+            platform: 'android',
+            build_number: '1',
+            version: '1.0.0',
+            date_added: '2024-01-01T00:00:00Z',
           },
-        ],
-      },
+          distribution_info: {
+            is_installable: true,
+            download_count: 12,
+            release_notes: null,
+          },
+          size_info: {},
+          vcs_info: {
+            head_sha: 'abcdef1',
+            pr_number: 123,
+            head_ref: 'main',
+          },
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
     });
 
     const {router} = render(<ReleasesList />, {
@@ -636,31 +646,39 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     const buildsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
-      body: {
-        builds: [
-          {
-            id: 'build-id',
-            project_id: 13,
-            project_slug: 'mobile-project-2',
-            state: 1,
-            app_info: {
-              app_id: 'com.example.app',
-              name: 'Example App',
-              platform: 'android',
-              build_number: '1',
-              version: '1.0.0',
-              date_added: '2024-01-01T00:00:00Z',
-            },
-            size_info: {},
-            vcs_info: {
-              head_sha: 'abcdef1',
-              pr_number: 123,
-              head_ref: 'main',
-            },
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [
+        {
+          id: 'build-id',
+          project_id: 13,
+          project_slug: 'mobile-project-2',
+          state: 1,
+          app_info: {
+            app_id: 'com.example.app',
+            name: 'Example App',
+            platform: 'android',
+            build_number: '1',
+            version: '1.0.0',
+            date_added: '2024-01-01T00:00:00Z',
           },
-        ],
-      },
+          size_info: {},
+          vcs_info: {
+            head_sha: 'abcdef1',
+            pr_number: 123,
+            head_ref: 'main',
+          },
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/branch/values/`,
+      body: [],
     });
 
     render(<ReleasesList />, {
@@ -673,15 +691,11 @@ describe('ReleasesList', () => {
       },
     });
 
-    expect(
-      await screen.findByPlaceholderText(
-        'Search by build, SHA, branch name, or pull request'
-      )
-    ).toBeInTheDocument();
+    expect(await screen.findByTestId('query-builder-input')).toBeInTheDocument();
 
     await waitFor(() =>
       expect(buildsMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+        `/organizations/${organization.slug}/builds/`,
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
@@ -692,25 +706,21 @@ describe('ReleasesList', () => {
       )
     );
 
-    const searchInput = screen.getByPlaceholderText(
-      'Search by build, SHA, branch name, or pull request'
-    );
+    const searchInput = screen.getByTestId('query-builder-input');
 
-    // Clear the input first
-    await userEvent.clear(searchInput);
-
-    // Type the search term and press Enter to submit
-    await userEvent.type(searchInput, 'branch:main{enter}');
+    // Type additional search term and press Enter to submit
+    await userEvent.type(searchInput, ' branch:main{enter}');
 
     // Wait for the API call with the complete search query
+    // Note: The SearchQueryBuilder appends to the existing query rather than replacing
     await waitFor(() =>
       expect(buildsMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+        `/organizations/${organization.slug}/builds/`,
         expect.objectContaining({
           query: expect.objectContaining({
             per_page: 25,
             statsPeriod: '14d',
-            query: 'branch:main',
+            query: 'sha:abcdef1 branch:main',
           }),
         })
       )
@@ -729,12 +739,17 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
-      body: {builds: []},
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [],
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
 

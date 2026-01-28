@@ -258,7 +258,7 @@ const Suggestion = styled('li')<{active: boolean}>`
   gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
   background: ${p =>
     p.active ? p.theme.tokens.background.secondary : p.theme.tokens.background.primary};

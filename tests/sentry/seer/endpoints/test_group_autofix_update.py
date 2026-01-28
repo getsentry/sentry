@@ -14,7 +14,9 @@ class TestGroupAutofixUpdate(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
-        self.url = f"/api/0/issues/{self.group.id}/autofix/update/"
+        self.url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/autofix/update/"
+        )
 
     @patch(
         "sentry.seer.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
@@ -50,6 +52,7 @@ class TestGroupAutofixUpdate(APITestCase):
                     "id": self.user.id,
                     "display_name": self.user.get_display_name(),
                 },
+                "organization_id": self.organization.id,
             }
         )
         expected_url = f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update"

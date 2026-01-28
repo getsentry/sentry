@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, keyframes, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import modifyColor from 'color';
 import {useReducedMotion} from 'framer-motion';
 
@@ -362,7 +363,7 @@ const Negation = styled('span')`
   border-right: none;
   padding-left: 1px;
   margin-left: -1px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   border-radius: 2px 0 0 2px;
   color: ${p => p.theme.colors.red500};
 `;
@@ -370,7 +371,7 @@ const Negation = styled('span')`
 const Key = styled('span')<{negated: boolean}>`
   ${filterCss};
   border-right: none;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
   ${p =>
     p.negated
@@ -425,12 +426,12 @@ const FreeText = styled('span')`
 `;
 
 const Unit = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.green500};
 `;
 
 const LogicBoolean = styled('span')<{invalid: boolean}>`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
   ${p => p.invalid && `color: ${p.theme.colors.red500}`}
 `;
@@ -454,12 +455,12 @@ const Paren = styled('span')`
 const InList = styled('span')`
   &:before {
     content: '[';
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     color: ${p => p.theme.tokens.content.accent};
   }
   &:after {
     content: ']';
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     color: ${p => p.theme.tokens.content.accent};
   }
 
@@ -485,7 +486,7 @@ const LogicGroup = styled(({children, ...props}: any) => (
       top: -5px;
       color: ${p => p.theme.colors.pink500};
       font-size: 16px;
-      font-weight: ${p => p.theme.fontWeight.bold};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
     }
   }
 

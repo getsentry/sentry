@@ -126,16 +126,16 @@ const KeyMetrics = styled('dl')`
 `;
 
 const KeyMetricLabel = styled('dt')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const KeyMetricData = styled('dd')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const Count = styled('span')`

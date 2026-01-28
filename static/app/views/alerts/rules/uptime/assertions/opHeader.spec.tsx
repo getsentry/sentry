@@ -2,6 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {HeaderCheckOp} from 'sentry/views/alerts/rules/uptime/types';
 
+import {AssertionsDndContext} from './dragDrop';
 import {AssertionOpHeader} from './opHeader';
 
 describe('AssertionOpHeader', () => {
@@ -280,5 +281,27 @@ describe('AssertionOpHeader', () => {
       value_op: {cmp: 'always'},
       value_operand: {header_op: 'none'},
     });
+  });
+
+  it('renders drag handle for reordering', async () => {
+    render(
+      <AssertionsDndContext>
+        <AssertionOpHeader
+          value={{
+            id: 'test-id-1',
+            op,
+            key_op: {cmp: 'equals'},
+            key_operand: {header_op: 'literal', value: 'Content-Type'},
+            value_op: {cmp: 'equals'},
+            value_operand: {header_op: 'literal', value: 'application/json'},
+          }}
+          onChange={mockOnChange}
+          onRemove={mockOnRemove}
+        />
+      </AssertionsDndContext>
+    );
+
+    await screen.findByLabelText('Header');
+    expect(screen.getByRole('button', {name: 'Reorder assertion'})).toBeInTheDocument();
   });
 });

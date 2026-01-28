@@ -6,7 +6,7 @@ import Access from 'sentry/components/acl/access';
 import type {AlertProps} from 'sentry/components/core/alert';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -57,7 +57,7 @@ function TopSection({
     <Flex justify="between">
       <Flex>
         {integrationIcon}
-        <NameContainer>
+        <Stack justify="center" align="start" paddingLeft="xl">
           <Flex align="center">
             <Name>{integrationName}</Name>
             <StatusWrapper>
@@ -71,7 +71,7 @@ function TopSection({
               </StyledTag>
             ))}
           </Flex>
-        </NameContainer>
+        </Stack>
       </Flex>
       <Flex align="center">
         {addInstallButton}
@@ -313,16 +313,8 @@ const IntegrationDescription = styled('div')`
   flex-grow: 1;
 `;
 
-const NameContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  justify-content: center;
-  padding-left: ${space(2)};
-`;
-
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
   margin-bottom: ${space(0.5)};
 `;
@@ -378,7 +370,7 @@ const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 12px;
 `;
 

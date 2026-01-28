@@ -12,6 +12,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   setApiQueryData,
@@ -36,11 +37,20 @@ function UserDetails() {
   const {userId} = useParams<{userId: string}>();
   const queryClient = useQueryClient();
 
-  const makeFetchUserQueryKey = (): ApiQueryKey => [`/users/${userId}/`];
-  const makeFetchUserIdentitiesQueryKey = (): ApiQueryKey => [
-    `/users/${userId}/user-identities/`,
+  const makeFetchUserQueryKey = (): ApiQueryKey => [
+    getApiUrl(`/users/$userId/`, {
+      path: {userId},
+    }),
   ];
-  const makeFetchTokensQueryKey = (): ApiQueryKey => [`/api-tokens/`, {query: {userId}}];
+  const makeFetchUserIdentitiesQueryKey = (): ApiQueryKey => [
+    getApiUrl(`/users/$userId/user-identities/`, {
+      path: {userId},
+    }),
+  ];
+  const makeFetchTokensQueryKey = (): ApiQueryKey => [
+    getApiUrl(`/api-tokens/`),
+    {query: {userId}},
+  ];
 
   const {
     data: user,

@@ -79,7 +79,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 else AutofixStoppingPoint.ROOT_CAUSE
             )
         except ValueError:
-            logger.exception(
+            logger.warning(
                 "invalid_autofix_stopping_point",
                 extra={
                     "stopping_point": action.value,
@@ -123,7 +123,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 message_ts=self.thread_ts,
             )
         except (IntegrationError, TypeError, KeyError):
-            logger.exception(
+            logger.warning(
                 "slack.autofix.update_message_failed",
                 extra={
                     "channel_id": self.channel_id,
@@ -163,7 +163,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             status=ObjectStatus.ACTIVE,
         )
         if not integration:
-            logger.error("integration_not_found", extra=logging_ctx)
+            logger.warning("integration_not_found", extra=logging_ctx)
             return
 
         install = SlackIntegration(

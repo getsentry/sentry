@@ -415,11 +415,11 @@ const SetupReleases = styled('div')`
   color: ${p => p.theme.colors.gray500};
   width: 250px;
   white-space: normal;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const SetupReleasesHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1)};
 `;
 

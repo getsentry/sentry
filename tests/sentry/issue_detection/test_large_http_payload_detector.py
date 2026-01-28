@@ -83,7 +83,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -94,7 +94,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         )
 
         settings = get_detection_settings(project.id)
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
 
         assert not detector.is_creation_allowed_for_project(project)
 
@@ -328,7 +328,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0
 
@@ -356,7 +356,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 1
 
@@ -375,6 +375,6 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0

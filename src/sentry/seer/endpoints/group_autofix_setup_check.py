@@ -11,7 +11,8 @@ from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
@@ -119,6 +120,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         }
     )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix-setup"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Checks if we are able to run Autofix on the given group.

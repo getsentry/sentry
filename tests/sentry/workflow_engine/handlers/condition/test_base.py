@@ -27,12 +27,12 @@ class ConditionTestCase(BaseWorkflowTest):
         return data_condition
 
     def assert_passes(
-        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket
+        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket[Any]
     ) -> None:
         assert data_condition.evaluate_value(job) == data_condition.get_condition_result()
 
     def assert_does_not_pass(
-        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket
+        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket[Any]
     ) -> None:
         assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
 

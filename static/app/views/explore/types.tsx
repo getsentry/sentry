@@ -5,6 +5,8 @@ export enum TraceItemDataset {
   SPANS = 'spans',
   UPTIME_RESULTS = 'uptime_results',
   TRACEMETRICS = 'tracemetrics',
+  PREPROD = 'preprod',
+  REPLAYS = 'replays',
 }
 
 export interface UseTraceItemAttributeBaseProps {

@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,7 +21,9 @@ export default function ExistingOrCreate() {
 
   const {data: existingRules, isPending} = useApiQuery<UptimeAlert[]>(
     [
-      `/organizations/${organization.slug}/combined-rules/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/combined-rules/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {alertType: CombinedAlertType.UPTIME}},
     ],
     {staleTime: 300}

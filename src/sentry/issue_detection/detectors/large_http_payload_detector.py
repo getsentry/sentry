@@ -29,11 +29,16 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
     type = DetectorType.LARGE_HTTP_PAYLOAD
     settings_key = DetectorType.LARGE_HTTP_PAYLOAD
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.consecutive_http_spans: list[Span] = []
-        self.organization = self.settings.get("organization")
         self.filtered_paths = [
             path.strip() if path.strip().endswith("/") else path.strip() + "/"
             for path in self.settings.get("filtered_paths", "").split(",")
@@ -65,6 +70,19 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         offender_span_id: str = span["span_id"]
         desc: str = span.get("description", "")
 
+        evidence_data = {
+            "parent_span_ids": [],
+            "cause_span_ids": [],
+            "offender_span_ids": [offender_span_id],
+            "op": "http",
+            "transaction_name": self._event.get("description", ""),
+            "repeating_spans": get_span_evidence_value(span),
+            "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+            "num_repeating_spans": 1,
+        }
+        if self.detector_id is not None:
+            evidence_data["detector_id"] = self.detector_id
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op="http",
@@ -84,16 +102,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
                     important=True,
                 )
             ],
-            evidence_data={
-                "parent_span_ids": [],
-                "cause_span_ids": [],
-                "offender_span_ids": [offender_span_id],
-                "op": "http",
-                "transaction_name": self._event.get("description", ""),
-                "repeating_spans": get_span_evidence_value(span),
-                "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
-                "num_repeating_spans": 1,
-            },
+            evidence_data=evidence_data,
         )
 
     def _is_span_eligible(self, span: Span) -> bool:

@@ -40,10 +40,7 @@ describe('SchedulePreview', () => {
 
     render(
       <SchedulePreview
-        scheduleType={ScheduleType.CRONTAB}
-        scheduleCrontab="0 0 * * *"
-        scheduleIntervalValue={1}
-        scheduleIntervalUnit="day"
+        schedule={{type: ScheduleType.CRONTAB, value: '0 0 * * *'}}
         timezone="UTC"
         failureIssueThreshold={2}
         recoveryThreshold={3}
@@ -66,10 +63,7 @@ describe('SchedulePreview', () => {
 
     render(
       <SchedulePreview
-        scheduleType={ScheduleType.CRONTAB}
-        scheduleCrontab="not a cron"
-        scheduleIntervalValue={1}
-        scheduleIntervalUnit="day"
+        schedule={{type: ScheduleType.CRONTAB, value: 'not a cron'}}
         timezone="UTC"
         failureIssueThreshold={2}
         recoveryThreshold={3}
@@ -94,10 +88,7 @@ describe('SchedulePreview', () => {
 
     render(
       <SchedulePreview
-        scheduleType={ScheduleType.CRONTAB}
-        scheduleCrontab="0 0 * * *"
-        scheduleIntervalValue={1}
-        scheduleIntervalUnit="day"
+        schedule={{type: ScheduleType.CRONTAB, value: '0 0 * * *'}}
         timezone="UTC"
         failureIssueThreshold={2}
         recoveryThreshold={3}

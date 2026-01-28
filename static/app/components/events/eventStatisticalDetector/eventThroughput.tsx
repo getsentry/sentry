@@ -373,7 +373,7 @@ function getStatsType(group: Group): 'transactions' | 'functions' | null {
 }
 
 const CurrentLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`

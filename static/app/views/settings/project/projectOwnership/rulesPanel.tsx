@@ -121,6 +121,6 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const SyncDate = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;

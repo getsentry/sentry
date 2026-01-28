@@ -9,6 +9,7 @@ import Count from 'sentry/components/count';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -42,7 +43,9 @@ export function IssuesWidget() {
     error,
   } = useApiQuery<Group[]>(
     [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: queryParams,
       },
@@ -111,12 +114,12 @@ const IssueRow = styled('div')<{isFirst: boolean}>`
 
 const IssueTitle = styled('div')`
   flex: 1;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 const IssueCount = styled(Count)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

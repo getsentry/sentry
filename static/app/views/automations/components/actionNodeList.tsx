@@ -70,7 +70,7 @@ export default function ActionNodeList({
 }: ActionNodeListProps) {
   const {data: availableActions = []} = useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
-  const connectedDetectors = useConnectedDetectors();
+  const {connectedDetectors} = useConnectedDetectors();
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];

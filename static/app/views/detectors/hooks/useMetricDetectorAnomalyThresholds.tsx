@@ -4,6 +4,7 @@ import type {LineSeriesOption} from 'echarts';
 
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -64,7 +65,12 @@ export function useMetricDetectorAnomalyThresholds({
     error,
   } = useApiQuery<AnomalyThresholdDataResponse>(
     [
-      `/organizations/${organization.slug}/detectors/${detectorId}/anomaly-data/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/detectors/$detectorId/anomaly-data/',
+        {
+          path: {organizationIdOrSlug: organization.slug, detectorId},
+        }
+      ),
       {
         query: {
           start: startTimestamp,

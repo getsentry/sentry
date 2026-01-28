@@ -67,7 +67,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         updated_enabled_code_review = data.get("enabledCodeReview")
         updated_code_review_triggers = data.get("codeReviewTriggers")
 
-        update_fields = []
+        update_fields = ["date_updated"]
         if updated_enabled_code_review is not None:
             update_fields.append("enabled_code_review")
         if updated_code_review_triggers is not None:

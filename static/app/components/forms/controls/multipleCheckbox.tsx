@@ -118,7 +118,7 @@ export default MultipleCheckbox;
 const Label = styled('label')`
   display: inline-flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
   margin-right: 10px;
   margin-bottom: 10px;

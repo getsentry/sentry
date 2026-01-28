@@ -21,9 +21,9 @@ const Title = styled('span')`
 `;
 
 const ErrorMessage = styled('span')`
-  color: ${p => p.theme.alert.danger.color};
-  background: ${p => p.theme.alert.danger.backgroundLight};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.colors.red500};
+  background: ${p => p.theme.colors.red100};
+  font-size: ${p => p.theme.font.size.md};
   padding: 0 ${space(0.5)};
   border-radius: ${p => p.theme.radius.md};
   display: flex;

@@ -452,7 +452,7 @@ describe('ErrorNode', () => {
   });
 
   describe('makeBarColor', () => {
-    it('should return red400 for error level (overriding theme.level.error)', () => {
+    it('should return warning vibrant token for error level', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Test Error',
@@ -462,11 +462,10 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      // ErrorNode specifically returns red400 for errors, not theme.level.error
-      expect(node.makeBarColor(theme)).toBe(theme.colors.red400);
+      expect(node.makeBarColor(theme)).toBe(theme.level.orange);
     });
 
-    it('should return red400 for fatal level (overriding theme.level.fatal)', () => {
+    it('should return semantic bad token for fatal level', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Test Error',
@@ -476,11 +475,10 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      // ErrorNode specifically returns red400 for fatal, not theme.level.fatal
-      expect(node.makeBarColor(theme)).toBe(theme.colors.red400);
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.bad);
     });
 
-    it('should return theme level color for warning', () => {
+    it('should return semantic meh token for warning', () => {
       const extra = createMockExtra();
       const value = makeTraceError({
         title: 'Test Warning',
@@ -490,7 +488,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      expect(node.makeBarColor(theme)).toBe(theme.level.warning);
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.meh);
     });
 
     it('should return theme level color for info', () => {
@@ -503,7 +501,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      expect(node.makeBarColor(theme)).toBe(theme.level.info);
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.accent);
     });
 
     it('should return theme level color for sample', () => {
@@ -516,7 +514,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      expect(node.makeBarColor(theme)).toBe(theme.level.sample);
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.accent);
     });
 
     it('should return red fallback for level not in theme.level', () => {
@@ -560,11 +558,11 @@ describe('ErrorNode', () => {
       const errorNode = new ErrorNode(null, errorValue, extra);
       const theme = ThemeFixture();
 
-      expect(warningNode.makeBarColor(theme)).toBe(theme.level.warning);
-      expect(errorNode.makeBarColor(theme)).toBe(theme.colors.red400); // red400 for error
+      expect(warningNode.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.meh);
+      expect(errorNode.makeBarColor(theme)).toBe(theme.level.orange);
     });
 
-    it('should prioritize red400 over theme.level for error/fatal', () => {
+    it('should use warning vibrant token for error and semantic bad token for fatal', () => {
       const extra = createMockExtra();
       const errorValue = makeTraceError({
         title: 'Test Error',
@@ -579,9 +577,8 @@ describe('ErrorNode', () => {
       const fatalNode = new ErrorNode(null, fatalValue, extra);
       const theme = ThemeFixture();
 
-      // Should use red400, not theme.level colors
-      expect(errorNode.makeBarColor(theme)).toBe(theme.colors.red400);
-      expect(fatalNode.makeBarColor(theme)).toBe(theme.colors.red400);
+      expect(errorNode.makeBarColor(theme)).toBe(theme.level.orange);
+      expect(fatalNode.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.bad);
     });
   });
 });

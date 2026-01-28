@@ -45,7 +45,7 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   );
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
-    organization: organization!,
+    organization,
     feature: integrationPromptKey,
     projectId: project?.id,
     options: {enabled},

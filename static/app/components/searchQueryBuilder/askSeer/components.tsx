@@ -25,8 +25,8 @@ export const AskSeerListItem = styled('div')<{
   background-color: none;
   box-shadow: none;
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-align: left;
   justify-content: ${p => p.justifyContent ?? 'flex-start'};
   gap: ${p => p.theme.space.md};
@@ -52,8 +52,8 @@ export const AskSeerLabel = styled('span')<{
   overflow: hidden;
   text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.fontWeight ?? p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.fontWeight ?? p.theme.font.weight.sans.medium};
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};

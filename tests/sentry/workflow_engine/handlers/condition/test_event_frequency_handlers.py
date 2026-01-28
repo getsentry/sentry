@@ -74,7 +74,7 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
         results = [dc.comparison["value"] - 1]
         self.assert_slow_condition_does_not_pass(dc, results)
 
-    def _test_dual_write(self, value):
+    def _test_dual_write(self, value: str | int | float) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -217,7 +217,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         results = [10, 10]
         self.assert_slow_condition_does_not_pass(dc, results)
 
-    def _test_dual_write(self, value):
+    def _test_dual_write(self, value: str | int | float) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -424,7 +424,7 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
         ]
         self.dcg = self.create_data_condition_group()
 
-    def _test_dual_write_count(self, value):
+    def _test_dual_write_count(self, value: str | int | float) -> None:
         dc = create_event_unique_user_frequency_condition_with_conditions(
             self.payload, self.dcg, self.conditions
         )
@@ -449,7 +449,7 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
         self.payload["value"] = 0  # expected
         self._test_dual_write_count(-1)
 
-    def _test_dual_write_percent(self, value):
+    def _test_dual_write_percent(self, value: str | int | float) -> None:
         self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})
         dc = create_event_unique_user_frequency_condition_with_conditions(
             self.payload, self.dcg, self.conditions

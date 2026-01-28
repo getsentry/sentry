@@ -50,7 +50,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   });
 
   const renderOneSetting = (type: NotificationSettingsType) => {
-    // TODO(isabella): Once GA, remove this
     const field = NOTIFICATION_SETTING_FIELDS[type];
     if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
       field.label = t('Spend');
@@ -139,11 +138,11 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
 export default withOrganizations(NotificationSettings);
 
 const FieldLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const FieldHelp = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

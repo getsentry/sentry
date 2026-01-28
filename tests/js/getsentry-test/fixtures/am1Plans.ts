@@ -10,7 +10,7 @@ import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reserve
 
 import type {DataCategory} from 'sentry/types/core';
 
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {ReservedBudgetCategoryType, type Plan} from 'getsentry/types';
 
 const AM1_CHECKOUT_CATEGORIES = [
@@ -20,6 +20,8 @@ const AM1_CHECKOUT_CATEGORIES = [
   'attachments',
   'monitorSeats',
   'uptime',
+  'sizeAnalyses',
+  'installableBuilds',
 ] as DataCategory[];
 
 const AM1_ONDEMAND_CATEGORIES = [
@@ -41,6 +43,11 @@ const AM1_CATEGORY_DISPLAY_NAMES = {
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
   logBytes: {singular: 'log', plural: 'logs'},
   seerUsers: {singular: 'active contributor', plural: 'active contributors'},
+  sizeAnalyses: {singular: 'size analysis build', plural: 'size analysis builds'},
+  installableBuilds: {
+    singular: 'build distribution install',
+    plural: 'build distribution installs',
+  },
 };
 
 const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {
@@ -108,7 +115,7 @@ const commonFields = {
   categories: AM1_CATEGORIES,
   categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
   checkoutCategories: AM1_CHECKOUT_CATEGORIES,
-  availableCategories: [], // TODO(isabella): check this
+  availableCategories: [],
   onDemandCategories: AM1_ONDEMAND_CATEGORIES,
   hasOnDemandModes: true,
   budgetTerm: BUDGET_TERM as 'on-demand',
@@ -178,6 +185,22 @@ const AM1_PLANS: Record<string, Plan> = {
           events: 1,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...LEGACY_SEER_TIERS_DEVELOPER,
       ...SEER_TIERS,
     },
@@ -245,6 +268,22 @@ const AM1_PLANS: Record<string, Plan> = {
           price: 0,
           unitPrice: 0,
           events: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
@@ -826,6 +865,22 @@ const AM1_PLANS: Record<string, Plan> = {
           events: 1,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
@@ -1403,6 +1458,22 @@ const AM1_PLANS: Record<string, Plan> = {
           price: 0,
           unitPrice: 60,
           events: 1,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS_ANNUAL,
@@ -1984,6 +2055,22 @@ const AM1_PLANS: Record<string, Plan> = {
           events: 1,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
@@ -2563,6 +2650,22 @@ const AM1_PLANS: Record<string, Plan> = {
           events: 1,
         },
       ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
       ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
@@ -2638,6 +2741,22 @@ const AM1_PLANS: Record<string, Plan> = {
           events: 0,
           unitPrice: 0,
           price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
         },
       ],
       ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,

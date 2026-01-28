@@ -63,10 +63,10 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        assert context["platform"] == "ios"
+        assert context["platform_name"] == "apple"
         assert context["git_head_ref"] == "feature/test"
         assert context["app_id"] == "com.example.app"
-        assert context["build_configuration"] == "Debug"
+        assert context["build_configuration_name"] == "Debug"
 
     def test_filter_context_without_build_configuration(self):
         artifact = PreprodArtifact.objects.create(
@@ -79,10 +79,10 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        assert context["platform"] == "android"
+        assert context["platform_name"] == "android"
         assert context["git_head_ref"] == "feature/test"
         assert context["app_id"] == "com.example.android"
-        assert "build_configuration" not in context
+        assert "build_configuration_name" not in context
 
     def test_rule_matches_build_configuration_single_value(self):
         artifact = PreprodArtifact.objects.create(
@@ -101,7 +101,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="build_configuration:Debug",
+            filter_query="build_configuration_name:Debug",
         )
 
         rule_release = StatusCheckRule(
@@ -109,7 +109,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="build_configuration:Release",
+            filter_query="build_configuration_name:Release",
         )
 
         assert _rule_matches_artifact(rule_debug, context) is True
@@ -132,7 +132,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="build_configuration:[Debug,Release]",
+            filter_query="build_configuration_name:[Debug,Release]",
         )
 
         assert _rule_matches_artifact(rule, context) is True
@@ -154,7 +154,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="!build_configuration:Release",
+            filter_query="!build_configuration_name:Release",
         )
 
         rule_not_debug = StatusCheckRule(
@@ -162,7 +162,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="!build_configuration:Debug",
+            filter_query="!build_configuration_name:Debug",
         )
 
         assert _rule_matches_artifact(rule_not_release, context) is True
@@ -180,12 +180,12 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        rule_ios_release = StatusCheckRule(
+        rule_apple_release = StatusCheckRule(
             id="rule1",
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform:ios build_configuration:Release",
+            filter_query="platform_name:apple build_configuration_name:Release",
         )
 
         rule_android_release = StatusCheckRule(
@@ -193,7 +193,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform:android build_configuration:Release",
+            filter_query="platform_name:android build_configuration_name:Release",
         )
 
         rule_ios_debug = StatusCheckRule(
@@ -201,10 +201,10 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform:ios build_configuration:Debug",
+            filter_query="platform_name:apple build_configuration_name:Debug",
         )
 
-        assert _rule_matches_artifact(rule_ios_release, context) is True
+        assert _rule_matches_artifact(rule_apple_release, context) is True
         assert _rule_matches_artifact(rule_android_release, context) is False
         assert _rule_matches_artifact(rule_ios_debug, context) is False
 
@@ -237,14 +237,15 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="build_configuration:Debug",
+            filter_query="build_configuration_name:Debug",
         )
 
         status, triggered_rules = _compute_overall_status(
             [artifact], size_metrics_map, rules=[rule]
         )
         assert status == StatusCheckStatus.FAILURE
-        assert triggered_rules == [rule]
+        assert len(triggered_rules) == 1
+        assert triggered_rules[0].rule == rule
 
     def test_status_check_succeeds_when_rule_matches_but_under_threshold(self):
         artifact = PreprodArtifact.objects.create(
@@ -275,7 +276,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="build_configuration:Debug",
+            filter_query="build_configuration_name:Debug",
         )
 
         status, triggered_rules = _compute_overall_status(
@@ -313,7 +314,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="build_configuration:Debug",
+            filter_query="build_configuration_name:Debug",
         )
 
         status, triggered_rules = _compute_overall_status(
@@ -330,7 +331,7 @@ class StatusCheckFiltersTest(TestCase):
         self.project.update_option(
             "sentry:preprod_size_status_checks_rules",
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", '
-            '"value": 100, "filterQuery": "build_configuration:Debug"}]',
+            '"value": 100, "filterQuery": "build_configuration_name:Debug"}]',
         )
 
         rules = _get_status_check_rules(self.project)
@@ -340,7 +341,7 @@ class StatusCheckFiltersTest(TestCase):
         assert rules[0].metric == "install_size"
         assert rules[0].measurement == "absolute"
         assert rules[0].value == 100
-        assert rules[0].filter_query == "build_configuration:Debug"
+        assert rules[0].filter_query == "build_configuration_name:Debug"
 
     def test_evaluate_absolute_diff_threshold_exceeds(self):
         head_artifact = self.create_preprod_artifact(
@@ -612,7 +613,7 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_release,
         )
 
-        result = _fetch_base_size_metrics([head_artifact], self.project)
+        result = _fetch_base_size_metrics([head_artifact])
 
         assert head_artifact.id in result
         assert result[head_artifact.id].id == base_metrics.id
@@ -661,7 +662,7 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_debug,
         )
 
-        result = _fetch_base_size_metrics([head_artifact], self.project)
+        result = _fetch_base_size_metrics([head_artifact])
 
         assert result == {}
 
@@ -722,7 +723,7 @@ class StatusCheckFiltersTest(TestCase):
             )
         }
 
-        base_size_metrics_map = _fetch_base_size_metrics([head_artifact], self.project)
+        base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
 
         rule = StatusCheckRule(
             id="rule1",
@@ -739,7 +740,8 @@ class StatusCheckFiltersTest(TestCase):
             base_size_metrics_map=base_size_metrics_map,
         )
         assert status == StatusCheckStatus.FAILURE
-        assert triggered_rules == [rule]
+        assert len(triggered_rules) == 1
+        assert triggered_rules[0].rule == rule
 
     def test_rules_only_evaluate_main_artifact_not_watch_app(self):
         artifact = self.create_preprod_artifact(
@@ -792,28 +794,28 @@ class StatusCheckFiltersTest(TestCase):
         )
 
         context = _get_artifact_filter_context(artifact_no_build_config)
-        assert "build_configuration" not in context
+        assert "build_configuration_name" not in context
 
         positive_rule = StatusCheckRule(
             id="rule1",
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="build_configuration:Debug",
+            filter_query="build_configuration_name:Debug",
         )
         negated_rule = StatusCheckRule(
             id="rule2",
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="!build_configuration:Debug",
+            filter_query="!build_configuration_name:Debug",
         )
         negated_in_rule = StatusCheckRule(
             id="rule3",
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="!build_configuration:[Debug,Release]",
+            filter_query="!build_configuration_name:[Debug,Release]",
         )
 
         assert _rule_matches_artifact(positive_rule, context) is False
@@ -837,14 +839,14 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="!build_configuration:Release",
+            filter_query="!build_configuration_name:Release",
         )
         rule_not_debug = StatusCheckRule(
             id="rule2",
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="!build_configuration:Debug",
+            filter_query="!build_configuration_name:Debug",
         )
 
         assert _rule_matches_artifact(rule_not_release, context) is True
@@ -860,15 +862,15 @@ class StatusCheckFiltersTest(TestCase):
         )
 
         context = _get_artifact_filter_context(artifact)
-        assert context["platform"] == "ios"
-        assert "build_configuration" not in context
+        assert context["platform_name"] == "apple"
+        assert "build_configuration_name" not in context
 
         rule = StatusCheckRule(
             id="rule1",
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform:ios !build_configuration:Debug",
+            filter_query="platform_name:apple !build_configuration_name:Debug",
         )
 
         assert _rule_matches_artifact(rule, context) is False

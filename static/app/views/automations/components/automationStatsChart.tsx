@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -14,6 +14,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/automations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -37,7 +38,9 @@ export function AutomationStatsChart({
     isError,
   } = useApiQuery<AutomationStats[]>(
     [
-      `/organizations/${organization.slug}/workflows/${automationId}/stats/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/stats/', {
+        path: {organizationIdOrSlug: organization.slug, workflowId: automationId},
+      }),
       {
         query: {
           ...(period && {statsPeriod: period}),
@@ -56,9 +59,9 @@ export function AutomationStatsChart({
   return (
     <Panel>
       <StyledPanelBody withPadding>
-        <ChartHeader>
+        <Container marginBottom="2xl">
           <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
-        </ChartHeader>
+        </Container>
         {isPending && <Placeholder height="200px" />}
         {isError && <LoadingError />}
         {fireHistory && (
@@ -104,10 +107,6 @@ export function AutomationStatsChart({
   );
 }
 
-const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
-`;
-
 const ChartFooter = styled(PanelFooter)`
   display: flex;
   align-items: center;
@@ -116,8 +115,8 @@ const ChartFooter = styled(PanelFooter)`
 
 const FooterHeader = styled('h4')`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

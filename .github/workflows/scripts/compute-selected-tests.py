@@ -11,7 +11,7 @@ from pathlib import Path
 FULL_SUITE_TRIGGER_FILES = [
     "sentry/testutils/pytest/sentry.py",
     "pyproject.toml",
-    # "Makefile",
+    "Makefile",
     "sentry/conf/server.py",
     "sentry/web/urls.py",
 ]

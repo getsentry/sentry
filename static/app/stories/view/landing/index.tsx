@@ -190,7 +190,7 @@ const Hero = styled('div')`
   }
 
   p {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     text-wrap: balance;
     color: ${p => p.theme.tokens.content.secondary};
   }
@@ -280,7 +280,7 @@ const CardTitle = styled('span')`
   width: 100%;
   height: 24px;
   font-size: 24px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: currentColor;
 `;
 

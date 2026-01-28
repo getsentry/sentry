@@ -172,7 +172,7 @@ const SplashWrapper = styled('div')`
 
 const HeaderTitle = styled('h3')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: normal;
   color: ${p => p.theme.tokens.content.primary};
 `;

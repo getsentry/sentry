@@ -487,7 +487,7 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
 `;
 
 const ItemName = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -495,5 +495,5 @@ const ItemName = styled('div')`
 
 const ItemDescription = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;

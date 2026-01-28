@@ -1138,30 +1138,21 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span, is_eap=False):
-        self.store_spans([span], is_eap=is_eap)
+    def store_span(self, span):
+        self.store_spans([span])
 
-    def store_spans(self, spans, is_eap=False):
-        if is_eap:
-            files = {}
-            for i, span in enumerate(spans):
-                trace_item = span_to_trace_item(span)
-                files[f"item_{i}"] = trace_item.SerializeToString()
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                    files=files,
-                ).status_code
-                == 200
-            )
-        else:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
+    def store_spans(self, spans):
+        files = {}
+        for i, span in enumerate(spans):
+            trace_item = span_to_trace_item(span)
+            files[f"item_{i}"] = trace_item.SerializeToString()
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files=files,
+            ).status_code
+            == 200
+        )
 
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
@@ -1302,7 +1293,6 @@ class BaseSpansTestCase(SnubaTestCase):
         status: str | None = None,
         environment: str | None = None,
         organization_id: int = 1,
-        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1355,7 +1345,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
 
-        self.store_span(payload, is_eap=is_eap)
+        self.store_span(payload)
 
     def store_indexed_span(
         self,
@@ -1376,7 +1366,6 @@ class BaseSpansTestCase(SnubaTestCase):
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
-        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1427,7 +1416,7 @@ class BaseSpansTestCase(SnubaTestCase):
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            self.store_span(payload, is_eap=is_eap)
+            self.store_span(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2265,30 +2254,21 @@ class ProfilesSnubaTestCase(
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
 
-    def store_span(self, span, is_eap=False):
-        self.store_spans([span], is_eap=is_eap)
+    def store_span(self, span):
+        self.store_spans([span])
 
-    def store_spans(self, spans, is_eap=False):
-        if is_eap:
-            files = {}
-            for i, span in enumerate(spans):
-                trace_item = span_to_trace_item(span)
-                files[f"item_{i}"] = trace_item.SerializeToString()
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                    files=files,
-                ).status_code
-                == 200
-            )
-        else:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
+    def store_spans(self, spans):
+        files = {}
+        for i, span in enumerate(spans):
+            trace_item = span_to_trace_item(span)
+            files[f"item_{i}"] = trace_item.SerializeToString()
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files=files,
+            ).status_code
+            == 200
+        )
 
 
 @pytest.mark.snuba
@@ -3337,12 +3317,12 @@ class _OptionalOurLogData(TypedDict, total=False):
 def scalar_to_any_value(value: Any) -> AnyValue:
     if isinstance(value, str):
         return AnyValue(string_value=value)
+    if isinstance(value, bool):
+        return AnyValue(bool_value=value)
     if isinstance(value, int):
         return AnyValue(int_value=value)
     if isinstance(value, float):
         return AnyValue(double_value=value)
-    if isinstance(value, bool):
-        return AnyValue(bool_value=value)
     if isinstance(value, dict):
         return AnyValue(**value)
     raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
@@ -3394,14 +3374,8 @@ def span_to_trace_item(span) -> TraceItem:
         "start_timestamp_precise",
     }:
         if field in span and span[field] is not None:
-            if field == "is_segment":
-                is_segment = span["is_segment"]
-                attributes["sentry.is_segment"] = AnyValue(
-                    double_value=float(is_segment),
-                )
-            else:
-                value = scalar_to_any_value(span[field])
-                attributes[f"sentry.{field}"] = value
+            value = scalar_to_any_value(span[field])
+            attributes[f"sentry.{field}"] = value
 
     timestamp = Timestamp()
 
@@ -3688,7 +3662,6 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
-        is_eap: bool = False,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
@@ -3768,7 +3741,7 @@ class TraceTestCase(SpanTestCase):
                             )
                         )
                 spans_to_store.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans_to_store, is_eap=is_eap)
+                self.store_spans(spans_to_store)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:

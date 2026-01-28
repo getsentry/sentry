@@ -4,13 +4,16 @@ import styled from '@emotion/styled';
 import {Separator, type SeparatorProps} from 'sentry/components/core/separator';
 
 import type {ContainerElement} from './container';
-import {Flex, type FlexProps} from './flex';
+import {Flex, type FlexProps, type FlexPropsWithRenderFunction} from './flex';
 import {useResponsivePropValue} from './styles';
 
 /**
  * Stack is just a super set of Flex props with a default direction initializer to 'column'.
  */
 export type StackProps<T extends ContainerElement = 'div'> = FlexProps<T>;
+
+export type StackPropsWithRenderFunction<T extends ContainerElement = 'div'> =
+  FlexPropsWithRenderFunction<T>;
 
 const StackComponent = styled(
   <T extends ContainerElement = 'div'>({
@@ -26,14 +29,14 @@ const StackComponent = styled(
       </OrientationContext.Provider>
     );
   }
-)<StackProps<any>>`
+)<StackProps<any> | StackPropsWithRenderFunction<any>>`
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
    */
 ` as unknown as <T extends ContainerElement = 'div'>(
-  props: StackProps<T>
+  props: StackProps<T> | StackPropsWithRenderFunction<T>
 ) => React.ReactElement;
 
 function getOrientationFromDirection(

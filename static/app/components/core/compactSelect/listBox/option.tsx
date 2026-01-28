@@ -78,26 +78,24 @@ export function ListBoxOption({
         ? leadingItems({disabled: isDisabled, isFocused, isSelected})
         : leadingItems;
 
-    if (hideCheck && !leading) {
-      return null;
+    if (hideCheck) {
+      return leading;
     }
 
     return (
       <Fragment>
-        {!hideCheck && (
-          <LeadWrap aria-hidden="true">
-            {multiple ? (
-              <Checkbox
-                size={checkboxSize}
-                checked={isSelected}
-                disabled={isDisabled}
-                readOnly
-              />
-            ) : (
-              isSelected && <IconCheckmark size={checkboxSize} />
-            )}
-          </LeadWrap>
-        )}
+        <LeadWrap aria-hidden="true">
+          {multiple ? (
+            <Checkbox
+              size={checkboxSize}
+              checked={isSelected}
+              disabled={isDisabled}
+              readOnly
+            />
+          ) : (
+            isSelected && <IconCheckmark size={checkboxSize} />
+          )}
+        </LeadWrap>
         {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
       </Fragment>
     );

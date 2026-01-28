@@ -642,6 +642,16 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
       set(clonedState, `rule[${type}][${idx}][${prop}]`, val);
+
+      // If changing the channel name for a Slack action, clear the channel id for convenience
+      if (
+        type === 'actions' &&
+        prop === 'channel' &&
+        prevState.rule?.actions?.[idx]?.id === IssueAlertActionType.SLACK
+      ) {
+        set(clonedState, `rule[${type}][${idx}][channel_id]`, '');
+      }
+
       return clonedState;
     });
   };
@@ -1606,7 +1616,7 @@ const ConditionsPanel = styled(Panel)`
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
@@ -1676,8 +1686,8 @@ const Badge = styled('span')`
   color: ${p => p.theme.colors.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.5;
 `;
 
@@ -1687,7 +1697,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;
 
@@ -1732,7 +1742,7 @@ const AcknowledgeLabel = styled('label')`
   align-items: center;
   gap: ${space(1)};
   line-height: 2;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`

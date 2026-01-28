@@ -251,7 +251,7 @@ const BetaBadge = styled(FeatureBadge)`
   pointer-events: none;
   top: -2px;
   right: 2px;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};
   height: 16px;
 `;

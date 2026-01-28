@@ -17,6 +17,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration, IntegrationFeature} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -49,7 +50,9 @@ function DocIntegrationModal(props: Props) {
     isError,
     isPending,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([`/integration-features/`], {staleTime: 0});
+  } = useApiQuery<IntegrationFeature[]>([getApiUrl(`/integration-features/`)], {
+    staleTime: 0,
+  });
 
   if (isPending) {
     return <LoadingIndicator />;

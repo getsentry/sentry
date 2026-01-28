@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from sentry.discover.models import DiscoverSavedQueryTypes
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import (
     discover,
     errors,
@@ -34,17 +35,17 @@ DATASET_OPTIONS = {
     "metrics": metrics_performance,
     # ourlogs is deprecated, please use logs instead
     "ourlogs": OurLogs,
-    "logs": OurLogs,
-    "uptime_results": UptimeResults,
+    SupportedTraceItemType.LOGS.value: OurLogs,
+    SupportedTraceItemType.UPTIME_RESULTS.value: UptimeResults,
     "preprodSize": PreprodSize,
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
-    "profile_functions": ProfileFunctions,
-    "spans": Spans,
+    SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
+    SupportedTraceItemType.SPANS.value: Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
-    "tracemetrics": TraceMetrics,
+    SupportedTraceItemType.TRACEMETRICS.value: TraceMetrics,
     "transactions": transactions,
 }
 DEPRECATED_LABELS = {"ourlogs"}

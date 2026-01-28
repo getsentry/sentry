@@ -106,13 +106,13 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
 
             // Create new entry with defaults for newly added repos
             const orgRepo = repositories?.find(r => r.externalId === repoId);
-            const [owner] = (orgRepo?.name ?? '').split('/');
+            const [owner, name] = (orgRepo?.name || '/').split('/');
             return {
               organization_id: organization.id,
               external_id: repoId,
-              name: orgRepo?.name ?? '',
+              name: name ?? orgRepo?.name ?? '',
               owner: owner ?? '',
-              provider: orgRepo?.provider.id ?? '',
+              provider: orgRepo?.provider?.name?.toLowerCase() ?? '',
               integration_id: orgRepo?.integrationId,
               branch_name: '',
               instructions: '',

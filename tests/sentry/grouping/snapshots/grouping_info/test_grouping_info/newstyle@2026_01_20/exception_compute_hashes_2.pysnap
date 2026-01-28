@@ -1,0 +1,170 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "ValueError"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "hello world"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "baz.py"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — in-app frames",
+      "hash": "ebcb7aa3baed0b2447fed7b265db777c",
+      "hint": null,
+      "key": "app_exception_stacktrace",
+      "type": "component"
+    },
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because app exception takes precedence",
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because hash matches app variant",
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "ValueError"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "hello world"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "baz.py"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": false,
+      "description": "exception stacktrace — all frames",
+      "hash": null,
+      "hint": "ignored because app exception takes precedence",
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
+  }
+}

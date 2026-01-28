@@ -1,6 +1,7 @@
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
@@ -24,6 +25,7 @@ class SentryAppInteractionTest(APITestCase):
         )
 
 
+@control_silo_test
 class SentryAppInteractionAuthTest(SentryAppInteractionTest):
     def test_not_logged_in_not_allowed(self) -> None:
         response = self.get_error_response(
@@ -51,6 +53,7 @@ class SentryAppInteractionAuthTest(SentryAppInteractionTest):
         assert response.data["componentInteractions"] == {}
 
 
+@control_silo_test
 class GetSentryAppInteractionTest(SentryAppInteractionTest):
     def setUp(self) -> None:
         super().setUp()
@@ -77,6 +80,7 @@ class GetSentryAppInteractionTest(SentryAppInteractionTest):
         )
 
 
+@control_silo_test
 class PostSentryAppInteractionTest(SentryAppInteractionTest):
     method = "post"
 

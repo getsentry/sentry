@@ -52,10 +52,14 @@ function useLastEditedBy({
   groupId,
   lastEditedBy: incomingLastEditedBy,
 }: Pick<GroupPriorityDropdownProps, 'groupId' | 'lastEditedBy'>) {
-  const {data} = useApiQuery<{activity: Activity[]}>([`/issues/${groupId}/activities/`], {
-    enabled: !defined(incomingLastEditedBy),
-    staleTime: 0,
-  });
+  const organization = useOrganization();
+  const {data} = useApiQuery<{activity: Activity[]}>(
+    [`/organizations/${organization.slug}/issues/${groupId}/activities/`],
+    {
+      enabled: !defined(incomingLastEditedBy),
+      staleTime: 0,
+    }
+  );
 
   const lastEditedBy = useMemo(() => {
     if (incomingLastEditedBy) {
@@ -240,7 +244,7 @@ export function GroupPriorityDropdown({
 }
 
 const DropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: none;
   padding: 0;
   height: unset;
@@ -285,7 +289,7 @@ const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};

@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -119,7 +120,7 @@ const TimestampColumns = styled('div')`
   margin-top: ${space(1)};
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 function NodeGroup({

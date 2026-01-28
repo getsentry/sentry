@@ -250,7 +250,7 @@ class WorkflowEngineExamples:
                 },
                 "openIssues": 0,
             },
-            status_codes=["201"],
+            status_codes=["200"],
             response_only=True,
         )
     ]
@@ -308,8 +308,6 @@ class WorkflowEngineExamples:
                 },
                 "config": {"detectionType": "static"},
                 "enabled": True,
-                "alertRuleId": None,
-                "ruleId": None,
                 "latestGroup": {
                     "id": "123456789",
                     "title": "Test monitor",
@@ -339,6 +337,8 @@ class WorkflowEngineExamples:
                 },
                 "openIssues": 0,
             },
+            status_codes=["200"],
+            response_only=True,
         )
     ]
     LIST_ORG_DETECTORS = [
@@ -520,7 +520,7 @@ class WorkflowEngineExamples:
                     "openIssues": 0,
                 },
             ],
-            status_codes=["201"],
+            status_codes=["200"],
             response_only=True,
         )
     ]
@@ -686,7 +686,7 @@ class WorkflowEngineExamples:
                     "lastTriggered": None,
                 },
             ],
-            status_codes=["201"],
+            status_codes=["200"],
             response_only=True,
         )
     ]

@@ -9,6 +9,7 @@ import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -249,7 +250,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   }, [state.collection, overflowTabs]);
 
   return (
-    <TabListOuterWrap style={outerWrapStyles}>
+    <Container position="relative" style={outerWrapStyles}>
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
@@ -280,7 +281,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
           disabled={disabled}
         />
       )}
-    </TabListOuterWrap>
+    </Container>
   );
 }
 
@@ -324,10 +325,6 @@ export function TabList({variant, ...props}: TabListProps) {
 }
 
 TabList.Item = TabListItem;
-
-const TabListOuterWrap = styled('div')`
-  position: relative;
-`;
 
 const TabListWrap = StyledTabListWrap;
 

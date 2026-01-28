@@ -198,7 +198,7 @@ const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 interface ProfileFiltersProps {
@@ -776,8 +776,8 @@ const ProfileDigestHeader = styled('div')`
 
 const ProfileDigestLabel = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
 `;
 

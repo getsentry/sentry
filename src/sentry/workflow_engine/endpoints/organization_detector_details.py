@@ -64,7 +64,7 @@ def get_detector_validator(
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Workflows"])
+@extend_schema(tags=["Monitors"])
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, detector_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
@@ -88,14 +88,11 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return args, kwargs
 
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
-
-    # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
-    # too?
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
@@ -105,7 +102,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             DetectorParams.DETECTOR_ID,
         ],
         responses={
-            201: DetectorSerializer,
+            200: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -115,6 +112,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization, detector: Detector):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Return details on an individual monitor
         """
         serialized_detector = serialize(
@@ -142,6 +141,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Update an existing monitor
         """
         if not can_edit_detector(detector, request):
@@ -192,6 +193,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization, detector: Detector):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Delete a monitor
         """
         if not can_delete_detector(detector, request):

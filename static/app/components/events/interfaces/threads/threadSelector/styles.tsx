@@ -4,7 +4,7 @@ import {space} from 'sentry/styles/space';
 
 /* prettier-ignore */
 export const ThreadSelectorGrid = styled('div')<{hasThreadStates: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: grid;
   gap: ${space(0.5)};
   align-items: center;

@@ -1,6 +1,7 @@
 import type React from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 import {motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
@@ -520,9 +521,9 @@ function CheckoutSuccess({
   const onDemandItems = getOnDemandItems({invoiceItems});
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems});
-  // TODO(isabella): PreviewData never has the 'balance_change' type
+  // XXX: PreviewData never has the 'balance_change' type
   // and instead populates creditApplied with the value of the 'credit_applied' type
-  // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
+  // this is a workaround to ensure we only display CreditApplied if it's not already in the credits array
   const creditApplied = getCreditApplied({
     creditApplied: data?.creditApplied ?? 0,
     invoiceItems,
@@ -665,7 +666,7 @@ const ReceiptSlot = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.colors.gray200};
   box-shadow: 0px 2px 4px 0px
-    ${p => Color(p.theme.colors.black).lighten(0.08).alpha(0.15).toString()} inset;
+    ${p => color(p.theme.colors.black).lighten(0.08).alpha(0.15).toString()} inset;
 `;
 
 const ReceiptPaperContainer = styled('div')`
@@ -683,7 +684,7 @@ const ReceiptPaperShadow = styled('div')`
   width: 320px;
   height: 7px;
   box-shadow: inset 0 10px 6px -6px
-    ${p => Color(p.theme.colors.black).lighten(0.05).alpha(0.15).toString()};
+    ${p => color(p.theme.colors.black).lighten(0.05).alpha(0.15).toString()};
 `;
 
 const ReceiptPaper = styled(Container)`

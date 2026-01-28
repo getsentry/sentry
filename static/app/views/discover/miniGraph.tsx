@@ -229,7 +229,7 @@ class MiniGraph extends Component<Props> {
               },
               axisLabel: {
                 color: theme.tokens.content.secondary,
-                fontFamily: theme.text.family,
+                fontFamily: theme.font.family.sans,
                 fontSize: 12,
                 formatter: (value: number) =>
                   axisLabelFormatter(

@@ -30,11 +30,11 @@ export const Field = styled(PanelItem)`
 `;
 
 export const FieldLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 export const FieldDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.4;
 `;

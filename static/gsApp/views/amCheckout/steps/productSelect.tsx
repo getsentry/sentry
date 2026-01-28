@@ -285,7 +285,7 @@ function ProductSelect({
 export default ProductSelect;
 
 const FeatureItem = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: grid;
   grid-template-columns: ${p => p.theme.space.xl} 1fr;
   align-items: start;

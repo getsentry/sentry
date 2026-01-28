@@ -344,12 +344,12 @@ const InvoiceItems = styled('table')`
 const RefundRow = styled('tr')`
   td,
   th {
-    background: ${p => p.theme.alert.warning.backgroundLight};
+    background: ${p => p.theme.colors.yellow100};
   }
 `;
 
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.colors.gray400};
 `;

@@ -2,10 +2,12 @@ import {useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Flex} from '@sentry/scraps/layout/flex';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -62,17 +64,29 @@ export default function SeerSettingsPageWrapper({children}: Props) {
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#root-cause-analysis" />
             ),
             code_review: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/" />
             ),
           }
         )}
         action={
-          <LinkButton
-            href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities"
-            external
-          >
-            {t('Read the docs')}
-          </LinkButton>
+          <Flex gap="lg">
+            <FeedbackButton
+              size="md"
+              feedbackOptions={{
+                messagePlaceholder: t('How can we make Seer better for you?'),
+                tags: {
+                  ['feedback.source']: 'seer-settings-org',
+                  ['feedback.owner']: 'coding-workflows',
+                },
+              }}
+            />
+            <LinkButton
+              href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities"
+              external
+            >
+              {t('Read the docs')}
+            </LinkButton>
+          </Flex>
         }
       />
 

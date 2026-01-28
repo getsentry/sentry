@@ -234,7 +234,7 @@ const Table = styled('div')`
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Body = styled('div')`

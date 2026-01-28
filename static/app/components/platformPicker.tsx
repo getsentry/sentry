@@ -371,13 +371,10 @@ const PlatformCard = styled(
   border-radius: 4px;
   cursor: ${p => (p.loading ? 'default' : 'pointer')};
 
-  ${p =>
-    p.selected &&
-    p.visibleSelection &&
-    `background: ${p.theme.alert.info.backgroundLight};`}
+  ${p => p.selected && p.visibleSelection && `background: ${p.theme.colors.blue100};`}
 
   &:hover {
-    background: ${p => p.theme.alert.muted.backgroundLight};
+    background: ${p => p.theme.tokens.background.secondary};
   }
 
   h3 {
@@ -389,7 +386,7 @@ const PlatformCard = styled(
     color: ${p =>
       p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
     text-align: center;
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};

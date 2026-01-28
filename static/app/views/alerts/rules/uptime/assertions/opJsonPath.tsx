@@ -31,6 +31,7 @@ export function AssertionOpJsonPath({
           link: <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9535.html" />,
         }
       )}
+      op={value}
     >
       <Input
         id={inputId}

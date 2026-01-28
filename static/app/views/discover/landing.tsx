@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
@@ -115,7 +116,9 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
 
   return useApiQuery<SavedQuery[]>(
     [
-      `/organizations/${organization.slug}/discover/saved/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: queryParams,
       },
@@ -282,7 +285,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 

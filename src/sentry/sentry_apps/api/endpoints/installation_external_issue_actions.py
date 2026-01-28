@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import all_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
@@ -36,7 +36,7 @@ class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer
     uri = serializers.CharField(required=True, allow_null=False)
 
 
-@all_silo_endpoint
+@control_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {

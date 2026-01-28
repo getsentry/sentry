@@ -824,15 +824,18 @@ describe('Modals -> WidgetViewerModal', () => {
         });
 
         await renderModal({initialData, widget});
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalledWith(
+            '/organizations/org-slug/events-stats/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                field: ['country', 'count()', 'epm()'],
+              }),
+            })
+          );
+        });
+
         expect(await screen.findByText('epm()')).toBeInTheDocument();
-        expect(eventsStatsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events-stats/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              field: ['country', 'count()', 'epm()'],
-            }),
-          })
-        );
       });
     });
 

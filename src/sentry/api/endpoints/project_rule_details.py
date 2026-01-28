@@ -103,7 +103,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Issue Alert Rule for a Project",
+        operation_id="(DEPRECATED) Retrieve an Issue Alert Rule for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -119,6 +119,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     )
     def get(self, request: Request, project, rule) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Fetch an Alert](/api/monitors/fetch-an-alert) instead.
+
+
         Return details on an individual issue alert rule.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
@@ -149,7 +153,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         return Response(serialized_rule)
 
     @extend_schema(
-        operation_id="Update an Issue Alert Rule",
+        operation_id="(DEPRECATED) Update an Issue Alert Rule",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -166,6 +170,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     )
     def put(self, request: Request, project, rule) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Update an Alert by ID](/api/monitors/update-an-alert-by-id) instead.
+
+
         Updates an issue alert rule.
         > Warning: Calling this endpoint fully overwrites the specified issue alert.
 
@@ -350,7 +358,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        operation_id="Delete an Issue Alert Rule",
+        operation_id="(DEPRECATED) Delete an Issue Alert Rule",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -365,12 +373,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     )
     def delete(self, request: Request, project, rule) -> Response:
         """
-        Delete a specific issue alert rule.
+        ## Deprecated
+         🚧 Use [Delete an Alert](/api/monitors/delete-an-alert) instead.
 
-        An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
-        - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
-        - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
-        - Actions: specify what should happen when the trigger conditions are met and the filters match.
+
+         Delete a specific issue alert rule.
+
+         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
+         - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
+         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
+         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         with transaction.atomic(router.db_for_write(Rule)):
             rule.update(status=ObjectStatus.PENDING_DELETION)

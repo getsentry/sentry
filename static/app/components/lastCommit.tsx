@@ -92,7 +92,7 @@ const Meta = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

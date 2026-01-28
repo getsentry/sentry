@@ -7,6 +7,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -44,7 +45,9 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const dashboardRedirectRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
-  const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
+  const ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
   // The currently selected dashboard. Use initialDashboard for optimistic updates
   // when navigating from widget builder (passed via location.state).
@@ -63,11 +66,18 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
     isLoading: isSelectedDashboardLoading,
     isError: isSelectedDashboardError,
     error: selectedDashboardError,
-  } = useApiQuery<DashboardDetails>([`${ENDPOINT}${dashboardId}/`], {
-    staleTime: 0,
-    enabled: !!dashboardId,
-    retry: false,
-  });
+  } = useApiQuery<DashboardDetails>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+        path: {organizationIdOrSlug: organization.slug, dashboardId},
+      }),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!dashboardId,
+      retry: false,
+    }
+  );
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 

@@ -26,7 +26,6 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Name'), key: 'name', sortKey: 'name'},
-  {title: t('Projects'), key: 'projects'},
   {title: t('Code Review'), key: 'code_review'},
 ];
 

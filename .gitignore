@@ -63,3 +63,4 @@ ngrok.yml
 package-lock.json
 yarn.lock
 .claude/settings.local.json
+.claude/plans

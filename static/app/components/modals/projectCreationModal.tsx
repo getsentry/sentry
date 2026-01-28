@@ -268,7 +268,7 @@ export const modalCss = css`
 `;
 
 const Label = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
 `;
 
@@ -278,6 +278,6 @@ const TeamInput = styled(TeamSelector)`
 
 const Subtitle = styled('p')`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

@@ -105,7 +105,7 @@ function SeenInfo({
 
 const dateTimeCss = (p: any) => css`
   color: ${p.theme.tokens.content.secondary};
-  font-size: ${p.theme.fontSize.md};
+  font-size: ${p.theme.font.size.md};
   display: flex;
   justify-content: center;
 `;
@@ -141,14 +141,14 @@ const TooltipWrapper = styled('span')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
   ${Body} {

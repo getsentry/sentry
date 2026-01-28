@@ -17,13 +17,18 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={t('Agg')} />
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Agg')}
+          style={{width: '100%'}}
+        />
       )}
       options={OPTIONS_BY_TYPE[traceMetric.type] ?? []}
       value={visualize.parsedFunction?.name ?? ''}
       onChange={option => {
         setVisualize(updateVisualizeYAxis(visualize, option.value, traceMetric));
       }}
+      style={{width: '100%'}}
     />
   );
 }

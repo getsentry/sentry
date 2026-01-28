@@ -183,7 +183,7 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
 
 const ErrorMessage = styled('div')`
   color: ${p => p.theme.colors.red400};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 export function openSamplingModeSwitchModal(props: Props) {

@@ -1,4 +1,5 @@
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -16,7 +17,16 @@ export function useRepo(): UseApiQueryResult<Repository, RequestError> {
 
   return useApiQuery<Repository>(
     [
-      `/organizations/${organizationSlug}/prevent/owner/${integratedOrgId}/repository/${repository}/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repository/$repository/',
+        {
+          path: {
+            organizationIdOrSlug: organizationSlug,
+            owner: integratedOrgId!,
+            repository: repository!,
+          },
+        }
+      ),
     ],
     {
       staleTime: 30_000,

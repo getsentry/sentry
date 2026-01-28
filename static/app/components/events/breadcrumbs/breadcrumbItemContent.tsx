@@ -266,14 +266,14 @@ const SQLText = styled('pre')`
   &.language-sql {
     margin: 0;
     padding: ${space(0.25)} 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     white-space: pre-wrap;
   }
 `;
 
 const BreadcrumbText = styled(Timeline.Text)`
   white-space: pre-wrap;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
 `;

@@ -59,8 +59,8 @@ export function AskSeerConsentOption<T>({state}: {state: ComboBoxState<T>}) {
 
 const SeerConsentText = styled('p')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
   background-color: none;
 `;

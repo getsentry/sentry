@@ -19,6 +19,8 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         self.browser.click_when_visible('[aria-label="Create New Application"]')
+        self.browser.wait_until_test_id("modal-backdrop")
+        self.browser.click_when_visible('button[type="submit"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         self.browser.click('[href="/settings/account/api/applications/"]')

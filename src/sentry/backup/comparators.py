@@ -893,6 +893,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
+            "sentry.repositorysettings": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
             "sentry.rollbackorganization": [DateUpdatedComparator("date_updated")],
             "sentry.rollbackuser": [
                 UUID4Comparator("uuid", "share_uuid"),

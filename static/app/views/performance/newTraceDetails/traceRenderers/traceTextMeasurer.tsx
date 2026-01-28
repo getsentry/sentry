@@ -31,7 +31,7 @@ export class TraceTextMeasurer {
     canvas.width = 50 * window.devicePixelRatio;
     canvas.height = 50 * window.devicePixelRatio;
 
-    ctx.font = '11px' + theme.text.family;
+    ctx.font = '11px' + theme.font.family.sans;
 
     this.dot = ctx.measureText('.').width;
     for (let i = 0; i < 10; i++) {

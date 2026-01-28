@@ -35,6 +35,10 @@ export const reasonToText: Record<
   [CheckStatusReason.TLS_ERROR]: _ => t('TLS Connection Error'),
   [CheckStatusReason.CONNECTION_ERROR]: _ => t('Connection Error'),
   [CheckStatusReason.REDIRECT_ERROR]: _ => t('Too Many Redirects'),
+  [CheckStatusReason.MISS_PRODUCED]: _ => t('No Result Produced'),
+  [CheckStatusReason.MISS_BACKFILL]: _ => t('Backfilled'),
+  [CheckStatusReason.ASSERTION_COMPILATION_ERROR]: _ => t('Invalid Assertion'),
+  [CheckStatusReason.ASSERTION_EVALUATION_ERROR]: _ => t('Assertion Error'),
 };
 
 export const tickStyle: TickStyle<CheckStatus> = theme => ({

@@ -346,7 +346,7 @@ const EmptyStateWrapper = styled('div')`
 `;
 
 const SelectionTextWrapper = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledNavButton = styled(Button)`

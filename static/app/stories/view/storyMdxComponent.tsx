@@ -60,9 +60,7 @@ export const storyMdxComponents = {
   p: (props: TextProps<'p'>) => (
     <Text as="p" size="md" density="comfortable" {...props} />
   ),
-  ul: (props: Pick<StackProps<'ul'>, 'as'>) => (
-    <Stack margin="0" {...props} as="ul" gap="lg" />
-  ),
+  ul: (props: StackProps<'ul'>) => <Stack margin="0" {...props} as="ul" gap="lg" />,
   blockquote: (props: QuoteProps) => <Quote {...props} />,
   table: Stories.Table,
 };

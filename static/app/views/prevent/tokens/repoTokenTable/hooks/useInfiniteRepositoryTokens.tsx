@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   useInfiniteQuery,
@@ -26,7 +27,10 @@ interface RepositoryTokens {
   totalCount: number;
 }
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
+type QueryKey = [
+  url: ReturnType<typeof getApiUrl>,
+  endpointOptions: QueryKeyEndpointOptions,
+];
 
 type Sort = {
   direction: 'asc' | 'desc';
@@ -64,7 +68,12 @@ export function useInfiniteRepositoryTokens({
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repositories/tokens/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/tokens/',
+        {
+          path: {organizationIdOrSlug: organization.slug, owner: integratedOrgId!},
+        }
+      ),
       {
         query: {
           cursor: cursor ?? undefined,

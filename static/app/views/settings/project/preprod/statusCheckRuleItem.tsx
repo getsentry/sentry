@@ -125,7 +125,7 @@ const ItemContent = styled('div')`
 `;
 
 const BoldText = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 function splitMultiValue(valueText: string): string[] {
