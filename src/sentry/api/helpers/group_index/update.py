@@ -1049,42 +1049,27 @@ def validate_bulk_reassignment(
     user: RpcUser | User | None = None,
 ) -> None:
     """
-    Validate that the user has permission to reassign all groups.
+    Validate that the user has permission to assign a team to all groups.
 
-    A user can reassign a group if:
+    When assigning to a team, a user is permitted if any of the following are true:
     - They have team:admin scope, OR
-    - They are a member of the team the new assignment is going to, OR
-    - The group is currently assigned to a team they are a member of (can reassign from their team)
-
-    For bulk updates, all groups must pass this validation.
-
-    Args:
-        request: The request object (used for access scope check)
-        group_list: List of groups being reassigned
-        assigned_actor: The actor being assigned to (team or user)
-        user: The user performing the action. For Slack webhooks, this may differ
-              from request.user which could be anonymous.
-
-    Raises:
-        serializers.ValidationError: If the user doesn't have permission to reassign any group.
+    - They are a member of the target team, OR
+    - ALL groups are currently assigned to teams the user is a member of
+      (allows reassignment from own team to any team)
     """
-    # Skip validation if not assigning to a team
     if assigned_actor is None or not assigned_actor.is_team:
         return
 
-    # Users with team:admin scope can reassign any group
     access = getattr(request, "access", None)
     if access and access.has_scope("team:admin"):
         return
 
-    # Use explicitly passed user, fall back to request.user
     user = user or getattr(request, "user", None)
     if not user or not getattr(user, "is_authenticated", False):
         raise serializers.ValidationError(
             {"assignedTo": "You do not have permission to assign this owner"}
         )
 
-    # Check if user is a member of the target team (existing validation)
     user_is_target_team_member = OrganizationMemberTeam.objects.filter(
         team_id=assigned_actor.id,
         organizationmember__user_id=user.id,
@@ -1094,20 +1079,27 @@ def validate_bulk_reassignment(
     if user_is_target_team_member:
         return
 
-    # Get current assignees for all groups
-    current_assignees = GroupAssignee.objects.filter(group__in=group_list).select_related("team")
-
-    current_team_ids = {
-        assignee.team_id for assignee in current_assignees if assignee.team_id is not None
+    current_assignees = {
+        assignee.group_id: assignee
+        for assignee in GroupAssignee.objects.filter(group__in=group_list).select_related("team")
     }
 
-    if not current_team_ids:
-        # No current team assignments, and user is not a member of target team
+    groups_with_team_assignment = {
+        group_id for group_id, assignee in current_assignees.items() if assignee.team_id is not None
+    }
+    all_group_ids = {group.id for group in group_list}
+
+    if groups_with_team_assignment != all_group_ids:
+        # Some groups are either unassigned or assigned to users (not teams)
+        # User cannot reassign these to a team they're not a member of
         raise serializers.ValidationError(
             {"assignedTo": "You do not have permission to assign this owner"}
         )
 
-    # Check if user is a member of ALL currently assigned teams
+    current_team_ids = {
+        current_assignees[group_id].team_id for group_id in groups_with_team_assignment
+    }
+
     user_team_memberships = set(
         OrganizationMemberTeam.objects.filter(
             team_id__in=current_team_ids,

@@ -1535,6 +1535,45 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
         assert not GroupAssignee.objects.filter(group=group, team=third_team).exists()
 
+    def test_bulk_reassign_with_unassigned_groups_blocked(self) -> None:
+        """
+        Test that bulk updates with a mix of assigned and unassigned groups are blocked.
+
+        This prevents unassigned groups from piggybacking on permission granted by
+        assigned groups (authorization bypass vulnerability).
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        group1 = self.create_group()
+        group2 = self.create_group()
+
+        member_user = self.create_user("member@example.com")
+        member_team = self.create_team(organization=group1.project.organization, name="member-team")
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[member_team]
+        )
+        group1.project.add_team(member_team)
+
+        target_team = self.create_team(organization=group1.project.organization, name="target-team")
+        group1.project.add_team(target_team)
+
+        GroupAssignee.objects.assign(group1, member_team, member_user)
+        assert GroupAssignee.objects.filter(group=group1, team=member_team).exists()
+        assert not GroupAssignee.objects.filter(group=group2).exists()
+
+        self.login_as(user=member_user)
+
+        # This should fail because group2 is unassigned (no permission to newly assign)
+        url = f"{self.path}?id={group1.id}&id={group2.id}"
+        response = self.client.put(url, data={"assignedTo": f"team:{target_team.id}"})
+
+        # Should fail - can't piggyback unassigned group on assigned group's permission
+        assert response.status_code == 400, response.content
+        assert "do not have permission" in str(response.data) or "permission" in str(response.data)
+        assert GroupAssignee.objects.filter(group=group1, team=member_team).exists()
+        assert not GroupAssignee.objects.filter(group=group2).exists()
+
     def test_discard(self) -> None:
         group1 = self.create_group(is_public=True)
         group2 = self.create_group(is_public=True)
