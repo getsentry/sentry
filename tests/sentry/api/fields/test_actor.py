@@ -166,3 +166,52 @@ class OwnerActorFieldTest(TestCase):
                 )
             ]
         }
+
+    def test_member_can_reassign_from_own_team_to_any_team(self) -> None:
+        """Members can reassign ownership from their team to any team."""
+        from sentry.types.actor import Actor
+
+        # Current owner is self.team which self.user is a member of
+        current_owner = Actor.from_id(user_id=None, team_id=self.team.id)
+
+        request = self.make_request(user=self.user)
+        serializer = DummyOwnerSerializer(
+            data={"owner": f"team:{self.other_team.id}"},
+            context={
+                "organization": self.organization,
+                "request": request,
+                "current_owner": current_owner,
+            },
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["owner"].id == self.other_team.id
+        assert serializer.validated_data["owner"].is_team
+
+    def test_member_cannot_reassign_from_other_team(self) -> None:
+        """Members cannot reassign ownership from a team they don't belong to."""
+        from sentry.types.actor import Actor
+
+        # Current owner is other_team which self.user is NOT a member of
+        current_owner = Actor.from_id(user_id=None, team_id=self.other_team.id)
+
+        # Create a third team to try to assign to
+        third_team = self.create_team(organization=self.organization, name="third-team")
+
+        request = self.make_request(user=self.user)
+        serializer = DummyOwnerSerializer(
+            data={"owner": f"team:{third_team.id}"},
+            context={
+                "organization": self.organization,
+                "request": request,
+                "current_owner": current_owner,
+            },
+        )
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            "owner": [
+                ErrorDetail(
+                    string="You do not have permission to assign this owner",
+                    code="invalid",
+                )
+            ]
+        }
