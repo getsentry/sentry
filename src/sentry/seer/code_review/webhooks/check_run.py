@@ -25,7 +25,6 @@ from ..metrics import (
     record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
-    record_webhook_received,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,6 +69,7 @@ def handle_check_run_event(
     *,
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
+    action: GitHubCheckRunAction,
     extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
@@ -81,27 +81,22 @@ def handle_check_run_event(
     Args:
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
         event: The webhook event payload
-        organization: The Sentry organization that the webhook event belongs to
+        action: The validated check_run action
         **kwargs: Additional keyword arguments
     """
+    # Defensive check - this handler should only be called for CHECK_RUN events
     if github_event != GithubWebhookType.CHECK_RUN:
-        return
-
-    action = event.get("action")
-
-    if action is None:
-        logger.error(Log.MISSING_ACTION.value, extra=extra)
-        record_webhook_handler_error(
-            github_event,
-            action or "",
-            CodeReviewErrorType.MISSING_ACTION,
+        logger.warning(
+            "check_run.handler.wrong-event-type",
+            extra={**extra, "github_event": github_event.value},
         )
+        record_webhook_filtered(github_event, action.value, WebhookFilteredReason.HANDLER_NOT_FOUND)
         return
-
-    record_webhook_received(github_event, action)
 
     if action != GitHubCheckRunAction.REREQUESTED:
-        record_webhook_filtered(github_event, action, WebhookFilteredReason.UNSUPPORTED_ACTION)
+        record_webhook_filtered(
+            github_event, action.value, WebhookFilteredReason.UNSUPPORTED_ACTION
+        )
         return
 
     try:
@@ -111,7 +106,7 @@ def handle_check_run_event(
         logger.exception(Log.INVALID_PAYLOAD.value, extra=extra)
         record_webhook_handler_error(
             github_event,
-            action,
+            action.value,
             CodeReviewErrorType.INVALID_PAYLOAD,
         )
         return
@@ -129,7 +124,7 @@ def handle_check_run_event(
         html_url=validated_event.check_run.html_url,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
-    record_webhook_enqueued(github_event, action)
+    record_webhook_enqueued(github_event, action.value)
 
 
 def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:

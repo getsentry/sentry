@@ -14,7 +14,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
-from ..metrics import WebhookFilteredReason, record_webhook_filtered, record_webhook_received
+from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_eyes_reaction
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,7 @@ def handle_issue_comment_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    action: GitHubIssueCommentAction,
     integration: RpcIntegration | None = None,
     extra: Mapping[str, str | None],
     **kwargs: Any,
@@ -55,12 +56,9 @@ def handle_issue_comment_event(
     """
     Handle issue_comment webhook events for PR review commands.
     """
-    github_event_action = event.get("action", "")
-    record_webhook_received(github_event, github_event_action)
-
-    if github_event_action != GitHubIssueCommentAction.CREATED:
+    if action != GitHubIssueCommentAction.CREATED:
         record_webhook_filtered(
-            github_event, github_event_action, WebhookFilteredReason.UNSUPPORTED_ACTION
+            github_event, action.value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         logger.info(Log.UNSUPPORTED_ACTION.value, extra=extra)
         return
@@ -72,15 +70,13 @@ def handle_issue_comment_event(
 
     issue = event.get("issue", {})
     if not issue.get("pull_request"):
-        record_webhook_filtered(
-            github_event, github_event_action, WebhookFilteredReason.NOT_PR_COMMENT
-        )
+        record_webhook_filtered(github_event, action.value, WebhookFilteredReason.NOT_PR_COMMENT)
         logger.info(Log.NOT_PR_COMMENT.value, extra=extra)
         return
 
     if not is_pr_review_command(comment_body or ""):
         record_webhook_filtered(
-            github_event, github_event_action, WebhookFilteredReason.NOT_REVIEW_COMMAND
+            github_event, action.value, WebhookFilteredReason.NOT_REVIEW_COMMAND
         )
         logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
         return
@@ -88,7 +84,7 @@ def handle_issue_comment_event(
     if comment_id:
         delete_existing_reactions_and_add_eyes_reaction(
             github_event=github_event,
-            github_event_action=github_event_action,
+            github_event_action=action.value,
             integration=integration,
             organization_id=organization.id,
             repo=repo,
@@ -101,11 +97,14 @@ def handle_issue_comment_event(
 
     from .task import schedule_task
 
-    schedule_task(
+    enqueued = schedule_task(
         github_event=github_event,
-        github_event_action=github_event_action,
+        github_event_action=action.value,
         event=event,
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
     )
+
+    if enqueued:
+        record_webhook_enqueued(github_event, action.value)

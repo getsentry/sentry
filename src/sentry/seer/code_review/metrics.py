@@ -19,6 +19,8 @@ class WebhookFilteredReason(StrEnum):
     INVALID_PAYLOAD = "invalid_payload"  # Validation failed
     TRANSFORM_FAILED = "transform_failed"  # Couldn't build Seer payload
     TRIGGER_DISABLED = "trigger_disabled"  # Trigger not enabled in repo settings
+    DRAFT_PR = "draft_pr"  # PR is in draft state
+    HANDLER_NOT_FOUND = "handler_not_found"  # No handler registered for event type
 
 
 CodeReviewFilteredReason = WebhookFilteredReason | PreflightDenialReason

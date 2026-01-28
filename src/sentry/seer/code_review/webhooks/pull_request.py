@@ -19,9 +19,9 @@ from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigg
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
+    record_webhook_enqueued,
     record_webhook_filtered,
     record_webhook_handler_error,
-    record_webhook_received,
 )
 from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_eyes_reaction
 
@@ -90,6 +90,7 @@ def handle_pull_request_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    action: PullRequestAction,
     integration: RpcIntegration | None = None,
     org_code_review_settings: CodeReviewSettings | None = None,
     extra: Mapping[str, str | None],
@@ -108,27 +109,10 @@ def handle_pull_request_event(
         )
         return
 
-    action_value = event.get("action")
-    if not action_value or not isinstance(action_value, str):
-        logger.warning(Log.MISSING_ACTION.value, extra=extra)
-        record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
-        return
-
-    record_webhook_received(github_event, action_value)
-
-    try:
-        action = PullRequestAction(action_value)
-    except ValueError:
-        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
-        record_webhook_filtered(
-            github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
-        )
-        return
-
     if action not in WHITELISTED_ACTIONS:
         logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
         record_webhook_filtered(
-            github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
+            github_event, action.value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
@@ -137,19 +121,20 @@ def handle_pull_request_event(
         org_code_review_settings is None
         or action_requires_trigger_permission not in org_code_review_settings.triggers
     ):
-        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        record_webhook_filtered(github_event, action.value, WebhookFilteredReason.TRIGGER_DISABLED)
         return
 
     # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
     # even if the PR was converted to draft before closing
     if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
+        record_webhook_filtered(github_event, action.value, WebhookFilteredReason.DRAFT_PR)
         return
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
         delete_existing_reactions_and_add_eyes_reaction(
             github_event=github_event,
-            github_event_action=action_value,
+            github_event_action=action.value,
             integration=integration,
             organization_id=organization.id,
             repo=repo,
@@ -160,11 +145,14 @@ def handle_pull_request_event(
 
     from .task import schedule_task
 
-    schedule_task(
+    enqueued = schedule_task(
         github_event=github_event,
-        github_event_action=action_value,
+        github_event_action=action.value,
         event=event,
         organization=organization,
         repo=repo,
         target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
     )
+
+    if enqueued:
+        record_webhook_enqueued(github_event, action.value)
