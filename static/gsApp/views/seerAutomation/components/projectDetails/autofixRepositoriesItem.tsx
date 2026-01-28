@@ -119,7 +119,9 @@ export function AutofixRepositoriesItem({
           size="zero"
           priority="transparent"
         >
-          {repository.name}
+          <Text size="md">
+            {[repository.owner, repository.name].filter(Boolean).join('/')}
+          </Text>
         </RowButton>
       </Flex>
 
