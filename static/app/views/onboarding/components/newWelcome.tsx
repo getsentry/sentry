@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import SeerIllustration from 'sentry-images/spot/seer-onboarding.webp';
+import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
