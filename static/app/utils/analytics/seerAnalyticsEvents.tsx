@@ -27,6 +27,7 @@ export type SeerAnalyticsEventsParameters = {
   'seer.explorer.feedback_submitted': {
     block_index: number;
     block_message: string;
+    conversations_url: string | undefined;
     explorer_url: string | undefined;
     langfuse_url: string | undefined;
     run_id: number | undefined;
