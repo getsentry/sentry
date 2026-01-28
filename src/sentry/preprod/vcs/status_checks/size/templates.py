@@ -58,6 +58,8 @@ def format_status_check_messages(
                             analyzed_count += 1
                         case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
                             errored_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
+                            errored_count += 1
                         case _:
                             raise ValueError(f"Unknown size analysis state: {metrics.state}")
 

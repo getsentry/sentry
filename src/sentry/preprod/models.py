@@ -540,6 +540,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """Size analysis completed successfully."""
         FAILED = 3
         """Size analysis failed. See error_code and error_message for details."""
+        NOT_RAN = 4
+        """Size analysis not ran. See error_code and error_message for details."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -548,6 +550,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.PROCESSING, "processing"),
                 (cls.COMPLETED, "completed"),
                 (cls.FAILED, "failed"),
+                (cls.NOT_RAN, "not_ran"),
             )
 
     class ErrorCode(IntEnum):
@@ -559,6 +562,10 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """The artifact type is not supported for size analysis."""
         PROCESSING_ERROR = 3
         """An error occurred during size analysis processing."""
+        NO_QUOTA = 4
+        """NOT_RAN state: No quota available."""
+        SKIPPED = 5
+        """NOT_RAN state: Size analysis was not requested on this build."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -567,6 +574,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.TIMEOUT, "timeout"),
                 (cls.UNSUPPORTED_ARTIFACT, "unsupported_artifact"),
                 (cls.PROCESSING_ERROR, "processing_error"),
+                (cls.NO_QUOTA, "no_quota"),
+                (cls.SKIPPED, "skipped"),
             )
 
     __relocation_scope__ = RelocationScope.Excluded
