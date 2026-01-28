@@ -1,9 +1,10 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
+import SeerIllustration from 'sentry-images/spot/seer-config-main.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -11,12 +12,12 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {DO_NOT_USE_getButtonStyles as getButtonStyles} from 'sentry/components/core/button/styles';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {
+  IconCheckmark,
   IconGraph,
+  IconInfo,
   IconProfiling,
   IconSeer,
   IconSpan,
@@ -54,6 +55,7 @@ type ProductOption = {
   title: string;
 };
 
+// Product options in display order (3x2 grid: row1: Error, Logging, Session; row2: Metrics, Tracing, Profiling)
 const PRODUCT_OPTIONS: ProductOption[] = [
   {
     id: 'error-monitoring',
@@ -68,16 +70,16 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     description: t('See logs in context with errors and performance issues'),
   },
   {
-    id: 'metrics',
-    icon: <IconGraph size="sm" />,
-    title: t('Metrics'),
-    description: t('Custom metrics for tracking application performance and usage'),
-  },
-  {
     id: 'session-replay',
     icon: <IconTimer size="sm" />,
     title: t('Session replay'),
     description: t('Watch real user sessions to see what went wrong'),
+  },
+  {
+    id: 'metrics',
+    icon: <IconGraph size="sm" />,
+    title: t('Metrics'),
+    description: t('Custom metrics for tracking application performance and usage'),
   },
   {
     id: 'tracing',
@@ -94,48 +96,21 @@ const PRODUCT_OPTIONS: ProductOption[] = [
 ];
 
 type ProductCardProps = {
-  checked: boolean;
   description: string;
   icon: React.ReactNode;
-  onToggle: () => void;
   title: string;
 };
 
-function ProductCard({
-  icon,
-  title,
-  description,
-  checked,
-  id,
-  onToggle,
-}: ProductCardProps) {
+function ProductCard({icon, title, description}: ProductCardProps) {
   return (
-    <ProductCardContainer
-      checked={checked}
-      onClick={onToggle}
-      role="checkbox"
-      aria-checked={checked}
-      disabled={id === 'error-monitoring'}
-      tabIndex={0}
-      onKeyDown={(e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onToggle();
-        }
-      }}
-    >
-      <span>
-        <Flex justify="between" align="center">
-          <ProductIcon checked={checked}>{icon}</ProductIcon>
-          <Checkbox checked={checked} readOnly size="sm" tabIndex={-1} />
-        </Flex>
-        <Flex direction="column" gap="xs">
-          <ProductTitle>{title}</ProductTitle>
-          <ProductDescription checked={checked} size="sm">
-            {description}
-          </ProductDescription>
-        </Flex>
-      </span>
+    <ProductCardContainer border="primary" radius="md" padding="md">
+      <ProductIcon>{icon}</ProductIcon>
+      <Flex direction="column" gap="xs">
+        <ProductTitle>{title}</ProductTitle>
+        <Text variant="muted" size="sm">
+          {description}
+        </Text>
+      </Flex>
     </ProductCardContainer>
   );
 }
@@ -143,9 +118,6 @@ function ProductCard({
 function NewWelcomeUI(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
-    () => new Set(['error-monitoring'])
-  );
 
   const source = 'targeted_onboarding';
 
@@ -159,18 +131,6 @@ function NewWelcomeUI(props: StepProps) {
       onboardingContext.setSelectedPlatform(undefined);
     }
   }, [organization, onboardingContext]);
-
-  const handleToggleProduct = useCallback((productId: string) => {
-    setSelectedProducts(prev => {
-      const next = new Set(prev);
-      if (next.has(productId)) {
-        next.delete(productId);
-      } else {
-        next.add(productId);
-      }
-      return next;
-    });
-  }, []);
 
   const handleComplete = useCallback(() => {
     trackAnalytics('growth.onboarding_clicked_instrument_app', {
@@ -189,62 +149,66 @@ function NewWelcomeUI(props: StepProps) {
           <NewWelcomeTitle>{t('Welcome to Sentry')}</NewWelcomeTitle>
           <Text variant="muted">
             {t(
-              "Your code is probably broken. Maybe not. Tell us what you care about and we'll get you set up, fast."
+              "Your code is probably broken, and we'll help you fix it faster. We're not just error monitoring anymore y'know."
             )}
           </Text>
         </Flex>
 
-        <MainContentGrid>
-          <ProductSelectionSection>
+        <TrialInfoLine>
+          <IconCheckmark variant="success" size="sm" />
+          <Text>
+            {t('Your 14-day business trial includes')}{' '}
+            <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
+              {t('unlimited access')}
+            </ExternalLink>{' '}
+            {t('to:')}
+          </Text>
+        </TrialInfoLine>
+
+        <ProductGrid>
+          {PRODUCT_OPTIONS.map(product => (
+            <ProductCard
+              key={product.id}
+              icon={product.icon}
+              title={product.title}
+              description={product.description}
+            />
+          ))}
+        </ProductGrid>
+
+        <PlusSeparator>+</PlusSeparator>
+
+        <SeerCard border="primary" radius="md">
+          <SeerCardContent>
+            <IconSeer size="sm" />
             <Flex direction="column" gap="xs">
-              <SectionTitle>{t('What do you want to set up?')}</SectionTitle>
+              <Flex gap="sm" align="center">
+                <ProductTitle>{t('Seer: AI Debugging Agent')}</ProductTitle>
+                <FeatureBadge type="new" tooltipProps={{disabled: true}} />
+              </Flex>
               <Text variant="muted" size="sm">
                 {t(
-                  "Select all that apply and we'll tailor the setup steps. You can change this at anytime."
+                  "Analyze issues, review PRs, and propose code fixes. Because of course we have an AI tool, it's 2026."
                 )}
               </Text>
-            </Flex>
-
-            <ProductGrid>
-              {PRODUCT_OPTIONS.map(product => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  icon={product.icon}
-                  title={product.title}
-                  description={product.description}
-                  checked={selectedProducts.has(product.id)}
-                  onToggle={() => handleToggleProduct(product.id)}
-                />
-              ))}
-            </ProductGrid>
-          </ProductSelectionSection>
-
-          <SeerSection>
-            <Text variant="muted" size="sm">
-              {t('Your 14-day business trial also includes')}{' '}
-              <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
-                {t('unlimited access')}
-              </ExternalLink>{' '}
-              {t('to:')}
-            </Text>
-            <SeerCard border="primary" radius="md" padding="md">
               <Flex gap="xs" align="center">
-                <FeatureBadge type="new" tooltipProps={{disabled: true}} />
-                <IconSeer size="sm" />
-              </Flex>
-              <Flex direction="column" gap="xs">
-                <ProductTitle>{t('Seer: AI Debugging Agent')}</ProductTitle>
-                <Text variant="muted" size="sm">
-                  {t('Analyze issues, review PRs, and propose code fixes.')}
+                <IconInfo size="xs" />
+                <Text variant="muted" size="xs">
+                  {t('Requires additional setup')}
                 </Text>
               </Flex>
-              <Text variant="muted" size="xs">
-                {t('*Requires connection to GitHub')}
-              </Text>
-            </SeerCard>
-          </SeerSection>
-        </MainContentGrid>
+            </Flex>
+          </SeerCardContent>
+          <SeerIllustrationWrapper>
+            <img src={SeerIllustration} alt="" />
+          </SeerIllustrationWrapper>
+        </SeerCard>
+
+        <Text variant="muted" size="sm">
+          {t(
+            "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
+          )}
+        </Text>
       </ContentWrapper>
       <GenericFooter>
         {props.genSkipOnboardingLink()}
@@ -483,100 +447,75 @@ const NewWelcomeTitle = styled('h1')`
   margin: 0;
 `;
 
-const SectionTitle = styled('h2')`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin: 0;
-`;
-
-const MainContentGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: ${space(4)};
-  align-items: start;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const ProductSelectionSection = styled('div')`
+const TrialInfoLine = styled('div')`
   display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const ProductGrid = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: ${space(1.5)};
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
   }
 `;
 
-const ProductCardContainer = styled('div')<{checked: boolean}>`
-  cursor: pointer;
-  text-align: left;
-
-  ${p => ({
-    ...getButtonStyles({
-      ...p,
-      size: 'md',
-      priority: p.checked ? 'primary' : 'default',
-    }),
-  })}
-
-  /* Override button sizing to work as a card */
-  height: auto;
-  min-height: auto;
-  padding: ${space(2)};
-
-  /* Content layout */
-  > span:last-child {
-    display: flex;
-    flex-direction: column;
-    gap: ${space(1.5)};
-    align-items: stretch;
-    white-space: normal;
-  }
+const ProductCardContainer = styled(Container)`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
 `;
 
-const ProductIcon = styled('div')<{checked: boolean}>`
-  color: ${p =>
-    p.checked
-      ? p.theme.tokens.interactive.chonky.embossed.accent.content
-      : p.theme.tokens.content.secondary};
-`;
-
-const ProductDescription = styled(Text)<{checked: boolean}>`
-  color: ${p =>
-    p.checked
-      ? p.theme.tokens.interactive.chonky.embossed.accent.content
-      : p.theme.tokens.content.secondary};
+const ProductIcon = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ProductTitle = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const SeerSection = styled('div')`
+const PlusSeparator = styled('div')`
   display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
-  max-width: 280px;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 100%;
-  }
+  justify-content: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const SeerCard = styled(Container)`
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(2)};
+  overflow: hidden;
+`;
+
+const SeerCardContent = styled('div')`
+  display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-  background: ${p => p.theme.tokens.background.secondary};
+  flex: 1;
+  padding: ${space(2)};
+`;
+
+const SeerIllustrationWrapper = styled('div')`
+  flex-shrink: 0;
+
+  img {
+    display: block;
+    max-height: 140px;
+    width: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: none;
+  }
 `;
 
 const NextButtonWrapper = styled('div')`
