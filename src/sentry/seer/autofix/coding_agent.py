@@ -455,7 +455,15 @@ def launch_coding_agents_for_run(
     )
 
     if not results["successes"] and not results["failures"]:
-        raise APIException("No agents were launched")
+        # This can happen when no repos are configured - log a warning but don't raise an error
+        logger.warning(
+            "coding_agent.no_agents_launched",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+            },
+        )
+        return results
 
     logger.info(
         "coding_agent.launch_result",
