@@ -347,6 +347,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             recovery_threshold=validated_data["recovery_threshold"],
             downtime_threshold=validated_data["downtime_threshold"],
             assertion=validated_data.get("assertion", None),
+            response_capture_enabled=validated_data.get("response_capture_enabled", True),
             **method_headers_body,
         )
 
@@ -558,6 +559,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
                 headers=validated_data.get("headers", None),
                 body=validated_data.get("body", None),
                 assertion=validated_data.get("assertion", None),
+                response_capture_enabled=validated_data.get("response_capture_enabled", True),
             )
         return uptime_subscription
 
