@@ -83,11 +83,18 @@ interface BuildDetailsSizeInfoFailed {
   state: BuildDetailsSizeAnalysisState.FAILED;
 }
 
+interface BuildDetailsSizeInfoNotRan {
+  error_code: number;
+  error_message: string;
+  state: BuildDetailsSizeAnalysisState.NOT_RAN;
+}
+
 export type BuildDetailsSizeInfo =
   | BuildDetailsSizeInfoPending
   | BuildDetailsSizeInfoProcessing
   | BuildDetailsSizeInfoCompleted
-  | BuildDetailsSizeInfoFailed;
+  | BuildDetailsSizeInfoFailed
+  | BuildDetailsSizeInfoNotRan;
 
 export function isSizeInfoCompleted(
   sizeInfo: BuildDetailsSizeInfo | undefined
