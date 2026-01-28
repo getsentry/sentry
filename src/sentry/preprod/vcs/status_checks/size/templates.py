@@ -108,7 +108,7 @@ def format_status_check_messages(
         # Failed apps section
         summary_parts.append(failed_header)
         summary_parts.append(_format_artifact_summary(failed_artifacts, size_metrics_map))
-        summary_parts.append(_format_failed_checks_details(triggered_rules, settings_url))
+        summary_parts.append(_format_failed_checks_details(triggered_rules))
 
         # Passed apps section (if any)
         if passed_artifacts:
@@ -150,6 +150,9 @@ def _format_artifact_summary(
 ) -> str:
     """Format summary for artifacts with size data."""
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
+
+    if not artifact_metric_rows:
+        return ""
 
     grouped_rows: dict[str, list[str]] = {"android": [], "ios": []}
     group_order: list[str] = []
@@ -283,10 +286,7 @@ def _get_settings_url(
     return project.organization.absolute_url(base_url)
 
 
-def _format_failed_checks_details(
-    triggered_rules: list[TriggeredRule],
-    settings_url: str,
-) -> str:
+def _format_failed_checks_details(triggered_rules: list[TriggeredRule]) -> str:
     """Format the <details> section for failed checks grouped by bundle."""
     if not triggered_rules:
         return ""
@@ -445,12 +445,16 @@ def _get_size_metric_type_display_name(
 
 
 def _create_sorted_artifact_metric_rows(
-    artifacts: list[PreprodArtifact], size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]]
+    artifacts: list[PreprodArtifact],
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
 ) -> list[tuple[PreprodArtifact, PreprodArtifactSizeMetrics | None]]:
     """Create sorted list of (artifact, metric) pairs for display.
 
     Returns one row per metric type per artifact, sorted so that all metrics for each
     artifact appear together, with MAIN_ARTIFACT first, then WATCH_ARTIFACT, etc.
+
+    Artifacts still processing are excluded from the table (but still counted
+    in the subtitle via format_status_check_messages).
     """
     rows: list[tuple[PreprodArtifact, PreprodArtifactSizeMetrics | None]] = []
 
@@ -467,6 +471,12 @@ def _create_sorted_artifact_metric_rows(
             )
 
             for metric in sorted_metrics:
+                # Skip metrics that have not completed processing yet
+                if metric.state in (
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+                ):
+                    continue
                 rows.append((artifact, metric))
 
     return rows

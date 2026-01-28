@@ -52,9 +52,11 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 
                 assert title == "Size Analysis"
                 assert subtitle == "1 app processing"
-                assert "Processing..." in summary
-                assert "com.example.app" in summary
-                assert "1.0.0 (1)" in summary
+                # Processing artifacts are filtered out of the table
+                assert "Processing..." not in summary
+                assert "com.example.app" not in summary
+                # Only the configure link should be present
+                assert "Configure" in summary
 
     def test_processed_state_without_metrics(self):
         """Test that processed state without size metrics raises an error."""
@@ -115,14 +117,26 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             with self.subTest(version=version, build_number=build_number):
                 artifact = self.create_preprod_artifact(
                     project=self.project,
-                    state=PreprodArtifact.ArtifactState.UPLOADING,
+                    state=PreprodArtifact.ArtifactState.PROCESSED,
                     app_id="com.example.app",
                     build_version=version,
                     build_number=build_number,
                 )
 
+                size_metrics = self.create_preprod_artifact_size_metrics(
+                    artifact,
+                    metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    min_download_size=1024 * 1024,
+                    max_download_size=1024 * 1024,
+                    min_install_size=2 * 1024 * 1024,
+                    max_install_size=2 * 1024 * 1024,
+                )
+
+                size_metrics_map = {artifact.id: [size_metrics]}
+
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project
+                    [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
                 )
 
                 assert expected in summary
@@ -152,9 +166,12 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 
         assert title == "Size Analysis"
         assert subtitle == "2 apps processing"
-        assert "Processing..." in summary
-        assert "com.example.app0" in summary
-        assert "com.example.app1" in summary
+        # Processing artifacts are filtered out of the table
+        assert "Processing..." not in summary
+        assert "com.example.app0" not in summary
+        assert "com.example.app1" not in summary
+        # Only the configure link should be present
+        assert "Configure" in summary
 
     def test_mixed_processing_and_completed_metric_states_per_artifact(self):
         """Test formatting when one metric is completed and another is processing."""
@@ -196,11 +213,12 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 
         assert title == "Size Analysis"
         assert subtitle == "1 app analyzed, 1 app processing"
-        # Should have two rows - main app shows sizes, watch shows processing
+        # Should have only one row - main app shows sizes, watch is filtered out
         assert "`com.example.app`" in summary
-        assert "(Android, Watch)" in summary or "(iOS, Watch)" in summary
         assert "1.0 MB" in summary  # Main app completed
-        assert "Processing..." in summary  # Watch app processing
+        # Watch app (processing) is filtered out of the table
+        assert "Processing..." not in summary
+        assert "(Android, Watch)" not in summary and "(iOS, Watch)" not in summary
 
     def test_size_metrics_still_processing(self):
         """Test formatting when size metrics are in processing states (PENDING/RUNNING)."""
@@ -231,16 +249,13 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert title == "Size Analysis"
         assert subtitle == "1 app processing"
 
-        # Verify processing state is shown in table
-        assert "com.example.processing" in summary
-        assert "2.1.0 (15)" in summary
-        assert "Processing..." in summary
+        # Processing artifacts are filtered out of the table
+        assert "com.example.processing" not in summary
+        assert "2.1.0 (15)" not in summary
+        assert "Processing..." not in summary
 
-        # Should show processing for both size columns
-        lines = summary.split("\n")
-        data_line = next(line for line in lines if "com.example.processing" in line)
-        processing_count = data_line.count("Processing...")
-        assert processing_count == 2  # Download and install columns both show "Processing..."
+        # Only the configure link should be present
+        assert "Configure" in summary
 
 
 @region_silo_test
