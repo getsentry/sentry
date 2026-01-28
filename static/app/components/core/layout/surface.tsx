@@ -20,7 +20,7 @@ interface OverlaySurfaceProps<T extends ContainerElement = 'div'>
   elevation?: 'low' | 'medium' | 'high';
 }
 
-export type SurfaceProps<T extends ContainerElement = 'div'> =
+type SurfaceProps<T extends ContainerElement = 'div'> =
   | FlatSurfaceProps<T>
   | OverlaySurfaceProps<T>;
 

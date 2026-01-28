@@ -4,6 +4,7 @@ import {motion} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 import {Surface, type ContainerProps} from '@sentry/scraps/layout';
+import {isResponsive} from '@sentry/scraps/layout/styles';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -47,6 +48,7 @@ export function SlideOverPanel({children, ...props}: SlideOverPanelProps) {
   const isOpening = isTransitioning || !isContentVisible;
 
   const id = useId();
+
   return (
     <BoundaryContextProvider value={id}>
       <MotionSurface
@@ -93,13 +95,12 @@ function getSlideoutPlacementStyles(
       return {
         position: 'fixed',
         height: {'2xs': `calc(100vh - ${theme.space.lg})`, sm: '100%'},
-        width:
-          typeof props.width === 'string'
-            ? {
-                '2xs': `calc(100vw - ${theme.space.lg})`,
-                sm: props.width ?? RIGHT_SIDE_PANEL_WIDTH,
-              }
-            : props.width,
+        width: isResponsive(props.width)
+          ? props.width
+          : {
+              '2xs': `calc(100vw - ${theme.space.lg})`,
+              sm: props.width ?? RIGHT_SIDE_PANEL_WIDTH,
+            },
         right: 0,
         top: {'2xs': theme.space.md, sm: 0},
         bottom: {'2xs': theme.space.md, sm: 0},
@@ -108,7 +109,12 @@ function getSlideoutPlacementStyles(
     case 'left':
       return {
         position: {'2xs': 'fixed', sm: 'relative'},
-        width: props.width ?? LEFT_SIDE_PANEL_WIDTH,
+        width: isResponsive(props.width)
+          ? (props.width ?? LEFT_SIDE_PANEL_WIDTH)
+          : {
+              '2xs': `calc(100vw - ${theme.space.lg})`,
+              sm: props.width ?? LEFT_SIDE_PANEL_WIDTH,
+            },
         minWidth: '450px',
         height: '100%',
         left: 0,
@@ -124,19 +130,13 @@ function getSlideoutPlacementStyles(
 
 const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
-const BOTTOM_SIDE_PANEL_HEIGHT = '50vh';
 
 const OPEN_STYLES = {
-  bottom: {transform: 'translateX(0) translateY(0)', opacity: 1},
   right: {transform: 'translateX(0) translateY(0)', opacity: 1},
   left: {transform: 'translateX(0) translateY(0)', opacity: 1},
 };
 
 const COLLAPSED_STYLES = {
-  bottom: {
-    transform: `translateX(0) translateY(${BOTTOM_SIDE_PANEL_HEIGHT})`,
-    opacity: 0,
-  },
   right: {transform: `translateX(${RIGHT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
   left: {transform: `translateX(-${LEFT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
 };
