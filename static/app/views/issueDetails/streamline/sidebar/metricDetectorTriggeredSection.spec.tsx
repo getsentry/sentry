@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {SnubaQueryDataSourceFixture} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -19,6 +20,12 @@ describe('MetricDetectorTriggeredSection', () => {
   const dataSource = SnubaQueryDataSourceFixture();
   const openPeriodStartDate = '2024-01-01T00:00:00Z';
   const openPeriodEndDate = '2024-01-01T00:05:00.000Z';
+  const defaultGroup = GroupFixture();
+  const defaultEvent = EventFixture();
+  const defaultProps: ComponentProps<typeof MetricDetectorTriggeredSection> = {
+    group: defaultGroup,
+    event: defaultEvent,
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -54,7 +61,9 @@ describe('MetricDetectorTriggeredSection', () => {
       occurrence: null,
     });
 
-    const {container} = render(<MetricDetectorTriggeredSection event={event} />);
+    const {container} = render(
+      <MetricDetectorTriggeredSection {...defaultProps} event={event} />
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -78,7 +87,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricDetectorTriggeredSection event={event} />);
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     expect(screen.getByRole('region', {name: 'Message'})).toBeInTheDocument();
     expect(screen.getByText('Subtitle')).toBeInTheDocument();
@@ -103,7 +112,9 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    const {container} = render(<MetricDetectorTriggeredSection event={event} />);
+    const {container} = render(
+      <MetricDetectorTriggeredSection {...defaultProps} event={event} />
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -127,7 +138,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricDetectorTriggeredSection event={event} />);
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     // Check sections exist by aria-label
     expect(await screen.findByRole('region', {name: 'Message'})).toBeInTheDocument();
@@ -180,7 +191,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricDetectorTriggeredSection event={event} />);
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     await waitFor(() => {
       expect(
@@ -239,7 +250,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricDetectorTriggeredSection event={event} />);
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     // Check that the boolean logic error alert is shown
     expect(

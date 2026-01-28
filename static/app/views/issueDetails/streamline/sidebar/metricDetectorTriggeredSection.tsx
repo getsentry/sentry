@@ -19,6 +19,7 @@ import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventOccurrence} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {
   MetricCondition,
   MetricDetectorConfig,
@@ -59,6 +60,7 @@ interface MetricDetectorEvidenceData {
 
 interface MetricDetectorTriggeredSectionProps {
   event: Event;
+  group: Group;
 }
 
 function isMetricDetectorEvidenceData(
@@ -254,16 +256,16 @@ function OpenInDestinationButton({
 }
 
 function TriggeredConditionDetails({
+  evidenceData,
   eventDateCreated,
   eventId,
-  evidenceData,
   groupId,
   projectId,
 }: {
   eventDateCreated: string | undefined;
-  eventId: string | undefined;
+  eventId: string;
   evidenceData: MetricDetectorEvidenceData;
-  groupId: string | undefined;
+  groupId: string;
   projectId: string | number;
 }) {
   const {conditions, dataSources, value} = evidenceData;
@@ -271,13 +273,10 @@ function TriggeredConditionDetails({
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
   const triggeredCondition = conditions[0];
   const [fallbackEndDate] = useState(() => new Date().toISOString());
-  const {openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod(
-    {
-      groupId: groupId ?? '',
-      eventId: eventId ?? '',
-    },
-    {enabled: Boolean(groupId && eventId)}
-  );
+  const {openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
+    groupId,
+    eventId,
+  });
   const endDate = openPeriod?.end ?? fallbackEndDate;
 
   if (!triggeredCondition || !snubaQuery || !eventDateCreated) {
@@ -389,6 +388,7 @@ const GroupListWrapper = styled('div')`
 `;
 
 export function MetricDetectorTriggeredSection({
+  group,
   event,
 }: MetricDetectorTriggeredSectionProps) {
   const evidenceData = event.occurrence?.evidenceData;
@@ -410,7 +410,7 @@ export function MetricDetectorTriggeredSection({
           evidenceData={evidenceData}
           eventDateCreated={event.dateCreated}
           eventId={event.eventID}
-          groupId={event.groupID}
+          groupId={group.id}
           projectId={event.projectID}
         />
       </ErrorBoundary>
