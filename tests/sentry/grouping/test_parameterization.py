@@ -173,7 +173,7 @@ def test_parameterize_experimental(
 
 
 # These are test cases that we should fix
-@pytest.mark.xfail()
+@pytest.mark.xfail(strict=True)
 @pytest.mark.parametrize(
     ("name", "input", "expected"),
     [
@@ -191,7 +191,7 @@ def test_fail_parameterize(
 
 
 # These are test cases where we're too aggressive
-@pytest.mark.xfail()
+@pytest.mark.xfail(strict=True)
 @pytest.mark.parametrize(
     ("name", "input", "expected"),
     [
