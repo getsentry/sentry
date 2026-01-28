@@ -386,6 +386,13 @@ def _get_associated_workflows(
     This is a wrapper method to get the workflows associated with a detector and environment.
     Used in process_workflows to wrap the query + logging into a single method
     """
+    detector_ids = []
+    detector_types = []
+
+    for detector in detectors:
+        detector_ids.append(detector.id)
+        detector_types.append(detector.type)
+
     environment_filter = (
         (Q(environment_id=None) | Q(environment_id=environment.id))
         if environment
@@ -394,7 +401,7 @@ def _get_associated_workflows(
     workflows = set(
         Workflow.objects.filter(
             environment_filter,
-            detectorworkflow__detector_id__in=[detector.id for detector in detectors],
+            detectorworkflow__detector_id__in=detector_ids,
             enabled=True,
         )
         .select_related("environment")
@@ -421,7 +428,7 @@ def _get_associated_workflows(
                 "event_data": asdict(event_data),
                 "event_environment_id": environment.id if environment else None,
                 "workflows": [workflow.id for workflow in workflows],
-                "detector_types": [detector.type for detector in detectors],
+                "detector_types": detector_types,
             },
         )
 
