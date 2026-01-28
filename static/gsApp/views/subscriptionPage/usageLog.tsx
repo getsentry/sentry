@@ -19,6 +19,7 @@ import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getTimeFormat} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -98,7 +99,9 @@ export default function UsageLog() {
     refetch,
   } = useApiQuery<UsageLogs>(
     [
-      `/customers/${organization.slug}/subscription/usage-logs/`,
+      getApiUrl(`/customers/$organizationIdOrSlug/subscription/usage-logs/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         method: 'GET',
         query: {

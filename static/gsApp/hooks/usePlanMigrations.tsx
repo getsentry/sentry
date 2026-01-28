@@ -1,5 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -19,7 +20,9 @@ export function usePlanMigrations(): PlanMigrationsHook {
   const enabled = hasBillingAccess(organization) || user.isStaff;
   const {data: planMigrations, isPending} = useApiQuery<PlanMigration[]>(
     [
-      `/customers/${organization.slug}/plan-migrations/`,
+      getApiUrl(`/customers/$organizationIdOrSlug/plan-migrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {scheduled: 1, applied: 0}},
     ],
     {
