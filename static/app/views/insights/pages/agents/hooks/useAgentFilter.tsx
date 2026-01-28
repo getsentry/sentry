@@ -1,3 +1,4 @@
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -13,7 +14,7 @@ export function useAgentFilter() {
 
   const agentQuery =
     agentFilters.length > 0
-      ? `${SpanFields.GEN_AI_AGENT_NAME}:[${agentFilters.map(a => `"${a}"`).join(',')}]`
+      ? `${SpanFields.GEN_AI_AGENT_NAME}:[${agentFilters.map(a => `"${escapeDoubleQuotes(a)}"`).join(',')}]`
       : '';
 
   return {agentQuery};
