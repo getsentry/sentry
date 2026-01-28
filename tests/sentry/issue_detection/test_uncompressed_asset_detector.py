@@ -418,7 +418,7 @@ class UncompressedAssetsDetectorTest(TestCase):
         event = get_event("uncompressed-assets/uncompressed-script-asset")
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = UncompressedAssetSpanDetector(
             settings[UncompressedAssetSpanDetector.settings_key], event
         )
@@ -431,7 +431,7 @@ class UncompressedAssetsDetectorTest(TestCase):
             value={"uncompressed_assets_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = UncompressedAssetSpanDetector(
             settings[UncompressedAssetSpanDetector.settings_key], event
         )

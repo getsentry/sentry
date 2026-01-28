@@ -83,7 +83,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event = create_event(spans)
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = LargeHTTPPayloadDetector(
             settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
         )
@@ -96,7 +96,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             value={"large_http_payload_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = LargeHTTPPayloadDetector(
             settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
         )
