@@ -2629,6 +2629,99 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
         assert len(results) == 0
 
+    def test_team_filter(self) -> None:
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(organization=self.organization, teams=[other_team])
+
+        other_team_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-other-team-group"],
+                "event_id": "d" * 32,
+                "timestamp": self.base_datetime.isoformat(),
+                "message": "other team issue",
+                "stacktrace": {"frames": [{"module": "other_team"}]},
+            },
+            project_id=other_project.id,
+        )
+        other_team_group = other_team_event.group
+
+        results = self.make_query(
+            projects=[self.project, other_project],
+            search_filter_query=f"team:{self.team.slug}",
+        )
+        assert set(results) == {self.group1, self.group2}
+
+        results = self.make_query(
+            projects=[self.project, other_project],
+            search_filter_query=f"team:#{self.team.slug}",
+        )
+        assert set(results) == {self.group1, self.group2}
+
+        results = self.make_query(
+            projects=[self.project, other_project],
+            search_filter_query=f"team:{other_team.slug}",
+        )
+        assert set(results) == {other_team_group}
+
+    def test_team_filter_negation(self) -> None:
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(organization=self.organization, teams=[other_team])
+
+        other_team_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-other-team-group-negation"],
+                "event_id": "e" * 32,
+                "timestamp": self.base_datetime.isoformat(),
+                "message": "other team issue for negation test",
+                "stacktrace": {"frames": [{"module": "other_team"}]},
+            },
+            project_id=other_project.id,
+        )
+        other_team_group = other_team_event.group
+
+        results = self.make_query(
+            projects=[self.project, other_project],
+            search_filter_query=f"!team:{self.team.slug}",
+        )
+        assert set(results) == {other_team_group}
+
+    def test_team_filter_invalid_team(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Invalid team"):
+            self.make_query(search_filter_query="team:nonexistent-team")
+
+    def test_team_filter_multiple_teams(self) -> None:
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(organization=self.organization, teams=[other_team])
+
+        other_team_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-other-team-group-multi"],
+                "event_id": "f" * 32,
+                "timestamp": self.base_datetime.isoformat(),
+                "message": "other team issue for multi test",
+                "stacktrace": {"frames": [{"module": "other_team"}]},
+            },
+            project_id=other_project.id,
+        )
+        other_team_group = other_team_event.group
+
+        results = self.make_query(
+            projects=[self.project, other_project],
+            search_filter_query=f"team:[{self.team.slug},{other_team.slug}]",
+        )
+        assert set(results) == {self.group1, self.group2, other_team_group}
+
+    def test_team_filter_team_not_in_searched_projects(self) -> None:
+        """Test that filtering by a team not associated with searched projects raises an error."""
+        other_team = self.create_team(organization=self.organization)
+        self.create_project(organization=self.organization, teams=[other_team])
+
+        with pytest.raises(InvalidSearchQuery, match="Invalid team"):
+            self.make_query(
+                projects=[self.project],
+                search_filter_query=f"team:{other_team.slug}",
+            )
+
 
 class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):
     pass
