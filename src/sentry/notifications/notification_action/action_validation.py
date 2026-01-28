@@ -210,24 +210,12 @@ class SentryAppActionValidatorHandler:
         self, sentry_app_identifier: SentryAppIdentifier, target_identifier: str
     ) -> RpcSentryAppInstallation | None:
         """
-        Get the sentry app installation based on whether the target identifier is an installation id or sentry app id
-        We do not want to accept SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID long term, this is temporary until we migrate the data over
+        Get the sentry app installation based on the sentry app id in the target identifier
         """
-        installations = None
-        installation = None
-
-        if sentry_app_identifier == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID:
-            installations = app_service.get_many(
-                filter=dict(uuids=[target_identifier], organization_id=self.organization.id)
-            )
-        else:
-            installations = app_service.get_many(
-                filter=dict(app_ids=[int(target_identifier)], organization_id=self.organization.id)
-            )
-        if installations:
-            installation = installations[0]
-
-        return installation
+        installations = app_service.get_many(
+            filter=dict(app_ids=[int(target_identifier)], organization_id=self.organization.id)
+        )
+        return installations[0] if len(installations) else None
 
     def clean_data(self) -> dict[str, Any]:
         sentry_app_identifier = SentryAppIdentifier(
