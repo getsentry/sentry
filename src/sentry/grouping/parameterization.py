@@ -181,6 +181,8 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # [0-9a-f]{8/16}        8 or 16 hex characters
             (\b(?=.*[0-9])[0-9a-f]{8}\b) |
             (\b(?=.*[0-9])[0-9a-f]{16,64}\b) |
+            (\b(?=.*[0-9])[0-9A-F]{8}\b) |
+            (\b(?=.*[0-9])[0-9A-F]{16,64}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
