@@ -1281,6 +1281,7 @@ export default typescript.config([
                 'disclosure/disclosure.tsx',
                 'code/inlineCode.tsx',
                 'separator/separator.tsx',
+                'quote/quote.tsx',
               ],
             },
             {
