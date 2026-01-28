@@ -44,8 +44,25 @@ class GithubCopilotAgentClient(CodingAgentClient):
         owner = request.repository.owner
         repo = request.repository.name
 
+        # GitHub Copilot has a 30000 character limit for problem_statement.
+        # Truncate with some buffer and log a warning if needed.
+        max_prompt_length = 29900
+        prompt = request.prompt
+        if len(prompt) > max_prompt_length:
+            original_length = len(prompt)
+            prompt = prompt[:max_prompt_length]
+            logger.warning(
+                "coding_agent.github_copilot.prompt_truncated",
+                extra={
+                    "owner": owner,
+                    "repo": repo,
+                    "original_length": original_length,
+                    "truncated_length": max_prompt_length,
+                },
+            )
+
         payload = GithubCopilotTaskRequest(
-            problem_statement=request.prompt,
+            problem_statement=prompt,
             event_type="sentry",
         )
 
