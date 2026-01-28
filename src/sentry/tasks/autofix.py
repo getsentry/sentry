@@ -52,7 +52,7 @@ def check_autofix_status(run_id: int, organization_id: int) -> None:
     processing_deadline_duration=35,
     retry=Retry(times=1),
 )
-def generate_summary_and_run_automation(group_id: int) -> None:
+def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary
 
     group = Group.objects.get(id=group_id)
