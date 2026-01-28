@@ -344,7 +344,7 @@ export function EventDetailsContent({
         </Fragment>
       )}
       <ErrorBoundary customComponent={() => null}>
-        <MetricDetectorTriggeredSection event={event} />
+        <MetricDetectorTriggeredSection group={group} event={event} />
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
