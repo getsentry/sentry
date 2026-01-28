@@ -143,6 +143,8 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 SEER_POLL_STATE_ENDPOINT_PATH,
                 {
                     "replay_id": replay_id,
+                    "organization_id": project.organization.id,
+                    "project_id": project.id,
                 },
             )
 
