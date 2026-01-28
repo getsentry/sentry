@@ -32,9 +32,7 @@ interface ConversationApiSpan {
   'span.status': string;
   span_id: string;
   trace: string;
-  'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
-  'gen_ai.output.messages'?: string;
   'gen_ai.request.messages'?: string;
   'gen_ai.response.object'?: string;
   'gen_ai.response.text'?: string;
@@ -95,9 +93,7 @@ function createNodeFromApiSpan(
     occurrences: [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
-      [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
-      [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
       [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
