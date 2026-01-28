@@ -1,4 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Hook from 'sentry/components/hook';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -45,10 +46,22 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          <DisabledAlert
+          <Hook
+            name="component:disabled-detector-alert"
             detector={detector}
             message={t('This monitor is disabled and not creating issues.')}
-          />
+          >
+            {({hooks}) =>
+              hooks.length > 0 ? (
+                (hooks as React.ReactNode)
+              ) : (
+                <DisabledAlert
+                  detector={detector}
+                  message={t('This monitor is disabled and not creating issues.')}
+                />
+              )
+            }
+          </Hook>
           {detectorDataset === DetectorDataset.TRANSACTIONS && (
             <TransactionsDatasetWarning />
           )}
