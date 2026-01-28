@@ -152,8 +152,8 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
-    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    expect(screen.getByTestId('schema-hints-drawer')).toBeInTheDocument();
+    const withinDrawer = within(screen.getByTestId('schema-hints-drawer'));
     expect(withinDrawer.getByText('Filter Attributes')).toBeInTheDocument();
     Object.values(mockStringTags).forEach(tag => {
       expect(withinDrawer.getByText(tag.key)).toBeInTheDocument();
@@ -175,8 +175,8 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
-    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    expect(screen.getByTestId('schema-hints-drawer')).toBeInTheDocument();
+    const withinDrawer = within(screen.getByTestId('schema-hints-drawer'));
 
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
@@ -216,7 +216,7 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const withinDrawer = within(screen.getByTestId('schema-hints-drawer'));
     const countUniqueCheckbox = withinDrawer.getByText('count_unique(...)');
     await userEvent.click(countUniqueCheckbox);
 
@@ -255,7 +255,7 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const withinDrawer = within(screen.getByTestId('schema-hints-drawer'));
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
@@ -296,7 +296,7 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const withinDrawer = within(screen.getByTestId('schema-hints-drawer'));
     const countUniqueCheckbox = withinDrawer.getByText('count_unique(...)');
     await userEvent.click(countUniqueCheckbox);
 
@@ -333,7 +333,7 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const withinDrawer = within(screen.getByTestId('schema-hints-drawer'));
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
@@ -342,7 +342,7 @@ describe('SchemaHintsList', () => {
       search: '?query=stringTag1:""',
     });
 
-    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
+    expect(screen.getByTestId('schema-hints-drawer')).toBeInTheDocument();
   });
 
   it('should show correct search results when query is updated', async () => {
@@ -357,7 +357,7 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const withinDrawer = within(screen.getByTestId('schema-hints-drawer'));
     const searchInput = withinDrawer.getByLabelText('Search attributes');
     await userEvent.type(searchInput, 'stringTag');
 
@@ -431,8 +431,8 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
-    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    expect(screen.getByTestId('schema-hints-drawer')).toBeInTheDocument();
+    const withinDrawer = within(screen.getByTestId('schema-hints-drawer'));
 
     // Drawer should show ALL tags including the custom one
     expect(withinDrawer.getByText('message')).toBeInTheDocument();

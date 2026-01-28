@@ -113,7 +113,7 @@ export function ConnectAutomationsDrawer({
   return (
     <Fragment>
       <DrawerHeader hideBar />
-      <DrawerContent>
+      <DrawerContent data-test-id="connect-automations-drawer">
         <ConnectedAutomations
           automationIds={localWorkflowIds}
           toggleConnected={toggleConnected}

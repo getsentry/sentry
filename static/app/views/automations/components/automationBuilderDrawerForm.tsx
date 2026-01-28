@@ -61,7 +61,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
   const {setHasSetAutomationName} = useAutomationFormContext();
 
   return (
-    <DrawerBody>
+    <DrawerBody data-test-id="create-automation-drawer">
       <Stack direction="column" gap="xl">
         <Flex direction="column" gap="lg">
           <Stack gap="md">

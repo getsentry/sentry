@@ -172,7 +172,7 @@ function ConnectMonitorsDrawer({
   return (
     <Fragment>
       <DrawerHeader hideBar />
-      <DrawerContent>
+      <DrawerContent data-test-id="connect-monitors-drawer">
         <ConnectedMonitors
           connectedIds={localDetectorIds}
           toggleConnected={toggleConnected}
