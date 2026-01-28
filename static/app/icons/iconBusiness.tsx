@@ -1,9 +1,6 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-/**
- * @deprecated Use IconLightning instead, this icon will be removed in new UI.
- */
 export function IconBusiness(props: SVGIconProps) {
   return (
     <SvgIcon {...props}>

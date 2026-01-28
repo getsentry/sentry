@@ -15,7 +15,7 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {
-  IconCheckmark,
+  IconBusiness,
   IconGraph,
   IconInfo,
   IconProfiling,
@@ -153,7 +153,7 @@ function NewWelcomeUI(props: StepProps) {
         </Flex>
 
         <TrialInfoLine>
-          <IconCheckmark variant="success" size="sm" />
+          <IconBusiness size="sm" variant="accent" />
           <Text size="lg" bold>
             {t('Your 14-day business trial includes')}{' '}
             <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
