@@ -103,7 +103,7 @@ type ProductCardProps = {
 
 function ProductCard({icon, title, description}: ProductCardProps) {
   return (
-    <ProductCardContainer border="primary" radius="md" padding="md">
+    <ProductCardContainer border="primary" radius="md" padding="xl">
       <ProductIcon>{icon}</ProductIcon>
       <Flex direction="column" gap="xs">
         <ProductTitle>{title}</ProductTitle>
