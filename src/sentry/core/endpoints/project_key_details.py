@@ -1,4 +1,3 @@
-from django.db.models import F
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -7,8 +6,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.project_key import ProjectKeyEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_key import ProjectKeySerializer
 from sentry.api.serializers.rest_framework import ProjectKeyPutSerializer
@@ -31,24 +29,12 @@ from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
-class ProjectKeyDetailsEndpoint(ProjectEndpoint):
+class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-
-    def convert_args(self, request: Request, key_id: str, *args, **kwargs):
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-        project = kwargs["project"]
-        try:
-            kwargs["key"] = ProjectKey.objects.for_request(request).get(
-                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
-            )
-        except ProjectKey.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        return (args, kwargs)
 
     @extend_schema(
         operation_id="Retrieve a Client Key",
