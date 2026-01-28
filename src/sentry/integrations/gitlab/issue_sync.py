@@ -22,6 +22,8 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
+    inbound_status_key = "sync_status_reverse"
+    resolution_strategy_key = "resolution_strategy"
 
     def check_feature_flag(self) -> bool:
         """
@@ -169,6 +171,16 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         Given webhook data, check whether the GitLab issue status changed.
         GitLab issues have opened/closed state.
         """
+        if not self.check_feature_flag():
+            return ResolveSyncAction.NOOP
+
+        action = data.get("action")
+
+        if action == "close":
+            return ResolveSyncAction.RESOLVE
+        elif action == "reopen":
+            return ResolveSyncAction.UNRESOLVE
+
         return ResolveSyncAction.NOOP
 
     def get_config_data(self):
