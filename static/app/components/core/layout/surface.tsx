@@ -107,14 +107,14 @@ export const Surface = styled(
   ${p =>
     rc(
       'border-radius',
-      (p.radius ?? p.variant === 'overlay') ? 'md' : undefined,
+      p.radius ?? (p.variant === 'overlay' ? 'md' : undefined),
       p.theme,
       getRadius
     )};
   ${p =>
     rc(
       'box-shadow',
-      (p.elevation ?? p.variant === 'overlay') ? ('low' as const) : undefined,
+      p.elevation ?? (p.variant === 'overlay' ? ('low' as const) : undefined),
       p.theme,
       v => (v ? p.theme.shadow[v] : undefined)
     )};
