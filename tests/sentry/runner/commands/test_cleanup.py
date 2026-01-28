@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from io import BytesIO
 from unittest.mock import patch
 
 from sentry.constants import ObjectStatus
+from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.runner.commands.cleanup import (
     prepare_deletes_by_project,
@@ -13,6 +15,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 
 
 class SynchronousTaskQueue:
@@ -221,3 +224,33 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Should have seen both projects
         assert project1.id in project_ids_seen
         assert project2.id in project_ids_seen
+
+
+class UptimeResponseCaptureCleanupTest(TestCase):
+    def test_cleanup_deletes_file(self) -> None:
+        """Test that UptimeResponseCapture cleanup also deletes the associated File."""
+        subscription = UptimeSubscription.objects.create(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            url="https://example.com",
+            interval_seconds=60,
+            timeout_ms=5000,
+        )
+
+        file = File.objects.create(name="test-response", type="uptime.response")
+        file.putfile(BytesIO(b"test response content"))
+
+        capture = UptimeResponseCapture.objects.create(
+            uptime_subscription=subscription,
+            file_id=file.id,
+            scheduled_check_time_ms=1234567890,
+        )
+        capture_id = capture.id
+        file_id = file.id
+
+        assert UptimeResponseCapture.objects.filter(id=capture_id).exists()
+        assert File.objects.filter(id=file_id).exists()
+
+        task_execution("sentry.uptime.models.UptimeResponseCapture", (capture_id,), None)
+
+        assert not UptimeResponseCapture.objects.filter(id=capture_id).exists()
+        assert not File.objects.filter(id=file_id).exists()

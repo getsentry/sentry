@@ -615,6 +615,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.monitors.models import MonitorCheckIn
     from sentry.preprod.models import PreprodArtifact
     from sentry.replays.models import ReplayRecordingSegment
+    from sentry.uptime.models import UptimeResponseCapture
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
@@ -630,6 +631,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
+        (UptimeResponseCapture, "date_added", "date_added"),
     ]
 
 
@@ -638,10 +640,12 @@ def remove_cross_project_models(
 ) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
+    from sentry.uptime.models import UptimeResponseCapture
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
     deletes.remove((File, "timestamp", "id"))
+    deletes.remove((UptimeResponseCapture, "date_added", "date_added"))
     return deletes
 
 
