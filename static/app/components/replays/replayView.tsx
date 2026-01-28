@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -79,9 +79,9 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
                     size="sm"
                   />
                 ) : null}
-                <ScreenNameInputContainer>
+                <Container flex="1" width="100%">
                   <ReplayCurrentScreen />
-                </ScreenNameInputContainer>
+                </Container>
               </Flex>
             ) : (
               <ReplayCurrentUrl />
@@ -150,11 +150,6 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(1.5)};
-`;
-
-const ScreenNameInputContainer = styled('div')`
-  flex: 1;
-  width: 100%;
 `;
 
 const PlayerContainer = styled('div')`

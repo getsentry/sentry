@@ -92,7 +92,17 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     )
     integration_id = serializers.IntegerField(
         required=False,
-        help_text="Coding agent integration ID. Required for coding_agent_handoff step.",
+        help_text="Coding agent integration ID. Required for coding_agent_handoff step (unless provider is specified).",
+    )
+    provider = serializers.CharField(
+        required=False,
+        help_text="Coding agent provider (e.g., 'github_copilot'). Alternative to integration_id for user-authenticated providers.",
+    )
+    intelligence_level = serializers.ChoiceField(
+        required=False,
+        choices=["low", "medium", "high"],
+        default="high",
+        help_text="The intelligence level to use.",
     )
 
 
@@ -177,9 +187,17 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if step == "coding_agent_handoff":
             run_id = data.get("run_id")
             integration_id = data.get("integration_id")
-            if not run_id or not integration_id:
+            provider = data.get("provider")
+            if not run_id or (not integration_id and not provider):
                 return Response(
-                    {"error": "run_id and integration_id are required for coding_agent_handoff"},
+                    {
+                        "detail": "run_id and either integration_id or provider are required for coding_agent_handoff"
+                    },
+                    status=400,
+                )
+            if integration_id and provider:
+                return Response(
+                    {"detail": "Cannot specify both integration_id and provider"},
                     status=400,
                 )
 
@@ -187,6 +205,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 group=group,
                 run_id=run_id,
                 integration_id=integration_id,
+                provider=provider,
+                user_id=request.user.id if request.user else None,
             )
             return Response(result, status=202)
 
@@ -196,6 +216,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 group=group,
                 step=AutofixStep(step),
                 run_id=data.get("run_id"),
+                intelligence_level=data["intelligence_level"],
             )
             return Response({"run_id": run_id}, status=202)
         except SeerPermissionError as e:

@@ -10,7 +10,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ProjectList} from 'sentry/components/projectList';
 import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
@@ -96,9 +95,6 @@ export default function SeerRepoTableRow({
             )}
           </Flex>
         </Stack>
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
-        <ProjectList projectSlugs={[]} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         <Switch

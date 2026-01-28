@@ -164,6 +164,11 @@ const restrictedImportPaths = [
     message:
       'Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help',
   },
+  {
+    name: '@figma/code-connect',
+    message:
+      'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -246,6 +251,7 @@ export default typescript.config([
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
+    'figma.config.json',
     'fixtures/artifact_bundle/**/*',
     'fixtures/artifact_bundle_debug_ids/**/*',
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
@@ -384,6 +390,7 @@ export default typescript.config([
       'no-self-compare': 'error',
       'no-sequences': 'error',
       'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
+      'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
@@ -446,6 +453,7 @@ export default typescript.config([
     plugins: {'@sentry/scraps': sentryScrapsPlugin},
     rules: {
       '@sentry/scraps/no-token-import': 'error',
+      '@sentry/scraps/use-semantic-token': 'off',
     },
   },
   {
@@ -532,6 +540,7 @@ export default typescript.config([
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
@@ -888,6 +897,19 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/figma-code-connect',
+    files: ['**/*.figma.{tsx,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow @figma/code-connect only in *.figma.tsx files
+          paths: restrictedImportPaths.filter(({name}) => name !== '@figma/code-connect'),
+        },
+      ],
+    },
+  },
+  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -1021,6 +1043,12 @@ export default typescript.config([
       'boundaries/dependency-nodes': ['import', 'dynamic-import'],
       // order matters here because of nested directories
       'boundaries/elements': [
+        // --- figma code connect ---
+        {
+          type: 'figma-code-connect',
+          pattern: '**/*.figma.{tsx,jsx}',
+          mode: 'full',
+        },
         // --- stories ---
         {
           type: 'story-files',
@@ -1140,6 +1168,11 @@ export default typescript.config([
           default: 'disallow',
           message: '${file.type} is not allowed to import ${dependency.type}',
           rules: [
+            // --- figma code connect ---
+            {
+              from: ['figma-code-connect'],
+              allow: ['core*'],
+            },
             {
               from: ['sentry*'],
               allow: ['core*', 'sentry*'],
