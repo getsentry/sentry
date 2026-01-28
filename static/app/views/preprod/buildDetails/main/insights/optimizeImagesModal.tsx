@@ -117,7 +117,7 @@ export function openOptimizeImagesModal(platform?: Platform) {
   const title =
     platform === 'android'
       ? t('Optimize Images (Android)')
-      : platform === 'ios'
+      : platform === 'apple'
         ? t('Optimize Images (iOS)')
         : t('Optimize Images');
 
