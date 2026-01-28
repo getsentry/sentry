@@ -365,6 +365,7 @@ def create_backfill_misses(
                 "actual_check_time_ms": result["actual_check_time_ms"],
                 "duration_ms": 0,
                 "request_info": None,
+                "assertion_failure_data": None,
             }
             produce_eap_uptime_result(
                 detector,

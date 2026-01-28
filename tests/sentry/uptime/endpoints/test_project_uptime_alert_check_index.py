@@ -11,6 +11,18 @@ from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
+MOCK_ASSERTION_FAILURE_DATA = {
+    "root": {
+        "op": "and",
+        "children": [
+            {
+                "op": "not",
+                "operand": {"op": "json_path", "value": '$.components[?@.status == "operational"]'},
+            },
+        ],
+    }
+}
+
 
 class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
     __test__ = False
@@ -83,6 +95,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
                 "regionName",
                 "checkStatus",
                 "checkStatusReason",
+                "assertionFailureData",
                 "traceId",
                 "httpStatusCode",
                 "incidentStatus",
@@ -92,6 +105,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert most_recent["uptimeCheckId"]
             assert most_recent["regionName"] == "Default Region"
             assert most_recent["checkStatusReason"] == "failure"
+            assert most_recent["assertionFailureData"] == MOCK_ASSERTION_FAILURE_DATA
 
             assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
             assert any(v for v in response.data if v["checkStatusReason"] is None)
@@ -202,6 +216,9 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
             "status_reason_type": "failure" if check_status == "failure" else None,
             "region": "default",
             "http_status_code": http_status,
+            "assertion_failure_data": (
+                MOCK_ASSERTION_FAILURE_DATA if check_status == "failure" else None
+            ),
         }
         uptime_result = self.create_eap_uptime_result(**create_params)
         self.store_uptime_results([uptime_result])
