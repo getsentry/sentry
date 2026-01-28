@@ -55,7 +55,6 @@ export function BaseField(
   const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
   const indicator = useFieldStateIndicator();
   const fieldId = useFieldId();
-  useFieldContext();
 
   return props.children(
     {
