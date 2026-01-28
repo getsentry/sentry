@@ -2,18 +2,15 @@ import type {PageFilters} from 'sentry/types/core';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 
-import {useMobileAppSizeSeriesQuery} from './hooks/useMobileAppSizeWidgetQuery';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type MobileAppSizeWidgetQueriesProps = {
   children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
-  limit?: number;
-  onDataFetchStart?: () => void;
-  onDataFetched?: () => void;
   selection?: PageFilters;
 };
 
@@ -27,7 +24,7 @@ function MobileAppSizeWidgetQueries({
   const hookPageFilters = usePageFilters();
   const pageFilters = propsSelection ?? hookPageFilters.selection;
 
-  const result = useMobileAppSizeSeriesQuery({
+  const result = MobileAppSizeConfig.useSeriesQuery!({
     widget,
     organization,
     pageFilters,

@@ -148,9 +148,6 @@ export function WidgetCardDataLoader({
       <MobileAppSizeWidgetQueries
         widget={widget}
         selection={selection}
-        limit={tableItemLimit}
-        onDataFetchStart={onDataFetchStart}
-        onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
