@@ -11,6 +11,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {DO_NOT_USE_getButtonStyles as getButtonStyles} from 'sentry/components/core/button/styles';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -100,13 +101,21 @@ type ProductCardProps = {
   title: string;
 };
 
-function ProductCard({icon, title, description, checked, onToggle}: ProductCardProps) {
+function ProductCard({
+  icon,
+  title,
+  description,
+  checked,
+  id,
+  onToggle,
+}: ProductCardProps) {
   return (
     <ProductCardContainer
       checked={checked}
       onClick={onToggle}
       role="checkbox"
       aria-checked={checked}
+      disabled={id === 'error-monitoring'}
       tabIndex={0}
       onKeyDown={(e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -115,16 +124,18 @@ function ProductCard({icon, title, description, checked, onToggle}: ProductCardP
         }
       }}
     >
-      <Flex justify="between" align="center">
-        <ProductIcon>{icon}</ProductIcon>
-        <Checkbox checked={checked} readOnly size="sm" tabIndex={-1} />
-      </Flex>
-      <Flex direction="column" gap="xs">
-        <ProductTitle>{title}</ProductTitle>
-        <Text variant="muted" size="sm">
-          {description}
-        </Text>
-      </Flex>
+      <span>
+        <Flex justify="between" align="center">
+          <ProductIcon checked={checked}>{icon}</ProductIcon>
+          <Checkbox checked={checked} readOnly size="sm" tabIndex={-1} />
+        </Flex>
+        <Flex direction="column" gap="xs">
+          <ProductTitle>{title}</ProductTitle>
+          <ProductDescription checked={checked} size="sm">
+            {description}
+          </ProductDescription>
+        </Flex>
+      </span>
     </ProductCardContainer>
   );
 }
@@ -198,6 +209,7 @@ function NewWelcomeUI(props: StepProps) {
               {PRODUCT_OPTIONS.map(product => (
                 <ProductCard
                   key={product.id}
+                  id={product.id}
                   icon={product.icon}
                   title={product.title}
                   description={product.description}
@@ -506,27 +518,43 @@ const ProductGrid = styled('div')`
 
 const ProductCardContainer = styled('div')<{checked: boolean}>`
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
+  text-align: left;
+
+  ${p => ({
+    ...getButtonStyles({
+      ...p,
+      size: 'md',
+      priority: p.checked ? 'primary' : 'default',
+    }),
+  })}
+
+  /* Override button sizing to work as a card */
+  height: auto;
+  min-height: auto;
   padding: ${space(2)};
-  border: 1px solid
-    ${p => (p.checked ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
-  border-radius: ${p => p.theme.radius.md};
-  transition: border-color 0.15s ease-in-out;
 
-  &:hover {
-    border-color: ${p => p.theme.tokens.border.accent};
-  }
-
-  &:focus {
-    outline: 2px solid ${p => p.theme.tokens.border.accent};
-    outline-offset: 2px;
+  /* Content layout */
+  > span:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: ${space(1.5)};
+    align-items: stretch;
+    white-space: normal;
   }
 `;
 
-const ProductIcon = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
+const ProductIcon = styled('div')<{checked: boolean}>`
+  color: ${p =>
+    p.checked
+      ? p.theme.tokens.interactive.chonky.embossed.accent.content
+      : p.theme.tokens.content.secondary};
+`;
+
+const ProductDescription = styled(Text)<{checked: boolean}>`
+  color: ${p =>
+    p.checked
+      ? p.theme.tokens.interactive.chonky.embossed.accent.content
+      : p.theme.tokens.content.secondary};
 `;
 
 const ProductTitle = styled('div')`
