@@ -102,7 +102,7 @@ describe('javascript-angular onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/Sentry.browserProfilingIntegration\(\)/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 

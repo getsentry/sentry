@@ -378,8 +378,12 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     # sure that we are still ordering by `id` because we want to make sure
     # the ordering is deterministic
     # codepath mappings must have an associated integration for stacktrace linking.
-    configs = RepositoryProjectPathConfig.objects.filter(
-        project=project, organization_integration_id__isnull=False
+    configs = (
+        RepositoryProjectPathConfig.objects.filter(
+            project=project, organization_integration_id__isnull=False
+        )
+        .select_related("repository")
+        .order_by("id")
     )
 
     sorted_configs: list[RepositoryProjectPathConfig] = []
@@ -420,6 +424,9 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
     """
+    if not source_path:
+        raise UnexpectedPathException("Source path is empty")
+
     stack_path = frame_filename.raw_path
     stack_root = ""
     if stack_path[0] == "/" or stack_path[0] == "\\":

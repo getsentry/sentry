@@ -159,22 +159,22 @@ const EventItemsWrapper = styled('div')<{hasTitle: boolean}>`
 const EventItemsTitle = styled('div')`
   padding-left: ${space(1)};
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const YouAreHere = styled('div')`
   padding: ${space(1)} ${space(2)};
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const YouAreHereItem = styled('div')`
   padding: ${space(1)} ${space(2)};
   text-align: center;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  font-size: ${p => p.theme.fontSize.md};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const EventItemRoot = styled(Link)`
@@ -185,10 +185,10 @@ const EventItemRoot = styled(Link)`
   width: 100%;
   padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.tokens.background.tertiary};
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
@@ -200,17 +200,25 @@ const EventTitleWrapper = styled('div')`
 `;
 
 const EventTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const EventDescription = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   direction: rtl;
 `;
 
 const TraceItem = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.radius.md};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;

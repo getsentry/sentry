@@ -261,14 +261,18 @@ const UrlContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${space(0.5)};
   width: 100%;
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)`
   padding: ${space(1)} ${space(1)};
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TextContainer = styled('div')`
@@ -276,7 +280,7 @@ const TextContainer = styled('div')`
   display: flex;
   flex-grow: 1;
   background-color: transparent;
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   min-width: 0;
 `;
 
@@ -284,7 +288,7 @@ const CheckboxContainer = styled('label')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
@@ -304,8 +308,8 @@ const Title = styled('div')`
 `;
 
 const SubText = styled('p')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ReshareButton = styled(Button)`

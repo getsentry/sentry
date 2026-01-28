@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
@@ -30,7 +31,7 @@ export type ExploreQueryChangedReason = {
 };
 
 type ExploreSavedQueryRequest = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics';
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   name: string;
   projects: number[];
   changedReason?: ExploreQueryChangedReason;
@@ -41,6 +42,7 @@ type ExploreSavedQueryRequest = {
     mode: Mode;
     aggregateField?: Array<{groupBy: string} | {yAxes: string[]; chartType?: number}>;
     aggregateOrderby?: string;
+    caseInsensitive?: '1';
     fields?: string[];
     groupby?: string[];
     orderby?: string;
@@ -54,12 +56,13 @@ type ExploreSavedQueryRequest = {
   start?: DateString;
 };
 
-function useSavedQueryForDataset(dataset: 'spans' | 'logs') {
+function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const pageFilters = usePageFilters();
   const [interval] = useChartInterval();
   const queryParams = useQueryParams();
   const {id, title} = queryParams;
 
+  const [caseInsensitive] = useCaseInsensitivity();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
@@ -69,8 +72,9 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs') {
       pageFilters,
       interval,
       title: title ?? '',
+      caseInsensitive: caseInsensitive ? '1' : undefined,
     });
-  }, [dataset, queryParams, pageFilters, interval, title]);
+  }, [dataset, queryParams, pageFilters, interval, title, caseInsensitive]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
@@ -194,18 +198,24 @@ export function useLogsSaveQuery() {
   return useSavedQueryForDataset('logs');
 }
 
+export function useReplaySaveQuery() {
+  return useSavedQueryForDataset('replays');
+}
+
 function convertQueryParamsToRequest({
   dataset,
   queryParams,
   pageFilters,
   interval,
   title,
+  caseInsensitive,
 }: {
-  dataset: 'spans' | 'logs';
+  dataset: 'spans' | 'logs' | 'replays';
   interval: string;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;
   title: string;
+  caseInsensitive?: '1';
 }): ExploreSavedQueryRequest {
   const {selection} = pageFilters;
   const {datetime, projects, environments} = selection;
@@ -253,6 +263,7 @@ function convertQueryParamsToRequest({
         query,
         mode,
         aggregateField: aggregateFields,
+        caseInsensitive,
       },
     ],
   };

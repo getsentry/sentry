@@ -1,4 +1,4 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -56,15 +56,14 @@ function TeamKeyTransactionField({
               : null
           }
         >
-          <SelectTrigger.Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             disabled={disabled}
             borderless
-            showChevron={false}
             size="zero"
             icon={
               <IconStar
-                color={keyedTeamsCount ? 'yellow300' : 'gray200'}
+                variant={keyedTeamsCount ? 'warning' : 'muted'}
                 isSolid={keyedTeamsCount > 0}
                 data-test-id="team-key-transaction-column"
               />
@@ -102,7 +101,7 @@ export default function TeamKeyTransactionFieldWrapper({
         disabled
         borderless
         size="zero"
-        icon={<IconStar color="gray100" />}
+        icon={<IconStar variant="muted" />}
         aria-label={t('Toggle star for team')}
       />
     );

@@ -391,6 +391,36 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
 }
         `}
         </CodeBlock>
+        <p>
+          To customize actions per cell, use <code>allowedCellActions</code> as a
+          function. This function receives the full cell info, including the column type.
+          There are also default actions defined in <code>ALLOWED_CELL_ACTIONS</code>,
+          it's recommended to use them as a base.
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={cellInfo => {
+            if (cellInfo.column.type === 'integer') {
+              return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+            }
+
+            return [Actions.ADD, Actions.EXCLUDE];
+          }}
+        />
+        <CodeBlock language="tsx">
+          {`
+<TableWidgetVisualization
+  tableData={sampleHTTPRequestTableData}
+  allowedCellActions={cellInfo => {
+    if (cellInfo.column.type === 'integer') {
+      return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+    }
+
+    return [Actions.ADD, Actions.EXCLUDE];
+  }}
+/>
+          `}
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -399,7 +429,7 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
     function getRenderer(fieldName: string) {
       if (fieldName === 'http.request_method') {
         return function (dataRow: TabularRow) {
-          return <Tag>{dataRow[fieldName]}</Tag>;
+          return <Tag variant="muted">{dataRow[fieldName]}</Tag>;
         };
       }
 

@@ -3,7 +3,6 @@ import moment from 'moment-timezone';
 import {Link} from 'sentry/components/core/link';
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 type Row = {
   dateJoined: string;
@@ -12,8 +11,6 @@ type Row = {
   lastLogin: string;
   username: string;
 };
-
-type Props = RouteComponentProps;
 
 const getRow = (row: Row) => [
   <td key="username">
@@ -31,7 +28,7 @@ const getRow = (row: Row) => [
   </td>,
 ];
 
-function AdminUsers(props: Props) {
+export default function AdminUsers() {
   const columns = [
     <th key="username">User</th>,
     <th key="dateJoined" style={{textAlign: 'center', width: 150}}>
@@ -63,10 +60,7 @@ function AdminUsers(props: Props) {
         }}
         sortOptions={[['date', 'Date Joined']]}
         defaultSort="date"
-        {...props}
       />
     </div>
   );
 }
-
-export default AdminUsers;

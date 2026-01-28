@@ -75,7 +75,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
 
   if (allWarnings.length > 0) {
     return (
-      <StyledAlert type="warning">
+      <StyledAlert variant="warning">
         <StyledText as="p">{baseWarning}</StyledText>
         <List symbol="bullet">
           {allWarnings.map((warning, index) => (

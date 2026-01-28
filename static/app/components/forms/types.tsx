@@ -80,7 +80,7 @@ interface BaseField {
   resetsForm?: boolean;
   rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
-  saveMessageAlertType?: AlertProps['type'];
+  saveMessageAlertVariant?: AlertProps['variant'];
   /**
    * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
@@ -162,7 +162,7 @@ export interface TableType {
   columnLabels: Record<PropertyKey, React.ReactNode>;
   type: 'table';
   /**
-   * The confirmation message before a a row is deleted
+   * The confirmation message before a row is deleted
    */
   confirmDeleteMessage?: string;
   // TODO(TS): Should we have addButtonText and allowEmpty here as well?

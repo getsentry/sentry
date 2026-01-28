@@ -12,6 +12,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -35,7 +36,9 @@ type BodyProps = {
 };
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
-  const endpoint = `/organizations/${orgSlug}/`;
+  const endpoint = getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+    path: {organizationIdOrSlug: orgSlug},
+  });
   const {isPending, isError, data} = useApiQuery<Organization>([endpoint], {
     staleTime: 0,
   });
@@ -45,7 +48,7 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   if (isError) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon={false}>
+        <Alert variant="danger" showIcon={false}>
           {t('There was an error loading your organization.')}
         </Alert>
       </Alert.Container>

@@ -392,7 +392,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0086_fix_cron_to_cron_workflow_links"),
-        ("monitors", "0013_delete_monitor_is_muted_field"),
+        ("monitors", "0009_backfill_monitor_detectors"),
     ]
 
     operations = [

@@ -151,7 +151,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
-from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
@@ -719,8 +719,9 @@ class TwoFactorAPITestCase(APITestCase):
         return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
-        organization.flags.require_2fa = True
-        organization.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization.flags.require_2fa = True
+            organization.save()
 
     def api_enable_org_2fa(self, organization, user):
         self.login_as(user)
@@ -1137,30 +1138,21 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span, is_eap=False):
-        self.store_spans([span], is_eap=is_eap)
+    def store_span(self, span):
+        self.store_spans([span])
 
-    def store_spans(self, spans, is_eap=False):
-        if is_eap:
-            files = {}
-            for i, span in enumerate(spans):
-                trace_item = span_to_trace_item(span)
-                files[f"item_{i}"] = trace_item.SerializeToString()
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                    files=files,
-                ).status_code
-                == 200
-            )
-        else:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
+    def store_spans(self, spans):
+        files = {}
+        for i, span in enumerate(spans):
+            trace_item = span_to_trace_item(span)
+            files[f"item_{i}"] = trace_item.SerializeToString()
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files=files,
+            ).status_code
+            == 200
+        )
 
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
@@ -1186,6 +1178,14 @@ class SnubaTestCase(BaseTestCase):
             f"profile_functions_{i}": profile_function.SerializeToString()
             for i, profile_function in enumerate(profile_functions)
         }
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files=files,
+        )
+        assert response.status_code == 200
+
+    def store_eap_items(self, items: Sequence[TraceItem]) -> None:
+        files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
             settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files=files,
@@ -1293,7 +1293,6 @@ class BaseSpansTestCase(SnubaTestCase):
         status: str | None = None,
         environment: str | None = None,
         organization_id: int = 1,
-        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1346,7 +1345,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
 
-        self.store_span(payload, is_eap=is_eap)
+        self.store_span(payload)
 
     def store_indexed_span(
         self,
@@ -1367,7 +1366,6 @@ class BaseSpansTestCase(SnubaTestCase):
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
-        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1418,7 +1416,7 @@ class BaseSpansTestCase(SnubaTestCase):
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            self.store_span(payload, is_eap=is_eap)
+            self.store_span(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2256,30 +2254,21 @@ class ProfilesSnubaTestCase(
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
 
-    def store_span(self, span, is_eap=False):
-        self.store_spans([span], is_eap=is_eap)
+    def store_span(self, span):
+        self.store_spans([span])
 
-    def store_spans(self, spans, is_eap=False):
-        if is_eap:
-            files = {}
-            for i, span in enumerate(spans):
-                trace_item = span_to_trace_item(span)
-                files[f"item_{i}"] = trace_item.SerializeToString()
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                    files=files,
-                ).status_code
-                == 200
-            )
-        else:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
+    def store_spans(self, spans):
+        files = {}
+        for i, span in enumerate(spans):
+            trace_item = span_to_trace_item(span)
+            files[f"item_{i}"] = trace_item.SerializeToString()
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files=files,
+            ).status_code
+            == 200
+        )
 
 
 @pytest.mark.snuba
@@ -3328,12 +3317,12 @@ class _OptionalOurLogData(TypedDict, total=False):
 def scalar_to_any_value(value: Any) -> AnyValue:
     if isinstance(value, str):
         return AnyValue(string_value=value)
+    if isinstance(value, bool):
+        return AnyValue(bool_value=value)
     if isinstance(value, int):
         return AnyValue(int_value=value)
     if isinstance(value, float):
         return AnyValue(double_value=value)
-    if isinstance(value, bool):
-        return AnyValue(bool_value=value)
     if isinstance(value, dict):
         return AnyValue(**value)
     raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
@@ -3385,14 +3374,8 @@ def span_to_trace_item(span) -> TraceItem:
         "start_timestamp_precise",
     }:
         if field in span and span[field] is not None:
-            if field == "is_segment":
-                is_segment = span["is_segment"]
-                attributes["sentry.is_segment"] = AnyValue(
-                    double_value=float(is_segment),
-                )
-            else:
-                value = scalar_to_any_value(span[field])
-                attributes[f"sentry.{field}"] = value
+            value = scalar_to_any_value(span[field])
+            attributes[f"sentry.{field}"] = value
 
     timestamp = Timestamp()
 
@@ -3404,11 +3387,7 @@ def span_to_trace_item(span) -> TraceItem:
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         timestamp=timestamp,
         trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(
-            16,
-            byteorder="little",
-            signed=False,
-        ),
+        item_id=hex_to_item_id(span["span_id"]),
         received=timestamp,
         retention_days=90,
         attributes=attributes,
@@ -3614,6 +3593,51 @@ class ProfileFunctionsTestCase(BaseTestCase, TraceItemTestCase):
         )
 
 
+class TraceAttachmentTestCase(BaseTestCase, TraceItemTestCase):
+    def create_trace_attachment(
+        self,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+            assert organization is not None
+
+        if project is None:
+            project = self.project
+            assert project is not None
+
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+            assert timestamp is not None
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        item_id = self.random_item_id()
+
+        attributes_proto = {}
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
+            timestamp=timestamp_proto,
+            trace_id=trace_id or uuid4().hex,
+            item_id=item_id.bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
 class TraceTestCase(SpanTestCase):
     def setUp(self):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -3638,7 +3662,6 @@ class TraceTestCase(SpanTestCase):
         slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
-        is_eap: bool = False,
     ) -> Event:
         if not store_event_kwargs:
             store_event_kwargs = {}
@@ -3718,7 +3741,7 @@ class TraceTestCase(SpanTestCase):
                             )
                         )
                 spans_to_store.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans_to_store, is_eap=is_eap)
+                self.store_spans(spans_to_store)
                 return event
 
     def convert_event_data_to_span(self, event: Event) -> dict[str, Any]:

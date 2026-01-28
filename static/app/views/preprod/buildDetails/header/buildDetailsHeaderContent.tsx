@@ -15,6 +15,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import Version from 'sentry/components/version';
 import {
   IconDelete,
@@ -32,6 +33,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 import {useBuildDetailsActions} from './useBuildDetailsActions';
@@ -49,9 +51,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const {buildDetailsQuery, projectId, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
+    isRerunningStatusChecks,
     handleDeleteArtifact,
     handleRerunAction,
     handleDownloadAction,
+    handleRerunStatusChecksAction,
   } = useBuildDetailsActions({
     projectId,
     artifactId,
@@ -81,22 +85,25 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getBySlug(projectId);
+  const project = ProjectsStore.getById(projectId);
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
 
-  if (buildDetailsData.app_info.version) {
+  const version = buildDetailsData.app_info?.version;
+  const buildNumber = buildDetailsData.app_info?.build_number;
+
+  if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(project?.id, {
-        query: buildDetailsData.app_info.version,
+      to: makeReleasesUrl(organization.slug, projectId, {
+        query: version,
         tab: 'mobile-builds',
       }),
-      label: buildDetailsData.app_info.version,
+      label: version,
     });
   }
 
@@ -104,7 +111,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  const version = `v${buildDetailsData.app_info.version ?? 'Unknown'} (${buildDetailsData.app_info.build_number ?? 'Unknown'})`;
+  let versionTitle: string | undefined = undefined;
+  if (version) {
+    versionTitle = `v${version}`;
+    if (buildNumber) {
+      versionTitle += ` (${buildNumber})`;
+    }
+  }
 
   const handleCompareClick = () => {
     trackAnalytics('preprod.builds.details.compare_build_clicked', {
@@ -135,8 +148,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           <FeatureBadge type="beta" />
         </Flex>
         <Layout.Title>
-          {project && <IdBadge project={project} avatarSize={28} hideName />}
-          <Version version={version} anchor={false} truncate />
+          <Flex align="center" gap="sm" minHeight="1lh">
+            {project && <IdBadge project={project} avatarSize={28} hideName />}
+            {versionTitle && <Version version={versionTitle} anchor={false} truncate />}
+            {!versionTitle && <Placeholder width="30ch" height="1em" />}
+          </Flex>
         </Layout.Title>
       </Layout.HeaderContent>
 
@@ -150,7 +166,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             }}
           />
           <Link
-            to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
+            to={getCompareBuildPath({
+              organizationSlug: organization.slug,
+              projectId,
+              headArtifactId: buildDetailsData.id,
+            })}
             onClick={handleCompareClick}
           >
             <Button size="sm" priority="default" icon={<IconTelescope />}>
@@ -162,7 +182,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               size="sm"
               icon={<IconSettings />}
               aria-label={t('Settings')}
-              to={`/settings/${organization.slug}/projects/${projectId}/preprod/`}
+              to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
             />
           </Feature>
           <ConfirmDelete
@@ -175,10 +195,21 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             {({open: openDeleteModal}) => {
               const menuItems: MenuItemProps[] = [
                 {
+                  key: 'rerun-status-checks',
+                  label: (
+                    <Flex align="center" gap="sm">
+                      <IconRefresh size="sm" />
+                      {t('Rerun Status Checks')}
+                    </Flex>
+                  ),
+                  onAction: handleRerunStatusChecksAction,
+                  textValue: t('Rerun Status Checks'),
+                },
+                {
                   key: 'delete',
                   label: (
                     <Flex align="center" gap="sm">
-                      <IconDelete size="sm" color="danger" />
+                      <IconDelete size="sm" variant="danger" />
                       <Text variant="danger">{t('Delete Build')}</Text>
                     </Flex>
                   ),
@@ -227,7 +258,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                       size="sm"
                       aria-label="More actions"
                       showChevron={false}
-                      disabled={isDeletingArtifact || !artifactId}
+                      disabled={
+                        isDeletingArtifact || isRerunningStatusChecks || !artifactId
+                      }
                     >
                       <IconEllipsis />
                     </DropdownButton>

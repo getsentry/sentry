@@ -4,18 +4,18 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Select} from 'sentry/components/core/select';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import type {
-  DataConditionGroup,
+import {
   DataConditionGroupLogicType,
+  DataConditionHandlerGroupType,
+  type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {DataConditionHandlerGroupType} from 'sentry/types/workflowEngine/dataConditions';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -53,36 +53,44 @@ export default function AutomationBuilder() {
       <Flex direction="column" gap="md">
         <Step>
           <StepLead>
-            {tct('[when:When] [selector] of the following occur', {
-              when: <ConditionBadge />,
-              selector: showTriggerLogicTypeSelector ? (
-                <EmbeddedWrapper>
-                  <EmbeddedSelectField
-                    styles={{
-                      control: (provided: any) => ({
-                        ...provided,
-                        minHeight: '21px',
-                        height: '21px',
-                      }),
-                    }}
-                    inline={false}
-                    isSearchable={false}
-                    isClearable={false}
-                    name={`${state.triggers.id}.logicType`}
-                    value={state.triggers.logicType}
-                    onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
-                      actions.updateWhenLogicType(option.value)
-                    }
-                    required
-                    flexibleControlStateSize
-                    options={TRIGGER_MATCH_OPTIONS}
-                    size="xs"
-                  />
-                </EmbeddedWrapper>
-              ) : (
-                t('any')
-              ),
-            })}
+            {tct(
+              '[when:When] an issue event is captured and [selector] of the following occur',
+              {
+                when: <ConditionBadge />,
+                selector: showTriggerLogicTypeSelector ? (
+                  <Container width="80px">
+                    <EmbeddedSelectField
+                      styles={{
+                        control: (provided: any) => ({
+                          ...provided,
+                          minHeight: '21px',
+                          height: '21px',
+                        }),
+                      }}
+                      inline={false}
+                      isSearchable={false}
+                      isClearable={false}
+                      name={`${state.triggers.id}.logicType`}
+                      value={
+                        // We do not expose ANY as a valid option, but it is
+                        state.triggers.logicType === DataConditionGroupLogicType.ANY
+                          ? DataConditionGroupLogicType.ANY_SHORT_CIRCUIT
+                          : state.triggers.logicType
+                      }
+                      onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                        actions.updateWhenLogicType(option.value)
+                      }
+                      required
+                      flexibleControlStateSize
+                      options={TRIGGER_MATCH_OPTIONS}
+                      size="xs"
+                    />
+                  </Container>
+                ) : (
+                  <strong>{t('any')}</strong>
+                ),
+              }
+            )}
           </StepLead>
         </Step>
         <DataConditionNodeList
@@ -98,7 +106,7 @@ export default function AutomationBuilder() {
           }
         />
         {(mutationErrors as any)?.actionFilters?.all && (
-          <StyledAlert type="error">
+          <StyledAlert variant="danger">
             {(mutationErrors as any).actionFilters.all}
           </StyledAlert>
         )}
@@ -163,11 +171,11 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
     <IfThenWrapper>
       <Step>
         <Flex direction="column" gap="md">
-          <StepLead>
+          <StepLead data-test-id="action-filter-logic-type">
             {tct('[if: If] [selector] of these filters match', {
               if: <ConditionBadge />,
               selector: (
-                <EmbeddedWrapper>
+                <Container width="80px">
                   <EmbeddedSelectField
                     styles={{
                       control: (provided: any) => ({
@@ -184,12 +192,18 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
                     flexibleControlStateSize
                     options={FILTER_MATCH_OPTIONS}
                     size="xs"
-                    value={actionFilter.logicType}
+                    value={
+                      FILTER_MATCH_OPTIONS.find(
+                        choice =>
+                          choice.value === actionFilter.logicType ||
+                          choice.alias === actionFilter.logicType
+                      )?.value || actionFilter.logicType
+                    }
                     onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
                       actions.updateIfLogicType(actionFilter.id, option.value)
                     }
                   />
-                </EmbeddedWrapper>
+                </Container>
               ),
             })}
           </StepLead>
@@ -258,19 +272,15 @@ const StepLead = styled(Flex)`
 
 const EmbeddedSelectField = styled(Select)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
-`;
-
-const EmbeddedWrapper = styled('div')`
-  width: 80px;
 `;
 
 const IfThenWrapper = styled(Flex)`
   position: relative;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};

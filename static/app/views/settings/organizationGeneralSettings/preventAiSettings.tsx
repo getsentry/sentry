@@ -29,6 +29,7 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
         {isDisabled && (
           <Tooltip title={disabledReason} position="top">
             <Tag
+              variant="muted"
               role="status"
               icon={<IconLock locked />}
               data-test-id="prevent-ai-disabled-tag"

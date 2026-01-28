@@ -80,7 +80,11 @@ function LastCommit({commit}: Props) {
 export default LastCommit;
 
 const Message = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-bottom: ${space(0.5)};
 `;
 
@@ -88,8 +92,8 @@ const Meta = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledCommitLink = styled(CommitLink)`

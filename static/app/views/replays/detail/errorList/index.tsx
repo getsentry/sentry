@@ -3,6 +3,8 @@ import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import {Flex} from 'sentry/components/core/layout/flex';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -130,7 +132,7 @@ export default function ErrorList() {
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
-          <OverflowHidden>
+          <Grid height="100%" overflow="hidden" position="relative">
             <AutoSizer onResize={onWrapperResize}>
               {({height, width}) => (
                 <MultiGrid
@@ -174,7 +176,7 @@ export default function ErrorList() {
                 tableHeaderHeight={HEADER_HEIGHT}
               />
             ) : null}
-          </OverflowHidden>
+          </Grid>
         ) : (
           <Placeholder height="100%" />
         )}
@@ -182,13 +184,6 @@ export default function ErrorList() {
     </Flex>
   );
 }
-
-const OverflowHidden = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  display: grid;
-`;
 
 const ErrorTable = styled('div')`
   display: flex;
@@ -198,11 +193,11 @@ const ErrorTable = styled('div')`
   overflow: hidden;
   height: 100%;
 
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.purple200};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     left: 0;
     position: absolute;
@@ -211,7 +206,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple200};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
     right: 0;
     position: absolute;
@@ -220,7 +215,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeCurrentTime + .afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.purple300};
+    border-top: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     left: 0;
     position: absolute;
@@ -229,7 +224,7 @@ const ErrorTable = styled('div')`
   }
 
   .beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple300};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     content: '';
     right: 0;
     position: absolute;

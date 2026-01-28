@@ -189,7 +189,6 @@ const quotaSeerBudgetField = {
   ] as const,
 };
 
-// TODO(isabella): Once spend vis notifs are GA, remove this
 // partial field definition for quota sub-categories
 export const QUOTA_FIELDS = [
   {

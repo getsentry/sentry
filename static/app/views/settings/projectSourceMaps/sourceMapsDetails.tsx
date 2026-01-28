@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -67,7 +69,9 @@ function ArtifactsTableRow({
   return (
     <Fragment>
       <ArtifactColumn>
-        <Name>{name || `(${t('empty')})`}</Name>
+        <Flex justify="start" align="center">
+          {name || `(${t('empty')})`}
+        </Flex>
         {artifactColumnDetails}
       </ArtifactColumn>
       {type && <TypeColumn>{type}</TypeColumn>}
@@ -321,7 +325,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
-                    <TimeAndDistWrapper>
+                    <Flex align="center" marginTop="md" width="100%">
                       <TimeWrapper>
                         <IconClock size="sm" />
                         <TimeSince date={data.dateCreated} />
@@ -330,11 +334,11 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                         title={data.dist ? undefined : t('No distribution set')}
                         skipWrapper
                       >
-                        <StyledTag type={data.dist ? 'info' : undefined}>
+                        <StyledTag variant={data.dist ? 'info' : 'muted'}>
                           {data.dist ?? t('none')}
                         </StyledTag>
                       </Tooltip>
-                    </TimeAndDistWrapper>
+                    </Flex>
                   }
                 />
               );
@@ -392,18 +396,12 @@ const ArtifactColumn = styled('div')`
   justify-content: center;
 `;
 
-const Name = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-`;
-
 const TypeColumn = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SizeColumn = styled('div')`
@@ -411,23 +409,16 @@ const SizeColumn = styled('div')`
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const TimeAndDistWrapper = styled('div')`
-  width: 100%;
-  display: flex;
-  margin-top: ${space(1)};
-  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTag = styled(Tag)`
@@ -435,7 +426,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const VersionAndDetails = styled('div')`

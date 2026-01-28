@@ -139,7 +139,9 @@ export function getWidgetInterval(
   const MAX_BIN_COUNT = 66;
 
   let interval =
-    widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+    widget.widgetType === WidgetType.SPANS ||
+    widget.widgetType === WidgetType.LOGS ||
+    widget.widgetType === WidgetType.TRACEMETRICS
       ? // For span based widgets, we want to permit non 1d bar charts.
         undefined
       : // Bars charts are daily totals to aligned with discover. It also makes them
@@ -169,7 +171,9 @@ export function getWidgetInterval(
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
     const highInterval = getInterval(
       datetimeObj,
-      widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+      widget.widgetType === WidgetType.SPANS ||
+        widget.widgetType === WidgetType.LOGS ||
+        widget.widgetType === WidgetType.TRACEMETRICS
         ? 'spans'
         : widget.widgetType === WidgetType.ISSUE
           ? 'issues'

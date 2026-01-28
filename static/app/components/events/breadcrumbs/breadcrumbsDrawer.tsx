@@ -2,13 +2,14 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
@@ -136,7 +137,7 @@ export function BreadcrumbsDrawer({
         options={filterOptions}
         maxMenuHeight={400}
         trigger={props => (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             borderless
             showChevron={false}
             icon={<IconFilter />}
@@ -145,15 +146,14 @@ export function BreadcrumbsDrawer({
             {...props}
             {...getFocusProps(BreadcrumbControlOptions.FILTER)}
           >
-            {filters.length > 0 ? filters.length : null}
-          </SelectTrigger.Button>
+            {filters.length > 0 ? filters.length : ''}
+          </OverlayTrigger.Button>
         )}
       />
       <CompactSelect
         size="xs"
         trigger={props => (
-          <SelectTrigger.Button
-            showChevron={false}
+          <OverlayTrigger.IconButton
             borderless
             icon={<IconSort />}
             aria-label={t('Sort All Breadcrumbs')}
@@ -176,8 +176,7 @@ export function BreadcrumbsDrawer({
       <CompactSelect
         size="xs"
         trigger={props => (
-          <SelectTrigger.Button
-            showChevron={false}
+          <OverlayTrigger.IconButton
             borderless
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
@@ -202,6 +201,7 @@ export function BreadcrumbsDrawer({
         value={timeDisplay}
         options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
       />
+      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} borderless />
     </ButtonBar>
   );
 
@@ -268,6 +268,6 @@ const EmptyMessage = styled('div')`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(3)} ${space(1)};
 `;

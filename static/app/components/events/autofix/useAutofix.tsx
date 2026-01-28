@@ -36,7 +36,7 @@ export const makeAutofixQueryKey = (
   isUserWatching = false
 ): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
-  {query: {isUserWatching: isUserWatching ? true : false}},
+  {query: {isUserWatching: isUserWatching ? true : false, mode: 'legacy'}},
 ];
 
 const makeInitialAutofixData = (): AutofixResponse => ({
@@ -124,7 +124,9 @@ const isPolling = (
 
   if (
     !hasSolutionStep &&
-    ![AutofixStatus.ERROR, AutofixStatus.CANCELLED].includes(autofixData.status)
+    ![AutofixStatus.ERROR, AutofixStatus.CANCELLED, AutofixStatus.COMPLETED].includes(
+      autofixData.status
+    )
   ) {
     // we want to keep polling until we have a solution step because that's a stopping point
     // we need this explicit check in case we get a state for a fraction of a second where the root cause is complete and there is no step after it started
@@ -252,6 +254,7 @@ export const useAiAutofix = (
           `/organizations/${orgSlug}/issues/${group.id}/autofix/`,
           {
             method: 'POST',
+            query: {mode: 'legacy'},
             data: {
               event_id: event.id,
               instruction,
@@ -307,15 +310,19 @@ export const useAiAutofix = (
   };
 };
 
+export type CodingAgentIntegration = {
+  id: string | null;
+  name: string;
+  provider: string;
+  has_identity?: boolean;
+  requires_identity?: boolean;
+};
+
 export function useCodingAgentIntegrations() {
   const organization = useOrganization();
 
   return useApiQuery<{
-    integrations: Array<{
-      id: string;
-      name: string;
-      provider: string;
-    }>;
+    integrations: CodingAgentIntegration[];
   }>([`/organizations/${organization.slug}/integrations/coding-agents/`], {
     staleTime: 5 * 60 * 1000,
   });
@@ -323,7 +330,8 @@ export function useCodingAgentIntegrations() {
 
 interface LaunchCodingAgentParams {
   agentName: string;
-  integrationId: string;
+  integrationId: string | null;
+  provider: string;
   instruction?: string;
   triggerSource?: 'root_cause' | 'solution';
 }
@@ -348,21 +356,37 @@ function getErrorMessage(error: RequestError, agentName: string): string {
   return t('Failed to launch %s', agentName);
 }
 
+export function needsGitHubAuth(error: RequestError): boolean {
+  const detail = error.responseJSON?.detail;
+  return (
+    typeof detail === 'string' &&
+    detail.toLowerCase().includes('github') &&
+    detail.toLowerCase().includes('authorization')
+  );
+}
+
 export function useLaunchCodingAgent(groupId: string, runId: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
   return useMutation<LaunchCodingAgentResponse, RequestError, LaunchCodingAgentParams>({
     mutationFn: (params: LaunchCodingAgentParams) => {
+      const data: Record<string, string | number | undefined> = {
+        run_id: parseInt(runId, 10),
+        trigger_source: params.triggerSource,
+        instruction: params.instruction,
+      };
+
+      if (params.integrationId === null) {
+        data.provider = params.provider;
+      } else {
+        data.integration_id = parseInt(params.integrationId, 10);
+      }
+
       return fetchMutation({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         method: 'POST',
-        data: {
-          integration_id: parseInt(params.integrationId, 10),
-          run_id: parseInt(runId, 10),
-          trigger_source: params.triggerSource,
-          instruction: params.instruction,
-        },
+        data,
       });
     },
     onSuccess: (data, params) => {
@@ -394,6 +418,12 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
       });
     },
     onError: (error, params) => {
+      if (needsGitHubAuth(error)) {
+        const currentUrl = window.location.href;
+        const oauthUrl = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+        window.location.href = oauthUrl;
+        return;
+      }
       const message = getErrorMessage(error, params.agentName);
       addErrorMessage(message);
     },

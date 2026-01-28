@@ -78,7 +78,7 @@ export default function FeedbackListItem({
         <InteractionStateLayer />
 
         <Row
-          style={{gridArea: 'checkbox'}}
+          area="checkbox"
           onClick={e => {
             e.stopPropagation();
           }}
@@ -101,20 +101,14 @@ export default function FeedbackListItem({
         <StyledTimeSince date={feedbackItem.firstSeen} />
 
         {feedbackItem.hasSeen ? null : (
-          <DotRow style={{gridArea: 'unread'}}>
+          <DotRow area="unread">
             <Tooltip title={t('Unread')} skipWrapper>
               <UnreadIndicator />
             </Tooltip>
           </DotRow>
         )}
 
-        <PreviewRow
-          align="start"
-          justify="start"
-          style={{
-            gridArea: 'message',
-          }}
-        >
+        <PreviewRow align="start" justify="start" area="message">
           <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
         </PreviewRow>
 
@@ -137,25 +131,25 @@ export default function FeedbackListItem({
 
             {hasComments && (
               <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
-                <IconChat color="subText" size="xs" />
+                <IconChat variant="muted" size="xs" />
               </Tooltip>
             )}
 
             {hasLinkedError && (
               <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
-                <IconFatal color="dangerText" size="xs" />
+                <IconFatal variant="danger" size="xs" />
               </Tooltip>
             )}
 
             {hasReplayId && (
               <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-                <IconPlay size="xs" color="subText" />
+                <IconPlay size="xs" variant="muted" />
               </Tooltip>
             )}
 
             {hasAttachments && (
               <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
-                <IconImage size="xs" color="subText" />
+                <IconImage size="xs" variant="muted" />
               </Tooltip>
             )}
 
@@ -184,10 +178,11 @@ const LinkedFeedbackCard = styled(Link)`
     color: ${p => p.theme.tokens.content.primary};
   }
   &[data-selected='true'] {
-    background: ${p => p.theme.purple100};
-    border: 1px solid ${p => p.theme.purple200};
+    background: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border: 1px solid ${p => p.theme.tokens.border.transparent.accent.muted};
     border-radius: ${space(0.75)};
-    color: ${p => p.theme.purple300};
+    color: ${p => p.theme.tokens.interactive.transparent.accent.content.primary};
   }
 
   display: grid;
@@ -222,7 +217,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 
 const PreviewRow = styled(Row)`
   align-items: flex-start;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding-bottom: ${space(0.75)};
 `;
 
@@ -235,7 +230,7 @@ const DotRow = styled(Row)`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   border-radius: 50%;
 `;
 
@@ -245,22 +240,22 @@ const StyledTextOverflow = styled(TextOverflow)`
   -webkit-line-clamp: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const ContactRow = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   grid-area: 'user';
   font-weight: bold;
 `;
 
 const ShortId = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   grid-area: 'time';
 `;
 

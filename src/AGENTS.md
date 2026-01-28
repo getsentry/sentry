@@ -1,6 +1,6 @@
 # Backend Development Guide
 
-> For critical commands and security guidelines, see `/AGENTS.md` in the repository root.
+> For critical commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## Overview
 
@@ -47,40 +47,60 @@ sentry/
 └── config/               # Configuration files
 ```
 
-## Development Commands
+## Security Guidelines
 
-### Setup
+### Preventing Indirect Object References (IDOR)
 
-```bash
-# Install dependencies and setup development environment
-make develop
+**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
 
-# Or use the newer devenv command
-devenv sync
+**Core Principle: Always Scope Queries by Organization/Project**
 
-# Start dev dependencies
-devservices up
+When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
 
-# Start the development server
-devservices serve
+```python
+# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
+resource = Resource.objects.get(id=request.data["resource_id"])
+
+# RIGHT: Properly scoped to organization
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    organization_id=organization.id
+)
+
+# RIGHT: Properly scoped to project
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    project_id=project.id
+)
 ```
 
-### Database Operations
+**Project ID Handling: Use `self.get_projects()`**
 
-```bash
-# Run migrations
-sentry django migrate
+When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
 
-# Create new migration
-sentry django makemigrations
+```python
+# WRONG: Direct access bypasses permission checks
+project_ids = request.data.get("project_id")
+projects = Project.objects.filter(id__in=project_ids)
 
-# Update migration after rebase conflict (handles renaming, dependencies, lockfile)
-./bin/update-migration <migration_name_or_number> <app_label>
-# Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
-
-# Reset database
-make reset-db
+# RIGHT: Use self.get_projects() which validates permissions
+projects = self.get_projects(
+    request=request,
+    organization=organization,
+    project_ids=request.data.get("project_id")
+)
 ```
+
+## Exception Handling
+
+- Avoid blanket exception handling (`except Exception:` or bare `except:`)
+- Only catch specific exceptions when you have a meaningful way to handle them
+- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
+- Let exceptions bubble up unless you need to:
+  - Add context to the error
+  - Perform cleanup operations
+  - Convert one exception type to another with additional information
+  - Recover from expected error conditions
 
 ## Development Services
 
@@ -152,6 +172,44 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 # path('organizations/<slug:organization_slug>/', OrganizationDetailsEndpoint.as_view()),
 ```
 
+### Serializers: Avoiding N+1 Queries
+
+**Rule**: NEVER query the database in `serialize()` for bulk requests, always use `get_attrs()`.
+
+The `serialize()` function in `base.py` calls `get_attrs()` once with all objects, then `serialize()` once per object:
+
+```python
+# ❌ WRONG: Query runs once per object (N+1)
+class MySerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        data = RelatedModel.objects.filter(obj=obj).first()  # NO!
+        return {"id": obj.id, "data": data}
+
+# ✅ CORRECT: Bulk query in get_attrs
+class MySerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        # Query once for all items
+        data_by_id = {
+            d.object_id: d.value
+            for d in RelatedModel.objects.filter(object__in=item_list)
+        }
+        return {item: {"data": data_by_id.get(item.id)} for item in item_list}
+
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {"id": obj.id, "data": attrs.get("data")}
+
+# Extending serializers
+class DetailedSerializer(MySerializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        attrs = super().get_attrs(item_list, user)  # Call parent first
+
+        # Add more bulk queries
+        extra_by_id = {e.id: e for e in Extra.objects.filter(item__in=item_list)}
+        for item in item_list:
+            attrs[item]["extra"] = extra_by_id.get(item.id)
+        return attrs
+```
+
 ### Celery Task Pattern
 
 ```python
@@ -197,6 +255,29 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 4. Return strings for numeric IDs
 5. Implement pagination with `cursor`
 6. Use `GET` for read, `POST` for create, `PUT` for update
+7. **Error responses MUST use `"detail"` key** (Django REST Framework convention)
+
+### Error Response Convention
+
+Following Django REST Framework standards, all error responses must use `"detail"` as the key for error messages.
+
+```python
+from rest_framework.response import Response
+
+# ✅ CORRECT: Use "detail" for error messages
+return Response({"detail": "Internal server error"}, status=500)
+return Response({"detail": "Invalid input"}, status=400)
+
+# ❌ WRONG: Don't use "error" or other keys
+return Response({"error": "Internal server error"}, status=500)
+return Response({"message": "Invalid input"}, status=400)
+```
+
+**Why `detail`?**
+
+- Standard Django REST Framework convention
+- Consistent with existing Sentry codebase
+- Expected by API clients and error handlers
 
 ## Common Patterns
 
@@ -256,6 +337,32 @@ logger.info(
     }
 )
 
+# IMPORTANT: LOG005 use exception() within an exception handler
+# WRONG: Calling logger.error() when capturing exception
+try:
+    risky_operation()
+except ValidationError as e:
+    logger.error("error.invalid_payload")
+
+# RIGHT: Use logger.exception() with a message when capturing an exception
+try:
+    risky_operation()
+except ValidationError:
+    logger.exception("error.invalid_payload")
+
+# IMPORTANT: Avoid LOG011 - Never pre-format log messages with f-strings or .format()
+# WRONG: Pre-formatting evaluates before logger call, even if logging is disabled
+logger.info(f"User {user.id} completed {action}")
+logger.info("User {} completed {}".format(user.id, action))
+
+# RIGHT: Use logger's %-formatting for lazy evaluation
+logger.info("%s.user.action.complete", PREFIX)
+
+# ALSO RIGHT: Use structured logging with extra parameters only
+logger.info(
+    "user.action.complete", extra={"user_id": user.id}
+)
+
 # Analytics event
 analytics.record(
     FeatureUsedEvent(
@@ -294,6 +401,41 @@ class MultiProducer:
     def _default_producer_factory(self, config) -> KafkaProducer:
         return KafkaProducer(build_kafka_configuration(default_config=config))
 ```
+
+## Code Comments
+
+Comments should not repeat what the code is saying. Instead, reserve comments for explaining **why** something is being done, or to provide context that is not obvious from the code itself.
+
+```python
+# Bad - obvious from the code itself
+result = self.create_project(organization=org)  # Create a project
+
+# Good - explains why
+# Some APIs occasionally return 500s on valid requests. We retry up to
+# 3 times before surfacing an error.
+retries += 1
+
+# Good - provides non-obvious context
+# Seer requires at least 10 events before it can analyze patterns
+if event_count < 10:
+    return None
+```
+
+**When to Comment:**
+
+- To explain why a particular approach or workaround was chosen
+- To clarify intent when the code could be misread or misunderstood
+- To provide context from external systems, specs, or requirements
+- To document assumptions, edge cases, or limitations
+- To explain non-obvious business logic or domain knowledge
+
+**When Not to Comment:**
+
+- Don't narrate what the code is doing — the code already says that
+- Don't duplicate function or variable names in plain English
+- Don't leave stale comments that contradict the code
+- Don't reference removed or obsolete code paths (e.g. "No longer uses X format")
+- Don't comment on obvious test setup steps (e.g. "Create organization", "Call the API")
 
 ## Architecture Rules
 
@@ -451,7 +593,6 @@ print(silo_mode_delegation.get_current_mode())
 - `.github/`: CI/CD workflows
 - `devservices/config.yml`: Local service configuration
 - `.pre-commit-config.yaml`: Pre-commit hooks configuration
-- `codecov.yml`: Code coverage configuration
 
 ## File Location Map
 

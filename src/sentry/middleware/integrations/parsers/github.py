@@ -18,7 +18,6 @@ from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER,
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.overwatch_webhooks.webhook_forwarder import OverwatchGithubWebhookForwarder
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -60,6 +59,13 @@ class GithubRequestParser(BaseRequestParser):
             metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=0.01)
 
     def get_response(self) -> HttpResponseBase:
+        """
+        Orchestrates GitHub webhook routing across Sentry's multi-service architecture.
+
+        Handles installation events in control silo, distributes webhooks to appropriate
+        region silos based on organization locations, and conditionally forwards to
+        external services (Codecov) based on configuration and region.
+        """
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
 
@@ -95,11 +101,6 @@ class GithubRequestParser(BaseRequestParser):
 
         response = self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id
-        )
-
-        # The overwatch forwarder implements its own region-based checks
-        OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
-            event=event, headers=self.request.headers
         )
 
         return response

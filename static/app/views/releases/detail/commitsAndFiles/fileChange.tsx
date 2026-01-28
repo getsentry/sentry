@@ -45,7 +45,7 @@ const FileItem = styled(ListGroupItem)`
 `;
 
 const Filename = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
@@ -55,7 +55,7 @@ const Filename = styled('div')`
 const FileIconWrapper = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
   border-radius: 3px;
 `;
 

@@ -41,11 +41,7 @@ def produce_preprod_artifact_to_kafka(
     requested_features: list[PreprodFeature] | None = None,
 ) -> None:
     if requested_features is None:
-        # TODO(preprod): wire up to quota system and remove this default
-        requested_features = [
-            PreprodFeature.SIZE_ANALYSIS,
-            PreprodFeature.BUILD_DISTRIBUTION,
-        ]
+        requested_features = []
     payload_data = {
         "artifact_id": str(artifact_id),
         "project_id": str(project_id),

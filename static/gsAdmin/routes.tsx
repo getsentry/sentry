@@ -44,12 +44,10 @@ function buildRoutes() {
   const routes: SentryRouteObject = {
     path: '/_admin/',
     component: Layout,
-    deprecatedRouteProps: true,
     children: [
       {
         index: true,
         component: Home,
-        deprecatedRouteProps: true,
       },
       {
         path: 'beacons/',
@@ -57,12 +55,10 @@ function buildRoutes() {
           {
             index: true,
             component: Beacons,
-            deprecatedRouteProps: true,
           },
           {
             path: ':beaconId/',
             component: BeaconDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },
@@ -72,12 +68,10 @@ function buildRoutes() {
           {
             index: true,
             component: Broadcasts,
-            deprecatedRouteProps: true,
           },
           {
             path: ':broadcastId/',
             component: BroadcastDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },
@@ -87,7 +81,6 @@ function buildRoutes() {
           {
             index: true,
             component: Customers,
-            deprecatedRouteProps: true,
           },
           {
             path: ':orgId/',
@@ -118,7 +111,6 @@ function buildRoutes() {
           {
             index: true,
             component: DocIntegrations,
-            deprecatedRouteProps: true,
           },
           {
             path: ':docIntegrationSlug/',
@@ -141,12 +133,10 @@ function buildRoutes() {
           {
             index: true,
             component: Policies,
-            deprecatedRouteProps: true,
           },
           {
             path: ':policySlug',
             component: PolicyDetails,
-            deprecatedRouteProps: true,
           },
         ],
       },
@@ -165,7 +155,6 @@ function buildRoutes() {
           {
             index: true,
             component: Relocations,
-            deprecatedRouteProps: true,
           },
           {
             path: 'new/',
@@ -187,7 +176,6 @@ function buildRoutes() {
           {
             index: true,
             component: SentryEmployees,
-            deprecatedRouteProps: true,
           },
         ],
       },
@@ -197,7 +185,6 @@ function buildRoutes() {
           {
             index: true,
             component: PromoCodes,
-            deprecatedRouteProps: true,
           },
           {
             path: ':codeId/',
@@ -211,7 +198,6 @@ function buildRoutes() {
           {
             index: true,
             component: SentryApps,
-            deprecatedRouteProps: true,
           },
           {
             path: ':sentryAppSlug/',
@@ -225,7 +211,6 @@ function buildRoutes() {
           {
             index: true,
             component: Users,
-            deprecatedRouteProps: true,
           },
           {
             path: ':userId/',
@@ -239,7 +224,6 @@ function buildRoutes() {
           {
             index: true,
             component: Options,
-            deprecatedRouteProps: true,
           },
         ],
       },
@@ -250,7 +234,6 @@ function buildRoutes() {
       {
         path: 'billingadmins/',
         component: BillingAdmins,
-        deprecatedRouteProps: true,
       },
       {
         path: 'invoices/',
@@ -258,7 +241,6 @@ function buildRoutes() {
           {
             index: true,
             component: Invoices,
-            deprecatedRouteProps: true,
           },
           {
             path: ':invoiceId/',

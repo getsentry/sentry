@@ -45,7 +45,7 @@ export function QuietZoneQRCode({size, value, ...props}: QuietZoneQRCodeProps) {
 
 const Wrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   display: inline-block;
   overflow: hidden;
 `;

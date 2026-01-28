@@ -1,6 +1,8 @@
 import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -52,8 +54,8 @@ export function TransactionSelector({
     pageLinks,
   });
 
-  const projectIds = pageFilters.selection.projects.sort();
-  const cacheKey = [...projectIds].join(' ');
+  const projectIds = [...pageFilters.selection.projects].sort();
+  const cacheKey = projectIds.join(' ');
 
   const {options: transactionOptions} = useCompactSelectOptionsCache(
     incomingPages.filter(Boolean).map(page => ({value: page, label: page})),
@@ -76,9 +78,9 @@ export function TransactionSelector({
           debouncedSetSearch(newValue);
         }
       }}
-      triggerProps={{
-        prefix: t('Page'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Page')} />
+      )}
       onChange={newValue => {
         trackAnalytics('insight.asset.filter_by_page', {
           organization,

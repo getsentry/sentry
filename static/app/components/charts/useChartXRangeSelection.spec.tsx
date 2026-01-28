@@ -20,6 +20,8 @@ describe('useChartXRangeSelection', () => {
         left: 50,
         top: 100,
       }),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
     }),
   } as unknown as EChartsInstance;
 
@@ -163,11 +165,16 @@ describe('useChartXRangeSelection', () => {
       });
 
       expect(onSelectionEnd).toHaveBeenCalledWith(
-        {
-          range: [10, 90],
-          panelId: 'test-panel-id',
-        },
-        expect.any(Function)
+        expect.objectContaining({
+          selectionState: expect.objectContaining({
+            selection: {
+              range: [10, 90],
+              panelId: 'test-panel-id',
+            },
+          }),
+          setSelectionState: expect.any(Function),
+          clearSelection: expect.any(Function),
+        })
       );
     });
 
@@ -227,11 +234,16 @@ describe('useChartXRangeSelection', () => {
       });
 
       expect(onSelectionEnd).toHaveBeenCalledWith(
-        {
-          range: [0, 100], // Clamped to bounds
-          panelId: 'test-panel-id',
-        },
-        expect.any(Function)
+        expect.objectContaining({
+          selectionState: expect.objectContaining({
+            selection: {
+              range: [0, 100], // Clamped to bounds
+              panelId: 'test-panel-id',
+            },
+          }),
+          setSelectionState: expect.any(Function),
+          clearSelection: expect.any(Function),
+        })
       );
     });
 
@@ -312,7 +324,7 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      const actionMenuRenderer = jest.fn((_selection, _clearSelection) => (
+      const actionMenuRenderer = jest.fn(_params => (
         <div data-test-id="action-menu">Action Menu</div>
       ));
 
@@ -334,9 +346,18 @@ describe('useChartXRangeSelection', () => {
         expect(result.current.ActionMenu).not.toBeNull();
       });
 
+      // actionMenuRenderer is called with callbackParams which includes the selection state
       expect(actionMenuRenderer).toHaveBeenCalledWith(
-        {range: [10, 90], panelId: 'test-panel-id'},
-        expect.any(Function)
+        expect.objectContaining({
+          selectionState: expect.objectContaining({
+            selection: expect.objectContaining({
+              range: [10, 90],
+              panelId: 'test-panel-id',
+            }),
+          }),
+          setSelectionState: expect.any(Function),
+          clearSelection: expect.any(Function),
+        })
       );
     });
 
@@ -372,7 +393,7 @@ describe('useChartXRangeSelection', () => {
       const {result} = renderHook(() =>
         useChartXRangeSelection({
           chartRef: mockChartRef,
-          actionMenuRenderer: (_selection, _clearSelection) => (
+          actionMenuRenderer: _params => (
             <div data-test-id="action-menu">Action Menu</div>
           ),
         })
@@ -388,125 +409,6 @@ describe('useChartXRangeSelection', () => {
       await waitFor(() => {
         expect(result.current.ActionMenu).not.toBeNull();
       });
-    });
-  });
-
-  describe('outside click handling', () => {
-    it('should clear selection when clicking outside selection region', async () => {
-      const mockEchartsInstance = {
-        ...mockChartInstance,
-        getModel: jest.fn().mockReturnValue({
-          getComponent: jest.fn((type: string) => {
-            if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
-            }
-            if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
-            }
-            return mockAxis;
-          }),
-        }),
-        convertToPixel: jest.fn().mockReturnValue(100),
-      } as any;
-
-      mockChartRef.current = {
-        getEchartsInstance: () => mockEchartsInstance,
-      } as unknown as EChartsReact;
-
-      const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-        })
-      );
-
-      // Create a selection
-      act(() => {
-        result.current.onBrushEnd(
-          {areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}]} as any,
-          mockEchartsInstance
-        );
-      });
-
-      // Simulate outside click
-      const outsideElement = document.createElement('div');
-      document.body.appendChild(outsideElement);
-
-      act(() => {
-        const clickEvent = new MouseEvent('click', {bubbles: true});
-        outsideElement.dispatchEvent(clickEvent);
-      });
-
-      await waitFor(() => {
-        expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
-          type: 'brush',
-          areas: [],
-        });
-      });
-
-      document.body.removeChild(outsideElement);
-    });
-
-    it('should not clear selection when clicking inside selection region', () => {
-      const mockEchartsInstance = {
-        ...mockChartInstance,
-        getModel: jest.fn().mockReturnValue({
-          getComponent: jest.fn((type: string) => {
-            if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
-            }
-            if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
-            }
-            return mockAxis;
-          }),
-        }),
-        convertToPixel: jest.fn().mockReturnValue(100),
-      } as any;
-
-      mockChartRef.current = {
-        getEchartsInstance: () => mockEchartsInstance,
-      } as unknown as EChartsReact;
-
-      const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-        })
-      );
-
-      // Create a selection
-      act(() => {
-        result.current.onBrushEnd(
-          {areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}]} as any,
-          mockEchartsInstance
-        );
-      });
-
-      // Create element inside selection region
-      const insideElement = document.createElement('div');
-      insideElement.dataset.exploreChartSelectionRegion = '';
-      document.body.appendChild(insideElement);
-
-      const dispatchCallCount = mockEchartsInstance.dispatchAction.mock.calls.length;
-
-      act(() => {
-        const clickEvent = new MouseEvent('click', {bubbles: true});
-        insideElement.dispatchEvent(clickEvent);
-      });
-
-      // Should not call dispatchAction again (no clear)
-      expect(mockEchartsInstance.dispatchAction.mock.calls).toHaveLength(
-        dispatchCallCount
-      );
-
-      document.body.removeChild(insideElement);
     });
   });
 
@@ -571,6 +473,444 @@ describe('useChartXRangeSelection', () => {
           callCount
         );
       });
+    });
+  });
+
+  describe('initialSelection handling', () => {
+    it('should initialize selection state from initialSelection prop', async () => {
+      const mockEchartsInstance = {
+        ...mockChartInstance,
+        getModel: jest.fn().mockReturnValue({
+          getComponent: jest.fn((type: string) => {
+            if (type === 'xAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 100]}},
+              };
+            }
+            if (type === 'yAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 50]}},
+              };
+            }
+            return mockAxis;
+          }),
+        }),
+        convertToPixel: jest.fn().mockReturnValue(100),
+        dispatchAction: jest.fn(),
+      } as any;
+
+      mockChartRef.current = {
+        getEchartsInstance: () => mockEchartsInstance,
+      } as unknown as EChartsReact;
+
+      const initialSelection = {
+        range: [20, 80] as [number, number],
+        panelId: 'initial-panel-id',
+      };
+
+      renderHook(() =>
+        useChartXRangeSelection({
+          chartRef: mockChartRef,
+          initialSelection,
+        })
+      );
+
+      await waitFor(() => {
+        expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
+          type: 'brush',
+          areas: [
+            expect.objectContaining({
+              brushType: 'lineX',
+              coordRange: [20, 80],
+              panelId: 'initial-panel-id',
+            }),
+          ],
+        });
+      });
+    });
+
+    it('should clear selection when initialSelection is removed', async () => {
+      const mockEchartsInstance = {
+        ...mockChartInstance,
+        getModel: jest.fn().mockReturnValue({
+          getComponent: jest.fn((type: string) => {
+            if (type === 'xAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 100]}},
+              };
+            }
+            if (type === 'yAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 50]}},
+              };
+            }
+            return mockAxis;
+          }),
+        }),
+        convertToPixel: jest.fn().mockReturnValue(100),
+        dispatchAction: jest.fn(),
+        setOption: jest.fn(),
+      } as any;
+
+      mockChartRef.current = {
+        getEchartsInstance: () => mockEchartsInstance,
+      } as unknown as EChartsReact;
+
+      const initialSelection = {
+        range: [20, 80] as [number, number],
+        panelId: 'initial-panel-id',
+      };
+
+      const {rerender} = renderHook(
+        ({selection}) =>
+          useChartXRangeSelection({
+            chartRef: mockChartRef,
+            initialSelection: selection,
+          }),
+        {
+          initialProps: {
+            selection: initialSelection as typeof initialSelection | undefined,
+          },
+        }
+      );
+
+      // Wait for initial selection to be set
+      await waitFor(() => {
+        expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
+          type: 'brush',
+          areas: [
+            expect.objectContaining({
+              coordRange: [20, 80],
+            }),
+          ],
+        });
+      });
+
+      // Remove initialSelection (simulating back navigation to unselected state)
+      rerender({selection: undefined});
+
+      await waitFor(() => {
+        expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
+          type: 'brush',
+          areas: [],
+        });
+      });
+    });
+
+    it('should update selection when initialSelection range changes', async () => {
+      const mockEchartsInstance = {
+        ...mockChartInstance,
+        getModel: jest.fn().mockReturnValue({
+          getComponent: jest.fn((type: string) => {
+            if (type === 'xAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 100]}},
+              };
+            }
+            if (type === 'yAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 50]}},
+              };
+            }
+            return mockAxis;
+          }),
+        }),
+        convertToPixel: jest.fn().mockReturnValue(100),
+        dispatchAction: jest.fn(),
+      } as any;
+
+      mockChartRef.current = {
+        getEchartsInstance: () => mockEchartsInstance,
+      } as unknown as EChartsReact;
+
+      const initialSelection = {
+        range: [20, 80] as [number, number],
+        panelId: 'initial-panel-id',
+      };
+
+      const {rerender} = renderHook(
+        ({selection}) =>
+          useChartXRangeSelection({
+            chartRef: mockChartRef,
+            initialSelection: selection,
+          }),
+        {initialProps: {selection: initialSelection}}
+      );
+
+      // Wait for initial selection to be set
+      await waitFor(() => {
+        expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
+          type: 'brush',
+          areas: [
+            expect.objectContaining({
+              coordRange: [20, 80],
+            }),
+          ],
+        });
+      });
+
+      const newSelection = {
+        range: [30, 70] as [number, number],
+        panelId: 'initial-panel-id',
+      };
+
+      // Change initialSelection (simulating back navigation to different selection)
+      rerender({selection: newSelection});
+
+      await waitFor(() => {
+        expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
+          type: 'brush',
+          areas: [
+            expect.objectContaining({
+              coordRange: [30, 70],
+            }),
+          ],
+        });
+      });
+    });
+  });
+
+  describe('click callbacks', () => {
+    it('should call onInsideSelectionClick when clicking inside the selection box', async () => {
+      const onInsideSelectionClick = jest.fn();
+
+      const mockEchartsInstance = {
+        ...mockChartInstance,
+        getModel: jest.fn().mockReturnValue({
+          getComponent: jest.fn((type: string) => {
+            if (type === 'xAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 100]}},
+              };
+            }
+            if (type === 'yAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 50]}},
+              };
+            }
+            return mockAxis;
+          }),
+        }),
+        convertToPixel: jest.fn((_config, value) => {
+          // Selection range pixels: xMin=50, xMax=150
+          // yMin pixel = 200
+          if (value === 100) return 200; // xMax extent
+          if (value === 0) return 200; // yMin extent
+          if (value === 10) return 50; // selection xMin
+          if (value === 90) return 150; // selection xMax
+          return 100;
+        }),
+        getDom: jest.fn().mockReturnValue({
+          getBoundingClientRect: jest.fn().mockReturnValue({
+            left: 0,
+            top: 0,
+          }),
+        }),
+        dispatchAction: jest.fn(),
+      } as any;
+
+      mockChartRef.current = {
+        getEchartsInstance: () => mockEchartsInstance,
+      } as unknown as EChartsReact;
+
+      const {result} = renderHook(() =>
+        useChartXRangeSelection({
+          chartRef: mockChartRef,
+          onInsideSelectionClick,
+        })
+      );
+
+      // Create a selection first
+      act(() => {
+        result.current.onBrushEnd(
+          {areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}]} as any,
+          mockEchartsInstance
+        );
+      });
+
+      // Simulate a click inside the selection box (clientX=100 is between 50 and 150)
+      const clickEvent = new MouseEvent('click', {
+        clientX: 100,
+        clientY: 100,
+        bubbles: true,
+      });
+
+      act(() => {
+        document.body.dispatchEvent(clickEvent);
+      });
+
+      await waitFor(() => {
+        expect(onInsideSelectionClick).toHaveBeenCalledWith(
+          expect.objectContaining({
+            selectionState: expect.objectContaining({
+              selection: expect.objectContaining({
+                range: [10, 90],
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    it('should call onOutsideSelectionClick when clicking outside the selection box', async () => {
+      const onOutsideSelectionClick = jest.fn();
+
+      const mockEchartsInstance = {
+        ...mockChartInstance,
+        getModel: jest.fn().mockReturnValue({
+          getComponent: jest.fn((type: string) => {
+            if (type === 'xAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 100]}},
+              };
+            }
+            if (type === 'yAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 50]}},
+              };
+            }
+            return mockAxis;
+          }),
+        }),
+        convertToPixel: jest.fn((_config, value) => {
+          // Selection range pixels: xMin=50, xMax=150
+          // yMin pixel = 200
+          if (value === 100) return 200; // xMax extent
+          if (value === 0) return 200; // yMin extent
+          if (value === 10) return 50; // selection xMin
+          if (value === 90) return 150; // selection xMax
+          return 100;
+        }),
+        getDom: jest.fn().mockReturnValue({
+          getBoundingClientRect: jest.fn().mockReturnValue({
+            left: 0,
+            top: 0,
+          }),
+        }),
+        dispatchAction: jest.fn(),
+      } as any;
+
+      mockChartRef.current = {
+        getEchartsInstance: () => mockEchartsInstance,
+      } as unknown as EChartsReact;
+
+      const {result} = renderHook(() =>
+        useChartXRangeSelection({
+          chartRef: mockChartRef,
+          onOutsideSelectionClick,
+        })
+      );
+
+      // Create a selection first
+      act(() => {
+        result.current.onBrushEnd(
+          {areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}]} as any,
+          mockEchartsInstance
+        );
+      });
+
+      // Simulate a click outside the selection box (clientX=200 is > 150)
+      const clickEvent = new MouseEvent('click', {
+        clientX: 200,
+        clientY: 100,
+        bubbles: true,
+      });
+
+      act(() => {
+        document.body.dispatchEvent(clickEvent);
+      });
+
+      await waitFor(() => {
+        expect(onOutsideSelectionClick).toHaveBeenCalledWith(
+          expect.objectContaining({
+            selectionState: expect.objectContaining({
+              selection: expect.objectContaining({
+                range: [10, 90],
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    it('should not call onOutsideSelectionClick when clicking on an action menu item', () => {
+      const onOutsideSelectionClick = jest.fn();
+
+      const mockEchartsInstance = {
+        ...mockChartInstance,
+        getModel: jest.fn().mockReturnValue({
+          getComponent: jest.fn((type: string) => {
+            if (type === 'xAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 100]}},
+              };
+            }
+            if (type === 'yAxis') {
+              return {
+                axis: {scale: {getExtent: () => [0, 50]}},
+              };
+            }
+            return mockAxis;
+          }),
+        }),
+        convertToPixel: jest.fn((_config, value) => {
+          if (value === 100) return 200;
+          if (value === 0) return 200;
+          if (value === 10) return 50;
+          if (value === 90) return 150;
+          return 100;
+        }),
+        getDom: jest.fn().mockReturnValue({
+          getBoundingClientRect: jest.fn().mockReturnValue({
+            left: 0,
+            top: 0,
+          }),
+        }),
+        dispatchAction: jest.fn(),
+      } as any;
+
+      mockChartRef.current = {
+        getEchartsInstance: () => mockEchartsInstance,
+      } as unknown as EChartsReact;
+
+      const {result} = renderHook(() =>
+        useChartXRangeSelection({
+          chartRef: mockChartRef,
+          onOutsideSelectionClick,
+        })
+      );
+
+      // Create a selection first
+      act(() => {
+        result.current.onBrushEnd(
+          {areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}]} as any,
+          mockEchartsInstance
+        );
+      });
+
+      // Create an action menu element with the data attribute
+      const actionMenuElement = document.createElement('div');
+      actionMenuElement.dataset.chartXRangeSelectionActionMenu = '';
+      const menuButton = document.createElement('button');
+      actionMenuElement.appendChild(menuButton);
+      document.body.appendChild(actionMenuElement);
+
+      // Simulate a click on the menu button (child of action menu)
+      const clickEvent = new MouseEvent('click', {
+        clientX: 200, // Outside selection box
+        clientY: 100,
+        bubbles: true,
+      });
+      Object.defineProperty(clickEvent, 'target', {value: menuButton});
+
+      act(() => {
+        document.body.dispatchEvent(clickEvent);
+      });
+
+      // onOutsideSelectionClick should NOT be called because click was on action menu
+      expect(onOutsideSelectionClick).not.toHaveBeenCalled();
+
+      document.body.removeChild(actionMenuElement);
     });
   });
 });

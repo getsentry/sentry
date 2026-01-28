@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
@@ -88,7 +90,7 @@ function SentryApplicationDashboard() {
     return (
       <Fragment>
         <h5>{t('Installation & Interaction Data')}</h5>
-        <Row>
+        <Flex>
           {app.datePublished ? (
             <StatsSection>
               <StatsHeader>{t('Date published')}</StatsHeader>
@@ -103,7 +105,7 @@ function SentryApplicationDashboard() {
             <StatsHeader>{t('Total uninstalls')}</StatsHeader>
             <p>{totalUninstalls}</p>
           </StatsSection>
-        </Row>
+        </Flex>
         {renderInstallCharts()}
       </Fragment>
     );
@@ -260,10 +262,6 @@ function InteractionsChart({data}: InteractionsChartProps) {
   );
 }
 
-const Row = styled('div')`
-  display: flex;
-`;
-
 const StatsSection = styled('div')`
   margin-right: ${space(4)};
 `;
@@ -271,7 +269,7 @@ const StatsHeader = styled('h6')`
   margin-bottom: ${space(1)};
   font-size: 12px;
   text-transform: uppercase;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledFooter = styled('div')`

@@ -120,7 +120,7 @@ class KeyStats extends Component<Props, State> {
               isGroupedByDate
               series={this.state.series}
               height={150}
-              colors={[this.props.theme.gray200, this.props.theme.red300]}
+              colors={[this.props.theme.colors.gray200, this.props.theme.colors.red400]}
               stacked
               labelYAxisExtents
             />

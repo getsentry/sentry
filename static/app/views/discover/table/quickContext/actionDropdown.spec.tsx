@@ -1,7 +1,6 @@
 import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -33,8 +32,6 @@ const mockedLocation = LocationFixture({
   },
 });
 
-const mockedRouter = RouterFixture();
-
 const renderActionDropdown = (
   location: Location,
   eventView: EventView,
@@ -43,7 +40,7 @@ const renderActionDropdown = (
   contextValueType: ContextValueType
 ) => {
   const organization = OrganizationFixture();
-  render(
+  return render(
     <ActionDropDown
       dataRow={dataRow}
       organization={organization}
@@ -55,8 +52,12 @@ const renderActionDropdown = (
     />,
     {
       organization,
-      router: mockedRouter,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {field: 'title'},
+        },
+      },
     }
   );
 };
@@ -111,7 +112,7 @@ describe('Quick Context Actions', () => {
   });
 
   it('Adds context as column', async () => {
-    renderActionDropdown(
+    const {router} = renderActionDropdown(
       mockedLocation,
       mockEventView,
       'transaction.duration',
@@ -128,7 +129,7 @@ describe('Quick Context Actions', () => {
 
     await userEvent.click(addAsColumn);
 
-    expect(mockedRouter.push).toHaveBeenCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
         pathname: '/mock-pathname/',
         query: expect.objectContaining({
@@ -139,7 +140,7 @@ describe('Quick Context Actions', () => {
   });
 
   it('Adds context to filter', async () => {
-    renderActionDropdown(
+    const {router} = renderActionDropdown(
       mockedLocation,
       mockEventView,
       'title',
@@ -156,7 +157,7 @@ describe('Quick Context Actions', () => {
 
     await userEvent.click(addToFilter);
 
-    expect(mockedRouter.push).toHaveBeenCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
         pathname: '/mock-pathname/',
         query: expect.objectContaining({
@@ -167,7 +168,7 @@ describe('Quick Context Actions', () => {
   });
 
   it('Excludes context from filter', async () => {
-    renderActionDropdown(
+    const {router} = renderActionDropdown(
       mockedLocation,
       mockEventView,
       'title',
@@ -186,7 +187,7 @@ describe('Quick Context Actions', () => {
 
     await userEvent.click(addToFilter);
 
-    expect(mockedRouter.push).toHaveBeenCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
         pathname: '/mock-pathname/',
         query: expect.objectContaining({
@@ -197,7 +198,7 @@ describe('Quick Context Actions', () => {
   });
 
   it('Filters by values greater than', async () => {
-    renderActionDropdown(
+    const {router} = renderActionDropdown(
       mockedLocation,
       mockEventView,
       'transaction.duration',
@@ -216,7 +217,7 @@ describe('Quick Context Actions', () => {
 
     await userEvent.click(showGreaterThanBtn);
 
-    expect(mockedRouter.push).toHaveBeenCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
         pathname: '/mock-pathname/',
         query: expect.objectContaining({
@@ -227,7 +228,7 @@ describe('Quick Context Actions', () => {
   });
 
   it('Filters by values less than', async () => {
-    renderActionDropdown(
+    const {router} = renderActionDropdown(
       mockedLocation,
       mockEventView,
       'transaction.duration',
@@ -246,7 +247,7 @@ describe('Quick Context Actions', () => {
 
     await userEvent.click(showLessThanBtn);
 
-    expect(mockedRouter.push).toHaveBeenCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
         pathname: '/mock-pathname/',
         query: expect.objectContaining({

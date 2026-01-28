@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -13,6 +14,25 @@ import {
   DataForwarderProviderSlug,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
+
+export function getCreateTooltip(params: {
+  hasAccess: boolean;
+  hasAvailability: boolean;
+  hasFeature: boolean;
+}): string | undefined {
+  if (!params.hasFeature) {
+    return t('This feature is not available for your organization');
+  }
+  if (!params.hasAccess) {
+    return t(
+      'You must be an organization owner, manager or admin to configure data forwarding.'
+    );
+  }
+  if (!params.hasAvailability) {
+    return t('Maximum data forwarders configured.');
+  }
+  return undefined;
+}
 
 export function getDataForwarderFormGroups({
   provider,
@@ -53,7 +73,6 @@ function getEnablementForm({
   dataForwarder?: DataForwarder;
 }): JsonFormObject {
   const hasCompleteSetup = dataForwarder;
-
   return {
     title: t('Enablement'),
     fields: [
@@ -62,10 +81,11 @@ function getEnablementForm({
         label: t('Enable data forwarding'),
         type: 'boolean',
         defaultValue: dataForwarder?.isEnabled ?? true,
+        // Need to set 'undefined' instead of false so that the field can still be disabled by the form
+        disabled: hasCompleteSetup ? undefined : true,
         help: hasCompleteSetup
           ? t('Will override all projects to shut-off data forwarding altogether.')
           : t('Will be enabled after the initial setup is complete.'),
-        disabled: !hasCompleteSetup,
       },
     ],
   };
@@ -103,9 +123,11 @@ function getProjectConfigurationForm({projects}: {projects: Project[]}): JsonFor
 export function getProjectOverrideForm({
   project,
   dataForwarder,
+  omitTag = false,
 }: {
   dataForwarder: DataForwarder;
   project: AvatarProject;
+  omitTag?: boolean;
 }): JsonFormObject {
   const [providerForm] = getProviderForm({provider: dataForwarder.provider});
   const providerFields = providerForm?.fields.map(
@@ -128,12 +150,16 @@ export function getProjectOverrideForm({
           <ProjectAvatar project={project} size={16} />
           <Text>{project.slug}</Text>
         </Flex>
-        {projectConfig?.isEnabled ? (
-          <CalmTag type={hasOverrides ? 'warning' : 'success'}>
-            {hasOverrides ? t('Forwarding with Overrides') : t('Forwarding')}
-          </CalmTag>
-        ) : (
-          <CalmTag type="error">{t('Disabled')}</CalmTag>
+        {!omitTag && (
+          <Fragment>
+            {projectConfig?.isEnabled ? (
+              <CalmTag variant={hasOverrides ? 'warning' : 'success'}>
+                {hasOverrides ? t('Forwarding with Overrides') : t('Forwarding')}
+              </CalmTag>
+            ) : (
+              <CalmTag variant="danger">{t('Disabled')}</CalmTag>
+            )}
+          </Fragment>
         )}
       </Flex>
     ),

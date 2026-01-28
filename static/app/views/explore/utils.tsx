@@ -6,6 +6,8 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -51,7 +53,26 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+export interface GetExploreUrlArgs {
+  organization: Organization;
+  aggregateField?: Array<GroupBy | BaseVisualize>;
+  caseInsensitive?: CaseInsensitive;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sort?: string;
+  table?: 'trace' | 'attribute_breakdowns';
+  title?: string;
+  visualize?: BaseVisualize[];
+}
 
 export function getExploreUrl({
   organization,
@@ -68,22 +89,8 @@ export function getExploreUrl({
   table,
   title,
   referrer,
-}: {
-  organization: Organization;
-  aggregateField?: Array<GroupBy | BaseVisualize>;
-  field?: string[];
-  groupBy?: string[];
-  id?: number;
-  interval?: string;
-  mode?: Mode;
-  query?: string;
-  referrer?: string;
-  selection?: PageFilters;
-  sort?: string;
-  table?: string;
-  title?: string;
-  visualize?: BaseVisualize[];
-}) {
+  caseInsensitive,
+}: GetExploreUrlArgs) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
@@ -105,6 +112,7 @@ export function getExploreUrl({
     table,
     title,
     referrer,
+    caseInsensitive: caseInsensitive ? '1' : undefined,
   };
 
   return (
@@ -143,6 +151,7 @@ function getExploreUrlFromSavedQueryUrl({
           yAxes: (visualize?.yAxes ?? []).slice(),
           groupBys: groupBys ?? [],
           sortBys: decodeSorts(q.orderby),
+          caseInsensitive: q.caseInsensitive ? '1' : null,
         };
       }),
       title: savedQuery.name,
@@ -158,6 +167,7 @@ function getExploreUrlFromSavedQueryUrl({
       },
     });
   }
+
   return getExploreUrl({
     organization,
     ...savedQuery,
@@ -210,15 +220,17 @@ export function getExploreMultiQueryUrl({
     start,
     end,
     interval,
-    queries: queries.map(({chartType, fields, groupBys, query, sortBys, yAxes}) =>
-      JSON.stringify({
-        chartType,
-        fields,
-        groupBys,
-        query,
-        sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
-        yAxes,
-      })
+    queries: queries.map(
+      ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>
+        JSON.stringify({
+          chartType,
+          fields,
+          groupBys,
+          query,
+          sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
+          yAxes,
+          caseInsensitive: caseInsensitive ? '1' : undefined,
+        })
     ),
     title,
     id,
@@ -643,6 +655,29 @@ export function getSavedQueryTraceItemUrl({
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
 }
 
+function getReplayUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const queryParams = {
+    query: firstQuery?.query,
+    project: savedQuery.projects,
+    environment: savedQuery.environment,
+    start: normalizeDateTimeString(savedQuery.start),
+    end: normalizeDateTimeString(savedQuery.end),
+    statsPeriod: savedQuery.range,
+    id: savedQuery.id,
+    title: savedQuery.name,
+  };
+
+  const queryString = qs.stringify(queryParams, {skipNull: true});
+  return `${makeReplaysPathname({organization, path: '/'})}?${queryString}`;
+}
+
 const TRACE_ITEM_TO_URL_FUNCTION: Record<
   TraceItemDataset,
   | (({
@@ -658,6 +693,8 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
   [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
+  [TraceItemDataset.PREPROD]: undefined,
+  [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
 };
 
 /**

@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -120,13 +122,13 @@ export function IntegrationServerlessRow({
   return (
     <Item>
       <NameWrapper>
-        <NameRuntimeVersionWrapper>
+        <Stack>
           <Name>{serverlessFunction.name}</Name>
           <RuntimeAndVersion>
             <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
             <DetailWrapper>{versionText}</DetailWrapper>
           </RuntimeAndVersion>
-        </NameRuntimeVersionWrapper>
+        </Stack>
       </NameWrapper>
       <LayerStatusWrapper>{layerStatus}</LayerStatusWrapper>
       <StyledSwitch
@@ -143,7 +145,7 @@ const Item = styled('div')`
   padding: ${space(2)};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;
@@ -174,11 +176,6 @@ const StyledSwitch = styled(Switch)`
 
 const UpdateButton = styled(Button)``;
 
-const NameRuntimeVersionWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const Name = styled(`span`)`
   padding-bottom: ${space(1)};
 `;
@@ -186,7 +183,7 @@ const Name = styled(`span`)`
 const RuntimeAndVersion = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DetailWrapper = styled('div')`

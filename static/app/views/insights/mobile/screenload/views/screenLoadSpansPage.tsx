@@ -2,6 +2,8 @@ import React, {useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -11,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
-import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
@@ -74,7 +76,7 @@ export function ScreenLoadSpansContent() {
               moduleName={ModuleName.SCREEN_LOAD}
               disableProjectFilter
             />
-            <ReleaseComparisonSelector moduleName={ModuleName.SCREEN_LOAD} />
+            <ReleaseSelector moduleName={ModuleName.SCREEN_LOAD} />
           </FilterContainer>
         </ToolRibbon>
 
@@ -127,7 +129,7 @@ export function ScreenLoadSpansContent() {
           additionalFilters={[`transaction:${transactionName}`]}
           chartHeight={120}
         />
-        <Controls>
+        <Flex justify="between" align="center" marginBottom="md">
           <FiltersContainer>
             {sampleType === SPANS && (
               <SpanOpSelector
@@ -155,9 +157,9 @@ export function ScreenLoadSpansContent() {
             <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
             <SegmentedControl.Item key={EVENT}>{t('By Event')}</SegmentedControl.Item>
           </SegmentedControl>
-        </Controls>
+        </Flex>
         {sampleType === EVENT && (
-          <SampleContainer>
+          <Flex wrap="wrap" gap="xl">
             <SampleContainerItem>
               <ScreenLoadEventSamples
                 release={primaryRelease}
@@ -166,7 +168,7 @@ export function ScreenLoadSpansContent() {
                 transaction={transactionName}
               />
             </SampleContainerItem>
-          </SampleContainer>
+          </Flex>
         )}
         {sampleType === SPANS && (
           <ScreenLoadSpansTable
@@ -186,22 +188,8 @@ const FilterContainer = styled('div')`
   grid-template-columns: auto 1fr;
 `;
 
-const SampleContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-`;
-
 const SampleContainerItem = styled('div')`
   flex: 1;
-`;
-
-const Controls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(1)};
 `;
 
 const FiltersContainer = styled('div')`

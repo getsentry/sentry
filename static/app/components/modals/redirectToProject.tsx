@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -65,24 +66,25 @@ class RedirectToProjectModal extends Component<Props, State> {
         <Header>{t('Redirecting to New Project...')}</Header>
 
         <Body>
-          <div>
-            <Text>{t('The project slug has been changed.')}</Text>
-
-            <Text>
-              {tct(
-                'You will be redirected to the new project [project] in [timer] seconds...',
-                {
-                  project: <strong>{slug}</strong>,
-                  timer: `${this.state.timer}`,
-                }
-              )}
-            </Text>
-            <ButtonWrapper>
+          <Flex direction="column" gap="lg">
+            <Flex direction="column" gap="sm">
+              <Text>{t('The project slug has been changed.')}</Text>
+              <Text variant="muted">
+                {tct(
+                  'You will be redirected to the new project [project] in [timer] seconds...',
+                  {
+                    project: <strong>{slug}</strong>,
+                    timer: `${this.state.timer}`,
+                  }
+                )}
+              </Text>
+            </Flex>
+            <Flex justify="end">
               <LinkButton priority="primary" href={this.newPath}>
                 {t('Continue to %s', slug)}
               </LinkButton>
-            </ButtonWrapper>
-          </div>
+            </Flex>
+          </Flex>
         </Body>
       </Fragment>
     );
@@ -91,8 +93,3 @@ class RedirectToProjectModal extends Component<Props, State> {
 
 export default withSentryRouter(RedirectToProjectModal);
 export {RedirectToProjectModal};
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;

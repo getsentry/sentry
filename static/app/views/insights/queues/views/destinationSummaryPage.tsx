@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -140,9 +140,9 @@ function DestinationSummaryPage() {
                   </ModuleLayout.Half>
 
                   <ModuleLayout.Full>
-                    <Flex>
+                    <Stack gap="xl">
                       <TransactionsTable />
-                    </Flex>
+                    </Stack>
                   </ModuleLayout.Full>
                 </Fragment>
               )}
@@ -170,9 +170,3 @@ function PageWithProviders() {
   );
 }
 export default PageWithProviders;
-
-const Flex = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

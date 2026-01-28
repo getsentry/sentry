@@ -84,7 +84,7 @@ function AlertHeader({activeTab}: Props) {
         </ButtonBar>
       </Layout.HeaderActions>
       <Layout.HeaderTabs value={activeTab}>
-        <TabList hideBorder>
+        <TabList>
           {alertRulesLink}
           <TabList.Item
             key="stream"

@@ -15,6 +15,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
@@ -38,7 +39,11 @@ export default function FirstEventFooter({
   const {activateSidebar} = useOnboardingSidebar();
 
   const {data: issues} = useApiQuery<Group[]>(
-    [`/projects/${organization.slug}/${project.slug}/issues/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: !!project.firstEvent,
@@ -127,7 +132,7 @@ export default function FirstEventFooter({
         }}
       >
         {project?.firstEvent ? (
-          <IconCheckmark color="green400" />
+          <IconCheckmark variant="success" />
         ) : (
           <WaitingIndicator
             variants={indicatorAnimation}
@@ -160,7 +165,8 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink400)};
+  color: ${p =>
+    p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
 
 const indicatorAnimation: Variants = {
@@ -171,13 +177,13 @@ const indicatorAnimation: Variants = {
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.pink300};
+  background-color: ${p => p.theme.colors.pink400};
 `;
 
 const StatusWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   justify-content: center;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {

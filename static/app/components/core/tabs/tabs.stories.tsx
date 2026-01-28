@@ -185,7 +185,7 @@ export default Storybook.story('Tabs', story => {
         </p>
         <Storybook.SizingWindow>
           <Tabs>
-            <TabList variant="floating" hideBorder>
+            <TabList variant="floating">
               {TABS.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
               ))}

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
@@ -23,6 +24,7 @@ import {TourElement} from 'sentry/components/tours/components';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -66,6 +68,7 @@ const crossEventDropdownItems: DropdownMenuProps['items'] = [
 ];
 
 function CrossEventQueryingDropdown() {
+  const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents();
   const setCrossEvents = useSetQueryParamsCrossEvents();
 
@@ -73,6 +76,11 @@ function CrossEventQueryingDropdown() {
     if (typeof key !== 'string' || !isCrossEventType(key)) {
       return;
     }
+
+    trackAnalytics('trace.explorer.cross_event_added', {
+      organization,
+      type: key,
+    });
 
     if (!crossEvents || crossEvents.length === 0) {
       setCrossEvents([{query: '', type: key}]);
@@ -201,6 +209,7 @@ const SpansTabCrossEventSearchBar = memo(
 );
 
 function SpansTabCrossEventSearchBars() {
+  const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents();
   const setCrossEvents = useSetQueryParamsCrossEvents();
 
@@ -245,10 +254,9 @@ function SpansTabCrossEventSearchBars() {
               aria-label={t('Modify dataset to cross reference')}
               value={crossEvent.type}
               disabled={maxCrossEventQueriesReached}
-              triggerProps={{
-                prefix: t('with'),
-                ...props,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} {...props} prefix={t('with')} />
+              )}
               options={[
                 {value: 'spans', label: t('Spans')},
                 {value: 'logs', label: t('Logs')},
@@ -256,6 +264,12 @@ function SpansTabCrossEventSearchBars() {
               ]}
               onChange={({value: newValue}) => {
                 if (!isCrossEventType(newValue)) return;
+
+                trackAnalytics('trace.explorer.cross_event_changed', {
+                  organization,
+                  new_type: newValue,
+                  old_type: crossEvent.type,
+                });
 
                 setCrossEvents(
                   crossEvents.map((c, i) => {
@@ -313,6 +327,10 @@ function SpansTabCrossEventSearchBars() {
                 )
               );
             }
+            trackAnalytics('trace.explorer.cross_event_removed', {
+              organization,
+              type: crossEvent.type,
+            });
             setCrossEvents(crossEvents.filter((_, i) => i !== index));
           }}
         />

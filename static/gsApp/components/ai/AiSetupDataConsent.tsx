@@ -7,7 +7,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -21,13 +21,13 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
   groupId?: string;
@@ -84,7 +84,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
   function handlePurchaseSeer() {
-    navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent`);
+    navigate('/checkout/?referrer=ai_setup_data_consent');
   }
 
   function handleAddBudget() {
@@ -93,7 +93,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     }
     if (isPerCategoryOnDemand) {
       // Seer does not support per category on demand budgets, so we need to redirect to the checkout page to prompt the user to switch
-      navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent#step3`);
+      navigate('/checkout/?referrer=ai_setup_data_consent#step2');
       return;
     }
     openOnDemandBudgetEditModal({
@@ -103,7 +103,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   }
 
   return (
-    <ConsentItemsContainer>
+    <Stack gap="xl">
       <Flex align="center" gap="md">
         <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
@@ -113,7 +113,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <IconSeer animation="waiting" color="subText" size="lg" />
+          <IconSeer animation="waiting" variant="muted" size="lg" />
         </Flex>
         <Paragraph>
           {t(
@@ -146,7 +146,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             </TouchCustomerMessage>
           ) : (
             <Fragment>
-              <ButtonWrapper>
+              <Flex align="center" gap="md">
                 {canStartTrial ? (
                   <StartTrialButton
                     organization={organization}
@@ -245,7 +245,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                 {autofixAcknowledgeMutation.isError && (
                   <ErrorText>{t('Something went wrong.')}</ErrorText>
                 )}
-              </ButtonWrapper>
+              </Flex>
               {canStartTrial && (
                 <LegalText>
                   {t(
@@ -257,7 +257,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           )
         ) : (
           <Fragment>
-            <ButtonWrapper>
+            <Flex align="center" gap="md">
               <Button
                 priority="primary"
                 onClick={() => autofixAcknowledgeMutation.mutate()}
@@ -280,7 +280,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
               {autofixAcknowledgeMutation.isError && (
                 <ErrorText>{t('Something went wrong.')}</ErrorText>
               )}
-            </ButtonWrapper>
+            </Flex>
           </Fragment>
         )}
         <LegalText>
@@ -288,23 +288,17 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
         </LegalText>
       </SingleCard>
       {warnAboutGithubIntegration && (
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t(
             'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
           )}
         </Alert>
       )}
-    </ConsentItemsContainer>
+    </Stack>
   );
 }
 
 export default AiSetupDataConsent;
-
-const ConsentItemsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const SayHelloHeader = styled('h3')`
   margin: 0;
@@ -317,15 +311,15 @@ const SingleCard = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(2)} ${space(2)};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-top: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const MeetSeerHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BulletList = styled('ul')`
@@ -337,21 +331,15 @@ const Paragraph = styled('p')`
 `;
 
 const TouchCustomerMessage = styled('p')`
-  color: ${p => p.theme.pink400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.promotion};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: ${space(2)};
 `;
 
 const LegalText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -361,7 +349,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const ErrorText = styled('div')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const AddBudgetButton = styled(Button)`

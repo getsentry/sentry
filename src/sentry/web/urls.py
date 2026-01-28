@@ -11,6 +11,7 @@ from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
@@ -40,6 +41,8 @@ from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
+from sentry.web.frontend.oauth_device import OAuthDeviceView
+from sentry.web.frontend.oauth_device_authorization import OAuthDeviceAuthorizationView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
@@ -107,6 +110,16 @@ if settings.DEBUG:
             r"^_static/[^/]+/[^/]+/images/favicon\.(ico|png)$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
+        ),
+    ]
+
+if settings.SENTRY_MODE != SentryMode.SAAS:
+    # Admin endpoint only available in self-hosted mode
+    urlpatterns += [
+        re_path(
+            r"^manage/",
+            react_page_view,
+            name="sentry-admin-overview",
         ),
     ]
 
@@ -207,6 +220,17 @@ urlpatterns += [
                     r"^userinfo/$",
                     OAuthUserInfoEndpoint.as_view(),
                     name="sentry-api-0-oauth-userinfo",
+                ),
+                # Device Authorization Flow (RFC 8628)
+                re_path(
+                    r"^device/code/$",
+                    OAuthDeviceAuthorizationView.as_view(),
+                    name="sentry-oauth-device-code",
+                ),
+                re_path(
+                    r"^device/$",
+                    OAuthDeviceView.as_view(),
+                    name="sentry-oauth-device",
                 ),
             ]
         ),
@@ -468,12 +492,6 @@ urlpatterns += [
     ),
     # Relocation
     re_path(r"^relocation/", generic_react_page_view, name="sentry-relocation"),
-    # Admin
-    re_path(
-        r"^manage/",
-        react_page_view,
-        name="sentry-admin-overview",
-    ),
     # Admin UI (for local dev)
     re_path(
         r"^_admin/",
@@ -1089,7 +1107,7 @@ urlpatterns += [
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/events/(?P<client_event_id>[^/]+)/$",
                     ProjectEventRedirect.as_view(),
-                    name="sentry-project-event-redirect",
+                    name="sentry-organization-project-event-redirect",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/api-keys/$",

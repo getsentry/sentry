@@ -4,9 +4,11 @@ import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
 import {Item, Section} from '@react-stately/collections';
+import type {LocationDescriptor} from 'history';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
 
@@ -15,6 +17,17 @@ import type {DropdownMenuListProps} from './list';
 import DropdownMenuList, {DropdownMenuContext} from './list';
 
 export type {MenuItemProps};
+
+// react-aria uses the href prop on item state to determine if the item is a link
+// and will navigate there when selected
+function makeItemHref(item: MenuItemProps): LocationDescriptor | undefined {
+  if (item.to) {
+    // This matches the behavior of the Link component
+    return normalizeUrl(item.to);
+  }
+
+  return item.externalHref;
+}
 
 /**
  * Recursively removes hidden items, including those nested in submenus
@@ -25,8 +38,7 @@ function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
     .filter(item => !item.hidden)
     .map(item => ({
       ...item,
-      // react-aria uses the href prop on item state to determine if the item is a link
-      href: item.to ?? item.externalHref,
+      href: makeItemHref(item),
       ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
     }));
 }

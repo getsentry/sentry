@@ -205,9 +205,9 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   }
 
   return `
-  color: ${p.theme.error};
+  color: ${p.theme.tokens.content.danger};
   margin: -1px;
-  border: 1px solid ${p.theme.error};
+  border: 1px solid ${p.theme.tokens.content.danger};
   border-radius: ${p.theme.radius.md};
 
     &:before {
@@ -217,7 +217,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
       height: 0;
       border-top: 7px solid transparent;
       border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.red300};
+      border-right: 7px solid ${p.theme.colors.red400};
       position: absolute;
       left: -7px;
       top: 12px;

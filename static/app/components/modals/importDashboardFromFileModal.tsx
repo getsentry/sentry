@@ -69,15 +69,10 @@ function ImportDashboardFromFileModal({
     const dashboard = JSON.parse(dashboardData);
 
     try {
-      const newDashboard = await createDashboard(
-        api,
-        organization.slug,
-        {
-          ...dashboard,
-          widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
-        },
-        true
-      );
+      const newDashboard = await createDashboard(api, organization.slug, {
+        ...dashboard,
+        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+      });
 
       addSuccessMessage(`${dashboard.title} dashboard template successfully added`);
       loadDashboard(newDashboard.id);

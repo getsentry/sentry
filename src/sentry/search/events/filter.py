@@ -42,6 +42,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TIMESTAMP_FIELDS,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
@@ -578,13 +579,9 @@ def convert_search_filter_to_snuba_query(
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
-        # timestamp{,.to_{hour,day}} need a datetime string
+        # TIMESTAMP_FIELDS need a datetime string
         # last_seen needs an integer
-        if isinstance(value, datetime) and name not in {
-            "timestamp",
-            "timestamp.to_hour",
-            "timestamp.to_day",
-        }:
+        if isinstance(value, datetime) and name not in TIMESTAMP_FIELDS:
             value = int(value.timestamp()) * 1000
 
         if name in {"trace.span", "trace.parent_span"}:
@@ -669,9 +666,19 @@ def convert_search_filter_to_snuba_query(
         # together. Otherwise just return the raw condition, so that it can be
         # used correctly in aggregates.
         if is_null_condition:
-            return [is_null_condition, condition]
-        else:
-            return condition
+            return [is_null_condition, *_flatten_conditions(condition)]
+        return condition
+
+
+def _flatten_conditions(cond: list[Any]) -> list[Any]:
+    """
+    Flatten nested legacy conditions into a flat list. A legacy condition is
+    [lhs, op_string, rhs]. Wildcard processing can create nested lists that
+    snuba_sdk.legacy.parse_condition cannot handle.
+    """
+    if len(cond) == 3 and isinstance(cond[1], str):
+        return [cond]
+    return [c for item in cond if isinstance(item, list) for c in _flatten_conditions(item)]
 
 
 def format_search_filter(term, params):

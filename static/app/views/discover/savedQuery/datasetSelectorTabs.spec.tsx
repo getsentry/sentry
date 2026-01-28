@@ -1,4 +1,5 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView, {type EventViewOptions} from 'sentry/utils/discover/eventView';
@@ -23,9 +24,13 @@ const EVENT_VIEW_CONSTRUCTOR_PROPS: EventViewOptions = {
 };
 
 describe('Discover DatasetSelector', () => {
-  const {router, organization} = initializeOrg({
-    organization: {features: ['performance-view']},
-  });
+  const organization = OrganizationFixture({features: ['performance-view']});
+
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/discover/results/',
+    },
+  };
 
   it('renders tabs', () => {
     const eventView = new EventView(EVENT_VIEW_CONSTRUCTOR_PROPS);
@@ -36,8 +41,8 @@ describe('Discover DatasetSelector', () => {
         eventView={eventView}
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig,
       }
     );
     expect(screen.getByRole('tab', {name: 'Errors'})).toBeInTheDocument();
@@ -66,27 +71,26 @@ describe('Discover DatasetSelector', () => {
       id: undefined,
       display: undefined,
     });
-    render(
+    const {router} = render(
       <DatasetSelectorTabs
         isHomepage={false}
         savedQuery={undefined}
         eventView={eventView}
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig,
       }
     );
     await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
         query: expect.objectContaining({
-          project: undefined,
           field: ['transaction', 'project'],
           query: 'project:foo',
           queryDataset: 'transaction-like',
           sort: '-transaction',
-          incompatible: true,
+          incompatible: 'true',
         }),
       })
     );
@@ -98,22 +102,21 @@ describe('Discover DatasetSelector', () => {
       dataset: DiscoverDatasets.ERRORS,
       id: '1',
     });
-    render(
+    const {router} = render(
       <DatasetSelectorTabs
         isHomepage={false}
         savedQuery={undefined}
         eventView={eventView}
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig,
       }
     );
     await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(router.location).toEqual(
       expect.objectContaining({
         query: expect.objectContaining({
-          project: undefined,
           field: ['transaction', 'project'],
           query: 'foo:bar',
           queryDataset: 'transaction-like',
@@ -129,10 +132,9 @@ describe('Discover DatasetSelector', () => {
       id: '1',
     });
 
-    const org = {
-      ...organization,
-      features: [...organization.features, 'discover-saved-queries-deprecation'],
-    };
+    const org = OrganizationFixture({
+      features: ['performance-view', 'discover-saved-queries-deprecation'],
+    });
 
     render(
       <DatasetSelectorTabs
@@ -141,9 +143,8 @@ describe('Discover DatasetSelector', () => {
         eventView={eventView}
       />,
       {
-        router,
         organization: org,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       }
     );
 

@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 
 function BrowserProfilingBetaWarning() {
   return (
-    <Alert type="info" showIcon={false}>
+    <Alert variant="info" showIcon={false}>
       {tct(
         `Browser profiling is currently in Beta as we wait for the JS Self Profiling spec to gain wider support. You can read the detailed explanation [explainer].`,
         {
@@ -37,12 +37,9 @@ Sentry.init({
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-  // Set profilesSampleRate to 1.0 to profile every transaction.
-  // Since profilesSampleRate is relative to tracesSampleRate,
-  // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-  // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
-  // results in 25% of transactions being profiled (0.5*0.5=0.25)
-  profilesSampleRate: 1.0
+  // Set profileSessionSampleRate to 1.0 to profile during every session.
+  // The decision, whether to profile or not, is made once per session (when the SDK is initialized).
+  profileSessionSampleRate: 1.0
 });`;
 
 const getDefaultProfilingHeaderContent = (): ContentBlock[] => [

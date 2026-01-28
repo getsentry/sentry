@@ -1,15 +1,18 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Text} from '@sentry/scraps/text';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button, ButtonBar} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconCopy, IconNext, IconPrevious} from 'sentry/icons';
+import {useLiveRefresh} from 'sentry/components/replays/replayLiveIndicator';
+import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -37,6 +40,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const {currentTime} = useReplayContext();
 
   const {replays, currentReplayIndex} = useReplayPlaylist();
+  const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({
+    replay: replayRecord ?? undefined,
+  });
 
   // We use a ref to store the initial location so that we can use it to navigate to the previous and next replays
   // without dirtying the URL with the URL params from the tabs navigation.
@@ -71,39 +77,29 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         path: '/',
         organization,
       }),
-      query: eventView.generateQueryStringObject(),
-    },
-    label: t('Session Replay'),
-  };
-
-  const projectCrumb = {
-    to: {
-      pathname: makeReplaysPathname({
-        path: '/',
-        organization,
-      }),
       query: {
         ...eventView.generateQueryStringObject(),
         project: replayRecord?.project_id,
       },
     },
-    label: project ? (
-      <ProjectBadge disableLink project={project} avatarSize={16} />
-    ) : (
-      t('Project')
-    ),
+    label: t('Session Replay'),
   };
 
   const replayCrumb = {
     label: replayRecord ? (
       <Flex>
-        <Flex align="center" gap="xs">
-          {organization.features.includes('replay-playlist-view') && (
-            <StyledButtonBar merged gap="0">
+        <Flex align="center" gap="sm">
+          <div>
+            <Tooltip
+              title={t('Previous replay based on search query')}
+              disabled={!previousReplay}
+            >
               <LinkButton
-                size="xs"
-                icon={<IconPrevious />}
+                size="zero"
+                borderless
+                icon={<IconChevron direction="left" size="xs" />}
                 disabled={!previousReplay}
+                aria-label={t('Previous replay based on search query')}
                 to={{
                   pathname: previousReplay
                     ? makeReplaysPathname({
@@ -120,10 +116,17 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
               />
+            </Tooltip>
+            <Tooltip
+              title={t('Next replay based on search query')}
+              disabled={!nextReplay}
+            >
               <LinkButton
-                size="xs"
-                icon={<IconNext />}
+                size="zero"
+                borderless
+                icon={<IconChevron direction="right" size="xs" />}
                 disabled={!nextReplay}
+                aria-label={t('Next replay based on search query')}
                 to={{
                   pathname: nextReplay
                     ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
@@ -137,14 +140,20 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
               />
-            </StyledButtonBar>
-          )}
+            </Tooltip>
+          </div>
           <Flex
             align="center"
+            gap="xs"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            <ShortId
+            {project ? (
+              <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+            ) : (
+              <Placeholder width="16px" height="16px" />
+            )}
+            <div
               onClick={() =>
                 copy(replayUrlWithTimestamp, {
                   successMessage: t('Copied replay link to clipboard'),
@@ -152,9 +161,10 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               }
             >
               {getShortEventId(replayRecord?.id)}
-            </ShortId>
-            <Tooltip title={t('Copy link to replay at current timestamp')}>
+            </div>
+            {isHovered && (
               <Button
+                title={t('Copy link to replay at current timestamp')}
                 aria-label={t('Copy link to replay at current timestamp')}
                 onClick={() =>
                   copy(replayUrlWithTimestamp, {
@@ -163,11 +173,24 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                 }
                 size="zero"
                 borderless
-                style={isHovered ? {} : {visibility: 'hidden'}}
-                icon={<IconCopy size="xs" color="subText" />}
+                icon={<IconCopy size="xs" variant="muted" />}
               />
-            </Tooltip>
+            )}
           </Flex>
+          {shouldShowRefreshButton ? (
+            <Button
+              title={t('Replay is outdated. Refresh for latest activity.')}
+              data-test-id="refresh-button"
+              size="zero"
+              priority="link"
+              onClick={doRefresh}
+              icon={<IconRefresh size="xs" variant="accent" />}
+            >
+              <Text size="md" variant="accent">
+                {t('Update')}
+              </Text>
+            </Button>
+          ) : null}
         </Flex>
       </Flex>
     ) : (
@@ -175,25 +198,12 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     ),
   };
 
-  const crumbs = [
-    listPageCrumb,
-    project ? projectCrumb : null,
-    replayRecord ? replayCrumb : null,
-  ].filter(defined);
+  const crumbs = [listPageCrumb, replayRecord ? replayCrumb : null].filter(defined);
 
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
-`;
-
-const ShortId = styled('div')`
-  margin-left: 10px;
-`;
-
-// Breadcrumbs have overflow: hidden, so we need to set the margin-top to 2px
-// to avoid the buttons from being cut off.
-const StyledButtonBar = styled(ButtonBar)`
-  margin-top: 2px;
+  height: 34px;
 `;

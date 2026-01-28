@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useMemo, type CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -26,7 +27,10 @@ import {Divider} from 'sentry/views/issueDetails/divider';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {
+  issueAndEventToMarkdown,
+  useActiveThreadId,
+} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/streamline/issueDetailsJumpTo';
 
 type EventNavigationProps = {
@@ -45,14 +49,21 @@ export const MIN_NAV_HEIGHT = 44;
 
 function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   const organization = useOrganization();
+  const activeThreadId = useActiveThreadId();
 
   // Get data for markdown copy functionality
   const {data: groupSummaryData} = useGroupSummaryData(group);
   const {data: autofixData} = useAutofixData({groupId: group.id});
 
   const markdownText = useMemo(() => {
-    return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
-  }, [group, event, groupSummaryData, autofixData]);
+    return issueAndEventToMarkdown(
+      group,
+      event,
+      groupSummaryData,
+      autofixData,
+      activeThreadId
+    );
+  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
   const markdownLines = markdownText.trim().split('\n').length.toLocaleString();
 
   const {copy} = useCopyToClipboard();
@@ -108,8 +119,8 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
   });
 
   const grayText = css`
-    color: ${theme.subText};
-    font-weight: ${theme.fontWeight.normal};
+    color: ${theme.tokens.content.secondary};
+    font-weight: ${theme.font.weight.sans.regular};
   `;
 
   const host = organization.links.regionUrl;
@@ -142,7 +153,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               onClick={handleCopyEventId}
               size="zero"
               borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              icon={<IconCopy size="xs" variant="muted" />}
             />
           </EventIdWrapper>
           <StyledTimeSince
@@ -178,7 +189,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                 )}
                 borderless
                 size="zero"
-                icon={<IconWarning color="red300" />}
+                icon={<IconWarning variant="danger" />}
                 onClick={() => {
                   document
                     .getElementById(SectionKey.PROCESSING_ERROR)
@@ -198,8 +209,8 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 }
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
 `;
 
@@ -210,7 +221,7 @@ const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   align-items: center;
   padding: 0 ${p => p.theme.space.lg};
   min-height: ${MIN_NAV_HEIGHT}px;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p =>
       p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
@@ -233,11 +244,11 @@ const EventInfo = styled('div')`
 `;
 
 const ProcessingErrorButton = styled(Button)`
-  color: ${p => p.theme.red300};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.colors.red400};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   :hover {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.colors.red400};
   }
 `;
 
@@ -248,30 +259,30 @@ const JsonLinkWrapper = styled('div')`
 `;
 
 const JsonLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.subText};
+    text-decoration-color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const MarkdownButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
+  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
   font-size: inherit;
   font-weight: normal;
   cursor: pointer;
   white-space: nowrap;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.subText};
+    text-decoration-color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -279,7 +290,7 @@ const EventIdWrapper = styled('div')`
   display: flex;
   gap: ${p => p.theme.space['2xs']};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 
   button {

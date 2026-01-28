@@ -14,10 +14,10 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
   return <div ref={ref} role="menu" {...props} />;
 })`
   position: absolute;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   z-index: ${p => p.theme.zIndex.dropdown};
-  background: ${p => p.theme.backgroundElevated};
-  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   width: auto;
@@ -32,15 +32,18 @@ const MenuContentContainer = styled('div')`
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
-  background: ${p => (p.tabIndex === 0 ? p.theme.hover : undefined)};
+  background: ${p =>
+    p.tabIndex === 0
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : undefined};
 
   &:focus {
     color: ${p => p.theme.tokens.content.primary};
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
     outline: none;
   }
 `;
@@ -48,7 +51,7 @@ const MenuContentContainer = styled('div')`
 const MenuItemCheckboxLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
   cursor: pointer;
   flex: 1 1 100%;
@@ -115,13 +118,16 @@ const MenuButton = styled('button')`
   padding: ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
-  background: ${p => (p.tabIndex === 0 ? p.theme.hover : 'transparent')} !important;
+  background: ${p =>
+    p.tabIndex === 0
+      ? p.theme.tokens.interactive.transparent.neutral.background.active
+      : 'transparent'} !important;
   pointer-events: ${p => (p.disabled ? 'none' : undefined)};
   opacity: ${p => (p.disabled ? 0.7 : undefined)};
 
   &:focus {
     color: ${p => p.theme.tokens.content.primary};
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
     outline: none;
   }
 
@@ -248,8 +254,8 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
 })`
   text-transform: uppercase;
   line-height: 1.5;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
   cursor: default;
   font-size: 75%;

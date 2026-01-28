@@ -178,6 +178,58 @@ class TestGetCodingAgentPrompt(TestCase):
         assert result == expected
         mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt includes Fixes line when short_id is provided."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345, AutofixTriggerSource.SOLUTION, None, short_id="AIML-2301"
+        )
+
+        assert "Fixes AIML-2301" in result
+        assert "Include 'Fixes AIML-2301' in the pull request description" in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_without_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt does not include Fixes line when short_id is None."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id=None)
+
+        assert "Fixes" not in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_short_id_and_instruction(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt includes both Fixes line and instruction."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(
+            12345,
+            AutofixTriggerSource.SOLUTION,
+            "Be careful with backwards compatibility",
+            short_id="PROJ-1234",
+        )
+
+        assert "Fixes PROJ-1234" in result
+        assert "Be careful with backwards compatibility" in result
+        assert "Please fix the following issue" in result
+        assert "This is the autofix prompt" in result
+
+    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
+    def test_get_coding_agent_prompt_with_empty_short_id(self, mock_get_autofix_prompt):
+        """Test get_coding_agent_prompt does not include Fixes line when short_id is empty string."""
+        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
+
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id="")
+
+        assert "Fixes" not in result
+        assert "Please fix the following issue" in result
+
 
 class TestAutofixStateParsing(TestCase):
     def test_autofix_state_validate_parses_nested_structures(self):
@@ -432,7 +484,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_cache.set.assert_called_once_with(
             f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
             True,
-            timeout=60 * 60,
+            timeout=60 * 15,
         )
 
     @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
@@ -456,7 +508,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_cache.set.assert_called_once_with(
             f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
             False,
-            timeout=60 * 60,
+            timeout=60 * 15,
         )
 
     @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
@@ -478,7 +530,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_cache.set.assert_called_once_with(
             f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
             False,
-            timeout=60 * 60,
+            timeout=60 * 15,
         )
 
     @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
@@ -503,7 +555,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_cache.set.assert_called_once_with(
             f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
             True,
-            timeout=60 * 60,
+            timeout=60 * 15,
         )
 
     @patch("sentry.seer.autofix.utils.cache")
@@ -529,6 +581,24 @@ class TestHasProjectConnectedRepos(TestCase):
         assert result is False
         mock_get_preferences.assert_not_called()
         mock_cache.set.assert_not_called()
+
+    @patch("sentry.seer.autofix.utils.cache")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    def test_skip_cache_bypasses_cached_value(self, mock_get_preferences, mock_cache):
+        """Test skip_cache=True bypasses cache and calls API."""
+        mock_cache.get.return_value = False  # Cache has False
+        mock_preference = Mock()
+        mock_preference.repositories = [{"provider": "github", "owner": "test", "name": "repo"}]
+        mock_response = Mock()
+        mock_response.preference = mock_preference
+        mock_get_preferences.return_value = mock_response
+
+        result = has_project_connected_repos(self.organization.id, self.project.id, skip_cache=True)
+
+        assert result is True  # Fresh value from API, not cached False
+        mock_cache.get.assert_not_called()  # Cache not checked
+        mock_get_preferences.assert_called_once()  # API was called
+        mock_cache.set.assert_called_once()  # Cache still updated
 
     @patch("sentry.seer.autofix.utils.get_autofix_repos_from_project_code_mappings")
     @patch("sentry.seer.autofix.utils.cache")

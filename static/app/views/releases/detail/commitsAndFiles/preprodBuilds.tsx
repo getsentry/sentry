@@ -1,13 +1,18 @@
-import {useCallback, useContext, useEffect, useState} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 
 import {Container} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
+import {
+  getPreprodBuildsDisplay,
+  PreprodBuildsDisplay,
+} from 'sentry/components/preprod/preprodBuildsDisplay';
+import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
-import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -18,8 +23,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import {PreprodOnboarding} from './preprodOnboarding';
@@ -27,10 +32,18 @@ import {PreprodOnboarding} from './preprodOnboarding';
 export default function PreprodBuilds() {
   const organization = useOrganization();
   const releaseContext = useContext(ReleaseContext);
+  const projectId = releaseContext.project.id;
   const projectSlug = releaseContext.project.slug;
   const projectPlatform = releaseContext.project.platform;
   const params = useParams<{release: string}>();
   const location = useLocation();
+  const hasDistributionFeature = organization.features.includes(
+    'preprod-build-distribution'
+  );
+  const activeDisplay = useMemo(
+    () => getPreprodBuildsDisplay(location.query.display, hasDistributionFeature),
+    [hasDistributionFeature, location.query.display]
+  );
 
   const {query: urlSearchQuery, cursor} = useLocationQuery({
     fields: {
@@ -72,18 +85,23 @@ export default function PreprodBuilds() {
     queryParams.query = urlSearchQuery.trim();
   }
 
+  if (projectId) {
+    queryParams.project = projectId;
+  }
+
   const {
     data: buildsData,
     isPending: isLoadingBuilds,
     error: buildsError,
     refetch,
     getResponseHeader,
-  }: UseApiQueryResult<
-    ListBuildsApiResponse,
-    RequestError
-  > = useApiQuery<ListBuildsApiResponse>(
+  }: UseApiQueryResult<BuildDetailsApiResponse[], RequestError> = useApiQuery<
+    BuildDetailsApiResponse[]
+  >(
     [
-      `/projects/${organization.slug}/${projectSlug}/preprodartifacts/list-builds/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: queryParams},
     ],
     {
@@ -92,16 +110,41 @@ export default function PreprodBuilds() {
     }
   );
 
-  const handleSearch = (query: string) => {
+  const handleSearch = (query: string, _state?: {queryIsValid: boolean}) => {
     setLocalSearchQuery(query);
   };
 
-  const builds = buildsData?.builds || [];
+  const handleDisplayChange = useCallback(
+    (display: PreprodBuildsDisplay) => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          display,
+        },
+      });
+    },
+    [location]
+  );
+
+  const builds = buildsData ?? [];
   const pageLinks = getResponseHeader?.('Link') || null;
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
-  const shouldShowSearchBar = builds.length > 0 || hasSearchQuery;
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
+
+  usePreprodBuildsAnalytics({
+    builds,
+    cursor,
+    display: activeDisplay,
+    enabled: !!projectSlug && !!params.release,
+    error: !!buildsError,
+    isLoading: isLoadingBuilds,
+    pageSource: 'releases_details_preprod_builds',
+    projectCount: 1,
+    searchQuery: urlSearchQuery,
+  });
 
   const handleBuildRowClick = useCallback(
     (build: BuildDetailsApiResponse) => {
@@ -125,31 +168,27 @@ export default function PreprodBuilds() {
           projectSlug={projectSlug}
         />
         {buildsError && <LoadingError onRetry={refetch} />}
-        {shouldShowSearchBar && (
-          <Container paddingBottom="md">
-            <SearchBar
-              placeholder={t('Search by build, SHA, branch name, or pull request')}
-              onChange={handleSearch}
-              query={localSearchQuery}
-            />
-          </Container>
-        )}
-        {showOnboarding ? (
-          <PreprodOnboarding
-            organizationSlug={organization.slug}
-            projectPlatform={projectPlatform || null}
-            projectSlug={projectSlug}
+        <Container paddingBottom="md">
+          <PreprodBuildsSearchControls
+            initialQuery={localSearchQuery}
+            display={activeDisplay}
+            projects={[Number(projectId)]}
+            onChange={handleSearch}
+            onDisplayChange={handleDisplayChange}
           />
+        </Container>
+        {showOnboarding ? (
+          <PreprodOnboarding projectPlatform={projectPlatform || null} />
         ) : (
           <PreprodBuildsTable
             builds={builds}
+            display={activeDisplay}
             isLoading={isLoadingBuilds}
-            error={!!buildsError}
+            error={buildsError}
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
-            projectSlug={projectSlug}
             onRowClick={handleBuildRowClick}
-            hasSearchQuery
+            hasSearchQuery={hasSearchQuery}
           />
         )}
       </Layout.Main>

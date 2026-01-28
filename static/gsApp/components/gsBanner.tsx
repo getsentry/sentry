@@ -108,7 +108,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Header>{'Action Required'}</Header>
       <Body>
         <Alert.Container>
-          <Alert type="warning">{t('Your account has been suspended')}</Alert>
+          <Alert variant="warning">{t('Your account has been suspended')}</Alert>
         </Alert.Container>
         <p>{t('Your account has been suspended with the following reason:')}</p>
         <ul>
@@ -181,7 +181,7 @@ function NoticeModal({
     }
   };
 
-  const alertType = whichModal === ModalType.PAST_DUE ? 'error' : 'warning';
+  const alertType = whichModal === ModalType.PAST_DUE ? 'danger' : 'warning';
 
   let subText: React.ReactNode;
   let body: React.ReactNode;
@@ -266,7 +266,7 @@ function NoticeModal({
       </Header>
       <Body>
         <Alert.Container>
-          <Alert type={alertType}>{title}</Alert>
+          <Alert variant={alertType}>{title}</Alert>
         </Alert.Container>
         <p>{body}</p>
         {subText && <p>{subText}</p>}
@@ -955,11 +955,11 @@ class GSBanner extends Component<Props, State> {
         <Alert.Container>
           <Alert
             system
-            type="error"
+            variant="danger"
             data-test-id="banner-alert-past-due"
             trailingItems={
               <Flex align="center" height="100%">
-                <Tag type="error">{t('Action Required')}</Tag>
+                <Tag variant="danger">{t('Action Required')}</Tag>
               </Flex>
             }
           >
@@ -1014,7 +1014,7 @@ class GSBanner extends Component<Props, State> {
     // if there are deactivated members, than anyone who doesn't have org:billing will be
     // prevented from accessing this view anyways cause they will be deactivated
     if (isOverMemberLimit && !deactivatedMemberDismissed && this.hasBillingPerms) {
-      const checkoutUrl = `/settings/${organization.slug}/billing/checkout/?referrer=deactivated_member_header`;
+      const checkoutUrl = `/checkout/${organization.slug}/?referrer=deactivated_member_header`;
       const wrappedNumber = <strong>{membersDeactivatedFromLimit}</strong>;
       // only disabling members if the plan allows exactly one member
       return (
@@ -1076,12 +1076,12 @@ class GSBanner extends Component<Props, State> {
 
 export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true})));
 
-function InvertedAlert(props: Omit<AlertProps, 'system' | 'type'>) {
+function InvertedAlert(props: Omit<AlertProps, 'system' | 'variant'>) {
   const invertedTheme = useInvertedTheme();
 
   return (
     <ThemeProvider theme={invertedTheme}>
-      <Alert system type="info" {...props} />
+      <Alert system variant="info" {...props} />
     </ThemeProvider>
   );
 }

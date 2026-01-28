@@ -245,8 +245,8 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
                 "help": (
                     "If you want to add a repository to integrate commit data with releases, please install the "
                     'new <a href="/settings/{}/integrations/github/">'
-                    "Github global integration</a>.  "
-                    "You cannot add repositories to the legacy Github integration."
+                    "GitHub global integration</a>.  "
+                    "You cannot add repositories to the legacy GitHub integration."
                 ).format(project.organization.slug),
                 "required": True,
             }
@@ -355,7 +355,7 @@ class GitHubRepositoryProvider(CorePluginMixin, RepositoryProvider):
             try:
                 resp = self._create_webhook(client, organization, data["name"])
             except Exception as e:
-                self.logger.exception(
+                self.logger.warning(
                     "github.webhook.create-failure",
                     extra={
                         "organization_id": organization.id,

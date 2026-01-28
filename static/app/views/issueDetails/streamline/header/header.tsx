@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -129,7 +130,7 @@ export default function StreamlinedGroupHeader({
                   'Error counts on this page have been upsampled based on your sampling rate.'
                 )}
               >
-                <StyledTag>{t('Errors Upsampled')}</StyledTag>
+                <StyledTag variant="muted">{t('Errors Upsampled')}</StyledTag>
               </Tooltip>
             )}
           </Flex>
@@ -313,21 +314,21 @@ const PrimaryTitle = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   flex-shrink: 0;
 `;
 
 const StatTitle = styled('div')`
   display: block;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   justify-self: flex-end;
 `;
 
 const StatLink = styled(Link)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: ${p => (p['aria-disabled'] ? 'none' : 'underline')};
   text-decoration-style: dotted;
 `;
@@ -340,7 +341,7 @@ const StatCount = styled(Count)`
 `;
 
 const Subtext = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -352,7 +353,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
   gap: ${space(1)};
   flex-wrap: wrap;
   padding: ${space(1)} 24px;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   transition: background 0.3s ease-in-out;
   background: ${p => (p.isComplete ? 'transparent' : p.theme.tokens.background.primary)};
@@ -364,7 +365,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     background: linear-gradient(
       to right,
       ${p => p.theme.tokens.background.primary},
-      ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
+      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
     );
   }
   &:after {
@@ -375,7 +376,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     left: 24px;
     bottom: unset;
     height: 1px;
-    background: ${p => p.theme.translucentBorder};
+    background: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -393,7 +394,7 @@ const Workflow = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Title = styled('div')`

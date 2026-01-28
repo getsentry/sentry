@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
@@ -9,6 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -26,9 +29,16 @@ export function OtherPlatformsInfo({
     isError,
     isPending,
     refetch,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
-    staleTime: Infinity,
-  });
+  } = useApiQuery<ProjectKey[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -38,15 +48,32 @@ export function OtherPlatformsInfo({
     return <LoadingError onRetry={refetch} />;
   }
 
+  const dsn = data[0]?.dsn?.public;
+
   return (
     <Wrapper>
       {t(
         "We cannot provide instructions for '%s' projects. However, please find below the DSN key for this project, which is required to instrument Sentry.",
         platform
       )}
-      <CodeBlock dark language="properties">
-        {t('dsn: %s', data[0]!.dsn.public)}
-      </CodeBlock>
+      {dsn ? (
+        <CodeBlock dark language="properties">
+          {t('dsn: %s', data[0]!.dsn.public)}
+        </CodeBlock>
+      ) : (
+        <Alert variant="warning">
+          {tct(
+            'No DSN found for this project. You an create a new one by visiting your [link:project settings].',
+            {
+              link: (
+                <Link
+                  to={`/organizations/${organization.slug}/settings/projects/${projectSlug}/keys/`}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      )}
       <Suggestion>
         {t(
           'Since it can be a lot of work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'

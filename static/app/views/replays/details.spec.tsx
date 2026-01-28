@@ -25,7 +25,9 @@ mockUseLoadReplayReader.mockReturnValue({
   projectSlug: ProjectFixture().slug,
   replay: null,
   replayId: 'test-replay-id',
-  replayRecord: ReplayRecordFixture(),
+  replayRecord: ReplayRecordFixture({
+    id: 'test-replay-id',
+  }),
   status: 'success' as const,
 });
 

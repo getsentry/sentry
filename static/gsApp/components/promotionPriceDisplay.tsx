@@ -29,8 +29,8 @@ export default function PromotionPriceDisplay({
 const PriceHeader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.colors.gray500};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Price = styled('div')`
@@ -46,11 +46,12 @@ const Amount = styled('div')<{promo?: boolean}>`
   font-size: 30px;
   font-weight: ${p => (p.promo ? 'bold' : 'none')};
   text-decoration: ${p => (p.promo ? 'none' : 'line-through')};
-  color: ${p => (p.promo ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.promo ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 `;
 
 const BillingInterval = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding-bottom: 7px;
   align-self: end;
 `;

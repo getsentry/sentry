@@ -25,7 +25,7 @@ const getSdkSetupSnippet = (params: DocsParams) => `
 import * as Sentry from "@sentry/cloudflare";
 
 export default Sentry.withSentry(
-  env => ({
+  (env: Env) => ({
     dsn: "${params.dsn.public}",${
       params.isPerformanceSelected
         ? `

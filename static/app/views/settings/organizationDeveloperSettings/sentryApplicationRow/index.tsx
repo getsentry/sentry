@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Link} from 'sentry/components/core/link';
@@ -68,10 +70,6 @@ export default function SentryApplicationRow({
   );
 }
 
-const Flex = styled('div')`
-  display: flex;
-`;
-
 const Box = styled('div')``;
 
 const SentryAppItem = styled(PanelItem)`
@@ -112,7 +110,9 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   </CenterFlex>
 ))`
   color: ${(props: PublishStatusProps) =>
-    props.status === 'published' ? props.theme.success : props.theme.gray300};
+    props.status === 'published'
+      ? props.theme.tokens.content.success
+      : props.theme.colors.gray400};
   font-weight: light;
   margin-right: ${space(0.75)};
 `;

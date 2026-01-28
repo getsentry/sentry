@@ -15,7 +15,7 @@ type Props = {
 
 function StatsHeaderTabs({organization}: Props) {
   return (
-    <TabList hideBorder>
+    <TabList>
       <TabList.Item
         key="stats"
         to={makeStatsPathname({
@@ -64,7 +64,7 @@ function StatsHeader({organization, activeTab}: Props) {
 }
 
 const TabsContainer = styled(Layout.HeaderTabs)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(2)};
 `;
 

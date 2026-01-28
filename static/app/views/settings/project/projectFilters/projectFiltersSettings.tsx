@@ -9,6 +9,8 @@ import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -264,7 +266,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     return (
       <div>
         <div>
-          <BulkFilter>
+          <Flex align="center" gap="xs">
             <FieldLabel disabled={disabled}>
               {t('Filter out legacy browsers')}:
             </FieldLabel>
@@ -286,7 +288,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                 {t('None')}
               </Button>
             </ButtonBar>
-          </BulkFilter>
+          </Flex>
           <FieldHelp>
             {t(
               'The browser versions filtered out will be periodically evaluated and updated.'
@@ -386,7 +388,7 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
             ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
-            <PanelAlert type="warning" data-test-id="error-message-disclaimer">
+            <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
               {t(
                 "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
@@ -653,7 +655,7 @@ const FilterGridItem = styled('div')`
   grid-template-columns: max-content 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1.5)};
 `;
@@ -664,19 +666,13 @@ const FilterGridIcon = styled('img')`
 `;
 
 const FilterTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
-`;
-
-const BulkFilter = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;

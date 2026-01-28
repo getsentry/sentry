@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 function NotFound() {
   return (
     <Alert.Container>
-      <Alert type="error">
+      <Alert variant="danger">
         <Heading>{t('Page Not Found')}</Heading>
         <p>{t('The page you are looking for was not found.')}</p>
         <p>{t('You may wish to try the following:')}</p>
@@ -44,7 +44,7 @@ function NotFound() {
 }
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.4;
   margin-bottom: ${space(1)};
 `;

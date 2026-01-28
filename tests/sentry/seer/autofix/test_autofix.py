@@ -16,11 +16,10 @@ from sentry.seer.autofix.autofix import (
     _get_trace_tree_for_event,
     _respond_with_error,
     get_all_tags_overview,
-    onboarding_seer_settings_update,
     trigger_autofix,
 )
+from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
-from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -785,6 +784,31 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
         assert staging_val["count"] == 1
         assert staging_val["percentage"] == "25%"
 
+    def test_get_all_tags_overview_respects_time_range(self) -> None:
+        """Only include tag counts for events within the provided time window (event 2 and 3)"""
+        now = before_now(minutes=0)
+        start = now - timedelta(minutes=3, seconds=30)
+        end = now - timedelta(minutes=1, seconds=30)
+
+        result = get_all_tags_overview(self.group, start=start, end=end)
+
+        assert result is not None
+        tags = {tag["key"]: tag for tag in result["tags_overview"]}
+
+        env_tag = tags["environment"]
+        assert env_tag["total_values"] == 2  # events ~2m and ~3m ago
+        env_values = {val["value"]: val for val in env_tag["top_values"]}
+        assert set(env_values.keys()) == {"production", "staging"}
+        assert env_values["production"]["count"] == 1
+        assert env_values["staging"]["count"] == 1
+
+        user_tag = tags["user_role"]
+        assert user_tag["total_values"] == 2
+        user_values = {val["value"]: val for val in user_tag["top_values"]}
+        assert set(user_values.keys()) == {"admin", "user"}
+        assert user_values["admin"]["count"] == 1
+        assert user_values["user"]["count"] == 1
+
 
 @requires_snuba
 @pytest.mark.django_db
@@ -1473,116 +1497,55 @@ class TestGetLogsForEvent(TestCase):
         assert merged[2]["message"] == "foo" and "consecutive_count" not in merged[2]
 
 
-@pytest.mark.django_db
-class TestOnboardingSeerSettingsUpdate(TestCase):
-    def test_does_not_set_org_options_when_rca_enabled(self) -> None:
-        """Tests that org options are not set"""
-        organization = self.create_organization()
+class UpdateAutofixTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.run_id = 123
+        self.payload: AutofixSelectRootCausePayload = {"type": "select_root_cause", "cause_id": 1}
 
-        assert organization.get_option("sentry:default_autofix_automation_tuning") is None
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_http_error(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
 
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=True,
-            is_auto_open_prs_enabled=False,
-            project_repo_dict={},
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = Exception("bad request, fix something")
+        mock_post.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
-        # Verify org-level option is set to OFF
-        organization.refresh_from_db()
-        assert organization.get_option("sentry:default_autofix_automation_tuning") is None
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to update autofix run"
 
-    @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
-    def test_rca_disabled_with_auto_prs_and_project_sets_open_pr_stopping_point(
-        self, mock_bulk_set
-    ) -> None:
-        """Tests that when RCA is disabled but auto PRs enabled with a project, stopping point is OPEN_PR."""
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_json_decode_error(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
 
-        repo = SeerRepoDefinition(
-            provider="github",
-            owner="getsentry",
-            name="sentry",
-            external_id="789",
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.side_effect = Exception("Invalid JSON")
+        mock_post.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=False,
-            is_auto_open_prs_enabled=True,
-            project_repo_dict={project.id: [repo]},
+        assert response.status_code == 500
+        assert response.data["detail"] == "Seer returned an invalid response"
+
+    @patch("sentry.seer.autofix.autofix.requests.post")
+    def test_update_autofix_success(self, mock_post):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
+        mock_post.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
-        # Verify org-level options
-        organization.refresh_from_db()
-
-        # Verify bulk_set_project_preferences is called with OPEN_PR stopping point
-        mock_bulk_set.assert_called_once()
-        call_args = mock_bulk_set.call_args
-        assert call_args[0][0] == organization.id
-        preferences = call_args[0][1]
-        assert len(preferences) == 1
-        assert preferences[0]["organization_id"] == organization.id
-        assert preferences[0]["project_id"] == project.id
-        assert preferences[0]["automated_run_stopping_point"] == "open_pr"
-        assert len(preferences[0]["repositories"]) == 1
-
-    @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
-    def test_rca_enabled_without_auto_prs_sets_code_changes_stopping_point(
-        self, mock_bulk_set
-    ) -> None:
-        """Tests that when RCA is enabled but auto PRs disabled, stopping point is CODE_CHANGES."""
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-
-        repo = SeerRepoDefinition(
-            provider="github",
-            owner="getsentry",
-            name="sentry",
-            external_id="123",
-        )
-
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=True,
-            is_auto_open_prs_enabled=False,
-            project_repo_dict={project.id: [repo]},
-        )
-
-        mock_bulk_set.assert_called_once()
-        call_args = mock_bulk_set.call_args
-        assert call_args[0][0] == organization.id
-        preferences = call_args[0][1]
-        assert len(preferences) == 1
-        assert preferences[0]["organization_id"] == organization.id
-        assert preferences[0]["project_id"] == project.id
-        assert preferences[0]["automated_run_stopping_point"] == "code_changes"
-        assert len(preferences[0]["repositories"]) == 1
-
-    @patch("sentry.seer.autofix.autofix.bulk_set_project_preferences")
-    def test_rca_enabled_with_auto_prs_sets_open_pr_stopping_point(self, mock_bulk_set) -> None:
-        """Tests that when RCA and auto PRs are enabled, stopping point is OPEN_PR."""
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-
-        repo = SeerRepoDefinition(
-            provider="github",
-            owner="getsentry",
-            name="sentry",
-            external_id="456",
-        )
-
-        onboarding_seer_settings_update(
-            organization_id=organization.id,
-            is_rca_enabled=True,
-            is_auto_open_prs_enabled=True,
-            project_repo_dict={project.id: [repo]},
-        )
-
-        mock_bulk_set.assert_called_once()
-        call_args = mock_bulk_set.call_args
-        assert call_args[0][0] == organization.id
-        preferences = call_args[0][1]
-        assert len(preferences) == 1
-        assert preferences[0]["automated_run_stopping_point"] == "open_pr"
+        assert response.status_code == 200
+        assert response.data == mock_response.json.return_value

@@ -189,6 +189,10 @@ class StandardAuthentication(QuietBasicAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
 
+    def authenticate_header(self, request: Request) -> str:
+        """Return WWW-Authenticate header value for 401 responses per RFC 6750 Section 3."""
+        return f'{self.token_name.decode().title()} realm="api"'
+
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         raise NotImplementedError
 
@@ -323,7 +327,9 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         except ApiApplication.DoesNotExist:
             raise invalid_pair_error
 
-        if not constant_time_compare(application.client_secret, client_secret):
+        if application.client_secret is None or not constant_time_compare(
+            application.client_secret, client_secret
+        ):
             raise invalid_pair_error
 
         try:
@@ -351,6 +357,9 @@ def get_payload_from_client_secret_jwt(
         raise AuthenticationFailed("Application not found")
 
     client_secret = application.client_secret
+    if client_secret is None:
+        raise AuthenticationFailed("Application does not have a client secret")
+
     try:
         encoded_jwt = tokens[1]
     except IndexError:
@@ -654,6 +663,8 @@ def compare_service_signature(
     signature: str,
     shared_secret_setting: list[str],
     service_name: str,
+    signature_prefix: str = "rpc0",
+    include_url_in_signature: bool = False,
 ) -> bool:
     """
     Generic function to compare request data + signature signed by one of the shared secrets.
@@ -667,28 +678,40 @@ def compare_service_signature(
         signature: The signature to validate
         shared_secret_setting: List of shared secrets from settings
         service_name: Name of the service for logging (e.g., "Seer", "Launchpad")
+        signature_prefix: Expected prefix for the signature (e.g., "rpc0", "service0"). The colon will be added automatically. Defaults to "rpc0" for backward compatibility.
+        include_url_in_signature: If True, signs "url:body". If False, signs only "body". Defaults to False for backward compatibility.
     """
 
     if not shared_secret_setting:
         raise RpcAuthenticationSetupException(
-            f"Cannot validate {service_name} RPC request signatures without shared secret"
+            f"Cannot validate {service_name} request signatures without shared secret"
         )
 
     # Ensure no empty secrets
     if any(not secret.strip() for secret in shared_secret_setting):
         raise RpcAuthenticationSetupException(
-            f"Cannot validate {service_name} RPC request signatures with empty shared secret"
+            f"Cannot validate {service_name} request signatures with empty shared secret"
         )
 
-    if not signature.startswith("rpc0:"):
-        logger.error("%s RPC signature validation failed: invalid signature prefix", service_name)
+    if not signature.startswith(f"{signature_prefix}:"):
+        logger.error(
+            "%s signature validation failed: invalid signature prefix (expected %s)",
+            service_name,
+            signature_prefix,
+        )
         return False
 
     try:
         # We aren't using the version bits currently.
         _, signature_data = signature.split(":", 2)
 
-        signature_input = body
+        if include_url_in_signature:
+            signature_input = b"%s:%s" % (
+                url.encode("utf8"),
+                body,
+            )
+        else:
+            signature_input = body
 
         for key in shared_secret_setting:
             computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
@@ -696,29 +719,33 @@ def compare_service_signature(
             if is_valid:
                 return True
     except Exception:
-        logger.exception("%s RPC signature validation failed", service_name)
+        logger.exception("%s signature validation failed", service_name)
         return False
 
-    logger.error("%s RPC signature validation failed", service_name)
+    logger.error("%s signature validation failed", service_name)
 
     return False
 
 
-class ServiceRpcSignatureAuthentication(StandardAuthentication):
+class HmacSignatureAuthentication(StandardAuthentication):
     """
-    Generic authentication for service RPC requests.
+    HMAC authentication for service-to-service requests.
     Requests are sent with an HMAC signed by a shared private key.
 
     Subclasses should define:
     - shared_secret_setting_name: str - name of the settings attribute (e.g., "SEER_RPC_SHARED_SECRET")
     - service_name: str - name of the service for logging (e.g., "Seer", "Launchpad")
     - sdk_tag_name: str - name for the SDK tag (e.g., "seer_rpc_auth", "launchpad_rpc_auth")
+    - signature_prefix: str - prefix for the signature format (e.g., "rpc0", "service0"). The colon will be added automatically. Defaults to "rpc0" for backward compatibility.
+    - include_url_in_signature: bool - If True, signs "url:body". If False, signs only "body". Defaults to False for backward compatibility.
     """
 
     token_name = b"rpcsignature"
     shared_secret_setting_name: str
     service_name: str
     sdk_tag_name: str
+    signature_prefix: str = "rpc0"
+    include_url_in_signature: bool = False
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not auth or len(auth) < 2:
@@ -730,11 +757,17 @@ class ServiceRpcSignatureAuthentication(StandardAuthentication):
 
         if shared_secret_setting is None:
             raise RpcAuthenticationSetupException(
-                f"Cannot validate {self.service_name} RPC request signatures without shared secret"
+                f"Cannot validate {self.service_name} request signatures without shared secret"
             )
 
         if not compare_service_signature(
-            request.path_info, request.body, token, shared_secret_setting, self.service_name
+            request.path_info,
+            request.body,
+            token,
+            shared_secret_setting,
+            self.service_name,
+            self.signature_prefix,
+            self.include_url_in_signature,
         ):
             raise AuthenticationFailed("Invalid signature")
 

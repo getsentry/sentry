@@ -1,65 +1,28 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Container} from 'sentry/components/core/layout';
 import type {ContainerProps} from 'sentry/components/core/layout/container';
-import type {Organization} from 'sentry/types/organization';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
-import {hasNewBillingUI} from 'getsentry/utils/billing';
-
-function SubscriptionPageContainer({
-  header,
+export default function SubscriptionPageContainer({
   children,
   background,
-  organization,
-  dataTestId,
-  useBorderTopLogic = true,
-  paddingOverride,
-}: {
-  children: React.ReactNode;
-  organization: Organization;
-  background?: 'primary' | 'secondary';
-  dataTestId?: string;
-  header?: React.ReactNode;
-  paddingOverride?: ContainerProps['padding'];
-  useBorderTopLogic?: boolean;
-}) {
-  const isNewBillingUI = hasNewBillingUI(organization);
-
+  ...rest
+}: {children: React.ReactNode} & Omit<ContainerProps, 'children'>) {
   useEffect(() => {
     // record replays for all usage and billing settings pages
-    if (isNewBillingUI) {
-      Sentry.getReplay()?.start();
-    }
-  }, [isNewBillingUI]);
+    Sentry.getReplay()?.start();
+  }, []);
 
-  useRouteAnalyticsParams({
-    isNewBillingUI,
-  });
-
-  if (!isNewBillingUI) {
-    if (dataTestId) {
-      return <Container data-test-id={dataTestId}>{children}</Container>;
-    }
-    return <Fragment>{children}</Fragment>;
-  }
   return (
-    <Fragment>
-      {header}
-      <Container
-        padding={paddingOverride ?? {xs: 'xl', md: '3xl'}}
-        background={background}
-        flexGrow={1}
-        data-test-id={dataTestId}
-        borderTop={
-          useBorderTopLogic && background === 'secondary' ? 'primary' : undefined
-        }
-      >
-        {children}
-      </Container>
-    </Fragment>
+    <Container
+      background={background}
+      borderTop={background === 'secondary' ? 'primary' : undefined}
+      flexGrow={1}
+      padding={{xs: 'xl', md: '3xl'}}
+      {...rest}
+    >
+      {children}
+    </Container>
   );
 }
-
-export default SubscriptionPageContainer;

@@ -1,9 +1,10 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
   DiffFileType,
   DiffLineType,
@@ -11,12 +12,23 @@ import {
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getPrismLanguage} from 'sentry/utils/prism';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 interface FileDiffViewerProps {
   patch: FilePatch;
+  /**
+   * Whether the file diff can be collapsed/expanded by clicking the header.
+   * Default: false
+   */
+  collapsible?: boolean;
+  /**
+   * Whether the file diff should be expanded by default when collapsible is true.
+   * Default: false (collapsed by default)
+   */
+  defaultExpanded?: boolean;
   /**
    * Optional repo name to display in the file header.
    * If provided, will show as "repoName:filePath", otherwise just "filePath"
@@ -97,58 +109,74 @@ export function FileDiffViewer({
   repoName,
   showBorder = false,
   useFlexForDeleted = false,
+  collapsible = false,
+  defaultExpanded = false,
 }: FileDiffViewerProps) {
+  const [isExpanded, setIsExpanded] = useState(collapsible ? defaultExpanded : true);
   const isDelete = patch.type === DiffFileType.DELETED;
   const filePath = repoName ? `${repoName}:${patch.path}` : patch.path;
 
   return (
     <FileDiffWrapper showBorder={showBorder}>
-      <FileHeader>
-        <FileAddedRemoved>
+      <FileHeader
+        collapsible={collapsible}
+        onClick={collapsible ? () => setIsExpanded(value => !value) : undefined}
+      >
+        {collapsible && <InteractionStateLayer />}
+        <Flex align="center" gap="md">
           <FileAdded>+{patch.added}</FileAdded>
           <FileRemoved>-{patch.removed}</FileRemoved>
-        </FileAddedRemoved>
+        </Flex>
         <FilePathName title={filePath}>{filePath}</FilePathName>
+        {collapsible && <IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
       </FileHeader>
-      {isDelete ? (
-        useFlexForDeleted ? (
-          <Flex align="center" justify="center" padding="3xl">
-            <Text variant="muted">{t('This file will be deleted.')}</Text>
-          </Flex>
-        ) : (
-          <DeletedFileMessage>{t('This file will be deleted.')}</DeletedFileMessage>
-        )
-      ) : (
-        <DiffContainer>
-          {patch.hunks.map((hunk, hunkIndex) => (
-            <Fragment key={hunkIndex}>
-              <HunkHeaderEmptySpace />
-              <HunkHeader
-                sourceStart={hunk.source_start}
-                sourceLength={hunk.source_length}
-                targetStart={hunk.target_start}
-                targetLength={hunk.target_length}
-                sectionHeader={hunk.section_header}
-              />
-              {hunk.lines.map((line, lineIndex) => (
-                <Fragment key={`${hunkIndex}-${lineIndex}`}>
-                  <LineNumber lineType={line.line_type}>{line.source_line_no}</LineNumber>
-                  <LineNumber lineType={line.line_type}>{line.target_line_no}</LineNumber>
-                  <DiffContent lineType={line.line_type}>
-                    <DiffLineContent line={line} fileName={patch.path} />
-                  </DiffContent>
+      {isExpanded && (
+        <Fragment>
+          {isDelete ? (
+            useFlexForDeleted ? (
+              <Flex align="center" justify="center" padding="3xl">
+                <Text variant="muted">{t('This file will be deleted.')}</Text>
+              </Flex>
+            ) : (
+              <DeletedFileMessage>{t('This file will be deleted.')}</DeletedFileMessage>
+            )
+          ) : (
+            <DiffContainer>
+              {patch.hunks.map((hunk, hunkIndex) => (
+                <Fragment key={hunkIndex}>
+                  <HunkHeaderEmptySpace />
+                  <HunkHeader
+                    sourceStart={hunk.source_start}
+                    sourceLength={hunk.source_length}
+                    targetStart={hunk.target_start}
+                    targetLength={hunk.target_length}
+                    sectionHeader={hunk.section_header}
+                  />
+                  {hunk.lines.map((line, lineIndex) => (
+                    <Fragment key={`${hunkIndex}-${lineIndex}`}>
+                      <LineNumber lineType={line.line_type}>
+                        {line.source_line_no}
+                      </LineNumber>
+                      <LineNumber lineType={line.line_type}>
+                        {line.target_line_no}
+                      </LineNumber>
+                      <DiffContent lineType={line.line_type}>
+                        <DiffLineContent line={line} fileName={patch.path} />
+                      </DiffContent>
+                    </Fragment>
+                  ))}
                 </Fragment>
               ))}
-            </Fragment>
-          ))}
-        </DiffContainer>
+            </DiffContainer>
+          )}
+        </Fragment>
       )}
     </FileDiffWrapper>
   );
 }
 
 const SyntaxHighlightedCode = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   white-space: pre;
 
   && pre,
@@ -160,37 +188,33 @@ const SyntaxHighlightedCode = styled('div')`
 `;
 
 const FileDiffWrapper = styled('div')<{showBorder?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 20px;
   vertical-align: middle;
   overflow: hidden;
-  background-color: ${p => p.theme.background};
-  ${p => (p.showBorder ? `border: 1px solid ${p.theme.border};` : '')}
+  background-color: ${p => p.theme.tokens.background.primary};
+  ${p => (p.showBorder ? `border: 1px solid ${p.theme.tokens.border.primary};` : '')}
   ${p => (p.showBorder ? `border-radius: ${p.theme.radius.md};` : '')}
 `;
 
-const FileHeader = styled('div')`
+const FileHeader = styled('div')<{collapsible?: boolean}>`
+  position: relative;
   display: grid;
   align-items: center;
-  grid-template-columns: minmax(60px, auto) 1fr;
+  grid-template-columns: minmax(60px, auto) 1fr ${p => (p.collapsible ? 'auto' : '')};
   gap: ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-`;
-
-const FileAddedRemoved = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
+  ${p => (p.collapsible ? 'cursor: pointer;' : '')}
 `;
 
 const FileAdded = styled('div')`
-  color: ${p => p.theme.successText};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const FileRemoved = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const FilePathName = styled('div')`
@@ -206,11 +230,11 @@ const DeletedFileMessage = styled('div')`
   align-items: center;
   justify-content: center;
   padding: ${p => p.theme.space['2xl']};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DiffContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
@@ -218,13 +242,13 @@ const DiffContainer = styled('div')`
 
 const HunkHeaderEmptySpace = styled('div')`
   grid-column: 1 / 3;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm}
     ${p => p.theme.space['3xl']};
   white-space: pre-wrap;
@@ -234,8 +258,8 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
   display: flex;
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   user-select: none;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&

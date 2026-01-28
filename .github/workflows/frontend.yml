@@ -209,8 +209,7 @@ jobs:
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
-          #      wouldn't be correct. Also, if this increases, make sure to also increase
-          #      `flags.frontend.after_n_builds` in `codecov.yml`.
+          #      wouldn't be correct.
           CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
           # Disable testing-library from printing out any of of the DOM to
@@ -219,27 +218,7 @@ jobs:
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
-        run: |
-          if [ ${{ github.ref }} = 'refs/heads/master' ]; then
-            pnpm run test-ci --forceExit --coverage
-          else
-            pnpm run test-ci --forceExit
-          fi
-
-      # We only upload coverage data for FE changes since it conflicts with
-      # codecov's carry forward functionality.
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations.
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        timeout-minutes: 5
-        with:
-          files: .artifacts/coverage/*
-          type: frontend
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
+        run: pnpm run test-ci --forceExit
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)

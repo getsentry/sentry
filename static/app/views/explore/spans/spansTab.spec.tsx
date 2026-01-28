@@ -61,12 +61,7 @@ const datePageFilterProps: DatePageFilterProps = {
 describe('SpansTabContent', () => {
   const {organization, project} = initializeOrg({
     organization: {
-      features: [
-        'gen-ai-features',
-        'gen-ai-explore-traces',
-        'gen-ai-explore-traces-consent-ui',
-        'traces-page-cross-event-querying',
-      ],
+      features: ['gen-ai-features', 'traces-page-cross-event-querying'],
     },
   });
 
@@ -545,6 +540,11 @@ describe('SpansTabContent', () => {
           JSON.stringify([{query: '', type: 'spans'}])
         )
       );
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_added',
+        expect.objectContaining({type: 'spans'})
+      );
     });
 
     it('disables dropdown when there are 2 cross events', () => {
@@ -611,6 +611,11 @@ describe('SpansTabContent', () => {
       expect(
         screen.queryByPlaceholderText('Search for logs, users, tags, and more')
       ).not.toBeInTheDocument();
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_removed',
+        expect.objectContaining({type: 'logs'})
+      );
     });
 
     it('changes the cross event search bar when dataset changed', async () => {
@@ -631,6 +636,11 @@ describe('SpansTabContent', () => {
       expect(
         screen.getByPlaceholderText('Search for metrics, users, tags, and more')
       ).toBeInTheDocument();
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'trace.explorer.cross_event_changed',
+        expect.objectContaining({new_type: 'metrics', old_type: 'logs'})
+      );
     });
 
     it('renders disabled cross event search bar when the limit is reached', () => {

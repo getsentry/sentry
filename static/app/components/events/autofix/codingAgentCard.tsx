@@ -2,11 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
@@ -33,12 +35,12 @@ interface CodingAgentCardProps {
 }
 
 function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
-  const getTagType = (status: CodingAgentStatus): TagProps['type'] => {
+  const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
         return 'success';
       case CodingAgentStatus.FAILED:
-        return 'error';
+        return 'danger';
       case CodingAgentStatus.PENDING:
       case CodingAgentStatus.RUNNING:
       default:
@@ -69,6 +71,8 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     switch (provider) {
       case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
         return t('Cursor Cloud Agent');
+      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
+        return t('GitHub Copilot');
       default:
         return t('Coding Agent');
     }
@@ -91,23 +95,23 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     {shouldShowSpinner(codingAgentState.status) ? (
                       <StyledLoadingIndicator size={16} />
                     ) : (
-                      <IconCode size="md" color="purple400" />
+                      <IconCode size="md" variant="accent" />
                     )}
                     {getProviderName(codingAgentState.provider)}
                   </HeaderText>
                 </HeaderWrapper>
 
                 <Content>
-                  <CardHeader>
+                  <Stack marginBottom="md" gap="xs">
                     <AgentTitle>{codingAgentState.name}</AgentTitle>
                     <div>
-                      <Tag type={getTagType(codingAgentState.status)}>
+                      <Tag variant={getTagVariant(codingAgentState.status)}>
                         {getStatusText(codingAgentState.status)}
                       </Tag>
                     </div>
-                  </CardHeader>
+                  </Stack>
 
-                  <CardContent>
+                  <Stack gap="sm">
                     {/* Show results for completed or failed agents */}
                     {codingAgentState.results && codingAgentState.results.length > 0 && (
                       <ResultsSection>
@@ -148,7 +152,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                       {t('Started')}
                       <DateTime date={codingAgentState.started_at} />
                     </DetailRow>
-                  </CardContent>
+                  </Stack>
                 </Content>
                 {hasButtons && (
                   <React.Fragment>
@@ -163,7 +167,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
                             >
-                              {t('Open in Cursor')}
+                              {codingAgentState.provider ===
+                              CodingAgentProvider.CURSOR_BACKGROUND_AGENT
+                                ? t('Open in Cursor')
+                                : t('View Agent')}
                             </Button>
                           </ExternalLink>
                         )}
@@ -200,7 +207,7 @@ export default CodingAgentCard;
 const VerticalLine = styled('div')`
   width: 0;
   height: ${p => p.theme.space.xl};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   margin-left: 16px;
   margin-bottom: -1px;
 `;
@@ -227,7 +234,7 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const StyledCard = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -247,7 +254,7 @@ const HeaderWrapper = styled('div')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
@@ -257,43 +264,30 @@ const Content = styled('div')`
   padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.xl} 0;
 `;
 
-const CardHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const AgentTitle = styled('h4')`
   margin: 0 0 ${p => p.theme.space.xs} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
-`;
-
-const CardContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const DetailRow = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Label = styled('span')`
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   min-width: 80px;
 `;
 
 const Value = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ResultsSection = styled('div')`
@@ -309,14 +303,14 @@ const ResultItem = styled('div')`
   gap: ${p => p.theme.space.xs};
   padding: ${p => p.theme.space.md} 0;
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const ResultDescription = styled('div')<{status: CodingAgentStatus}>`
   color: ${p =>
     p.status === CodingAgentStatus.FAILED
-      ? p.theme.errorText
+      ? p.theme.tokens.content.danger
       : p.theme.tokens.content.primary};
 `;
 
@@ -328,7 +322,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const BottomButtonContainer = styled('div')`

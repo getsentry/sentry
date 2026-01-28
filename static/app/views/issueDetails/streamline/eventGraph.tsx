@@ -9,7 +9,6 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
-import Color from 'color';
 
 import {Text} from '@sentry/scraps/text';
 
@@ -30,12 +29,12 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -184,7 +183,9 @@ export function EventGraph({
     data: Array<{'count_unique(user)': number}>;
   }>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...eventView.getEventsAPIPayload(location),
@@ -246,6 +247,9 @@ export function EventGraph({
     event,
     group,
     eventSeries,
+    isFiltered: isUnfilteredStatsEnabled,
+    unfilteredEventSeries,
+    seriesType: visibleSeries,
   });
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
@@ -356,8 +360,6 @@ export function EventGraph({
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
-    const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
-    const lightGray300 = Color(theme.gray300).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -365,8 +367,8 @@ export function EventGraph({
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
-            color: lightGray300,
+            borderColor: theme.tokens.border.transparent.neutral.muted,
+            color: theme.tokens.dataviz.semantic.neutral,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -378,8 +380,10 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          borderColor: theme.tokens.border.transparent.neutral.muted,
+          color: isUnfilteredStatsEnabled
+            ? theme.tokens.dataviz.semantic.accent
+            : theme.tokens.dataviz.semantic.other,
         },
         data: userSeries,
         animation: false,
@@ -391,8 +395,8 @@ export function EventGraph({
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
-            color: lightGray300,
+            borderColor: theme.tokens.border.transparent.neutral.muted,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,
@@ -404,8 +408,10 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          borderColor: theme.tokens.border.transparent.neutral.muted,
+          color: isUnfilteredStatsEnabled
+            ? theme.tokens.dataviz.semantic.accent
+            : theme.tokens.dataviz.semantic.neutral,
         },
         data: eventSeries,
         animation: false,
@@ -452,7 +458,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.tokens.content.muted,
+    inactiveColor: theme.tokens.content.secondary,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -469,7 +475,7 @@ export function EventGraph({
 
   if (error) {
     return (
-      <GraphAlert type="error" {...styleProps}>
+      <GraphAlert variant="danger" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
       </GraphAlert>
     );
@@ -480,16 +486,8 @@ export function EventGraph({
       <Grid columns="auto 1fr" {...styleProps}>
         {showSummary ? (
           <SummaryContainer>
-            <GraphButton
-              disabled
-              isActive={visibleSeries === EventGraphSeries.EVENT}
-              label={t('Events')}
-            />
-            <GraphButton
-              disabled
-              isActive={visibleSeries === EventGraphSeries.USER}
-              label={t('Users')}
-            />
+            <GraphButton disabled label={t('Events')} />
+            <GraphButton disabled label={t('Users')} />
           </SummaryContainer>
         ) : (
           <div />
@@ -507,14 +505,12 @@ export function EventGraph({
         <SummaryContainer>
           <GraphButton
             onClick={() => setVisibleSeries(EventGraphSeries.EVENT)}
-            isActive={visibleSeries === EventGraphSeries.EVENT}
             disabled={visibleSeries === EventGraphSeries.EVENT}
             label={tn('Event', 'Events', eventCount)}
             count={String(eventCount)}
           />
           <GraphButton
             onClick={() => setVisibleSeries(EventGraphSeries.USER)}
-            isActive={visibleSeries === EventGraphSeries.USER}
             disabled={visibleSeries === EventGraphSeries.USER}
             label={tn('User', 'Users', userCount)}
             count={String(userCount)}
@@ -592,23 +588,17 @@ export function EventGraph({
 }
 
 function GraphButton({
-  isActive,
   label,
   count,
   ...props
 }: {
-  isActive: boolean;
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
   const textVariant = undefined;
 
   return (
-    <CalloutButton
-      isActive={isActive}
-      aria-label={`${t('Toggle graph series')} - ${label}`}
-      {...props}
-    >
+    <CalloutButton aria-label={`${t('Toggle graph series')} - ${label}`} {...props}>
       <Flex direction="column" gap="xs">
         <Text size="sm" variant={textVariant}>
           {label}
@@ -627,27 +617,10 @@ function SummaryContainer(props: FlexProps) {
   );
 }
 
-const CalloutButton = withChonk(
-  styled(Button)<{isActive: boolean}>`
-    cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-    border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-    box-shadow: none;
-    height: unset;
-    overflow: hidden;
-    &:disabled {
-      opacity: 1;
-    }
-    &:hover {
-      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    }
-  `,
-  styled(Button)<never>`
-    height: unset;
-    padding: ${space(0.5)} ${space(1.5)};
-  `
-);
+const CalloutButton = styled(Button)`
+  height: unset;
+  padding: ${space(0.5)} ${space(1.5)};
+`;
 
 const ChartContainer = styled('div')`
   position: relative;

@@ -16,7 +16,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 
 interface DisabledProduct {
@@ -104,20 +103,72 @@ export const platformProductAvailability = {
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
   dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
-  go: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-echo': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-fiber': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-gin': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-http': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-iris': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  go: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-echo': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-fasthttp': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-fiber': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-gin': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-http': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-iris': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-negroni': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
-  java: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'java-log4j2': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'java-logback': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'java-spring': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  java: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'java-log4j2': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'java-logback': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'java-spring': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'java-spring-boot': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   javascript: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
@@ -645,24 +696,7 @@ export function ProductSelection({
   );
 }
 
-const ProductButton = withChonk(
-  styled(Button)`
-    :hover,
-    :focus-visible {
-      border: 1px solid ${p => p.theme.purple300};
-      background: ${p => p.theme.purple100};
-      color: ${p => p.theme.purple300};
-    }
-
-    [aria-disabled='true'] {
-      input {
-        background: ${p => p.theme.purple100};
-        color: ${p => p.theme.purple300};
-      }
-    }
-  `,
-  Button
-);
+const ProductButton = Button;
 
 const ProductButtonInner = styled('div')`
   display: grid;

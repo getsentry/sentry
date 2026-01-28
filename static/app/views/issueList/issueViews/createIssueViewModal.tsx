@@ -105,7 +105,7 @@ export function CreateIssueViewModal({
       <Body>
         {isError && (
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {t('Something went wrong. Please try again.')}
             </Alert>
           </Alert.Container>

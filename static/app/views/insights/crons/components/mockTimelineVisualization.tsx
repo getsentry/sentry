@@ -14,6 +14,7 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -65,7 +66,9 @@ export function MockTimelineVisualization({schedule}: Props) {
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const sampleDataQueryKey = [
-    `/organizations/${organization.slug}/monitors-schedule-data/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/monitors-schedule-data/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {query},
   ] as const;
   const {data, isPending, isError, error} = useApiQuery<number[]>(sampleDataQueryKey, {
@@ -141,7 +144,7 @@ const TimelineContainer = styled(Panel)`
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
   grid-column: 0;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AlignedGridLineOverlay = styled(GridLineOverlay)`

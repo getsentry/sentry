@@ -58,6 +58,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "range" not in response.data[0]
         assert response.data[0]["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": [
                     "id",
                     "span.op",
@@ -618,6 +619,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["environment"] == ["dev"]
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["span.op", "count(span.duration)"],
                 "mode": "samples",
                 "query": "span.op:pageload",
@@ -1139,6 +1141,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["dataset"] == "metrics"
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["count()"],
                 "mode": "aggregate",
                 "metric": {
@@ -1175,6 +1178,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["dataset"] == "metrics"
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["avg()"],
                 "mode": "aggregate",
                 "metric": {
@@ -1287,3 +1291,47 @@ class ExploreSavedQueriesTest(APITestCase):
         data = response.data
         assert data["start"] is not None
         assert data["end"] is not None
+
+    def test_save_with_case_insensitive(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Case insensitive query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                            "caseInsensitive": 1,
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"][0]["caseInsensitive"] is True
+
+    def test_save_replay_query(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Replay dataset",
+                    "projects": self.project_ids,
+                    "dataset": "replays",
+                    "query": [
+                        {
+                            "query": "user.email:*@sentry.io",
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "48h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"][0]["query"] == "user.email:*@sentry.io"
+        assert data["query"][0]["mode"] == "samples"

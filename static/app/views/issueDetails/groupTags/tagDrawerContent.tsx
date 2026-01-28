@@ -116,10 +116,10 @@ export const Container = styled('div')`
 `;
 
 export const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.border} solid 1px;
+  border: ${p => p.theme.tokens.border.primary} solid 1px;
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;

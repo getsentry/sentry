@@ -1,6 +1,7 @@
 import type React from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 import {motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
@@ -13,6 +14,7 @@ import {Heading, Text} from 'sentry/components/core/text';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {GIGABYTE} from 'getsentry/constants';
 import type {
@@ -501,6 +503,7 @@ function CheckoutSuccess({
   nextQueryParams,
   previewData,
 }: CheckoutSuccessProps) {
+  const organization = useOrganization();
   const viewSubscriptionQueryParams =
     nextQueryParams.length > 0 ? `?${nextQueryParams.join('&')}` : '';
 
@@ -518,9 +521,9 @@ function CheckoutSuccess({
   const onDemandItems = getOnDemandItems({invoiceItems});
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems});
-  // TODO(isabella): PreviewData never has the 'balance_change' type
+  // XXX: PreviewData never has the 'balance_change' type
   // and instead populates creditApplied with the value of the 'credit_applied' type
-  // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
+  // this is a workaround to ensure we only display CreditApplied if it's not already in the credits array
   const creditApplied = getCreditApplied({
     creditApplied: data?.creditApplied ?? 0,
     invoiceItems,
@@ -593,13 +596,13 @@ function CheckoutSuccess({
             <LinkButton
               priority="primary"
               aria-label={t('View your subscription')}
-              to={`/settings/billing/overview/${viewSubscriptionQueryParams}`}
+              to={`/settings/${organization.slug}/billing/overview/${viewSubscriptionQueryParams}`}
             >
               {t('View your subscription')}
             </LinkButton>
             <LinkButton
               aria-label={t('Edit plan')}
-              to="/settings/billing/checkout/?referrer=checkout_success"
+              href={`/checkout/${organization.slug}/?referrer=checkout_success`}
             >
               {t('Edit plan')}
             </LinkButton>
@@ -614,6 +617,7 @@ function CheckoutSuccess({
                   ['feedback.owner']: 'billing',
                 },
               }}
+              size="md"
             />
           </Flex>
         </Flex>
@@ -660,9 +664,9 @@ const ReceiptSlot = styled('div')`
   width: 445px;
   height: 7px;
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.colors.gray200};
   box-shadow: 0px 2px 4px 0px
-    ${p => Color(p.theme.black).lighten(0.08).alpha(0.15).toString()} inset;
+    ${p => color(p.theme.colors.black).lighten(0.08).alpha(0.15).toString()} inset;
 `;
 
 const ReceiptPaperContainer = styled('div')`
@@ -680,7 +684,7 @@ const ReceiptPaperShadow = styled('div')`
   width: 320px;
   height: 7px;
   box-shadow: inset 0 10px 6px -6px
-    ${p => Color(p.theme.black).lighten(0.05).alpha(0.15).toString()};
+    ${p => color(p.theme.colors.black).lighten(0.05).alpha(0.15).toString()};
 `;
 
 const ReceiptPaper = styled(Container)`
@@ -689,12 +693,12 @@ const ReceiptPaper = styled(Container)`
 `;
 
 const DateSeparator = styled('div')`
-  border-top: 1px dashed ${p => p.theme.gray500};
+  border-top: 1px dashed ${p => p.theme.colors.gray800};
   width: 100%;
 `;
 
 const DashedContainer = styled(Container)`
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const ZigZagEdge = styled('div')`
@@ -702,7 +706,7 @@ const ZigZagEdge = styled('div')`
   --s: 10px; /* size of the zig-zag */
   --b: 2px; /* control the thickness */
 
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   height: calc(var(--b) + var(--s) / (2 * tan(var(--a) / 2)));
   --_g: var(--s) repeat-x
     conic-gradient(

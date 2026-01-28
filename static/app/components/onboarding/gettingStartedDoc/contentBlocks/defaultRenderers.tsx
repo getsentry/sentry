@@ -28,7 +28,7 @@ const baseBlockStyles = css`
 
 const coloredCodeStyles = (theme: Theme) => css`
   code:not([class*='language-']) {
-    color: ${theme.pink400};
+    color: ${theme.colors.pink500};
   }
 `;
 
@@ -43,7 +43,7 @@ function AlertBlock({
   return (
     <div css={[baseBlockStyles, coloredCodeStyles]}>
       <Alert
-        type={alertType}
+        variant={alertType}
         showIcon={showIcon}
         system={system}
         trailingItems={trailingItems}
@@ -129,8 +129,8 @@ function SubHeaderBlock(block: Extract<ContentBlock, {type: 'subheader'}>) {
 // TODO(aknaus): use <Heading/> instead
 const SubHeaderBlockWrapper = styled('h5')`
   ${baseBlockStyles}
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   ${p => coloredCodeStyles(p.theme)}
 `;
 

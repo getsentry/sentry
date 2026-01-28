@@ -8,8 +8,7 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
-import {PlanTier} from 'getsentry/types';
-import {isAmPlan, isDeveloperPlan} from 'getsentry/utils/billing';
+import {isDeveloperPlan, isTrialPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import VolumeSliders from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -33,7 +32,7 @@ function ReserveAdditionalVolume({
 >) {
   // if the customer has any reserved volume above platform already, auto-show the sliders
   const [showSliders, setShowSliders] = useState<boolean>(
-    isDeveloperPlan(subscription.planDetails)
+    isDeveloperPlan(subscription.planDetails) || isTrialPlan(subscription.plan)
       ? false
       : Object.values(subscription.categories ?? {})
           .filter(
@@ -49,19 +48,17 @@ function ReserveAdditionalVolume({
               }).price > 0
           )
   );
+  const [reserved, setReserved] = useState<Partial<Record<DataCategory, number>>>(
+    formData.reserved
+  );
   const reservedVolumeTotal = useMemo(() => {
-    return Object.entries(formData.reserved).reduce((acc, [category, value]) => {
+    return Object.entries(reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
         b => b.events === value
       );
       return acc + (bucket?.price ?? 0);
     }, 0);
-  }, [formData.reserved, activePlan]);
-
-  const isLegacy =
-    !checkoutTier ||
-    !isAmPlan(checkoutTier) ||
-    [PlanTier.AM2, PlanTier.AM1].includes(checkoutTier ?? PlanTier.AM3);
+  }, [reserved, activePlan]);
 
   const handleReservedChange = useCallback(
     (value: number, category: DataCategory) => {
@@ -143,11 +140,12 @@ function ReserveAdditionalVolume({
             activePlan={activePlan}
             organization={organization}
             onUpdate={onUpdate}
-            formData={formData}
             subscription={subscription}
-            isLegacy={isLegacy}
-            isNewCheckout
-            onReservedChange={debouncedReservedChange}
+            onReservedChange={(newReserved, category) => {
+              setReserved(prev => ({...prev, [category]: newReserved}));
+              debouncedReservedChange(newReserved, category);
+            }}
+            currentSliderValues={reserved}
           />
         </Stack>
       )}

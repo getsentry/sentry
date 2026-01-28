@@ -218,7 +218,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         ) : (
           <StyledSearchIcon
             data-test-id="trace-search-success"
-            color="subText"
+            variant="muted"
             size="xs"
           />
         )}
@@ -345,8 +345,8 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 `;
 
 const StyledTrailingText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledSearchBar = styled(InputGroup)`

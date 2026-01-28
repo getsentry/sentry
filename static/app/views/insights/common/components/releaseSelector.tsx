@@ -2,6 +2,9 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
@@ -36,13 +39,13 @@ type Props = {
   allOptionTitle: string;
   onChange: (selectedOption: SelectOption<SelectKey>) => void;
   sortBy: ReleasesSortByOption;
+  triggerLabel: string;
+  triggerLabelPrefix: string;
   selectorName?: string;
   selectorValue?: string;
-  triggerLabel?: string;
-  triggerLabelPrefix?: string;
 };
 
-function ReleaseSelector({
+function SingleReleaseSelector({
   allOptionDescription,
   allOptionTitle,
   onChange,
@@ -103,13 +106,17 @@ function ReleaseSelector({
 
   return (
     <StyledCompactSelect
-      triggerProps={{
-        icon: <IconReleases />,
-        title: selectorValue,
-        prefix: triggerLabelPrefix,
-        children: triggerLabel,
-        'aria-label': t('Filter Release'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconReleases />}
+          title={selectorValue}
+          prefix={triggerLabelPrefix}
+          aria-label={t('Filter Release')}
+        >
+          {triggerLabel}
+        </OverlayTrigger.Button>
+      )}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
@@ -153,7 +160,7 @@ type LabelDetailsProps = {
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
-    <DetailsContainer>
+    <Flex justify="between" gap="md" minWidth="200px">
       <div>
         {defined(props.screenCount)
           ? tn('%s event', '%s events', props.screenCount)
@@ -164,7 +171,7 @@ function LabelDetails(props: LabelDetailsProps) {
           <DateTime dateOnly year date={props.dateCreated} />
         )}
       </div>
-    </DetailsContainer>
+    </Flex>
   );
 }
 
@@ -187,11 +194,11 @@ function getReleasesSortBy(
   return ReleasesSortOption.DATE;
 }
 
-type ReleaseComparisonSelectorProps = {
+type ReleaseSelectorProps = {
   moduleName: ModuleName;
 };
 
-export function ReleaseComparisonSelector({moduleName}: ReleaseComparisonSelectorProps) {
+export function ReleaseSelector({moduleName}: ReleaseSelectorProps) {
   const {primaryRelease} = useReleaseSelection();
   const location = useLocation();
   const navigate = useNavigate();
@@ -249,14 +256,13 @@ export function ReleaseComparisonSelector({moduleName}: ReleaseComparisonSelecto
 
   return (
     <StyledPageSelector condensed>
-      <ReleaseSelector
+      <SingleReleaseSelector
         allOptionDescription={t('Show data from all releases.')}
         allOptionTitle={t('All')}
         onChange={newValue => {
           trackAnalytics('insights.release.select_release', {
             organization,
             filtered: defined(newValue.value) && newValue.value !== '',
-            type: 'primary',
             moduleName,
           });
 
@@ -310,12 +316,4 @@ const StyledPageSelector = styled(PageFilterBar)`
       }
     }
   }
-`;
-
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-  min-width: 200px;
 `;

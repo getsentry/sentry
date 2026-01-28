@@ -8,7 +8,7 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace (discarded because stack trace only contains 1 frame which is under the configured threshold by stack trace rule (family:native min-frames=2))
+        stacktrace (discarded because stack trace only contains 1 frame which is under the configured threshold by custom stack trace rule (family:native min-frames=2))
           frame (non app frame)
             function*
               "_main"

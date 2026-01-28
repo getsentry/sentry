@@ -12,13 +12,20 @@ def clear_cache():
 
 
 def test_taskregistry_param_and_property():
-    registry = TaskRegistry()
-    app = TaskworkerApp(taskregistry=registry)
+    registry = TaskRegistry(application="sentry")
+    app = TaskworkerApp(name="sentry", taskregistry=registry)
     assert app.taskregistry == registry
 
 
+def test_namespace_inherit_application_name():
+    app = TaskworkerApp(name="sentry")
+    ns = app.taskregistry.create_namespace(name="testing")
+    assert ns.application == "sentry"
+    assert ns.name == "testing"
+
+
 def test_set_config():
-    app = TaskworkerApp()
+    app = TaskworkerApp(name="sentry")
     app.set_config({"rpc_secret": "testing", "ignored": "key"})
     assert app.config["rpc_secret"] == "testing"
     assert "ignored" not in app.config
@@ -32,7 +39,7 @@ def test_should_attempt_at_most_once(clear_cache):
         parameters='{"args": [], "kwargs": {}}',
         processing_deadline_duration=2,
     )
-    app = TaskworkerApp()
+    app = TaskworkerApp(name="sentry")
     app.at_most_once_store(cache)
     assert app.should_attempt_at_most_once(activation)
     assert not app.should_attempt_at_most_once(activation)

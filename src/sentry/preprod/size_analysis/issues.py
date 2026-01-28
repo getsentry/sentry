@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import uuid4
 
-from sentry.issues.grouptype import PreprodDeltaGroupType
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     platform_from_artifact_type,
 )
+from sentry.preprod.grouptype import PreprodDeltaGroupType
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.models import SizeMetricDiffItem
 
@@ -16,12 +16,15 @@ def artifact_to_tags(artifact: PreprodArtifact) -> dict[str, Any]:
 
     if artifact.app_id:
         tags["app_id"] = artifact.app_id
-    if artifact.app_name:
-        tags["app_name"] = artifact.app_name
-    if artifact.build_version:
-        tags["build_version"] = artifact.build_version
-    if artifact.build_number:
-        tags["build_number"] = artifact.build_number
+
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    if mobile_app_info is not None:
+        if mobile_app_info.app_name:
+            tags["app_name"] = mobile_app_info.app_name
+        if mobile_app_info.build_version:
+            tags["build_version"] = mobile_app_info.build_version
+        if mobile_app_info.build_number:
+            tags["build_number"] = mobile_app_info.build_number
     if artifact.build_configuration:
         tags["build_configuration"] = artifact.build_configuration.name
     if artifact.artifact_type is not None:
@@ -71,14 +74,17 @@ def diff_to_occurrence(
         "tags": tags,
     }
 
-    evidence_display = [
-        IssueEvidence("some_evidence_name", "some_evidence_data", False),
-    ]
+    evidence_data = {
+        "head_artifact_id": head_artifact.id,
+        "base_artifact_id": base_artifact.id,
+        "head_size_metric_id": head_metric.id,
+        "base_size_metric_id": base_metric.id,
+    }
+
     match size:
         case "download":
             delta = diff.head_download_size - diff.base_download_size
             issue_title = "Download size regression"
-
         case "install":
             delta = diff.head_install_size - diff.base_install_size
             issue_title = "Install size regression"
@@ -94,8 +100,8 @@ def diff_to_occurrence(
         fingerprint=fingerprint,
         type=PreprodDeltaGroupType,
         detection_time=current_timestamp,
-        evidence_data={},
-        evidence_display=evidence_display,
+        evidence_data=evidence_data,
+        evidence_display=[],
         level="info",
         resource_id=None,
         culprit="",

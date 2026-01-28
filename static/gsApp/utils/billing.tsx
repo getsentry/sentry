@@ -338,14 +338,6 @@ export const hasPartnerMigrationFeature = (organization: Organization) =>
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
-// TODO(isabella): clean this up after GA
-export const hasNewBillingUI = (organization: Organization) =>
-  organization.features.includes('subscriptions-v3');
-
-// TODO(isabella): clean this up after GA
-export const hasStripeComponentsFeature = (organization: Organization) =>
-  organization.features.includes('stripe-components');
-
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 
 export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUSINESS);
@@ -472,15 +464,6 @@ export const isNewPayingCustomer = (
   subscription.isFree ||
   isTrialPlan(subscription.plan) ||
   hasPartnerMigrationFeature(organization);
-
-/**
- * Promotion utility functions that are based off of formData which has the plan as a string
- * instead of a Plan
- */
-
-export const getBusinessPlanOfTier = (plan: string) => plan.slice(0, 4) + 'business';
-
-export const isTeamPlan = (plan: string) => plan.includes('team');
 
 /**
  * Get the number of days left on trial

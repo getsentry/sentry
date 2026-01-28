@@ -170,10 +170,8 @@ def _trigger_autofix_task(
         else:
             user = AnonymousUser()
 
-        # Route to explorer-based autofix if both feature flags are enabled
-        if features.has("organizations:seer-explorer", group.organization) and features.has(
-            "organizations:autofix-on-explorer", group.organization
-        ):
+        # Route to explorer-based autofix if seer-explorer is enabled
+        if features.has("organizations:seer-explorer", group.organization):
             trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
@@ -266,13 +264,18 @@ fixability_connection_pool_gpu = connection_from_url(
 )
 
 
-def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
-    payload = {
+def _generate_fixability_score(
+    group: Group,
+    summary: dict[str, Any] | None = None,
+) -> SummarizeIssueResponse:
+    payload: dict[str, Any] = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
         "organization_id": group.organization.id,
         "project_id": group.project.id,
     }
+    if summary is not None:
+        payload["summary"] = summary
     response = make_signed_seer_api_request(
         fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
@@ -285,7 +288,11 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     return SummarizeIssueResponse.validate(response_data)
 
 
-def get_and_update_group_fixability_score(group: Group, force_generate: bool = False) -> float:
+def get_and_update_group_fixability_score(
+    group: Group,
+    force_generate: bool = False,
+    summary: dict[str, Any] | None = None,
+) -> float:
     """
     Get the fixability score for a group and update the group with the score.
     If the fixability score is already set, return it without generating a new one.
@@ -294,7 +301,7 @@ def get_and_update_group_fixability_score(group: Group, force_generate: bool = F
         return group.seer_fixability_score
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        issue_summary = _generate_fixability_score(group)
+        issue_summary = _generate_fixability_score(group, summary=summary)
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")

@@ -198,18 +198,19 @@ const TextBreak = styled('span')`
 const Subtitle = styled('p')`
   margin: 0;
   font-weight: normal;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: inline;
 `;
 
 const Timestamp = styled('div')`
   margin-right: ${space(1)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   min-width: 50px;
   text-align: right;
   span {
-    text-decoration: underline dashed ${p => p.theme.translucentBorder};
+    text-decoration: underline dashed
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
@@ -223,7 +224,7 @@ const BreadcrumbItem = styled(Timeline.Item)`
     border-image: linear-gradient(
         to right,
         transparent 20px,
-        ${p => p.theme.translucentInnerBorder} 20px
+        ${p => p.theme.tokens.border.secondary} 20px
       )
       100% 1;
   }
@@ -241,7 +242,7 @@ const TimestampValues = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const TimezoneLink = styled(Link)`

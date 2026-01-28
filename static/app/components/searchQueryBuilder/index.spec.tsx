@@ -500,6 +500,75 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
     });
 
+    it('does not close menu when clicking inside menu overlay', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      const input = getLastInput();
+      await userEvent.click(input);
+
+      // Menu should be open
+      const listbox = await screen.findByRole('listbox');
+      expect(listbox).toBeInTheDocument();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+
+      // Get the overlay element that wraps the menu
+      // This simulates clicking on the overlay (like near a scrollbar)
+      const overlay = listbox.parentElement;
+      expect(overlay).toBeInTheDocument();
+
+      // Create a mousedown event with cancelable: true so preventDefault works
+      const mouseDownEvent = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      // Dispatch the mousedown event
+      // With our fix, preventDefault is called, preventing the blur
+      // Without our fix, the input would blur and the menu would close
+      overlay?.dispatchEvent(mouseDownEvent);
+
+      // The key part: the mousedown should have had preventDefault called on it
+      // This prevents the default behavior of shifting focus away from the input
+      expect(mouseDownEvent.defaultPrevented).toBe(true);
+
+      // Because preventDefault was called, the input should still be focused
+      // and the menu should still be open
+      expect(input).toHaveFocus();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('prevents blur when interacting with menu sections', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      const input = getLastInput();
+      await userEvent.click(input);
+
+      // Wait for menu to be open with sections
+      const allButton = await screen.findByRole('button', {name: 'All'});
+      expect(allButton).toBeInTheDocument();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+
+      // Get the section button's parent (which is part of the overlay)
+      const sectionPane = allButton.parentElement;
+      expect(sectionPane).toBeInTheDocument();
+
+      // Simulate mousedown on the section pane
+      const mouseDownEvent = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      sectionPane?.dispatchEvent(mouseDownEvent);
+
+      // The mousedown should have preventDefault called
+      expect(mouseDownEvent.defaultPrevented).toBe(true);
+
+      // Menu should still be open
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+    });
+
     describe('recent filter keys', () => {
       beforeEach(() => {
         MockApiClient.addMockResponse({
@@ -1732,6 +1801,179 @@ describe('SearchQueryBuilder', () => {
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('browser.name:firefox');
       expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
+    });
+
+    it('wraps selected tokens in parentheses with ( key', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved browser.name:chrome"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('(');
+
+      expect(mockOnChange).toHaveBeenCalledWith(
+        '( is:unresolved browser.name:chrome )',
+        expect.anything()
+      );
+    });
+
+    it('wraps selected tokens in parentheses with ) key', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved browser.name:chrome"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard(')');
+
+      expect(mockOnChange).toHaveBeenCalledWith(
+        '( is:unresolved browser.name:chrome )',
+        expect.anything()
+      );
+    });
+
+    it('wraps single selected token in parentheses', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'is:unresolved'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+      await userEvent.keyboard('(');
+
+      expect(mockOnChange).toHaveBeenCalledWith('( is:unresolved )', expect.anything());
+    });
+
+    it('does not wrap when nothing is selected', async () => {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="is:unresolved" />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('(');
+
+      expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
+    });
+
+    it('wraps selected tokens correctly when existing parentheses are present', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="( is:unresolved ) browser.name:chrome"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      // Select only the browser.name token (shift+left)
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'browser.name:chrome'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+      await userEvent.keyboard('(');
+
+      // Should wrap only the selected token, preserving existing parens
+      expect(mockOnChange).toHaveBeenCalledWith(
+        '( is:unresolved ) ( browser.name:chrome )',
+        expect.anything()
+      );
+    });
+
+    it('wraps selected tokens correctly when duplicate content appears earlier', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      // Select only the last browser.name token (shift+left)
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        // Both have the same name, so just check something is selected
+        const rows = screen.getAllByRole('row', {name: 'browser.name:firefox'});
+        expect(rows[1]).toHaveAttribute('aria-selected', 'true');
+      });
+      await userEvent.keyboard('(');
+
+      // Should wrap the second occurrence correctly
+      expect(mockOnChange).toHaveBeenCalledWith(
+        'browser.name:firefox ( browser.name:firefox )',
+        expect.anything()
+      );
+    });
+
+    it('places focus after the closing paren when wrapping', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved browser.name:chrome"
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('(');
+
+      // After wrapping, focus should be at the end (last input)
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
+    });
+
+    it('can undo wrapping with ctrl-z', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="is:unresolved browser.name:chrome"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('(');
+
+      expect(mockOnChange).toHaveBeenCalledWith(
+        '( is:unresolved browser.name:chrome )',
+        expect.anything()
+      );
+
+      await userEvent.keyboard('{Control>}z{/Control}');
+
+      expect(await screen.findByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:chrome'})
+      ).toBeInTheDocument();
+      expect(screen.queryByText('(')).not.toBeInTheDocument();
     });
 
     it('can undo last action with ctrl-z', async () => {
@@ -4248,7 +4490,7 @@ describe('SearchQueryBuilder', () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
-          caseInsensitive={1}
+          caseInsensitive
           onCaseInsensitiveClick={() => Promise.resolve(new URLSearchParams())}
         />
       );
@@ -4581,11 +4823,7 @@ describe('SearchQueryBuilder', () => {
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
-          features: [
-            'gen-ai-features',
-            'gen-ai-explore-traces',
-            'gen-ai-explore-traces-consent-ui',
-          ],
+          features: ['gen-ai-features'],
         },
       });
 
@@ -4610,11 +4848,7 @@ describe('SearchQueryBuilder', () => {
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
-          features: [
-            'gen-ai-features',
-            'gen-ai-explore-traces',
-            'gen-ai-explore-traces-consent-ui',
-          ],
+          features: ['gen-ai-features'],
         },
       });
 
@@ -4628,11 +4862,7 @@ describe('SearchQueryBuilder', () => {
       it('calls promptsUpdate', async () => {
         const organization = OrganizationFixture({
           slug: 'org-slug',
-          features: [
-            'gen-ai-features',
-            'gen-ai-explore-traces',
-            'gen-ai-explore-traces-consent-ui',
-          ],
+          features: ['gen-ai-features'],
         });
         const promptsUpdateMock = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -4775,11 +5005,7 @@ describe('SearchQueryBuilder', () => {
           </AskSeerWrapper>,
           {
             organization: {
-              features: [
-                'gen-ai-features',
-                'gen-ai-explore-traces',
-                'gen-ai-explore-traces-consent-ui',
-              ],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -4836,11 +5062,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
             organization: {
-              features: [
-                'gen-ai-features',
-                'gen-ai-explore-traces',
-                'gen-ai-explore-traces-consent-ui',
-              ],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -4871,12 +5093,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
             organization: {
-              features: [
-                'gen-ai-features',
-                'gen-ai-explore-traces',
-                'gen-ai-explore-traces-consent-ui',
-                'gen-ai-consent-flow-removal',
-              ],
+              features: ['gen-ai-features', 'gen-ai-consent-flow-removal'],
             },
           }
         );

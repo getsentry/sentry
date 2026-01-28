@@ -88,22 +88,22 @@ const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: text;
 
   ${p =>
     p.state === 'valid'
       ? css`
           :focus-within {
-            border: 1px solid ${p.theme.focusBorder};
-            box-shadow: 0 0 0 1px ${p.theme.focusBorder};
+            border: 1px solid ${p.theme.tokens.focus.default};
+            box-shadow: 0 0 0 1px ${p.theme.tokens.focus.default};
           }
         `
       : p.state === 'invalid'
         ? css`
             :focus-within {
-              border: 1px solid ${p.theme.errorFocus};
-              box-shadow: 0 0 0 1px ${p.theme.errorFocus};
+              border: 1px solid ${p.theme.tokens.focus.invalid};
+              box-shadow: 0 0 0 1px ${p.theme.tokens.focus.invalid};
             }
           `
         : ''}

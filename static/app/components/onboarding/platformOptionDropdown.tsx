@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
 
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -26,12 +29,17 @@ type PlatformOptionsControlProps = {
 };
 
 function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
+  const selectedItem = option.items.find(v => v.value === value) ?? option.items[0]!;
   return (
     <CompactSelect
-      triggerProps={{
-        children:
-          option.items.find(v => v.value === value)?.label ?? option.items[0]!.label,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          <Flex align="center" gap="sm">
+            {selectedItem.leadingItems}
+            {selectedItem.label}
+          </Flex>
+        </OverlayTrigger.Button>
+      )}
       value={value}
       onChange={onChange}
       options={option.items}

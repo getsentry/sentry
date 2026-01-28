@@ -80,7 +80,7 @@ const StatusWrapper = styled(motion.div)`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   /* Keep the wrapper in the parent grids first cell for transitions */
   grid-column: 1;
   grid-row: 1;
@@ -143,7 +143,7 @@ const WaitingIndicator = styled(motion.div)`
 
 const ReceivedIndicator = styled(IconCheckmark)`
   color: #fff;
-  background: ${p => p.theme.green300};
+  background: ${p => p.theme.colors.green400};
   border-radius: 50%;
   padding: 3px;
   margin: 0 ${space(0.25)};

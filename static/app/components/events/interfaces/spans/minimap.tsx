@@ -2,6 +2,8 @@ import {PureComponent} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 
@@ -45,7 +47,7 @@ class ActualMinimap extends PureComponent<{
               style={{
                 backgroundColor:
                   payload.type === 'span_group_chain'
-                    ? this.props.theme.blue300
+                    ? this.props.theme.tokens.background.accent.vibrant
                     : spanBarColor,
                 left: spanLeft,
                 width: spanWidth,
@@ -57,7 +59,12 @@ class ActualMinimap extends PureComponent<{
           const {spanSiblingGrouping} = payload;
 
           return (
-            <MinimapSiblingGroupBar
+            <Flex
+              height="2px"
+              minHeight="2px"
+              maxHeight="2px"
+              position="relative"
+              top="-2px"
               data-test-id="minimap-sibling-group-bar"
               key={`${payload.type}-${i}`}
             >
@@ -71,7 +78,7 @@ class ActualMinimap extends PureComponent<{
                 return (
                   <MinimapSpanBar
                     style={{
-                      backgroundColor: this.props.theme.blue300,
+                      backgroundColor: this.props.theme.tokens.background.accent.vibrant,
                       left: spanLeft,
                       width: spanWidth,
                       minWidth: 0,
@@ -81,7 +88,7 @@ class ActualMinimap extends PureComponent<{
                   />
                 );
               })}
-            </MinimapSiblingGroupBar>
+            </Flex>
           );
         }
         default: {
@@ -159,15 +166,6 @@ const MinimapSpanBar = styled('div')`
   min-width: 1px;
   border-radius: 1px;
   box-sizing: border-box;
-`;
-
-const MinimapSiblingGroupBar = styled('div')`
-  display: flex;
-  position: relative;
-  height: 2px;
-  min-height: 2px;
-  max-height: 2px;
-  top: -2px;
 `;
 
 const BackgroundSlider = styled('div')`

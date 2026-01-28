@@ -201,11 +201,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if "statsPeriod" not in request.GET:
             return params
         results = params.copy()
-        duration = (params["end"] - params["start"]).total_seconds()
+        duration = params["end"] - params["start"]
         # Only perform rounding on durations longer than an hour
-        if duration > 3600:
-            # Round to 15 minutes if over 30 days, otherwise round to the minute
-            round_to = 15 * 60 if duration >= 30 * 24 * 3600 else 60
+        if duration > timedelta(hours=1):
+            minutes = 3 if duration >= timedelta(days=30) else 1
+            round_to = int(timedelta(minutes=minutes).total_seconds())
+
             key = params.get("organization_id", 0)
 
             results["start"] = snuba.quantize_time(

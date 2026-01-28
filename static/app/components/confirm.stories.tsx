@@ -231,6 +231,6 @@ export default Storybook.story('Confirm', story => {
 });
 
 const ModalTrigger = styled('span')`
-  background: ${p => p.theme.green200};
+  background: ${p => p.theme.colors.green200};
   padding: ${space(1)};
 `;

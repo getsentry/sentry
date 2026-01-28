@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -118,7 +120,7 @@ export default class TableField extends Component<InputFieldProps> {
       return (
         <Fragment>
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <span
                 dangerouslySetInnerHTML={{
                   __html: singleLineRenderer(
@@ -135,18 +137,18 @@ export default class TableField extends Component<InputFieldProps> {
 
     return (
       <Fragment>
-        <HeaderContainer>
+        <Flex align="center">
           {mappedKeys.map((fieldKey, i) => (
-            <Header key={fieldKey}>
+            <Flex justify="between" align="center" flex="1 0 0" key={fieldKey}>
               <HeaderLabel>{columnLabels?.[fieldKey]}</HeaderLabel>
               {i === mappedKeys.length - 1 && button}
-            </Header>
+            </Flex>
           ))}
-        </HeaderContainer>
+        </Flex>
         {value.map((row, rowIndex) => (
-          <RowContainer data-test-id="field-row" key={rowIndex}>
+          <Flex align="center" marginTop="md" data-test-id="field-row" key={rowIndex}>
             {mappedKeys.map((fieldKey: string, i: number) => (
-              <Row key={fieldKey}>
+              <Flex align="center" flex="1 0 0" marginTop="md" key={fieldKey}>
                 <RowInput>
                   <Input
                     onChange={v => setValue(rowIndex, fieldKey, v)}
@@ -172,9 +174,9 @@ export default class TableField extends Component<InputFieldProps> {
                     </RemoveButton>
                   </Confirm>
                 )}
-              </Row>
+              </Flex>
             ))}
-          </RowContainer>
+          </Flex>
         ))}
       </Fragment>
     );
@@ -200,32 +202,7 @@ export default class TableField extends Component<InputFieldProps> {
 const HeaderLabel = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.subText};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const Header = styled('div')`
-  display: flex;
-  flex: 1 0 0;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const RowContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-top: ${space(1)};
-`;
-
-const Row = styled('div')`
-  display: flex;
-  flex: 1 0 0;
-  align-items: center;
-  margin-top: ${space(1)};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RowInput = styled('div')`

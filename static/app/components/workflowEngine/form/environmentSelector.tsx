@@ -48,7 +48,7 @@ export function EnvironmentSelector({value, onChange}: EnvironmentSelectorProps)
   }, [projects]);
 
   return (
-    <CompactSelect<string>
+    <CompactSelect
       size="md"
       options={options}
       searchable

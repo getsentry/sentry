@@ -85,7 +85,9 @@ function TaskCard({
       className={className}
     >
       {onClick && <InteractionStateLayer />}
-      <TaskCardIcon>{icon}</TaskCardIcon>
+      <Flex justify="center" align="center" height="20px">
+        {icon}
+      </Flex>
       <TaskCardDescription>
         {title}
         {description && <p>{description}</p>}
@@ -133,7 +135,7 @@ interface SkipConfirmationProps {
 
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Flex direction="column" gap="md">
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="between" gap="xs" flex={1}>
@@ -288,7 +290,7 @@ function Task({task, hidePanel}: TaskProps) {
         icon={
           task.skippable ? (
             <Button
-              icon={<IconNot size="sm" color="subText" />}
+              icon={<IconNot size="sm" variant="muted" />}
               aria-label={t('Skip Task')}
               onClick={event => {
                 event.stopPropagation();
@@ -303,9 +305,9 @@ function Task({task, hidePanel}: TaskProps) {
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          <ClickIndicator>
-            <IconChevron direction="right" size="xs" color="subText" />
-          </ClickIndicator>
+          <Flex justify="center" align="center" width="20px" height="100%">
+            <IconChevron direction="right" size="xs" variant="muted" />
+          </Flex>
         }
       />
       {showSkipConfirmation && (
@@ -468,7 +470,7 @@ function TaskGroup({
           ) : (
             <ProgressRing
               value={(doneTasks.length / tasks.length) * 100}
-              backgroundColor={theme.gray200}
+              backgroundColor={theme.colors.gray200}
               progressEndcaps="round"
               progressColor={theme.tokens.content.accent}
               size={22}
@@ -563,21 +565,22 @@ const Content = styled('div')`
 `;
 
 const TaskGroupWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
 
   background-color: ${p => p.theme.tokens.background.primary};
 
   hr {
-    border-color: ${p => p.theme.translucentBorder};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
     margin: ${space(1)} -${space(1)};
   }
 `;
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
-    color: ${p => (p.hasProgress ? p.theme.tokens.content.accent : p.theme.subText)};
+    color: ${p =>
+      p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
   }
 `;
 
@@ -591,16 +594,8 @@ const TaskGroupBody = styled('ul')`
 const TaskWrapper = styled('li')`
   gap: ${space(1)};
   p {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const ClickIndicator = styled('div')`
-  width: 20px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const TaskCardWrapper = styled('div')`
@@ -613,7 +608,7 @@ const TaskCardWrapper = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   p {
     margin: 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
   button {
     visibility: hidden;
@@ -630,13 +625,6 @@ const TaskCardDescription = styled('div')`
   strong {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const TaskCardIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 20px;
 `;
 
 const TaskCardActions = styled('div')`

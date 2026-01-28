@@ -21,8 +21,8 @@ class RelayPublicKeysEndpoint(Endpoint):
 
     def post(self, request: Request) -> Response:
         calling_relay = request.relay
-
         relay_ids = request.relay_request_data.get("relay_ids") or ()
+
         legacy_public_keys = dict.fromkeys(relay_ids)
         public_keys = dict.fromkeys(relay_ids)
 

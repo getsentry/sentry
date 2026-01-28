@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import orjson
 import pydantic
@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 class AutofixIssue(TypedDict):
     id: int
     title: str
+    short_id: NotRequired[str | None]
 
 
 class AutofixStoppingPoint(StrEnum):
@@ -95,6 +96,7 @@ class CodingAgentResult(BaseModel):
 
 class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
+    GITHUB_COPILOT_AGENT = "github_copilot_agent"
 
 
 class CodingAgentState(BaseModel):
@@ -223,17 +225,19 @@ def set_project_seer_preference(preference: SeerProjectPreference) -> None:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
-def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
+def has_project_connected_repos(
+    organization_id: int, project_id: int, *, skip_cache: bool = False
+) -> bool:
     """
     Check if a project has connected repositories for Seer automation.
     Checks Seer preferences first, then falls back to Sentry code mappings.
-    Results are cached for 60 minutes to minimize API calls.
+    Results are cached for 15 minutes to minimize API calls.
     """
     cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
-    cached_value = cache.get(cache_key)
-
-    if cached_value is not None:
-        return cached_value
+    if not skip_cache:
+        cached_value = cache.get(cache_key)
+        if cached_value is not None:
+            return cached_value
 
     has_repos = False
 
@@ -262,7 +266,7 @@ def has_project_connected_repos(organization_id: int, project_id: int) -> bool:
         },
     )
 
-    cache.set(cache_key, has_repos, timeout=60 * 60)  # Cache for 1 hour
+    cache.set(cache_key, has_repos, timeout=60 * 15)  # Cache for 15 minutes
     return has_repos
 
 
@@ -627,7 +631,10 @@ def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: 
 
 
 def get_coding_agent_prompt(
-    run_id: int, trigger_source: AutofixTriggerSource, instruction: str | None = None
+    run_id: int,
+    trigger_source: AutofixTriggerSource,
+    instruction: str | None = None,
+    short_id: str | None = None,
 ) -> str:
     """Get the coding agent prompt with prefix from Seer API."""
     include_root_cause = trigger_source in [
@@ -639,6 +646,11 @@ def get_coding_agent_prompt(
     autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
 
     base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
+
+    if short_id:
+        base_prompt = (
+            f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the pull request description."
+        )
 
     if instruction and instruction.strip():
         base_prompt = f"{base_prompt}\n\n{instruction.strip()}"

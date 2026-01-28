@@ -21,12 +21,12 @@ function SectionToggleButton({
 }
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   :hover,
   :focus {
     color: ${p => p.theme.tokens.content.primary};
   }
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 export default SectionToggleButton;

@@ -3,18 +3,23 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apitoken import ApiToken, NotSupported, PlaintextSecretAlreadyRead
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.token import AuthTokenType
+from sentry.users.models.user import User
 
 
 @control_silo_test
@@ -51,9 +56,10 @@ class ApiTokenTest(TestCase):
             assert set(token.get_scopes()) == SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
 
     def test_organization_id_for_non_internal(self) -> None:
-        install = self.create_sentry_app_installation()
-        token = install.api_token
-        org_id = token.organization_id
+        with outbox_runner():
+            install = self.create_sentry_app_installation()
+            token = install.api_token
+            org_id = token.organization_id
 
         with assume_test_silo_mode(SiloMode.REGION):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id == org_id
@@ -63,6 +69,7 @@ class ApiTokenTest(TestCase):
 
         with assume_test_silo_mode(SiloMode.REGION):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
+
         assert token.organization_id is None
 
     def test_last_chars_are_set(self) -> None:
@@ -143,13 +150,15 @@ class ApiTokenTest(TestCase):
 
     def test_replica_string_serialization(self) -> None:
         user = self.create_user()
-        token = ApiToken.objects.create(user_id=user.id)
-        with assume_test_silo_mode(SiloMode.REGION):
-            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
-            assert (
-                f"{replica} is swug"
-                == f"replica_token_id={replica.id}, token_id={token.id} is swug"
-            )
+        with outbox_runner():
+            token = ApiToken.objects.create(user_id=user.id)
+
+            with assume_test_silo_mode(SiloMode.REGION):
+                replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+                assert (
+                    f"{replica} is swug"
+                    == f"replica_token_id={replica.id}, token_id={token.id} is swug"
+                )
 
     def test_delete_token_removes_replica(self) -> None:
         user = self.create_user()
@@ -185,6 +194,171 @@ class ApiTokenTest(TestCase):
             apitoken_id=token_id,
             region_name=mock.ANY,
         )
+
+    @override_options({"api-token-async-flush": True})
+    def test_outboxes_created_with_default_flush_false(self) -> None:
+        user = self.create_user()
+
+        token = ApiToken.objects.create(user_id=user.id)
+
+        outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.API_TOKEN_SCOPE,
+            shard_identifier=token.id,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=token.id,
+        )
+        assert outboxes.exists()
+        assert outboxes.count() > 0
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+    @override_options({"api-token-async-flush": True})
+    def test_outboxes_created_on_update_with_async_flush(self) -> None:
+        user = self.create_user()
+
+        with outbox_runner():
+            token = ApiToken.objects.create(user_id=user.id)
+
+        updated_expires_at = timezone.now() + timedelta(days=30)
+        token.update(expires_at=updated_expires_at)
+
+        outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.API_TOKEN_SCOPE,
+            shard_identifier=token.id,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=token.id,
+        )
+        assert outboxes.exists()
+        assert outboxes.count() > 0
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            assert replica.expires_at != updated_expires_at
+
+    @override_options({"api-token-async-flush": True})
+    def test_async_replication_creates_replica_after_processing(self) -> None:
+        user = self.create_user()
+
+        with self.tasks():
+            token = ApiToken.objects.create(user_id=user.id)
+
+        # Verify outboxes were processed (should be deleted after processing)
+        remaining_outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.API_TOKEN_SCOPE,
+            shard_identifier=token.id,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=token.id,
+        )
+        assert not remaining_outboxes.exists()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            assert replica.hashed_token == token.hashed_token
+            assert replica.user_id == user.id
+
+    @override_options({"api-token-async-flush": True})
+    def test_async_replication_updates_existing_replica(self) -> None:
+        user = self.create_user()
+        initial_expires_at = timezone.now() + timedelta(days=1)
+        updated_expires_at = timezone.now() + timedelta(days=30)
+
+        with self.tasks():
+            token = ApiToken.objects.create(user_id=user.id, expires_at=initial_expires_at)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            assert replica.expires_at is not None
+            assert abs((replica.expires_at - initial_expires_at).total_seconds()) < 1
+
+        with self.tasks():
+            token.update(expires_at=updated_expires_at)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            assert replica.expires_at is not None
+            assert abs((replica.expires_at - updated_expires_at).total_seconds()) < 1
+
+    def convert_token_outboxes_to_user_scope(self, token_id: int, user: User) -> None:
+        original_query = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.API_TOKEN_SCOPE, shard_identifier=token_id
+        )
+
+        original_count = original_query.count()
+        assert original_count > 0
+        # Used to convert ApiTokenUpdate outboxes to the User-bound shard, to
+        # simulate having in-flight outboxes when the resharding PR lands.
+        #
+        # Please never, ever do this in actual production code.
+        original_query.update(shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user.id)
+
+        assert (
+            ControlOutbox.objects.filter(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user.id
+            ).count()
+            == original_count
+        )
+
+    def test_old_outbox_shard_replica_is_processed_correctly(self) -> None:
+        user = self.create_user()
+        with outbox_runner():
+            token = ApiToken.objects.create(user_id=user.id)
+
+        expiration_base = timezone.now()
+        with outbox_runner():
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(ControlOutbox)), flush=False
+            ):
+                token.update(expires_at=expiration_base + timedelta(days=30))
+                self.convert_token_outboxes_to_user_scope(token.id, user)
+
+        assert ControlOutbox.objects.filter().count() == 0
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            token_replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            assert token_replica is not None
+            assert token_replica.apitoken_id == token.id
+            assert token_replica.user_id == user.id
+            assert token_replica.expires_at == expiration_base + timedelta(days=30)
+
+        with outbox_runner():
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(ControlOutbox)), flush=False
+            ):
+                token_id = token.id
+                token.delete()
+                self.convert_token_outboxes_to_user_scope(token_id, user)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+    def test_replication_with_old_and_new_outbox_shards(self) -> None:
+        user = self.create_user()
+        with outbox_runner():
+            token = ApiToken.objects.create(user_id=user.id)
+        token_id = token.id
+        expiration_base = timezone.now()
+        with outbox_runner():
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(ControlOutbox)), flush=False
+            ):
+                token.update(expires_at=expiration_base + timedelta(days=30))
+                self.convert_token_outboxes_to_user_scope(token_id, user)
+
+                token.update(expires_at=expiration_base + timedelta(days=60))
+                new_outbox = ControlOutbox.objects.filter(
+                    category=OutboxCategory.API_TOKEN_UPDATE,
+                    object_identifier=token_id,
+                )
+                assert new_outbox.count() == 2
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).expires_at is not None
+            assert ApiTokenReplica.objects.get(
+                apitoken_id=token.id
+            ).expires_at == expiration_base + timedelta(days=60)
+
+        assert ControlOutbox.objects.filter(category=OutboxCategory.API_TOKEN_UPDATE).count() == 0
 
 
 @control_silo_test
@@ -223,3 +397,57 @@ class ApiTokenInternalIntegrationTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert ApiTokenReplica.objects.get(apitoken_id=token_1.id).organization_id is None
             assert ApiTokenReplica.objects.get(apitoken_id=token_2.id).organization_id is None
+
+    @override_options({"api-token-async-flush": True})
+    @mock.patch("sentry.hybridcloud.tasks.deliver_from_outbox.drain_outbox_shards_control.delay")
+    def test_async_replication_schedules_drain_task(self, mock_drain_task) -> None:
+        user = self.create_user()
+
+        token = ApiToken.objects.create(user_id=user.id)
+
+        assert mock_drain_task.called
+        call_args = mock_drain_task.call_args
+        assert call_args.kwargs["outbox_name"] == "sentry.ControlOutbox"
+
+        outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.API_TOKEN_SCOPE,
+            shard_identifier=token.id,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=token.id,
+        )
+        assert outboxes.exists()
+
+        # Verify the task was called with the correct ID range
+        outbox_ids = list(outboxes.values_list("id", flat=True))
+        assert call_args.kwargs["outbox_identifier_low"] == min(outbox_ids)
+        assert call_args.kwargs["outbox_identifier_hi"] == max(outbox_ids) + 1
+
+    @override_options({"api-token-async-flush": True})
+    def test_multiple_tokens_use_different_shards(self) -> None:
+        user = self.create_user()
+
+        token1 = ApiToken.objects.create(user_id=user.id)
+        token2 = ApiToken.objects.create(user_id=user.id)
+
+        token_1_outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.API_TOKEN_SCOPE,
+            shard_identifier=token1.id,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=token1.id,
+        )
+        assert token_1_outboxes.exists()
+
+        token_2_outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.API_TOKEN_SCOPE,
+            shard_identifier=token2.id,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=token2.id,
+        )
+        assert token_2_outboxes.exists()
+
+        assert token1.id != token2.id
+        token_1_outbox = token_1_outboxes.first()
+        assert token_1_outbox is not None
+        token_2_outbox = token_2_outboxes.first()
+        assert token_2_outbox is not None
+        assert token_1_outbox.shard_identifier != token_2_outbox.shard_identifier

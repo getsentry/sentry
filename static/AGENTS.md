@@ -1,6 +1,6 @@
 # Frontend Development Guide
 
-> For critical commands and testing rules, see `/AGENTS.md` in the repository root.
+> For critical commands and testing rules, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## Frontend Tech Stack
 
@@ -12,19 +12,7 @@
 - **Styling**: Emotion (CSS-in-JS), Less
 - **Testing**: Jest, React Testing Library
 
-## Commands
-
-### Development Setup
-
-```bash
-# Start the development server
-pnpm run dev
-
-# Start only the UI development server with hot reload
-pnpm run dev-ui
-```
-
-### Important Files and Directories
+## Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
 - `rspack.config.ts`: Frontend build configuration
@@ -59,14 +47,23 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
 );
 ```
 
+## General Frontend Rules
+
+1. NO new Reflux stores
+2. NO class components
+3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
+4. ALWAYS use TypeScript
+5. ALWAYS colocate tests
+6. Lazy load routes: `React.lazy(() => import('...'))`
+
 ## Design system
 
 ### General practices
 
 - Use [core components](./app/components/core/) whenever possible. Use Emotion (styled components) only in edge cases.
 - Use Text, Heading, Flex, Grid, Stack, Container and other core typography/layout components whenever possible.
-- Add stories whenever possible (\*.stories.tsx).
-- Icons should be part of our icon set at static/app/icons and never inlined
+- Add stories whenever possible (\*.stories.mdx).
+- Icons should be part of our icon set at static/app/icons and should never be inlined anywhere in the app.
 - Images should be placed inside static/app/images and imported via loader
 
 ### Core components
@@ -127,6 +124,16 @@ const Component = styled('div')`
 ```
 
 ##### General Guidelines
+
+Favor props over style attribute
+
+```tsx
+// ❌ Do not use style attribute for supported props
+<Flex style={{width: "100%", padding: `${space(1)} ${space(1.5)}`}>
+
+// ✅ Use the supported prop
+<Flex width="100%" padding="md lg">
+```
 
 Use responsive props instead of styled media queries for Flex, Grid and Container.
 
@@ -192,7 +199,7 @@ import {Heading} from '@sentry/scraps/text';
 
 // ❌ Do not use styled and create a new styled component
 const Title = styled('h4')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSizes.small};
 `;
 
@@ -219,7 +226,7 @@ import {Text} from '@sentry/scraps/text';
 
 // ❌ Do not use styled and create a new styled component
 const Label = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSizes.small};
 `;
 
@@ -236,7 +243,7 @@ import {Text} from '@sentry/scraps/text';
 
 // ❌ Do not style intrinsic elements directly
 const Paragraph = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
 `;
 
@@ -281,7 +288,7 @@ function Content() {
 const Component = styled('div')`
   display: flex;
   flex-directon: column;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.fontSize.lg};
 `;
 
@@ -434,6 +441,20 @@ function Component() {
 - **Avoid implementation details**: Focus on behavior, not internal component structure.
 - **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
 
+### Imports
+
+**Always** import from `sentry-test/reactTestingLibrary`, not directly from `@testing-library/react`:
+
+```tsx
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+```
+
 ### Query Priority (in order of preference)
 
 1. **`getByRole`** - Primary selector for most elements
@@ -560,6 +581,23 @@ expect(await screen.findByRole('alert')).toBeInTheDocument();
 
 // ✅ Use waitForElementToBeRemoved for disappearance
 await waitForElementToBeRemoved(() => screen.getByRole('alert'));
+```
+
+#### Avoid waiting for loading indicators
+
+Do not use `findBy` with `.not.toBeInTheDocument()` for loading indicators. `findBy` will error if the element is not found, but we're asserting it should NOT exist. Loading indicators are also flakey since they appear on screen for only a few ticks.
+
+```tsx
+// ❌ Wrong - findBy errors if element not found, and loading indicators are flakey
+expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+// ✅ Correct - wait for the actual content you care about
+await waitFor(() => {
+  expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
+});
+
+// ✅ Also correct - use findBy on the content that appears after loading
+expect(await screen.findByRole('button', {name: 'Submit'})).toBeInTheDocument();
 ```
 
 #### User interactions

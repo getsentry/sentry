@@ -11,6 +11,7 @@ import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {DocIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -34,7 +35,9 @@ export default function DocIntegrationDetails() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const ENDPOINT = `/doc-integrations/${docIntegrationSlug}/`;
+  const ENDPOINT = getApiUrl(`/doc-integrations/$docIntegrationIdOrSlug/`, {
+    path: {docIntegrationIdOrSlug: docIntegrationSlug},
+  });
 
   const {data, isPending, isError, refetch} = useApiQuery<any>([ENDPOINT], {
     staleTime: 0,
@@ -154,7 +157,7 @@ export default function DocIntegrationDetails() {
         <DetailLabel title="Name">{data.name}</DetailLabel>
         <DetailLabel title="Slug">{data.slug}</DetailLabel>
         <DetailLabel title="Status">
-          <Tag type={data.isDraft === true ? 'warning' : 'success'}>
+          <Tag variant={data.isDraft === true ? 'warning' : 'success'}>
             {data.isDraft === false ? 'published' : 'draft'}
           </Tag>
         </DetailLabel>
@@ -170,7 +173,7 @@ export default function DocIntegrationDetails() {
           {data.features?.map((feature: any) => (
             <div key={feature.featureGate}>
               {
-                <Tag type="warning">
+                <Tag variant="warning">
                   {feature.featureGate.replace(/(^integrations-)/, '')}
                 </Tag>
               }

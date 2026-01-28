@@ -3,6 +3,8 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
@@ -101,9 +103,9 @@ function Screenshot({
       )}
       <StyledPanelBody hasHeader={totalScreenshots > 1}>
         {loadingImage && (
-          <StyledLoadingIndicator>
+          <Flex justify="center" align="center" height="100%" position="absolute">
             <LoadingIndicator mini />
-          </StyledLoadingIndicator>
+          </Flex>
         )}
         <AttachmentComponentWrapper
           onClick={() => openVisualizationModal(screenshot, `${downloadUrl}?download=1`)}
@@ -193,7 +195,7 @@ const StyledPanel = styled(Panel)`
 const StyledPanelHeader = styled(PanelHeader)`
   padding: ${space(1)};
   width: 100%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: 0;
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
@@ -204,7 +206,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 `;
 
 const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   width: 100%;
   min-height: 48px;
   overflow: hidden;
@@ -226,18 +228,10 @@ const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)};
   width: 100%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-top: 0;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
-`;
-
-const StyledLoadingIndicator = styled('div')`
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 `;
 
 const AttachmentComponentWrapper = styled('div')`

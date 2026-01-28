@@ -52,7 +52,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
       avoidLabelOverlap: false,
       itemStyle: {
         borderRadius: 6,
-        borderColor: theme.surface100,
+        borderColor: theme.colors.surface200,
         borderWidth: 2,
       },
       label: {
@@ -66,7 +66,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
       labelLine: {
         show: true,
         lineStyle: {
-          color: theme.border,
+          color: theme.tokens.border.primary,
         },
       },
       emphasis: {
@@ -78,7 +78,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
         itemStyle: {
           shadowBlur: 10,
           shadowOffsetX: 0,
-          shadowColor: theme.gray100,
+          shadowColor: theme.colors.gray100,
         },
       },
       data: pieData,
@@ -88,7 +88,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
   const tooltip: TooltipOption = {
     trigger: 'item',
     borderWidth: 0,
-    backgroundColor: theme.surface100,
+    backgroundColor: theme.colors.surface200,
     hideDelay: 0,
     transitionDuration: 0,
     padding: 12,

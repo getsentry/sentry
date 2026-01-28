@@ -88,6 +88,14 @@ describe('DetectorEdit', () => {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-window/`,
+      body: {start: 1700000000, end: 1700000001},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-buckets/`,
+      body: [],
+    });
   });
 
   describe('Metric Detector', () => {
@@ -775,6 +783,24 @@ describe('DetectorEdit', () => {
         'https://uptime.example.com'
       );
 
+      // Change method to POST
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
+
+      // Add headers
+      const headerNameInput = screen.getByRole('textbox', {name: 'Name of header 1'});
+      await userEvent.type(headerNameInput, 'X-API-Key');
+      const headerValueInput = screen.getByRole('textbox', {name: 'Value of X-API-Key'});
+      await userEvent.type(headerValueInput, 'secret-key-123');
+
+      // Add body
+      const bodyInput = screen.getByRole('textbox', {name: 'Body'});
+      await userEvent.click(bodyInput);
+      await userEvent.paste('{"test": "data"}');
+
+      await selectEvent.openMenu(screen.getByLabelText('Select Environment'));
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'All Environments'})
+      ).not.toBeInTheDocument();
       await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
@@ -796,10 +822,12 @@ describe('DetectorEdit', () => {
             dataSources: [
               {
                 intervalSeconds: 60,
-                method: 'GET',
+                method: 'POST',
                 timeoutMs: 5000,
                 traceSampling: undefined,
                 url: 'https://uptime.example.com',
+                headers: [['X-API-Key', 'secret-key-123']],
+                body: '{"test": "data"}',
               },
             ],
             name: 'Uptime Monitor',
@@ -865,6 +893,8 @@ describe('DetectorEdit', () => {
                 timeoutMs: 5000,
                 traceSampling: undefined,
                 url: 'https://uptime-custom.example.com',
+                headers: [],
+                body: null,
               },
             ],
             name: 'Uptime check for uptime-custom.example.com',

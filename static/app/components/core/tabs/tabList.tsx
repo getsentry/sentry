@@ -9,23 +9,58 @@ import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
-import type {BaseTabProps} from './tab.chonk';
-import {ChonkStyledTabListOverflowWrap, ChonkStyledTabListWrap} from './tabList.chonk';
+import type {BaseTabProps} from './tab';
 import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
+
+const StyledTabListWrap = styled('ul', {
+  shouldForwardProp: tabsShouldForwardProp,
+})<{
+  orientation: Orientation;
+  variant: BaseTabProps['variant'];
+}>`
+  position: relative;
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  flex-shrink: 0;
+  gap: ${p => p.theme.space.xs};
+
+  ${p =>
+    p.orientation === 'horizontal'
+      ? css`
+          grid-auto-flow: column;
+          justify-content: start;
+        `
+      : css`
+          height: 100%;
+          grid-auto-flow: row;
+          align-content: start;
+          padding-right: ${space(0.5)};
+        `};
+`;
+
+const StyledTabListOverflowWrap = styled('div')`
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;
 
 /**
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
@@ -118,7 +153,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
           <OverflowMenuTrigger
             {...triggerProps}
             borderless
-            showChevron={false}
             icon={<IconEllipsis />}
             aria-label={t('More tabs')}
           />
@@ -130,13 +164,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
 
 export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
-  /**
-   * @deprecated
-   * With chonk, tabs never have a border.
-   * Whether to hide the bottom border of the tab list.
-   * Defaults to `false`.
-   */
-  hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
   variant?: BaseTabProps['variant'];
 }
@@ -146,12 +173,7 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
   variant?: BaseTabProps['variant'];
 }
 
-function BaseTabList({
-  hideBorder = false,
-  outerWrapStyles,
-  variant = 'flat',
-  ...props
-}: BaseTabListProps) {
+function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
   const navigate = useNavigate();
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
@@ -228,11 +250,10 @@ function BaseTabList({
   }, [state.collection, overflowTabs]);
 
   return (
-    <TabListOuterWrap style={outerWrapStyles}>
+    <Container position="relative" style={outerWrapStyles}>
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
-        hideBorder={hideBorder}
         ref={tabListRef}
         variant={variant}
       >
@@ -260,7 +281,7 @@ function BaseTabList({
           disabled={disabled}
         />
       )}
-    </TabListOuterWrap>
+    </Container>
   );
 }
 
@@ -305,54 +326,12 @@ export function TabList({variant, ...props}: TabListProps) {
 
 TabList.Item = TabListItem;
 
-const TabListOuterWrap = styled('div')`
-  position: relative;
-`;
+const TabListWrap = StyledTabListWrap;
 
-const TabListWrap = withChonk(
-  styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
-    hideBorder: boolean;
-    orientation: Orientation;
-    variant: BaseTabProps['variant'];
-  }>`
-    position: relative;
-    display: grid;
-    padding: 0;
-    margin: 0;
-    list-style-type: none;
-    flex-shrink: 0;
+const TabListOverflowWrap = StyledTabListOverflowWrap;
 
-    ${p =>
-      p.orientation === 'horizontal'
-        ? css`
-            grid-auto-flow: column;
-            justify-content: start;
-            gap: ${p.variant === 'floating' ? 0 : space(2)};
-            ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
-          `
-        : css`
-            height: 100%;
-            grid-auto-flow: row;
-            align-content: start;
-            gap: 1px;
-            padding-right: ${space(2)};
-            ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
-          `};
-  `,
-  ChonkStyledTabListWrap
-);
-
-const TabListOverflowWrap = withChonk(
-  styled('div')`
-    position: absolute;
-    right: 0;
-    bottom: ${space(0.75)};
-  `,
-  ChonkStyledTabListOverflowWrap
-);
-
-const OverflowMenuTrigger = styled(SelectTrigger.Button)`
+const OverflowMenuTrigger = styled(OverlayTrigger.IconButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
-  color: ${p => p.theme.tokens.component.link.muted.default};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 `;

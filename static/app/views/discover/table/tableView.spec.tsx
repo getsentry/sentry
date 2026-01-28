@@ -1,8 +1,15 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -12,41 +19,45 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import TableView from 'sentry/views/discover/table/tableView';
 
 describe('TableView > CellActions', () => {
-  let initialData: ReturnType<typeof initializeOrg>;
-  let rows: any;
+  let rows: TableData;
   let onChangeShowTags: jest.Mock;
+
+  const organization = OrganizationFixture({
+    features: ['discover-basic'],
+  });
+
+  const projects = [ProjectFixture()];
+
+  const locationQuery = {
+    id: '42',
+    name: 'best query',
+    field: [
+      'title',
+      'transaction',
+      'count()',
+      'timestamp',
+      'release',
+      'equation|count() + 100',
+    ],
+    sort: ['title'],
+    query: '',
+    project: ['123'],
+    statsPeriod: '14d',
+    environment: ['staging'],
+    yAxis: 'p95',
+  };
 
   const location = LocationFixture({
     pathname: '/organizations/org-slug/explore/discover/results/',
-    query: {
-      id: '42',
-      name: 'best query',
-      field: [
-        'title',
-        'transaction',
-        'count()',
-        'timestamp',
-        'release',
-        'equation|count() + 100',
-      ],
-      sort: ['title'],
-      query: '',
-      project: ['123'],
-      statsPeriod: '14d',
-      environment: ['staging'],
-      yAxis: 'p95',
-    },
+    query: locationQuery,
   });
+
   const eventView = EventView.fromLocation(location);
 
-  function renderComponent(
-    context: ReturnType<typeof initializeOrg>,
-    tableData: TableData,
-    view: EventView
-  ) {
+  function renderComponent(tableData: TableData, view: EventView) {
     return render(
       <TableView
-        organization={context.organization}
+        organization={organization}
         location={location}
         eventView={view}
         isLoading={false}
@@ -60,8 +71,13 @@ describe('TableView > CellActions', () => {
         queryDataset={SavedQueryDatasets.TRANSACTIONS}
       />,
       {
-        router: context.router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: location.pathname,
+            query: locationQuery,
+          },
+        },
       }
     );
   }
@@ -74,16 +90,8 @@ describe('TableView > CellActions', () => {
   }
 
   beforeEach(() => {
-    const organization = OrganizationFixture({
-      features: ['discover-basic'],
-    });
-
-    initialData = initializeOrg({
-      organization,
-      router: {location},
-    });
     act(() => {
-      ProjectsStore.loadInitialData(initialData.projects);
+      ProjectsStore.loadInitialData(projects);
       TagStore.reset();
       TagStore.loadTagsSuccess([
         {name: 'size', key: 'size'},
@@ -105,6 +113,7 @@ describe('TableView > CellActions', () => {
       },
       data: [
         {
+          id: '1',
           title: 'some title',
           transaction: '/organizations/',
           'count()': 9,
@@ -129,7 +138,7 @@ describe('TableView > CellActions', () => {
 
   it('updates sort order on equation fields', () => {
     const view = eventView.clone();
-    renderComponent(initialData, rows, view);
+    renderComponent(rows, view);
 
     const equationCell = screen.getByRole('columnheader', {name: 'count() + 100'});
     const sortLink = within(equationCell).getByRole('link');
@@ -142,7 +151,7 @@ describe('TableView > CellActions', () => {
 
   it('updates sort order on non-equation fields', () => {
     const view = eventView.clone();
-    renderComponent(initialData, rows, view);
+    renderComponent(rows, view);
 
     const transactionCell = screen.getByRole('columnheader', {name: 'transaction'});
     const sortLink = within(transactionCell).getByRole('link');
@@ -154,34 +163,42 @@ describe('TableView > CellActions', () => {
   });
 
   it('handles add cell action on null value', async () => {
-    rows.data[0].title = null;
+    rows.data[0]!.title = null as any;
 
-    renderComponent(initialData, rows, eventView);
+    const {router} = renderComponent(rows, eventView);
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: '!has:title',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: '!has:title',
+          }),
+        })
+      );
     });
   });
 
   it('handles add cell action on null value replace has condition', async () => {
-    rows.data[0].title = null;
+    rows.data[0]!.title = null as any;
     const view = eventView.clone();
     view.query = 'tag:value has:title';
 
-    renderComponent(initialData, rows, view);
+    const {router} = renderComponent(rows, view);
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'tag:value !has:title',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'tag:value !has:title',
+          }),
+        })
+      );
     });
   });
 
@@ -189,46 +206,88 @@ describe('TableView > CellActions', () => {
     const view = eventView.clone();
     view.query = 'tag:value !title:nope';
 
-    renderComponent(initialData, rows, view);
+    const {router} = renderComponent(rows, view);
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'tag:value title:"some title"',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'tag:value title:"some title"',
+          }),
+        })
+      );
     });
   });
 
   it('handles add cell action with multiple y axis', async () => {
-    location.query.yAxis = ['count()', 'failure_count()'];
+    const multiYAxisQuery = {...locationQuery, yAxis: ['count()', 'failure_count()']};
+    const multiYAxisLocation = LocationFixture({
+      pathname: location.pathname,
+      query: multiYAxisQuery,
+    });
+    const view = EventView.fromLocation(multiYAxisLocation);
 
-    renderComponent(initialData, rows, eventView);
+    const {router} = render(
+      <TableView
+        organization={organization}
+        location={multiYAxisLocation}
+        eventView={view}
+        isLoading={false}
+        tableData={rows}
+        onChangeShowTags={onChangeShowTags}
+        error={null}
+        isFirstPage
+        measurementKeys={null}
+        showTags={false}
+        title=""
+        queryDataset={SavedQueryDatasets.TRANSACTIONS}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: location.pathname,
+            query: multiYAxisQuery,
+          },
+        },
+      }
+    );
+
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'title:"some title"',
-        yAxis: ['count()', 'failure_count()'],
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'title:"some title"',
+            yAxis: ['count()', 'failure_count()'],
+          }),
+        })
+      );
     });
   });
 
   it('handles exclude cell action on string value', async () => {
-    renderComponent(initialData, rows, eventView);
+    const {router} = renderComponent(rows, eventView);
     await openContextMenu(1);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: '!title:"some title"',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: '!title:"some title"',
+          }),
+        })
+      );
     });
   });
 
@@ -236,90 +295,110 @@ describe('TableView > CellActions', () => {
     const view = eventView.clone();
     view.query = 'tag:value title:nope';
 
-    renderComponent(initialData, rows, view);
+    const {router} = renderComponent(rows, view);
     await openContextMenu(1);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'tag:value title:nope !title:"some title"',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'tag:value title:nope !title:"some title"',
+          }),
+        })
+      );
     });
   });
 
   it('handles exclude cell action on null value', async () => {
-    rows.data[0].title = null;
+    rows.data[0]!.title = null as any;
 
-    renderComponent(initialData, rows, eventView);
+    const {router} = renderComponent(rows, eventView);
     await openContextMenu(1);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'has:title',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'has:title',
+          }),
+        })
+      );
     });
   });
 
   it('handles exclude cell action on null value replace condition', async () => {
+    rows.data[0]!.title = null as any;
     const view = eventView.clone();
     view.query = 'tag:value !has:title';
-    rows.data[0].title = null;
 
-    renderComponent(initialData, rows, view);
+    const {router} = renderComponent(rows, view);
     await openContextMenu(1);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'tag:value has:title',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'tag:value has:title',
+          }),
+        })
+      );
     });
   });
 
   it('handles greater than cell action on number value', async () => {
-    renderComponent(initialData, rows, eventView);
+    const {router} = renderComponent(rows, eventView);
     await openContextMenu(3);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Show values greater than'})
     );
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'count():>9',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'count():>9',
+          }),
+        })
+      );
     });
   });
 
   it('handles less than cell action on number value', async () => {
-    renderComponent(initialData, rows, eventView);
+    const {router} = renderComponent(rows, eventView);
     await openContextMenu(3);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Show values less than'})
     );
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'count():<9',
-      }),
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'count():<9',
+          }),
+        })
+      );
     });
   });
 
   it('renders transaction summary link', () => {
-    rows.data[0].project = 'project-slug';
+    rows.data[0]!.project = 'project-slug';
 
-    renderComponent(initialData, rows, eventView);
+    renderComponent(rows, eventView);
 
     const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('tableView-transaction-link');
@@ -335,11 +414,7 @@ describe('TableView > CellActions', () => {
   });
 
   it('renders trace view link', () => {
-    const org = OrganizationFixture({
-      features: ['discover-basic'],
-    });
-
-    rows = {
+    const traceRows: TableData = {
       meta: {
         trace: 'string',
         id: 'string',
@@ -358,28 +433,49 @@ describe('TableView > CellActions', () => {
       ],
     };
 
-    const loc = LocationFixture({
+    const traceQuery = {
+      id: '42',
+      name: 'best query',
+      field: ['id', 'transaction', 'timestamp'],
+      queryDataset: 'transaction-like',
+      sort: ['transaction'],
+      query: '',
+      project: ['123'],
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'p95',
+    };
+
+    const traceLocation = LocationFixture({
       pathname: '/organizations/org-slug/explore/discover/results/',
-      query: {
-        id: '42',
-        name: 'best query',
-        field: ['id', 'transaction', 'timestamp'],
-        queryDataset: 'transaction-like',
-        sort: ['transaction'],
-        query: '',
-        project: ['123'],
-        statsPeriod: '14d',
-        environment: ['staging'],
-        yAxis: 'p95',
-      },
+      query: traceQuery,
     });
 
-    initialData = initializeOrg({
-      organization: org,
-      router: {location: loc},
-    });
-
-    renderComponent(initialData, rows, EventView.fromLocation(loc));
+    render(
+      <TableView
+        organization={organization}
+        location={traceLocation}
+        eventView={EventView.fromLocation(traceLocation)}
+        isLoading={false}
+        tableData={traceRows}
+        onChangeShowTags={onChangeShowTags}
+        error={null}
+        isFirstPage
+        measurementKeys={null}
+        showTags={false}
+        title=""
+        queryDataset={SavedQueryDatasets.TRANSACTIONS}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: traceLocation.pathname,
+            query: traceQuery,
+          },
+        },
+      }
+    );
 
     const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('view-event');
@@ -395,21 +491,28 @@ describe('TableView > CellActions', () => {
   });
 
   it('handles go to release', async () => {
-    renderComponent(initialData, rows, eventView);
+    const {router} = renderComponent(rows, eventView);
     await openContextMenu(5);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/explore/releases/v1.0.2/',
-      query: expect.objectContaining({
-        environment: eventView.environment,
-      }),
+    expect(eventView.environment).toHaveLength(1);
+    expect(eventView.environment[0]).toBe('staging');
+
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/explore/releases/v1.0.2/',
+          query: expect.objectContaining({
+            environment: eventView.environment[0],
+          }),
+        })
+      );
     });
   });
 
   it('has title on integer value greater than 999', () => {
-    rows.data[0]['count()'] = 1000;
-    renderComponent(initialData, rows, eventView);
+    rows.data[0]!['count()'] = 1000;
+    renderComponent(rows, eventView);
 
     const firstRow = screen.getAllByRole('row')[1]!;
     const emptyValueCell = within(firstRow).getAllByRole('cell')[3]!;
@@ -418,23 +521,24 @@ describe('TableView > CellActions', () => {
   });
 
   it('renders size columns correctly', () => {
-    const orgWithFeature = OrganizationFixture();
+    const sizeQuery = {
+      ...locationQuery,
+      field: [
+        'title',
+        'p99(measurements.custom.kibibyte)',
+        'p99(measurements.custom.kilobyte)',
+      ],
+    };
+    const sizeLocation = LocationFixture({
+      pathname: location.pathname,
+      query: sizeQuery,
+    });
 
     render(
       <TableView
-        organization={orgWithFeature}
-        location={location}
-        eventView={EventView.fromLocation({
-          ...location,
-          query: {
-            ...location.query,
-            field: [
-              'title',
-              'p99(measurements.custom.kibibyte)',
-              'p99(measurements.custom.kilobyte)',
-            ],
-          },
-        })}
+        organization={organization}
+        location={sizeLocation}
+        eventView={EventView.fromLocation(sizeLocation)}
         isLoading={false}
         tableData={{
           data: [
@@ -463,7 +567,13 @@ describe('TableView > CellActions', () => {
         title=""
       />,
       {
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: location.pathname,
+            query: sizeQuery,
+          },
+        },
       }
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
@@ -471,19 +581,20 @@ describe('TableView > CellActions', () => {
   });
 
   it('shows events with value less than selected custom performance metric', async () => {
-    const orgWithFeature = OrganizationFixture();
+    const metricQuery = {
+      ...locationQuery,
+      field: ['title', 'p99(measurements.custom.kilobyte)'],
+    };
+    const metricLocation = LocationFixture({
+      pathname: location.pathname,
+      query: metricQuery,
+    });
 
-    render(
+    const {router} = render(
       <TableView
-        organization={orgWithFeature}
-        location={location}
-        eventView={EventView.fromLocation({
-          ...location,
-          query: {
-            ...location.query,
-            field: ['title', 'p99(measurements.custom.kilobyte)'],
-          },
-        })}
+        organization={organization}
+        location={metricLocation}
+        eventView={EventView.fromLocation(metricLocation)}
         isLoading={false}
         tableData={{
           data: [
@@ -507,19 +618,29 @@ describe('TableView > CellActions', () => {
         title=""
       />,
       {
-        router: initialData.router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: location.pathname,
+            query: metricQuery,
+          },
+        },
       }
     );
     await userEvent.hover(screen.getByText('444.3 KB'));
     const buttons = screen.getAllByRole('button');
     await userEvent.click(buttons[buttons.length - 1]!);
     await userEvent.click(screen.getByText('Show values less than'));
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: location.pathname,
-      query: expect.objectContaining({
-        query: 'p99(measurements.custom.kilobyte):<444300',
-      }),
+
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: location.pathname,
+          query: expect.objectContaining({
+            query: 'p99(measurements.custom.kilobyte):<444300',
+          }),
+        })
+      );
     });
   });
 });

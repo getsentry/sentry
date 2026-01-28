@@ -241,8 +241,8 @@ const NotDisabledText = styled('div')`
   line-height: ${space(2)};
 `;
 const NotDisabledSubText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   margin-top: ${space(1)};
 `;

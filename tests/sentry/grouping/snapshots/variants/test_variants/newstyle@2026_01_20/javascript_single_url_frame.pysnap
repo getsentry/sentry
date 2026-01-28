@@ -1,0 +1,27 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: None
+  root_component:
+    app
+      stacktrace (ignored because it contains no in-app frames)
+        frame (non app frame)
+          filename (ignored because frame points to a URL)
+            "great.js"
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: null
+  hint: None
+  root_component:
+    system
+      stacktrace (ignored because it contains no contributing frames)
+        frame
+          filename (ignored because frame points to a URL)
+            "great.js"

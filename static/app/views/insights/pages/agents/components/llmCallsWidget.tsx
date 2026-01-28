@@ -95,7 +95,9 @@ export default function LLMCallsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(ts, {
-              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
+              color: ts.meta.isOther
+                ? theme.tokens.dataviz.semantic.neutral
+                : colorPalette[index],
               stack: 'stack',
             })
         ),
@@ -172,9 +174,13 @@ export default function LLMCallsWidget() {
 }
 
 const ModelText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -20,24 +19,18 @@ describe('Onboarding Product Selection', () => {
   });
 
   it('renders default state', async () => {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            product: [
-              ProductSolution.PERFORMANCE_MONITORING,
-              ProductSolution.SESSION_REPLAY,
-            ],
-          },
-        },
-        params: {},
-      },
-    });
+    const initialQuery = {
+      product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+    };
 
-    render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ProductSelection organization={organization} platform="javascript-react" />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/', query: initialQuery},
+        },
+      }
+    );
 
     // Error monitoring shall be checked and disabled by default
     expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
@@ -48,9 +41,9 @@ describe('Onboarding Product Selection', () => {
       await screen.findByText(/Let's admit it, we all have errors/)
     ).toBeInTheDocument();
 
-    // Try to uncheck error monitoring
+    // Try to uncheck error monitoring - should not change URL since it's always required
     await userEvent.click(screen.getByRole('presentation', {name: 'Error Monitoring'}));
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.location.query).toEqual(initialQuery);
 
     // Tracing shall be checked and enabled by default
     expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
@@ -64,21 +57,17 @@ describe('Onboarding Product Selection', () => {
 
     // Uncheck tracing
     await userEvent.click(screen.getByRole('presentation', {name: 'Tracing'}));
-    expect(router.replace).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {product: [ProductSolution.SESSION_REPLAY]},
+    expect(router.location.query).toEqual({
+      product: ProductSolution.SESSION_REPLAY,
     });
 
     // Session replay shall be checked and enabled by default
     expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeChecked();
     expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeEnabled();
 
-    // Uncheck sesseion replay
+    // Uncheck session replay (after tracing was already unchecked, so now both are removed)
     await userEvent.click(screen.getByRole('presentation', {name: 'Session Replay'}));
-    expect(router.replace).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-    });
+    expect(router.location.query).toEqual({});
 
     // Tooltip with explanation shall be displayed on hover
     await userEvent.hover(screen.getByRole('presentation', {name: 'Session Replay'}));
@@ -88,14 +77,7 @@ describe('Onboarding Product Selection', () => {
   });
 
   it('renders disabled product', async () => {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: [ProductSolution.SESSION_REPLAY]},
-        },
-        params: {},
-      },
-    });
+    const initialQuery = {product: ProductSolution.SESSION_REPLAY};
 
     const disabledProducts = {
       [ProductSolution.PERFORMANCE_MONITORING]: {
@@ -103,15 +85,16 @@ describe('Onboarding Product Selection', () => {
       },
     };
 
-    render(
+    const {router} = render(
       <ProductSelection
         organization={organization}
         disabledProducts={disabledProducts}
         platform="javascript-react"
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {pathname: '/', query: initialQuery},
+        },
       }
     );
 
@@ -128,8 +111,8 @@ describe('Onboarding Product Selection', () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('presentation', {name: 'Tracing'}));
 
-    // Try to uncheck tracing
-    await waitFor(() => expect(router.push).not.toHaveBeenCalled());
+    // Clicking disabled tracing should not change the URL
+    await waitFor(() => expect(router.location.query).toEqual(initialQuery));
   });
 
   it('does not render Session Replay if not available for the platform', () => {
@@ -137,45 +120,41 @@ describe('Onboarding Product Selection', () => {
       ProductSolution.PERFORMANCE_MONITORING,
     ];
 
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: [ProductSolution.SESSION_REPLAY]},
-        },
-        params: {},
-      },
-    });
+    const initialQuery = {product: ProductSolution.SESSION_REPLAY};
 
-    render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ProductSelection organization={organization} platform="javascript-react" />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/', query: initialQuery},
+        },
+      }
+    );
 
     expect(
       screen.queryByRole('presentation', {name: 'Session Replay'})
     ).not.toBeInTheDocument();
 
-    expect(router.replace).not.toHaveBeenCalled();
+    // URL should remain unchanged
+    expect(router.location.query).toEqual(initialQuery);
   });
 
   it('does render Profiling if available for the platform', () => {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-        },
-        params: {},
-      },
-    });
+    const initialQuery = {product: ProductSolution.PERFORMANCE_MONITORING};
 
-    render(<ProductSelection organization={organization} platform="python-django" />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ProductSelection organization={organization} platform="python-django" />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/', query: initialQuery},
+        },
+      }
+    );
 
     expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeInTheDocument();
 
-    expect(router.replace).not.toHaveBeenCalled();
+    // URL should remain unchanged
+    expect(router.location.query).toEqual(initialQuery);
   });
 
   it('renders with non-errors features disabled for errors only self-hosted', () => {
@@ -184,20 +163,15 @@ describe('Onboarding Product Selection', () => {
       ProductSolution.SESSION_REPLAY,
     ];
 
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: [ProductSolution.SESSION_REPLAY]},
-        },
-        params: {},
-      },
-    });
-
     ConfigStore.set('isSelfHostedErrorsOnly', true);
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {product: [ProductSolution.SESSION_REPLAY]},
+        },
+      },
     });
 
     expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeDisabled();
@@ -206,33 +180,20 @@ describe('Onboarding Product Selection', () => {
   });
 
   it('does not select any products by default', () => {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {},
+    const {router} = render(
+      <ProductSelection organization={organization} platform="python" />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/', query: {}},
         },
-        params: {},
-      },
-    });
+      }
+    );
 
-    render(<ProductSelection organization={organization} platform="python" />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
-
-    expect(router.replace).not.toHaveBeenCalled();
+    // URL should remain unchanged (no products auto-selected)
+    expect(router.location.query).toEqual({});
   });
 
   it('triggers onChange callback', async () => {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-        },
-        params: {},
-      },
-    });
-
     const handleChange = jest.fn();
 
     render(
@@ -242,8 +203,12 @@ describe('Onboarding Product Selection', () => {
         onChange={handleChange}
       />,
       {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/',
+            query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+          },
+        },
       }
     );
 
@@ -255,22 +220,22 @@ describe('Onboarding Product Selection', () => {
   });
 
   it('does not overwrite URL products if others are present', () => {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: ['invalid-product', ProductSolution.PERFORMANCE_MONITORING]},
-        },
-        params: {},
-      },
-    });
+    const initialQuery = {
+      product: ['invalid-product', ProductSolution.PERFORMANCE_MONITORING],
+    };
 
-    render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <ProductSelection organization={organization} platform="javascript-react" />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/', query: initialQuery},
+        },
+      }
+    );
 
     expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
 
-    expect(router.replace).not.toHaveBeenCalled();
+    // URL should remain unchanged
+    expect(router.location.query).toEqual(initialQuery);
   });
 });

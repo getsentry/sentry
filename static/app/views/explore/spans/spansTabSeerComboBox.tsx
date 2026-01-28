@@ -1,10 +1,12 @@
 import {useCallback, useMemo} from 'react';
 
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
@@ -23,10 +25,12 @@ interface Visualization {
 }
 
 interface AskSeerSearchQuery {
+  end: string | null;
   groupBys: string[];
   mode: string;
   query: string;
   sort: string;
+  start: string | null;
   statsPeriod: string;
   visualizations: Visualization[];
 }
@@ -47,6 +51,23 @@ interface TraceAskSeerSearchResponse {
   unsupported_reason: string | null;
 }
 
+interface TraceAskSeerTranslateResponse {
+  responses: Array<{
+    end: string | null;
+    group_by: string[];
+    mode: string;
+    query: string;
+    sort: string;
+    start: string | null;
+    stats_period: string;
+    visualization: Array<{
+      chart_type: number;
+      y_axes: string[];
+    }>;
+  }>;
+  unsupported_reason: string | null;
+}
+
 export function SpansTabSeerComboBox() {
   const navigate = useNavigate();
   const {projects} = useProjects();
@@ -60,6 +81,9 @@ export function SpansTabSeerComboBox() {
     enableAISearch,
   } = useSearchQueryBuilder();
 
+  const useTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
     const queryToUse = committedQuery.length > 0 ? committedQuery : query;
@@ -99,6 +123,36 @@ export function SpansTabSeerComboBox() {
           ? pageFilters.selection.projects
           : projects.filter(p => p.isMember).map(p => p.id);
 
+      if (useTranslateEndpoint) {
+        const data = await fetchMutation<TraceAskSeerTranslateResponse>({
+          url: `/organizations/${organization.slug}/search-agent/translate/`,
+          method: 'POST',
+          data: {
+            natural_language_query: queryToSubmit,
+            project_ids: selectedProjects,
+          },
+        });
+
+        return {
+          status: 'ok',
+          unsupported_reason: data.unsupported_reason,
+          queries: data.responses.map(r => ({
+            visualizations:
+              r?.visualization?.map(v => ({
+                chartType: v?.chart_type,
+                yAxes: v?.y_axes ?? [],
+              })) ?? [],
+            query: r?.query ?? '',
+            sort: r?.sort ?? '',
+            groupBys: r?.group_by ?? [],
+            statsPeriod: r?.stats_period ?? '',
+            start: r?.start ?? null,
+            end: r?.end ?? null,
+            mode: r?.mode ?? 'spans',
+          })),
+        };
+      }
+
       const data = await fetchMutation<TraceAskSeerSearchResponse>({
         url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
         method: 'POST',
@@ -116,12 +170,14 @@ export function SpansTabSeerComboBox() {
           visualizations:
             q?.visualization?.map((v: any) => ({
               chartType: v?.chart_type,
-              yAxes: v?.y_axes,
+              yAxes: v?.y_axes ?? [],
             })) ?? [],
           query: q?.query,
           sort: q?.sort ?? '',
           groupBys: q?.group_by ?? [],
           statsPeriod: q?.stats_period ?? '',
+          start: null,
+          end: null,
           mode: q?.mode ?? 'spans',
         })),
       };
@@ -131,17 +187,31 @@ export function SpansTabSeerComboBox() {
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery) => {
       if (!result) return;
-      const {query: queryToUse, visualizations, groupBys, sort, statsPeriod} = result;
+      const {
+        query: queryToUse,
+        visualizations,
+        groupBys,
+        sort,
+        statsPeriod,
+        start: resultStart,
+        end: resultEnd,
+      } = result;
 
-      const startFilter = pageFilters.selection.datetime.start?.valueOf();
-      const start = startFilter
-        ? new Date(startFilter).toISOString()
-        : pageFilters.selection.datetime.start;
+      let start: DateString = null;
+      let end: DateString = null;
 
-      const endFilter = pageFilters.selection.datetime.end?.valueOf();
-      const end = endFilter
-        ? new Date(endFilter).toISOString()
-        : pageFilters.selection.datetime.end;
+      if (resultStart && resultEnd) {
+        // Strip 'Z' suffix to treat UTC dates as local time
+        const startLocal = resultStart.endsWith('Z')
+          ? resultStart.slice(0, -1)
+          : resultStart;
+        const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
+        start = new Date(startLocal).toISOString();
+        end = new Date(endLocal).toISOString();
+      } else {
+        start = pageFilters.selection.datetime.start;
+        end = pageFilters.selection.datetime.end;
+      }
 
       const selection = {
         ...pageFilters.selection,
@@ -149,7 +219,10 @@ export function SpansTabSeerComboBox() {
           start,
           end,
           utc: pageFilters.selection.datetime.utc,
-          period: statsPeriod || pageFilters.selection.datetime.period,
+          period:
+            resultStart && resultEnd
+              ? null
+              : statsPeriod || pageFilters.selection.datetime.period,
         },
       };
 
@@ -200,7 +273,80 @@ export function SpansTabSeerComboBox() {
     !organization?.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
 
-  useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed});
+  useTraceExploreAiQuerySetup({
+    enableAISearch: areAiFeaturesAllowed && !useTranslateEndpoint,
+  });
+
+  // Get selected project IDs for the polling variant
+  const selectedProjectIds = useMemo(() => {
+    if (
+      pageFilters.selection.projects?.length > 0 &&
+      pageFilters.selection.projects?.[0] !== -1
+    ) {
+      return pageFilters.selection.projects;
+    }
+    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
+  }, [pageFilters.selection.projects, projects]);
+
+  // Transform the final_response from Seer to match the expected format
+  // The final_response contains a list of query suggestions in Seer's format
+  const transformResponse = useCallback(
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      // If response has a 'responses' array (from Seer), transform each one
+      const seerResponse = response as unknown as {
+        responses?: Array<{
+          end: string | null;
+          group_by: string[];
+          mode: string;
+          query: string;
+          sort: string;
+          start: string | null;
+          stats_period: string;
+          visualization: Array<{
+            chart_type: number;
+            y_axes: string[];
+          }>;
+        }>;
+      };
+
+      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
+        return seerResponse.responses.map(r => ({
+          visualizations:
+            r?.visualization?.map(v => ({
+              chartType: v?.chart_type,
+              yAxes: v?.y_axes ?? [],
+            })) ?? [],
+          query: r?.query ?? '',
+          sort: r?.sort ?? '',
+          groupBys: r?.group_by ?? [],
+          statsPeriod: r?.stats_period ?? '',
+          start: r?.start ?? null,
+          end: r?.end ?? null,
+          mode: r?.mode ?? 'spans',
+        }));
+      }
+
+      // If it's already in the expected format, wrap in array
+      return [response];
+    },
+    []
+  );
+
+  // Use polling variant when the feature flag is enabled
+  if (useTranslateEndpoint) {
+    return (
+      <AskSeerPollingComboBox<AskSeerSearchQuery>
+        initialQuery={initialSeerQuery}
+        projectIds={selectedProjectIds}
+        strategy="Traces"
+        applySeerSearchQuery={applySeerSearchQuery}
+        transformResponse={transformResponse}
+        analyticsSource="trace.explorer"
+        feedbackSource="trace_explorer_ai_query"
+        fallbackMutationOptions={spansTabAskSeerMutationOptions}
+      />
+    );
+  }
 
   return (
     <AskSeerComboBox

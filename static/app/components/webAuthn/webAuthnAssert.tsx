@@ -182,7 +182,7 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
 
   return (
     <Container>
-      <Alert type="error" trailingItems={retry}>
+      <Alert variant="danger" trailingItems={retry}>
         {errorMessages[error]}
       </Alert>
     </Container>
@@ -192,7 +192,7 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
 function UnsupportedError() {
   return (
     <Container>
-      <Alert type="warning">
+      <Alert variant="warning">
         {t(
           'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge).'
         )}
@@ -216,7 +216,7 @@ const DeviceAnimation = styled('div')<{activated: boolean}>`
   border-radius: 50%;
   background-image: url(${deviceAnimation});
   background-size: 100px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   ${p =>
     p.activated &&
     css`

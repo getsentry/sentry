@@ -11,6 +11,7 @@ import {
   IconContract,
   IconCopy,
   IconExpand,
+  IconLink,
   IconMegaphone,
   IconSeer,
   IconTimer,
@@ -22,10 +23,13 @@ import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
 
 interface TopBarProps {
   blocks: Block[];
+  isCopyLinkEnabled: boolean;
   isCopySessionEnabled: boolean;
   isEmptyState: boolean;
   isPolling: boolean;
+  isSeerDrawerOpen: boolean;
   isSessionHistoryOpen: boolean;
+  onCopyLinkClick: () => void;
   onCopySessionClick: () => void;
   onCreatePR: (repoName?: string) => void;
   onFeedbackClick: () => void;
@@ -35,6 +39,7 @@ interface TopBarProps {
   onSizeToggleClick: () => void;
   panelSize: 'max' | 'med';
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
+  readOnly: boolean;
   repoPRStates: Record<string, RepoPRState>;
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
 }
@@ -43,6 +48,7 @@ function TopBar({
   blocks,
   isPolling,
   isEmptyState,
+  isSeerDrawerOpen,
   isSessionHistoryOpen,
   onCreatePR,
   onFeedbackClick,
@@ -50,11 +56,14 @@ function TopBar({
   onPRWidgetClick,
   onSessionHistoryClick,
   onCopySessionClick,
+  onCopyLinkClick,
   onSizeToggleClick,
   panelSize,
   prWidgetButtonRef,
+  readOnly,
   repoPRStates,
   isCopySessionEnabled,
+  isCopyLinkEnabled,
   sessionHistoryButtonRef,
 }: TopBarProps) {
   // Check if there are any file patches
@@ -103,6 +112,15 @@ function TopBar({
           title={t('Copy conversation to clipboard')}
           disabled={!isCopySessionEnabled}
         />
+        <Button
+          icon={<IconLink />}
+          onClick={onCopyLinkClick}
+          priority="transparent"
+          size="sm"
+          aria-label={t('Copy link to current chat and web page')}
+          title={t('Copy link to current chat and web page')}
+          disabled={!isCopyLinkEnabled}
+        />
       </Flex>
       <AnimatePresence initial={false}>
         {!isEmptyState && (
@@ -113,7 +131,7 @@ function TopBar({
             exit={{opacity: 0, scale: 0.8, x: '-50%'}}
             transition={{duration: 0.12, ease: 'easeOut'}}
           >
-            {hasCodeChanges ? (
+            {!readOnly && hasCodeChanges ? (
               <PRWidget
                 ref={prWidgetButtonRef}
                 blocks={blocks}
@@ -141,6 +159,7 @@ function TopBar({
           onClick={onSizeToggleClick}
           priority="transparent"
           size="sm"
+          disabled={isSeerDrawerOpen}
           aria-label={
             panelSize === 'max'
               ? t('Shrink to medium size (/med-size)')
@@ -178,6 +197,9 @@ const CenterSection = styled(motion.div)`
 
 const SessionHistoryButtonWrapper = styled('div')<{isSelected: boolean}>`
   button {
-    background-color: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
+    background-color: ${p =>
+      p.isSelected
+        ? p.theme.tokens.interactive.transparent.neutral.background.active
+        : 'transparent'};
   }
 `;

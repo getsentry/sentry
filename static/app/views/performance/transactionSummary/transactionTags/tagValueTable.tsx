@@ -327,7 +327,7 @@ const AlignRight = styled('div')`
 
 const LinkContainer = styled('div')<{disabled?: boolean}>`
   cursor: pointer;
-  color: ${p => p.theme.linkColor};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
   display: grid;
   grid-auto-flow: column;
   gap: ${space(0.5)};
@@ -337,7 +337,7 @@ const LinkContainer = styled('div')<{disabled?: boolean}>`
     p.disabled &&
     css`
       opacity: 0.5;
-      color: ${p.theme.disabled};
+      color: ${p.theme.tokens.content.disabled};
       cursor: default;
     `}
 `;

@@ -42,6 +42,7 @@ export type Props = {
   headerTitle?: React.ReactNode;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  unified?: boolean;
 };
 
 export function DomainViewHeader({
@@ -55,6 +56,7 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
+  unified,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -107,24 +109,26 @@ export function DomainViewHeader({
       })),
   ];
 
-  const feedbackOptions =
-    isAgentMonitoring || isLaravelInsights || isNextJsInsights || isSessionsInsights
-      ? {
-          tags: {
-            ['feedback.source']: isAgentMonitoring
-              ? 'agent-monitoring'
-              : isLaravelInsights
-                ? 'laravel-insights'
-                : isSessionsInsights
-                  ? 'sessions-insights'
-                  : 'nextjs-insights',
-            ['feedback.owner']: 'telemetry-experience',
-          },
-        }
-      : undefined;
+  const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
+    [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
+    [!!isLaravelInsights, {owner: 'performance', source: 'laravel-insights'}],
+    [isSessionsInsights, {owner: 'replay', source: 'sessions-insights'}],
+    [!!isNextJsInsights, {owner: 'performance', source: 'nextjs-insights'}],
+  ];
+
+  const activeFeedback = feedbackConfig.find(([condition]) => condition)?.[1];
+
+  const feedbackOptions = activeFeedback
+    ? {
+        tags: {
+          ['feedback.source']: activeFeedback.source,
+          ['feedback.owner']: activeFeedback.owner,
+        },
+      }
+    : undefined;
   return (
     <Fragment>
-      <Layout.Header>
+      <Layout.Header unified={unified}>
         <Layout.HeaderContent>
           {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
@@ -137,7 +141,7 @@ export function DomainViewHeader({
         </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
-            <TabList hideBorder>
+            <TabList>
               {tabList.map(tab => (
                 <TabList.Item {...tab} key={tab.key} />
               ))}

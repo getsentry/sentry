@@ -100,15 +100,16 @@ const ConsoleLog = styled('div')<{
   gap: ${space(0.75)};
   align-items: baseline;
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   background-color: ${p =>
-    ['warning', 'error'].includes(String(p.level))
-      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        p.theme.alert[String(p.level)].backgroundLight
-      : 'inherit'};
+    p.level === 'warning'
+      ? p.theme.colors.yellow100
+      : p.level === 'error'
+        ? p.theme.colors.red100
+        : 'inherit'};
 
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 
   /*
   Show the timestamp button "Play" icon when we hover the row.
@@ -123,23 +124,23 @@ const ConsoleLog = styled('div')<{
 const ICONS = {
   [BreadcrumbLevelType.ERROR]: (
     <Tooltip title={BreadcrumbLevelType.ERROR}>
-      <IconClose size="xs" color="red400" />
+      <IconClose size="xs" variant="danger" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.WARNING]: (
     <Tooltip title={BreadcrumbLevelType.WARNING}>
-      <IconWarning color="yellow400" size="xs" />
+      <IconWarning variant="warning" size="xs" />
     </Tooltip>
   ),
   [BreadcrumbLevelType.INFO]: (
     <Tooltip title={BreadcrumbLevelType.INFO}>
-      <IconInfo color="gray400" size="xs" />
+      <IconInfo variant="primary" size="xs" />
     </Tooltip>
   ),
 };
 
 const MediumFontSize = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {
@@ -152,7 +153,7 @@ function ConsoleLevelIcon({level}: {level: string | undefined}) {
 }
 
 const Message = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 
   white-space: pre-wrap;
   word-break: break-word;

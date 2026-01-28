@@ -192,13 +192,15 @@ def find_grouphash_with_group(
     Search in the list of given `GroupHash` records for one which has a group assigned to it, and
     return the first one found. (Assumes grouphashes have already been sorted in priority order.)
     """
-    for group_hash in grouphashes:
-        if group_hash.group_id is not None:
-            return group_hash
+    winning_grouphash = None
 
-        # TODO: Tombstones may get ignored entirely if there is another hash *before*
-        # that happens to have a group_id. This bug may not have been noticed
-        # for a long time because most events only ever have 1-2 hashes.
+    # Find the first grouphash which has a group assigned. Note that we still look at all of the
+    # grouphashes, even once we've found a winner, to make sure none of the hashes have been
+    # delete-and-discarded.
+    for group_hash in grouphashes:
+        if group_hash.group_id is not None and not winning_grouphash:
+            winning_grouphash = group_hash
+
         if group_hash.group_tombstone_id is not None:
             raise HashDiscarded(
                 "Matches group tombstone %s" % group_hash.group_tombstone_id,
@@ -206,7 +208,7 @@ def find_grouphash_with_group(
                 tombstone_id=group_hash.group_tombstone_id,
             )
 
-    return None
+    return winning_grouphash
 
 
 # TODO: This can go once we've settled on an expiry time for each cache

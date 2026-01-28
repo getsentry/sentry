@@ -26,7 +26,7 @@ export default function ReportUri({keyList, orgId, projectId}: Props) {
     <Panel>
       <PanelHeader>{t('Report URI')}</PanelHeader>
       <PanelBody>
-        <PanelAlert type="info">
+        <PanelAlert variant="info">
           {tct(
             "We've automatically pulled these credentials from your available [link:Client Keys]",
             {

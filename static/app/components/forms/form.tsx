@@ -299,7 +299,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   display: flex;
   justify-content: flex-end;
   margin-top: 25px;
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   background: none;
   padding: 16px 0 0;
   margin-bottom: 16px;

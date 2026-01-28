@@ -21,7 +21,7 @@ export default function FeedbackAlertBanner({
   }
   const filterFeedback = filterSet.find(f => f.value === '6'); // category: feedback
   return filterFeedback ? (
-    <StyledFeedbackAlert type="info">
+    <StyledFeedbackAlert variant="info">
       {tct(
         'This issue category condition is ONLY for feedback from the [linkWidget:built-in widget]. [linkModal: Crash-report modal] alerts can be enabled in [link:Project Settings].',
         {

@@ -26,7 +26,7 @@ describe('ProductBreakdownPanel', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     setMockDate(new Date('2021-05-07'));
-    organization.features = ['subscriptions-v3', 'seer-billing'];
+    organization.features = ['seer-billing'];
     organization.access = ['org:billing'];
     subscription = SubscriptionFixture({organization, plan: 'am3_business'});
     SubscriptionStore.set(organization.slug, subscription);

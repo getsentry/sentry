@@ -47,7 +47,7 @@ export function DebugNotificationsSidebar() {
 
 const CategoryDivider = styled('hr')`
   margin: 0 auto;
-  border-color: ${p => p.theme.tokens.border.muted};
+  border-color: ${p => p.theme.tokens.border.secondary};
   width: calc(100% - ${p => p.theme.space.xl});
 `;
 
@@ -64,8 +64,8 @@ const NotificationLinkButton = styled(LinkButton, {
   position: relative;
   display: block;
   color: ${p =>
-    p.active ? p.theme.tokens.content.success : p.theme.tokens.content.muted};
-  font-weight: ${p => p.theme.fontWeight.normal};
+    p.active ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-align: left;
   /* Undo some button styles */
   height: auto;
@@ -83,7 +83,7 @@ const NotificationLinkButton = styled(LinkButton, {
     width: 4px;
     top: 50%;
     transform: translateY(-50%);
-    background: ${p => p.theme.tokens.graphics.success};
+    background: ${p => p.theme.tokens.graphics.success.vibrant};
     border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
   }
@@ -91,7 +91,7 @@ const NotificationLinkButton = styled(LinkButton, {
     color: ${p =>
       p.active ? p.theme.tokens.content.success : p.theme.tokens.content.primary};
     &:before {
-      background: ${p => (p.active ? p.theme.green100 : p.theme.gray100)};
+      background: ${p => (p.active ? p.theme.colors.green100 : p.theme.colors.gray100)};
       opacity: 1;
     }
   }
@@ -99,7 +99,7 @@ const NotificationLinkButton = styled(LinkButton, {
     color: ${p =>
       p.active ? p.theme.tokens.content.success : p.theme.tokens.content.primary};
     &:before {
-      background: ${p => (p.active ? p.theme.green200 : p.theme.gray200)};
+      background: ${p => (p.active ? p.theme.colors.green200 : p.theme.colors.gray200)};
       opacity: 1;
     }
   }

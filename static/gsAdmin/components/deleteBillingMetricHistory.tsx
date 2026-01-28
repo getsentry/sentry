@@ -76,7 +76,7 @@ function DeleteBillingMetricHistoryModal({
       return;
     }
 
-    api.request(`/api/0/_admin/${orgSlug}/delete-billing-metric-history/`, {
+    api.request(`/api/0/customers/${orgSlug}/delete-billing-metric-history/`, {
       method: 'POST',
       data: {
         data_category: dataCategory,

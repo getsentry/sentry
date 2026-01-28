@@ -42,8 +42,8 @@ const Container = styled('div')`
   justify-content: space-between;
   padding: ${space(2)};
   background: ${p => p.theme.tokens.background.primary};
-  border-top: 1px solid ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSize.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 export default HelpSearchFooter;

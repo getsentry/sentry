@@ -59,7 +59,7 @@ export default class AwsLambdaProjectSelect extends Component<Props> {
                 stacked
               />
               <Alert.Container>
-                <Alert type="info" showIcon={false}>
+                <Alert variant="info" showIcon={false}>
                   {t('Currently only supports Node and Python Lambda functions')}
                 </Alert>
               </Alert.Container>

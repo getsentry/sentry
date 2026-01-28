@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from sentry.discover.models import DiscoverSavedQueryTypes
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import (
     discover,
     errors,
@@ -17,6 +18,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -33,21 +35,23 @@ DATASET_OPTIONS = {
     "metrics": metrics_performance,
     # ourlogs is deprecated, please use logs instead
     "ourlogs": OurLogs,
-    "logs": OurLogs,
-    "uptime_results": UptimeResults,
+    SupportedTraceItemType.LOGS.value: OurLogs,
+    SupportedTraceItemType.UPTIME_RESULTS.value: UptimeResults,
+    "preprodSize": PreprodSize,
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
-    "profile_functions": ProfileFunctions,
-    "spans": Spans,
+    SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
+    SupportedTraceItemType.SPANS.value: Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
-    "tracemetrics": TraceMetrics,
+    SupportedTraceItemType.TRACEMETRICS.value: TraceMetrics,
     "transactions": transactions,
 }
 DEPRECATED_LABELS = {"ourlogs"}
 RPC_DATASETS = {
     ProfileFunctions,
+    PreprodSize,
     Spans,
     TraceMetrics,
     OurLogs,

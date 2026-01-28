@@ -1,5 +1,5 @@
-import type {Theme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
@@ -749,12 +749,8 @@ describe('ParentAutogroupNode', () => {
       const mockError = makeTraceError({event_id: 'error-1', level: 'error'});
       node.errors.add(mockError);
 
-      const mockTheme: Partial<Theme> = {
-        red300: '#ff6b6b',
-        blue300: '#3182ce',
-      };
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#ff6b6b');
+      const theme = ThemeFixture();
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.graphics.danger.vibrant);
     });
 
     it('should return blue color when no errors are present', () => {
@@ -774,12 +770,8 @@ describe('ParentAutogroupNode', () => {
       );
 
       // No errors added, should default to blue
-      const mockTheme: Partial<Theme> = {
-        red300: '#ff6b6b',
-        blue300: '#3182ce',
-      };
-
-      expect(node.makeBarColor(mockTheme as Theme)).toBe('#3182ce');
+      const theme = ThemeFixture();
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.graphics.accent.vibrant);
     });
   });
 

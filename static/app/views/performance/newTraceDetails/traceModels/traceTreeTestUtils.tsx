@@ -266,6 +266,8 @@ export function mockSpansResponse(
   project_slug: string,
   event_id: string
 ): jest.Mock<any, any> {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore MockApiClient is not defined in the global scope
   return MockApiClient.addMockResponse({
     url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
     method: 'GET',

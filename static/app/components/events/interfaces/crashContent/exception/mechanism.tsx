@@ -103,9 +103,9 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
 
 const iconStyle = (p: {theme: Theme}) => css`
   transition: 0.1s linear color;
-  color: ${p.theme.gray300};
+  color: ${p.theme.colors.gray400};
   :hover {
-    color: ${p.theme.gray500};
+    color: ${p.theme.colors.gray800};
   }
 `;
 

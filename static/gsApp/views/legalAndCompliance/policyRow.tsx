@@ -4,6 +4,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -97,12 +99,12 @@ export function PolicyRow({
         <Fragment>
           <Header>
             {curPolicy.slug === policy.slug ? (
-              <PolicyHeader>
+              <Flex justify="between" align="center">
                 <h5>{curPolicy.name}</h5>
                 <Button size="sm" onClick={showPolicy}>
                   {t('Download')}
                 </Button>
-              </PolicyHeader>
+              </Flex>
             ) : (
               <div style={{textAlign: 'center'}}>
                 {tct("You must first agree to Sentry's [policy]", {
@@ -140,7 +142,7 @@ export function PolicyRow({
           </Body>
           <Footer>
             {curPolicy.hasSignature ? (
-              <PolicyActions>
+              <Flex justify="between" align="center" flexGrow={1}>
                 <small>
                   {tct('You are agreeing as [email]', {
                     email: <strong>{user.email}</strong>,
@@ -162,7 +164,7 @@ export function PolicyRow({
                     {t('I Accept')}
                   </Button>
                 </ButtonBar>
-              </PolicyActions>
+              </Flex>
             ) : (
               <Button size="sm" onClick={closeModal}>
                 {t('Close')}
@@ -239,33 +241,20 @@ export function PolicyRow({
 const PolicyFrame = styled('iframe')`
   height: 300px;
   width: 100%;
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 3px;
   margin-bottom: ${space(1)};
 `;
 
 const PolicySubtext = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PolicyTitle = styled('h6')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
-`;
-
-const PolicyHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const PolicyActions = styled('div')`
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 const modalCss = (theme: Theme) => css`
@@ -274,8 +263,6 @@ const modalCss = (theme: Theme) => css`
     max-width: 1200px;
   }
 `;
-export const PolicyStatusRow = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-`;
+export function PolicyStatusRow(props: FlexProps<'div'>) {
+  return <Flex align="center" height="100%" {...props} />;
+}

@@ -363,6 +363,6 @@ function _LowAccuracyFullTooltip({
 }
 
 const Container = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

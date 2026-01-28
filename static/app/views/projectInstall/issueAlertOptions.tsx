@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Input} from 'sentry/components/core/input';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
@@ -185,7 +187,16 @@ export default function IssueAlertOptions({
       <RadioGroup
         choices={issueAlertOptionsChoices.map(([choiceValue, node]) => [
           choiceValue.toString(),
-          <RadioItemWrapper key={choiceValue}>{node}</RadioItemWrapper>,
+          <Flex
+            justify="start"
+            align="center"
+            wrap="wrap"
+            gap="md"
+            minHeight="35px"
+            key={choiceValue}
+          >
+            {node}
+          </Flex>,
         ])}
         label={t('Options for creating an alert')}
         onChange={val => {
@@ -207,14 +218,4 @@ const Content = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(4)};
-`;
-
-const RadioItemWrapper = styled('div')`
-  min-height: 35px;
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: center;
 `;

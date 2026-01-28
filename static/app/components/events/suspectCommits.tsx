@@ -166,7 +166,7 @@ const ExpandButton = styled('button')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   font-weight: bold;
   padding: 10px 12px 0 12px;
 `;
@@ -174,7 +174,7 @@ const Title = styled('div')`
 const StreamlinedPanel = styled(Panel)`
   position: relative;
   background: ${p => p.theme.tokens.background.primary}
-    linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.surface100});
+    linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.colors.surface200});
   overflow: hidden;
   margin-bottom: 0;
   width: 100%;

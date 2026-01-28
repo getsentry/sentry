@@ -1,10 +1,6 @@
 # Python Testing Guide
 
-> For critical test commands, see `/AGENTS.md` in the repository root.
-
-## Running Tests
-
-Always run pytest with these parameters: `pytest -svv --reuse-db` since it is faster to execute.
+> For critical test commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## How to Determine Where to Add New Test Cases
 
@@ -47,8 +43,7 @@ class OrganizationDetailsTest(APITestCase):
 Notes:
 
 - Tests should ALWAYS be procedural with NO branching logic. It is very rare
-  that you will need an if statement as part of a Frontend Jest test or backend
-  pytest.
+  that you will need an if statement as part of a backend test.
 
 ## Use Factories Instead of Directly Calling `Model.objects.create`
 
@@ -62,16 +57,16 @@ NEVER directly call `Model.objects.create` - this violates our testing standards
 For example, a diff that uses a fixture instead of directly calling `Model.objects.create` would look like:
 
 ```diff
-    -        direct_project = Project.objects.create(
-    -            organization=self.organization,
-    -            name="Directly Created",
-    -            slug="directly-created"
-    -        )
-    +        direct_project = self.create_project(
-    +            organization=self.organization,
-    +            name="Directly Created",
-    +            slug="directly-created" # Note: Ensure factory args match
-    +        )
+-        direct_project = Project.objects.create(
+-            organization=self.organization,
+-            name="Directly Created",
+-            slug="directly-created"
+-        )
++        direct_project = self.create_project(
++            organization=self.organization,
++            name="Directly Created",
++            slug="directly-created" # Note: Ensure factory args match
++        )
 ```
 
 ## Use `pytest` Instead of `unittest`
@@ -81,9 +76,9 @@ In Sentry Python tests, always use `pytest` instead of `unittest`. This promotes
 For example, a diff that uses `pytest` instead of `unittest` would look like:
 
 ```diff
-    -        self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
-    +        with pytest.raises(ValueError):
-    +            EffectiveGrantStatus.from_cache(None)
+-        self.assertRaises(ValueError, EffectiveGrantStatus.from_cache, None)
++        with pytest.raises(ValueError):
++            EffectiveGrantStatus.from_cache(None)
 ```
 
 ## File Location Map

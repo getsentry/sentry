@@ -84,12 +84,12 @@ const FrameContainer = styled('div')`
   gap: ${space(0.5)};
   padding: ${space(1.5)} ${space(2)};
 
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
 
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
-  background: ${p => p.theme.surface200};
+  background: ${p => p.theme.tokens.background.tertiary};
 `;
 
 const ProjectAvatarContainer = styled('div')`
@@ -97,11 +97,11 @@ const ProjectAvatarContainer = styled('div')`
 `;
 
 const Emphasize = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.colors.gray800};
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PushRight = styled('span')`
@@ -152,7 +152,7 @@ const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWrapper = styled('span')`

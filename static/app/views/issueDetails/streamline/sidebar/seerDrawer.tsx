@@ -212,10 +212,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   }
 
   // Route to Explorer-based drawer if both feature flags are enabled
-  if (
-    organization.features.includes('seer-explorer') &&
-    organization.features.includes('autofix-on-explorer')
-  ) {
+  if (organization.features.includes('seer-explorer')) {
     return (
       <ExplorerSeerDrawer
         group={group}
@@ -425,7 +422,8 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           <ButtonBar>
             <Feature features={['organizations:autofix-seer-preferences']}>
               <LinkButton
-                to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                external
+                href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 size="xs"
                 title={t('Project Settings for Seer')}
                 aria-label={t('Project Settings for Seer')}
@@ -519,6 +517,8 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
+    const isExplorerVersion = organization.features.includes('seer-explorer');
+
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
@@ -526,6 +526,7 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
+      resizable: !isExplorerVersion,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
@@ -555,9 +556,9 @@ const PlaceholderStack = styled('div')`
 `;
 
 const StyledCard = styled('div')`
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => p.theme.tokens.background.primary};
   overflow: visible;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -569,14 +570,14 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SeerDrawerNavigator = styled('div')`
@@ -586,7 +587,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
 const SeerDrawerBody = styled(DrawerBody)`
@@ -603,8 +604,8 @@ const SeerDrawerBody = styled(DrawerBody)`
 `;
 
 const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
 `;
 
@@ -620,8 +621,8 @@ const CrumbContainer = styled('div')`
 `;
 
 const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

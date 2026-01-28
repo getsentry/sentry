@@ -140,18 +140,18 @@ const KeyButton = styled(UnstyledButton)`
   border-radius: 3px 0 0 3px;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const FnName = styled('span')`
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
 `;
 
 const UnfocusedText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Parameters = styled('span')`
@@ -169,7 +169,7 @@ const KeyEditing = styled('div')`
 
   :focus-within {
     ${Parameters} {
-      background-color: ${p => p.theme.purple100};
+      background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
       height: 100%;
     }
   }

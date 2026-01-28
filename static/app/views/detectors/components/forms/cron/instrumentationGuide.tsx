@@ -3,6 +3,8 @@ import partition from 'lodash/partition';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
@@ -174,9 +176,11 @@ export function InstrumentationGuide() {
             title={t('Auto-Instrument with %s', platform.label)}
             trailingItems={
               platform.guides.length > 1 ? (
-                <CompactSelect<GuideKey>
+                <CompactSelect
                   size="xs"
-                  triggerProps={{borderless: true, size: 'zero'}}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+                  )}
                   value={guideKey ?? 'upsert'}
                   onChange={option => {
                     setPlatformGuide(platformKey, option.value);

@@ -1,5 +1,6 @@
 import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import {useReducedMotion} from 'framer-motion';
 
@@ -106,6 +107,7 @@ function revealAndDisconnectObserver({
 }
 
 const DEFAULT_BUTTON_TEXT = t('Show More');
+const DEFAULT_COLLAPSE_BUTTON_TEXT = t('Show Less');
 interface ClippedBoxProps {
   btnText?: string;
   /**
@@ -120,6 +122,14 @@ interface ClippedBoxProps {
   clipFade?: ({showMoreButton}: {showMoreButton: React.ReactNode}) => React.ReactNode;
   clipFlex?: number;
   clipHeight?: number;
+  /**
+   * Text for the collapse button when collapsible is true
+   */
+  collapseBtnText?: string;
+  /**
+   * When true, shows a "Show Less" button after expanding to allow collapsing back
+   */
+  collapsible?: boolean;
   defaultClipped?: boolean;
   /**
    * Triggered when user clicks on the show more button
@@ -174,6 +184,27 @@ function ClippedBox(props: ClippedBoxProps) {
       setClipped(false);
     },
     [clipHeight, onReveal, prefersReducedMotion]
+  );
+
+  const handleCollapse = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+
+      if (wrapperRef.current && contentRef.current) {
+        if (prefersReducedMotion) {
+          wrapperRef.current.style.maxHeight = `${clipHeight}px`;
+        } else {
+          const currentHeight =
+            contentRef.current.clientHeight + calculateAddedHeight({wrapperRef});
+          wrapperRef.current.style.maxHeight = `${currentHeight}px`;
+          void wrapperRef.current.offsetHeight;
+          wrapperRef.current.style.maxHeight = `${clipHeight}px`;
+        }
+      }
+      revealRef.current = false;
+      setClipped(true);
+    },
+    [clipHeight, prefersReducedMotion]
   );
 
   const onWrapperRef = useCallback(
@@ -234,15 +265,12 @@ function ClippedBox(props: ClippedBoxProps) {
           height,
         });
 
-        if (!_clipped && contentRef.current) {
-          revealAndDisconnectObserver({
-            contentRef,
-            wrapperRef,
-            revealRef,
-            observerRef,
-            clipHeight,
-            prefersReducedMotion: prefersReducedMotion ?? true,
-          });
+        if (!_clipped && wrapperRef.current) {
+          clearMaxHeight(wrapperRef.current);
+          if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+          }
         }
 
         setClipped(_clipped);
@@ -266,7 +294,7 @@ function ClippedBox(props: ClippedBoxProps) {
       };
       onResize([entry]);
     },
-    [clipFlex, clipHeight, onSetRenderHeight, prefersReducedMotion]
+    [clipFlex, clipHeight, onSetRenderHeight]
   );
 
   const showMoreButton = (
@@ -281,6 +309,20 @@ function ClippedBox(props: ClippedBoxProps) {
     </Button>
   );
 
+  const showLessButton = (
+    <Button
+      size="xs"
+      priority="default"
+      onClick={handleCollapse}
+      aria-label={props.collapseBtnText ?? DEFAULT_COLLAPSE_BUTTON_TEXT}
+      {...props.buttonProps}
+    >
+      {props.collapseBtnText ?? DEFAULT_COLLAPSE_BUTTON_TEXT}
+    </Button>
+  );
+
+  const showCollapseButton = props.collapsible && revealRef.current && !clipped;
+
   return (
     <Wrapper ref={onWrapperRef} className={props.className}>
       <div ref={onContentRef}>
@@ -289,6 +331,7 @@ function ClippedBox(props: ClippedBoxProps) {
         {clipped
           ? (props.clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>)
           : null}
+        {showCollapseButton ? <CollapseButton>{showLessButton}</CollapseButton> : null}
       </div>
     </Wrapper>
   );
@@ -327,4 +370,9 @@ const ClipFade = styled('div')`
   > * {
     pointer-events: auto;
   }
+`;
+
+const CollapseButton = styled('div')`
+  text-align: center;
+  margin-bottom: ${p => p.theme.space.lg};
 `;

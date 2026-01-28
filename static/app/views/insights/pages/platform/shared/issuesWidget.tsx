@@ -22,6 +22,7 @@ import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
@@ -101,7 +102,9 @@ export function IssuesWidget() {
     refetch,
   } = useApiQuery<Group[]>(
     [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: queryParams,
       },
@@ -201,7 +204,7 @@ const GroupPlaceholder = styled('div')`
   padding: ${space(1)};
 
   &:not(:last-child) {
-    border-bottom: solid 1px ${p => p.theme.innerBorder};
+    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -210,11 +213,11 @@ const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
   font-size: 1rem;
   line-height: 1.2;
   padding-left: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SuperHeader = styled(PanelHeader)`
-  background-color: ${p => p.theme.headerBackground};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(1)};
   text-transform: capitalize;
 `;

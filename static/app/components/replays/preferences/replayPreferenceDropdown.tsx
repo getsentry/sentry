@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {Flex} from 'sentry/components/core/layout';
@@ -47,9 +47,8 @@ export default function ReplayPreferenceDropdown({
       size="sm"
       disabled={isLoading}
       trigger={triggerProps => (
-        <SelectTrigger.Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
-          showChevron={false}
           title={t('Settings')}
           aria-label={t('Settings')}
           icon={<IconSettings />}
@@ -119,5 +118,5 @@ export default function ReplayPreferenceDropdown({
 }
 
 const DurationDisplay = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

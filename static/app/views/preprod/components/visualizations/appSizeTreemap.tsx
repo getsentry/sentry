@@ -77,7 +77,7 @@ function FullscreenModalContent({
           </InputGroup.TrailingItems>
         )}
       </InputGroup>
-      <Container height="100%" width="100%" style={{flex: 1, minHeight: 0}}>
+      <Container height="100%" width="100%" flex={1} minHeight={0}>
         <AppSizeTreemap
           root={filteredRoot}
           searchQuery={localSearch}
@@ -148,16 +148,16 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       label: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: theme.white,
+        color: theme.colors.white,
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
       upperLabel: {
         show: true,
-        color: theme.white,
+        color: theme.colors.white,
         backgroundColor: 'transparent',
         height: 24,
         fontSize: 12,
@@ -166,7 +166,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray500,
+        textShadowColor: theme.colors.gray800,
         textShadowOffsetY: 0.5,
       },
     };
@@ -189,7 +189,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
           <span
             style={{
               fontFamily: 'monospace',
-              backgroundColor: theme.gray100,
+              backgroundColor: theme.colors.gray100,
               padding: theme.space.xs,
               borderRadius: theme.radius.md,
             }}
@@ -213,24 +213,22 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       height: `calc(100% - 22px)`,
       width: '100%',
       top: '22px',
-      // Very mysteriously this controls the initial breadcrumbs:
-      // https://github.com/apache/echarts/blob/6f305b497adc47fa2987a450d892d09741342c56/src/chart/treemap/TreemapView.ts#L665
-      // If truthy the root is selected else the 'middle' node is selected.
-      // It has to be set to large number to avoid problems caused by
-      // leafDepth's main use - controlling how many layers to render.
-      leafDepth: 100000,
+      // Controls how many levels deep to render at once.
+      // Users can click on nodes to drill down into deeper levels.
+      // The breadcrumb shows the current path and allows navigating back up.
+      leafDepth: 4,
       breadcrumb: {
         show: true,
         left: '0',
         top: '0',
         emphasis: {
           itemStyle: {
-            color: theme.surface100,
+            color: theme.colors.surface200,
             textStyle: {
               fontSize: 12,
               fontWeight: 'bold',
               fontFamily: 'Rubik',
-              color: theme.activeText,
+              color: theme.tokens.interactive.link.accent.rest,
             },
           },
         },
@@ -239,7 +237,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
             fontSize: 12,
             fontWeight: 'bold',
             fontFamily: 'Rubik',
-            color: theme.white,
+            color: theme.colors.white,
           },
         },
       },
@@ -320,7 +318,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       return `
             <div style="font-family: Rubik;">
               <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${theme.space.md}; gap: ${theme.space.md}">
-                <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.data?.itemStyle?.borderColor || theme.border};"></div>
+                <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.data?.itemStyle?.borderColor || theme.tokens.border.primary};"></div>
                 <span style="color: ${theme.tokens.content.primary}">${params.data?.category || 'Other'}</span>
               </div>
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${theme.space.sm}">
@@ -382,7 +380,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     <Flex direction="column" gap="sm" height="100%" width="100%">
       {alertMessage && (
         <ClickableAlert
-          type="warning"
+          variant="warning"
           onClick={onAlertClick}
           style={{cursor: onAlertClick ? 'pointer' : 'default'}}
         >
@@ -394,7 +392,8 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         width="100%"
         position="relative"
         onMouseDown={handleContainerMouseDown}
-        style={{flex: 1, minHeight: 0}}
+        flex={1}
+        minHeight={0}
       >
         <BaseChart
           autoHeightResize

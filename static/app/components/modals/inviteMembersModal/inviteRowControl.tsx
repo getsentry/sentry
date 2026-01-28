@@ -3,6 +3,8 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import type {StylesConfig} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
 import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -110,7 +112,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   }, [isOverMemberLimit, setRole, setTeams]);
 
   return (
-    <RowWrapper>
+    <Stack gap="lg">
       <div>
         <Heading htmlFor="email-addresses">{t('Email addresses')}</Heading>
         <Select
@@ -174,7 +176,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           />
         </div>
       </RoleTeamWrapper>
-    </RowWrapper>
+    </Stack>
   );
 }
 
@@ -190,9 +192,9 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
         ...provided,
         ...(status?.error
           ? {
-              color: theme.red400,
-              border: `1px solid ${theme.red300}`,
-              backgroundColor: theme.red100,
+              color: theme.colors.red500,
+              border: `1px solid ${theme.colors.red400}`,
+              backgroundColor: theme.colors.red100,
             }
           : {}),
       };
@@ -202,7 +204,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
       return {
         ...provided,
         pointerEvents: 'all',
-        ...(status?.error ? {color: theme.red400} : {}),
+        ...(status?.error ? {color: theme.colors.red500} : {}),
       };
     },
     multiValueRemove: (provided, {data}: MultiValueProps<SelectOption>) => {
@@ -211,8 +213,11 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
         ...provided,
         ...(status?.error
           ? {
-              borderLeft: `1px solid ${theme.red300}`,
-              ':hover': {backgroundColor: theme.red100, color: theme.red400},
+              borderLeft: `1px solid ${theme.colors.red400}`,
+              ':hover': {
+                backgroundColor: theme.colors.red100,
+                color: theme.colors.red500,
+              },
             }
           : {}),
       };
@@ -222,15 +227,9 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
 
 const Heading = styled('label')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const RowWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const RoleTeamWrapper = styled('div')`

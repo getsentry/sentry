@@ -40,7 +40,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 const PanelBodyLineItem = styled(PanelBody)`
   font-size: 1rem;
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -202,7 +202,7 @@ function AccountNotificationFineTuning({
 
   const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
   const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType]!;
-  // TODO(isabella): once GA, remove this
+
   if (
     fineTuneType === 'quota' &&
     organizations.some(org => org.features?.includes('spend-visibility-notifications'))

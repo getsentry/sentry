@@ -30,6 +30,7 @@ interface QuestionActions {
 }
 
 interface InputSectionProps {
+  enabled: boolean;
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
@@ -44,9 +45,11 @@ interface InputSectionProps {
   isMinimized?: boolean;
   isVisible?: boolean;
   questionActions?: QuestionActions;
+  wasJustInterrupted?: boolean;
 }
 
 function InputSection({
+  enabled,
   inputValue,
   focusedBlockIndex,
   isMinimized = false,
@@ -60,8 +63,15 @@ function InputSection({
   textAreaRef,
   fileApprovalActions,
   questionActions,
+  wasJustInterrupted = false,
 }: InputSectionProps) {
   const getPlaceholder = () => {
+    if (!enabled) {
+      return 'This conversation is owned by another user and is read-only';
+    }
+    if (wasJustInterrupted) {
+      return 'Interrupted. What should Seer do instead?';
+    }
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';
     }
@@ -70,7 +80,7 @@ function InputSection({
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!fileApprovalActions || !isVisible || isMinimized) {
+    if (!enabled || !fileApprovalActions || !isVisible || isMinimized) {
       return undefined;
     }
 
@@ -94,11 +104,11 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [fileApprovalActions, isVisible, isMinimized]);
+  }, [enabled, fileApprovalActions, isVisible, isMinimized]);
 
   // Handle keyboard shortcuts for questions
   useEffect(() => {
-    if (!questionActions || !isVisible || isMinimized) {
+    if (!enabled || !questionActions || !isVisible || isMinimized) {
       return undefined;
     }
 
@@ -134,7 +144,28 @@ function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [questionActions, isVisible, isMinimized]);
+  }, [enabled, questionActions, isVisible, isMinimized]);
+
+  // Render disabled input element if not enabled
+  if (!enabled) {
+    return (
+      <InputBlock>
+        <StyledInputGroup>
+          <InputGroup.TextArea
+            disabled
+            ref={textAreaRef}
+            value={inputValue}
+            onChange={onInputChange}
+            onKeyDown={onKeyDown}
+            onClick={onInputClick}
+            placeholder={getPlaceholder()}
+            rows={1}
+            data-test-id="seer-explorer-input"
+          />
+        </StyledInputGroup>
+      </InputBlock>
+    );
+  }
 
   // Render file approval action bar instead of entire input section
   if (fileApprovalActions) {
@@ -229,7 +260,7 @@ function InputSection({
   const renderActionButton = () => {
     if (interruptRequested) {
       return (
-        <ActionButtonWrapper title={t('Winding down...')}>
+        <ActionButtonWrapper title={t('Winding down...')} isDanger>
           <LoadingIndicator size={16} />
         </ActionButtonWrapper>
       );
@@ -238,7 +269,7 @@ function InputSection({
     if (isPolling) {
       return (
         <Button
-          icon={<IconPause color="subText" />}
+          icon={<IconPause variant="muted" />}
           onClick={onInterrupt}
           size="sm"
           priority="transparent"
@@ -253,7 +284,7 @@ function InputSection({
 
   return (
     <InputBlock>
-      <StyledInputGroup>
+      <StyledInputGroup interrupted={wasJustInterrupted}>
         <InputGroup.TextArea
           ref={textAreaRef}
           value={inputValue}
@@ -280,11 +311,15 @@ const InputBlock = styled('div')`
   bottom: 0;
 `;
 
-const StyledInputGroup = styled(InputGroup)`
+const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
   margin: ${p => p.theme.space.sm};
 
   textarea {
     resize: none;
+
+    &::placeholder {
+      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
+    }
   }
 
   [data-test-id='input-trailing-items'] {
@@ -300,7 +335,7 @@ const ActionBar = styled(motion.div)`
   bottom: 0;
 `;
 
-const ActionButtonWrapper = styled('div')`
+const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -310,12 +345,18 @@ const ActionButtonWrapper = styled('div')`
   .loading-indicator {
     margin: 0;
     padding: 0;
+    ${p =>
+      p.isDanger &&
+      `
+      border-color: ${p.theme.tokens.content.warning};
+      border-left-color: transparent;
+    `}
   }
 `;
 
 const Kbd = styled('kbd')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.xs};
   background: transparent;
   left: 4px;
   position: relative;

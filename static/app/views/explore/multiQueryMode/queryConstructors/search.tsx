@@ -1,5 +1,6 @@
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -25,6 +26,10 @@ export function SearchBarSection({query, index}: Props) {
     initialQuery: query.query ?? '',
     onSearch: value => updateQuerySearch({query: value}),
     searchSource: 'explore',
+    caseInsensitive: query.caseInsensitive ? true : null,
+    onCaseInsensitiveClick: (value: CaseInsensitive) => {
+      updateQuerySearch({caseInsensitive: value ? '1' : undefined});
+    },
   });
 
   return (

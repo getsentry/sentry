@@ -11,7 +11,8 @@ from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
@@ -119,6 +120,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         }
     )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix-setup"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
@@ -163,7 +165,10 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         if integration_check is None and seer_seat_based_tier_enabled:
             try:
                 # Check if project has repos linked in Seer.
-                seer_repos_linked = has_project_connected_repos(org.id, group.project.id)
+                # Skip cache to ensure latest data from Seer API.
+                seer_repos_linked = has_project_connected_repos(
+                    org.id, group.project.id, skip_cache=True
+                )
             except Exception as e:
                 # Default to False if we can't check if the project has repos linked in Seer.
                 sentry_sdk.capture_exception(e)

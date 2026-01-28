@@ -1,13 +1,22 @@
 import uuid
+from unittest import mock
 
 import pytest
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase, OurLogTestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    OurLogTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+    TraceAttachmentTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 
 
-class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase):
+class ProjectTraceItemDetailsEndpointTest(
+    APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase, TraceAttachmentTestCase
+):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -66,7 +75,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
 
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data["attributes"] == [
-            {"name": "bool_attr", "type": "bool", "value": True},
+            {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
             {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
             {
                 "name": "observed_timestamp",
@@ -122,7 +131,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
-                {"name": "bool_attr", "type": "bool", "value": True},
+                {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
                 {
                     "name": "observed_timestamp",
@@ -169,14 +178,14 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
+            {"name": "is_transaction", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "http.response_content_length", "type": "float", "value": 100.0},
-            {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
@@ -233,7 +242,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request(
             "spans",
@@ -245,9 +254,9 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         )
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
+            {"name": "is_transaction", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "http.response.body.size", "type": "float", "value": 100.0},
-            {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
@@ -322,7 +331,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
-                {"name": "bool_attr", "type": "bool", "value": True},
+                {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
                 {
                     "name": "observed_timestamp",
@@ -415,12 +424,12 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_span(span_1, is_eap=True)
+        self.store_span(span_1)
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
-            {"name": "is_transaction", "type": "float", "value": 0.0},
+            {"name": "is_transaction", "type": "bool", "value": False},
             {
                 "name": "precise.finish_ts",
                 "type": "float",
@@ -488,7 +497,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         span_1["trace_id"] = self.trace_uuid
         item_id = span_1["span_id"]
 
-        self.store_spans([span_1], is_eap=True)
+        self.store_spans([span_1])
 
         trace_details_response = self.do_request("spans", item_id)
         assert trace_details_response.status_code == 200
@@ -509,3 +518,44 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         assert "normal_attr" in attribute_names
         assert "__sentry_internal_span_buffer_outcome" in attribute_names
         assert "__sentry_internal_test" in attribute_names
+
+    def test_attachment(self) -> None:
+        attachment = self.create_trace_attachment(trace_id=self.trace_uuid, attributes={"foo": 2})
+        self.store_eap_items([attachment])
+
+        item_id = uuid.UUID(bytes=bytes(reversed(attachment.item_id))).hex
+        response = self.do_request("attachments", item_id)
+        assert response.status_code == 200, response.data
+        assert response.data == {
+            "attributes": [
+                {
+                    "name": "tags[foo,number]",
+                    "type": "int",
+                    "value": "2",
+                },
+                {
+                    "name": "tags[sentry.item_type,number]",
+                    "type": "int",
+                    "value": "10",
+                },
+                {
+                    "name": "tags[sentry.organization_id,number]",
+                    "type": "int",
+                    "value": str(self.organization.id),
+                },
+                {
+                    "name": "tags[sentry.project_id,number]",
+                    "type": "int",
+                    "value": str(self.project.id),
+                },
+                {
+                    "name": "sentry.trace_id",
+                    "type": "str",
+                    "value": str(uuid.UUID(self.trace_uuid)),
+                },
+            ],
+            "itemId": item_id,
+            "links": None,
+            "meta": {},
+            "timestamp": mock.ANY,
+        }
