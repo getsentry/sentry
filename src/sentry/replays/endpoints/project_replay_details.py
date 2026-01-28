@@ -92,8 +92,10 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
 
         # We don't check Seer features because an org may have previously had them on, then turned them off.
         has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
+        organization_id = project.organization.id
 
         delete_replay.delay(
+            organization_id=organization_id,
             project_id=project.id,
             replay_id=replay_id,
             has_seer_data=has_seer_data,

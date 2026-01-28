@@ -265,4 +265,6 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         request_body = json.loads(call_args[1]["body"].decode())
         assert request_body == {
             "replay_ids": [self.replay_id],
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
         }
