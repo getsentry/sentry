@@ -12,6 +12,7 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import GroupList from 'sentry/components/issues/groupList';
 import Placeholder from 'sentry/components/placeholder';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
@@ -35,6 +36,7 @@ import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/de
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -256,7 +258,6 @@ function OpenInDestinationButton({
 }
 
 function TriggeredConditionDetails({
-  evidenceData,
   eventDateCreated,
   eventId,
   groupId,
@@ -298,6 +299,14 @@ function TriggeredConditionDetails({
         title="Triggered Condition"
         type="triggered_condition"
         actions={
+          isOpenPeriodLoading ? null : (
+            <OpenInDestinationButton
+              snubaQuery={snubaQuery}
+              projectId={projectId}
+              start={startDate}
+              end={endDate}
+            />
+          )
           isOpenPeriodLoading ? null : (
             <OpenInDestinationButton
               snubaQuery={snubaQuery}
@@ -364,6 +373,21 @@ function TriggeredConditionDetails({
           ]}
         />
       </InterimSection>
+      {isErrorsDataset &&
+        (isOpenPeriodLoading ? (
+          <InterimSection title={t('Contributing Issues')} type="contributing_issues">
+            <Placeholder height="200px" />
+          </InterimSection>
+        ) : (
+          <ContributingIssues
+            projectId={projectId}
+            query={issueSearchQuery}
+            eventDateCreated={eventDateCreated}
+            aggregate={snubaQuery.aggregate}
+            start={startDate}
+            end={endDate}
+          />
+        ))}
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
           <InterimSection title={t('Contributing Issues')} type="contributing_issues">
