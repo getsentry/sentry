@@ -139,6 +139,8 @@ export function AutoSaveField<
     },
   });
 
+  const AppField = form.AppField as any;
+
   return (
     <AutoSaveContextProvider value={{status: mutation.status}}>
       <form
@@ -147,7 +149,7 @@ export function AutoSaveField<
           form.handleSubmit();
         }}
       >
-        <form.AppField name={name}>{field => children(field as never)}</form.AppField>
+        <AppField name={name}>{(field: any) => children(field)}</AppField>
       </form>
     </AutoSaveContextProvider>
   );
