@@ -147,7 +147,7 @@ class EapCheckEntry:
     environment: str
     region: str
     # Parsed JSON, can be a dict, so exclude it from hashing/comparison.
-    assertion_failure_data: Assertion | None = field(compare=False)
+    assertion_failure_data: Assertion | None = field(compare=False, default=None)
 
 
 @dataclass(frozen=True)
