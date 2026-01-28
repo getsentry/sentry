@@ -81,6 +81,7 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.cursors import Cursor, StringCursor
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
@@ -228,14 +229,10 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         project_id = request.GET.get("project_id")
         if project_id is None:
             raise ParseError(detail="Invalid project_id")
-        try:
-            project_id_int = int(project_id)
-        except ValueError:
-            raise ParseError(detail="Invalid project_id")
-        if project_id_int <= 0:
-            raise ParseError(detail="Invalid project_id")
+        project_id_int = to_valid_int_id("project_id", project_id)
 
         projects = self.get_projects(request, organization, project_ids={project_id_int})
+        assert projects  # should be guaranteed non-empty
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features

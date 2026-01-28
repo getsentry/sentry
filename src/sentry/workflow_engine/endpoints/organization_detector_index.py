@@ -53,6 +53,7 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
@@ -164,20 +165,17 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return Detector.objects.none()
 
         if raw_idlist := request.GET.getlist("id"):
-            try:
-                ids = [int(id) for id in raw_idlist]
-                # If filtering by IDs, we must search across all accessible projects
-                projects = self.get_projects(
-                    request,
-                    organization,
-                    include_all_accessible=True,
-                )
-                return Detector.objects.with_type_filters().filter(
-                    project_id__in=projects,
-                    id__in=ids,
-                )
-            except ValueError:
-                raise ValidationError({"id": ["Invalid ID format"]})
+            ids = to_valid_int_id_list("id", raw_idlist)
+            # If filtering by IDs, we must search across all accessible projects
+            projects = self.get_projects(
+                request,
+                organization,
+                include_all_accessible=True,
+            )
+            return Detector.objects.with_type_filters().filter(
+                project_id__in=projects,
+                id__in=ids,
+            )
 
         projects = self.get_projects(
             request,
@@ -331,12 +329,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         ):
             raise ResourceDoesNotExist
 
-        try:
-            project_id = request.data.get("projectId")
-            if not project_id:
-                raise ValidationError({"projectId": ["This field is required."]})
+        project_id = request.data.get("projectId")
+        if not project_id:
+            raise ValidationError({"projectId": ["This field is required."]})
 
-            project = Project.objects.get(id=project_id)
+        validated_project_id = to_valid_int_id("projectId", project_id)
+        try:
+            project = Project.objects.get(id=validated_project_id)
         except Project.DoesNotExist:
             raise ValidationError({"projectId": ["Project not found"]})
 
