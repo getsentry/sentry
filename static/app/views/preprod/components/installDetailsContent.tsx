@@ -122,7 +122,7 @@ export function InstallDetailsContent({
               <QuietZoneQRCode
                 aria-label={t('Install QR Code')}
                 value={
-                  installDetails.platform === 'ios' || installDetails.platform === 'apple'
+                  installDetails.platform === 'apple'
                     ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
                     : installDetails.install_url
                 }

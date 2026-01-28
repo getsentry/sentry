@@ -34,7 +34,7 @@ describe('BuildCompareHeaderContent', () => {
           build_configuration: null,
           date_added: undefined,
           date_built: null,
-          platform: 'ios',
+          platform: 'apple',
         },
       }
     );
@@ -82,7 +82,7 @@ describe('BuildCompareHeaderContent', () => {
           build_configuration: null,
           date_added: undefined,
           date_built: null,
-          platform: 'ios',
+          platform: 'apple',
         },
       }
     );
