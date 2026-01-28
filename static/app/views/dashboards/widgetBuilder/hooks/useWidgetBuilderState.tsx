@@ -528,26 +528,34 @@ function useWidgetBuilderState(): {
             const firstActionPayloadNotEquation = action.payload.find(
               field => field.kind !== FieldValueKind.EQUATION
             );
+
             // Adding a grouping, so default the sort to the first aggregate if possible
-            const sortField =
-              dataset === WidgetType.TRACEMETRICS
-                ? (generateMetricAggregate(
+            let sortField: string | undefined;
+            if (dataset === WidgetType.TRACEMETRICS) {
+              sortField = firstYAxisNotEquation
+                ? generateMetricAggregate(
                     traceMetric ?? {name: '', type: ''},
-                    firstYAxisNotEquation as QueryFieldValue
-                  ) ?? '')
-                : (generateFieldAsString(firstYAxisNotEquation as QueryFieldValue) ??
-                  generateFieldAsString(
-                    firstActionPayloadNotEquation as QueryFieldValue
-                  ));
-            setSort(
-              [
-                {
-                  kind: 'desc',
-                  field: sortField,
-                },
-              ],
-              options
-            );
+                    firstYAxisNotEquation
+                  )
+                : undefined;
+            } else if (firstYAxisNotEquation) {
+              sortField = generateFieldAsString(firstYAxisNotEquation);
+            } else if (firstActionPayloadNotEquation) {
+              sortField = generateFieldAsString(firstActionPayloadNotEquation);
+            }
+
+            // Only update sort if we have a valid field to sort by
+            if (sortField) {
+              setSort(
+                [
+                  {
+                    kind: 'desc',
+                    field: sortField,
+                  },
+                ],
+                options
+              );
+            }
           }
 
           if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && !defined(limit)) {
