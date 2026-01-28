@@ -206,29 +206,6 @@ function useNavigationActions(): CommandPaletteAction[] {
     }),
   ];
 
-  const preventChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
-      display: {
-        label: t('Tests'),
-      },
-      to: `${prefix}/prevent/tests/`,
-      hidden: !organization.features.includes('prevent-test-analytics'),
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('AI Code Review'),
-      },
-      to: `${prefix}/prevent/ai-code-review/new/`,
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('Tokens'),
-      },
-      to: `${prefix}/prevent/tokens/`,
-      hidden: !organization.features.includes('prevent-test-analytics'),
-    }),
-  ];
-
   const settingsChildren: CommandPaletteActionChild[] =
     getUserOrgNavigationConfiguration().flatMap(item =>
       item.items.map(settingsChildItem =>
@@ -281,8 +258,26 @@ function useNavigationActions(): CommandPaletteAction[] {
         label: t('Prevent'),
         icon: <IconPrevent />,
       },
-      actions: preventChildren,
-      hidden: !organization.features.includes('prevent-ai'),
+      actions: [
+        makeCommandPaletteLink({
+          display: {
+            label: t('Tests'),
+          },
+          to: `${prefix}/prevent/tests/`,
+          hidden: !organization.features.includes('prevent-test-analytics'),
+        }),
+        makeCommandPaletteLink({
+          display: {
+            label: t('Tokens'),
+          },
+          to: `${prefix}/prevent/tokens/`,
+          hidden: !organization.features.includes('prevent-test-analytics'),
+        }),
+      ],
+      hidden: !(
+        organization.features.includes('prevent-ai') &&
+        organization.features.includes('prevent-test-analytics')
+      ),
     }),
     makeCommandPaletteGroup({
       groupingKey: 'navigate',

@@ -35,6 +35,7 @@ import {
 } from 'getsentry/components/metricAlertQuotaMessage';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
+import PrimaryNavSeerConfigReminder from 'getsentry/components/primaryNavSeerConfigReminder';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
@@ -125,6 +126,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Sidebar augmentation
    */
   'sidebar:item-label': () => LabelWithPowerIcon,
+  'sidebar:seer-config-reminder': props => (
+    <PrimaryNavSeerConfigReminder key="seer-config-reminder" {...props} />
+  ),
   'sidebar:try-business': props => (
     <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
   ),
