@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -8,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -31,7 +33,7 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import ReleasesSelectControl from './releasesSelectControl';
+import {SortableReleasesSelect} from './sortableReleasesSelect';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -138,6 +140,9 @@ export default function FiltersBar({
   // Calculate maxPickableDays based on the data categories
   const maxPickableDaysOptions = useMaxPickableDays({dataCategories});
 
+  // Release sort state - validates and defaults to DATE via custom parser
+  const [releaseSort, setReleaseSort] = useQueryState('sortReleasesBy', parseReleaseSort);
+
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
     userTeams,
@@ -204,19 +209,17 @@ export default function FiltersBar({
           }}
         />
       </PageFilterBar>
-      <ReleasesSelectControl
+      <SortableReleasesSelect
+        sortBy={releaseSort}
+        selectedReleases={selectedReleases}
+        isDisabled={isEditingDashboard}
         handleChangeFilter={activeFilters => {
           onDashboardFilterChange({
             ...activeFilters,
             [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
           });
-          trackAnalytics('dashboards2.filter.change', {
-            organization,
-            filter_type: 'release',
-          });
         }}
-        selectedReleases={selectedReleases}
-        isDisabled={isEditingDashboard}
+        onSortChange={setReleaseSort}
       />
       {organization.features.includes('dashboards-global-filters') && (
         <Fragment>
@@ -300,6 +303,16 @@ export default function FiltersBar({
     </Wrapper>
   );
 }
+
+const parseReleaseSort = createParser({
+  parse: (value: string): ReleasesSortOption => {
+    if (value in RELEASES_SORT_OPTIONS) {
+      return value as ReleasesSortOption;
+    }
+    return ReleasesSortOption.DATE;
+  },
+  serialize: (value: ReleasesSortOption): string => value,
+}).withDefault(ReleasesSortOption.DATE);
 
 const Wrapper = styled('div')`
   display: flex;
