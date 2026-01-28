@@ -164,6 +164,11 @@ const restrictedImportPaths = [
     message:
       'Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help',
   },
+  {
+    name: '@figma/code-connect',
+    message:
+      'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -892,6 +897,19 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/figma-code-connect',
+    files: ['**/*.figma.{tsx,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow @figma/code-connect only in *.figma.tsx files
+          paths: restrictedImportPaths.filter(({name}) => name !== '@figma/code-connect'),
+        },
+      ],
+    },
+  },
+  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -1025,6 +1043,12 @@ export default typescript.config([
       'boundaries/dependency-nodes': ['import', 'dynamic-import'],
       // order matters here because of nested directories
       'boundaries/elements': [
+        // --- figma code connect ---
+        {
+          type: 'figma-code-connect',
+          pattern: '**/*.figma.{tsx,jsx}',
+          mode: 'full',
+        },
         // --- stories ---
         {
           type: 'story-files',
@@ -1144,6 +1168,11 @@ export default typescript.config([
           default: 'disallow',
           message: '${file.type} is not allowed to import ${dependency.type}',
           rules: [
+            // --- figma code connect ---
+            {
+              from: ['figma-code-connect'],
+              allow: ['core*'],
+            },
             {
               from: ['sentry*'],
               allow: ['core*', 'sentry*'],
@@ -1222,13 +1251,6 @@ export default typescript.config([
   {
     name: 'files/core-inspector',
     files: ['static/app/components/core/inspector.tsx'],
-    rules: {
-      'boundaries/element-types': 'off',
-    },
-  },
-  {
-    name: 'files/figma-code-connect',
-    files: ['**/*.figma.{tsx,jsx}'],
     rules: {
       'boundaries/element-types': 'off',
     },
