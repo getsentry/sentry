@@ -4,7 +4,7 @@ import {
   render,
   screen,
   userEvent,
-  waitForDrawerToHide,
+  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -55,8 +55,17 @@ describe('BreadcrumbsDataSection', () => {
     // When expanded, all should be visible
     const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
     await userEvent.click(viewAllButton);
-    const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
-    expect(drawer).toBeInTheDocument();
+
+    // Wait for drawer search input to appear
+    await screen.findByRole('textbox', {name: 'Search All Breadcrumbs'});
+
+    // Get the drawer to scope queries
+    const drawers = screen.getAllByRole('complementary');
+    const drawer = drawers.find(d =>
+      within(d).queryByRole('textbox', {name: 'Search All Breadcrumbs'})
+    )!;
+
+    // All breadcrumbs should be visible in the drawer
     for (const crumbTitle of [...summaryCrumbTitles, ...hiddenCrumbTitles]) {
       expect(within(drawer).getByText(crumbTitle)).toBeInTheDocument();
     }
@@ -66,11 +75,17 @@ describe('BreadcrumbsDataSection', () => {
     render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
     const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
     await userEvent.click(viewAllButton);
-    const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
-    expect(drawer).toBeInTheDocument();
+
+    // Wait for drawer to open
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Search All Breadcrumbs',
+    });
+    expect(searchInput).toBeInTheDocument();
+
     await userEvent.click(viewAllButton);
-    await waitForDrawerToHide('breadcrumb drawer');
-    expect(drawer).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('textbox', {name: 'Search All Breadcrumbs'})
+    );
   });
 
   it('can switch between display time formats', async () => {
@@ -124,9 +139,9 @@ describe('BreadcrumbsDataSection', () => {
     const control = screen.getByRole('button', {name: 'Open Breadcrumb Search'});
     expect(control).toBeInTheDocument();
     await userEvent.click(control);
-    expect(
-      screen.getByRole('complementary', {name: 'breadcrumb drawer'})
-    ).toBeInTheDocument();
+
+    // Wait for drawer to open
+    await screen.findByRole('textbox', {name: 'Search All Breadcrumbs'});
     const drawerControl = screen.getByRole('textbox', {
       name: 'Search All Breadcrumbs',
     });

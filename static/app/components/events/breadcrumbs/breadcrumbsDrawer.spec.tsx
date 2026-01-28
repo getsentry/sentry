@@ -23,7 +23,21 @@ async function renderBreadcrumbDrawer() {
     }));
   render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
   await userEvent.click(screen.getByRole('button', {name: 'View All Breadcrumbs'}));
-  return screen.getByRole('complementary', {name: 'breadcrumb drawer'});
+
+  // Wait for drawer to open and find unique drawer content
+  await screen.findByRole('textbox', {name: 'Search All Breadcrumbs'});
+
+  // Get all complementary elements and find the one with breadcrumb content
+  const drawers = screen.getAllByRole('complementary');
+  const drawerWithContent = drawers.find(d =>
+    within(d).queryByRole('textbox', {name: 'Search All Breadcrumbs'})
+  );
+
+  if (!drawerWithContent) {
+    throw new Error('Could not find breadcrumb drawer');
+  }
+
+  return drawerWithContent;
 }
 
 describe('BreadcrumbsDrawer', () => {
