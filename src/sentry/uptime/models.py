@@ -323,6 +323,7 @@ class UptimeResponseCapture(DefaultFieldsModel):
         db_table = "uptime_uptimeresponsecapture"
         indexes = [
             models.Index(fields=["uptime_subscription", "scheduled_check_time_ms"]),
+            models.Index(fields=["date_added"]),
         ]
 
     def delete(self, *args, **kwargs):
