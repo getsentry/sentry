@@ -28,9 +28,9 @@ function Label(props: {children: string; required?: boolean}) {
   );
 }
 
-export function Meta() {
+export function FieldMeta() {
   return null;
 }
 
-Meta.Label = Label;
-Meta.HintText = HintText;
+FieldMeta.Label = Label;
+FieldMeta.HintText = HintText;

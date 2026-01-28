@@ -1,4 +1,4 @@
-import {Meta} from '@sentry/scraps/form/field/meta';
+import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 interface LayoutProps {
@@ -12,8 +12,10 @@ function RowLayout(props: LayoutProps) {
   return (
     <Flex gap="sm" align="center" justify="between">
       <Stack width="50%" gap="xs">
-        <Meta.Label required={props.required}>{props.label}</Meta.Label>
-        {props.hintText ? <Meta.HintText>{props.hintText}</Meta.HintText> : null}
+        <FieldMeta.Label required={props.required}>{props.label}</FieldMeta.Label>
+        {props.hintText ? (
+          <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText>
+        ) : null}
       </Stack>
 
       <Container flexGrow={1}>{props.children}</Container>
@@ -24,16 +26,16 @@ function RowLayout(props: LayoutProps) {
 function StackLayout(props: LayoutProps) {
   return (
     <Stack gap="md">
-      <Meta.Label required={props.required}>{props.label}</Meta.Label>
+      <FieldMeta.Label required={props.required}>{props.label}</FieldMeta.Label>
       {props.children}
-      {props.hintText ? <Meta.HintText>{props.hintText}</Meta.HintText> : null}
+      {props.hintText ? <FieldMeta.HintText>{props.hintText}</FieldMeta.HintText> : null}
     </Stack>
   );
 }
 
-export function Layout() {
+export function FieldLayout() {
   return null;
 }
 
-Layout.Row = RowLayout;
-Layout.Stack = StackLayout;
+FieldLayout.Row = RowLayout;
+FieldLayout.Stack = StackLayout;
