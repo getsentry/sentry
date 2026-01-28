@@ -94,7 +94,7 @@ function Pagination({
           size={size}
           disabled={nextDisabled}
           onClick={() => {
-            cursorHandler(links.next?.cursor, path, query, 1);
+            cursorHandler(links.previous?.cursor, path, query, 1);
             paginationAnalyticsEvent?.('Next');
           }}
         />
