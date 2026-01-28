@@ -168,7 +168,6 @@ class AnomalyDetectionStoreDataTest(
                     self.create_span({"description": "foo"}, start_ts=dt)
                     for dt in [time_1_dt, time_2_dt]
                 ],
-                is_eap=True,
             )
 
             result = fetch_historical_data(
