@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {inputStyles, type InputStylesProps} from './inputStyles';
 
+export {type InputStylesProps} from './inputStyles';
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
     InputStylesProps {
@@ -35,6 +36,3 @@ export const Input = styled(
 )`
   ${p => inputStyles(p)};
 `;
-
-// Re-export for convenience
-export {inputStyles, type InputStylesProps} from './inputStyles';
