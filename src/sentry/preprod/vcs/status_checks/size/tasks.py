@@ -415,7 +415,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     Returns a dict with keys matching the filter key format:
     - git_head_ref: The git_head_ref name (from commit_comparison.head_ref)
-    - platform_name: "ios" or "android" (derived from artifact_type)
+    - platform_name: "apple" or "android" (derived from artifact_type)
     - app_id: The app ID (e.g., "com.example.app")
     - build_configuration_name: The build configuration name
     """
@@ -426,7 +426,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     if artifact.artifact_type is not None:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            context["platform_name"] = "ios"
+            context["platform_name"] = "apple"
         elif artifact.artifact_type in (
             PreprodArtifact.ArtifactType.AAB,
             PreprodArtifact.ArtifactType.APK,

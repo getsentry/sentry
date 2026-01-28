@@ -2520,7 +2520,7 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   platform_name: {
-    desc: t('The platform the build targets'),
+    desc: t('The platform the build targets (e.g., apple, android)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

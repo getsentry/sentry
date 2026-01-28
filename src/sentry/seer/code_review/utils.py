@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import enum
+import logging
 from collections.abc import Mapping
 from enum import Enum, StrEnum
 from typing import Any
@@ -18,6 +20,13 @@ from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeRe
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
+
+logger = logging.getLogger(__name__)
+
+
+class Log(enum.StrEnum):
+    MISSING_INTEGRATION = "github.webhook.missing-integration"
+    REACTION_FAILED = "github.webhook.reaction-failed"
 
 
 class ClientError(Exception):
@@ -407,6 +416,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
     repo: Repository,
     pr_number: str | None,
     comment_id: str | None,
+    extra: Mapping[str, str | None],
 ) -> None:
     """
     Delete existing :tada: or :eyes: reaction on the PR description and add :eyes: reaction on the originating issue comment or PR description.
@@ -417,6 +427,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
             github_event_action,
             CodeReviewErrorType.MISSING_INTEGRATION,
         )
+        logger.warning(Log.MISSING_INTEGRATION.value, extra=extra)
         return
 
     try:
@@ -443,6 +454,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
                     github_event_action,
                     CodeReviewErrorType.REACTION_FAILED,
                 )
+                logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
 
         # Add :eyes: on the originating issue comment or pr description
         if github_event == GithubWebhookType.PULL_REQUEST:
@@ -455,3 +467,4 @@ def delete_existing_reactions_and_add_eyes_reaction(
             github_event_action,
             CodeReviewErrorType.REACTION_FAILED,
         )
+        logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
