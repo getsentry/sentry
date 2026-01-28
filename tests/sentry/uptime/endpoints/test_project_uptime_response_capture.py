@@ -110,3 +110,54 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
         ]
         assert response.data["body"] == ""
         assert response.data["bodySize"] == 0
+
+    def test_delete_response_capture(self):
+        file = File.objects.create(name="test-response", type="uptime.response")
+        file.putfile(BytesIO(b"test content"))
+        capture = UptimeResponseCapture.objects.create(
+            uptime_subscription=self.uptime_subscription,
+            file_id=file.id,
+            scheduled_check_time_ms=1234567890,
+        )
+        capture_id = capture.id
+        file_id = file.id
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.detector.id,
+            capture.id,
+            method="delete",
+            status_code=204,
+        )
+        assert not UptimeResponseCapture.objects.filter(id=capture_id).exists()
+        assert not File.objects.filter(id=file_id).exists()
+
+    def test_delete_response_capture_not_found(self):
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            self.detector.id,
+            999999,
+            method="delete",
+            status_code=404,
+        )
+
+    def test_delete_response_capture_wrong_detector(self):
+        """Cannot delete capture belonging to a different detector."""
+        other_subscription = self.create_uptime_subscription(url="https://other.com")
+        file = File.objects.create(name="test-response", type="uptime.response")
+        file.putfile(BytesIO(b"test"))
+        capture = UptimeResponseCapture.objects.create(
+            uptime_subscription=other_subscription,
+            file_id=file.id,
+            scheduled_check_time_ms=1234567890,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            self.detector.id,
+            capture.id,
+            method="delete",
+            status_code=404,
+        )
+        assert UptimeResponseCapture.objects.filter(id=capture.id).exists()

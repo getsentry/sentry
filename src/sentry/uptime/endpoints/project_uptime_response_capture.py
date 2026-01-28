@@ -6,7 +6,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.parameters import GlobalParams, UptimeParams
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -46,6 +51,7 @@ class ProjectUptimeResponseCaptureEndpoint(ProjectUptimeAlertEndpoint):
     owner = ApiOwner.CRONS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
 
     @extend_schema(
@@ -98,3 +104,41 @@ class ProjectUptimeResponseCaptureEndpoint(ProjectUptimeAlertEndpoint):
                 "bodySize": len(body),
             }
         )
+
+    @extend_schema(
+        operation_id="Delete an Uptime Response Capture",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            UptimeParams.UPTIME_ALERT_ID,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(
+        self,
+        request: Request,
+        project: Project,
+        uptime_detector: Detector,
+        capture_id: str,
+    ) -> Response:
+        """
+        Delete a captured HTTP response from an uptime check failure.
+        """
+        uptime_subscription = get_uptime_subscription(uptime_detector)
+
+        try:
+            capture = UptimeResponseCapture.objects.get(
+                id=capture_id,
+                uptime_subscription=uptime_subscription,
+            )
+        except (UptimeResponseCapture.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+
+        capture.delete()
+
+        return Response(status=204)
