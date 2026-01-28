@@ -141,7 +141,14 @@ export function AutoSaveField<
 
   return (
     <AutoSaveContextProvider value={{status: mutation.status}}>
-      <form.AppField name={name}>{field => children(field as never)}</form.AppField>
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <form.AppField name={name}>{field => children(field as never)}</form.AppField>
+      </form>
     </AutoSaveContextProvider>
   );
 }
