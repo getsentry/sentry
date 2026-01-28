@@ -12,10 +12,10 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveField} from '@sentry/scraps/form/field/autoSaveField';
+import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form/scrapsForm';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Stack} from 'sentry/components/core/layout/stack';
 import * as Storybook from 'sentry/stories';
 
 const COUNTRY_OPTIONS = [
@@ -128,7 +128,7 @@ function AutoSaveExample() {
   }
 
   return (
-    <Stack gap="xl">
+    <FieldGroup title="AutoSave Example">
       <AutoSaveField
         name="firstName"
         schema={baseUserSchema}
@@ -136,9 +136,9 @@ function AutoSaveExample() {
         mutationOptions={userMutationOptions(client)}
       >
         {field => (
-          <field.Layout.Row label="First Name:" hintText="Your given name">
+          <field.Layout.Stack label="First Name:" hintText="Your given name">
             <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
-          </field.Layout.Row>
+          </field.Layout.Stack>
         )}
       </AutoSaveField>
 
@@ -149,9 +149,9 @@ function AutoSaveExample() {
         mutationOptions={userMutationOptions(client)}
       >
         {field => (
-          <field.Layout.Row label="Last Name:" hintText="Your family name" required>
+          <field.Layout.Stack label="Last Name:" hintText="Your family name" required>
             <field.Input value={field.state.value} onChange={field.handleChange} />
-          </field.Layout.Row>
+          </field.Layout.Stack>
         )}
       </AutoSaveField>
 
@@ -162,16 +162,16 @@ function AutoSaveExample() {
         mutationOptions={addressMutationOptions(client)}
       >
         {field => (
-          <field.Layout.Row label="Country:" required>
+          <field.Layout.Stack label="Country:" required>
             <field.Select
               value={field.state.value}
               onChange={field.handleChange}
               options={COUNTRY_OPTIONS}
             />
-          </field.Layout.Row>
+          </field.Layout.Stack>
         )}
       </AutoSaveField>
-    </Stack>
+    </FieldGroup>
   );
 }
 
