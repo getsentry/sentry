@@ -10,12 +10,19 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
-from ..metrics import record_webhook_filtered
+from ..metrics import (
+    CodeReviewErrorType,
+    WebhookFilteredReason,
+    record_webhook_filtered,
+    record_webhook_handler_error,
+    record_webhook_received,
+)
 from ..preflight import CodeReviewPreflightService
 from ..utils import extract_github_info
-from .check_run import handle_check_run_event
-from .issue_comment import handle_issue_comment_event
-from .pull_request import handle_pull_request_event
+from .check_run import GitHubCheckRunAction, handle_check_run_event
+from .issue_comment import GitHubIssueCommentAction, handle_issue_comment_event
+from .pull_request import PullRequestAction, handle_pull_request_event
+from .types import GithubWebhookAction
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +32,57 @@ EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, Callable[..., None]] = {
     GithubWebhookType.ISSUE_COMMENT: handle_issue_comment_event,
     GithubWebhookType.PULL_REQUEST: handle_pull_request_event,
 }
+
+
+def _validate_and_extract_action(
+    event: Mapping[str, Any],
+    github_event: GithubWebhookType,
+    extra: Mapping[str, str | None],
+) -> GithubWebhookAction | None:
+    """
+    Extract and validate the action field from webhook event.
+
+    Returns the validated action enum, or None if invalid/missing.
+    Records appropriate metrics on failure.
+    """
+    action_str = event.get("action")
+
+    if action_str is None:
+        logger.error(
+            "github.webhook.%s.missing-action",
+            github_event.value,
+            extra=extra,
+        )
+        record_webhook_handler_error(
+            github_event,
+            "",
+            CodeReviewErrorType.MISSING_ACTION,
+        )
+        return None
+
+    # Try to parse action based on event type
+    try:
+        if github_event == GithubWebhookType.PULL_REQUEST:
+            return PullRequestAction(action_str)
+        elif github_event == GithubWebhookType.CHECK_RUN:
+            return GitHubCheckRunAction(action_str)
+        elif github_event == GithubWebhookType.ISSUE_COMMENT:
+            return GitHubIssueCommentAction(action_str)
+        else:
+            logger.warning(
+                "github.webhook.unknown-event-type",
+                extra={**extra, "github_event": github_event.value, "action": action_str},
+            )
+            return None
+    except ValueError:
+        # Invalid action value for this event type - treat as unknown
+        logger.debug(
+            "github.webhook.%s.unknown-action",
+            github_event.value,
+            extra={**extra, "action": action_str},
+        )
+        # Still return the string so metrics can track it, but wrapped in a way handlers can check
+        return None
 
 
 def handle_webhook_event(
@@ -38,6 +96,8 @@ def handle_webhook_event(
 ) -> None:
     """
     Handle GitHub webhook events.
+
+    Validates action field and runs preflight checks before dispatching to specific handlers.
 
     Args:
         github_event: The GitHub webhook event type (e.g., GithubWebhookType.CHECK_RUN)
@@ -55,9 +115,22 @@ def handle_webhook_event(
     extra = extract_github_info(event, github_event=github_event.value)
     extra["organization_slug"] = organization.slug
 
+    # Validate and extract action before any other processing
+    action = _validate_and_extract_action(event, github_event, extra)
+    if action is None:
+        return
+
+    # Record that webhook was received with valid action
+    record_webhook_received(github_event, action.value)
+
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
-        logger.warning("github.webhook.handler.not_found", extra=extra)
+        logger.warning("github.webhook.handler.not-found", extra=extra)
+        record_webhook_filtered(
+            github_event=github_event,
+            github_event_action=action.value,
+            reason=WebhookFilteredReason.HANDLER_NOT_FOUND,
+        )
         return
 
     from ..utils import get_pr_author_id
@@ -73,7 +146,7 @@ def handle_webhook_event(
         if preflight.denial_reason:
             record_webhook_filtered(
                 github_event=github_event,
-                github_event_action=event.get("action", "unknown"),
+                github_event_action=action.value,
                 reason=preflight.denial_reason,
             )
         return
@@ -85,5 +158,6 @@ def handle_webhook_event(
         repo=repo,
         integration=integration,
         org_code_review_settings=preflight.settings,
+        action=action,
         extra=extra,
     )

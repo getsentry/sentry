@@ -48,8 +48,15 @@ class CodeReviewPreflightService:
         self.integration_id = integration_id
         self.pr_author_external_id = pr_author_external_id
 
-        repo_settings = RepositorySettings.objects.filter(repository=repo).first()
-        self._repo_settings = repo_settings.get_code_review_settings() if repo_settings else None
+        # Get or create repository settings with code review disabled by default
+        repo_settings, created = RepositorySettings.objects.get_or_create(
+            repository=repo,
+            defaults={
+                "enabled_code_review": False,
+                "code_review_triggers": [],
+            },
+        )
+        self._repo_settings = repo_settings.get_code_review_settings()
 
     def check(self) -> CodeReviewPreflightResult:
         checks: list[Callable[[], PreflightDenialReason | None]] = [

@@ -23,7 +23,7 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
-from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
+from ..metrics import WebhookFilteredReason, record_webhook_filtered
 from ..utils import convert_enum_keys_to_strings, get_seer_endpoint_for_event, make_seer_request
 
 logger = logging.getLogger(__name__)
@@ -43,8 +43,13 @@ def schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-) -> None:
-    """Transform and forward a webhook event to Seer for processing."""
+) -> bool:
+    """
+    Transform and forward a webhook event to Seer for processing.
+
+    Returns:
+        True if task was successfully enqueued, False if filtered out.
+    """
     from .task import process_github_webhook_event
 
     transformed_event = transform_webhook_to_codegen_request(
@@ -60,7 +65,7 @@ def schedule_task(
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.TRANSFORM_FAILED
         )
-        return
+        return False
 
     # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
@@ -68,7 +73,7 @@ def schedule_task(
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
-    record_webhook_enqueued(github_event, github_event_action)
+    return True
 
 
 @instrumented_task(
