@@ -4,6 +4,7 @@ import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSe
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
+  DEFAULT_YAXIS_BY_TYPE,
   GROUPED_OPTIONS_BY_TYPE,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
@@ -40,9 +41,19 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
         options={GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? []}
         value={visualizes.map(v => v.parsedFunction?.name ?? '')}
         onChange={(option: Array<SelectOption<string>>) => {
-          setMetricVisualizes(
-            option.map(o => updateVisualizeYAxis(visualize, o.value, traceMetric))
-          );
+          if (option.length === 0) {
+            setMetricVisualizes([
+              updateVisualizeYAxis(
+                visualize,
+                DEFAULT_YAXIS_BY_TYPE[traceMetric.type]!,
+                traceMetric
+              ),
+            ]);
+          } else {
+            setMetricVisualizes(
+              option.map(o => updateVisualizeYAxis(visualize, o.value, traceMetric))
+            );
+          }
         }}
         style={{width: '100%'}}
       />

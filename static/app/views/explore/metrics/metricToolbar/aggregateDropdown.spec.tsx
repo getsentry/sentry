@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useState, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -185,6 +185,81 @@ describe('AggregateDropdown', () => {
     expect(callArgs.aggregateFields).toHaveLength(2);
     expect(callArgs.aggregateFields[0]).toBeInstanceOf(VisualizeFunction);
     expect(callArgs.aggregateFields[1]).toBeInstanceOf(VisualizeFunction);
+  });
+
+  it('defaults to the type yAxis when all selections are cleared', async () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-overlay-charts-ui'],
+    });
+
+    const setQueryParams = jest.fn();
+    const initialQueryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeFunction('p50(value,test_metric,distribution,-)'),
+        new VisualizeFunction('p90(value,test_metric,distribution,-)'),
+      ],
+      aggregateSortBys: [{field: 'p50(value,test_metric,distribution,-)', kind: 'desc'}],
+    });
+
+    function WrapperWithState({children}: {children: ReactNode}) {
+      const [queryParams, setParams] = useState(initialQueryParams);
+
+      const handleSetQueryParams = (nextQueryParams: ReadableQueryParams) => {
+        setQueryParams(nextQueryParams);
+        setParams(nextQueryParams);
+      };
+
+      return (
+        <MultiMetricsQueryParamsProvider>
+          <MetricsQueryParamsProvider
+            traceMetric={{name: 'test_metric', type: 'distribution'}}
+            queryParams={queryParams}
+            setQueryParams={handleSetQueryParams}
+            setTraceMetric={() => {}}
+            removeMetric={() => {}}
+          >
+            {children}
+          </MetricsQueryParamsProvider>
+        </MultiMetricsQueryParamsProvider>
+      );
+    }
+
+    render(
+      <WrapperWithState>
+        <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />
+      </WrapperWithState>,
+      {organization}
+    );
+
+    const trigger = screen.getByRole('button', {name: /Agg/});
+    await userEvent.click(trigger);
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'p50'})).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('option', {name: 'p50'}));
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'p50'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+    });
+
+    await userEvent.click(screen.getByRole('option', {name: 'p90'}));
+
+    const callArgs = setQueryParams.mock.calls[setQueryParams.mock.calls.length - 1]![0];
+    expect(callArgs.aggregateFields).toHaveLength(1);
+    expect(callArgs.aggregateFields[0]).toBeInstanceOf(VisualizeFunction);
+    expect(callArgs.aggregateFields[0].parsedFunction?.name).toBe('p75');
   });
 
   it('shows correct options for counter metric type', async () => {
