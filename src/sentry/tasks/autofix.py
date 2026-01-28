@@ -52,8 +52,10 @@ def check_autofix_status(run_id: int, organization_id: int) -> None:
     processing_deadline_duration=35,
     retry=Retry(times=1),
 )
-def generate_summary_and_run_automation(group_id: int) -> None:
+def generate_summary_and_run_automation(group_id: int, trigger_path: str = "old_seer_sku") -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary
+
+    sentry_sdk.set_tag("trigger_path", trigger_path)
 
     group = Group.objects.get(id=group_id)
     get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
