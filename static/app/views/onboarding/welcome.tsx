@@ -364,8 +364,8 @@ function LegacyWelcomeUI(props: StepProps) {
 }
 
 function TargetedOnboardingWelcome(props: StepProps) {
-  const organization = useOrganization();
-  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
+  // const organization = useOrganization();
+  const hasNewWelcomeUI = true; // organization.features.includes('onboarding-new-welcome-ui');
 
   if (hasNewWelcomeUI) {
     return <NewWelcomeUI {...props} />;
