@@ -41,7 +41,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'anr-rate',
-      title: t('ANR Rate'),
+      title: t('ANR / App Hang Rate'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
