@@ -27,7 +27,7 @@ class OrgCellMappingsEndpoint(Endpoint):
     authentication_classes = (SynapseSignatureAuthentication,)
     permission_classes = (SynapseAuthPermission,)
 
-    MAX_LIMIT = 100
+    MAX_LIMIT = 1000
 
     def get(self, request: Request) -> Response:
         """
