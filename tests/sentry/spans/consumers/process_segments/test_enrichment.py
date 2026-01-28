@@ -621,8 +621,8 @@ def test_enrich_gen_ai_agent_name_not_from_sibling() -> None:
     assert attribute_value(target, "gen_ai.agent.name") is None
 
 
-def test_enrich_gen_ai_agent_name_only_from_invoke_agent_parent() -> None:
-    """Test that gen_ai.agent.name is only inherited from parent with gen_ai.invoke_agent operation."""
+def test_enrich_gen_ai_agent_name_from_any_ancestor_with_agent_name() -> None:
+    """Test that gen_ai.agent.name is inherited from any ancestor that has it, regardless of operation."""
     parent_span = build_mock_span(
         project_id=1,
         is_segment=True,
@@ -652,7 +652,7 @@ def test_enrich_gen_ai_agent_name_only_from_invoke_agent_parent() -> None:
 
     parent, child = compatible_spans
     assert attribute_value(parent, "gen_ai.agent.name") == "CreateAgentName"
-    assert attribute_value(child, "gen_ai.agent.name") is None
+    assert attribute_value(child, "gen_ai.agent.name") == "CreateAgentName"
 
 
 def test_enrich_gen_ai_agent_name_from_grandparent() -> None:
@@ -733,11 +733,8 @@ def test_enrich_gen_ai_agent_name_from_immediate_parent_fallback_to_span_op() ->
 
 def test_enrich_gen_ai_agent_name_respects_max_depth() -> None:
     """Test that ancestor search stops at MAX_AGENT_NAME_ANCESTOR_HOPS."""
-    # Create a chain: agent -> N intermediates -> gen_ai child
-    # where N = MAX_AGENT_NAME_ANCESTOR_HOPS, making agent N+1 hops away (beyond limit)
     spans = []
 
-    # Root agent span (too far - beyond MAX_AGENT_NAME_ANCESTOR_HOPS)
     agent_span = build_mock_span(
         project_id=1,
         is_segment=True,
@@ -749,7 +746,6 @@ def test_enrich_gen_ai_agent_name_respects_max_depth() -> None:
     )
     spans.append(agent_span)
 
-    # Create MAX_AGENT_NAME_ANCESTOR_HOPS intermediate spans
     for i in range(1, MAX_AGENT_NAME_ANCESTOR_HOPS + 1):
         spans.append(
             build_mock_span(
@@ -762,7 +758,6 @@ def test_enrich_gen_ai_agent_name_respects_max_depth() -> None:
             )
         )
 
-    # Leaf gen_ai span (MAX_AGENT_NAME_ANCESTOR_HOPS + 1 hops from agent)
     leaf_id = MAX_AGENT_NAME_ANCESTOR_HOPS + 1
     leaf = build_mock_span(
         project_id=1,
@@ -777,14 +772,11 @@ def test_enrich_gen_ai_agent_name_respects_max_depth() -> None:
     _, enriched_spans = TreeEnricher.enrich_spans(spans)
     compatible_spans = [make_compatible(span) for span in enriched_spans]
 
-    # Should NOT inherit because agent is beyond MAX_AGENT_NAME_ANCESTOR_HOPS
     assert attribute_value(compatible_spans[-1], "gen_ai.agent.name") is None
 
 
 def test_enrich_gen_ai_agent_name_from_deep_ancestor() -> None:
-    """Test that agent name is inherited from ancestor within MAX_AGENT_NAME_ANCESTOR_HOPS."""
-    # Create a chain: agent -> (MAX_AGENT_NAME_ANCESTOR_HOPS - 1) intermediates -> gen_ai child
-    # This puts the agent exactly at MAX_AGENT_NAME_ANCESTOR_HOPS hops away (at the limit)
+    """Test that agent name is inherited from ancestor at exactly MAX_AGENT_NAME_ANCESTOR_HOPS."""
     spans = []
 
     agent_span = build_mock_span(
@@ -798,7 +790,6 @@ def test_enrich_gen_ai_agent_name_from_deep_ancestor() -> None:
     )
     spans.append(agent_span)
 
-    # Create MAX_AGENT_NAME_ANCESTOR_HOPS - 1 intermediate spans
     for i in range(1, MAX_AGENT_NAME_ANCESTOR_HOPS):
         spans.append(
             build_mock_span(
@@ -811,7 +802,6 @@ def test_enrich_gen_ai_agent_name_from_deep_ancestor() -> None:
             )
         )
 
-    # Leaf gen_ai span (exactly MAX_AGENT_NAME_ANCESTOR_HOPS hops from agent)
     leaf_id = MAX_AGENT_NAME_ANCESTOR_HOPS
     leaf = build_mock_span(
         project_id=1,
@@ -826,5 +816,4 @@ def test_enrich_gen_ai_agent_name_from_deep_ancestor() -> None:
     _, enriched_spans = TreeEnricher.enrich_spans(spans)
     compatible_spans = [make_compatible(span) for span in enriched_spans]
 
-    # Should inherit because agent is exactly at MAX_AGENT_NAME_ANCESTOR_HOPS
     assert attribute_value(compatible_spans[-1], "gen_ai.agent.name") == "DeepAgent"

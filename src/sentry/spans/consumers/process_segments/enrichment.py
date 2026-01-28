@@ -165,20 +165,10 @@ class TreeEnricher:
                 break
 
     def _find_ancestor_agent_name(self, span: SpanEvent) -> str | None:
-        """
-        Search ancestors for a gen_ai.invoke_agent span with an agent name.
-
-        Climbs up the ancestor tree (max MAX_AGENT_NAME_ANCESTOR_HOPS hops) to find
-        the first gen_ai.invoke_agent span that has a gen_ai.agent.name attribute.
-
-        Returns the agent name if found, None otherwise.
-        """
         for ancestor in islice(self._iter_ancestors(span), MAX_AGENT_NAME_ANCESTOR_HOPS):
             if (
-                get_span_op(ancestor) == "gen_ai.invoke_agent"
-                and (agent_name := attribute_value(ancestor, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME))
-                is not None
-            ):
+                agent_name := attribute_value(ancestor, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME)
+            ) is not None:
                 return agent_name
         return None
 
