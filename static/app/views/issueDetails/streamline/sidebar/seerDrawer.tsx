@@ -532,6 +532,7 @@ export const useOpenSeerDrawer = ({
         max-height: 100%;
       `,
       resizable: !isExplorerVersion,
+      drawerWidth: isExplorerVersion ? '50%' : undefined,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
