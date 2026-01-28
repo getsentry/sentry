@@ -190,17 +190,20 @@ export function IssueDiff({
 
   return (
     <StyledIssueDiff isLoading={loading}>
-      {loading && <LoadingIndicator />}
-      {!loading &&
+      {loading ? (
+        <LoadingIndicator />
+      ) : (
         baseArray.map((value: string, index: number) => (
           <LazyLoad
             key={index}
             LazyComponent={SplitDiffLazy}
+            loadingFallback={null}
             base={value}
             target={targetArray[index] ?? ''}
             type="lines"
           />
-        ))}
+        ))
+      )}
     </StyledIssueDiff>
   );
 }
