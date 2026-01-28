@@ -140,6 +140,25 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   4
 );
 
+const CRASH_RATE_TABLE: Widget = {
+  id: 'crash-rate-table',
+  title: t('Crash Rate By Project'),
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.RELEASE,
+  interval: '5m',
+  queries: [
+    {
+      name: '',
+      conditions: '',
+      fields: ['project', 'crash_rate(session)'],
+      aggregates: ['crash_rate(session)'],
+      columns: ['project'],
+      orderby: '-crash_rate(session)',
+    },
+  ],
+  layout: {x: 0, y: 6, w: 6, h: 2, minH: 2},
+};
+
 const RELEASE_TABLE: Widget = {
   id: 'release-table',
   title: t('Releases'),
@@ -156,7 +175,7 @@ const RELEASE_TABLE: Widget = {
       orderby: '-release',
     },
   ],
-  layout: {x: 0, y: 6, w: 6, h: 3, minH: 2},
+  layout: {x: 0, y: 8, w: 6, h: 3, minH: 2},
 };
 
 export const MOBILE_SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -168,6 +187,7 @@ export const MOBILE_SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...FIRST_ROW_WIDGETS,
     ...SECOND_ROW_WIDGETS,
     ...THIRD_ROW_WIDGETS,
+    CRASH_RATE_TABLE,
     RELEASE_TABLE,
   ],
 };
