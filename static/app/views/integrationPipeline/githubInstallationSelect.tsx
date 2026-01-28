@@ -76,7 +76,12 @@ export function GithubInstallationSelect({
   const source = 'github.multi_org';
 
   const doesntRequireUpgrade = (id: SelectKey): boolean => {
-    return hasSCMMultiOrg || isSelfHosted || id === '-1';
+    return (
+      hasSCMMultiOrg ||
+      isSelfHosted ||
+      id === '-1' ||
+      installation_info.find(i => i.installation_id === id)?.count === 0
+    );
   };
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
@@ -189,7 +194,6 @@ export function GithubInstallationSelect({
           )}
         />
         <Stack alignSelf="flex-end" paddingTop="xl">
-          {/* All GitHub app installs will show up here. If the corresponding Integration has 0 installs we should also allow install */}
           {organization.features.includes('github-multi-org-upsell-modal') ? (
             <InstallButtonHook
               hasSCMMultiOrg={
