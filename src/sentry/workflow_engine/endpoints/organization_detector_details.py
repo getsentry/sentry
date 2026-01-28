@@ -112,6 +112,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization, detector: Detector):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Return details on an individual monitor
         """
         serialized_detector = serialize(
@@ -139,6 +141,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Update an existing monitor
         """
         if not can_edit_detector(detector, request):
@@ -189,6 +193,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization, detector: Detector):
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Delete a monitor
         """
         if not can_delete_detector(detector, request):

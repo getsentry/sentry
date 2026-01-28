@@ -1,11 +1,15 @@
 import enum
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import IntEnum
 from typing import Any, Literal, Required, TypedDict
 
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckStatus, CheckStatusReasonType
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    Assertion,
+    CheckStatus,
+    CheckStatusReasonType,
+)
 
 DATA_SOURCE_UPTIME_SUBSCRIPTION = "uptime_subscription"
 """
@@ -142,6 +146,8 @@ class EapCheckEntry:
     incident_status: IncidentStatus
     environment: str
     region: str
+    # Parsed JSON, can be a dict, so exclude it from hashing/comparison.
+    assertion_failure_data: Assertion | None = field(compare=False, default=None)
 
 
 @dataclass(frozen=True)

@@ -302,6 +302,7 @@ type InterfaceChromeHooks = {
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
+  'sidebar:seer-config-reminder': GenericOrganizationComponentHook;
   'sidebar:try-business': SidebarTryBusinessHook;
 };
 
