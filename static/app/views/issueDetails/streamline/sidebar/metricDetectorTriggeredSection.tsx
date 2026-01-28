@@ -12,7 +12,6 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import GroupList from 'sentry/components/issues/groupList';
 import Placeholder from 'sentry/components/placeholder';
-import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
@@ -37,9 +36,11 @@ import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetC
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
-import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+
+import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
 
 interface MetricDetectorEvidenceData {
   /**
@@ -110,6 +111,19 @@ function calculateStartOfInterval({
   startOfInterval.setSeconds(0, 0);
 
   return startOfInterval;
+}
+
+function getFormattedEvaluatedValue({
+  aggregate,
+  detectionType,
+  value,
+}: {
+  aggregate: string;
+  detectionType: MetricDetectorConfig['detectionType'];
+  value: number;
+}): string {
+  const unitSuffix = getMetricDetectorSuffix(detectionType, aggregate);
+  return `${value.toLocaleString()}${unitSuffix}`;
 }
 
 /**
@@ -275,6 +289,7 @@ function TriggeredConditionDetails({
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
   const triggeredCondition = conditions[0];
   const [fallbackEndDate] = useState(() => new Date().toISOString());
+  const detectionType = evidenceData.config?.detectionType ?? 'static';
   const {openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
     groupId,
     eventId,
@@ -289,6 +304,11 @@ function TriggeredConditionDetails({
   const datasetConfig = getDatasetConfig(detectorDataset);
   const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
+  const formattedEvaluatedValue = getFormattedEvaluatedValue({
+    value,
+    aggregate: snubaQuery.aggregate,
+    detectionType,
+  });
   const startDate = calculateStartOfInterval({
     eventDateCreated,
     timeWindow: snubaQuery.timeWindow,
@@ -300,14 +320,6 @@ function TriggeredConditionDetails({
         title="Triggered Condition"
         type="triggered_condition"
         actions={
-          isOpenPeriodLoading ? null : (
-            <OpenInDestinationButton
-              snubaQuery={snubaQuery}
-              projectId={projectId}
-              start={startDate}
-              end={endDate}
-            />
-          )
           isOpenPeriodLoading ? null : (
             <OpenInDestinationButton
               snubaQuery={snubaQuery}
@@ -368,27 +380,13 @@ function TriggeredConditionDetails({
             },
             {
               key: 'value',
-              value,
+              value: formattedEvaluatedValue,
               subject: t('Evaluated Value'),
             },
           ]}
         />
       </InterimSection>
-      {isErrorsDataset &&
-        (isOpenPeriodLoading ? (
-          <InterimSection title={t('Contributing Issues')} type="contributing_issues">
-            <Placeholder height="200px" />
-          </InterimSection>
-        ) : (
-          <ContributingIssues
-            projectId={projectId}
-            query={issueSearchQuery}
-            eventDateCreated={eventDateCreated}
-            aggregate={snubaQuery.aggregate}
-            start={startDate}
-            end={endDate}
-          />
-        ))}
+      <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
           <InterimSection title={t('Contributing Issues')} type="contributing_issues">

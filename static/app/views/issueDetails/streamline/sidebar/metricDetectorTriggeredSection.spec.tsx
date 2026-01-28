@@ -43,16 +43,7 @@ describe('MetricDetectorTriggeredSection', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
-      body: [
-        {
-          id: '101',
-          start: openPeriodStartDate,
-          end: openPeriodEndDate,
-          isOpen: false,
-          eventId: 'event-1',
-          activities: [],
-        },
-      ],
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
@@ -156,6 +147,7 @@ describe('MetricDetectorTriggeredSection', () => {
     // Check sections exist by aria-label
     expect(await screen.findByRole('region', {name: 'Message'})).toBeInTheDocument();
     expect(screen.getByRole('region', {name: 'Triggered Condition'})).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Timeline'})).toBeInTheDocument();
 
     // Check message content
     expect(screen.getByText('Subtitle')).toBeInTheDocument();
@@ -183,9 +175,6 @@ describe('MetricDetectorTriggeredSection', () => {
       body: [GroupFixture()],
     });
     const event = EventFixture({
-      dateCreated: openPeriodStartDate,
-      eventID: 'event-1',
-      groupID: '123',
       dateCreated: openPeriodStartDate,
       eventID: 'event-1',
       groupID: '123',
@@ -221,7 +210,6 @@ describe('MetricDetectorTriggeredSection', () => {
         query: expect.objectContaining({
           query: 'issue.type:error event.type:error is:unresolved',
           start: startDate,
-          end: openPeriodEndDate,
           end: openPeriodEndDate,
         }),
       })
@@ -281,7 +269,6 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2024-01-01T00%3A05%3A00.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
       '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2024-01-01T00%3A05%3A00.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
     );
   });
