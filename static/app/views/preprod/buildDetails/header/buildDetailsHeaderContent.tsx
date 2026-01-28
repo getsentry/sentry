@@ -177,7 +177,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               {t('Compare Build')}
             </Button>
           </Link>
-          <Feature features="organizations:preprod-issues">
+          <Feature features="organizations:preprod-frontend-routes">
             <LinkButton
               size="sm"
               icon={<IconSettings />}
