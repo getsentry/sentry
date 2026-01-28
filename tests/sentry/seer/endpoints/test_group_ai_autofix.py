@@ -856,6 +856,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:seer-explorer")
+@with_feature("organizations:autofix-on-explorer")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
     """Tests for feature flag routing to Explorer-based autofix."""
@@ -873,10 +874,10 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         self.organization.save()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_explorer_state")
-    def test_get_routes_to_explorer_with_seer_explorer_flag(
+    def test_get_routes_to_explorer_with_both_flags(
         self, mock_get_explorer_state, mock_get_seer_org_acknowledgement
     ):
-        """GET routes to explorer when seer-explorer is enabled."""
+        """GET routes to explorer when both seer-explorer and autofix-on-explorer flags are enabled."""
         group = self.create_group()
         mock_get_explorer_state.return_value = None
 
@@ -890,7 +891,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
     def test_get_routes_to_legacy_with_mode_param(
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
-        """GET routes to legacy when mode=legacy is in query params even with seer-explorer enabled."""
+        """GET routes to legacy when mode=legacy is in query params even with both flags enabled."""
         group = self.create_group()
         mock_get_autofix_state.return_value = None
 
@@ -901,10 +902,10 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.assert_called_once()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
-    def test_post_routes_to_explorer_with_seer_explorer_flag(
+    def test_post_routes_to_explorer_with_both_flags(
         self, mock_trigger_explorer, mock_get_seer_org_acknowledgement
     ):
-        """POST routes to explorer when seer-explorer is enabled."""
+        """POST routes to explorer when both seer-explorer and autofix-on-explorer flags are enabled."""
         group = self.create_group()
         mock_trigger_explorer.return_value = 123
 
@@ -983,7 +984,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 @with_feature("organizations:seer-explorer")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class GroupAutofixEndpointLegacyRoutingTest(APITestCase, SnubaTestCase):
-    """Tests that endpoint routes to legacy when seer-explorer flag is missing."""
+    """Tests that endpoint routes to legacy when autofix-on-explorer flag is missing."""
 
     def _get_url(self, group_id: int) -> str:
         return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
@@ -993,10 +994,10 @@ class GroupAutofixEndpointLegacyRoutingTest(APITestCase, SnubaTestCase):
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
-    def test_get_routes_to_legacy_without_seer_explorer_flag(
+    def test_get_routes_to_legacy_without_autofix_on_explorer_flag(
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
-        """GET routes to legacy when seer-explorer flag is missing."""
+        """GET routes to legacy when autofix-on-explorer flag is missing."""
         group = self.create_group()
         mock_get_autofix_state.return_value = None
 
