@@ -4034,6 +4034,7 @@ class UptimeResultEAPTestCase(BaseTestCase):
             "check_duration_us": check_duration_us,
             "request_duration_us": request_duration_us,
             "span_id": span_id,
+            "assertion_failure_data": assertion_failure_data,
         }
 
         if check_id is not None:
