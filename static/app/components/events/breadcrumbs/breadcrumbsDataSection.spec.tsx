@@ -77,7 +77,9 @@ describe('BreadcrumbsDataSection', () => {
     await userEvent.click(viewAllButton);
 
     // Wait for drawer to open
-    const searchInput = await screen.findByRole('textbox', {name: 'Search All Breadcrumbs'});
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Search All Breadcrumbs',
+    });
     expect(searchInput).toBeInTheDocument();
 
     await userEvent.click(viewAllButton);
