@@ -289,6 +289,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
         referrer = request.GET.get("referrer")
+        debug = request.user.is_superuser and request.GET.get("debug", False)
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
@@ -338,6 +339,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                     additional_queries=additional_queries,
+                    debug=debug,
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
@@ -368,6 +370,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,
+                debug=debug,
             )
 
         return dataset.timeseries_query(

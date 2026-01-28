@@ -39,7 +39,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
-    debug: bool = False,
+    debug: bool | str = False,
     *,
     referrer: str,
 ) -> EventsResponse:

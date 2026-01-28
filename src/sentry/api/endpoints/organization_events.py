@@ -240,7 +240,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
-        debug = request.user.is_superuser and "debug" in request.GET
+        debug = request.user.is_superuser and request.GET.get("debug", False)
 
         def _data_fn(
             dataset_query: DatasetQuery,

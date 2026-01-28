@@ -40,7 +40,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
-        debug: bool = False,
+        debug: bool | str = False,
         additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64

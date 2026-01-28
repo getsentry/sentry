@@ -58,7 +58,7 @@ def query(
     dataset: Dataset = Dataset.Events,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-    debug: bool = False,
+    debug: bool | str = False,
     *,
     referrer: str,
 ) -> EventsResponse:

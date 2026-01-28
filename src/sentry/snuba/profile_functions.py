@@ -33,7 +33,7 @@ class ProfileFunctions(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
-        debug: bool = False,
+        debug: bool | str = False,
         additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
