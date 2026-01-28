@@ -84,10 +84,9 @@ export default function PreprodBuilds() {
   // and convert to structured query.
   let releaseQuery = '';
   if (params.release) {
-    const releaseMatch = params.release.match(/^([^@]+)@([^+]+)(?:\+.*)?$/);
-    if (releaseMatch?.[1] && releaseMatch[2]) {
-      const appId = releaseMatch[1];
-      const buildVersion = releaseMatch[2];
+    const [appId, versionPart] = params.release.split('@');
+    const buildVersion = versionPart?.split('+')[0];
+    if (appId && buildVersion) {
       releaseQuery = `app_id:${appId} build_version:${buildVersion}`;
     }
   }
