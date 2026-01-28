@@ -8,7 +8,7 @@ import {
 
 import type {SurfaceVariant} from 'sentry/utils/theme';
 
-import {getRadius, rc} from './styles';
+import {getBorder, getRadius, rc} from './styles';
 
 interface FlatSurfaceProps<T extends ContainerElement = 'div'>
   extends Omit<ContainerProps<T>, 'background' | 'border'> {
@@ -102,10 +102,22 @@ export const Surface = styled(
     rc('background', p.variant, p.theme, v =>
       v ? p.theme.tokens.background[v] : undefined
     )};
-
-  ${p => rc('border-radius', p.radius ?? 'md', p.theme, getRadius)};
   ${p =>
-    rc('box-shadow', p.elevation, p.theme, v => (v ? p.theme.shadow[v] : undefined))};
+    rc('border', p.variant === 'overlay' ? 'primary' : undefined, p.theme, getBorder)};
+  ${p =>
+    rc(
+      'border-radius',
+      (p.radius ?? p.variant === 'overlay') ? 'md' : undefined,
+      p.theme,
+      getRadius
+    )};
+  ${p =>
+    rc(
+      'box-shadow',
+      (p.elevation ?? p.variant === 'overlay') ? ('low' as const) : undefined,
+      p.theme,
+      v => (v ? p.theme.shadow[v] : undefined)
+    )};
 ` as unknown as <T extends ContainerElement = 'div'>(
   props:
     | SurfaceProps<T>
