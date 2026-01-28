@@ -55,6 +55,9 @@ def check_autofix_status(run_id: int, organization_id: int) -> None:
 def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary
 
+    trigger_path = kwargs.get("trigger_path", "unknown")
+    sentry_sdk.set_tag("trigger_path", trigger_path)
+
     group = Group.objects.get(id=group_id)
     get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
 
