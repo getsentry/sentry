@@ -1,6 +1,8 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
 import {Link} from 'sentry/components/core/link';
@@ -41,7 +43,7 @@ class QueryCard extends PureComponent<Props> {
     return (
       <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
         <StyledQueryCard interactive>
-          <QueryCardHeader>
+          <Flex padding="lg xl">
             <QueryCardContent>
               <QueryTitle>{title}</QueryTitle>
               <QueryDetail>{queryDetail}</QueryDetail>
@@ -53,11 +55,11 @@ class QueryCard extends PureComponent<Props> {
                 <ActivityAvatar type="system" size={34} />
               )}
             </AvatarWrapper>
-          </QueryCardHeader>
+          </Flex>
           <QueryCardBody>
             <StyledErrorBoundary mini>{renderGraph()}</StyledErrorBoundary>
           </QueryCardBody>
-          <QueryCardFooter>
+          <Flex justify="between" align="center" padding="md xl">
             <DateSelected>
               {subtitle}
               {dateStatus ? (
@@ -67,7 +69,7 @@ class QueryCard extends PureComponent<Props> {
               ) : null}
             </DateSelected>
             {renderContextMenu?.()}
-          </QueryCardFooter>
+          </Flex>
         </StyledQueryCard>
       </Link>
     );
@@ -93,11 +95,6 @@ const StyledQueryCard = styled(Card)`
   &:hover {
     top: -1px;
   }
-`;
-
-const QueryCardHeader = styled('div')`
-  display: flex;
-  padding: ${space(1.5)} ${space(2)};
 `;
 
 const QueryTitle = styled('div')`
@@ -132,13 +129,6 @@ const QueryCardBody = styled('div')`
   max-height: 150px;
   height: 100%;
   overflow: hidden;
-`;
-
-const QueryCardFooter = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
 `;
 
 const DateSelected = styled('div')`

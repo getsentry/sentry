@@ -6,6 +6,8 @@ import partial from 'lodash/partial';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -1255,7 +1257,7 @@ export const spanOperationRelativeBreakdownRenderer = (
   }
 
   return (
-    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+    <Flex position="relative" data-test-id="relative-ops-breakdown">
       {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;
@@ -1321,14 +1323,9 @@ export const spanOperationRelativeBreakdownRenderer = (
           <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
-    </RelativeOpsBreakdown>
+    </Flex>
   );
 };
-
-const RelativeOpsBreakdown = styled('div')`
-  position: relative;
-  display: flex;
-`;
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;
