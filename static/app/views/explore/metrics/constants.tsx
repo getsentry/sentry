@@ -1,4 +1,4 @@
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {
@@ -187,6 +187,137 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
     {
       label: 'per_minute',
       value: 'per_minute',
+    },
+  ],
+};
+
+export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>>> = {
+  counter: [
+    {
+      key: 'rate',
+      label: t('Rate'),
+      options: [
+        {
+          label: 'per_second',
+          value: 'per_second',
+        },
+        {
+          label: 'per_minute',
+          value: 'per_minute',
+        },
+      ],
+    },
+    {
+      key: 'math',
+      label: t('Math'),
+      options: [
+        {
+          label: 'sum',
+          value: 'sum',
+        },
+      ],
+    },
+  ],
+  gauge: [
+    {
+      key: 'rate',
+      label: t('Rate'),
+      options: [
+        {
+          label: 'per_second',
+          value: 'per_second',
+        },
+        {
+          label: 'per_minute',
+          value: 'per_minute',
+        },
+      ],
+    },
+    {
+      key: 'stats',
+      label: t('Stats'),
+      options: [
+        {
+          label: 'min',
+          value: 'min',
+        },
+        {
+          label: 'max',
+          value: 'max',
+        },
+        {
+          label: 'avg',
+          value: 'avg',
+        },
+      ],
+    },
+  ],
+  distribution: [
+    {
+      key: 'percentiles',
+      label: t('Percentiles'),
+      options: [
+        {
+          label: 'p50',
+          value: 'p50',
+        },
+        {
+          label: 'p75',
+          value: 'p75',
+        },
+        {
+          label: 'p90',
+          value: 'p90',
+        },
+        {
+          label: 'p95',
+          value: 'p95',
+        },
+        {
+          label: 'p99',
+          value: 'p99',
+        },
+        {
+          label: 'avg',
+          value: 'avg',
+        },
+        {
+          label: 'min',
+          value: 'min',
+        },
+        {
+          label: 'max',
+          value: 'max',
+        },
+      ],
+    },
+    {
+      key: 'math',
+      label: t('Math'),
+      options: [
+        {
+          label: 'sum',
+          value: 'sum',
+        },
+        {
+          label: 'count',
+          value: 'count',
+        },
+      ],
+    },
+    {
+      key: 'rate',
+      label: t('Rate'),
+      options: [
+        {
+          label: 'per_second',
+          value: 'per_second',
+        },
+        {
+          label: 'per_minute',
+          value: 'per_minute',
+        },
+      ],
     },
   ],
 };
