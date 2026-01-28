@@ -143,20 +143,20 @@ experimental_cases: list[tuple[str, str, str]] = [
 def test_parameterize_standard(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected == parameterizer.parameterize_all(input)
-    assert f"prefix {expected}" == f"prefix {parameterizer.parameterize_all(input)}"
-    assert f"{expected} suffix" == f"{parameterizer.parameterize_all(input)} suffix"
-    assert f"prefix {expected} suffix" == f"prefix {parameterizer.parameterize_all(input)} suffix"
+    assert parameterizer.parameterize_all(input) == expected
+    assert f"prefix {parameterizer.parameterize_all(input)}" == f"prefix {expected}"
+    assert f"{parameterizer.parameterize_all(input)} suffix" == f"{expected} suffix"
+    assert f"prefix {parameterizer.parameterize_all(input)} suffix" == f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
 def test_parameterize_standard_not_experimental(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected != parameterizer.parameterize_all(input)
-    assert f"prefix {expected}" != f"prefix {parameterizer.parameterize_all(input)}"
-    assert f"{expected} suffix" != f"{parameterizer.parameterize_all(input)} suffix"
-    assert f"prefix {expected} suffix" != f"prefix {parameterizer.parameterize_all(input)} suffix"
+    assert parameterizer.parameterize_all(input) != expected
+    assert f"prefix {parameterizer.parameterize_all(input)}" != f"prefix {expected}"
+    assert f"{parameterizer.parameterize_all(input)} suffix" != f"{expected} suffix"
+    assert f"prefix {parameterizer.parameterize_all(input)} suffix" != f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
@@ -164,10 +164,10 @@ def test_parameterize_experimental(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
 ) -> None:
     parameterizer = experimental_parameterizer
-    assert expected == parameterizer.parameterize_all(input)
-    assert f"prefix {expected}" == f"prefix {parameterizer.parameterize_all(input)}"
-    assert f"{expected} suffix" == f"{parameterizer.parameterize_all(input)} suffix"
-    assert f"prefix {expected} suffix" == f"prefix {parameterizer.parameterize_all(input)} suffix"
+    assert parameterizer.parameterize_all(input) == expected
+    assert f"prefix {parameterizer.parameterize_all(input)}" == f"prefix {expected}"
+    assert f"{parameterizer.parameterize_all(input)} suffix" == f"{expected} suffix"
+    assert f"prefix {parameterizer.parameterize_all(input)} suffix" == f"prefix {expected} suffix"
 
 
 # These are test cases that we should fix
@@ -185,7 +185,7 @@ def test_parameterize_experimental(
 def test_fail_parameterize(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
+    assert parameterizer.parameterize_all(input) == expected, f"Case {name} Failed"
 
 
 # These are test cases were we're too aggressive
@@ -199,4 +199,4 @@ def test_fail_parameterize(
 def test_too_aggressive_parameterize(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
+    assert parameterizer.parameterize_all(input) == expected, f"Case {name} Failed"
