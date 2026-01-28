@@ -35,6 +35,15 @@ from sentry.types.region import get_local_region
 logger = logging.getLogger(__name__)
 
 
+@receiver(process_region_outbox, sender=OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS)
+def update_sentry_app_action_data(
+    shard_identifier: int,
+    object_identifier: int,
+    **kwds: Any,
+):
+    pass
+
+
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
 def process_audit_log_event(payload: Any, **kwds: Any):
     if payload is not None:
