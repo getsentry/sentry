@@ -146,6 +146,7 @@ class EapCheckEntry:
     incident_status: IncidentStatus
     environment: str
     region: str
+    trace_item_id: str = ""
     # Parsed JSON, can be a dict, so exclude it from hashing/comparison.
     assertion_failure_data: Assertion | None = field(compare=False, default=None)
 
