@@ -30,8 +30,8 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       interval: '5m',
       queries: [
         {
-          fields: ['count_healthy(user)'],
-          aggregates: ['count_healthy(user)'],
+          fields: ['crash_free_rate(user)'],
+          aggregates: ['crash_free_rate(user)'],
           columns: [],
           name: '',
           orderby: '',
@@ -73,6 +73,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           aggregates: ['crash_free_rate(session)'],
           columns: [],
+          fields: ['crash_free_rate(session)'],
           name: '',
           orderby: '',
           conditions: '',
@@ -87,8 +88,8 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       interval: '5m',
       queries: [
         {
-          fields: ['count_healthy(user)'],
-          aggregates: ['count_healthy(user)'],
+          fields: ['crash_free_rate(user)'],
+          aggregates: ['crash_free_rate(user)'],
           columns: [],
           name: '',
           orderby: '',
