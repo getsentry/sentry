@@ -365,7 +365,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         project = self.create_project()
         event = self.create_issue_event()
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = ConsecutiveHTTPSpanDetector(settings, event)
 
         assert detector.is_creation_allowed_for_project(project)
@@ -376,7 +376,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
             value={"consecutive_http_spans_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = ConsecutiveHTTPSpanDetector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
