@@ -731,7 +731,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/users/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/web-vitals-detector/'
   | '/publickeys/relocations/'
-  | '/relays/'
   | '/relays/$relayId/'
   | '/relays/live/'
   | '/relays/projectconfigs/'
