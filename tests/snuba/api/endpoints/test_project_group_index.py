@@ -964,6 +964,57 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             == "Unable to find the given commit."
         )
 
+    def test_set_resolved_in_explicit_commit_with_existing_grouplink(self) -> None:
+        """
+        Test that resolving via API with inCommit works when a GroupLink already exists.
+
+        This scenario occurs when:
+        1. A commit is pushed with "Fixes ISSUE-123" in the message
+        2. The resolved_in_commit signal creates a GroupLink (but doesn't resolve)
+        3. User then manually resolves via API with the same commit
+
+        The API should handle the existing GroupLink gracefully (no IntegrityError).
+        """
+        repo = self.create_repo(project=self.project, name=self.project.name)
+        commit = self.create_commit(project=self.project, repo=repo)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        # Simulate what resolved_in_commit does when a commit is pushed:
+        # It creates a GroupLink but does NOT resolve the issue
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
+
+        self.login_as(user=self.user)
+
+        # Now resolve via API with the same commit - should not raise IntegrityError
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(
+            url,
+            data={
+                "status": "resolved",
+                "statusDetails": {"inCommit": {"commit": commit.key, "repository": repo.name}},
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        # Should still only have one GroupLink (no duplicates)
+        assert GroupLink.objects.filter(group_id=group.id).count() == 1
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.linked_type == GroupLink.LinkedType.commit
+        assert link.relationship == GroupLink.Relationship.resolves
+        assert link.linked_id == commit.id
+
     def test_set_unresolved(self) -> None:
         release = self.create_release(project=self.project, version="abc")
         group = self.create_group(status=GroupStatus.RESOLVED)
