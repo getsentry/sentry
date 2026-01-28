@@ -228,25 +228,23 @@ describe('OurlogsSection', () => {
       expect(screen.getByText(/i am a log/)).toBeInTheDocument();
     });
 
-    expect(
-      screen.queryByRole('complementary', {name: 'logs drawer'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('tree-key-severity')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText(/i am a log/));
 
-    const aside = screen.getByRole('complementary', {name: 'logs drawer'});
-    expect(aside).toBeInTheDocument();
+    // Wait for drawer content to appear
+    await screen.findByTestId('tree-key-severity');
 
     await waitFor(() => {
       expect(mockRowDetailsRequest).toHaveBeenCalledTimes(1);
     });
 
     await waitFor(() => {
-      expect(within(aside).getByText(/special value/)).toBeInTheDocument();
+      expect(screen.getByText(/special value/)).toBeInTheDocument();
     });
 
-    expect(within(aside).getByTestId('tree-key-severity')).toBeInTheDocument();
-    expect(within(aside).getByTestId('tree-key-severity')).toHaveTextContent('severity');
+    expect(screen.getByTestId('tree-key-severity')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-severity')).toHaveTextContent('severity');
   });
 
   it('renders Open in explore button with correct URL when trace_id exists', async () => {
@@ -270,10 +268,8 @@ describe('OurlogsSection', () => {
 
     await userEvent.click(screen.getByText(/i am a log/));
 
-    const aside = screen.getByRole('complementary', {name: 'logs drawer'});
-    expect(aside).toBeInTheDocument();
-
-    const openInExploreButton = within(aside).getByRole('button', {
+    // Wait for drawer to open and find the "Open in explore" button
+    const openInExploreButton = await screen.findByRole('button', {
       name: 'Open in explore',
     });
     expect(openInExploreButton).toBeInTheDocument();

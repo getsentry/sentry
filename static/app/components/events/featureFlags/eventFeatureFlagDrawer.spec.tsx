@@ -26,7 +26,21 @@ async function renderFlagDrawer() {
     }));
   render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
   await userEvent.click(screen.getByRole('button', {name: 'View 1 More Flag'}));
-  return screen.getByRole('complementary', {name: 'Feature flags drawer'});
+
+  // Wait for drawer to open and find the complementary element with feature flag content
+  await screen.findByRole('textbox', {name: 'Search Flags'});
+
+  // Get all complementary elements and find the one with feature flag content
+  const drawers = screen.getAllByRole('complementary');
+  const drawerWithContent = drawers.find(d =>
+    within(d).queryByRole('textbox', {name: 'Search Flags'})
+  );
+
+  if (!drawerWithContent) {
+    throw new Error('Could not find feature flag drawer');
+  }
+
+  return drawerWithContent;
 }
 
 describe('FeatureFlagDrawer', () => {

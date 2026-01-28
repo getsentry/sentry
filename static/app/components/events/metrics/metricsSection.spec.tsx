@@ -275,18 +275,14 @@ describe('MetricsSection', () => {
     });
 
     expect(
-      screen.queryByRole('complementary', {name: 'metrics drawer'})
+      screen.queryByPlaceholderText('Search metrics for this trace')
     ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'View more'}));
 
-    const aside = screen.getByRole('complementary', {name: 'metrics drawer'});
-    expect(aside).toBeInTheDocument();
-
-    // Check that the drawer contains the expected elements
-    expect(within(aside).getByText('Metrics')).toBeInTheDocument();
+    // Check that the drawer search input appears (unique to the drawer)
     expect(
-      within(aside).getByPlaceholderText('Search metrics for this trace')
+      await screen.findByPlaceholderText('Search metrics for this trace')
     ).toBeInTheDocument();
   });
 

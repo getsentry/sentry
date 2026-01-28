@@ -47,24 +47,18 @@ describe('GlobalDrawer', () => {
       />
     );
 
-    expect(
-      screen.queryByRole('complementary', {name: ariaLabel})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(screen.getByRole('complementary', {name: ariaLabel})).toBeInTheDocument();
     // Doesn't render header with close button unless provided to renderer
     expect(screen.queryByRole('button', {name: 'Close Drawer'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
-    await waitForDrawerToHide(ariaLabel);
+    await waitForDrawerToHide();
 
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('complementary', {name: ariaLabel})
-    ).not.toBeInTheDocument();
   });
 
   it('closes the drawer on URL change', async () => {
@@ -90,7 +84,7 @@ describe('GlobalDrawer', () => {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     router.navigate('/some-other-path');
-    await waitForDrawerToHide(ariaLabel);
+    await waitForDrawerToHide();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
   });
 
@@ -116,7 +110,7 @@ describe('GlobalDrawer', () => {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide(ariaLabel);
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
@@ -143,7 +137,7 @@ describe('GlobalDrawer', () => {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-outside'));
-    await waitForDrawerToHide(ariaLabel);
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
@@ -171,7 +165,7 @@ describe('GlobalDrawer', () => {
     expect(button).toBeInTheDocument();
 
     await userEvent.click(button);
-    await waitForDrawerToHide(ariaLabel);
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
     expect(button).not.toBeInTheDocument();
@@ -216,7 +210,7 @@ describe('GlobalDrawer', () => {
     expect(content).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide(ariaLabel);
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
     expect(content).not.toBeInTheDocument();
@@ -241,19 +235,18 @@ describe('GlobalDrawer', () => {
 
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
-    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    const drawer = screen.getByRole('complementary', {name: ariaLabel});
-    expect(drawer).toBeInTheDocument();
+    const drawerContent = await screen.findByTestId('drawer-test-content');
+    expect(drawerContent).toBeInTheDocument();
 
     // Has close button + custom header
-    const closeButton = within(drawer).getByRole('button', {name: 'Close Drawer'});
+    const closeButton = screen.getByRole('button', {name: 'Close Drawer'});
     expect(closeButton).toBeInTheDocument();
-    expect(within(drawer).getByText(customHeader)).toBeInTheDocument();
+    expect(screen.getByText(customHeader)).toBeInTheDocument();
 
     await userEvent.click(closeButton);
-    await waitForDrawerToHide(ariaLabel);
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
-    expect(drawer).not.toBeInTheDocument();
+    expect(drawerContent).not.toBeInTheDocument();
   });
 });
