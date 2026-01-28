@@ -23,7 +23,6 @@ from sentry.uptime.grouptype import (
     UptimeDomainCheckFailure,
     UptimePacketValue,
     build_event_data,
-    build_evidence_data,
     build_evidence_display,
 )
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription, get_uptime_subscription
@@ -95,28 +94,6 @@ class BuildFingerprintTest(UptimeTestCase):
         fingerprint = build_fingerprint(detector)
         expected_fingerprint = [build_detector_fingerprint_component(detector)]
         assert fingerprint == expected_fingerprint
-
-
-class BuildEvidenceDataTest(UptimeTestCase):
-    def test_build_evidence_data(self) -> None:
-        assertion_failure_data = {
-            "root": {
-                "op": "and",
-                "children": [
-                    {
-                        "op": "not",
-                        "operand": {
-                            "op": "json_path",
-                            "value": '$.components[?@.status == "operational"]',
-                        },
-                    },
-                ],
-            }
-        }
-        result = self.create_uptime_result()
-        assert build_evidence_data(result) == {
-            "assertion_failure_data": assertion_failure_data,
-        }
 
 
 class BuildEvidenceDisplayTest(UptimeTestCase):

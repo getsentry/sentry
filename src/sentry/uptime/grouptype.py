@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, override
+from typing import override
 
 from django.db.models import Q
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, CheckStatus
@@ -81,16 +81,6 @@ def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
         evidence_display.extend([method_evidence, status_code_evidence])
 
     return evidence_display
-
-
-def build_evidence_data(result: CheckResult) -> dict[str, Any]:
-    evidence_data: dict[str, Any] = {}
-
-    assertion_failure_data = result.get("assertion_failure_data")
-    if assertion_failure_data is not None:
-        evidence_data["assertion_failure_data"] = assertion_failure_data
-
-    return evidence_data
 
 
 def build_event_data(result: CheckResult, detector: Detector) -> EventData:
@@ -251,7 +241,6 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
             subtitle="Your monitored domain is down",
             evidence_data=evidence_data,
             evidence_display=build_evidence_display(result),
-            evidence_data=build_evidence_data(result),
             type=UptimeDomainCheckFailure,
             level="error",
             culprit="",  # TODO: The url?
