@@ -17,9 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class Platform(StrEnum):
-    IOS = "ios"
+    APPLE = "apple"
     ANDROID = "android"
-    MACOS = "macos"
 
 
 class AppleAppInfo(BaseModel):
@@ -157,7 +156,7 @@ class BuildDetailsApiResponse(BaseModel):
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
     match artifact_type:
         case PreprodArtifact.ArtifactType.XCARCHIVE:
-            return Platform.IOS
+            return Platform.APPLE
         case PreprodArtifact.ArtifactType.AAB:
             return Platform.ANDROID
         case PreprodArtifact.ArtifactType.APK:
@@ -174,7 +173,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
         platform = platform_from_artifact_type(artifact.artifact_type)
 
     apple_app_info = None
-    if platform == Platform.IOS or platform == Platform.MACOS:
+    if platform == Platform.APPLE:
         legacy_missing_dsym_binaries = (
             artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
         )
