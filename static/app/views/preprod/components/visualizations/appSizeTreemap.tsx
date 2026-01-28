@@ -35,6 +35,7 @@ interface AppSizeTreemapProps {
   searchQuery: string;
   alertMessage?: string;
   highlightInsights?: boolean;
+  insightsAvailable?: boolean;
   onAlertClick?: () => void;
   onHighlightInsightsChange?: (enabled: boolean) => void;
   onSearchChange?: (query: string) => void;
@@ -49,11 +50,13 @@ function FullscreenModalContent({
   onSearchChange,
   initialHighlightInsights,
   onHighlightInsightsChange,
+  insightsAvailable,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
   alertMessage?: string;
   initialHighlightInsights?: boolean;
+  insightsAvailable?: boolean;
   onAlertClick?: () => void;
   onHighlightInsightsChange?: (enabled: boolean) => void;
   onSearchChange?: (query: string) => void;
@@ -106,6 +109,7 @@ function FullscreenModalContent({
           onAlertClick={onAlertClick}
           highlightInsights={localHighlightInsights}
           onHighlightInsightsChange={handleHighlightInsightsChange}
+          insightsAvailable={insightsAvailable}
         />
       </Container>
     </Flex>
@@ -123,6 +127,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     onSearchChange,
     highlightInsights,
     onHighlightInsightsChange,
+    insightsAvailable,
   } = props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const renderingContext = useContext(ChartRenderingContext);
@@ -380,14 +385,18 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   };
 
   const treemapControlButtons: TreemapControlButton[] = [
-    {
-      ariaLabel: t('Toggle Insight Highlighting'),
-      title: highlightInsights ? t('Hide Insights') : t('Insights'),
-      icon: <IconLightning />,
-      onClick: () => onHighlightInsightsChange?.(!highlightInsights),
-      disabled: false,
-      active: highlightInsights,
-    },
+    ...(insightsAvailable
+      ? [
+          {
+            ariaLabel: t('Toggle Insight Highlighting'),
+            title: highlightInsights ? t('Hide Insights') : t('Insights'),
+            icon: <IconLightning />,
+            onClick: () => onHighlightInsightsChange?.(!highlightInsights),
+            disabled: false,
+            active: highlightInsights,
+          },
+        ]
+      : []),
     {
       ariaLabel: t('Recenter View'),
       title: t('Recenter'),
@@ -415,6 +424,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               onSearchChange={onSearchChange}
               initialHighlightInsights={highlightInsights}
               onHighlightInsightsChange={onHighlightInsightsChange}
+              insightsAvailable={insightsAvailable}
             />
           ) : (
             <Container height="100%" width="100%">
@@ -425,6 +435,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                 onAlertClick={onAlertClick}
                 highlightInsights={highlightInsights}
                 onHighlightInsightsChange={onHighlightInsightsChange}
+                insightsAvailable={insightsAvailable}
               />
             </Container>
           ),

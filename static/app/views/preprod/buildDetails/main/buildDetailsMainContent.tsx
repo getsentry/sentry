@@ -285,6 +285,15 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     }
   };
 
+  // Determine if insights highlighting is available:
+  // 1. The treemap must have flagged_insights support (new schema)
+  // 2. There must be at least one insight in the insights object
+  const hasFlaggedInsightsSupport =
+    appSizeData.treemap.root && 'flagged_insights' in appSizeData.treemap.root;
+  const hasAnyInsights =
+    appSizeData.insights && Object.keys(appSizeData.insights).length > 0;
+  const insightsAvailable = hasFlaggedInsightsSupport && hasAnyInsights;
+
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
     appSizeData.treemap.root,
@@ -317,6 +326,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onSearchChange={value => setSearchQuery(value || undefined)}
             highlightInsights={highlightInsights}
             onHighlightInsightsChange={setHighlightInsights}
+            insightsAvailable={insightsAvailable}
           />
         ) : (
           <Alert variant="info">No files found matching "{searchQuery}"</Alert>
@@ -339,6 +349,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         onSearchChange={value => setSearchQuery(value || undefined)}
         highlightInsights={highlightInsights}
         onHighlightInsightsChange={setHighlightInsights}
+        insightsAvailable={insightsAvailable}
       />
     ) : (
       <Alert variant="info">No files found matching "{searchQuery}"</Alert>
