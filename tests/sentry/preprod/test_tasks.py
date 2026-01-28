@@ -615,7 +615,12 @@ class CreatePreprodArtifactTest(TestCase):
         content = b"test with both quotas"
         total_checksum = sha1(content).hexdigest()
 
-        with self.feature("organizations:preprod-enforce-quota"):
+        with self.feature(
+            [
+                "organizations:preprod-enforce-size-quota",
+                "organizations:preprod-enforce-distribution-quota",
+            ]
+        ):
             with patch("sentry.preprod.quotas.quotas.backend.has_usage_quota", return_value=True):
                 artifact = create_preprod_artifact(
                     org_id=self.organization.id,
@@ -633,7 +638,12 @@ class CreatePreprodArtifactTest(TestCase):
         def quota_side_effect(org_id, data_category):
             return data_category == DataCategory.SIZE_ANALYSIS
 
-        with self.feature("organizations:preprod-enforce-quota"):
+        with self.feature(
+            [
+                "organizations:preprod-enforce-size-quota",
+                "organizations:preprod-enforce-distribution-quota",
+            ]
+        ):
             with patch(
                 "sentry.preprod.quotas.quotas.backend.has_usage_quota",
                 side_effect=quota_side_effect,
@@ -654,7 +664,12 @@ class CreatePreprodArtifactTest(TestCase):
         def quota_side_effect(org_id, data_category):
             return data_category == DataCategory.INSTALLABLE_BUILD
 
-        with self.feature("organizations:preprod-enforce-quota"):
+        with self.feature(
+            [
+                "organizations:preprod-enforce-size-quota",
+                "organizations:preprod-enforce-distribution-quota",
+            ]
+        ):
             with patch(
                 "sentry.preprod.quotas.quotas.backend.has_usage_quota",
                 side_effect=quota_side_effect,
@@ -672,7 +687,12 @@ class CreatePreprodArtifactTest(TestCase):
         content = b"test with no quota"
         total_checksum = sha1(content).hexdigest()
 
-        with self.feature("organizations:preprod-enforce-quota"):
+        with self.feature(
+            [
+                "organizations:preprod-enforce-size-quota",
+                "organizations:preprod-enforce-distribution-quota",
+            ]
+        ):
             with patch("sentry.preprod.quotas.quotas.backend.has_usage_quota", return_value=False):
                 with pytest.raises(NoPreprodQuota):
                     create_preprod_artifact(

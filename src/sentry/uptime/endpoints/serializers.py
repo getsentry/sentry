@@ -36,6 +36,7 @@ class UptimeSubscriptionSerializerResponse(TypedDict):
     intervalSeconds: int
     timeoutMs: int
     traceSampling: bool
+    assertion: Any | None
 
 
 @register(UptimeSubscription)
@@ -51,6 +52,7 @@ class UptimeSubscriptionSerializer(Serializer):
             "intervalSeconds": obj.interval_seconds,
             "timeoutMs": obj.timeout_ms,
             "traceSampling": obj.trace_sampling,
+            "assertion": obj.assertion,
         }
 
 

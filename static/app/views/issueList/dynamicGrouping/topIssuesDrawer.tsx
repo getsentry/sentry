@@ -43,6 +43,7 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -208,7 +209,13 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
 
   const {data: event, isPending} = useApiQuery<Event>(
     [
-      `/organizations/${organization.slug}/issues/${groupId}/events/${defaultIssueEvent}/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/`, {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: groupId,
+          eventId: defaultIssueEvent,
+        },
+      }),
       {
         query: {
           collapse: ['fullRelease'],

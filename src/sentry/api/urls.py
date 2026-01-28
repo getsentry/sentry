@@ -449,10 +449,6 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.preprod.api.endpoints import urls as preprod_urls
-from sentry.prevent.endpoints.organization_github_repos import (
-    OrganizationPreventGitHubReposEndpoint,
-)
-from sentry.prevent.endpoints.pr_review_github_config import OrganizationPreventGitHubConfigEndpoint
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
 )
@@ -1176,17 +1172,6 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repositories/sync/$",
         SyncReposEndpoint.as_view(),
         name="sentry-api-0-repositories-sync",
-    ),
-    # Prevent AI endpoints
-    re_path(
-        r"^ai/github/config/(?P<git_organization_name>[^/]+)/$",
-        OrganizationPreventGitHubConfigEndpoint.as_view(),
-        name="sentry-api-0-organization-prevent-github-config",
-    ),
-    re_path(
-        r"^ai/github/repos/$",
-        OrganizationPreventGitHubReposEndpoint.as_view(),
-        name="sentry-api-0-organization-prevent-github-repos",
     ),
 ]
 
@@ -3461,8 +3446,6 @@ SENTRY_APP_URLS = [
         SentryAppWebhookRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-webhook-requests",
     ),
-    # The following a region endpoints as interactions and request logs
-    # are per-region.
     re_path(
         r"^(?P<sentry_app_id_or_slug>[^/]+)/interaction/$",
         SentryAppInteractionEndpoint.as_view(),
@@ -3481,8 +3464,6 @@ SENTRY_APP_INSTALLATION_URLS = [
         SentryAppAuthorizationsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-authorizations",
     ),
-    # The following endpoints are region scoped, not control
-    # like most of sentryapps.
     re_path(
         r"^(?P<uuid>[^/]+)/external-requests/$",
         SentryAppInstallationExternalRequestsEndpoint.as_view(),

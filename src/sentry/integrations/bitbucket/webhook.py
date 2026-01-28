@@ -189,7 +189,7 @@ class BitbucketWebhookEndpoint(Endpoint):
 
         body = bytes(request.body)
         if not body:
-            logger.error(
+            logger.warning(
                 "%s.webhook.missing-body", PROVIDER_NAME, extra={"organization_id": organization.id}
             )
             return HttpResponse(status=400)
@@ -197,7 +197,7 @@ class BitbucketWebhookEndpoint(Endpoint):
         try:
             handler = self.get_handler(request.META["HTTP_X_EVENT_KEY"])
         except KeyError:
-            logger.exception(
+            logger.warning(
                 "%s.webhook.missing-event",
                 PROVIDER_NAME,
                 extra={"organization_id": organization.id},
@@ -216,7 +216,7 @@ class BitbucketWebhookEndpoint(Endpoint):
                 break
 
         if not valid_ip and address_string not in BITBUCKET_IPS:
-            logger.error(
+            logger.warning(
                 "%s.webhook.invalid-ip-range",
                 PROVIDER_NAME,
                 extra={"organization_id": organization.id},
@@ -226,7 +226,7 @@ class BitbucketWebhookEndpoint(Endpoint):
         try:
             event = orjson.loads(body)
         except orjson.JSONDecodeError:
-            logger.exception(
+            logger.warning(
                 "%s.webhook.invalid-json",
                 PROVIDER_NAME,
                 extra={"organization_id": organization.id},

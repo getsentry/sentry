@@ -114,6 +114,11 @@ class CheckConfig(TypedDict, total=False):
     The runtime assertion to execute, or null.
     """
 
+    capture_response_on_failure: bool
+    """
+    Whether to capture response body and headers on check failures.
+    """
+
 
 class IncidentStatus(IntEnum):
     """
