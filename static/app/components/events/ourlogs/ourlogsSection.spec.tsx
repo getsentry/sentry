@@ -9,7 +9,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';

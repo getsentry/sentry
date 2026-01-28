@@ -8,7 +8,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';

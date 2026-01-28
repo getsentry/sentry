@@ -83,7 +83,7 @@ describe('BreadcrumbsDataSection', () => {
     expect(searchInput).toBeInTheDocument();
 
     await userEvent.click(viewAllButton);
-    await waitForDrawerToHide();
+    await waitForDrawerToHide('breadcrumb drawer');
     expect(searchInput).not.toBeInTheDocument();
   });
 

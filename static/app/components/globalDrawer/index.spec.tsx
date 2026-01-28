@@ -5,7 +5,6 @@ import {
   screen,
   userEvent,
   waitForDrawerToHide,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {DrawerConfig} from 'sentry/components/globalDrawer';
@@ -56,7 +55,7 @@ describe('GlobalDrawer', () => {
     expect(screen.queryByRole('button', {name: 'Close Drawer'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
   });
@@ -84,7 +83,7 @@ describe('GlobalDrawer', () => {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     router.navigate('/some-other-path');
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
   });
 
@@ -110,7 +109,7 @@ describe('GlobalDrawer', () => {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
@@ -137,7 +136,7 @@ describe('GlobalDrawer', () => {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-outside'));
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
@@ -165,7 +164,7 @@ describe('GlobalDrawer', () => {
     expect(button).toBeInTheDocument();
 
     await userEvent.click(button);
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(button).not.toBeInTheDocument();
@@ -210,7 +209,7 @@ describe('GlobalDrawer', () => {
     expect(content).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(content).not.toBeInTheDocument();
@@ -244,7 +243,7 @@ describe('GlobalDrawer', () => {
     expect(screen.getByText(customHeader)).toBeInTheDocument();
 
     await userEvent.click(closeButton);
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(drawerContent).not.toBeInTheDocument();

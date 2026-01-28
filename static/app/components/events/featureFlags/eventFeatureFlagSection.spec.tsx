@@ -88,7 +88,7 @@ describe('EventFeatureFlagList', () => {
     expect(searchInput).toBeInTheDocument();
 
     await userEvent.click(viewAllButton);
-    await waitForDrawerToHide();
+    await waitForDrawerToHide('Feature flags drawer');
     expect(searchInput).not.toBeInTheDocument();
   });
 
