@@ -27,6 +27,9 @@ from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +71,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         self.group = group
         self.channel_id = slack_request.channel_id or ""
         self.thread_ts = slack_request.data["message"]["ts"]
+        self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
         self.organization_id = organization_id
         self.install = SlackIntegration(
             model=slack_request.integration, organization_id=organization_id
@@ -110,17 +114,16 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         return stopping_point
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
-        _send_thread_update(
+        send_thread_update(
             install=self.install,
-            threads=[SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)],
+            thread=self.thread,
             data=SeerAutofixError(error_message=error),
-            ephemeral_user_id=self.slack_request.user_id,
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
-        _send_thread_update(
+        send_thread_update(
             install=self.install,
-            threads=[SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)],
+            thread=self.thread,
             data=SeerAutofixSuccess(
                 run_id=run_id,
                 organization_id=self.organization_id,
@@ -162,85 +165,56 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         event_payload: dict[str, Any],
         cache_payload: SlackEntrypointCachePayload,
     ) -> None:
-        from sentry.integrations.slack.integration import SlackIntegration
-
         logging_ctx = {
             "event_type": event_type,
             "cache_payload": cache_payload,
             "entrypoint_key": SlackEntrypoint.key,
         }
-        integration = integration_service.get_integration(
-            integration_id=cache_payload["integration_id"],
-            organization_id=cache_payload["organization_id"],
-            provider=IntegrationProviderSlug.SLACK.value,
-            status=ObjectStatus.ACTIVE,
-        )
-        if not integration:
-            logger.warning("entrypoint.integration_not_found", extra=logging_ctx)
-            return
-
-        install = SlackIntegration(
-            model=integration, organization_id=cache_payload["organization_id"]
-        )
         group_link = f'{cache_payload["group_link"]}?seerDrawer=true'
 
         match event_type:
             case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
                 root_cause = event_payload.get("root_cause", {})
-                _send_thread_update(
-                    install=install,
-                    threads=cache_payload["threads"],
-                    data=SeerAutofixUpdate(
-                        run_id=event_payload["run_id"],
-                        organization_id=cache_payload["organization_id"],
-                        project_id=cache_payload["project_id"],
-                        group_id=cache_payload["group_id"],
-                        current_point=AutofixStoppingPoint.ROOT_CAUSE,
-                        summary=root_cause.get("description", ""),
-                        steps=[step.get("title", "") for step in root_cause.get("steps", [])],
-                        group_link=group_link,
-                    ),
+                data = SeerAutofixUpdate(
+                    run_id=event_payload["run_id"],
+                    organization_id=cache_payload["organization_id"],
+                    project_id=cache_payload["project_id"],
+                    group_id=cache_payload["group_id"],
+                    current_point=AutofixStoppingPoint.ROOT_CAUSE,
+                    summary=root_cause.get("description", ""),
+                    steps=[step.get("title", "") for step in root_cause.get("steps", [])],
+                    group_link=group_link,
                 )
-                return
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:
                 solution = event_payload.get("solution", {})
-                _send_thread_update(
-                    install=install,
-                    threads=cache_payload["threads"],
-                    data=SeerAutofixUpdate(
-                        run_id=event_payload["run_id"],
-                        organization_id=cache_payload["organization_id"],
-                        project_id=cache_payload["project_id"],
-                        group_id=cache_payload["group_id"],
-                        current_point=AutofixStoppingPoint.SOLUTION,
-                        summary=solution.get("description", ""),
-                        steps=[step.get("title", "") for step in solution.get("steps", [])],
-                        group_link=group_link,
-                    ),
+                data = SeerAutofixUpdate(
+                    run_id=event_payload["run_id"],
+                    organization_id=cache_payload["organization_id"],
+                    project_id=cache_payload["project_id"],
+                    group_id=cache_payload["group_id"],
+                    current_point=AutofixStoppingPoint.SOLUTION,
+                    summary=solution.get("description", ""),
+                    steps=[step.get("title", "") for step in solution.get("steps", [])],
+                    group_link=group_link,
                 )
-                return
             case SentryAppEventType.SEER_CODING_COMPLETED:
                 changes = event_payload.get("changes", [])
-                _send_thread_update(
-                    install=install,
-                    threads=cache_payload["threads"],
-                    data=SeerAutofixUpdate(
-                        run_id=event_payload["run_id"],
-                        organization_id=cache_payload["organization_id"],
-                        project_id=cache_payload["project_id"],
-                        group_id=cache_payload["group_id"],
-                        current_point=AutofixStoppingPoint.CODE_CHANGES,
-                        changes=[
-                            {
-                                "repo_name": change.get("repo_name", ""),
-                                "diff": change.get("diff", ""),
-                                "title": change.get("title", ""),
-                                "description": change.get("description", ""),
-                            }
-                            for change in changes
-                        ],
-                        group_link=group_link,
-                    ),
+                data = SeerAutofixUpdate(
+                    run_id=event_payload["run_id"],
+                    organization_id=cache_payload["organization_id"],
+                    project_id=cache_payload["project_id"],
+                    group_id=cache_payload["group_id"],
+                    current_point=AutofixStoppingPoint.CODE_CHANGES,
+                    changes=[
+                        {
+                            "repo_name": change.get("repo_name", ""),
+                            "diff": change.get("diff", ""),
+                            "title": change.get("title", ""),
+                            "description": change.get("description", ""),
+                        }
+                        for change in changes
+                    ],
+                    group_link=group_link,
                 )
             case SentryAppEventType.SEER_PR_CREATED:
                 pull_requests = [
@@ -248,61 +222,123 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                     for pr_payload in event_payload.get("pull_requests", [])
                 ]
                 summary = pull_requests[0].get("pr_url", "") if pull_requests else None
-                _send_thread_update(
-                    install=install,
-                    threads=cache_payload["threads"],
-                    data=SeerAutofixUpdate(
-                        run_id=event_payload["run_id"],
-                        organization_id=cache_payload["organization_id"],
-                        project_id=cache_payload["project_id"],
-                        group_id=cache_payload["group_id"],
-                        pull_requests=[
-                            {
-                                "pr_number": pr["pr_number"],
-                                "pr_url": pr["pr_url"],
-                            }
-                            for pr in pull_requests
-                        ],
-                        summary=summary,
-                        current_point=AutofixStoppingPoint.OPEN_PR,
-                        group_link=group_link,
-                    ),
+                data = SeerAutofixUpdate(
+                    run_id=event_payload["run_id"],
+                    organization_id=cache_payload["organization_id"],
+                    project_id=cache_payload["project_id"],
+                    group_id=cache_payload["group_id"],
+                    pull_requests=[
+                        {
+                            "pr_number": pr["pr_number"],
+                            "pr_url": pr["pr_url"],
+                        }
+                        for pr in pull_requests
+                    ],
+                    summary=summary,
+                    current_point=AutofixStoppingPoint.OPEN_PR,
+                    group_link=group_link,
                 )
+
             case _:
+                logging_ctx["event_type"] = event_type
+                logger.warning("entrypoint.unsupported_event_type", extra=logging_ctx)
                 return
 
+        schedule_all_thread_updates(
+            threads=cache_payload["threads"],
+            integration_id=cache_payload["integration_id"],
+            organization_id=cache_payload["organization_id"],
+            data=data,
+        )
+        logger.info("entrypoint.on_autofix_update_success", extra=logging_ctx)
 
-def _send_thread_update(
+
+def send_thread_update(
     *,
     install: SlackIntegration,
-    threads: list[SlackThreadDetails],
+    thread: SlackThreadDetails,
     data: NotificationData,
     ephemeral_user_id: str | None = None,
 ) -> None:
-    """
-    Send a message to a Slack thread. Needs to be external to the SlackEntrypoint since
-    it's used in both its instance methods and static methods
-    """
+    """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
     provider = provider_registry.get(NotificationProviderKey.SLACK)
     template_cls = template_registry.get(data.source)
     renderable = NotificationService.render_template(
         data=data, template=template_cls(), provider=provider
     )
     # Skip over the notification service for now since threading isn't yet formalized.
+    if ephemeral_user_id:
+        install.send_threaded_ephemeral_message(
+            channel_id=thread["channel_id"],
+            thread_ts=thread["thread_ts"],
+            renderable=renderable,
+            slack_user_id=ephemeral_user_id,
+        )
+    else:
+        install.send_threaded_message(
+            channel_id=thread["channel_id"],
+            thread_ts=thread["thread_ts"],
+            renderable=renderable,
+        )
+
+
+@instrumented_task(
+    name="sentry.seer.entrypoints.integrations.slack.process_thread_update",
+    namespace=integrations_tasks,
+    processing_deadline_duration=30,
+    retry=Retry(times=2, delay=30),
+)
+def process_thread_update(
+    *,
+    integration_id: int,
+    organization_id: int,
+    thread: SlackThreadDetails,
+    data: NotificationData,
+    ephemeral_user_id: str | None = None,
+) -> None:
+    """
+    Wraps 'send_thread_update' to get a SlackIntegration, so both the task and function can use the same
+    sending logic.
+    """
+
+    from sentry.integrations.slack.integration import SlackIntegration
+
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        organization_id=organization_id,
+        provider=IntegrationProviderSlug.SLACK.value,
+        status=ObjectStatus.ACTIVE,
+    )
+    if not integration:
+        return
+
+    send_thread_update(
+        install=SlackIntegration(model=integration, organization_id=organization_id),
+        thread=thread,
+        data=data,
+        ephemeral_user_id=ephemeral_user_id,
+    )
+
+
+def schedule_all_thread_updates(
+    *,
+    threads: list[SlackThreadDetails],
+    integration_id: int,
+    organization_id: int,
+    data: NotificationData,
+    ephemeral_user_id: str | None = None,
+) -> None:
+    """Schedules a task for each thread update to allow retries."""
     for thread in threads:
-        if ephemeral_user_id:
-            install.send_threaded_ephemeral_message(
-                channel_id=thread["channel_id"],
-                thread_ts=thread["thread_ts"],
-                renderable=renderable,
-                slack_user_id=ephemeral_user_id,
-            )
-        else:
-            install.send_threaded_message(
-                channel_id=thread["channel_id"],
-                thread_ts=thread["thread_ts"],
-                renderable=renderable,
-            )
+        process_thread_update.apply_async(
+            kwargs={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "thread": thread,
+                "data": data,
+                "ephemeral_user_id": ephemeral_user_id,
+            },
+        )
 
 
 def _transform_block_actions(

@@ -9,8 +9,8 @@ from sentry.seer.entrypoints.integrations.slack import (
     SlackEntrypoint,
     SlackEntrypointCachePayload,
     SlackThreadDetails,
-    _send_thread_update,
     _update_existing_message,
+    send_thread_update,
 )
 from sentry.testutils.cases import TestCase
 
@@ -51,15 +51,14 @@ class SlackEntrypointTest(TestCase):
         with self.feature({"organizations:seer-slack-workflows": False}):
             assert not SlackEntrypoint.has_access(self.organization)
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_autofix_error(self, mock_send_threaded_ephemeral_message):
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    def test_on_trigger_autofix_error(self, mock_send_threaded_message):
         ep = self._get_entrypoint()
         ep.on_trigger_autofix_error(error="Test error")
-        mock_send_threaded_ephemeral_message.assert_called_with(
+        mock_send_threaded_message.assert_called_with(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
             renderable=ANY,
-            slack_user_id=self.slack_request.user_id,
         )
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
@@ -97,23 +96,22 @@ class SlackEntrypointTest(TestCase):
         assert cache_payload["threads"][0]["thread_ts"] == self.thread_ts
         assert cache_payload["threads"][0]["channel_id"] == self.channel_id
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
-    def test_on_autofix_update(self, mock_send_threaded_message):
+    @patch("sentry.seer.entrypoints.integrations.slack.process_thread_update.apply_async")
+    def test_on_autofix_update(self, mock_process_thread_update):
         ep = self._get_entrypoint()
         for event_type, event_payload in MOCK_SEER_WEBHOOKS.items():
             cache_payload = ep.create_autofix_cache_payload()
             ep.on_autofix_update(
                 event_type=event_type, event_payload=event_payload, cache_payload=cache_payload
             )
-            mock_send_threaded_message.assert_called_with(
-                channel_id=self.channel_id,
-                thread_ts=self.thread_ts,
-                renderable=ANY,
-            )
+            mock_process_thread_update.assert_called()
+            call_kwargs = mock_process_thread_update.call_args.kwargs["kwargs"]
+            assert call_kwargs["thread"]["channel_id"] == self.channel_id
+            assert call_kwargs["thread"]["thread_ts"] == self.thread_ts
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
-    def test__send_thread_update(
+    def test_send_thread_update(
         self, mock_send_threaded_message, mock_send_threaded_ephemeral_message
     ):
         data = SeerAutofixUpdate(
@@ -126,8 +124,8 @@ class SlackEntrypointTest(TestCase):
         )
         install = self.integration.get_installation(organization_id=self.organization.id)
 
-        threads = [SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)]
-        _send_thread_update(install=install, threads=threads, data=data)
+        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+        send_thread_update(install=install, thread=thread, data=data)
         mock_send_threaded_message.assert_called_with(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
@@ -136,9 +134,9 @@ class SlackEntrypointTest(TestCase):
         mock_send_threaded_ephemeral_message.assert_not_called()
 
         mock_send_threaded_message.reset_mock()
-        _send_thread_update(
+        send_thread_update(
             install=install,
-            threads=threads,
+            thread=thread,
             data=data,
             ephemeral_user_id=self.slack_user_id,
         )
