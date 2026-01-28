@@ -1693,9 +1693,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     return
 
                 # No summary yet, generate summary + run automation in one go
-                generate_summary_and_run_automation.delay(
-                    group.id, trigger_path="seat_based_seer_automation"
-                )
+                generate_summary_and_run_automation.delay(group.id)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {

@@ -57,8 +57,6 @@ def generate_summary_and_run_automation(
 ) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary
 
-    sentry_sdk.set_tag("trigger_path", trigger_path)
-
     group = Group.objects.get(id=group_id)
     get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
 
