@@ -16,7 +16,11 @@ interface UseAutosizeInputOptions {
   value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
 
-function createSizingDiv(input: HTMLInputElement) {
+function createSizingDiv(computedStyles: {
+  fontFamily: string;
+  fontSize: string;
+  fontWeight: string;
+}) {
   const sizingDiv = document.createElement('div');
   sizingDiv.style.whiteSpace = 'pre';
   sizingDiv.style.width = 'auto';
@@ -27,7 +31,6 @@ function createSizingDiv(input: HTMLInputElement) {
   sizingDiv.style.zIndex = '-1';
 
   // Initialize font styles to match the input once at creation.
-  const computedStyles = getComputedStyle(input);
   sizingDiv.style.fontSize = computedStyles.fontSize;
   sizingDiv.style.fontWeight = computedStyles.fontWeight;
   sizingDiv.style.fontFamily = computedStyles.fontFamily;
@@ -95,14 +98,11 @@ function resize(
 
   // Lazily create and attach the sizing div
   if (!sizingDivRef.current) {
-    sizingDivRef.current = createSizingDiv(input);
+    sizingDivRef.current = createSizingDiv(computedStyles);
     document.body.appendChild(sizingDivRef.current);
   }
 
   const sizingDiv = sizingDivRef.current;
-
-  // Font styles are set when the sizing div is created
-
   sizingDiv.innerText = input.value || input.placeholder;
 
   const newTotalInputSize =
