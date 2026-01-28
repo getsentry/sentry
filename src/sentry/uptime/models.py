@@ -32,6 +32,9 @@ from sentry.workflow_engine.types import DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
 
+# Separator used in UptimeResponseCapture file storage format.
+RESPONSE_BODY_SEPARATOR = b"\r\n\r\n---BODY---\r\n\r\n"
+
 SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
 
