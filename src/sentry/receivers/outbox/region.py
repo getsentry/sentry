@@ -58,6 +58,7 @@ def update_sentry_app_action_data(
             }
         )
         if len(installs) > 1:
+            # XXX: we don't actually expect this to happen, but since get_many could return more than one we should check
             logger.info(
                 "Multiple sentry app installations found",
                 extra={

@@ -1,5 +1,6 @@
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestMigrations
+from sentry.testutils.outbox import outbox_runner
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
@@ -37,19 +38,25 @@ class TestMigrateActionsSentryAppData(TestMigrations):
 
     def test_migration(self) -> None:
         self.installation_uuid_action.refresh_from_db()
-        assert (
-            self.installation_uuid_action.config.get("sentry_app_identifier")
-            == SentryAppIdentifier.SENTRY_APP_ID
-        )
-        assert self.installation_uuid_action.config.get("target_identifier") == str(
-            self.sentry_app.id
-        )
-        assert self.installation_uuid_action.config.get("target_type") == ActionTarget.SENTRY_APP
-
         self.sentry_app_id_action.refresh_from_db()
-        assert (
-            self.sentry_app_id_action.config.get("sentry_app_identifier")
-            == SentryAppIdentifier.SENTRY_APP_ID
-        )
-        assert self.sentry_app_id_action.config.get("target_identifier") == str(self.sentry_app.id)
-        assert self.sentry_app_id_action.config.get("target_type") == ActionTarget.SENTRY_APP
+
+        with outbox_runner():
+            assert (
+                self.installation_uuid_action.config.get("sentry_app_identifier")
+                == SentryAppIdentifier.SENTRY_APP_ID
+            )
+            assert self.installation_uuid_action.config.get("target_identifier") == str(
+                self.sentry_app.id
+            )
+            assert (
+                self.installation_uuid_action.config.get("target_type") == ActionTarget.SENTRY_APP
+            )
+
+            assert (
+                self.sentry_app_id_action.config.get("sentry_app_identifier")
+                == SentryAppIdentifier.SENTRY_APP_ID
+            )
+            assert self.sentry_app_id_action.config.get("target_identifier") == str(
+                self.sentry_app.id
+            )
+            assert self.sentry_app_id_action.config.get("target_type") == ActionTarget.SENTRY_APP
