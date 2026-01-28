@@ -4,6 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {FieldKind} from 'sentry/utils/fields';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -66,7 +67,12 @@ function traceItemAttributeValuesQueryKey({
   }
 
   return [
-    `/organizations/${orgSlug}/trace-items/attributes/${attributeKey}/values/`,
+    getApiUrl(
+      '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
+      {
+        path: {organizationIdOrSlug: orgSlug, key: attributeKey},
+      }
+    ),
     {query},
   ];
 }
