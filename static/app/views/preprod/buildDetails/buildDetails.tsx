@@ -196,7 +196,7 @@ export default function BuildDetails() {
   return (
     <SentryDocumentTitle title={title}>
       <Layout.Page>
-        <PreprodQuotaAlert />
+        <PreprodQuotaAlert system />
         <Layout.Header>
           <BuildDetailsHeaderContent
             buildDetailsQuery={buildDetailsQuery}
