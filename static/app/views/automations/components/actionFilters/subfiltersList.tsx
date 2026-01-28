@@ -108,7 +108,12 @@ export function SubfiltersList() {
           );
         })}
       </div>
-      <PurpleTextButton priority="transparent" icon={<IconAdd />} size="xs" onClick={addSubfilter}>
+      <PurpleTextButton
+        priority="transparent"
+        icon={<IconAdd />}
+        size="xs"
+        onClick={addSubfilter}
+      >
         {t('Sub-filter')}
       </PurpleTextButton>
     </div>

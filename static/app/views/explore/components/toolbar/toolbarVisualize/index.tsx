@@ -126,7 +126,6 @@ export function ToolbarVisualizeAddChart({
 }: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      
       size="zero"
       icon={<IconAdd />}
       onClick={add}
@@ -142,7 +141,6 @@ export function ToolbarVisualizeAddChart({
 export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      
       size="zero"
       icon={<IconAdd />}
       onClick={add}

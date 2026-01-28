@@ -197,7 +197,7 @@ export function BaseChartActionDropdown({
       triggerProps={{
         'aria-label': t('Widget actions'),
         size: 'xs',
-        priority: "transparent",
+        priority: 'transparent',
         showChevron: false,
         icon: <IconEllipsis direction="down" size="sm" />,
       }}

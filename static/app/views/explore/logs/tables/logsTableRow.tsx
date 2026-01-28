@@ -618,7 +618,6 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
       <Button
         priority="link"
         size="sm"
-        
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -632,7 +631,6 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
       <Button
         priority="link"
         size="sm"
-        
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -691,7 +689,6 @@ function LogRowDetailsActions({
         <Button
           priority="link"
           size="sm"
-          
           onClick={betterCopyToClipboard}
           disabled={isPending || isError || !json}
         >

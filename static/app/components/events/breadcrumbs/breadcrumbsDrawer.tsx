@@ -201,7 +201,7 @@ export function BreadcrumbsDrawer({
         value={timeDisplay}
         options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
       />
-      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} priority="transparent" />
+      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} borderless />
     </ButtonBar>
   );
 

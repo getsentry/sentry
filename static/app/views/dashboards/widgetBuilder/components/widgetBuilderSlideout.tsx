@@ -234,7 +234,6 @@ function WidgetBuilderSlideout({
       <CloseButton
         priority="link"
         size="zero"
-        
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
         onClick={onCloseWithModal}

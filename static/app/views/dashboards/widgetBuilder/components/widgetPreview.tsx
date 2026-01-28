@@ -98,7 +98,7 @@ function WidgetPreview({
   return (
     <WidgetCard
       disableFullscreen
-      priority="transparent"
+      borderless
       // need to pass in undefined to avoid tooltip not showing up on hover
       forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
       isWidgetInvalid={isWidgetInvalid}

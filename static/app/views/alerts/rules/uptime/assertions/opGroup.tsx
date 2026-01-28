@@ -257,7 +257,7 @@ export function AssertionOpGroup({
           <AddOpButton
             size="xs"
             triggerProps={{
-              priority: "transparent",
+              priority: 'transparent',
               size: 'zero',
               icon: <IconAdd size="xs" />,
               title: t('Add assertion to group'),

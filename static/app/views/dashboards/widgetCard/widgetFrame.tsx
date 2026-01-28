@@ -56,7 +56,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   return (
     <Widget
       ariaLabel="Widget panel"
-      priority="transparent"
+      borderless={props.borderless}
       Title={
         <Fragment>
           {props.warnings && props.warnings.length > 0 && (
@@ -127,7 +127,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   triggerProps={{
                     'aria-label': t('Widget actions'),
                     size: 'xs',
-                    priority: "transparent",
+                    priority: 'transparent',
                     showChevron: false,
                     icon: <IconEllipsis direction="down" size="sm" />,
                   }}

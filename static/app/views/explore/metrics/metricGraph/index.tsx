@@ -144,7 +144,7 @@ function Graph({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconGraph type={chartIcon} />}
-              priority="transparent"
+              borderless
               showChevron={false}
               size="xs"
             />
@@ -163,7 +163,7 @@ function Graph({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconClock />}
-              priority="transparent"
+              borderless
               showChevron={false}
               size="xs"
             />
@@ -219,7 +219,7 @@ function Graph({
             : MINIMIZED_GRAPH_HEIGHT
         }
         revealActions="always"
-        priority="transparent"
+        borderless
       />
     </WidgetWrapper>
   );

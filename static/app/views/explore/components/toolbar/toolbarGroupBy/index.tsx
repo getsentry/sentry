@@ -125,7 +125,6 @@ interface ToolbarVisualizeAddProps {
 export function ToolbarGroupByAddGroupBy({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      
       size="zero"
       icon={<IconAdd />}
       onClick={add}

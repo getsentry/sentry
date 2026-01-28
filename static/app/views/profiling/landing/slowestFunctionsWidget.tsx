@@ -368,7 +368,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           position="bottom-end"
           triggerProps={{
             icon: <IconEllipsis size="xs" />,
-            priority: "transparent",
+            priority: 'transparent',
             showChevron: false,
             size: 'xs',
             'aria-label': t('Example Profiles'),
