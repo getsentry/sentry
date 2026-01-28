@@ -1,11 +1,12 @@
 import uuid
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from unittest.mock import ANY, Mock, patch
 
 import pytest
 from rest_framework.response import Response
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
+from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.operator import (
     AUTOFIX_CACHE_TIMEOUT_SECONDS,
@@ -24,13 +25,17 @@ class MockCachePayload(TypedDict):
 class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
     """Mock entrypoint implementation for testing. Stores function calls similar to a mock."""
 
-    key = SeerEntrypointKey.SLACK
+    key = cast(SeerEntrypointKey, "MOCK")
 
     def __init__(self):
         self.thread_id = str(uuid.uuid4())
         self.autofix_errors = []
         self.autofix_run_ids = []
         self.autofix_update_cache_payloads = []
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        return True
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         self.autofix_errors.append(error)
@@ -60,6 +65,38 @@ class SeerOperatorTest(TestCase):
         self.post_cache_key = SeerOperator.get_post_autofix_cache_key(
             entrypoint_key=self.entrypoint.key, run_id=MOCK_RUN_ID
         )
+
+    def test_has_access(self):
+        MockNoAccessEntrypoint = Mock(spec=SeerEntrypoint)
+        MockNoAccessEntrypoint.key = cast(SeerEntrypointKey, "MOCK_NO_ACCESS")
+        MockNoAccessEntrypoint.has_access.return_value = False
+        with (
+            patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
+                {
+                    MockEntrypoint.key: MockEntrypoint,
+                    MockNoAccessEntrypoint.key: MockNoAccessEntrypoint,
+                },
+                clear=True,
+            ),
+        ):
+            assert SeerOperator.has_access(self.group.project.organization)
+            assert SeerOperator.has_access(
+                self.group.project.organization, entrypoint_key=MockEntrypoint.key
+            )
+            assert not SeerOperator.has_access(
+                self.group.project.organization, entrypoint_key=MockNoAccessEntrypoint.key
+            )
+
+        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=False):
+            assert not SeerOperator.has_access(self.group.project.organization)
+            assert not SeerOperator.has_access(
+                self.group.project.organization, entrypoint_key=MockEntrypoint.key
+            )
+            assert not SeerOperator.has_access(
+                self.group.project.organization, entrypoint_key=MockNoAccessEntrypoint.key
+            )
 
     def test_get_pre_autofix_cache_key(self):
         assert self.pre_cache_key == f"seer:pre_autofix:{self.entrypoint.key}:{MOCK_GROUP_ID}"
@@ -191,6 +228,7 @@ class SeerOperatorTest(TestCase):
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
+        clear=True,
     )
     @patch("sentry.seer.entrypoints.operator.cache")
     def test_migrate_autofix_cache(self, mock_cache):
@@ -209,6 +247,7 @@ class SeerOperatorTest(TestCase):
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
+        clear=True,
     )
     @patch("sentry.seer.entrypoints.operator.cache")
     def test_migrate_autofix_cache_full_miss(self, mock_cache):
@@ -219,6 +258,7 @@ class SeerOperatorTest(TestCase):
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
+        clear=True,
     )
     @patch("sentry.seer.entrypoints.operator.cache")
     def test_migrate_autofix_cache_overwrite(self, mock_cache):
@@ -244,6 +284,7 @@ class SeerOperatorTest(TestCase):
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
+        clear=True,
     )
     @patch("sentry.seer.entrypoints.operator.logger")
     def test_process_autofix_updates_early_exits(self, mock_logger):
@@ -279,6 +320,7 @@ class SeerOperatorTest(TestCase):
         with patch.dict(
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
             {MockEntrypoint.key: mock_entrypoint_cls},
+            clear=True,
         ):
             process_autofix_updates(
                 event_type=event_type,
@@ -306,6 +348,7 @@ class SeerOperatorTest(TestCase):
         with patch.dict(
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
             {MockEntrypoint.key: mock_entrypoint_cls},
+            clear=True,
         ):
             process_autofix_updates(
                 event_type=event_type,
@@ -330,6 +373,7 @@ class SeerOperatorTest(TestCase):
         with patch.dict(
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
             {MockEntrypoint.key: mock_entrypoint_cls},
+            clear=True,
         ):
             process_autofix_updates(
                 event_type=event_type,
