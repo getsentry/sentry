@@ -63,7 +63,7 @@ function FullscreenModalContent({
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
   const [localHighlightInsights, setLocalHighlightInsights] = useState(
-    initialHighlightInsights ?? false
+    initialHighlightInsights ?? true
   );
   const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch, '');
 
