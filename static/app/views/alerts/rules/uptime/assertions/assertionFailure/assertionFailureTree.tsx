@@ -1,5 +1,6 @@
-import type {CSSProperties} from 'react';
-import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -10,7 +11,7 @@ const ROW_HEIGHT_PX = 24;
 const INDENT_PX = 24;
 const CONNECTOR_THICKNESS_PX = 1;
 const DEPTH_OFFSET_PX = 10;
-const CONTENT_PADDING_PX = 10;
+const CONTENT_PADDING_PX = 8;
 
 function leftOffsetFromDepth(depth: number): number {
   return (
@@ -21,7 +22,7 @@ function leftOffsetFromDepth(depth: number): number {
   );
 }
 
-function ConnectorLine({
+function Connector({
   connector,
   rowTop,
   nodeDepth,
@@ -32,8 +33,6 @@ function ConnectorLine({
   nodeDepth: number;
   rowTop: number;
 }) {
-  const theme = useTheme();
-
   const midY = Math.floor(ROW_HEIGHT_PX / 2);
   const isImmediateParentLevel = connector.depth === nodeDepth - 1;
 
@@ -52,34 +51,29 @@ function ConnectorLine({
           height: CONNECTOR_THICKNESS_PX,
         };
 
-  const style: CSSProperties = {
-    position: 'absolute',
-    left: box.left,
-    top: rowTop + box.top,
-    width: box.width,
-    height: box.height,
-    background: theme.tokens.content.primary,
-  };
-
-  return <div style={style} />;
+  return (
+    <ConnectorLine
+      left={box.left}
+      top={rowTop + box.top}
+      width={box.width}
+      height={box.height}
+    />
+  );
 }
 
 export function AssertionFailureTree({assertion}: {assertion: Assertion}) {
   const tree = Tree.FromAssertion(assertion);
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        height: tree.nodes.length * ROW_HEIGHT_PX,
-        width: '100%',
-      }}
+    <Container
+      position="relative"
+      height={`${tree.nodes.length * ROW_HEIGHT_PX}px`}
+      width="100%"
     >
-      {/* connectors layer */}
       {tree.nodes.flatMap((node, idx) => {
         const rowTop = idx * ROW_HEIGHT_PX;
         return node.connectors.map((connector, connectorIdx) => (
-          <ConnectorLine
+          <Connector
             key={`${node.value.id}-connector-${connectorIdx}`}
             connector={connector}
             rowTop={rowTop}
@@ -89,34 +83,45 @@ export function AssertionFailureTree({assertion}: {assertion: Assertion}) {
         ));
       })}
 
-      {/* rows layer */}
       {tree.nodes.map((node, idx) => {
         const rowTop = idx * ROW_HEIGHT_PX;
-        // Start content after the horizontal connector ends (+ padding), so the
-        // gap between connector and row stays constant even with depth offsets.
-        const paddingLeft =
+
+        // Start from the left of the parent column, plus the indent and content padding.
+        const rowLeft =
           node.depth === 0
             ? 0
             : leftOffsetFromDepth(node.depth - 1) + INDENT_PX + CONTENT_PADDING_PX;
 
         return (
-          <div
+          <Flex
+            role="assertion-failure-tree-row"
             key={node.value.id}
-            style={{
-              position: 'absolute',
-              top: rowTop,
-              left: 0,
-              right: 0,
-              height: ROW_HEIGHT_PX,
-              display: 'flex',
-              alignItems: 'center',
-              paddingLeft,
-            }}
+            position="absolute"
+            top={`${rowTop}px`}
+            left={`${rowLeft}px`}
+            height={`${ROW_HEIGHT_PX}px`}
+            width="100%"
+            align="center"
+            right="0px"
           >
             {node.renderRow()}
-          </div>
+          </Flex>
         );
       })}
-    </div>
+    </Container>
   );
 }
+
+const ConnectorLine = styled('div')<{
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+}>`
+  position: absolute;
+  left: ${p => p.left}px;
+  top: ${p => p.top}px;
+  width: ${p => p.width}px;
+  height: ${p => p.height}px;
+  background: ${p => p.theme.tokens.content.primary};
+`;

@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeAndOp,
@@ -12,7 +12,7 @@ import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
 import {AssertionFailureTree} from './assertionFailureTree';
 
 describe('AssertionFailureTree', () => {
-  it('renders simple assertion', () => {
+  it('renders rows in order for a simple assertion', () => {
     const assertion: Assertion = {
       root: makeAndOp({
         children: [makeStatusCodeOp({operator: {cmp: 'equals'}, value: 500})],
@@ -21,14 +21,19 @@ describe('AssertionFailureTree', () => {
 
     render(<AssertionFailureTree assertion={assertion} />);
 
-    expect(screen.getByText('Assert All')).toBeInTheDocument();
-    expect(screen.getByText('[Failed]')).toBeInTheDocument();
-    expect(screen.getByText(/Status Code \| Rule:/)).toBeInTheDocument();
-    expect(screen.getByText(/status_code/)).toBeInTheDocument();
-    expect(screen.getByText(/500/)).toBeInTheDocument();
+    const rows = screen.getAllByRole('assertion-failure-tree-row');
+    expect(rows).toHaveLength(2);
+
+    expect(within(rows[0]!).getByText('Assert All')).toBeInTheDocument();
+
+    expect(within(rows[1]!).getByText('[Failed]')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText(/Status Code \| Rule:/)).toBeInTheDocument();
+    expect(within(rows[1]!).getByText(/status_code/)).toBeInTheDocument();
+    expect(within(rows[1]!).getByText(/=/)).toBeInTheDocument();
+    expect(within(rows[1]!).getByText(/500/)).toBeInTheDocument();
   });
 
-  it('renders nested assertions', () => {
+  it('renders rows in order for nested assertions', () => {
     const assertion: Assertion = {
       root: makeAndOp({
         children: [
@@ -47,14 +52,25 @@ describe('AssertionFailureTree', () => {
 
     render(<AssertionFailureTree assertion={assertion} />);
 
-    expect(screen.getByText('Assert All')).toBeInTheDocument();
-    expect(screen.getByText('Assert Any')).toBeInTheDocument();
+    const rows = screen.getAllByRole('assertion-failure-tree-row');
+    expect(rows).toHaveLength(4);
 
-    expect(screen.getByText(/JSON Path \| Rule:/)).toBeInTheDocument();
-    expect(screen.getByText('$.status')).toBeInTheDocument();
+    expect(within(rows[0]!).getByText('Assert All')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText('Assert Any')).toBeInTheDocument();
 
-    expect(screen.getByText(/Header Check \| Rule:/)).toBeInTheDocument();
-    expect(screen.getByText(/content-type/)).toBeInTheDocument();
-    expect(screen.getByText(/application\/json/)).toBeInTheDocument();
+    expect(within(rows[2]!).getByText('[Failed]')).toBeInTheDocument();
+    expect(within(rows[2]!).getByText(/JSON Path \| Rule:/)).toBeInTheDocument();
+    expect(within(rows[2]!).getByText('$.status')).toBeInTheDocument();
+
+    // Two ="" labels, for the key and value comparisons
+    const headerOps = rows[3]!.textContent?.match(/=\s*""/g) ?? [];
+    expect(headerOps).toHaveLength(2);
+
+    expect(within(rows[3]!).getByText('[Failed]')).toBeInTheDocument();
+    expect(within(rows[3]!).getByText(/Header Check \| Rule:/)).toBeInTheDocument();
+    expect(within(rows[3]!).getByText(/key/)).toBeInTheDocument();
+    expect(within(rows[3]!).getByText(/content-type/)).toBeInTheDocument();
+    expect(within(rows[3]!).getByText(/value/)).toBeInTheDocument();
+    expect(within(rows[3]!).getByText(/application\/json/)).toBeInTheDocument();
   });
 });
