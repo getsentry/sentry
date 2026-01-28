@@ -73,7 +73,7 @@ export default function PrimaryNavSeerConfigReminder() {
       </SeerButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
-          <Stack gap="md" padding="xl">
+          <Stack gap="lg" padding="xl">
             <Heading as="h3">
               {hasSeatBasedSeer
                 ? t('Finish configuring Seer')
@@ -94,7 +94,7 @@ export default function PrimaryNavSeerConfigReminder() {
                       'Seer will automatically root cause your issues, but only if you let it. Don’t forget to set that up.'
                     )}
             </Text>
-            <Flex>
+            <Flex justify="end">
               <LinkButton
                 to={{
                   pathname: `/organizations/${organization.slug}/settings/seer/`,
