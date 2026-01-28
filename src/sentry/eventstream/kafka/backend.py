@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING, Any, cast
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue
 from arroyo.types import Topic as ArroyoTopic
-from confluent_kafka import KafkaError
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
@@ -54,7 +53,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         return self.__producers[topic]
 
-    def delivery_callback(self, error: KafkaError | None) -> None:
+    def delivery_callback(self, error: BaseException | None) -> None:
         now = int(time.time())
         if error is not None:
             if self.error_last_logged_time is None or now > self.error_last_logged_time + 60:
