@@ -5,7 +5,7 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from requests import Response
-from requests.exceptions import ConnectionError, ReadTimeout, Timeout
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
 from sentry.locks import locks
@@ -148,15 +148,25 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
                 return
-
             elif error_type == "ip_not_allowlisted":
                 credentials.message = "Seems like our IP is not allow-listed"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
                 return
-
-            # Known error type but not one we handle specially - already recorded metric above
-            return
+            else:
+                # Unhandled Tempest API error type - record detailed context for debugging.
+                logger.error(
+                    "Fetching the latest item id failed with Tempest error.",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "client_id": client_id,
+                        "status_code": response.status_code,
+                        "error_type": error_type,
+                        "response_text": result,
+                    },
+                )
+                return
 
         # Default in case things go wrong (no "latest_id" or "error" key in response)
         metrics.incr(
@@ -178,7 +188,7 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
             },
         )
 
-    except (Timeout, ReadTimeout) as e:
+    except Timeout as e:
         duration_ms = (time.time() - start_time) * 1000
         metrics.timing("tempest.latest_id.duration", duration_ms, tags=tags)
         metrics.incr("tempest.latest_id.error", tags={**tags, "error_type": "timeout"})
@@ -328,7 +338,7 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
             metrics.incr("tempest.crashes.batch_failures", amount=crash_fails, tags=tags)
         metrics.incr("tempest.crashes.success", tags=tags)
 
-    except (Timeout, ReadTimeout) as e:
+    except Timeout as e:
         duration_ms = (time.time() - start_time) * 1000
         metrics.timing("tempest.crashes.duration", duration_ms, tags=tags)
         metrics.incr("tempest.crashes.error", tags={**tags, "error_type": "timeout"})
