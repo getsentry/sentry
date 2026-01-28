@@ -38,20 +38,32 @@ class ResolveGroupResolutionsTest(TestCase):
 
 
 class ResolvedInCommitTest(TestCase):
-    def assertResolvedFromCommit(self, group, commit):
+    """
+    Tests for resolved_in_commit signal handler.
+
+    Note: Commits with "Fixes ISSUE-123" create GroupLinks and Activity entries,
+    but do NOT immediately resolve issues. Resolution happens when a release is
+    created that includes these commits, via update_group_resolutions().
+    """
+
+    def assertLinkedFromCommit(self, group, commit):
+        """Assert that a GroupLink, Activity, and GroupHistory were created, but issue is NOT resolved."""
         assert GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
-        assert Group.objects.filter(
-            id=group.id, status=GroupStatus.RESOLVED, resolved_at__isnull=False
+        assert Activity.objects.filter(
+            group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
         ).exists()
-        assert not GroupInbox.objects.filter(group=group).exists()
         assert GroupHistory.objects.filter(
-            group=group,
-            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
+        # Issue should NOT be resolved immediately - resolution happens via releases
+        assert not Group.objects.filter(id=group.id, status=GroupStatus.RESOLVED).exists()
+        # Inbox should NOT be modified
+        assert GroupInbox.objects.filter(group=group).exists()
 
-    def assertNotResolvedFromCommit(self, group, commit):
+    def assertNotLinkedFromCommit(self, group, commit):
+        """Assert that no GroupLink exists for this commit."""
         assert not GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
@@ -73,7 +85,7 @@ class ResolvedInCommitTest(TestCase):
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
 
-        self.assertResolvedFromCommit(group, commit)
+        self.assertLinkedFromCommit(group, commit)
 
     @receivers_raise_on_send()
     def test_updating_commit(self) -> None:
@@ -88,12 +100,12 @@ class ResolvedInCommitTest(TestCase):
             organization_id=group.organization.id,
         )
 
-        self.assertNotResolvedFromCommit(group, commit)
+        self.assertNotLinkedFromCommit(group, commit)
 
         commit.message = f"Foo Biz\n\nFixes {group.qualified_short_id}"
         commit.save()
 
-        self.assertResolvedFromCommit(group, commit)
+        self.assertLinkedFromCommit(group, commit)
 
     @receivers_raise_on_send()
     def test_updating_commit_with_existing_grouplink(self) -> None:
@@ -109,12 +121,12 @@ class ResolvedInCommitTest(TestCase):
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
 
-        self.assertResolvedFromCommit(group, commit)
+        self.assertLinkedFromCommit(group, commit)
 
         commit.message = f"Foo Bar Biz\n\nFixes {group.qualified_short_id}"
         commit.save()
 
-        self.assertResolvedFromCommit(group, commit)
+        self.assertLinkedFromCommit(group, commit)
 
     @receivers_raise_on_send()
     def test_removes_group_link_when_message_changes(self) -> None:
@@ -130,13 +142,12 @@ class ResolvedInCommitTest(TestCase):
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
 
-        self.assertResolvedFromCommit(group, commit)
+        self.assertLinkedFromCommit(group, commit)
 
         commit.message = "no groups here"
         commit.save()
 
-        add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        self.assertNotResolvedFromCommit(group, commit)
+        self.assertNotLinkedFromCommit(group, commit)
 
     @receivers_raise_on_send()
     def test_no_matching_group(self) -> None:
@@ -181,7 +192,7 @@ class ResolvedInCommitTest(TestCase):
             author=author,
         )
 
-        self.assertResolvedFromCommit(group, commit)
+        self.assertLinkedFromCommit(group, commit)
 
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
 
@@ -220,7 +231,7 @@ class ResolvedInCommitTest(TestCase):
             ),
         )
 
-        self.assertResolvedFromCommit(group, commit)
+        self.assertLinkedFromCommit(group, commit)
 
         assert not Activity.objects.filter(
             project=group.project, group=group, type=ActivityType.ASSIGNED.value, user_id=user.id
