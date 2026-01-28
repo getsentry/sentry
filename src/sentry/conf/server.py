@@ -1628,6 +1628,10 @@ ENFORCE_CONCURRENT_RATE_LIMITS = False
 SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI = 999
 SENTRY_RATELIMITER_GROUP_CLI = 999
 
+# Impersonation Rate Limiting
+# Fixed rate limit applied during impersonation sessions (requests per second)
+SENTRY_IMPERSONATION_RATE_LIMIT = 30
+
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 
