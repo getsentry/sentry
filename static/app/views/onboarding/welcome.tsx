@@ -59,37 +59,37 @@ type ProductOption = {
 const PRODUCT_OPTIONS: ProductOption[] = [
   {
     id: 'error-monitoring',
-    icon: <IconWarning size="sm" />,
+    icon: <IconWarning size="sm" variant="secondary" />,
     title: t('Error monitoring'),
     description: t('Automatically capture exceptions and stack traces'),
   },
   {
     id: 'logging',
-    icon: <IconTerminal size="sm" />,
+    icon: <IconTerminal size="sm" variant="secondary" />,
     title: t('Logging'),
     description: t('See logs in context with errors and performance issues'),
   },
   {
     id: 'session-replay',
-    icon: <IconTimer size="sm" />,
+    icon: <IconTimer size="sm" variant="secondary" />,
     title: t('Session replay'),
     description: t('Watch real user sessions to see what went wrong'),
   },
   {
     id: 'metrics',
-    icon: <IconGraph size="sm" />,
+    icon: <IconGraph size="sm" variant="secondary" />,
     title: t('Metrics'),
     description: t('Custom metrics for tracking application performance and usage'),
   },
   {
     id: 'tracing',
-    icon: <IconSpan size="sm" />,
+    icon: <IconSpan size="sm" variant="secondary" />,
     title: t('Tracing'),
     description: t('Find slow transactions, bottlenecks, and timeouts'),
   },
   {
     id: 'profiling',
-    icon: <IconProfiling size="sm" />,
+    icon: <IconProfiling size="sm" variant="secondary" />,
     title: t('Profiling'),
     description: t('See the exact lines of code causing your performance bottlenecks.'),
   },
@@ -104,7 +104,7 @@ type ProductCardProps = {
 function ProductCard({icon, title, description}: ProductCardProps) {
   return (
     <ProductCardContainer border="primary" radius="md" padding="xl">
-      <ProductIcon>{icon}</ProductIcon>
+      <Flex align="center">{icon}</Flex>
       <Flex direction="column" gap="xs">
         <ProductTitle>{title}</ProductTitle>
         <Text variant="muted">{description}</Text>
@@ -154,7 +154,7 @@ function NewWelcomeUI(props: StepProps) {
 
         <TrialInfoLine>
           <IconBusiness size="sm" variant="accent" />
-          <Text size="lg" bold>
+          <Text size="lg" bold variant="muted">
             {t('Your 14-day business trial includes')}{' '}
             <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
               {t('unlimited access')}
@@ -469,10 +469,6 @@ const ProductCardContainer = styled(Container)`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-`;
-
-const ProductIcon = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ProductTitle = styled('div')`
