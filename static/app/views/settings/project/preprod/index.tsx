@@ -8,6 +8,7 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -38,6 +39,7 @@ export default function PreprodSettings() {
             'Configure status checks and thresholds for your mobile build size analysis.'
           )}
         </TextBlock>
+        <PreprodQuotaAlert />
         <Stack gap="lg">
           <StatusCheckRules />
           <Feature features="organizations:preprod-issues">
