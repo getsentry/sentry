@@ -97,6 +97,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
                 "checkStatusReason",
                 "assertionFailureData",
                 "traceId",
+                "traceItemId",
                 "httpStatusCode",
                 "incidentStatus",
             ]:

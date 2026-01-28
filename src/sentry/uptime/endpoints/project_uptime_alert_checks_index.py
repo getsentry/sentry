@@ -194,7 +194,10 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         duration_ms = (
             (duration_val.val_int // 1000) if duration_val and not duration_val.is_null else 0
         )
+
         trace_id = row_dict["sentry.trace_id"].val_str
+        trace_item_id = row_dict["sentry.item_id"].val_str
+
         assertion_failure_data = self._extract_assertion_failure_data(
             row_dict.get("assertion_failure_data")
         )
@@ -214,6 +217,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             ),
             duration_ms=duration_ms,
             trace_id=trace_id,
+            trace_item_id=trace_item_id,
             incident_status=IncidentStatus(row_dict["incident_status"].val_int),
             environment=row_dict.get("environment", AttributeValue(val_str="")).val_str,
             region=row_dict["region"].val_str,
