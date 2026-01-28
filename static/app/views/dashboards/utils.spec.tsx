@@ -7,7 +7,6 @@ import {
   eventViewFromWidget,
   flattenErrors,
   getCurrentPageFilters,
-  getDashboardsMEPQueryParams,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -215,17 +214,6 @@ describe('Dashboards util', () => {
       expect(flattenErrors(errorResponse, {})).toEqual({
         error: 'Dashboard title already taken.',
       });
-    });
-  });
-
-  describe('getDashboardsMEPQueryParams', () => {
-    it('returns correct params if enabled', () => {
-      expect(getDashboardsMEPQueryParams(true)).toEqual({
-        dataset: 'metricsEnhanced',
-      });
-    });
-    it('returns empty object if disabled', () => {
-      expect(getDashboardsMEPQueryParams(false)).toEqual({});
     });
   });
 

@@ -33,11 +33,7 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {
-  DiscoverDatasets,
-  DisplayModes,
-  type SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
@@ -351,14 +347,6 @@ export function flattenErrors(
     });
   }
   return update;
-}
-
-export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
-  return isMEPEnabled
-    ? {
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
-      }
-    : {};
 }
 
 export function getNumEquations(possibleEquations: string[]) {
