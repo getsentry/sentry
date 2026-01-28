@@ -4,37 +4,20 @@ import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
-import SeerIllustration from 'sentry-images/spot/seer-config-main.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {ExternalLink} from 'sentry/components/core/link';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {
-  IconBusiness,
-  IconGraph,
-  IconInfo,
-  IconProfiling,
-  IconSeer,
-  IconSpan,
-  IconTerminal,
-  IconTimer,
-  IconWarning,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
-import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
-import WelcomeBackground, {
-  WelcomeBackgroundNewUi,
-} from 'sentry/views/onboarding/components/welcomeBackground';
+import {NewWelcomeUI} from 'sentry/views/onboarding/components/newWelcome';
+import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {StepProps} from './types';
@@ -47,178 +30,6 @@ const fadeAway: MotionProps = {
   },
   transition: testableTransition({duration: 0.8}),
 };
-
-type ProductOption = {
-  description: string;
-  icon: React.ReactNode;
-  id: string;
-  title: string;
-};
-
-// Product options in display order (3x2 grid: row1: Error, Logging, Session; row2: Metrics, Tracing, Profiling)
-const PRODUCT_OPTIONS: ProductOption[] = [
-  {
-    id: 'error-monitoring',
-    icon: <IconWarning size="sm" variant="secondary" />,
-    title: t('Error monitoring'),
-    description: t('Automatically capture exceptions and stack traces'),
-  },
-  {
-    id: 'logging',
-    icon: <IconTerminal size="sm" variant="secondary" />,
-    title: t('Logging'),
-    description: t('See logs in context with errors and performance issues'),
-  },
-  {
-    id: 'session-replay',
-    icon: <IconTimer size="sm" variant="secondary" />,
-    title: t('Session replay'),
-    description: t('Watch real user sessions to see what went wrong'),
-  },
-  {
-    id: 'metrics',
-    icon: <IconGraph size="sm" variant="secondary" />,
-    title: t('Metrics'),
-    description: t('Custom metrics for tracking application performance and usage'),
-  },
-  {
-    id: 'tracing',
-    icon: <IconSpan size="sm" variant="secondary" />,
-    title: t('Tracing'),
-    description: t('Find slow transactions, bottlenecks, and timeouts'),
-  },
-  {
-    id: 'profiling',
-    icon: <IconProfiling size="sm" variant="secondary" />,
-    title: t('Profiling'),
-    description: t('See the exact lines of code causing your performance bottlenecks.'),
-  },
-];
-
-type ProductCardProps = {
-  description: string;
-  icon: React.ReactNode;
-  title: string;
-};
-
-function ProductCard({icon, title, description}: ProductCardProps) {
-  return (
-    <ProductCardContainer border="primary" radius="md" padding="xl">
-      <Flex align="center">{icon}</Flex>
-      <Flex direction="column" gap="xs">
-        <ProductTitle>{title}</ProductTitle>
-        <Text variant="muted">{description}</Text>
-      </Flex>
-    </ProductCardContainer>
-  );
-}
-
-function NewWelcomeUI(props: StepProps) {
-  const organization = useOrganization();
-  const onboardingContext = useOnboardingContext();
-
-  const source = 'targeted_onboarding';
-
-  useEffect(() => {
-    trackAnalytics('growth.onboarding_start_onboarding', {
-      organization,
-      source,
-    });
-
-    if (onboardingContext.selectedPlatform) {
-      onboardingContext.setSelectedPlatform(undefined);
-    }
-  }, [organization, onboardingContext]);
-
-  const handleComplete = useCallback(() => {
-    trackAnalytics('growth.onboarding_clicked_instrument_app', {
-      organization,
-      source,
-    });
-
-    props.onComplete();
-  }, [organization, source, props]);
-
-  return (
-    <NewWelcomeWrapper>
-      <WelcomeBackgroundNewUi />
-      <ContentWrapper {...fadeAway}>
-        <Flex direction="column" gap="sm">
-          <NewWelcomeTitle>{t('Welcome to Sentry')}</NewWelcomeTitle>
-          <Text variant="muted" size="lg" bold>
-            {t(
-              "Your code is probably broken, and we'll help you fix it faster. We're not just error monitoring anymore y'know."
-            )}
-          </Text>
-        </Flex>
-
-        <TrialInfoLine>
-          <IconBusiness size="sm" variant="accent" />
-          <Text size="lg" bold variant="muted">
-            {t('Your 14-day business trial includes')}{' '}
-            <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
-              {t('unlimited access')}
-            </ExternalLink>{' '}
-            {t('to:')}
-          </Text>
-        </TrialInfoLine>
-
-        <ProductGrid>
-          {PRODUCT_OPTIONS.map(product => (
-            <ProductCard
-              key={product.id}
-              icon={product.icon}
-              title={product.title}
-              description={product.description}
-            />
-          ))}
-        </ProductGrid>
-
-        <PlusSeparator>+</PlusSeparator>
-
-        <SeerCard border="primary" radius="md">
-          <SeerCardContent>
-            <IconSeer size="sm" />
-            <Flex direction="column" gap="xs">
-              <Flex gap="sm" align="center">
-                <ProductTitle>{t('Seer: AI Debugging Agent')}</ProductTitle>
-                <FeatureBadge type="new" tooltipProps={{disabled: true}} />
-              </Flex>
-              <Text variant="muted">
-                {t(
-                  "Analyze issues, review PRs, and propose code fixes. Because of course we have an AI tool, it's 2026."
-                )}
-              </Text>
-              <Flex gap="xs" align="center">
-                <IconInfo size="xs" />
-                <Text variant="muted" size="xs">
-                  {t('Requires additional setup')}
-                </Text>
-              </Flex>
-            </Flex>
-          </SeerCardContent>
-          <SeerIllustrationWrapper>
-            <img src={SeerIllustration} alt="" />
-          </SeerIllustrationWrapper>
-        </SeerCard>
-
-        <Text variant="muted" bold>
-          {t(
-            "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
-          )}
-        </Text>
-      </ContentWrapper>
-      <GenericFooter>
-        {props.genSkipOnboardingLink()}
-        <NextButtonWrapper>
-          <Button priority="primary" onClick={handleComplete}>
-            {t('Next')}
-          </Button>
-        </NextButtonWrapper>
-      </GenericFooter>
-    </NewWelcomeWrapper>
-  );
-}
 
 type TextWrapperProps = {
   cta: React.ReactNode;
@@ -415,106 +226,4 @@ const ButtonWithFill = styled(Button)`
   width: 100%;
   position: relative;
   z-index: 1;
-`;
-
-// New Welcome UI Styles
-const NewWelcomeWrapper = styled(motion.div)`
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  max-width: 900px;
-  width: 100%;
-  margin-top: auto;
-  margin-bottom: auto;
-  margin-left: auto;
-  margin-right: auto;
-  padding: ${space(2)};
-  padding-bottom: 100px; /* Account for fixed footer (72px) + spacing */
-  gap: ${space(4)};
-`;
-
-const ContentWrapper = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(4)};
-`;
-
-const NewWelcomeTitle = styled('h1')`
-  font-size: 32px;
-  margin: 0;
-`;
-
-const TrialInfoLine = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const ProductGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: ${space(2)};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const ProductCardContainer = styled(Container)`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
-`;
-
-const ProductTitle = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const PlusSeparator = styled('div')`
-  display: flex;
-  justify-content: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.lg};
-`;
-
-const SeerCard = styled(Container)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(2)};
-  overflow: hidden;
-`;
-
-const SeerCardContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
-  flex: 1;
-  padding: ${space(2)};
-`;
-
-const SeerIllustrationWrapper = styled('div')`
-  flex-shrink: 0;
-
-  img {
-    display: block;
-    max-height: 140px;
-    width: auto;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
-const NextButtonWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  padding: 0 ${space(2)};
 `;
