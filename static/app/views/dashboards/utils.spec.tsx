@@ -181,7 +181,7 @@ describe('Dashboards util', () => {
     it('returns the issue url of the widget query', () => {
       const url = getWidgetIssueUrl(widget, undefined, selection, OrganizationFixture());
       expect(url).toBe(
-        '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
+        '/organizations/org-slug/issues/?project=&query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
     });
     it('applies the dashboard filters to the query', () => {
