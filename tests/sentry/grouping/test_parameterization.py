@@ -190,7 +190,7 @@ def test_fail_parameterize(
     assert parameterizer.parameterize_all(input) == expected
 
 
-# These are test cases were we're too aggressive
+# These are test cases where we're too aggressive
 @pytest.mark.xfail()
 @pytest.mark.parametrize(
     ("name", "input", "expected"),
