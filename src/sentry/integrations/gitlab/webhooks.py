@@ -19,6 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.gitlab.types import GitLabIssueAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
@@ -148,6 +149,10 @@ class IssuesEventWebhook(GitlabWebhook):
         if action in GitLabIssueAction.values():
             self._handle_assignment(integration, event, external_issue_key)
 
+        # Handle status changes (CLOSE and REOPEN)
+        if action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN]:
+            self._handle_status_change(integration, external_issue_key, action)
+
     def _handle_assignment(
         self,
         integration: RpcIntegration,
@@ -215,6 +220,36 @@ class IssuesEventWebhook(GitlabWebhook):
                 "total_assignees": len(assignees),
             },
         )
+
+    def _handle_status_change(
+        self,
+        integration: RpcIntegration,
+        external_issue_key: str,
+        action: str,
+    ) -> None:
+        """
+        Handle issue status changes (close/reopen).
+
+        Triggers the sync_status_inbound task to update linked Sentry issues.
+        """
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
+        for org_integration in org_integrations:
+            installation = integration.get_installation(org_integration.organization_id)
+            if isinstance(installation, IssueSyncIntegration):
+                installation.sync_status_inbound(
+                    external_issue_key,
+                    {"action": action},
+                )
+                logger.info(
+                    "gitlab.webhook.status.synced",
+                    extra={
+                        "integration_id": integration.id,
+                        "external_issue_key": external_issue_key,
+                        "action": action,
+                    },
+                )
 
     def _extract_issue_key(
         self, event: Mapping[str, Any], integration: RpcIntegration
