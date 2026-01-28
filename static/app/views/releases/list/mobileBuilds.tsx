@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -23,6 +23,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
+import {MobileBuildsChart} from './mobileBuildsChart';
 
 type Props = {
   organization: Organization;
@@ -176,16 +178,25 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
           onDocsClick={handleDocsClick}
         />
       ) : (
-        <PreprodBuildsTable
-          builds={builds}
-          display={activeDisplay}
-          isLoading={isLoadingBuilds}
-          error={buildsError}
-          pageLinks={pageLinks}
-          organizationSlug={organization.slug}
-          hasSearchQuery={hasSearchQuery}
-          showProjectColumn={showProjectColumn}
-        />
+        <Fragment>
+          {activeDisplay === PreprodBuildsDisplay.SIZE && (
+            <MobileBuildsChart
+              builds={builds}
+              isLoading={isLoadingBuilds}
+              organizationSlug={organization.slug}
+            />
+          )}
+          <PreprodBuildsTable
+            builds={builds}
+            display={activeDisplay}
+            isLoading={isLoadingBuilds}
+            error={buildsError}
+            pageLinks={pageLinks}
+            organizationSlug={organization.slug}
+            hasSearchQuery={hasSearchQuery}
+            showProjectColumn={showProjectColumn}
+          />
+        </Fragment>
       )}
     </Stack>
   );
