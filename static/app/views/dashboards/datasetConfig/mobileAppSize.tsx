@@ -11,7 +11,12 @@ import type {
 } from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {
+  Aggregation,
+  AggregationOutputType,
+  DataUnit,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
@@ -212,7 +217,7 @@ function useMobileAppSizeSearchBarDataProvider(
   };
 }
 
-function buildSeriesResultMap<T>(
+function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery,
   value: T
