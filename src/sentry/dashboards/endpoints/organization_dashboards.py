@@ -574,9 +574,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            duplicate = request.data.get("duplicate", False)
-
-            if not duplicate or retry >= MAX_RETRIES:
+            if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
 
             request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])

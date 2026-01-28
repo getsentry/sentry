@@ -831,12 +831,7 @@ class DashboardDetail extends Component<Props, State> {
             ...getCurrentPageFilters(location),
             filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
           };
-          createDashboard(
-            api,
-            organization.slug,
-            newModifiedDashboard,
-            this.isPreview
-          ).then(
+          createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
