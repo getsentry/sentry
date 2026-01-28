@@ -202,6 +202,20 @@ def detect_performance_problems(
 
 
 class SettingsMode(IntEnum):
+    """
+    Performance detection settings modes for gradual migration from ProjectOptions to WFE Detectors.
+
+    LEGACY: Use system defaults + well-known defaults + ProjectOption values.
+            Traditional behavior, no WFE Detector involvement.
+
+    COMPARE: Generate both legacy and WFE settings, log differences for monitoring,
+             return legacy settings. Used to detect config drift during migration.
+
+    WFE: Hybrid mode combining WFE Detector configs with ProjectOptions.
+         For detectors with WFE Detector objects: use WFE config (falls back to system defaults).
+         For detectors without WFE Detector objects: use ProjectOptions.
+    """
+
     LEGACY = 0
     COMPARE = 1
     WFE = 2
@@ -213,11 +227,6 @@ def get_merged_settings(
 ) -> dict[str | Any, Any]:
     """
     Get performance detection settings based on the specified mode.
-
-    Modes:
-    - LEGACY: Use system defaults + well-known defaults + ProjectOption values
-    - COMPARE: Generate both legacy and WFE settings, log differences, return legacy
-    - WFE: Use system defaults + well-known defaults + WFE Detector configs
 
     Returns a dict with all performance detection settings.
     """
