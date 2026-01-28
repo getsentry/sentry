@@ -2725,7 +2725,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_generate_summary_and_run_automation.assert_called_once_with(event.group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            event.group.id, trigger_path="old_seer_automation"
+        )
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
@@ -2853,7 +2855,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_generate_summary_and_run_automation.assert_called_once_with(group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            group.id, trigger_path="old_seer_automation"
+        )
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
@@ -2921,7 +2925,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
         mock_is_rate_limited.assert_called_once_with(event.project, event.group.organization)
-        mock_generate_summary_and_run_automation.assert_called_once_with(event.group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            event.group.id, trigger_path="old_seer_automation"
+        )
 
         mock_is_rate_limited.reset_mock()
         mock_generate_summary_and_run_automation.reset_mock()
@@ -3034,7 +3040,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
 
         # Now it should be called since no lock is held
-        mock_generate_summary_and_run_automation.assert_called_once_with(event2.group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            event2.group.id, trigger_path="old_seer_automation"
+        )
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
@@ -3237,7 +3245,9 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
             )
 
         # Should call generate_summary_and_run_automation to generate summary + run automation
-        mock_generate_summary_and_run_automation.assert_called_once_with(group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            group.id, trigger_path="seat_based_seer_automation"
+        )
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
