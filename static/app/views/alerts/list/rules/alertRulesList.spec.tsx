@@ -581,4 +581,233 @@ describe('AlertRulesList', () => {
     expect(emptyListMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(deletedRuleName)).not.toBeInTheDocument();
   });
+
+  describe('metric alerts without incidents feature', () => {
+    const orgWithoutIncidents = OrganizationFixture({
+      access: ['alerts:write'],
+      features: [], // No 'incidents' feature
+    });
+
+    it('displays warning banner when org has metric alerts but lacks incidents feature', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      expect(
+        await screen.findByText(
+          'Your metric alerts have been disabled. Upgrade your plan to re-enable them.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not display warning banner when org has no metric alerts', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...ProjectAlertRuleFixture({
+              id: '1',
+              name: 'Issue Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.ISSUE,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      expect(await screen.findByText('Issue Alert')).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Your metric alerts have been disabled. Upgrade your plan to re-enable them.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not display warning banner when org has incidents feature', async () => {
+      const orgWithIncidents = OrganizationFixture({
+        access: ['alerts:write'],
+        features: ['incidents'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithIncidents,
+      });
+
+      expect(await screen.findByText('Metric Alert')).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Your metric alerts have been disabled. Upgrade your plan to re-enable them.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('disables clicking on metric alert and shows tooltip when incidents feature is missing', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Disabled Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      const alertName = await screen.findByText('Disabled Metric Alert');
+      expect(alertName).toBeInTheDocument();
+
+      // Check that it's not a link
+      expect(alertName.closest('a')).not.toBeInTheDocument();
+
+      // Hover to show tooltip
+      await userEvent.hover(alertName);
+
+      expect(
+        await screen.findByText(
+          'This metric alert is not available. Your organization does not have access to this feature.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('disables edit and duplicate actions for metric alerts when incidents feature is missing', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
+      await userEvent.click(actions);
+
+      const editOption = screen.getByRole('menuitemradio', {name: 'Edit'});
+      const duplicateOption = screen.getByRole('menuitemradio', {name: 'Duplicate'});
+
+      expect(editOption).toHaveAttribute('aria-disabled', 'true');
+      expect(duplicateOption).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('does not disable issue alerts when incidents feature is missing', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...ProjectAlertRuleFixture({
+              id: '1',
+              name: 'Issue Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.ISSUE,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      const alertName = await screen.findByText('Issue Alert');
+      expect(alertName).toBeInTheDocument();
+
+      // Check that it IS a link (not disabled)
+      expect(alertName.closest('a')).toBeInTheDocument();
+
+      const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
+      await userEvent.click(actions);
+
+      const editOption = screen.getByRole('menuitemradio', {name: 'Edit'});
+      const duplicateOption = screen.getByRole('menuitemradio', {name: 'Duplicate'});
+
+      expect(editOption).not.toHaveAttribute('aria-disabled', 'true');
+      expect(duplicateOption).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('allows clicking on metric alerts when org has incidents feature', async () => {
+      const orgWithIncidents = OrganizationFixture({
+        access: ['alerts:write'],
+        features: ['incidents'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Enabled Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithIncidents,
+      });
+
+      const alertName = await screen.findByText('Enabled Metric Alert');
+      expect(alertName).toBeInTheDocument();
+
+      // Check that it IS a link (enabled)
+      expect(alertName.closest('a')).toBeInTheDocument();
+    });
+  });
 });

@@ -44,6 +44,7 @@ import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/has
 
 type Props = {
   hasEditAccess: boolean;
+  hasMetricAlerts: boolean;
   onDelete: (projectId: string, rule: CombinedAlerts) => void;
   onOwnerChange: (projectId: string, rule: CombinedAlerts, ownerValue: string) => void;
   organization: Organization;
@@ -60,6 +61,7 @@ function RuleListRow({
   onDelete,
   onOwnerChange,
   hasEditAccess,
+  hasMetricAlerts,
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
@@ -125,6 +127,9 @@ function RuleListRow({
   const canEdit = ownerActor?.id
     ? userTeams.some(team => team.id === ownerActor.id)
     : true;
+
+  const isMetricAlert = rule.type === CombinedAlertType.METRIC;
+  const shouldDisableAlertRule = isMetricAlert && !hasMetricAlerts;
 
   const activeActions = {
     [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
@@ -279,9 +284,22 @@ function RuleListRow({
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <AlertNameAndStatus>
           <AlertName>
-            <Link to={ruleUrl()}>
-              {rule.name} {titleBadge}
-            </Link>
+            {shouldDisableAlertRule ? (
+              <Tooltip
+                skipWrapper
+                title={t(
+                  'This metric alert is not available. Your organization does not have access to this feature.'
+                )}
+              >
+                <DisabledAlertName>
+                  {rule.name} {titleBadge}
+                </DisabledAlertName>
+              </Tooltip>
+            ) : (
+              <Link to={ruleUrl()}>
+                {rule.name} {titleBadge}
+              </Link>
+            )}
           </AlertName>
           <AlertIncidentDate>
             <AlertLastIncidentActivationInfo rule={rule} />
@@ -341,19 +359,28 @@ function RuleListRow({
       </Flex>
       <ActionsColumn>
         <Access access={['alerts:write']}>
-          {({hasAccess}) => (
-            <DropdownMenu
-              items={actions}
-              position="bottom-end"
-              triggerProps={{
-                'aria-label': t('Actions'),
-                size: 'xs',
-                icon: <IconEllipsis />,
-                showChevron: false,
-              }}
-              disabledKeys={hasAccess && canEdit ? [] : ['delete']}
-            />
-          )}
+          {({hasAccess}) => {
+            const disabledKeys: string[] = [];
+            if (!hasAccess || !canEdit) {
+              disabledKeys.push('delete');
+            }
+            if (shouldDisableAlertRule) {
+              disabledKeys.push('edit', 'duplicate');
+            }
+            return (
+              <DropdownMenu
+                items={actions}
+                position="bottom-end"
+                triggerProps={{
+                  'aria-label': t('Actions'),
+                  size: 'xs',
+                  icon: <IconEllipsis />,
+                  showChevron: false,
+                }}
+                disabledKeys={disabledKeys}
+              />
+            );
+          }}
         </Access>
       </ActionsColumn>
     </ErrorBoundary>
@@ -427,6 +454,11 @@ const MarginLeft = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
   margin-right: ${space(1.5)};
+`;
+
+const DisabledAlertName = styled('span')`
+  color: ${p => p.theme.tokens.content.disabled};
+  cursor: not-allowed;
 `;
 
 export default RuleListRow;
