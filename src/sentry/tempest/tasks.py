@@ -311,13 +311,8 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
 
         result = response.json()
 
-        # Track how many crashes were fetched
-        crash_count = result.get("crash_count", 0)
-        crash_fails = result.get("crash_fails", 0)
-        metrics.distribution("tempest.crashes.batch_size", crash_count, tags=tags)
-        if crash_fails > 0:
-            metrics.incr("tempest.crashes.batch_failures", amount=crash_fails, tags=tags)
-
+        # Update state FIRST before any non-critical operations (like metrics)
+        # This ensures we don't lose track of processed crashes if metrics fail
         credentials.latest_fetched_item_id = result["latest_id"]
         # Make sure that once existing customers pull crashes the message is set to SUCCESS,
         # since due to legacy reasons they might still have an empty ERROR message.
@@ -325,6 +320,12 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
         credentials.message_type = MessageType.SUCCESS
         credentials.save(update_fields=["latest_fetched_item_id", "message", "message_type"])
 
+        # Record metrics AFTER state is saved (defensive: use 'or 0' to handle None values)
+        crash_count = result.get("crash_count") or 0
+        crash_fails = result.get("crash_fails") or 0
+        metrics.distribution("tempest.crashes.batch_size", crash_count, tags=tags)
+        if crash_fails > 0:
+            metrics.incr("tempest.crashes.batch_failures", amount=crash_fails, tags=tags)
         metrics.incr("tempest.crashes.success", tags=tags)
 
     except (Timeout, ReadTimeout) as e:
@@ -343,8 +344,11 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
                 "error": str(e),
             },
         )
-        # Don't reset latest_fetched_item_id on timeout - it's likely a transient issue
-        # and we should retry with the same offset
+        # Reset latest_fetched_item_id to avoid getting stuck on large crashes that always timeout
+        # Note: We might re-think this in the future and start tracking failures on specific IDs,
+        # then only reset after multiple consecutive failures.
+        credentials.latest_fetched_item_id = None
+        credentials.save(update_fields=["latest_fetched_item_id"])
 
     except ConnectionError as e:
         duration_ms = (time.time() - start_time) * 1000
@@ -362,7 +366,11 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
                 "error": str(e),
             },
         )
-        # Don't reset latest_fetched_item_id on connection error - retry with same offset
+        # Reset latest_fetched_item_id to avoid getting stuck on crashes that cause connection errors
+        # Note: We might re-think this in the future and start tracking failures on specific IDs,
+        # then only reset after multiple consecutive failures.
+        credentials.latest_fetched_item_id = None
+        credentials.save(update_fields=["latest_fetched_item_id"])
 
     except Exception as e:
         duration_ms = (time.time() - start_time) * 1000
@@ -452,7 +460,6 @@ def fetch_items_from_tempest(
         span.set_data("tempest.offset", offset)
         span.set_data("tempest.limit", limit)
         span.set_data("tempest.attach_screenshot", attach_screenshot)
-        span.set_data("tempest.attach_dump", attach_dump)
         span.set_data("tempest.timeout", timeout)
 
         response = requests.post(

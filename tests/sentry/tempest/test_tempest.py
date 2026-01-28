@@ -583,7 +583,7 @@ class TempestTasksTimeoutTest(TestCase):
     def test_poll_tempest_crashes_timeout_records_metrics(
         self, mock_fetch: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        """Test that timeout in poll_tempest_crashes records metrics and preserves state."""
+        """Test that timeout in poll_tempest_crashes records metrics and resets state."""
         self.credentials.latest_fetched_item_id = "42"
         self.credentials.save()
 
@@ -602,17 +602,17 @@ class TempestTasksTimeoutTest(TestCase):
             },
         )
 
-        # Verify that latest_fetched_item_id is NOT reset on timeout
-        # (we want to retry from the same offset)
+        # Verify that latest_fetched_item_id IS reset on timeout
+        # (to avoid getting stuck on large crashes that always timeout)
         self.credentials.refresh_from_db()
-        assert self.credentials.latest_fetched_item_id == "42"
+        assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.metrics")
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
-    def test_poll_tempest_crashes_connection_error_preserves_state(
+    def test_poll_tempest_crashes_connection_error_resets_state(
         self, mock_fetch: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        """Test that ConnectionError preserves latest_fetched_item_id for retry."""
+        """Test that ConnectionError resets latest_fetched_item_id to avoid getting stuck."""
         self.credentials.latest_fetched_item_id = "42"
         self.credentials.save()
 
@@ -621,9 +621,10 @@ class TempestTasksTimeoutTest(TestCase):
         with self.assertLogs("sentry.tempest.tasks", level="ERROR"):
             poll_tempest_crashes(self.credentials.id)
 
-        # Verify that latest_fetched_item_id is NOT reset on connection error
+        # Verify that latest_fetched_item_id IS reset on connection error
+        # (to avoid getting stuck on crashes that cause connection errors)
         self.credentials.refresh_from_db()
-        assert self.credentials.latest_fetched_item_id == "42"
+        assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.metrics")
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
