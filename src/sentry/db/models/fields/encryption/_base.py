@@ -88,7 +88,7 @@ class EncryptedField(Field):
         removes fields from the class dict and stores them in _meta, so Python's
         __set_name__() is never called for Django model fields.
         """
-        super().contribute_to_class(cls, name, private_only=private_only)  # type: ignore[misc]
+        super().contribute_to_class(cls, name, private_only=private_only)
         self._model_name = cls.__name__
 
     @sentry_sdk.trace
