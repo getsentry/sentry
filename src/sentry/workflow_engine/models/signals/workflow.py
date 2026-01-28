@@ -5,21 +5,29 @@ from sentry.workflow_engine.caches.workflow import invalidate_processing_workflo
 from sentry.workflow_engine.models import Detector, Workflow
 
 
-@receiver(post_migrate, sender=Workflow)
-def invalidate_all_processing_cache(sender, workflow: Workflow) -> None:
-    pass
+@receiver(pre_save, sender=Workflow)
+def enforce_config_schema(sender, instance: Workflow, **kwargs) -> None:
+    return instance.validate_config(instance.config_schema)
+
+
+@receiver(post_migrate)
+def invalidate_all_processing_cache(sender, **kwargs) -> None:
+    return invalidate_processing_workflows()
 
 
 @receiver(pre_delete, sender=Workflow)
-@receiver(pre_save, sender=Workflow)
 @receiver(post_save, sender=Workflow)
-def invalidate_processing_cache(sender, workflow: Workflow) -> None:
+def invalidate_processing_cache(sender, instance: Workflow, **kwargs) -> None:
     """
     Invalidate the cache of workflows for processing when a workflow: changes, is removed, or is migrated.
     """
+    # If this is a _new_ workflow, we can early exit. There won't be any associated detectors.
+    if kwargs.get("created") or not instance.id:
+        return
+
     # get the list of associated detectors that need the caches cleared
-    detectors = Detector.objects.filter(detectorworkflow_workflow=workflow)
+    detectors = Detector.objects.filter(detectorworkflow__workflow=instance)
 
     # env is the related environment(s)?
     for detector in detectors:
-        invalidate_processing_workflows(detector.id, workflow.environment_id)
+        invalidate_processing_workflows(detector.id, instance.environment_id)
