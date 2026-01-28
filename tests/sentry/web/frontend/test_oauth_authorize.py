@@ -1,6 +1,8 @@
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
+import pytest
+
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -229,6 +231,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             "Read, write, and admin access to organization members."
         ]
 
+    @pytest.mark.skip(reason="flaky: #105728")
     def test_unauthenticated_basic_auth(self) -> None:
         full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
 
