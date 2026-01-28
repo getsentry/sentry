@@ -194,7 +194,8 @@ export function GithubInstallationSelect({
             <InstallButtonHook
               hasSCMMultiOrg={
                 hasSCMMultiOrg ||
-                installation_info.some(installation => installation.count === 0)
+                installation_info.find(i => i.installation_id === installationID)
+                  ?.count === 0
               }
               installationID={installationID}
               isSaving={isSaving}
