@@ -47,8 +47,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 export function createDashboard(
   api: Client,
   orgSlug: string,
-  newDashboard: DashboardDetails,
-  duplicate?: boolean
+  newDashboard: DashboardDetails
 ): Promise<DashboardDetails> {
   const {title, widgets, projects, environment, period, start, end, filters, utc} =
     newDashboard;
@@ -60,7 +59,6 @@ export function createDashboard(
       data: {
         title,
         widgets: widgets.map(widget => omit(widget, ['tempId'])).map(_enforceWidgetLimit),
-        duplicate,
         projects,
         environment,
         period,
