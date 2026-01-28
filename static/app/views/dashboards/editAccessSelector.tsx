@@ -355,7 +355,7 @@ function EditAccessSelector({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
-          borderless={listOnly}
+          priority="transparent"
           style={listOnly ? {padding: 2} : {}}
         >
           {listOnly

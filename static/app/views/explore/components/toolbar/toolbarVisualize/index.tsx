@@ -102,7 +102,7 @@ export function ToolbarVisualizeDropdown({
       )}
       {canDelete ? (
         <Button
-          borderless
+          priority="transparent"
           icon={<IconDelete />}
           size="zero"
           onClick={onDelete}
@@ -126,7 +126,7 @@ export function ToolbarVisualizeAddChart({
 }: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
+      
       size="zero"
       icon={<IconAdd />}
       onClick={add}
@@ -142,7 +142,7 @@ export function ToolbarVisualizeAddChart({
 export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
+      
       size="zero"
       icon={<IconAdd />}
       onClick={add}

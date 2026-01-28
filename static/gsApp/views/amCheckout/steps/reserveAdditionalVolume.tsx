@@ -98,7 +98,7 @@ function ReserveAdditionalVolume({
           <Button
             size="sm"
             priority="link"
-            borderless
+            
             icon={showSliders ? <IconSubtract /> : <IconAdd />}
             aria-label={
               showSliders

@@ -39,7 +39,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
       </div>
       <IntegrationBannerImage src={addIntegrationProvider} />
       <CloseBannerButton
-        borderless
+        
         priority="link"
         aria-label={t('Dismiss')}
         icon={<IconClose variant="muted" />}

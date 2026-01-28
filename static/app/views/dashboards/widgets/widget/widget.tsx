@@ -74,7 +74,7 @@ function WidgetLayout(props: Widget) {
     <Frame
       aria-label={props.ariaLabel}
       height={props.height}
-      borderless={props.borderless}
+      priority="transparent"
       revealActions={revealActions}
       minHeight={defined(props.height) ? Math.min(props.height, MIN_HEIGHT) : MIN_HEIGHT}
     >

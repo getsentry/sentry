@@ -273,7 +273,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             <ButtonBar>
               <Button
                 priority="link"
-                borderless
+                
                 onClick={this.handleToggleSubfilters.bind(this, true)}
                 disabled={disabled}
               >
@@ -281,7 +281,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
               </Button>
               <Button
                 priority="link"
-                borderless
+                
                 onClick={this.handleToggleSubfilters.bind(this, false)}
                 disabled={disabled}
               >

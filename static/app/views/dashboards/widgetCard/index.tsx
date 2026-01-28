@@ -339,7 +339,7 @@ function WidgetCard(props: Props) {
                   ? onFullScreenViewClick
                   : undefined
             }
-            borderless={props.borderless}
+            priority="transparent"
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           >
             <VisualizationWidget
@@ -386,7 +386,7 @@ function WidgetCard(props: Props) {
                 ? onFullScreenViewClick
                 : undefined
           }
-          borderless={props.borderless}
+          priority="transparent"
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
         >

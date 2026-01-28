@@ -403,7 +403,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
         <PlayPauseButtonContainer>
           <ReplayPlayPauseButton
             key="playPause-play"
-            borderless
+            
             priority="default"
             size="sm"
           />
@@ -415,7 +415,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
         <LinkButton
           key="playPause-select"
           aria-label={t('Play')}
-          borderless
+          
           data-test-id="replay-table-play-button"
           icon={<IconPlay />}
           to={{

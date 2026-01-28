@@ -219,7 +219,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         size="md"
                         priority="default"
                         aria-label={t('Refresh')}
-                        borderless
+                        
                       />
                     </Flex>
                   </Flex>

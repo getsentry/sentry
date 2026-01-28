@@ -55,7 +55,7 @@ export function Button({
             }
           />
         )}
-        <ButtonLabel size={size} borderless={props.borderless}>
+        <ButtonLabel size={size} priority="transparent">
           {props.icon && (
             <Icon size={size} hasChildren={hasChildren}>
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>

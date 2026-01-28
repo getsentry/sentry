@@ -280,7 +280,7 @@ function ClearIndicator(
   return (
     <selectComponents.ClearIndicator {...props}>
       <Button
-        borderless
+        priority="transparent"
         icon={<IconClose legacySize="10px" />}
         size="zero"
         aria-label={t('Clear choices')}

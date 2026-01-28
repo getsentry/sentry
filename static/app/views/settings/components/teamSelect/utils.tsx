@@ -103,7 +103,7 @@ export function DropdownAddTeam({
                 ? undefined
                 : t('You must be a Org Owner/Manager to create teams')
             }
-            borderless
+            
             priority="link"
             size="xs"
             disabled={!canCreateTeam}
