@@ -23,10 +23,10 @@ fingerprint:
 - '{{ level }}'
 title: Love not found.
 variants:
-  custom_fingerprint:
+  custom_server_fingerprint:
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
     type: custom_fingerprint
     values:
