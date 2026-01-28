@@ -1255,7 +1255,7 @@ export default typescript.config([
               target: ['core'],
               allow: [
                 '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
-                '**/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
+                '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
                 '**/*.png', // needed for story-files
                 // todo clean these up! we should have a single entry for each component
                 'alert/alert.tsx',
