@@ -287,7 +287,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert result.id == "test_session_123"
         assert result.status == CodingAgentStatus.RUNNING
         assert result.provider == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
-        assert result.name == "Test Session"
+        assert result.name == "testorg/testrepo: Test Session"
 
         mock_post.assert_called_once()
         call_args = mock_post.call_args
