@@ -170,8 +170,10 @@ def _trigger_autofix_task(
         else:
             user = AnonymousUser()
 
-        # Route to explorer-based autofix if seer-explorer is enabled
-        if features.has("organizations:seer-explorer", group.organization):
+        # Route to explorer-based autofix if both feature flags are enabled
+        if features.has("organizations:seer-explorer", group.organization) and features.has(
+            "organizations:autofix-on-explorer", group.organization
+        ):
             trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
