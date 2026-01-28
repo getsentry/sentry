@@ -165,6 +165,10 @@ class TreeEnricher:
                 break
 
     def _find_ancestor_agent_name(self, span: SpanEvent) -> str | None:
+        """
+        Finds the nearest ancestor's agent name within MAX_AGENT_NAME_ANCESTOR_HOPS.
+        Returns the first agent name found, or None if no ancestor has one.
+        """
         for ancestor in islice(self._iter_ancestors(span), MAX_AGENT_NAME_ANCESTOR_HOPS):
             if (
                 agent_name := attribute_value(ancestor, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME)
