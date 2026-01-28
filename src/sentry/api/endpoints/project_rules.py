@@ -15,7 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, RuleSerializerResponse
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
@@ -284,7 +284,7 @@ class ProjectRulesPostSerializer(serializers.Serializer):
     environment = serializers.CharField(
         required=False, allow_null=True, help_text="The name of the environment to filter by."
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
     frequency = serializers.IntegerField(

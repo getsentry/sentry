@@ -19,7 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
@@ -88,7 +88,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
         required=False,
         help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid filters.",
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
 
@@ -185,14 +185,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
+        current_owner = None
         if rule.owner_team_id or rule.owner_user_id:
-            rule_data_before["owner"] = Actor.from_id(
-                user_id=rule.owner_user_id, team_id=rule.owner_team_id
-            )
+            current_owner = Actor.from_id(user_id=rule.owner_user_id, team_id=rule.owner_team_id)
+            rule_data_before["owner"] = current_owner
         rule_data_before["label"] = rule.label
 
         serializer = DrfRuleSerializer(
-            context={"project": project, "organization": project.organization, "request": request},
+            context={
+                "project": project,
+                "organization": project.organization,
+                "request": request,
+                "current_owner": current_owner,
+            },
             data=request.data,
             partial=True,
         )
