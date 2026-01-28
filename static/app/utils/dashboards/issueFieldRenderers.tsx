@@ -7,6 +7,7 @@ import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
+import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -47,6 +48,7 @@ type SpecialFields = {
   count: SpecialField;
   events: SpecialField;
   issue: SpecialField;
+  lastSeenAgo: SpecialField;
   lifetimeCount: SpecialField;
   lifetimeEvents: SpecialField;
   lifetimeUserCount: SpecialField;
@@ -94,6 +96,10 @@ const SPECIAL_FIELDS: SpecialFields = {
   assignee: {
     sortField: null,
     renderFunc: data => <IssueAssignee groupId={data.id} />,
+  },
+  lastSeenAgo: {
+    sortField: 'date',
+    renderFunc: data => <TimeSince date={data.lastSeen} />,
   },
   lifetimeEvents: {
     sortField: null,
@@ -241,6 +247,7 @@ export function getSortField(field: string): string | null {
   }
   switch (field) {
     case FieldKey.LAST_SEEN:
+    case FieldKey.LAST_SEEN_AGO:
       return 'date';
     case FieldKey.FIRST_SEEN:
       return 'new';
