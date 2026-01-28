@@ -916,7 +916,9 @@ class AddEyesReactionTest(TestCase):
             extra={},
         )
 
-        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", extra={})
+        mock_logger.warning.assert_called_once_with(
+            "github.webhook.reaction-failed", extra={}, exc_info=True
+        )
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
@@ -943,7 +945,9 @@ class AddEyesReactionTest(TestCase):
             extra={},
         )
 
-        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", extra={})
+        mock_logger.warning.assert_called_once_with(
+            "github.webhook.reaction-failed", extra={}, exc_info=True
+        )
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
@@ -964,4 +968,6 @@ class AddEyesReactionTest(TestCase):
             extra={},
         )
 
-        mock_logger.warning.assert_called_once_with("github.webhook.reaction-failed", extra={})
+        mock_logger.warning.assert_called_once_with(
+            "github.webhook.reaction-failed", extra={}, exc_info=True
+        )
