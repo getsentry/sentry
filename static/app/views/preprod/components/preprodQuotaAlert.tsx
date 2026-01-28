@@ -4,7 +4,7 @@ import {t, tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function PreprodQuotaAlert() {
+export function PreprodQuotaAlert({system}: {system?: boolean}) {
   const organization = useOrganization();
 
   const {data: quotaData} = useApiQuery<{
@@ -31,7 +31,7 @@ export function PreprodQuotaAlert() {
 
   return (
     <Alert.Container>
-      <Alert variant="warning" system>
+      <Alert variant="warning" system={system}>
         {tct('[message] [link:Get more.]', {
           message,
           link: <ExternalLink href="https://sentry.io/pricing/" />,
