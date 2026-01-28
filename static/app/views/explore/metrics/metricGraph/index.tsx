@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
@@ -19,6 +20,7 @@ import {
   useMetricLabel,
   useMetricVisualize,
   useSetMetricVisualize,
+  useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -27,6 +29,7 @@ import {
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -104,6 +107,11 @@ function Graph({
   const metricLabel = useMetricLabel();
   const userQuery = useQueryParamsQuery();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const traceMetric = useTraceMetric();
+  const rawMetricCounts = useRawCounts({
+    dataset: DiscoverDatasets.TRACEMETRICS,
+    aggregate: `count(value,${traceMetric.name},${traceMetric.type},-)`,
+  });
 
   const chartInfo = useMemo(() => {
     const series = timeseriesResult.data[aggregate] ?? [];
@@ -208,6 +216,7 @@ function Graph({
               chartInfo={chartInfo}
               isLoading={timeseriesResult.isFetching}
               hasUserQuery={!!userQuery}
+              rawMetricCounts={rawMetricCounts}
             />
           )
         }
