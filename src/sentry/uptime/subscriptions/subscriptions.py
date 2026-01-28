@@ -124,6 +124,7 @@ def create_uptime_subscription(
     body: str | None = None,
     trace_sampling: bool = False,
     assertion: Any | None = None,
+    response_capture_enabled: bool = True,
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -148,6 +149,7 @@ def create_uptime_subscription(
         body=body,
         trace_sampling=trace_sampling,
         assertion=assertion,
+        response_capture_enabled=response_capture_enabled,
     )
 
     # Associate active regions with this subscription
@@ -199,10 +201,13 @@ def update_uptime_subscription(
     )
 
     # When disabling response capture, also disable the system flag so the
-    # checker stops sending response data
+    # checker stops sending response data. When re-enabling, restore the flag
+    # so the checker starts sending response data again.
     new_capture_response_on_failure = subscription.capture_response_on_failure
     if not new_response_capture_enabled:
         new_capture_response_on_failure = False
+    elif new_response_capture_enabled and not subscription.response_capture_enabled:
+        new_capture_response_on_failure = True
 
     subscription.update(
         status=UptimeSubscription.Status.UPDATING.value,
@@ -265,6 +270,7 @@ def create_uptime_detector(
     recovery_threshold: int = DEFAULT_RECOVERY_THRESHOLD,
     downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
     assertion: Any | None = None,
+    response_capture_enabled: bool = True,
 ) -> Detector:
     """
     Creates an UptimeSubscription and associated Detector
@@ -301,6 +307,7 @@ def create_uptime_detector(
             body=body,
             trace_sampling=trace_sampling,
             assertion=assertion,
+            response_capture_enabled=response_capture_enabled,
         )
         owner_user_id = None
         owner_team_id = None
