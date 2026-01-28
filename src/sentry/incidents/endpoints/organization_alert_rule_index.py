@@ -232,6 +232,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         project_id_int = to_valid_int_id("project_id", project_id)
 
         projects = self.get_projects(request, organization, project_ids={project_id_int})
+        assert projects  # should be guaranteed non-empty
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
