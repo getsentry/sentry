@@ -37,7 +37,7 @@ import {ConversationsTable} from 'sentry/views/insights/pages/conversations/comp
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
-const DEFAULT_QUERY = 'has:user';
+const DEFAULT_QUERY = 'has:user.email';
 
 interface ConversationsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;

@@ -9,6 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
@@ -319,6 +320,10 @@ function ExplorerPanel() {
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
+  const conversationsUrl =
+    runId && organization?.slug
+      ? getConversationsUrl(organization.slug, runId)
+      : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -341,10 +346,11 @@ function ExplorerPanel() {
           ...(runId === null ? {} : {['seer.run_id']: runId}),
           ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
           ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+          ...(conversationsUrl ? {['conversations_url']: conversationsUrl} : {}),
         },
       });
     }
-  }, [openFeedbackForm, runId, langfuseUrl]);
+  }, [openFeedbackForm, runId, langfuseUrl, conversationsUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
