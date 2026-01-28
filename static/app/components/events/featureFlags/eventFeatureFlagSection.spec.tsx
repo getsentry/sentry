@@ -5,7 +5,7 @@ import {
   render,
   screen,
   userEvent,
-  waitForDrawerToHide,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
@@ -88,8 +88,9 @@ describe('EventFeatureFlagList', () => {
     expect(searchInput).toBeInTheDocument();
 
     await userEvent.click(viewAllButton);
-    await waitForDrawerToHide('Feature flags drawer');
-    expect(searchInput).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('textbox', {name: 'Search Flags'})
+    );
   });
 
   it('opens the drawer and focuses search when the search button is pressed', async () => {

@@ -4,7 +4,7 @@ import {
   render,
   screen,
   userEvent,
-  waitForDrawerToHide,
+  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -83,8 +83,9 @@ describe('BreadcrumbsDataSection', () => {
     expect(searchInput).toBeInTheDocument();
 
     await userEvent.click(viewAllButton);
-    await waitForDrawerToHide('breadcrumb drawer');
-    expect(searchInput).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('textbox', {name: 'Search All Breadcrumbs'})
+    );
   });
 
   it('can switch between display time formats', async () => {

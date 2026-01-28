@@ -542,18 +542,6 @@ function renderGlobalModal<T extends boolean = true>(options?: RenderOptions<T>)
 }
 
 /**
- * Helper that waits for the drawer to be hidden from the DOM. You may need to
- * wait for the drawer to be removed to avoid any act warnings.
- */
-function waitForDrawerToHide(ariaLabel: string) {
-  return rtl.waitFor(() => {
-    expect(
-      rtl.screen.queryByRole('complementary', {name: ariaLabel})
-    ).not.toBeInTheDocument();
-  });
-}
-
-/**
  * This cannot be implemented as a Sentry Integration because Jest creates an
  * isolated environment for each test suite. This means that if we were to apply
  * the monkey patching ahead of time, it would be shadowed by Jest.
@@ -571,5 +559,4 @@ export {
   renderGlobalModal,
   renderHookWithProviders,
   userEvent,
-  waitForDrawerToHide,
 };
