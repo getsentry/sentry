@@ -306,20 +306,22 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert "response_body_size_bytes" not in attributes
 
     def test_convert_with_assertion_failure_data(self) -> None:
-        assertion_failure_data = {
-            "root": {
-                "op": "and",
-                "children": [
-                    {
-                        "op": "not",
-                        "operand": {
-                            "op": "json_path",
-                            "value": '$.components[?@.status == "operational"]',
-                        },
-                    }
-                ],
-            }
-        },
+        assertion_failure_data = (
+            {
+                "root": {
+                    "op": "and",
+                    "children": [
+                        {
+                            "op": "not",
+                            "operand": {
+                                "op": "json_path",
+                                "value": '$.components[?@.status == "operational"]',
+                            },
+                        }
+                    ],
+                }
+            },
+        )
 
         result = self._create_base_result(
             assertion_failure_data=assertion_failure_data,
