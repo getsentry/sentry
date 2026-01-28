@@ -41,6 +41,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.services.auth import auth_service
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import ROLE_CHOICES
 from sentry.models.organization import Organization
@@ -191,20 +192,42 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 detail=ResourceDoesNotExist.default_detail,
             )
 
-    def _delete_member(self, request: Request, organization, member):
+    def _delete_member(
+        self, request: Request, organization: Organization, member: OrganizationMember
+    ) -> None:
         audit_data = member.get_audit_log_data()
+        user_id = member.user_id
+        member_id = member.id
         if member.is_only_owner():
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
+
         with transaction.atomic(router.db_for_write(OrganizationMember)):
             member.delete()
             self.create_audit_entry(
                 request=request,
                 organization=organization,
-                target_object=member.id,
-                target_user_id=member.user_id,
+                target_object=member_id,
+                target_user_id=user_id,
                 event=audit_log.get_event_id("MEMBER_REMOVE"),
                 data=audit_data,
             )
+
+        # In SaaS mode with the default organization, revoke superuser/staff privileges
+        # in addition to removing the membership.
+        if (
+            settings.SENTRY_MODE == SentryMode.SAAS
+            and organization.id == settings.SENTRY_DEFAULT_ORGANIZATION_ID
+            and user_id is not None
+        ):
+            user = user_service.get_user(user_id=user_id)
+            if user and (user.is_superuser or user.is_staff):
+                user_service.update_user(
+                    user_id=user.id,
+                    attrs={
+                        "is_superuser": False,
+                        "is_staff": False,
+                    },
+                )
 
     def _should_delete_member(self, operation):
         if operation.get("op").lower() == MemberPatchOps.REPLACE:
