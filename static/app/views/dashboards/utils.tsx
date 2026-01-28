@@ -270,9 +270,14 @@ export function getWidgetDiscoverUrl(
     discoverLocation.query.fromMetric = 'true';
   }
 
+  // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+  const projectParam =
+    selection.projects.length === 0 ? '' : discoverLocation.query.project;
+
   // Construct and return the discover url
   const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
     ...discoverLocation.query,
+    project: projectParam,
   })}`;
   return discoverPath;
 }

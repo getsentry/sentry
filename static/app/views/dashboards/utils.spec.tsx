@@ -98,7 +98,7 @@ describe('Dashboards util', () => {
         OrganizationFixture()
       );
       expect(url).toBe(
-        '/organizations/org-slug/explore/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/explore/discover/results/?field=count%28%29&name=Test%20Query&project=&query=&statsPeriod=7d&yAxis=count%28%29'
       );
     });
     it('returns the discover url of a topn widget query', () => {
@@ -125,7 +125,7 @@ describe('Dashboards util', () => {
         OrganizationFixture()
       );
       expect(url).toBe(
-        '/organizations/org-slug/explore/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/explore/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&project=&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
     });
     it('applies the dashboard filters to the query', () => {
