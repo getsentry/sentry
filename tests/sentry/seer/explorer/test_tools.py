@@ -111,7 +111,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             ),
         ]
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
     def test_spans_timeseries_count_metric(self):
         """Test timeseries query with count() metric using real data"""
@@ -594,7 +594,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
         result = get_trace_waterfall(
             trace_id[:8] if use_short_id else trace_id, self.organization.id
         )
@@ -666,7 +666,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Call with short ID and wrong org
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -692,7 +692,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should find the trace using short ID by sliding back to the second window
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -720,7 +720,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should find the trace by sliding back through multiple windows
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -748,7 +748,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should not find the trace since it's beyond the 90-day limit
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -772,7 +772,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             },
             start_ts=self.ten_mins_ago,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         result = get_trace_waterfall(trace_id, self.organization.id)
         assert isinstance(result, EAPTrace)
@@ -850,7 +850,7 @@ class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
                 ),
             ]
 
-            self.store_spans(spans, is_eap=True)
+            self.store_spans(spans)
 
             # Cross-project query should return both traces with pageload spans.
             result = execute_trace_table_query(
@@ -1036,7 +1036,7 @@ class TestGetIssueAndEventDetailsV2(
             start_ts=before_now(days=3, hours=23),
             duration=100,
         )
-        self.store_spans([span0, span1], is_eap=True)
+        self.store_spans([span0, span1])
 
         # Create events with shared stacktrace (should have same group)
         events: list[Event] = []
@@ -1214,7 +1214,7 @@ class TestGetIssueAndEventDetailsV2(
             start_ts=before_now(minutes=10),
             duration=100,
         )
-        self.store_spans([span0], is_eap=True)
+        self.store_spans([span0])
 
         # Create one event.
         data = load_data("python", timestamp=before_now(minutes=10))
@@ -1886,7 +1886,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         # Mock the profile data fetch and conversion
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
@@ -1921,7 +1921,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=200,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         # Mock the profile data
         mock_fetch_profile.return_value = {
@@ -1961,7 +1961,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             )
             for i, start_time in enumerate([span1_time, span2_time, span3_time])
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "test", "module": "test"}], "3")
@@ -1998,7 +1998,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=twenty_days_ago,
             duration=150,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "old_function", "module": "old"}], "4")
@@ -2023,7 +2023,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "handler", "module": "server"}], "5")
@@ -2045,7 +2045,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         result = rpc_get_profile_flamegraph("notfound", self.organization.id)
 

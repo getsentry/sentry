@@ -432,7 +432,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
-                is_eap=True,
             )
 
         response = self.do_request(
@@ -490,7 +489,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 measurements={tag: 0},
-                is_eap=True,
             )
 
         response = self.do_request(
@@ -550,7 +548,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
-                is_eap=True,
             )
 
         response = self.do_request(
@@ -673,7 +670,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 measurements={tag: 0},
-                is_eap=True,
             )
 
         response = self.do_request(
@@ -753,7 +749,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "span.op": "foo",
                 "span.duration": "bar",
             },
-            is_eap=True,
         )
 
         response = self.do_request()
@@ -797,7 +792,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     start_ts=before_now(days=0, minutes=10),
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(query={"substringMatch": ""})
@@ -831,7 +825,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "is_feature_enabled": False,
             "is_production": True,
         }
-        self.store_spans([span1, span2], is_eap=True)
+        self.store_spans([span1, span2])
 
         response = self.do_request(query={"attributeType": "boolean"})
         assert response.status_code == 200, response.content
@@ -1139,7 +1133,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         response = self.do_request(key="tag")
@@ -1185,7 +1178,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -1233,7 +1225,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -1273,7 +1264,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -1314,7 +1304,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -1363,7 +1352,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -1404,7 +1392,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -1445,7 +1432,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         for key in [
@@ -1593,7 +1579,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 timestamp=timestamp,
                 transaction="foo",
                 status=status,
-                is_eap=True,
             )
 
         response = self.do_request(key="span.status")
@@ -1737,7 +1722,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             duration=100,
             exclusive_time=100,
             tags={"tag": "foo"},
-            is_eap=True,
         )
 
         response = self.do_request(key="tag")
@@ -1759,7 +1743,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         response = self.do_request(key="tag")
@@ -1859,7 +1842,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                     start_ts=before_now(days=0, minutes=10),
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(key="release")
@@ -1990,7 +1972,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     def test_autocomplete_timestamp(self) -> None:
         self.store_spans(
             [self.create_span(start_ts=before_now(days=0, minutes=10))],
-            is_eap=True,
         )
         response = self.do_request(key="timestamp", query={"substringMatch": "20"})
         assert response.status_code == 200
@@ -2005,7 +1986,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 self.create_span({"sentry_tags": {"device.class": ""}}),
                 self.create_span({}),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(key="device.class")
