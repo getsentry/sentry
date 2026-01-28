@@ -23,6 +23,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 type Installation = {
   avatar_url: string;
+  count: number;
   github_account: string;
   installation_id: string;
 };
@@ -188,9 +189,13 @@ export function GithubInstallationSelect({
           )}
         />
         <Stack alignSelf="flex-end" paddingTop="xl">
+          {/* All GitHub app installs will show up here. If the corresponding Integration has 0 installs we should also allow install */}
           {organization.features.includes('github-multi-org-upsell-modal') ? (
             <InstallButtonHook
-              hasSCMMultiOrg={hasSCMMultiOrg}
+              hasSCMMultiOrg={
+                hasSCMMultiOrg ||
+                installation_info.some(installation => installation.count === 0)
+              }
               installationID={installationID}
               isSaving={isSaving}
               handleSubmit={handleSubmit}
