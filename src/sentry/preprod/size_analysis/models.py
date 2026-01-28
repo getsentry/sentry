@@ -81,6 +81,7 @@ class TreemapElement(BaseModel):
     """ Some files (like zip files) are not directories but have children. """
     children: list[TreemapElement]
     misc: TreemapElementMisc | None = None
+    flagged_insights: list[str] = []
 
 
 class TreemapResults(BaseModel):
