@@ -27,7 +27,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
-from sentry.workflow_engine.models.detector import Detector
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
@@ -713,11 +712,13 @@ def test_total_span_time(spans: list[Span], duration: float) -> None:
 
 @pytest.mark.django_db
 class WFEDetectorConfigTest(TestCase):
-    def test_wfe_detector_enabled_uses_wfe_config(self) -> None:
-        project = self.create_project()
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
 
-        Detector.objects.create(
-            project=project,
+    def test_wfe_detector_enabled_uses_wfe_config(self) -> None:
+        self.create_detector(
+            project=self.project,
             type="performance_slow_db_query",
             name="Test SlowDB Detector",
             enabled=True,
@@ -725,16 +726,14 @@ class WFEDetectorConfigTest(TestCase):
         )
 
         with self.feature("projects:workflow-engine-performance-detectors"):
-            settings = get_detection_settings(project, settings_mode=SettingsMode.WFE)
+            settings = get_detection_settings(self.project, settings_mode=SettingsMode.WFE)
 
         assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 5000
         assert settings[DetectorType.SLOW_DB_QUERY]["detection_enabled"] is True
 
     def test_wfe_detector_disabled_still_uses_wfe_config(self) -> None:
-        project = self.create_project()
-
-        Detector.objects.create(
-            project=project,
+        self.create_detector(
+            project=self.project,
             type="performance_slow_db_query",
             name="Test SlowDB Detector",
             enabled=False,
@@ -742,7 +741,7 @@ class WFEDetectorConfigTest(TestCase):
         )
 
         projectoptions.set(
-            project,
+            self.project,
             "sentry:performance_issue_settings",
             {
                 "slow_db_queries_detection_enabled": True,
@@ -751,16 +750,14 @@ class WFEDetectorConfigTest(TestCase):
         )
 
         with self.feature("projects:workflow-engine-performance-detectors"):
-            settings = get_detection_settings(project, settings_mode=SettingsMode.WFE)
+            settings = get_detection_settings(self.project, settings_mode=SettingsMode.WFE)
 
         assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 5000
         assert settings[DetectorType.SLOW_DB_QUERY]["detection_enabled"] is False
 
     def test_no_wfe_detector_uses_legacy_config(self) -> None:
-        project = self.create_project()
-
         projectoptions.set(
-            project,
+            self.project,
             "sentry:performance_issue_settings",
             {
                 "slow_db_queries_detection_enabled": True,
@@ -769,22 +766,20 @@ class WFEDetectorConfigTest(TestCase):
         )
 
         with self.feature("projects:workflow-engine-performance-detectors"):
-            settings = get_detection_settings(project, settings_mode=SettingsMode.WFE)
+            settings = get_detection_settings(self.project, settings_mode=SettingsMode.WFE)
 
         assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 2000
         assert settings[DetectorType.SLOW_DB_QUERY]["detection_enabled"] is True
 
     def test_wfe_detector_missing_field_uses_system_default(self) -> None:
-        project = self.create_project()
-
         projectoptions.set(
-            project,
+            self.project,
             "sentry:performance_issue_settings",
             {"slow_db_query_duration_threshold": 2000},
         )
 
-        Detector.objects.create(
-            project=project,
+        self.create_detector(
+            project=self.project,
             type="performance_slow_db_query",
             name="Test SlowDB Detector",
             enabled=True,
@@ -792,22 +787,20 @@ class WFEDetectorConfigTest(TestCase):
         )
 
         with self.feature("projects:workflow-engine-performance-detectors"):
-            settings = get_detection_settings(project, settings_mode=SettingsMode.WFE)
+            settings = get_detection_settings(self.project, settings_mode=SettingsMode.WFE)
 
         assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 1000
         assert settings[DetectorType.SLOW_DB_QUERY]["detection_enabled"] is True
 
     def test_feature_flag_disabled_uses_legacy_config(self) -> None:
-        project = self.create_project()
-
-        Detector.objects.create(
-            project=project,
+        self.create_detector(
+            project=self.project,
             type="performance_slow_db_query",
             name="Test SlowDB Detector",
             enabled=True,
             config={"duration_threshold": 5000},
         )
 
-        settings = get_detection_settings(project, settings_mode=SettingsMode.WFE)
+        settings = get_detection_settings(self.project, settings_mode=SettingsMode.WFE)
 
         assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 1000
