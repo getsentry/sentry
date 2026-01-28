@@ -13,9 +13,11 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class FindReferencedGroupsTest(TestCase):
+    @with_feature("organizations:defer-commit-resolution")
     def test_resolve_in_commit(self) -> None:
         """
         Test that commits with "Fixes ISSUE-123" create GroupLinks but do NOT
