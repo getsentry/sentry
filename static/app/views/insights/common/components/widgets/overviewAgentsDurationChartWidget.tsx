@@ -11,6 +11,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ModalChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {
   getAgentRunsFilter,
@@ -31,9 +32,10 @@ export default function OverviewAgentsDurationChartWidget(
   });
   const releaseBubbleProps = useReleaseBubbleProps(props);
 
-  const fullQuery = useCombinedQuery(
+  const baseQueryWithAgent = useAgentFilteredQuery(
     props.hasAgentRuns ? getAgentRunsFilter() : getHasAiSpansFilter()
   );
+  const fullQuery = useCombinedQuery(baseQueryWithAgent);
 
   const {data, isLoading, error} = useFetchSpanTimeSeries(
     {

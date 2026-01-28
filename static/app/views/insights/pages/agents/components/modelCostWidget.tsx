@@ -14,6 +14,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/query';
@@ -37,7 +38,8 @@ export default function ModelCostWidget() {
     granularity: 'spans-low',
   });
 
-  const fullQuery = useCombinedQuery(getAIGenerationsFilter());
+  const baseQueryWithAgent = useAgentFilteredQuery(getAIGenerationsFilter());
+  const fullQuery = useCombinedQuery(baseQueryWithAgent);
 
   const tokensRequest = useSpans(
     {

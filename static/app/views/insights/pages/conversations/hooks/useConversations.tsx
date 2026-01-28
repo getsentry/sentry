@@ -5,6 +5,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
@@ -39,7 +40,8 @@ export function useConversations() {
   const organization = useOrganization();
   const {cursor, setCursor} = useTableCursor();
   const pageFilters = usePageFilters();
-  const combinedQuery = useCombinedQuery('') || undefined;
+  const baseQueryWithAgent = useAgentFilteredQuery('');
+  const combinedQuery = useCombinedQuery(baseQueryWithAgent) || undefined;
 
   const {
     data: rawData,

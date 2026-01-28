@@ -23,6 +23,7 @@ import {
   HeadSortCell,
   useTableSort,
 } from 'sentry/views/insights/pages/agents/components/headSortCell';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
@@ -64,7 +65,8 @@ export function ToolsTable() {
     columns: defaultColumnOrder,
   });
 
-  const fullQuery = useCombinedQuery(getToolSpansFilter());
+  const baseQueryWithAgent = useAgentFilteredQuery(getToolSpansFilter());
+  const fullQuery = useCombinedQuery(baseQueryWithAgent);
 
   const {cursor, setCursor} = useTableCursor();
 
