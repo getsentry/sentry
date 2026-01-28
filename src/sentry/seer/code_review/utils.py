@@ -456,7 +456,7 @@ def delete_existing_reactions_and_add_eyes_reaction(
                     CodeReviewErrorType.REACTION_FAILED,
                 )
                 logger.warning(Log.REACTION_FAILED.value, extra=extra)
-                sentry_sdk.capture_exception(e)
+                sentry_sdk.capture_exception(e, level="warning")
 
         # Add :eyes: on the originating issue comment or pr description
         if github_event == GithubWebhookType.PULL_REQUEST:
@@ -470,4 +470,4 @@ def delete_existing_reactions_and_add_eyes_reaction(
             CodeReviewErrorType.REACTION_FAILED,
         )
         logger.warning(Log.REACTION_FAILED.value, extra=extra)
-        sentry_sdk.capture_exception(e)
+        sentry_sdk.capture_exception(e, level="warning")
