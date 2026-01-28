@@ -29,6 +29,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
@@ -68,12 +69,13 @@ def get_detector_validator(
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, detector_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
+        validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
             detector = (
                 Detector.objects.with_type_filters()
                 .select_related("project")
                 .get(
-                    id=detector_id,
+                    id=validated_detector_id,
                     project__organization_id=kwargs["organization"].id,
                 )
             )
