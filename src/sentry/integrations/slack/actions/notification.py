@@ -9,7 +9,6 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.messaging.metrics import (
@@ -41,6 +40,7 @@ from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
 from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
@@ -278,7 +278,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             save_notification_method(data=notification_message_object)
 
         organization = self.project.organization
-        if features.has("organizations:seer-slack-workflows", organization):
+        if SeerOperator.has_access(organization, entrypoint_key=SeerEntrypointKey.SLACK):
             cache_thread_ts = thread_ts or message_ts
             if not cache_thread_ts:
                 _default_logger.warning(
