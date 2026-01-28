@@ -38,7 +38,7 @@ export default function MetricInfoTabs({
   const setAggregatesMode = useSetQueryParamsMode();
   return (
     <TabStateProvider<Mode>
-      defaultValue={queryParamsMode}
+      value={queryParamsMode}
       onChange={mode => {
         setAggregatesMode(mode);
       }}
