@@ -24,7 +24,7 @@ interface AppSizeInsightsSidebarProps {
 }
 
 function getInsightsDocsUrl(platform?: Platform): string {
-  if (platform === 'macos' || platform === 'ios') {
+  if (platform === 'apple' || platform === 'macos' || platform === 'ios') {
     return 'https://docs.sentry.io/platforms/apple/guides/ios/size-analysis/insights/';
   }
   if (platform === 'android') {
