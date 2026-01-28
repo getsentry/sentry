@@ -85,6 +85,7 @@
     "static/app",
     "static/gsApp",
     "static/gsAdmin",
+    "static/eslint",
     "tests/js",
     "config",
     "scripts"
