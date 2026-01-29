@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
@@ -600,11 +600,11 @@ function RuleNode({
   return (
     <RuleRowContainer incompatible={incompatibleRule}>
       <Flex align="center" padding="md">
-        <Rule>
+        <Flex align="center" wrap="wrap" flex="1">
           <input type="hidden" name="id" value={data.id} />
           {renderRow()}
           {renderIntegrationButton()}
-        </Rule>
+        </Flex>
         <DeleteButton
           disabled={disabled}
           aria-label={t('Delete Node')}
@@ -649,10 +649,6 @@ const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   border: 1px ${p => p.theme.tokens.border.secondary} solid;
   border-color: ${p => (p.incompatible ? p.theme.colors.red200 : 'none')};
 `;
-
-function Rule(props: FlexProps<'div'>) {
-  return <Flex align="center" wrap="wrap" flex="1" {...props} />;
-}
 
 const DeleteButton = styled(Button)`
   flex-shrink: 0;
