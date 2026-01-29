@@ -296,7 +296,7 @@ def run_missing_sdk_integration_detector_for_project(
             user=None,
             category_key=AutopilotDetectorName.MISSING_SDK_INTEGRATION,
             category_value=str(project.id),
-            intelligence_level="low",
+            intelligence_level="medium",
         )
     except SeerPermissionError:
         logger.warning(
