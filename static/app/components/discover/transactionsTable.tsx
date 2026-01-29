@@ -3,6 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -83,7 +85,7 @@ function TransactionsTable(props: Props) {
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
-          <HeadCellContainer key={index}>
+          <Container padding="xl" key={index}>
             <SortLink
               align={align}
               title={
@@ -106,12 +108,12 @@ function TransactionsTable(props: Props) {
               canSort={false}
               generateSortLink={generateSortLink}
             />
-          </HeadCellContainer>
+          </Container>
         );
       }
 
       return (
-        <HeadCellContainer key={index}>
+        <Container padding="xl" key={index}>
           <SortLink
             align={align}
             title={title}
@@ -119,7 +121,7 @@ function TransactionsTable(props: Props) {
             canSort={false}
             generateSortLink={generateSortLink}
           />
-        </HeadCellContainer>
+        </Container>
       );
     });
 
@@ -267,10 +269,6 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
     });
   };
 }
-
-const HeadCellContainer = styled('div')`
-  padding: ${space(2)};
-`;
 
 const BodyCellContainer = styled('div')`
   padding: ${space(1)} ${space(2)};

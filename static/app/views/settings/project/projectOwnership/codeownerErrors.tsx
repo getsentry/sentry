@@ -2,6 +2,8 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
@@ -163,13 +165,13 @@ export function CodeOwnerErrors({
               key={id}
               variant="danger"
               expand={
-                <AlertContentContainer key="container">
+                <Container maxHeight="350px" overflowY="auto" key="container">
                   {errorPairs.map(([type, values]) => (
                     <ErrorContainer key={`${id}-${type}`}>
                       {errMessage(codeMapping!, type, values)}
                     </ErrorContainer>
                   ))}
-                </AlertContentContainer>
+                </Container>
               }
             >
               {errorCount === 1
@@ -182,11 +184,6 @@ export function CodeOwnerErrors({
     </Fragment>
   );
 }
-
-const AlertContentContainer = styled('div')`
-  overflow-y: auto;
-  max-height: 350px;
-`;
 
 const ErrorContainer = styled('div')`
   display: grid;

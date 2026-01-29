@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -200,7 +202,7 @@ function PlatformPicker({
   return (
     <Fragment>
       <NavContainer className={navClassName}>
-        <TabsContainer>
+        <Container marginBottom="xl">
           <Tabs
             value={category}
             onChange={val => {
@@ -219,7 +221,7 @@ function PlatformPicker({
               ))}
             </TabList>
           </Tabs>
-        </TabsContainer>
+        </Container>
         {showFilterBar && (
           <StyledSearchBar
             size="sm"
@@ -285,10 +287,6 @@ function PlatformPicker({
     </Fragment>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};

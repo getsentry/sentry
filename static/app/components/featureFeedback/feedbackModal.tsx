@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Event} from '@sentry/core';
 import {
   BrowserClient,
@@ -10,6 +9,8 @@ import {
   makeFetchTransport,
 } from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -25,7 +26,6 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -217,12 +217,14 @@ export function FeedbackModal<T extends Data>({
       return (
         <Footer>
           {secondaryAction && (
-            <SecondaryActionWrapper>{secondaryAction}</SecondaryActionWrapper>
+            <Container flex="1" alignSelf="center">
+              {secondaryAction}
+            </Container>
           )}
           {onBack && (
-            <BackButtonWrapper>
+            <Container marginRight="md" width="100%">
               <Button onClick={onBack}>{t('Back')}</Button>
-            </BackButtonWrapper>
+            </Container>
           )}
           <ButtonBar>
             <Button onClick={closeModal}>{t('Cancel')}</Button>
@@ -348,14 +350,4 @@ export function FeedbackModal<T extends Data>({
 export const modalCss = css`
   width: 100%;
   max-width: 680px;
-`;
-
-const BackButtonWrapper = styled('div')`
-  margin-right: ${space(1)};
-  width: 100%;
-`;
-
-const SecondaryActionWrapper = styled('div')`
-  flex: 1;
-  align-self: center;
 `;

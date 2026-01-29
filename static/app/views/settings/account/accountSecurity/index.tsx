@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -88,7 +90,7 @@ export default function AccountSecurity() {
       <SettingsPageHeader
         title={t('Security')}
         tabs={
-          <TabsContainer>
+          <Container marginBottom="xl">
             <Tabs value={activeTab}>
               <TabList>
                 <TabList.Item key="settings" to={`${routePrefix}`}>
@@ -99,7 +101,7 @@ export default function AccountSecurity() {
                 </TabList.Item>
               </TabList>
             </Tabs>
-          </TabsContainer>
+          </Container>
         }
       />
 
@@ -224,10 +226,6 @@ export default function AccountSecurity() {
     </SentryDocumentTitle>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const AuthenticatorList = styled(PanelBody)`
   display: grid;

@@ -1,18 +1,16 @@
 import {useState} from 'react';
 import {Outlet, useOutletContext} from 'react-router-dom';
-import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -102,7 +100,7 @@ export default function TeamDetails() {
             <IdBadge hideAvatar hideOverflow={false} team={team} avatarSize={36} />
           </h3>
 
-          <TabsContainer>
+          <Container marginBottom="xl">
             <Tabs value={activeTab}>
               <TabList>
                 <TabList.Item key="members" to={`${routePrefix}members/`}>
@@ -119,7 +117,7 @@ export default function TeamDetails() {
                 </TabList.Item>
               </TabList>
             </Tabs>
-          </TabsContainer>
+          </Container>
 
           <TeamDetailsOutlet team={team} />
         </div>
@@ -146,7 +144,3 @@ export default function TeamDetails() {
     </div>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;

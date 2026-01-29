@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -150,7 +151,7 @@ export default function BreadcrumbsTimeline({
         data-index={virtualizedRow.index}
         showLastLine={showLastLine}
       >
-        <ContentWrapper>
+        <Container paddingBottom="md">
           <ErrorBoundary mini>
             <BreadcrumbItemContent
               breadcrumb={breadcrumb}
@@ -158,7 +159,7 @@ export default function BreadcrumbsTimeline({
               fullyExpanded={fullyExpanded}
             />
           </ErrorBoundary>
-        </ContentWrapper>
+        </Container>
       </BreadcrumbItem>
     );
   });
@@ -212,10 +213,6 @@ const Timestamp = styled('div')`
     text-decoration: underline dashed
       ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
-`;
-
-const ContentWrapper = styled('div')`
-  padding-bottom: ${space(1)};
 `;
 
 const BreadcrumbItem = styled(Timeline.Item)`

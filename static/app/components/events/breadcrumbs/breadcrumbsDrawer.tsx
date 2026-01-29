@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
@@ -228,7 +229,7 @@ export function BreadcrumbsDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody ref={setContainer}>
-        <TimelineContainer>
+        <Container column="span 2">
           {displayCrumbs.length === 0 ? (
             <EmptyMessage>
               {t('No breadcrumbs found.')}
@@ -253,15 +254,11 @@ export function BreadcrumbsDrawer({
               containerElement={container}
             />
           )}
-        </TimelineContainer>
+        </Container>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
-
-const TimelineContainer = styled('div')`
-  grid-column: span 2;
-`;
 
 const EmptyMessage = styled('div')`
   display: flex;

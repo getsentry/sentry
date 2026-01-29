@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -189,7 +191,7 @@ export default function AttributeField({
       required
       showHelpInTooltip
     >
-      <Wrapper>
+      <Container width="100%" position="relative">
         {traceItemAttributeStringsResult.isLoading &&
         !Object.keys(suggestedAttributeValues).length ? (
           <LoadingIndicator style={{margin: '0 auto'}} size={20} />
@@ -220,15 +222,10 @@ export default function AttributeField({
             )}
           </Fragment>
         )}
-      </Wrapper>
+      </Container>
     </FieldGroup>
   );
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  width: 100%;
-`;
 
 const StyledInput = styled(Input)<{error: boolean}>`
   width: 100%;

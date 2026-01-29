@@ -3,6 +3,8 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {SelectOptionOrSectionWithKey} from 'sentry/components/core/compactSelect/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -57,11 +59,13 @@ function WildcardFooter({
   token: TokenResult<Token.FILTER>;
 }) {
   if (isWildcardOperator(token.operator)) {
-    return <Label>{t('Switch to "is" operator to use wildcard (*) matching')}</Label>;
+    return (
+      <Container>{t('Switch to "is" operator to use wildcard (*) matching')}</Container>
+    );
   }
 
   if (canUseWildcard) {
-    return <Label>{t('Wildcard (*) matching allowed')}</Label>;
+    return <Container>{t('Wildcard (*) matching allowed')}</Container>;
   }
 
   return null;
@@ -93,9 +97,9 @@ function Footer({
   return (
     <FooterContainer>
       {isMultiSelect ? (
-        <Label>{t('Hold %s to select multiple', isMac() ? '⌘' : 'Ctrl')}</Label>
+        <Container>{t('Hold %s to select multiple', isMac() ? '⌘' : 'Ctrl')}</Container>
       ) : null}
-      <Label>{t('Type to search suggestions')}</Label>
+      <Container>{t('Type to search suggestions')}</Container>
       <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
     </FooterContainer>
   );
@@ -237,5 +241,3 @@ const LoadingWrapper = styled('div')<{height?: string; width?: string}>`
   height: ${p => p.height ?? '140px'};
   width: ${p => p.width ?? '200px'};
 `;
-
-const Label = styled('div')``;

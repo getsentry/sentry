@@ -1,5 +1,6 @@
 import {Component, createContext} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
@@ -13,7 +14,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
@@ -279,9 +279,9 @@ class ProjectContextProvider extends Component<Props, State> {
         // TODO(dcramer): add various controls to improve this flow and break it
         // out into a reusable missing access error component
         return (
-          <ErrorWrapper>
+          <Container margin="xl 3xl" width="100%">
             <MissingProjectMembership organization={organization} project={project} />
-          </ErrorWrapper>
+          </Container>
         );
       default:
         return <LoadingError onRetry={this.remountComponent} />;
@@ -300,8 +300,3 @@ class ProjectContextProvider extends Component<Props, State> {
 export {ProjectContext, ProjectContextProvider};
 
 export default withApi(withOrganization(withProjects(ProjectContextProvider)));
-
-const ErrorWrapper = styled('div')`
-  width: 100%;
-  margin: ${space(2)} ${space(4)};
-`;

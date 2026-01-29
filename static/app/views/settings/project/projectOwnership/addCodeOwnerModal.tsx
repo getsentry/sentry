@@ -1,7 +1,7 @@
 import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -196,7 +196,7 @@ function ApplyCodeMappings({
         stacked
       />
 
-      <FileResult>
+      <Container width="inherit">
         {codeownersFile ? (
           <SourceFile codeownersFile={codeownersFile} />
         ) : (
@@ -210,7 +210,7 @@ function ApplyCodeMappings({
             errorJSON={mutation.error.responseJSON as {raw?: string}}
           />
         ) : null}
-      </FileResult>
+      </Container>
     </Form>
   );
 }
@@ -330,9 +330,6 @@ function ErrorMessage({
 const StyledSelectField = styled(SelectField)`
   border-bottom: None;
   padding-right: 16px;
-`;
-const FileResult = styled('div')`
-  width: inherit;
 `;
 const NoSourceFileBody = styled(PanelBody)`
   display: grid;

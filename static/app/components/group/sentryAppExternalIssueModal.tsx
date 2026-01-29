@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
@@ -77,14 +77,14 @@ function SentryAppExternalIssueModal(props: Props) {
   return (
     <Fragment>
       <Header closeButton>{tct('[name] Issue', {name})}</Header>
-      <TabsContainer>
+      <Container marginBottom="xl">
         <Tabs value={action} onChange={setAction}>
           <TabList>
             <TabList.Item key="create">{t('Create')}</TabList.Item>
             <TabList.Item key="link">{t('Link')}</TabList.Item>
           </TabList>
         </Tabs>
-      </TabsContainer>
+      </Container>
       <Body>
         <SentryAppExternalIssueForm
           group={group}
@@ -99,7 +99,3 @@ function SentryAppExternalIssueModal(props: Props) {
     </Fragment>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;

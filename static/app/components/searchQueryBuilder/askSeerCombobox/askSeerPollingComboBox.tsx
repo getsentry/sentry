@@ -5,6 +5,8 @@ import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 
+import {Container, Stack} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
@@ -452,7 +454,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
-      <InputWrapper>
+      <Container width="100%" height="100%" position="relative">
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
@@ -460,7 +462,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
-      </InputWrapper>
+      </Container>
       <ButtonsWrapper>
         <Button
           size="xs"
@@ -489,38 +491,38 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           overlayProps={overlayProps}
         >
           {showLoading ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader title={t("I'm on it...")} loading />
               <AskSeerProgressBlocks
                 completedSteps={completedSteps}
                 currentStep={currentStep}
               />
-            </SeerContent>
+            </Stack>
           ) : isError ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader
                 title={t('An error occurred while fetching Seer queries')}
               />
-            </SeerContent>
+            </Stack>
           ) : hasResults ? (
-            <SeerContent onMouseLeave={onMouseLeave}>
+            <Stack flex="1" onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
               <AskSeerSearchListBox
                 {...listBoxProps}
                 listBoxRef={listBoxRef}
                 state={state}
               />
-            </SeerContent>
+            </Stack>
           ) : unsupportedReason ? (
-            <SeerContent>
+            <Stack flex="1">
               <AskSeerSearchHeader
                 title={unsupportedReason || 'This query is not supported'}
               />
-            </SeerContent>
+            </Stack>
           ) : (
-            <SeerContent onMouseLeave={onMouseLeave}>
+            <Stack flex="1" onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
-            </SeerContent>
+            </Stack>
           )}
           <SeerFooter>
             {openForm && (
@@ -571,12 +573,6 @@ const SearchIcon = styled(IconSearch)`
   height: 22px;
 `;
 
-const InputWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 100%;
-`;
-
 const InvisibleInput = styled('input')`
   position: absolute;
   inset: 0;
@@ -625,10 +621,4 @@ const SeerFooter = styled('div')`
   padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
-`;
-
-const SeerContent = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
 `;

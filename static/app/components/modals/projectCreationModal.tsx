@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -192,7 +192,7 @@ export default function ProjectCreationModal({
           <Flex gap="md">
             <div>
               <Label>{t('Project slug')}</Label>
-              <ProjectNameInputWrap>
+              <Container position="relative">
                 <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
                 <ProjectNameInput
                   type="text"
@@ -202,7 +202,7 @@ export default function ProjectCreationModal({
                   value={projectName}
                   onChange={e => setProjectName(slugify(e.target.value))}
                 />
-              </ProjectNameInputWrap>
+              </Container>
             </div>
             <div>
               <Label>{t('Team')}</Label>
@@ -255,9 +255,6 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   transform: translateY(-50%);
 `;
 
-const ProjectNameInputWrap = styled('div')`
-  position: relative;
-`;
 const ProjectNameInput = styled(Input)`
   padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
