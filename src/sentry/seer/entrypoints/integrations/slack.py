@@ -118,6 +118,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             install=self.install,
             thread=self.thread,
             data=SeerAutofixError(error_message=error),
+            ephemeral_user_id=self.slack_request.user_id,
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
@@ -132,7 +133,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             ephemeral_user_id=self.slack_request.user_id,
         )
         try:
-            _update_existing_message(
+            remove_autofix_button(
                 request=self.slack_request,
                 install=self.install,
                 channel_id=self.channel_id,
@@ -261,25 +262,38 @@ def send_thread_update(
     ephemeral_user_id: str | None = None,
 ) -> None:
     """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
+    logging_ctx = {
+        "entrypoint_key": SeerEntrypointKey.SLACK,
+        "install": install,
+        "thread": thread,
+        "data_source": data.source,
+        "ephemeral_user_id": ephemeral_user_id,
+    }
     provider = provider_registry.get(NotificationProviderKey.SLACK)
     template_cls = template_registry.get(data.source)
     renderable = NotificationService.render_template(
         data=data, template=template_cls(), provider=provider
     )
-    # Skip over the notification service for now since threading isn't yet formalized.
-    if ephemeral_user_id:
-        install.send_threaded_ephemeral_message(
-            channel_id=thread["channel_id"],
-            thread_ts=thread["thread_ts"],
-            renderable=renderable,
-            slack_user_id=ephemeral_user_id,
-        )
-    else:
-        install.send_threaded_message(
-            channel_id=thread["channel_id"],
-            thread_ts=thread["thread_ts"],
-            renderable=renderable,
-        )
+    try:
+        if ephemeral_user_id:
+            install.send_threaded_ephemeral_message(
+                channel_id=thread["channel_id"],
+                thread_ts=thread["thread_ts"],
+                renderable=renderable,
+                slack_user_id=ephemeral_user_id,
+            )
+        else:
+            install.send_threaded_message(
+                channel_id=thread["channel_id"],
+                thread_ts=thread["thread_ts"],
+                renderable=renderable,
+            )
+    except ValueError as e:
+        logging_ctx["error"] = str(e)
+        logger.warning("entrypoint.send_thread_update.invalid_integration", extra=logging_ctx)
+        # No need to retry since these are configuration errors, and will just repeat
+        return
+    logger.info("entrypoint.send_thread_update.success", extra=logging_ctx)
 
 
 @instrumented_task(
@@ -366,7 +380,7 @@ def _transform_block_actions(
     return result
 
 
-def _update_existing_message(
+def remove_autofix_button(
     *,
     request: SlackActionRequest,
     install: SlackIntegration,
@@ -391,11 +405,7 @@ def _update_existing_message(
         text=request.data["message"]["text"],
     )
 
-    install.update_message(
-        channel_id=channel_id,
-        message_ts=message_ts,
-        renderable=renderable,
-    )
+    install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
 
 
 def handle_prepare_autofix_update(
