@@ -957,6 +957,10 @@ JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = [
     "UndeliverableException",
 ]
 
+KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES = [
+    "DiagnosticCoroutineContextException",
+]
+
 
 def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int | None:
     if len(exceptions) < 2:
@@ -987,9 +991,32 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
     return None
 
 
+def kotlin_coroutine_framework_exceptions(exceptions: list[SingleException]) -> int | None:
+    """
+    DiagnosticCoroutineContextException is added by Kotlin Coroutines for debugging.
+    It has no stacktrace and no meaningful message, so it should not determine the title.
+    When found with a parent, return the parent exception as the main one.
+    """
+    if len(exceptions) < 2:
+        return None
+
+    for exception in exceptions:
+        if (
+            exception.module == "kotlinx.coroutines.internal"
+            and exception.type in KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES
+            and exception.mechanism
+            and exception.mechanism.parent_id is not None
+        ):
+            # Return the parent as the main exception
+            return exception.mechanism.parent_id
+
+    return None
+
+
 MAIN_EXCEPTION_ID_FUNCS = [
     react_error_with_cause,
     java_rxjava_framework_exceptions,
+    kotlin_coroutine_framework_exceptions,
 ]
 
 
