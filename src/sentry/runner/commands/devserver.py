@@ -218,8 +218,6 @@ def devserver(
             # Make sure we reload really quickly for local dev in case it
             # doesn't want to shut down nicely on it's own, NO MERCY
             "workers-kill-timeout": 3,
-            # ? We need stdin to support pdb in devserver
-            # "honour-stdin": True,
             "workers": 1 if debug_server else 2,
         }
 
