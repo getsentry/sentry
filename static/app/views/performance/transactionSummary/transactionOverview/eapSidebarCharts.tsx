@@ -105,7 +105,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
       }
       Visualization={<TimeSeriesWidgetVisualization plottables={plottables} />}
       height={200}
-      borderless
+      priority="transparent"
     />
   );
 }
