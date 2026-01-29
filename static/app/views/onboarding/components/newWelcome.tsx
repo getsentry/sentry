@@ -69,22 +69,28 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     description: t('Watch real user sessions to see what went wrong'),
   },
   {
-    id: 'metrics',
-    icon: <IconGraph legacySize="16px" variant="secondary" />,
-    title: t('Metrics'),
-    description: t('Custom metrics for tracking application performance and usage'),
-  },
-  {
     id: 'tracing',
     icon: <IconSpan legacySize="16px" variant="secondary" />,
     title: t('Tracing'),
-    description: t('Find slow transactions, bottlenecks, and timeouts'),
+    description: t(
+      'Find bottlenecks, broken requests, and understand application flow end-to-end.'
+    ),
+  },
+  {
+    id: 'metrics',
+    icon: <IconGraph legacySize="16px" variant="secondary" />,
+    title: t('Metrics'),
+    description: t(
+      'Track application performance and usage over time with custom metrics.'
+    ),
   },
   {
     id: 'profiling',
     icon: <IconProfiling legacySize="16px" variant="secondary" />,
     title: t('Profiling'),
-    description: t('See the exact lines of code causing your performance bottlenecks.'),
+    description: t(
+      'Pinpoint the functions and lines of code responsible for performance issues.'
+    ),
   },
 ];
 
