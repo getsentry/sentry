@@ -4,10 +4,12 @@ from sentry.models.environment import Environment
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.utils.metrics import metrics_incr
 
 # TODO - Make this a sentry option? cache=0?1 could disable it w/o a deploy
 # Cache timeout for 5 minutes
 CACHE_TTL = 300
+METRIC_PREFIX = "workflow_engine.cache.processing_workflow"
 
 
 def processing_workflow_cache_key(detector_id: int, env_id: int | None) -> str:
@@ -25,6 +27,8 @@ def invalidate_processing_workflows(detector_id: int | None, env_id: int | None)
         pass
 
     cache_key = processing_workflow_cache_key(detector_id, env_id)
+
+    metrics_incr(f"{METRIC_PREFIX}.invalidated")
     return cache.delete(cache_key)
 
 
@@ -39,6 +43,8 @@ def get_processing_workflows(detector: Detector, environment: Environment | None
     workflows = cache.get(cache_key)
 
     if workflows is None:
+        metrics_incr(f"{METRIC_PREFIX}.miss")
+
         environment_filter = (
             (Q(environment_id=None) | Q(environment_id=environment.id))
             if environment
@@ -56,5 +62,7 @@ def get_processing_workflows(detector: Detector, environment: Environment | None
         )
 
         cache.set(cache_key, workflows, timeout=CACHE_TTL)
+    else:
+        metrics_incr(f"{METRIC_PREFIX}.hit")
 
     return workflows
