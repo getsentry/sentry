@@ -22,6 +22,7 @@ export interface DO_NOT_USE_CommonButtonProps {
   analyticsParams?: Record<string, any>;
   /**
    * Removes borders from the button.
+   * @deprecated Use `priority="transparent"` instead.
    */
   borderless?: boolean;
   /**
