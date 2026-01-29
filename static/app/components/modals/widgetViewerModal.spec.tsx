@@ -1277,7 +1277,7 @@ describe('Modals -> WidgetViewerModal', () => {
         tableData: [],
         seriesData: [],
       });
-      expect(metricsMock).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(1));
       await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(2));
       expect(router.location.query).toEqual(
