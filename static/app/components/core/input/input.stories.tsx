@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+import {Input, useAutosizeInput} from 'sentry/components/core/input';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 

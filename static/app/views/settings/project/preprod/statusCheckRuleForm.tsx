@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
+import {NumberInput} from 'sentry/components/core/input';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';

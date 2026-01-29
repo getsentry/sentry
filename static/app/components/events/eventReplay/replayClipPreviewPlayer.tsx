@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import type {LinkButtonProps} from 'sentry/components/core/button';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';

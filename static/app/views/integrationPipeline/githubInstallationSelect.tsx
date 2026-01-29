@@ -6,7 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
+import {BaseAvatar} from 'sentry/components/core/avatar';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
