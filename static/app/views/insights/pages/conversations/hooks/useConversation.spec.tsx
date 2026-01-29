@@ -61,9 +61,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    expect(node?.value.additional_attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(
-      inputMessages
-    );
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(inputMessages);
   });
 
   it('maps gen_ai.request.messages to node attributes', async () => {
@@ -103,9 +103,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    expect(node?.value.additional_attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe(
-      requestMessages
-    );
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe(requestMessages);
   });
 
   it('uses empty string for missing optional fields', async () => {
@@ -141,13 +141,11 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
     // Should default to empty string for missing fields
-    expect(node?.value.additional_attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(
-      ''
-    );
-    expect(node?.value.additional_attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe(
-      ''
-    );
+    expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe('');
+    expect(attrs?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe('');
   });
 
   it('filters to only gen_ai spans', async () => {
