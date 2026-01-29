@@ -16,7 +16,7 @@ def processing_workflow_cache_key(detector_id: int, env_id: int | None) -> str:
     return f"workflows_by_detector_env:{detector_id}:{env_id}"
 
 
-def invalidate_processing_workflows(detector_id: int | None, env_id: int | None) -> None:
+def invalidate_processing_workflows(detector_id: int | None, env_id: int | None) -> bool:
     if detector_id is None:
         # TODO - clear the whole cache, wild card?
         raise Exception("Not implemented")

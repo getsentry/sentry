@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
@@ -15,7 +15,7 @@ class DetectorSignalsTests(TestCase):
         self.dw = self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
 
     @patch("sentry.workflow_engine.models.signals.detector.invalidate_processing_workflows")
-    def test_cache_invalidate__create_detector(self, mock_invalidate):
+    def test_cache_invalidate__create_detector(self, mock_invalidate: MagicMock) -> None:
         detector = Detector.objects.create(
             project=self.project, type=ErrorGroupType.slug, config={}
         )
@@ -25,14 +25,14 @@ class DetectorSignalsTests(TestCase):
         assert detector
 
     @patch("sentry.workflow_engine.models.signals.detector.invalidate_processing_workflows")
-    def test_cache_invalidate__modify_detector(self, mock_invalidate):
+    def test_cache_invalidate__modify_detector(self, mock_invalidate: MagicMock) -> None:
         self.detector.enabled = False
         self.detector.save()
 
         # Ensure the modified detector clears the workflow cache
         mock_invalidate.assert_called_with(self.detector.id, None)
 
-    def test_enforce_config__raises_errors(self):
+    def test_enforce_config__raises_errors(self) -> None:
         with pytest.raises(ValidationError):
             # Creates a metric issue detector, w/o the correct config
             Detector.objects.create(type="metric_issue")

@@ -14,7 +14,7 @@ class DetectorWorkflowSignalsTests(TestCase):
     @patch(
         "sentry.workflow_engine.models.signals.detector_workflow.invalidate_processing_workflows"
     )
-    def test_cache_invalidate__on_create(self, mock_invalidate: MagicMock):
+    def test_cache_invalidate__on_create(self, mock_invalidate: MagicMock) -> None:
         detector = self.create_detector()
         workflow = self.create_workflow()
 
@@ -28,7 +28,7 @@ class DetectorWorkflowSignalsTests(TestCase):
     @patch(
         "sentry.workflow_engine.models.signals.detector_workflow.invalidate_processing_workflows"
     )
-    def test_cache_invalidate__on_update__detector(self, mock_invalidate: MagicMock):
+    def test_cache_invalidate__on_update__detector(self, mock_invalidate: MagicMock) -> None:
         detector = self.create_detector()
         self.dw.detector = detector
         self.dw.save()
@@ -40,7 +40,7 @@ class DetectorWorkflowSignalsTests(TestCase):
     @patch(
         "sentry.workflow_engine.models.signals.detector_workflow.invalidate_processing_workflows"
     )
-    def test_cache_invalidate__on_update__workflow(self, mock_invalidate: MagicMock):
+    def test_cache_invalidate__on_update__workflow(self, mock_invalidate: MagicMock) -> None:
         workflow = self.create_workflow()
         self.dw.workflow = workflow
         self.dw.save()
@@ -52,6 +52,6 @@ class DetectorWorkflowSignalsTests(TestCase):
     @patch(
         "sentry.workflow_engine.models.signals.detector_workflow.invalidate_processing_workflows"
     )
-    def test_cache_invalidate__on_delete(self, mock_invalidate: MagicMock):
+    def test_cache_invalidate__on_delete(self, mock_invalidate: MagicMock) -> None:
         self.dw.delete()
         mock_invalidate.assert_called_once_with(self.detector.id, self.environment.id)

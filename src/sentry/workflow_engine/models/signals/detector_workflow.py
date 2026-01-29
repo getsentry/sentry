@@ -7,7 +7,7 @@ from sentry.workflow_engine.models import DetectorWorkflow
 
 @receiver(post_migrate, sender=DetectorWorkflow)
 def invalidate_all_processing_cache(sender, **kwargs) -> None:
-    invalidate_processing_workflows()
+    invalidate_processing_workflows(None, None)
 
 
 @receiver(pre_save, sender=DetectorWorkflow)

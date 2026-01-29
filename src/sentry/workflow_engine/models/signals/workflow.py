@@ -13,7 +13,7 @@ def enforce_config_schema(sender, instance: Workflow, **kwargs) -> None:
 @receiver(post_migrate)
 def invalidate_all_processing_cache(sender, **kwargs) -> None:
     # Invalidate cache for processing workflows after a migration
-    return invalidate_processing_workflows()
+    invalidate_processing_workflows(None, None)
 
 
 @receiver(pre_delete, sender=Workflow)
