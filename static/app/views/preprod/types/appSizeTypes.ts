@@ -67,6 +67,7 @@ export interface TreemapElement {
   name: string;
   size: number;
   type: TreemapType;
+  flagged_insights?: string[];
   misc?: TreemapElementMisc;
   path?: string;
 }
