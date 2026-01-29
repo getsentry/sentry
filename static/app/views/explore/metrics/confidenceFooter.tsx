@@ -147,9 +147,9 @@ function ConfidenceMessage({
 
       const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
         rawMetricCounts.highAccuracy.count > 1 ? (
-          t('%s samples', <Count value={rawMetricCounts.highAccuracy.count} />)
+          t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
         ) : (
-          t('%s sample', <Count value={rawMetricCounts.highAccuracy.count} />)
+          t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
         )
       ) : (
         <Placeholder width={40} />
@@ -215,8 +215,8 @@ function ConfidenceMessage({
   if (dataScanned === 'partial') {
     const matchingMetricsCount =
       sampleCount > 1
-        ? t('%s samples', <Count value={sampleCount} />)
-        : t('%s sample', <Count value={sampleCount} />);
+        ? t('%s matches', <Count value={sampleCount} />)
+        : t('%s match', <Count value={sampleCount} />);
 
     const scannedMetricsCount = defined(rawMetricCounts.normal.count) ? (
       rawMetricCounts.normal.count > 1 ? (
@@ -274,9 +274,9 @@ function ConfidenceMessage({
 
   const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
     rawMetricCounts.highAccuracy.count > 1 ? (
-      t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
+      t('%s samples', <Count value={rawMetricCounts.highAccuracy.count} />)
     ) : (
-      t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
+      t('%s sample', <Count value={rawMetricCounts.highAccuracy.count} />)
     )
   ) : (
     <Placeholder width={40} />
