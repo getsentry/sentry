@@ -12,8 +12,10 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {
   Aggregation,
   AggregationOutputType,
+  DataUnit,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {SizeUnit} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
@@ -26,7 +28,10 @@ import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
 import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import {
   useMobileAppSizeSeriesQuery,
   useMobileAppSizeTableQuery,
@@ -213,6 +218,26 @@ function useMobileAppSizeSearchBarDataProvider(
   };
 }
 
+function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
+  data: EventsStats | MultiSeriesEventsStats,
+  widgetQuery: WidgetQuery,
+  value: T
+): Record<string, T> {
+  const result: Record<string, T> = {};
+
+  for (const aggregate of widgetQuery.aggregates ?? []) {
+    result[aggregate] = value;
+  }
+
+  if (isMultiSeriesEventsStats(data)) {
+    for (const seriesName of Object.keys(data)) {
+      result[seriesName] = value;
+    }
+  }
+
+  return result;
+}
+
 export const MobileAppSizeConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData
@@ -301,17 +326,10 @@ export const MobileAppSizeConfig: DatasetConfig<
 
     return seriesWithOrder.sort((a, b) => a.order - b.order).map(item => item.series);
   },
-  getSeriesResultType: (
-    _data: EventsStats | MultiSeriesEventsStats,
-    _widgetQuery: WidgetQuery
-  ): Record<string, AggregationOutputType> => {
-    return {
-      'max(install_size)': 'size',
-      'max(download_size)': 'size',
-      'min(install_size)': 'size',
-      'min(download_size)': 'size',
-    };
-  },
+  getSeriesResultType: (data, widgetQuery) =>
+    buildSeriesResultMap(data, widgetQuery, 'size'),
+  getSeriesResultUnit: (data, widgetQuery) =>
+    buildSeriesResultMap(data, widgetQuery, SizeUnit.BYTE),
   filterAggregateParams,
   handleOrderByReset,
 };

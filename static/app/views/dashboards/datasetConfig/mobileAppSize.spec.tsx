@@ -130,26 +130,72 @@ describe('MobileAppSizeConfig', () => {
     });
   });
 
-  describe('getSeriesResultType', () => {
-    it('returns size output type for both install and download aggregates', () => {
-      const data = {} as EventsStats;
-      const widgetQuery = {
-        conditions: '',
-        aggregates: [],
-        fields: [],
-        columns: [],
-        fieldAliases: [],
-        name: '',
-        orderby: '',
-      };
+  describe('getSeriesResultType and getSeriesResultUnit', () => {
+    const singleSeriesData = {data: []} as EventsStats;
+    const multiSeriesData = {
+      'com.sentry.app,ios': {data: []},
+      'com.sentry.app,android': {data: []},
+    } as unknown as MultiSeriesEventsStats;
 
-      const result = MobileAppSizeConfig.getSeriesResultType!(data, widgetQuery);
+    const singleSeriesQuery = {
+      conditions: '',
+      aggregates: ['max(install_size)'],
+      fields: ['max(install_size)'],
+      columns: [],
+      fieldAliases: [],
+      name: '',
+      orderby: '',
+    };
 
-      expect(result).toEqual({
+    const multiAggregateQuery = {
+      ...singleSeriesQuery,
+      aggregates: ['max(install_size)', 'max(download_size)'],
+      fields: ['max(install_size)', 'max(download_size)'],
+    };
+
+    const multiSeriesQuery = {
+      ...singleSeriesQuery,
+      columns: ['app_id', 'platform'],
+    };
+
+    it('returns size type for single-series aggregate', () => {
+      expect(
+        MobileAppSizeConfig.getSeriesResultType!(singleSeriesData, singleSeriesQuery)
+      ).toEqual({'max(install_size)': 'size'});
+    });
+
+    it('returns size type for multiple aggregates', () => {
+      expect(
+        MobileAppSizeConfig.getSeriesResultType!(singleSeriesData, multiAggregateQuery)
+      ).toEqual({
         'max(install_size)': 'size',
         'max(download_size)': 'size',
-        'min(install_size)': 'size',
-        'min(download_size)': 'size',
+      });
+    });
+
+    it('returns size type for multi-series grouped data', () => {
+      expect(
+        MobileAppSizeConfig.getSeriesResultType!(multiSeriesData, multiSeriesQuery)
+      ).toEqual({
+        'max(install_size)': 'size',
+        'com.sentry.app,ios': 'size',
+        'com.sentry.app,android': 'size',
+      });
+    });
+
+    it('returns byte unit for single-series aggregate', () => {
+      expect(
+        MobileAppSizeConfig.getSeriesResultUnit!(singleSeriesData, singleSeriesQuery)
+      ).toEqual({'max(install_size)': 'byte'});
+    });
+
+    it('returns byte unit for multi-series grouped data', () => {
+      expect(
+        MobileAppSizeConfig.getSeriesResultUnit!(multiSeriesData, multiSeriesQuery)
+      ).toEqual({
+        'max(install_size)': 'byte',
+        'com.sentry.app,ios': 'byte',
+        'com.sentry.app,android': 'byte',
       });
     });
   });

@@ -38,7 +38,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -294,6 +294,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
     : undefined;
   const bucketSize = getBucketSize(series);
+  const sizeUnit = timeseriesResultsUnits?.[axisLabel];
 
   const valueFormatter = (value: number, seriesName?: string) => {
     const decodedSeriesName = seriesName
@@ -383,7 +384,8 @@ function WidgetCardChart(props: WidgetCardChartProps) {
               true,
               durationUnit,
               undefined,
-              PERCENTAGE_DECIMAL_POINTS
+              PERCENTAGE_DECIMAL_POINTS,
+              sizeUnit
             );
           }
           return axisLabelFormatter(

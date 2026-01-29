@@ -187,6 +187,16 @@ export enum SizeUnit {
   EXABYTE = 'exabyte',
 }
 
+export const ABYTE_UNITS = [
+  'byte',
+  'kilobyte',
+  'megabyte',
+  'gigabyte',
+  'terabyte',
+  'petabyte',
+  'exabyte',
+];
+
 // Sizes normalized to byte unit
 export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
   bit: 1 / 8,

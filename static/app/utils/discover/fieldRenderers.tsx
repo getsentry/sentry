@@ -38,6 +38,7 @@ import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
+  ABYTE_UNITS,
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
@@ -209,16 +210,6 @@ export const SIZE_UNITS = {
   petabyte: 1000 ** 5,
   exabyte: 1000 ** 6,
 };
-
-export const ABYTE_UNITS = [
-  'byte',
-  'kilobyte',
-  'megabyte',
-  'gigabyte',
-  'terabyte',
-  'petabyte',
-  'exabyte',
-];
 
 // TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
