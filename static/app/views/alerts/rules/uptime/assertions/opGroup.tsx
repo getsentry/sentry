@@ -200,7 +200,7 @@ export function AssertionOpGroup({
         <CompositeSelect
           size="xs"
           trigger={props => (
-            <OverlayTrigger.Button {...props} size="zero" borderless>
+            <OverlayTrigger.Button {...props} size="zero" priority="transparent">
               {triggerLabel}
             </OverlayTrigger.Button>
           )}
@@ -221,7 +221,7 @@ export function AssertionOpGroup({
         </CompositeSelect>
         <Button
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconGrabbable size="xs" />}
           aria-label={t('Reorder assertion group')}
           ref={setActivatorNodeRef}
@@ -232,7 +232,7 @@ export function AssertionOpGroup({
         {onRemove && (
           <Button
             size="sm"
-            borderless
+            priority="transparent"
             icon={<IconDelete />}
             aria-label={t('Remove Group')}
             onClick={onRemove}
@@ -257,7 +257,7 @@ export function AssertionOpGroup({
           <AddOpButton
             size="xs"
             triggerProps={{
-              borderless: true,
+              priority: 'transparent',
               size: 'zero',
               icon: <IconAdd size="xs" />,
               title: t('Add assertion to group'),

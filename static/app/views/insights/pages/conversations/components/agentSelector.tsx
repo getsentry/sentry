@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
-import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
+import {parseAsArrayOf, parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -17,6 +17,11 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
+
+export function useAgentFilters(): string[] {
+  const [agentFilters] = useQueryState(AGENT_URL_PARAM, parseAsArrayOf(parseAsString));
+  return agentFilters ?? [];
+}
 
 export function AgentSelector() {
   const organization = useOrganization();

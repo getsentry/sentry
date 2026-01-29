@@ -30,7 +30,7 @@ export function UserSnoozeDeprecationBanner({projectId}: Props) {
         <Button
           aria-label="Dismiss banner"
           icon={<IconClose variant="accent" />}
-          borderless
+          priority="transparent"
           onClick={dismissPrompt}
           size="zero"
         />

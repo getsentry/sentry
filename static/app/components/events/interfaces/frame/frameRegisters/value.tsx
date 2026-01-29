@@ -41,7 +41,7 @@ export function FrameRegisterValue({meta, value}: Props) {
       <div>
         <ToggleButton
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconSliders size="xs" />}
           onClick={toggleFormat}
           title={formatLabel}
