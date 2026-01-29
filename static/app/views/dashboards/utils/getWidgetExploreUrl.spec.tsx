@@ -41,6 +41,7 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -110,6 +111,7 @@ describe('getWidgetExploreUrl', () => {
           'visualize',
           JSON.stringify({chartType: 1, yAxes: ['equation|avg(span.duration) + 100']}),
         ],
+        ['project', ''],
       ],
     });
   });
@@ -140,6 +142,7 @@ describe('getWidgetExploreUrl', () => {
         ['interval', '30m'],
         ['mode', 'samples'],
         ['statsPeriod', '14d'],
+        ['project', ''],
       ],
     });
   });
@@ -173,6 +176,7 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 2, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -205,6 +209,7 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 2, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -240,6 +245,7 @@ describe('getWidgetExploreUrl', () => {
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['count(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -281,6 +287,7 @@ describe('getWidgetExploreUrl', () => {
         ['sort', '-avg(span.duration)'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -371,6 +378,7 @@ describe('getWidgetExploreUrl', () => {
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
         ['referrer', 'test-referrer'],
+        ['project', ''],
       ],
     });
   });
@@ -417,6 +425,7 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
         ['sort', '-span.duration'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });

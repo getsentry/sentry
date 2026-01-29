@@ -23,6 +23,10 @@ interface ExplorerStatusCardProps {
    */
   blocks?: Block[];
   /**
+   * Whether the chat panel is already open with this run.
+   */
+  isChatAlreadyOpen?: boolean;
+  /**
    * The currently loading block (if any).
    */
   loadingBlock?: Block;
@@ -41,6 +45,7 @@ export function ExplorerStatusCard({
   status,
   loadingBlock,
   blocks,
+  isChatAlreadyOpen = false,
   onOpenChat,
 }: ExplorerStatusCardProps) {
   if (status !== 'processing') {
@@ -51,6 +56,7 @@ export function ExplorerStatusCard({
     <ExplorerStatusCardContent
       loadingBlock={loadingBlock}
       blocks={blocks}
+      isChatAlreadyOpen={isChatAlreadyOpen}
       onOpenChat={onOpenChat}
     />
   );
@@ -59,9 +65,11 @@ export function ExplorerStatusCard({
 function ExplorerStatusCardContent({
   loadingBlock,
   blocks,
+  isChatAlreadyOpen = false,
   onOpenChat,
 }: {
   blocks?: Block[];
+  isChatAlreadyOpen?: boolean;
   loadingBlock?: Block;
   onOpenChat?: () => void;
 }) {
@@ -179,6 +187,7 @@ function ExplorerStatusCardContent({
                 onClick={onOpenChat}
                 priority="primary"
                 icon={<IconChat />}
+                disabled={isChatAlreadyOpen}
               >
                 {t('Open Chat')}
               </Button>

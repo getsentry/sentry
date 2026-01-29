@@ -78,7 +78,7 @@ export default function BuildList() {
           <Layout.Title>Builds</Layout.Title>
           <Layout.HeaderActions>
             {projects.length === 1 && (
-              <Feature features="organizations:preprod-issues">
+              <Feature features="organizations:preprod-frontend-routes">
                 <LinkButton
                   size="sm"
                   icon={<IconSettings />}

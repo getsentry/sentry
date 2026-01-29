@@ -10,6 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 type CommonParams = {
   cursor?: string;
   end?: string | null;
+  eventId?: string;
   limit?: number;
   start?: string | null;
   statsPeriod?: string | null;
@@ -51,4 +52,26 @@ export function useOpenPeriods(
       ...options,
     }
   );
+}
+
+export function useEventOpenPeriod(
+  params: {
+    eventId: string;
+    groupId: string;
+  },
+  options: Partial<UseApiQueryOptions<GroupOpenPeriod[]>> = {}
+) {
+  const query = useOpenPeriods(
+    {
+      groupId: params.groupId,
+      eventId: params.eventId,
+      limit: 1,
+    },
+    options
+  );
+
+  return {
+    ...query,
+    openPeriod: query.data?.[0] ?? null,
+  };
 }

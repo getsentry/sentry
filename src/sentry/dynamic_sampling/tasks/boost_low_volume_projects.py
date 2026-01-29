@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import (
@@ -80,6 +81,14 @@ ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 # the same as ProjectVolumes, but with the organization ID added
 OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
+
+
+class MeasureConfig(TypedDict):
+    """Configuration for a sampling measure query."""
+
+    mri: str
+    use_case_id: UseCaseID
+    tags: dict[str, str]
 
 
 @instrumented_task(
@@ -275,6 +284,29 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     return aggregated_projects
 
 
+# Configuration for each sampling measure type
+MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
+    # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
+    SamplingMeasure.SEGMENTS: {
+        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.SPANS,
+        "tags": {"is_segment": "true"},
+    },
+    # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
+    SamplingMeasure.SPANS: {
+        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.SPANS,
+        "tags": {},
+    },
+    # TRANSACTIONS: TransactionMRI without tag filters (legacy)
+    SamplingMeasure.TRANSACTIONS: {
+        "mri": TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.TRANSACTIONS,
+        "tags": {},
+    },
+}
+
+
 @dynamic_sampling_task
 def query_project_counts_by_org(
     org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
@@ -307,14 +339,29 @@ def query_project_counts_by_org(
             "id", flat=True
         )
     )
-    transaction_string_id = indexer.resolve_shared_org("decision")
-    transaction_tag = f"tags_raw[{transaction_string_id}]"
-    if measure == SamplingMeasure.SPANS:
-        metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
-    elif measure == SamplingMeasure.TRANSACTIONS:
-        metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
-    else:
+    decision_string_id = indexer.resolve_shared_org("decision")
+    decision_tag = f"tags_raw[{decision_string_id}]"
+
+    config = MEASURE_CONFIGS.get(measure)
+    if config is None:
         raise ValueError(f"Unsupported measure: {measure}")
+
+    metric_id = indexer.resolve_shared_org(str(config["mri"]))
+    use_case_id = config["use_case_id"]
+
+    where_conditions = [
+        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
+        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column("org_id"), Op.IN, org_ids),
+        Condition(Column("project_id"), Op.IN, project_ids),
+    ]
+
+    # Add tag filters from config
+    for tag_name, tag_value in config["tags"].items():
+        tag_string_id = indexer.resolve_shared_org(tag_name)
+        tag_column = f"tags_raw[{tag_string_id}]"
+        where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
 
     query = Query(
         match=Entity(EntityKey.GenericOrgMetricsCounters.value),
@@ -326,7 +373,7 @@ def query_project_counts_by_org(
                 "sumIf",
                 [
                     Column("value"),
-                    Function("equals", [Column(transaction_tag), "keep"]),
+                    Function("equals", [Column(decision_tag), "keep"]),
                 ],
                 alias="keep_count",
             ),
@@ -334,19 +381,13 @@ def query_project_counts_by_org(
                 "sumIf",
                 [
                     Column("value"),
-                    Function("equals", [Column(transaction_tag), "drop"]),
+                    Function("equals", [Column(decision_tag), "drop"]),
                 ],
                 alias="drop_count",
             ),
         ],
         groupby=[Column("org_id"), Column("project_id")],
-        where=[
-            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-            Condition(Column("metric_id"), Op.EQ, metric_id),
-            Condition(Column("org_id"), Op.IN, org_ids),
-            Condition(Column("project_id"), Op.IN, project_ids),
-        ],
+        where=where_conditions,
         granularity=granularity,
         orderby=[
             OrderBy(Column("org_id"), Direction.ASC),
@@ -371,7 +412,7 @@ def query_project_counts_by_org(
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query.set_offset(offset),
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+                tenant_ids={"use_case_id": use_case_id.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
