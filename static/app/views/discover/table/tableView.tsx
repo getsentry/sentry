@@ -661,7 +661,6 @@ export default function TableView(props: TableViewProps) {
         location={location}
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
-        supportsInvestigationRule
         queryDataset={queryDataset}
       />
     );
