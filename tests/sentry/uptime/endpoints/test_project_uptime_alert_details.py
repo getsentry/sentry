@@ -230,6 +230,54 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
         assert detector.enabled is True
 
+    def test_response_capture_enabled(self) -> None:
+        detector = self.create_uptime_detector()
+        uptime_sub = get_uptime_subscription(detector)
+        assert uptime_sub.response_capture_enabled
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            detector.project.slug,
+            detector.id,
+            name="test",
+            response_capture_enabled=False,
+        )
+        uptime_sub.refresh_from_db()
+        response_capture_enabled: bool = uptime_sub.response_capture_enabled
+        assert not resp.data["responseCaptureEnabled"]
+        assert not response_capture_enabled
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            detector.project.slug,
+            detector.id,
+            name="test",
+            response_capture_enabled=True,
+        )
+        uptime_sub.refresh_from_db()
+        assert resp.data["responseCaptureEnabled"]
+        assert uptime_sub.response_capture_enabled
+
+    def test_disabling_response_capture_also_disables_system_flag(self) -> None:
+        """Disabling response_capture_enabled should also disable capture_response_on_failure."""
+        detector = self.create_uptime_detector()
+        uptime_sub = get_uptime_subscription(detector)
+        assert uptime_sub.response_capture_enabled
+        assert uptime_sub.capture_response_on_failure
+
+        self.get_success_response(
+            self.organization.slug,
+            detector.project.slug,
+            detector.id,
+            name="test",
+            response_capture_enabled=False,
+        )
+        uptime_sub.refresh_from_db()
+        response_capture_enabled: bool = uptime_sub.response_capture_enabled
+        capture_response_on_failure: bool = uptime_sub.capture_response_on_failure
+        assert not response_capture_enabled
+        assert not capture_response_on_failure
+
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
         return_value=1,  # Outcome.RATE_LIMITED (anything != Outcome.ACCEPTED)
