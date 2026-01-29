@@ -64,15 +64,24 @@ class TraceExplorerAISetup(OrganizationEndpoint):
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    @staticmethod
-    def post(request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids = [int(x) for x in request.data.get("project_ids", [])]
+        project_ids = {int(x) for x in request.data.get("project_ids", [])}
+        projects = self.get_projects(request, organization, project_ids=project_ids)
+        validated_project_ids = [p.id for p in projects]
+
+        # Ensure all requested projects were found and accessible
+        # Returns same error for non-existent and inaccessible projects
+        if project_ids and len(validated_project_ids) != len(project_ids):
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(
@@ -93,6 +102,6 @@ class TraceExplorerAISetup(OrganizationEndpoint):
                 {"detail": "Seer is not properly configured."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        fire_setup_request(organization.id, project_ids)
+        fire_setup_request(organization.id, validated_project_ids)
 
         return Response({"status": "ok"})
