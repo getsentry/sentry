@@ -11,9 +11,9 @@ import {SelectField} from './field/selectField';
 import {fieldContext, formContext, useFormContext} from './formContext';
 
 export const defaultFormOptions = formOptions({
-  onSubmitInvalid() {
+  onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
     const InvalidInput = document.querySelector(
-      '[aria-invalid="true"]'
+      `#${formApi.formId} [aria-invalid="true"]`
     ) as HTMLInputElement;
 
     InvalidInput?.focus();
@@ -39,6 +39,7 @@ const {useAppForm} = createFormHook({
   formComponents: {
     FieldGroup,
     SubmitButton,
+    FormWrapper,
   },
   fieldContext,
   formContext,
@@ -49,9 +50,30 @@ function SubmitButton(props: ButtonProps) {
   return (
     <form.Subscribe selector={state => state.isSubmitting}>
       {isSubmitting => (
-        <Button {...props} priority="primary" type="submit" disabled={isSubmitting} />
+        <Button
+          {...props}
+          priority="primary"
+          type="submit"
+          disabled={isSubmitting || props.disabled}
+        />
       )}
     </form.Subscribe>
+  );
+}
+
+function FormWrapper({children}: {children: React.ReactNode}) {
+  const form = useFormContext();
+
+  return (
+    <form
+      id={form.formId}
+      onSubmit={e => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+    >
+      {children}
+    </form>
   );
 }
 

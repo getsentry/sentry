@@ -183,7 +183,6 @@ function BasicForm() {
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    formId: 'user-form-example',
     defaultValues: user.data,
     validators: {
       onDynamic: baseUserSchema,
@@ -200,12 +199,7 @@ function BasicForm() {
 
   return (
     <form.AppForm>
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          form.handleSubmit();
-        }}
-      >
+      <form.FormWrapper>
         <form.FieldGroup title="Peronal Information">
           <form.AppField name="firstName">
             {field => (
@@ -292,7 +286,7 @@ function BasicForm() {
           <Button onClick={() => form.reset()}>Reset</Button>
           <form.SubmitButton>Submit</form.SubmitButton>
         </Flex>
-      </form>
+      </form.FormWrapper>
     </form.AppForm>
   );
 }
