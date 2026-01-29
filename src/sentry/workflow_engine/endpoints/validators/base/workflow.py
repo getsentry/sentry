@@ -233,8 +233,6 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         return filters
 
     def update(self, instance: Workflow, validated_data: InputData) -> Workflow:
-        # TODO - invalidate processing cache
-
         with transaction.atomic(router.db_for_write(Workflow)):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
@@ -316,6 +314,4 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 data=workflow.get_audit_log_data(),
             )
 
-            # Note: we do not invalidate the processing cache here,
-            # instead, it's happening on the DetectorWorkflow model.
             return workflow
