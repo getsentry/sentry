@@ -221,6 +221,7 @@ class SpansBuffer:
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
         debug_traces = set(options.get("spans.buffer.debug-traces"))
         write_to_zset = options.get("spans.buffer.write-to-zset")
         write_to_set = options.get("spans.buffer.write-to-set")
@@ -235,7 +236,16 @@ class SpansBuffer:
             trees = self._group_by_parent(spans)
             pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
 
-            tree_items = list(trees.items())
+            # Split large subsegments into chunks to avoid Lua unpack() limits.
+            # Chunks share the same parent_span_id but are processed separately.
+            tree_items: list[tuple[tuple[str, str], list[Span]]] = []
+            for key, subsegment in trees.items():
+                if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
+                    for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
+                        tree_items.append((key, list(chunk)))
+                else:
+                    tree_items.append((key, subsegment))
+
             tree_batches: Sequence[Sequence[tuple[tuple[str, str], list[Span]]]]
             if pipeline_batch_size > 0:
                 tree_batches = list(itertools.batched(tree_items, pipeline_batch_size))
@@ -445,6 +455,7 @@ class SpansBuffer:
         metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
+        metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(tree_items))
 
         try:
             if write_to_zset:
