@@ -11,7 +11,13 @@ export type StepProps = {
 export type StepDescriptor = {
   Component: React.ComponentType<StepProps>;
   cornerVariant: 'top-right' | 'top-left';
-  id: string;
+  id: OnboardingStepId;
   title: string;
   hasFooter?: boolean;
 };
+
+export enum OnboardingStepId {
+  WELCOME = 'welcome',
+  SELECT_PLATFORM = 'select-platform',
+  SETUP_DOCS = 'setup-docs',
+}

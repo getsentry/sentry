@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useState, type PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -38,36 +38,49 @@ import {NewWelcomeUI} from './components/newWelcome';
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
-import type {StepDescriptor, StepProps} from './types';
+import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 import TargetedOnboardingWelcome from './welcome';
 
 function WelcomeStep(props: StepProps) {
   const organization = useOrganization();
   const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
 
-  if (hasNewWelcomeUI) {
-    return <NewWelcomeUI {...props} />;
-  }
+  if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
 
   return <TargetedOnboardingWelcome {...props} />;
 }
 
+function ContainerVariable(
+  props: PropsWithChildren<{hasFooter: boolean; id: OnboardingStepId}>
+) {
+  const organization = useOrganization();
+  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
+
+  if (hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME)
+    return (
+      <ContainerNewWelcomeUI hasFooter={props.hasFooter}>
+        {props.children}
+      </ContainerNewWelcomeUI>
+    );
+  return <Container hasFooter={props.hasFooter}>{props.children}</Container>;
+}
+
 export const onboardingSteps: StepDescriptor[] = [
   {
-    id: 'welcome',
+    id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
     Component: WelcomeStep,
     cornerVariant: 'top-right',
   },
   {
-    id: 'select-platform',
+    id: OnboardingStepId.SELECT_PLATFORM,
     title: t('Select platform'),
     Component: PlatformSelection,
     hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
-    id: 'setup-docs',
+    id: OnboardingStepId.SETUP_DOCS,
     title: t('Install the Sentry SDK'),
     Component: SetupDocs,
     hasFooter: true,
@@ -237,7 +250,7 @@ export function OnboardingWithoutContext() {
           />
         </UpsellWrapper>
       </Header>
-      <Container hasFooter={containerHasFooter}>
+      <ContainerVariable hasFooter={containerHasFooter} id={stepObj.id}>
         {stepIndex > 0 && (
           <BackMotionDiv
             initial="initial"
@@ -294,7 +307,7 @@ export function OnboardingWithoutContext() {
           // Controls the current corner variant
           animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
         />
-      </Container>
+      </ContainerVariable>
     </Stack>
   );
 }
@@ -306,6 +319,19 @@ function Onboarding() {
     </OnboardingContextProvider>
   );
 }
+
+const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: ${p => p.theme.tokens.background.primary};
+  padding: ${space(3)};
+  width: 100%;
+  margin: 0 auto;
+  padding-bottom: ${p => p.hasFooter && '72px'};
+  margin-bottom: ${p => p.hasFooter && '72px'};
+`;
 
 const Container = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
