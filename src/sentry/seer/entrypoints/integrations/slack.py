@@ -20,6 +20,7 @@ from sentry.notifications.platform.templates.seer import (
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -46,13 +47,14 @@ class SlackEntrypointCachePayload(TypedDict):
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
 class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     key = SeerEntrypointKey.SLACK
-    autofix_stopping_point: AutofixStoppingPoint | None = None
+    autofix_stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
     def __init__(
         self,
         slack_request: SlackActionRequest,
         group: Group,
         organization_id: int,
+        action: BlockKitMessageAction,
     ):
         from sentry.integrations.slack.integration import SlackIntegration
 
@@ -64,10 +66,17 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         self.install = SlackIntegration(
             model=slack_request.integration, organization_id=organization_id
         )
+        self.autofix_stopping_point = self.get_autofix_stopping_point_from_action(
+            action=action, group_id=group.id
+        )
+        self.autofix_run_id = self.slack_request.callback_data.get("run_id")
 
-    def set_autofix_stopping_point(self, *, action: BlockKitMessageAction) -> AutofixStoppingPoint:
+    @staticmethod
+    def get_autofix_stopping_point_from_action(
+        *, action: BlockKitMessageAction, group_id: int
+    ) -> AutofixStoppingPoint:
         """
-        Sets the autofix stopping point from a passed BlockKitMessageAction.
+        Parses the autofix stopping point from a passed BlockKitMessageAction.
         XXX: We could attempt to interpret it from the slack_request value, but this will make
         it explicit which we use in case there's multiple in the body.
         """
@@ -80,18 +89,15 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
         except ValueError:
             logger.warning(
-                "invalid_autofix_stopping_point",
+                "entrypoint.invalid_autofix_stopping_point",
                 extra={
+                    "entrypoint_key": SeerEntrypointKey.SLACK,
                     "stopping_point": action.value,
                     "action_id": action.action_id,
-                    "group_id": self.group.id,
+                    "group_id": group_id,
                 },
             )
-        self.autofix_stopping_point = stopping_point
-        return self.autofix_stopping_point
-
-    def get_autofix_run_id(self) -> int | None:
-        return self.slack_request.callback_data.get("run_id")
+        return stopping_point
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         _send_thread_update(
@@ -103,7 +109,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
-
         _send_thread_update(
             install=self.install,
             channel_id=self.channel_id,
@@ -124,8 +129,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
         except (IntegrationError, TypeError, KeyError):
             logger.warning(
-                "slack.autofix.update_message_failed",
+                "entrypoint.update_message_failed",
                 extra={
+                    "entrypoint_key": SlackEntrypoint.key,
                     "channel_id": self.channel_id,
                     "message_ts": self.thread_ts,
                     "organization_id": self.organization_id,
@@ -138,7 +144,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             channel_id=self.channel_id,
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
-            project_id=self.group.project.id,
+            project_id=self.group.project_id,
             group_id=self.group.id,
             group_link=self.group.get_absolute_url(),
         )
@@ -146,7 +152,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     @staticmethod
     def on_autofix_update(
         event_type: SentryAppEventType,
-        # TODO(leander): Type this out better
         event_payload: dict[str, Any],
         cache_payload: SlackEntrypointCachePayload,
     ) -> None:
@@ -155,6 +160,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         logging_ctx = {
             "event_type": event_type,
             "cache_payload": cache_payload,
+            "entrypoint_key": SlackEntrypoint.key,
         }
         integration = integration_service.get_integration(
             integration_id=cache_payload["integration_id"],
@@ -163,7 +169,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             status=ObjectStatus.ACTIVE,
         )
         if not integration:
-            logger.warning("integration_not_found", extra=logging_ctx)
+            logger.warning("entrypoint.integration_not_found", extra=logging_ctx)
             return
 
         install = SlackIntegration(
@@ -350,4 +356,40 @@ def _update_existing_message(
         channel_id=channel_id,
         message_ts=message_ts,
         renderable=renderable,
+    )
+
+
+def handle_prepare_autofix_update(
+    *,
+    thread_ts: str,
+    channel_id: str,
+    group: Group,
+    organization_id: int,
+    integration_id: int,
+) -> None:
+    """
+    Use parameters to create a payload for the operator to populate the pre-autofix cache.
+    This will allow for a future migration of the cache to post-autofix for subsequent updates.
+    """
+    cache_payload = SlackEntrypointCachePayload(
+        thread_ts=thread_ts,
+        channel_id=channel_id,
+        organization_id=organization_id,
+        integration_id=integration_id,
+        project_id=group.project_id,
+        group_id=group.id,
+        group_link=group.get_absolute_url(),
+    )
+    cache_result = SeerOperatorAutofixCache[SlackEntrypointCachePayload].populate_pre_autofix_cache(
+        entrypoint_key=str(SlackEntrypoint.key),
+        group_id=group.id,
+        cache_payload=cache_payload,
+    )
+    logger.info(
+        "entrypoint.handle_prepare_autofix_update",
+        extra={
+            "cache_key": cache_result["key"],
+            "cache_source": cache_result["source"],
+            **cache_payload,
+        },
     )

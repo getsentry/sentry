@@ -571,16 +571,15 @@ class SlackActionEndpoint(Endpoint):
     ) -> None:
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
+            action=action,
             group=group,
             organization_id=group.project.organization_id,
         )
-        stopping_point = entrypoint.set_autofix_stopping_point(action=action)
-        operator = SeerOperator(entrypoint=entrypoint)
-        operator.trigger_autofix(
+        SeerOperator(entrypoint=entrypoint).trigger_autofix(
             group=group,
             user=user,
-            stopping_point=stopping_point,
-            run_id=entrypoint.get_autofix_run_id(),
+            stopping_point=entrypoint.autofix_stopping_point,
+            run_id=entrypoint.autofix_run_id,
         )
 
     @classmethod
