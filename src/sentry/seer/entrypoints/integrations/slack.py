@@ -47,7 +47,7 @@ class SlackEntrypointCachePayload(TypedDict):
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
 class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     key = SeerEntrypointKey.SLACK
-    autofix_stopping_point: AutofixStoppingPoint | None = None
+    autofix_stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
     def __init__(
         self,
@@ -66,7 +66,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         self.install = SlackIntegration(
             model=slack_request.integration, organization_id=organization_id
         )
-        self.action = action
         self.autofix_stopping_point = self.get_autofix_stopping_point_from_action(
             action=action, group_id=group.id
         )
@@ -381,7 +380,7 @@ def handle_prepare_autofix_update(
         group_id=group.id,
         group_link=group.get_absolute_url(),
     )
-    cache_result = SeerOperatorAutofixCache.populate_pre_autofix_cache(
+    cache_result = SeerOperatorAutofixCache[SlackEntrypointCachePayload].populate_pre_autofix_cache(
         entrypoint_key=str(SlackEntrypoint.key),
         group_id=group.id,
         cache_payload=cache_payload,

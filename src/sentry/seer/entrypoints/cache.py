@@ -24,11 +24,11 @@ class SeerOperatorAutofixCache[CachePayloadT]:
         cache_payload = cache.get(cache_key)
         if not cache_payload:
             return None
-        return {
-            "payload": cache_payload,
-            "source": "group_id",
-            "key": cache_key,
-        }
+        return SeerOperatorCacheResult[CachePayloadT](
+            payload=cache_payload,
+            source="group_id",
+            key=cache_key,
+        )
 
     @classmethod
     def populate_pre_autofix_cache(
@@ -36,11 +36,11 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     ) -> SeerOperatorCacheResult:
         cache_key = cls.get_pre_autofix_cache_key(entrypoint_key=entrypoint_key, group_id=group_id)
         cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
-        return {
-            "payload": cache_payload,
-            "source": "group_id",
-            "key": cache_key,
-        }
+        return SeerOperatorCacheResult[CachePayloadT](
+            payload=cache_payload,
+            source="group_id",
+            key=cache_key,
+        )
 
     @classmethod
     def get_post_autofix_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
@@ -58,11 +58,11 @@ class SeerOperatorAutofixCache[CachePayloadT]:
         cache_payload = cache.get(cache_key)
         if not cache_payload:
             return None
-        return {
-            "payload": cache_payload,
-            "source": "run_id",
-            "key": cache_key,
-        }
+        return SeerOperatorCacheResult[CachePayloadT](
+            payload=cache_payload,
+            source="run_id",
+            key=cache_key,
+        )
 
     @classmethod
     def populate_post_autofix_cache(
@@ -70,11 +70,11 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     ) -> SeerOperatorCacheResult:
         cache_key = cls.get_post_autofix_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
         cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
-        return {
-            "payload": cache_payload,
-            "source": "run_id",
-            "key": cache_key,
-        }
+        return SeerOperatorCacheResult[CachePayloadT](
+            payload=cache_payload,
+            source="run_id",
+            key=cache_key,
+        )
 
     @classmethod
     def get(

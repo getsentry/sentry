@@ -61,7 +61,7 @@ class SeerEntrypoint[CachePayloadT](Protocol):
         ...
 
 
-class SeerOperatorCacheResult(TypedDict):
-    payload: dict[str, Any]
+class SeerOperatorCacheResult[CachePayloadT](TypedDict):
+    payload: CachePayloadT
     source: Literal["group_id", "run_id"]
     key: str
