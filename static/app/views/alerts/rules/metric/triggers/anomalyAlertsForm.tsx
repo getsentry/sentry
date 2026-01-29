@@ -1,7 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {
   AlertRuleSensitivity,

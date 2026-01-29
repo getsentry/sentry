@@ -6,8 +6,9 @@ import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
 import type {DOMAttributes, Node, Orientation} from '@react-types/shared';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import type {Theme} from 'sentry/utils/theme';
 
 import {tabsShouldForwardProp} from './utils';

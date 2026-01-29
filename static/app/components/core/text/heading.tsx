@@ -1,7 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {rc} from 'sentry/components/core/layout/styles';
+import {rc} from '@sentry/scraps/layout';
+
 import type {FontSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';

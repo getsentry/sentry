@@ -1,5 +1,6 @@
-import {Text} from 'sentry/components/core/text';
-import type {BaseTextProps} from 'sentry/components/core/text/text';
+import {Text} from '@sentry/scraps/text';
+import type {BaseTextProps} from '@sentry/scraps/text';
+
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
 

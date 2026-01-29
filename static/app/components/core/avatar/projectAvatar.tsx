@@ -1,4 +1,5 @@
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {PlatformList} from 'sentry/components/platformList';
 import type {AvatarProject} from 'sentry/types/project';
 

@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import documentation from '!!type-loader!sentry/components/core/button/buttonBar';
 
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button, ButtonBar, type ButtonProps} from '@sentry/scraps/button';
+
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ButtonBar', (story, APIReference) => {

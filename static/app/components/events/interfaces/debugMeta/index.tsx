@@ -4,9 +4,10 @@ import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualize
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {
   DebugImageDetails,
   modalCss,

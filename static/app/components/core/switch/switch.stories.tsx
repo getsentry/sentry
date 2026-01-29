@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 import documentation from '!!type-loader!sentry/components/core/switch';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Switch, type SwitchProps} from '@sentry/scraps/switch';
 
-import {Switch, type SwitchProps} from 'sentry/components/core/switch';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Switch', (story, APIReference) => {

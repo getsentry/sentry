@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Card from 'sentry/components/card';
-import {ExternalLink} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 
 type Props = {

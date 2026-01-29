@@ -1,5 +1,6 @@
+import {Link} from '@sentry/scraps/link';
+
 import Access from 'sentry/components/acl/access';
-import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';

@@ -3,10 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {
-  inputStyles,
-  type InputStylesProps,
-} from 'sentry/components/core/input/inputStyles';
+import {inputStyles, type InputStylesProps} from '@sentry/scraps/input';
 
 export interface TextAreaProps
   extends Omit<
