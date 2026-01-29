@@ -2,8 +2,6 @@ import {Fragment, useCallback, type ReactNode} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {Link} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -37,10 +35,7 @@ function WrapToggle() {
 
   return (
     <Fragment>
-      |
-      <Container as="span" marginLeft="xs">
-        {wrapValue ? 'Wrap' : 'No Wrap'}
-      </Container>
+      | {wrapValue ? 'Wrap' : 'No Wrap'}
       <span>
         <Switch checked={wrapValue} size="sm" onChange={toggle} />{' '}
       </span>
