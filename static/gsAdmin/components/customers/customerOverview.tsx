@@ -473,9 +473,24 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const region = regionMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
-    categoryInfo =>
-      categoryInfo.canProductTrial &&
-      customer.planDetails?.categories.includes(categoryInfo.plural)
+    categoryInfo => {
+      // Category must be in the plan's categories
+      if (!customer.planDetails?.categories.includes(categoryInfo.plural)) {
+        return false;
+      }
+      // Include if regular product trial is enabled
+      if (categoryInfo.canProductTrial) {
+        return true;
+      }
+      // Include admin-only product trials if the feature flag is enabled
+      if (
+        categoryInfo.adminOnlyProductTrialFeature &&
+        organization.features?.includes(categoryInfo.adminOnlyProductTrialFeature)
+      ) {
+        return true;
+      }
+      return false;
+    }
   );
 
   const productTrialAddOns = Object.values(customer.addOns || {}).filter(
