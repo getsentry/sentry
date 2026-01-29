@@ -18,10 +18,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
 
-/**
- * Hook to read agent filters from URL. Use this to get the selected agents
- * in any component that needs to filter by agents.
- */
 export function useAgentFilters(): string[] {
   const [agentFilters] = useQueryState(AGENT_URL_PARAM, parseAsArrayOf(parseAsString));
   return agentFilters ?? [];
