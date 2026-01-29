@@ -40,7 +40,7 @@ class Migration(CheckedMigration):
     #   is a schema change, it's completely safe to run the operation after the code has deployed.
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
-    is_post_deployment = False
+    is_post_deployment = True
 
     dependencies = [
         ("workflow_engine", "0105_add_incident_identifer_index"),
