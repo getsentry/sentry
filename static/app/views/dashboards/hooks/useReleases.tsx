@@ -18,7 +18,7 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export type ReleaseWithCount = Release & {
+type ReleaseWithCount = Release & {
   count?: number;
 };
 
