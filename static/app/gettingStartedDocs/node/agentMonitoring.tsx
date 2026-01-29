@@ -454,12 +454,6 @@ const text = lastMessage.content;`,
     });
   }
 
-  if (selected === AgentIntegration.MASTRA) {
-    const mastraContent = mastraOnboarding.verify(params)[0]?.content ?? [];
-    // Skip the first element (text block) since it's already added above, push only the code block
-    content.push(...mastraContent.slice(1));
-  }
-
   return [
     {
       type: StepType.VERIFY,
