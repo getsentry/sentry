@@ -502,14 +502,18 @@ function DenseTagFacets({groupIds}: DenseTagFacetsProps) {
           {t('Top Value')}
         </Text>
       </TagsTableHeader>
-      <DenseTagsGrid>
+      <DenseTagGrid>
         {tags.map((tag: GroupTag) => (
           <DenseTagItem key={tag.key} tag={tag} colors={theme.chart.getColorPalette(4)} />
         ))}
-      </DenseTagsGrid>
+      </DenseTagGrid>
     </Grid>
   );
 }
+
+const DenseTagGrid = styled('div')`
+  display: contents;
+`;
 
 interface DenseTagItemProps {
   colors: readonly string[];
@@ -546,7 +550,9 @@ function TagDistributionPreview({tag, colors}: TagDistributionPreviewProps) {
             {topValues.map((value, index) => {
               const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
               return (
-                <DenseTagSegment
+                <Container
+                  minWidth="2px"
+                  height="100%"
                   key={value.value}
                   style={{
                     width: `${pct}%`,
@@ -613,7 +619,9 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
                 {barValues.map((value, index) => {
                   const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
                   return (
-                    <DenseTagSegment
+                    <Container
+                      minWidth="2px"
+                      height="100%"
                       key={value.value}
                       style={{
                         width: `${pct}%`,
@@ -1023,10 +1031,6 @@ const TagsTableHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const DenseTagsGrid = styled('div')`
-  display: contents;
-`;
-
 const DenseTagBar = styled('div')`
   display: flex;
   width: 100%;
@@ -1035,11 +1039,6 @@ const DenseTagBar = styled('div')`
   overflow: hidden;
   background: ${p => p.theme.tokens.background.secondary};
   margin-bottom: ${p => p.theme.space.sm};
-`;
-
-const DenseTagSegment = styled('div')`
-  height: 100%;
-  min-width: 2px;
 `;
 
 const TagMiniBar = styled('div')`
