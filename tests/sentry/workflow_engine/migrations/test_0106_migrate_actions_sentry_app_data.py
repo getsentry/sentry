@@ -39,7 +39,7 @@ class TestMigrateActionsSentryAppData(TestMigrations):
             },
         )
 
-    def validate_action(self, action):
+    def validate_action(self, action: Action) -> None:
         action.refresh_from_db()
         assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
         assert action.config.get("target_identifier") == str(self.sentry_app.id)
@@ -65,7 +65,7 @@ class TestMigrateActionsSentryAppData(TestMigrations):
         executor = MigrationExecutor(conn)
         executor.loader.build_graph()  # reload.
         migrate_to = [(self.app, self.migrate_to)]
-        self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
+        self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)  # type: ignore[assignment]
 
         # execute all the outbox jobs from the 2nd migration
         with outbox_runner():

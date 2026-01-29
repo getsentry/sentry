@@ -76,6 +76,7 @@ def update_sentry_app_action_data(
                     "installation_uuid": action.config.get("target_identifier"),
                 },
             )
+            return
 
         action.config["target_identifier"] = str(installs[0].sentry_app.id)
         action.config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
@@ -83,6 +84,7 @@ def update_sentry_app_action_data(
 
     except Action.DoesNotExist:
         logger.info("Could not update Action", extra={"action_id": shard_identifier})
+
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
 def process_audit_log_event(payload: Any, **kwds: Any):
