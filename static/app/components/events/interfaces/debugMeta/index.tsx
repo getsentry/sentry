@@ -68,18 +68,24 @@ function filterImages(
   if (searchTerm) {
     const term = searchTerm.toLowerCase();
     result = result.filter(image => {
+      // When searching for an address, check for the address range of the image
+      // instead of an exact match.  Note that images cannot be found by index
+      // if they are at 0x0.  For those relative addressing has to be used.
       if (term.startsWith('0x')) {
         const needle = parseAddress(term);
         if (needle > 0 && image.image_addr !== '0x0') {
-          const [start, end] = getImageRange(image);
-          return needle >= start! && needle < end!;
+          const [startAddress, endAddress] = getImageRange(image);
+          return needle >= startAddress! && needle < endAddress!;
         }
       }
+      // the searchTerm ending at "!" is the end of the ID search.
       const relMatch = term.match(/^\s*(.*?)!/);
       const idTerm = normalizeId(relMatch?.[1] || term);
       return (
+        // Prefix match for identifiers
         normalizeId(image.code_id).startsWith(idTerm) ||
         normalizeId(image.debug_id).startsWith(idTerm) ||
+        // Any match for file paths
         (image.code_file?.toLowerCase() || '').includes(term) ||
         (image.debug_file?.toLowerCase() || '').includes(term)
       );
