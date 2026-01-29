@@ -83,6 +83,21 @@ class TraceExplorerAISetupTest(APITestCase):
         assert response.data == {"detail": "Organization does not have access to this feature"}
 
     @with_feature("organizations:gen-ai-features")
+    @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
+    def test_invalid_project_id_returns_400(self, mock_fire_setup_request):
+        """Test that non-integer project_id returns 400"""
+        self.login_as(self.user)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            project_ids=["abc"],
+        )
+
+        assert response.data["detail"] == "Invalid project_id value"
+        mock_fire_setup_request.assert_not_called()
+
+    @with_feature("organizations:gen-ai-features")
     def test_requires_authentication(self):
         response = self.get_error_response(
             self.organization.slug,

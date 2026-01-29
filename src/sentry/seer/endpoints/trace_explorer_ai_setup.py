@@ -6,6 +6,7 @@ import orjson
 import requests
 from django.conf import settings
 from rest_framework import status
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
@@ -73,7 +74,10 @@ class TraceExplorerAISetup(OrganizationEndpoint):
 
         raw_project_ids = request.data.get("project_ids", [])
         if raw_project_ids:
-            project_ids = {int(x) for x in raw_project_ids}
+            try:
+                project_ids = {int(x) for x in raw_project_ids}
+            except (ValueError, TypeError):
+                raise ParseError("Invalid project_id value")
             projects = self.get_projects(request, organization, project_ids=project_ids)
             validated_project_ids = [p.id for p in projects]
         else:
