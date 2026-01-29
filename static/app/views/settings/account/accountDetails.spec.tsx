@@ -24,7 +24,7 @@ describe('AccountDetails', () => {
   it('renders', async () => {
     render(<AccountDetails />);
 
-    expect(await screen.findByPlaceholderText('e.g. John Doe')).toBeEnabled();
+    expect(await screen.findByRole('textbox', {name: 'Name'})).toBeEnabled();
 
     expect(screen.getByRole('checkbox', {name: 'Use a 24-hour clock'})).toBeEnabled();
     expect(screen.getByRole('radiogroup', {name: 'Avatar Type'})).toBeEnabled();
@@ -34,7 +34,7 @@ describe('AccountDetails', () => {
     mockUserDetails({username: 'different@example.com'});
     render(<AccountDetails />);
 
-    expect(await screen.findByPlaceholderText('e.g. name@example.com')).toBeEnabled();
+    expect(await screen.findByRole('textbox', {name: 'Username'})).toBeEnabled();
   });
 
   describe('Managed User', () => {
@@ -42,7 +42,7 @@ describe('AccountDetails', () => {
       mockUserDetails({isManaged: true});
       render(<AccountDetails />);
 
-      expect(await screen.findByPlaceholderText('e.g. John Doe')).toBeEnabled();
+      expect(await screen.findByRole('textbox', {name: 'Name'})).toBeEnabled();
       expect(screen.queryByRole('textbox', {name: 'Password'})).not.toBeInTheDocument();
     });
 
@@ -50,7 +50,7 @@ describe('AccountDetails', () => {
       mockUserDetails({isManaged: true, username: 'different@example.com'});
       render(<AccountDetails />);
 
-      expect(await screen.findByPlaceholderText('e.g. name@example.com')).toBeDisabled();
+      expect(await screen.findByRole('textbox', {name: 'Username'})).toBeDisabled();
     });
   });
 
