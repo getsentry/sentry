@@ -1,18 +1,23 @@
+import type {StoreDefinition} from 'reflux';
 import {createStore} from 'reflux';
 
-import type {StrictStoreDefinition} from 'sentry/stores/types';
+type State = {
+  filter: string | null;
+};
 
-type State = string | null;
-
-interface DebugMetaStoreInterface extends StrictStoreDefinition<State> {
-  get(): {filter: State};
+interface DebugMetaStoreInterface extends StoreDefinition {
+  get(): State;
   init(): void;
   reset(): void;
   updateFilter(word: string): void;
 }
 
-const storeConfig: DebugMetaStoreInterface = {
-  state: null,
+type Internals = {
+  filter: string | null;
+};
+
+const storeConfig: StoreDefinition & DebugMetaStoreInterface & Internals = {
+  filter: null,
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -22,23 +27,19 @@ const storeConfig: DebugMetaStoreInterface = {
   },
 
   reset() {
-    this.state = null;
+    this.filter = null;
     this.trigger(this.get());
   },
 
   updateFilter(word) {
-    this.state = word;
+    this.filter = word;
     this.trigger(this.get());
   },
 
   get() {
     return {
-      filter: this.state,
+      filter: this.filter,
     };
-  },
-
-  getState() {
-    return this.state;
   },
 };
 
