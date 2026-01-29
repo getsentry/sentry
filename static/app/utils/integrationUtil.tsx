@@ -230,8 +230,9 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'github_enterprise':
       return 'GitHub Enterprise';
     case 'jira':
-    case 'jira_server':
       return 'Jira';
+    case 'jira_server':
+      return 'Jira Server';
     case 'perforce':
       return 'Perforce';
     case 'vsts':
