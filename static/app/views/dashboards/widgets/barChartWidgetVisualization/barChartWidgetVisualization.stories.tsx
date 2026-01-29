@@ -76,8 +76,9 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           <Storybook.JSXNode name="BarChartWidgetVisualization" /> accepts the{' '}
           <code>plottables</code> prop, similar to{' '}
           <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />. Each item in the{' '}
-          <code>plottables</code> array must implement the <code>BarPlottable</code>{' '}
-          interface. The <code>Bar</code> class is provided for this purpose.
+          <code>plottables</code> array must implement the{' '}
+          <code>CategoricalBarChartPlottable</code> interface. The <code>Bar</code> class
+          is provided for this purpose.
         </p>
 
         <CodeBlock language="jsx">

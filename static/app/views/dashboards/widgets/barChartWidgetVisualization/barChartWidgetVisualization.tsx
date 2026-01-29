@@ -38,7 +38,7 @@ import type {
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
-import type {BarPlottable} from './plottables/bar';
+import type {CategoricalBarChartPlottable} from './plottables/bar';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 /**
@@ -52,7 +52,7 @@ export interface BarClickEvent {
   /**
    * The plottable this bar belongs to.
    */
-  plottable: BarPlottable;
+  plottable: CategoricalBarChartPlottable;
   /**
    * Click position relative to chart DOM (for floating menu positioning).
    */
@@ -67,7 +67,7 @@ export interface BarChartWidgetVisualizationProps {
   /**
    * An array of `BarPlottable` objects to render on the chart.
    */
-  plottables: BarPlottable[];
+  plottables: CategoricalBarChartPlottable[];
   /**
    * Reference to the chart instance.
    */
@@ -211,7 +211,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
 
   // Track series index to plottable mapping for tooltip formatting
   let seriesIndex = 0;
-  const seriesIndexToPlottableMapRanges: Array<Range<BarPlottable>> = [];
+  const seriesIndexToPlottableMapRanges: Array<Range<CategoricalBarChartPlottable>> = [];
 
   // Track color assignment
   let seriesColorIndex = 0;
@@ -240,7 +240,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     return seriesOfPlottable;
   });
 
-  const seriesIndexToPlottableRangeMap = new RangeMap<BarPlottable>(
+  const seriesIndexToPlottableRangeMap = new RangeMap<CategoricalBarChartPlottable>(
     seriesIndexToPlottableMapRanges
   );
 
@@ -438,13 +438,6 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
       ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
       autoHeightResize
       series={seriesFromPlottables}
-      grid={{
-        left: 2,
-        top: showLegend ? 25 : 10,
-        right: 8,
-        bottom: 0,
-        containLabel: true,
-      }}
       legend={
         showLegend
           ? {

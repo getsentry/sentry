@@ -65,11 +65,11 @@ export interface BarPlottingOptions {
 }
 
 /**
- * A `BarPlottable` is any object that can be converted to an ECharts `Series`
+ * A `CategoricalBarChartPlottable` is any object that can be converted to an ECharts `Series`
  * for categorical bar charts. This interface is similar to `Plottable` from
  * time series widgets but adapted for categorical data.
  */
-export interface BarPlottable {
+export interface CategoricalBarChartPlottable {
   /**
    * The category labels for this plottable's data.
    */
@@ -123,7 +123,7 @@ export interface BarPlottable {
 /**
  * A plottable that renders a categorical bar series.
  */
-export class Bar implements BarPlottable {
+export class Bar implements CategoricalBarChartPlottable {
   readonly categoricalSeries: CategoricalSeries;
   readonly config: BarConfig;
 
