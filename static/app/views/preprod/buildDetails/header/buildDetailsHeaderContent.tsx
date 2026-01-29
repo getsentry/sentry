@@ -34,8 +34,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
-  BuildDetailsSizeAnalysisState,
   isSizeInfoCompleted,
+  isSizeInfoRetryable,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
@@ -126,9 +126,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const areActionsEnabled = isSizeInfoCompleted(buildDetailsData?.size_info);
   const canRerunStatusChecks =
-    areActionsEnabled ||
-    buildDetailsData?.size_info?.state === BuildDetailsSizeAnalysisState.FAILED ||
-    buildDetailsData?.size_info?.state === BuildDetailsSizeAnalysisState.NOT_RAN;
+    areActionsEnabled || isSizeInfoRetryable(buildDetailsData?.size_info);
 
   const handleCompareClick = () => {
     if (!areActionsEnabled) {
