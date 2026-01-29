@@ -99,8 +99,8 @@ function filterImages(
 interface DebugMetaProps {
   data: EntryDebugMeta['data'];
   event: Event;
+  groupId: Group['id'] | undefined;
   projectSlug: Project['slug'];
-  groupId?: Group['id'];
 }
 
 type FilterSelections = Array<SelectOption<string>>;

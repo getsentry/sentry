@@ -36,6 +36,7 @@ jest.mock('@tanstack/react-virtual', () => {
 
 describe('DebugMeta', () => {
   const {organization, project} = initializeOrg();
+  const groupId = undefined;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -59,6 +60,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -109,6 +111,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -134,6 +137,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -176,6 +180,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -208,6 +213,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
