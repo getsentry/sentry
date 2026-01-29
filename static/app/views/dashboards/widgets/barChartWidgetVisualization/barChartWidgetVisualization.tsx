@@ -38,7 +38,7 @@ import type {
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
-import type {CategoricalBarChartPlottable} from './plottables/bar';
+import type {CategoricalBarChartPlottable} from './plottables/bars';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 /**

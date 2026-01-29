@@ -1,9 +1,9 @@
 import type {Theme} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
 import Color from 'color';
-import type {BarSeriesOption} from 'echarts';
+import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
-import barCategoricalSeries from 'sentry/components/charts/categorical/barCategorical';
+import barSeries from 'sentry/components/charts/series/barSeries';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {formatCategoricalSeriesLabel} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/formatters/formatCategoricalSeriesLabel';
@@ -97,7 +97,9 @@ export interface CategoricalBarChartPlottable {
   /**
    * Converts the plottable to ECharts series options.
    */
-  toSeries(plottingOptions: BarPlottingOptions): BarSeriesOption[];
+  toSeries(
+    plottingOptions: BarPlottingOptions
+  ): Array<BarSeriesOption | LineSeriesOption>;
   /**
    * Optional callback to get access to the chart `ref`.
    */
@@ -183,13 +185,15 @@ export class Bars implements CategoricalBarChartPlottable {
     }
   }
 
-  toSeries(plottingOptions: BarPlottingOptions): BarSeriesOption[] {
+  toSeries(
+    plottingOptions: BarPlottingOptions
+  ): Array<BarSeriesOption | LineSeriesOption> {
     const color = plottingOptions.color ?? this.config.color ?? undefined;
     const colorObject = color ? Color(color) : undefined;
     const isHorizontal = plottingOptions.orientation === 'horizontal';
 
     return [
-      barCategoricalSeries({
+      barSeries({
         name: this.name,
         stack: this.config.stack,
         yAxisIndex: plottingOptions.yAxisPosition === 'right' ? 1 : 0,
