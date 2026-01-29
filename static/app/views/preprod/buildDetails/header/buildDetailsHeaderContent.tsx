@@ -127,7 +127,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const areActionsEnabled = isSizeInfoCompleted(buildDetailsData?.size_info);
   const canRerunStatusChecks =
     areActionsEnabled ||
-    buildDetailsData?.size_info?.state === BuildDetailsSizeAnalysisState.FAILED;
+    buildDetailsData?.size_info?.state === BuildDetailsSizeAnalysisState.FAILED ||
+    buildDetailsData?.size_info?.state === BuildDetailsSizeAnalysisState.NOT_RAN;
 
   const handleCompareClick = () => {
     if (!areActionsEnabled) {
