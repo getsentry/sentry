@@ -119,6 +119,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const isLoadingRequests = isAppSizeLoading || isBuildDetailsPending;
   const isSizeStarted = sizeInfo !== undefined && sizeInfo !== null;
   const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
+  const isSizeNotRan = sizeInfo?.state === BuildDetailsSizeAnalysisState.NOT_RAN;
   const showNoSizeRequested = !isLoadingRequests && !isSizeStarted;
 
   if (isLoadingRequests) {
@@ -197,6 +198,19 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             {isRerunning ? t('Rerunning...') : t('Retry analysis')}
           </Button>
         </BuildError>
+      </Flex>
+    );
+  }
+
+  if (isSizeNotRan) {
+    return (
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildError
+          title={t('Size analysis not started')}
+          message={
+            sizeInfo.error_message || t('Size analysis was not started for this build.')
+          }
+        />
       </Flex>
     );
   }
