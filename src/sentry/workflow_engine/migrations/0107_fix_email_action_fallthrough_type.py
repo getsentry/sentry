@@ -51,7 +51,7 @@ def translate_email_action(rule_action: dict[str, Any]) -> dict[str, Any]:
     # target_identifier is only set for Member/Team, not IssueOwners
     if target_type_str in ("Member", "Team"):
         target_identifier = rule_action.get("targetIdentifier")
-        config["target_identifier"] = str(target_identifier) if target_identifier else None
+        config["target_identifier"] = str(target_identifier) if target_identifier else ""
     else:
         config["target_identifier"] = None
 
@@ -155,7 +155,11 @@ def fix_email_action_fallthrough_type(
                 except ValueError:
                     logger.exception(
                         "workflow.translate_action_error",
-                        extra={"workflow_id": workflow.id, "rule_id": rule.id},
+                        extra={
+                            "workflow_id": workflow.id,
+                            "rule_id": rule.id,
+                            "rule_action": rule_action,
+                        },
                     )
                     continue
 
@@ -169,6 +173,7 @@ def fix_email_action_fallthrough_type(
                         "workflow_count": len(workflow_email_actions),
                     },
                 )
+                return
 
             # Overwrite each workflow action with the translated data
             for i, workflow_action in enumerate(workflow_email_actions):
