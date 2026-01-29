@@ -6,7 +6,7 @@ import {
   sampleDurationCategoricalData,
   sampleStackedCategoricalData,
 } from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/sampleCountCategoricalData';
-import {Bar} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables/bar';
+import {Bars} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables/bar';
 import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 describe('BarChartWidgetVisualization', () => {
@@ -22,7 +22,7 @@ describe('BarChartWidgetVisualization', () => {
     it('renders a bar chart with duration data', () => {
       render(
         <BarChartWidgetVisualization
-          plottables={[new Bar(sampleDurationCategoricalData)]}
+          plottables={[new Bars(sampleDurationCategoricalData)]}
         />
       );
 
@@ -34,8 +34,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0]!),
-            new Bar(sampleStackedCategoricalData[1]!),
+            new Bars(sampleStackedCategoricalData[0]!),
+            new Bars(sampleStackedCategoricalData[1]!),
           ]}
         />
       );
@@ -48,8 +48,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0]!, {stack: 'all'}),
-            new Bar(sampleStackedCategoricalData[1]!, {stack: 'all'}),
+            new Bars(sampleStackedCategoricalData[0]!, {stack: 'all'}),
+            new Bars(sampleStackedCategoricalData[1]!, {stack: 'all'}),
           ]}
         />
       );
@@ -61,7 +61,7 @@ describe('BarChartWidgetVisualization', () => {
     it('renders horizontal orientation', () => {
       render(
         <BarChartWidgetVisualization
-          plottables={[new Bar(sampleCountCategoricalData)]}
+          plottables={[new Bars(sampleCountCategoricalData)]}
           orientation="horizontal"
         />
       );
@@ -83,7 +83,7 @@ describe('BarChartWidgetVisualization', () => {
       };
 
       expect(() =>
-        render(<BarChartWidgetVisualization plottables={[new Bar(emptySeries)]} />)
+        render(<BarChartWidgetVisualization plottables={[new Bars(emptySeries)]} />)
       ).toThrow('The data does not contain any plottable values.');
     });
 
@@ -101,7 +101,7 @@ describe('BarChartWidgetVisualization', () => {
       };
 
       expect(() =>
-        render(<BarChartWidgetVisualization plottables={[new Bar(nullValuesSeries)]} />)
+        render(<BarChartWidgetVisualization plottables={[new Bars(nullValuesSeries)]} />)
       ).toThrow('The data does not contain any plottable values.');
     });
   });
@@ -110,7 +110,7 @@ describe('BarChartWidgetVisualization', () => {
     it('shows legend when showLegend is always', () => {
       render(
         <BarChartWidgetVisualization
-          plottables={[new Bar(sampleCountCategoricalData, {alias: 'Count'})]}
+          plottables={[new Bars(sampleCountCategoricalData, {alias: 'Count'})]}
           showLegend="always"
         />
       );
@@ -123,8 +123,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0]!),
-            new Bar(sampleStackedCategoricalData[1]!),
+            new Bars(sampleStackedCategoricalData[0]!),
+            new Bars(sampleStackedCategoricalData[1]!),
           ]}
           showLegend="never"
         />
@@ -148,37 +148,37 @@ describe('BarChartWidgetVisualization', () => {
 describe('Bar Plottable', () => {
   describe('Properties', () => {
     it('returns correct name from alias', () => {
-      const bar = new Bar(sampleCountCategoricalData, {alias: 'Custom Name'});
+      const bar = new Bars(sampleCountCategoricalData, {alias: 'Custom Name'});
       expect(bar.name).toBe('Custom Name');
     });
 
     it('returns valueAxis as name when no alias', () => {
-      const bar = new Bar(sampleCountCategoricalData);
+      const bar = new Bars(sampleCountCategoricalData);
       expect(bar.name).toBe('count()');
     });
 
     it('returns name with groupBy when groupBy is present', () => {
-      const bar = new Bar(sampleStackedCategoricalData[0]!);
+      const bar = new Bars(sampleStackedCategoricalData[0]!);
       expect(bar.name).toBe('count() : status : success');
     });
 
     it('returns correct label', () => {
-      const bar = new Bar(sampleCountCategoricalData, {alias: 'Custom Label'});
+      const bar = new Bars(sampleCountCategoricalData, {alias: 'Custom Label'});
       expect(bar.label).toBe('Custom Label');
     });
 
     it('returns groupBy value as label when groupBy is present', () => {
-      const bar = new Bar(sampleStackedCategoricalData[0]!);
+      const bar = new Bars(sampleStackedCategoricalData[0]!);
       expect(bar.label).toBe('success');
     });
 
     it('returns correct dataType', () => {
-      const bar = new Bar(sampleCountCategoricalData);
+      const bar = new Bars(sampleCountCategoricalData);
       expect(bar.dataType).toBe('integer');
     });
 
     it('returns correct dataUnit', () => {
-      const bar = new Bar(sampleDurationCategoricalData);
+      const bar = new Bars(sampleDurationCategoricalData);
       expect(bar.dataUnit).toBe('millisecond');
     });
 
@@ -188,7 +188,7 @@ describe('Bar Plottable', () => {
         meta: {valueType: 'integer', valueUnit: null},
         values: [],
       };
-      const bar = new Bar(emptySeries);
+      const bar = new Bars(emptySeries);
       expect(bar.isEmpty).toBe(true);
     });
 
@@ -201,27 +201,27 @@ describe('Bar Plottable', () => {
           {category: 'B', value: null},
         ],
       };
-      const bar = new Bar(nullSeries);
+      const bar = new Bars(nullSeries);
       expect(bar.isEmpty).toBe(true);
     });
 
     it('returns isEmpty false for valid data', () => {
-      const bar = new Bar(sampleCountCategoricalData);
+      const bar = new Bars(sampleCountCategoricalData);
       expect(bar.isEmpty).toBe(false);
     });
 
     it('returns needsColor true when no color specified', () => {
-      const bar = new Bar(sampleCountCategoricalData);
+      const bar = new Bars(sampleCountCategoricalData);
       expect(bar.needsColor).toBe(true);
     });
 
     it('returns needsColor false when color specified', () => {
-      const bar = new Bar(sampleCountCategoricalData, {color: '#ff0000'});
+      const bar = new Bars(sampleCountCategoricalData, {color: '#ff0000'});
       expect(bar.needsColor).toBe(false);
     });
 
     it('returns correct categories', () => {
-      const bar = new Bar(sampleCountCategoricalData);
+      const bar = new Bars(sampleCountCategoricalData);
       expect(bar.categories).toEqual(['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera']);
     });
   });
@@ -229,7 +229,7 @@ describe('Bar Plottable', () => {
   describe('Event Handlers', () => {
     it('calls onClick handler with correct item', () => {
       const onClickMock = jest.fn();
-      const bar = new Bar(sampleCountCategoricalData, {onClick: onClickMock});
+      const bar = new Bars(sampleCountCategoricalData, {onClick: onClickMock});
 
       bar.onClick(0);
 
@@ -238,7 +238,7 @@ describe('Bar Plottable', () => {
 
     it('calls onHighlight handler with correct item', () => {
       const onHighlightMock = jest.fn();
-      const bar = new Bar(sampleCountCategoricalData, {onHighlight: onHighlightMock});
+      const bar = new Bars(sampleCountCategoricalData, {onHighlight: onHighlightMock});
 
       bar.onHighlight(1);
 
@@ -247,7 +247,7 @@ describe('Bar Plottable', () => {
 
     it('calls onDownplay handler with correct item', () => {
       const onDownplayMock = jest.fn();
-      const bar = new Bar(sampleCountCategoricalData, {onDownplay: onDownplayMock});
+      const bar = new Bars(sampleCountCategoricalData, {onDownplay: onDownplayMock});
 
       bar.onDownplay(2);
 
@@ -255,7 +255,7 @@ describe('Bar Plottable', () => {
     });
 
     it('does not throw when handler not provided', () => {
-      const bar = new Bar(sampleCountCategoricalData);
+      const bar = new Bars(sampleCountCategoricalData);
 
       expect(() => bar.onClick(0)).not.toThrow();
       expect(() => bar.onHighlight(0)).not.toThrow();

@@ -123,7 +123,7 @@ export interface CategoricalBarChartPlottable {
 /**
  * A plottable that renders a categorical bar series.
  */
-export class Bar implements CategoricalBarChartPlottable {
+export class Bars implements CategoricalBarChartPlottable {
   readonly categoricalSeries: CategoricalSeries;
   readonly config: BarConfig;
 

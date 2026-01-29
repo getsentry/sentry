@@ -21,7 +21,7 @@ import {
   sampleSparseData,
   sampleStackedCategoricalData,
 } from './fixtures/sampleCountCategoricalData';
-import {Bar} from './plottables/bar';
+import {Bars} from './plottables/bar';
 import {BarChartWidgetVisualization} from './barChartWidgetVisualization';
 
 export default Storybook.story('BarChartWidgetVisualization', (story, APIReference) => {
@@ -50,17 +50,17 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <Storybook.SideBySide>
           <SmallWidget>
             <BarChartWidgetVisualization
-              plottables={[new Bar(sampleCountCategoricalData)]}
+              plottables={[new Bars(sampleCountCategoricalData)]}
             />
           </SmallWidget>
           <SmallWidget>
             <BarChartWidgetVisualization
-              plottables={[new Bar(sampleDurationCategoricalData)]}
+              plottables={[new Bars(sampleDurationCategoricalData)]}
             />
           </SmallWidget>
           <SmallWidget>
             <BarChartWidgetVisualization
-              plottables={[new Bar(sampleCountCategoricalData)]}
+              plottables={[new Bars(sampleCountCategoricalData)]}
               orientation="horizontal"
             />
           </SmallWidget>
@@ -112,7 +112,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
 
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleCountCategoricalData)]}
+            plottables={[new Bars(sampleCountCategoricalData)]}
           />
         </MediumWidget>
       </Fragment>
@@ -130,7 +130,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <p>Vertical (default)</p>
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleCountCategoricalData)]}
+            plottables={[new Bars(sampleCountCategoricalData)]}
             orientation="vertical"
           />
         </MediumWidget>
@@ -138,7 +138,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <p>Horizontal</p>
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleCountCategoricalData)]}
+            plottables={[new Bars(sampleCountCategoricalData)]}
             orientation="horizontal"
           />
         </MediumWidget>
@@ -150,7 +150,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
 
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleDurationCategoricalData)]}
+            plottables={[new Bars(sampleDurationCategoricalData)]}
             orientation="horizontal"
           />
         </MediumWidget>
@@ -181,8 +181,8 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
             <p>Unstacked (default)</p>
             <BarChartWidgetVisualization
               plottables={[
-                new Bar(sampleStackedCategoricalData[0]!),
-                new Bar(sampleStackedCategoricalData[1]!),
+                new Bars(sampleStackedCategoricalData[0]!),
+                new Bars(sampleStackedCategoricalData[1]!),
               ]}
             />
           </MediumWidget>
@@ -190,8 +190,8 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
             <p>Stacked</p>
             <BarChartWidgetVisualization
               plottables={[
-                new Bar(sampleStackedCategoricalData[0]!, {stack: 'all'}),
-                new Bar(sampleStackedCategoricalData[1]!, {stack: 'all'}),
+                new Bars(sampleStackedCategoricalData[0]!, {stack: 'all'}),
+                new Bars(sampleStackedCategoricalData[1]!, {stack: 'all'}),
               ]}
             />
           </MediumWidget>
@@ -202,8 +202,8 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <MediumWidget>
           <BarChartWidgetVisualization
             plottables={[
-              new Bar(sampleStackedCategoricalData[0]!, {stack: 'all'}),
-              new Bar(sampleStackedCategoricalData[1]!, {stack: 'all'}),
+              new Bars(sampleStackedCategoricalData[0]!, {stack: 'all'}),
+              new Bars(sampleStackedCategoricalData[1]!, {stack: 'all'}),
             ]}
             orientation="horizontal"
           />
@@ -248,7 +248,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
 
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleDurationCategoricalData)]}
+            plottables={[new Bars(sampleDurationCategoricalData)]}
           />
         </MediumWidget>
       </Fragment>
@@ -268,7 +268,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <p>Short labels (vertical):</p>
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleCountCategoricalData)]}
+            plottables={[new Bars(sampleCountCategoricalData)]}
           />
         </MediumWidget>
 
@@ -277,7 +277,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           are cut off:
         </p>
         <MediumWidget>
-          <BarChartWidgetVisualization plottables={[new Bar(sampleLongLabelData)]} />
+          <BarChartWidgetVisualization plottables={[new Bars(sampleLongLabelData)]} />
         </MediumWidget>
 
         <p>
@@ -286,7 +286,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         </p>
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleLongLabelData)]}
+            plottables={[new Bars(sampleLongLabelData)]}
             orientation="horizontal"
           />
         </MediumWidget>
@@ -296,7 +296,9 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           categories in vertical orientation, the bars become narrower:
         </p>
         <LargeWidget>
-          <BarChartWidgetVisualization plottables={[new Bar(sampleManyCategoriesData)]} />
+          <BarChartWidgetVisualization
+            plottables={[new Bars(sampleManyCategoriesData)]}
+          />
         </LargeWidget>
 
         <p>
@@ -305,7 +307,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         </p>
         <TallWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleManyCategoriesData)]}
+            plottables={[new Bars(sampleManyCategoriesData)]}
             orientation="horizontal"
           />
         </TallWidget>
@@ -330,24 +332,24 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
 
         <p>Percentage data (values between 0 and 1, displayed as percentages):</p>
         <MediumWidget>
-          <BarChartWidgetVisualization plottables={[new Bar(samplePercentageData)]} />
+          <BarChartWidgetVisualization plottables={[new Bars(samplePercentageData)]} />
         </MediumWidget>
 
         <p>Size data (bytes, automatically scaled to KB, MB, etc.):</p>
         <MediumWidget>
-          <BarChartWidgetVisualization plottables={[new Bar(sampleSizeData)]} />
+          <BarChartWidgetVisualization plottables={[new Bars(sampleSizeData)]} />
         </MediumWidget>
 
         <p>Rate data (requests per second):</p>
         <MediumWidget>
-          <BarChartWidgetVisualization plottables={[new Bar(sampleRateData)]} />
+          <BarChartWidgetVisualization plottables={[new Bars(sampleRateData)]} />
         </MediumWidget>
 
         <p>
           Large values are automatically formatted with K, M, B suffixes for readability:
         </p>
         <MediumWidget>
-          <BarChartWidgetVisualization plottables={[new Bar(sampleLargeValueData)]} />
+          <BarChartWidgetVisualization plottables={[new Bars(sampleLargeValueData)]} />
         </MediumWidget>
 
         <p>
@@ -357,8 +359,8 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <MediumWidget>
           <BarChartWidgetVisualization
             plottables={[
-              new Bar(sampleCountCategoricalData, {alias: 'Count'}),
-              new Bar(sampleDurationCategoricalData, {alias: 'Duration'}),
+              new Bars(sampleCountCategoricalData, {alias: 'Count'}),
+              new Bars(sampleDurationCategoricalData, {alias: 'Duration'}),
             ]}
           />
         </MediumWidget>
@@ -380,7 +382,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           <SmallWidget>
             <BarChartWidgetVisualization
               plottables={[
-                new Bar(sampleCountCategoricalData, {
+                new Bars(sampleCountCategoricalData, {
                   color: theme.tokens.content.danger,
                 }),
               ]}
@@ -389,7 +391,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           <SmallWidget>
             <BarChartWidgetVisualization
               plottables={[
-                new Bar(sampleCountCategoricalData, {
+                new Bars(sampleCountCategoricalData, {
                   color: theme.tokens.content.success,
                 }),
               ]}
@@ -398,11 +400,11 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           <SmallWidget>
             <BarChartWidgetVisualization
               plottables={[
-                new Bar(sampleStackedCategoricalData[0]!, {
+                new Bars(sampleStackedCategoricalData[0]!, {
                   stack: 'all',
                   color: theme.tokens.content.success,
                 }),
-                new Bar(sampleStackedCategoricalData[1]!, {
+                new Bars(sampleStackedCategoricalData[1]!, {
                   stack: 'all',
                   color: theme.tokens.content.danger,
                 }),
@@ -447,8 +449,8 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           <MediumWidget>
             <BarChartWidgetVisualization
               plottables={[
-                new Bar(sampleStackedCategoricalData[0]!, {alias: 'Success'}),
-                new Bar(sampleStackedCategoricalData[1]!, {alias: 'Error'}),
+                new Bars(sampleStackedCategoricalData[0]!, {alias: 'Success'}),
+                new Bars(sampleStackedCategoricalData[1]!, {alias: 'Error'}),
               ]}
               legendSelection={legendSelection}
               onLegendSelectionChange={setLegendSelection}
@@ -456,7 +458,9 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           </MediumWidget>
           <MediumWidget>
             <BarChartWidgetVisualization
-              plottables={[new Bar(sampleCountCategoricalData, {alias: 'Browser Count'})]}
+              plottables={[
+                new Bars(sampleCountCategoricalData, {alias: 'Browser Count'}),
+              ]}
               showLegend="always"
             />
           </MediumWidget>
@@ -478,7 +482,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <MediumWidget>
           <BarChartWidgetVisualization
             plottables={[
-              new Bar(sampleCountCategoricalData, {
+              new Bars(sampleCountCategoricalData, {
                 onClick: item => {
                   setClickedItem(`${item.category}: ${item.value}`);
                 },
@@ -506,14 +510,14 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         </p>
 
         <MediumWidget>
-          <BarChartWidgetVisualization plottables={[new Bar(sampleSparseData)]} />
+          <BarChartWidgetVisualization plottables={[new Bars(sampleSparseData)]} />
         </MediumWidget>
 
         <p>Same data with horizontal orientation:</p>
 
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleSparseData)]}
+            plottables={[new Bars(sampleSparseData)]}
             orientation="horizontal"
           />
         </MediumWidget>
@@ -531,14 +535,14 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         </p>
 
         <MediumWidget>
-          <BarChartWidgetVisualization plottables={[new Bar(sampleNegativeData)]} />
+          <BarChartWidgetVisualization plottables={[new Bars(sampleNegativeData)]} />
         </MediumWidget>
 
         <p>Horizontal orientation with negative values:</p>
 
         <MediumWidget>
           <BarChartWidgetVisualization
-            plottables={[new Bar(sampleNegativeData)]}
+            plottables={[new Bars(sampleNegativeData)]}
             orientation="horizontal"
           />
         </MediumWidget>
@@ -557,7 +561,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
 
         <LargeWidget>
           <BarChartWidgetVisualization
-            plottables={sampleMultiSeriesData.map(series => new Bar(series))}
+            plottables={sampleMultiSeriesData.map(series => new Bars(series))}
           />
         </LargeWidget>
 
@@ -566,7 +570,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <LargeWidget>
           <BarChartWidgetVisualization
             plottables={sampleMultiSeriesData.map(
-              series => new Bar(series, {stack: 'browsers'})
+              series => new Bars(series, {stack: 'browsers'})
             )}
           />
         </LargeWidget>
@@ -576,7 +580,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <TallWidget>
           <BarChartWidgetVisualization
             plottables={sampleMultiSeriesData.map(
-              series => new Bar(series, {stack: 'browsers'})
+              series => new Bars(series, {stack: 'browsers'})
             )}
             orientation="horizontal"
           />
