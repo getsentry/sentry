@@ -284,7 +284,7 @@ function FilterSelector({
         <StyledButton
           aria-label={t('Clear Selections')}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() => {
             setSearchQuery('');
             handleChange([]);
@@ -380,7 +380,7 @@ function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" borderless>
+                  <Button {...triggerProps} size="zero" priority="transparent">
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />

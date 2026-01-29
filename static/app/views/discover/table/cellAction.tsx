@@ -443,7 +443,6 @@ function CellAction({
           trigger={triggerProps => (
             <ActionMenuTrigger
               {...triggerProps}
-              translucentBorder
               aria-label={t('Actions')}
               icon={<IconEllipsis size="xs" />}
               size="zero"

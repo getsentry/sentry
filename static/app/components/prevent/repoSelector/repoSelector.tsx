@@ -164,7 +164,7 @@ export function RepoSelector() {
           disabled={isSyncing}
           onClick={() => triggerResync()}
           size="zero"
-          borderless
+          priority="transparent"
         >
           {t('Sync Repos')}
         </Syncbutton>

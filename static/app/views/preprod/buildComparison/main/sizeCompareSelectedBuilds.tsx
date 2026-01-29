@@ -129,7 +129,6 @@ function BuildButton({
               }}
               size="zero"
               priority="transparent"
-              borderless
               aria-label={t('Clear base build')}
               icon={<IconClose size="xs" variant="accent" />}
             />

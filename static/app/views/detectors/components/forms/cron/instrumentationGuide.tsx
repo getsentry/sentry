@@ -179,7 +179,11 @@ export function InstrumentationGuide() {
                 <CompactSelect
                   size="xs"
                   trigger={triggerProps => (
-                    <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      priority="transparent"
+                      size="zero"
+                    />
                   )}
                   value={guideKey ?? 'upsert'}
                   onChange={option => {

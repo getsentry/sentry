@@ -263,7 +263,7 @@ function ColumnEditorRow({
     >
       <StyledButton
         aria-label={t('Drag to reorder')}
-        borderless
+        priority="transparent"
         size="sm"
         icon={<IconGrabbable size="sm" />}
         {...listeners}
@@ -289,7 +289,7 @@ function ColumnEditorRow({
       />
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
+        priority="transparent"
         disabled={!canDelete || required}
         size="sm"
         icon={<IconDelete size="sm" />}
