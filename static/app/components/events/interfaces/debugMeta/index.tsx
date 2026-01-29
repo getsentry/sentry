@@ -1,4 +1,11 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
@@ -89,22 +96,26 @@ interface DebugMetaProps {
   groupId?: Group['id'];
 }
 
+type FilterSelections = Array<SelectOption<string>>;
+
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const theme = useTheme();
   const organization = useOrganization();
 
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
-  const [filterSelections, setFilterSelections] = useState<Array<SelectOption<string>>>(
-    []
-  );
+  const [filterSelections, setFilterSelections] = useState<FilterSelections>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [lockHeight, setLockHeight] = useState(false);
 
   const {allImages, filterOptions} = useMemo(() => {
     const relevant = data.images?.filter((image): image is Image => {
-      if (!image?.code_file || image.type === 'proguard') return false;
-      if (getFileName(image.code_file) === 'dyld_sim') return false;
+      if (!image?.code_file || image.type === 'proguard') {
+        return false;
+      }
+      if (getFileName(image.code_file) === 'dyld_sim') {
+        return false;
+      }
       return true;
     });
 
@@ -139,7 +150,10 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   }, [data.images]);
 
   useEffect(() => {
-    if (filtersInitialized || !filterOptions.length) return;
+    if (filtersInitialized || !filterOptions.length) {
+      return;
+    }
+
     const defaults = (
       'options' in filterOptions[0]! ? filterOptions[0].options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
@@ -166,13 +180,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     overscan: 5,
   });
 
-  useEffect(() => {
-    if (scrollContainer) virtualizer.measure();
-  }, [scrollContainer, virtualizer]);
-
   const totalSize = virtualizer.getTotalSize();
-  useEffect(() => {
-    if (!lockHeight && totalSize > MAX_HEIGHT) setLockHeight(true);
+  useLayoutEffect(() => {
+    if (!lockHeight && totalSize > MAX_HEIGHT) {
+      setLockHeight(true);
+    }
   }, [totalSize, lockHeight]);
 
   const openDetails = useCallback(
