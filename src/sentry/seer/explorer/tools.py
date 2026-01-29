@@ -531,8 +531,8 @@ def rpc_get_profile_flamegraph(
                 "span_description": span_description,
                 "query_string": query_string,
                 "data": data,
-                "window_start": window_start.isoformat(),
-                "window_end": window_end.isoformat(),
+                "window_start": window_start,
+                "window_end": window_end,
             },
         )
         if data:
@@ -549,8 +549,8 @@ def rpc_get_profile_flamegraph(
                     "profile_id": profile_id,
                     "organization_id": organization_id,
                     "data": data,
-                    "window_start": window_start.isoformat(),
-                    "window_end": window_end.isoformat(),
+                    "window_start": window_start,
+                    "window_end": window_end,
                     "full_profile_id": full_profile_id,
                     "full_profiler_id": full_profiler_id,
                     "project_id": project_id,
@@ -732,6 +732,16 @@ def _get_issue_event_timeseries(
     an interval based on the time range and EVENT_TIMESERIES_RESOLUTIONS.
     """
     start, end = get_group_date_range(group, organization, start, end)
+    logger.info(
+        "get_issue_and_event_details_v2: Querying event timeseries",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": end - start,
+            "start": start,
+            "end": end,
+        },
+    )
 
     # Round up to nearest supported period
     delta = end - start
@@ -796,6 +806,18 @@ def _get_recommended_event(
     w_end = end
     event_query_limit = 100
     fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
+
+    logger.info(
+        "get_issue_and_event_details_v2: Querying for recommended event with sliding window",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": end - start,
+            "start": start,
+            "end": end,
+            "window_size": w_size,
+        },
+    )
 
     while w_start >= start:
         # Get candidate events with the standard recommended ordering.
@@ -905,6 +927,17 @@ def get_issue_and_event_response(
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
 
+        logger.info(
+            "get_issue_and_event_details_v2: Querying for tags overview",
+            extra={
+                "organization_id": organization.id,
+                "issue_id": group.id,
+                "timedelta": (end - start) if start and end else None,
+                "start": start,
+                "end": end,
+            },
+        )
+
         try:
             tags_overview = get_all_tags_overview(group, start, end)
         except Exception:
@@ -913,8 +946,8 @@ def get_issue_and_event_response(
                 extra={
                     "organization_id": organization.id,
                     "issue_id": group.id,
-                    "start": start.isoformat() if start else None,
-                    "end": end.isoformat() if end else None,
+                    "start": start,
+                    "end": end,
                 },
             )
             tags_overview = None
@@ -932,8 +965,8 @@ def get_issue_and_event_response(
                 extra={
                     "organization_id": organization.id,
                     "issue_id": group.id,
-                    "start": start.isoformat() if start else None,
-                    "end": end.isoformat() if end else None,
+                    "start": start,
+                    "end": end,
                 },
             )
             ts_result = None

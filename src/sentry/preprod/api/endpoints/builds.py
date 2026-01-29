@@ -18,6 +18,7 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.api.paginator import OffsetPaginator
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.preprod.api.models.project_preprod_build_details_models import (
@@ -108,12 +109,6 @@ FIELD_MAPPINGS: dict[str, str] = {
     "git_pr_number": "commit_comparison__pr_number",
 }
 
-# Platform values map to artifact_type
-PLATFORM_TO_ARTIFACT_TYPES: dict[str, list[int]] = {
-    "ios": [PreprodArtifact.ArtifactType.XCARCHIVE],
-    "android": [PreprodArtifact.ArtifactType.AAB, PreprodArtifact.ArtifactType.APK],
-}
-
 
 def queryset_for_query(
     query: str,
@@ -139,6 +134,7 @@ def queryset_for_query(
     queryset = queryset.annotate_download_count()
     queryset = queryset.annotate_installable()
     queryset = queryset.annotate_main_size_metrics()
+    queryset = queryset.annotate_platform_name()
 
     search_filters = parse_search_query(query, config=search_config, get_field_type=get_field_type)
     return apply_filters(queryset, search_filters, organization)
@@ -226,44 +222,15 @@ def apply_filters(
             )
 
             if search_term.isdigit():
-                search_query |= Q(
-                    commit_comparison__pr_number=int(search_term),
-                    commit_comparison__organization_id=organization.id,
-                )
+                search_id = int(search_term)
+                # Skip if value exceeds max for BoundedBigIntegerField
+                if search_id <= I64_MAX:
+                    search_query |= Q(id=search_id)
+                    search_query |= Q(
+                        commit_comparison__pr_number=search_id,
+                        commit_comparison__organization_id=organization.id,
+                    )
             queryset = queryset.filter(search_query)
-            continue
-
-        if name == "platform_name":
-            value = token.value.value
-            # Handle "in" operator where value is a list
-            if isinstance(value, list):
-                all_artifact_types = []
-                for platform_value in value:
-                    platform_lower = (
-                        platform_value.lower()
-                        if isinstance(platform_value, str)
-                        else platform_value
-                    )
-                    artifact_types = PLATFORM_TO_ARTIFACT_TYPES.get(platform_lower)
-                    if artifact_types is None:
-                        raise InvalidSearchQuery(
-                            f"Invalid platform_name value: {platform_lower}. Valid values are: ios, android"
-                        )
-                    all_artifact_types.extend(artifact_types)
-                q = Q(artifact_type__in=all_artifact_types)
-            else:
-                # Handle single value (equals or not equals)
-                if isinstance(value, str):
-                    value = value.lower()
-                artifact_types = PLATFORM_TO_ARTIFACT_TYPES.get(value)
-                if artifact_types is None:
-                    raise InvalidSearchQuery(
-                        f"Invalid platform_name value: {value}. Valid values are: ios, android"
-                    )
-                q = Q(artifact_type__in=artifact_types)
-            if token.is_negation:
-                q = ~q
-            queryset = queryset.filter(q)
             continue
 
         db_field = FIELD_MAPPINGS.get(name, name)

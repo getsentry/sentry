@@ -63,7 +63,7 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        assert context["platform_name"] == "ios"
+        assert context["platform_name"] == "apple"
         assert context["git_head_ref"] == "feature/test"
         assert context["app_id"] == "com.example.app"
         assert context["build_configuration_name"] == "Debug"
@@ -180,12 +180,12 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        rule_ios_release = StatusCheckRule(
+        rule_apple_release = StatusCheckRule(
             id="rule1",
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform_name:ios build_configuration_name:Release",
+            filter_query="platform_name:apple build_configuration_name:Release",
         )
 
         rule_android_release = StatusCheckRule(
@@ -201,10 +201,10 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform_name:ios build_configuration_name:Debug",
+            filter_query="platform_name:apple build_configuration_name:Debug",
         )
 
-        assert _rule_matches_artifact(rule_ios_release, context) is True
+        assert _rule_matches_artifact(rule_apple_release, context) is True
         assert _rule_matches_artifact(rule_android_release, context) is False
         assert _rule_matches_artifact(rule_ios_debug, context) is False
 
@@ -862,7 +862,7 @@ class StatusCheckFiltersTest(TestCase):
         )
 
         context = _get_artifact_filter_context(artifact)
-        assert context["platform_name"] == "ios"
+        assert context["platform_name"] == "apple"
         assert "build_configuration_name" not in context
 
         rule = StatusCheckRule(
@@ -870,7 +870,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform_name:ios !build_configuration_name:Debug",
+            filter_query="platform_name:apple !build_configuration_name:Debug",
         )
 
         assert _rule_matches_artifact(rule, context) is False
