@@ -30,6 +30,7 @@ import {
   useTableSort,
 } from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
@@ -91,7 +92,8 @@ export function ModelsTable() {
     columns: defaultColumnOrder,
   });
 
-  const fullQuery = useCombinedQuery(getAIGenerationsFilter());
+  const baseQueryWithAgent = useAgentFilteredQuery(getAIGenerationsFilter());
+  const fullQuery = useCombinedQuery(baseQueryWithAgent);
 
   const {cursor, setCursor} = useTableCursor();
 

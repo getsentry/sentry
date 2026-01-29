@@ -33,6 +33,7 @@ import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign'
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {
@@ -92,7 +93,8 @@ export function TracesTable() {
     columns: defaultColumnOrder,
   });
 
-  const combinedQuery = useCombinedQuery(getHasAiSpansFilter());
+  const baseQueryWithAgent = useAgentFilteredQuery(getHasAiSpansFilter());
+  const combinedQuery = useCombinedQuery(baseQueryWithAgent);
   const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useTraces({

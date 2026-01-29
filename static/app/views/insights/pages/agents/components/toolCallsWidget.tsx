@@ -14,6 +14,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -37,7 +38,8 @@ export default function ToolCallsWidget() {
 
   const theme = useTheme();
 
-  const fullQuery = useCombinedQuery(getToolSpansFilter());
+  const baseQueryWithAgent = useAgentFilteredQuery(getToolSpansFilter());
+  const fullQuery = useCombinedQuery(baseQueryWithAgent);
 
   const toolsRequest = useSpans(
     {

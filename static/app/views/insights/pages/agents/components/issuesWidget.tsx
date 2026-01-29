@@ -15,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
@@ -23,7 +24,8 @@ export function IssuesWidget() {
   const pageFilters = usePageFilters().selection;
   const organization = useOrganization();
 
-  const fullQuery = useCombinedQuery('');
+  const baseQueryWithAgent = useAgentFilteredQuery('');
+  const fullQuery = useCombinedQuery(baseQueryWithAgent);
 
   const queryParams = useMemo(
     () => ({

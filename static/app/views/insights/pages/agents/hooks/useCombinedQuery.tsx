@@ -2,9 +2,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
 /**
- * Combines a base query with a query from the URL.
+ * Combines a base query with the search query from the URL.
  *
- * @param baseQuery - The base query to combine with the URL query.
+ * @param baseQuery - The base query to combine with URL query.
  * @returns The combined query.
  */
 export function useCombinedQuery(baseQuery = '') {

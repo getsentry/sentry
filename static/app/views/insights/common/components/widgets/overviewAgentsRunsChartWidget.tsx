@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {useAgentFilteredQuery} from 'sentry/views/insights/pages/agents/hooks/useAgentFilteredQuery';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {
   getAgentRunsFilter,
@@ -11,9 +12,10 @@ import {BaseTrafficWidget} from 'sentry/views/insights/pages/platform/shared/bas
 export default function OverviewAgentsRunsChartWidget(
   props: LoadableChartWidgetProps & {hasAgentRuns?: boolean}
 ) {
-  const query = useCombinedQuery(
+  const baseQueryWithAgent = useAgentFilteredQuery(
     props.hasAgentRuns ? getAgentRunsFilter() : getHasAiSpansFilter()
   );
+  const query = useCombinedQuery(baseQueryWithAgent);
 
   return (
     <BaseTrafficWidget
