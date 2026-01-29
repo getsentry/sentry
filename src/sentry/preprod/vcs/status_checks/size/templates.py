@@ -15,11 +15,9 @@ _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
 def format_no_quota_messages() -> tuple[str, str, str]:
     """Format status check messages when quota is exhausted."""
     title = _SIZE_ANALYZER_TITLE_BASE
-    subtitle = str(_("Quota exceeded"))
-    summary = str(
-        _("No quota available for size analysis. Contact support to increase your quota.")
-    )
-    return str(title), subtitle, summary
+    subtitle = _("Quota exceeded")
+    summary = _("No quota available for size analysis. Contact support to increase your quota.")
+    return str(title), str(subtitle), str(summary)
 
 
 def format_status_check_messages(
