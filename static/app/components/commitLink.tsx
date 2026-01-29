@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';

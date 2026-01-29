@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
 from django.core.exceptions import BadRequest
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
@@ -11,6 +12,9 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Req
 from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
+from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
+    query_attribute_distributions,
+)
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.event import EventSerializer
@@ -527,8 +531,8 @@ def rpc_get_profile_flamegraph(
                 "span_description": span_description,
                 "query_string": query_string,
                 "data": data,
-                "window_start": window_start.isoformat(),
-                "window_end": window_end.isoformat(),
+                "window_start": window_start,
+                "window_end": window_end,
             },
         )
         if data:
@@ -545,8 +549,8 @@ def rpc_get_profile_flamegraph(
                     "profile_id": profile_id,
                     "organization_id": organization_id,
                     "data": data,
-                    "window_start": window_start.isoformat(),
-                    "window_end": window_end.isoformat(),
+                    "window_start": window_start,
+                    "window_end": window_end,
                     "full_profile_id": full_profile_id,
                     "full_profiler_id": full_profiler_id,
                     "project_id": project_id,
@@ -728,6 +732,16 @@ def _get_issue_event_timeseries(
     an interval based on the time range and EVENT_TIMESERIES_RESOLUTIONS.
     """
     start, end = get_group_date_range(group, organization, start, end)
+    logger.info(
+        "get_issue_and_event_details_v2: Querying event timeseries",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": end - start,
+            "start": start,
+            "end": end,
+        },
+    )
 
     # Round up to nearest supported period
     delta = end - start
@@ -792,6 +806,18 @@ def _get_recommended_event(
     w_end = end
     event_query_limit = 100
     fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
+
+    logger.info(
+        "get_issue_and_event_details_v2: Querying for recommended event with sliding window",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": end - start,
+            "start": start,
+            "end": end,
+            "window_size": w_size,
+        },
+    )
 
     while w_start >= start:
         # Get candidate events with the standard recommended ordering.
@@ -901,6 +927,17 @@ def get_issue_and_event_response(
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
 
+        logger.info(
+            "get_issue_and_event_details_v2: Querying for tags overview",
+            extra={
+                "organization_id": organization.id,
+                "issue_id": group.id,
+                "timedelta": (end - start) if start and end else None,
+                "start": start,
+                "end": end,
+            },
+        )
+
         try:
             tags_overview = get_all_tags_overview(group, start, end)
         except Exception:
@@ -909,8 +946,8 @@ def get_issue_and_event_response(
                 extra={
                     "organization_id": organization.id,
                     "issue_id": group.id,
-                    "start": start.isoformat() if start else None,
-                    "end": end.isoformat() if end else None,
+                    "start": start,
+                    "end": end,
                 },
             )
             tags_overview = None
@@ -928,8 +965,8 @@ def get_issue_and_event_response(
                 extra={
                     "organization_id": organization.id,
                     "issue_id": group.id,
-                    "start": start.isoformat() if start else None,
-                    "end": end.isoformat() if end else None,
+                    "start": start,
+                    "end": end,
                 },
             )
             ts_result = None
@@ -1619,3 +1656,95 @@ def get_baseline_tag_distribution(
     ]
 
     return {"baseline_tag_distribution": baseline_distribution}
+
+
+def get_comparative_attribute_distributions(
+    *,
+    organization_id: int,
+    range_start: str,
+    range_end: str,
+    start: str | None = None,
+    end: str | None = None,
+    stats_period: str | None = None,
+    aggregate_function: str = "count(span.duration)",
+    above: bool = True,
+    query: str | None = "",
+    project_ids: list[int] | None = None,
+    project_slugs: list[str] | None = None,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
+) -> dict[str, Any] | None:
+    """
+    Fetch span attribute distributions for a selected time range (minute precision) compared to a baseline (defined by start/end/stats_period params).
+    The selected range should be smaller and within the larger range. This is not validated.
+
+    Optional args unique to this endpoint:
+    - aggregate_function: An aggregate function to used to filter the outlier cohort
+    - above: Whether to filter above or below the function value (above for spikes, below for dips)
+    - query: Additional base query to filter both cohorts
+
+    Outputs attribute distribution data (list of (attribute_name, label, value) tuples) for Seer analysis.
+    """
+    # Parse inner date filter (outlier cohort)
+    range_start_dt, range_end_dt = get_date_range_from_params(
+        {"start": range_start, "end": range_end}
+    )
+    if (range_start_dt.timestamp() // 60) >= (range_end_dt.timestamp() // 60):
+        raise ValueError("range_start must be before range_end (minute precision)")
+
+    # Parse outer date filter (baseline cohort)
+    # Default to [range_start - 1 minute, now] (explicit filter is recommended)
+    default_stats_period = (
+        datetime.now(range_start_dt.tzinfo) - range_start_dt + timedelta(minutes=1)
+    )
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period},
+        default_stats_period=default_stats_period,
+    )
+
+    organization = Organization.objects.get(id=organization_id)
+    projects = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"id__in": project_ids} if bool(project_ids) else {}),
+            **({"slug__in": project_slugs} if bool(project_slugs) else {}),
+        )
+    )
+    if not projects:
+        raise NotFound("No projects found for this organization and the given project filters")
+
+    # Build the cohort queries by adding a time filter for cohort 1 (minute precision).
+    base_query = (query or "").strip()
+    range_start_str = range_start_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    range_end_str = range_end_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    query_1 = (
+        f"{base_query} timestamp:>={range_start_str} timestamp:<={range_end_str}"
+        if base_query
+        else f"timestamp:>={range_start_str} timestamp:<={range_end_str}"
+    )
+    query_2 = base_query
+
+    # Query for and compute the two attribute distributions.
+    snuba_params = SnubaParams(
+        start=start_dt,
+        end=end_dt,
+        projects=projects,
+        organization=organization,
+        sampling_mode=sampling_mode,
+    )
+
+    distributions_result = query_attribute_distributions(
+        snuba_params=snuba_params,
+        function_string=aggregate_function,
+        above=above,
+        query_1=query_1,
+        query_2=query_2,
+    )
+
+    return {
+        "baseline_distribution": distributions_result["cohort_2_distribution"],
+        "total_baseline": distributions_result["total_cohort_2"],
+        "outliers_distribution": distributions_result["cohort_1_distribution"],
+        "total_outliers": distributions_result["total_cohort_1"],
+        "outliers_function_value": distributions_result["cohort_1_function_value"],
+    }

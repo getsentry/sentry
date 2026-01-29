@@ -378,7 +378,8 @@ class OrganizationEndpoint(Endpoint):
         permission checks. We should ideally standardize how this is used and remove this parameter.
         :param project_ids: Projects if they were passed via request data instead of get params
         :param project_slugs: Project slugs if they were passed via request  data instead of get params
-        :return: A list of Project objects, or raises PermissionDenied.
+        :return: A list of Project objects, or raises PermissionDenied. When project_ids or project_slugs
+        are explicitly provided, the returned list is guaranteed non-empty (or PermissionDenied is raised).
 
         NOTE: If both project_ids and project_slugs are passed, we will default
         to fetching projects via project_id list.

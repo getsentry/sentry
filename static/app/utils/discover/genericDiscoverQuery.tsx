@@ -14,7 +14,7 @@ import type {UseQueryOptions} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface DiscoverQueryExtras {
+interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
 }
 
