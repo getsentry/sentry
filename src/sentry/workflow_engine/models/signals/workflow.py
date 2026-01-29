@@ -12,6 +12,7 @@ def enforce_config_schema(sender, instance: Workflow, **kwargs) -> None:
 
 @receiver(post_migrate)
 def invalidate_all_processing_cache(sender, **kwargs) -> None:
+    # Invalidate cache for processing workflows after a migration
     return invalidate_processing_workflows()
 
 
@@ -21,13 +22,13 @@ def invalidate_processing_cache(sender, instance: Workflow, **kwargs) -> None:
     """
     Invalidate the cache of workflows for processing when a workflow: changes, is removed, or is migrated.
     """
-    # If this is a _new_ workflow, we can early exit. There won't be any associated detectors.
+    # If this is a _new_ workflow, we can early exit.
+    # There will be no associations or caches using this model yet.
     if kwargs.get("created") or not instance.id:
         return
 
     # get the list of associated detectors that need the caches cleared
     detectors = Detector.objects.filter(detectorworkflow__workflow=instance)
 
-    # env is the related environment(s)?
     for detector in detectors:
         invalidate_processing_workflows(detector.id, instance.environment_id)

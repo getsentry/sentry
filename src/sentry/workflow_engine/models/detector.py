@@ -211,21 +211,18 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return conditions
 
+    def enforce_config_schema(self) -> None:
+        """
+        Ensures the detector type is valid in the grouptype registry.
+        This needs to be available independently so callers can validate configs
+        without saving.
+        """
+        group_type = self.group_type
+        if not group_type:
+            raise ValueError(f"No group type found with type {self.type}")
 
-def enforce_config_schema(instance: Detector) -> None:
-    """
-    Ensures the detector type is valid in the grouptype registry.
-    This needs to be available independently so callers can validate configs
-    without saving.
-    """
-    group_type = instance.group_type
-    if not group_type:
-        raise ValueError(f"No group type found with type {instance.type}")
+        if not group_type.detector_settings:
+            return
 
-    if not group_type.detector_settings:
-        return
-
-    if not isinstance(instance.config, dict):
-        raise ValidationError("Detector config must be a dictionary")
-
-    instance.validate_config(group_type.detector_settings.config_schema)
+        if not isinstance(self.config, dict):
+            raise ValidationError("Detector config must be a dictionary")

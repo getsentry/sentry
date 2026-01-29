@@ -16,8 +16,13 @@ def processing_workflow_cache_key(detector_id: int, env_id: int | None) -> str:
 
 def invalidate_processing_workflows(detector_id: int | None, env_id: int | None) -> None:
     if detector_id is None:
-        # TODO - clear the whole cache
+        # TODO - clear the whole cache, wild card?
         raise Exception("Not implemented")
+
+    if env_id is None:
+        # TODO - set a wild card for the env_id?
+        # We need to clear all workflow environments on detector change
+        pass
 
     cache_key = processing_workflow_cache_key(detector_id, env_id)
     return cache.delete(cache_key)
