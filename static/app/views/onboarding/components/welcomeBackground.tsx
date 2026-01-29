@@ -279,10 +279,9 @@ const ContainerNewUi = styled(motion.div)`
   pointer-events: none;
   position: absolute;
   height: 100%;
-  max-width: 100vw;
   width: 150%;
 
-  @media (max-width: ${p => p.theme.breakpoints.xl}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

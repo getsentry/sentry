@@ -5,7 +5,7 @@ import {motion} from 'framer-motion';
 
 import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -158,7 +158,7 @@ export function NewWelcomeUI(props: StepProps) {
           </Flex>
         </Stack>
 
-        <ProductGrid>
+        <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} gap="lg">
           {PRODUCT_OPTIONS.map(product => (
             <ProductCard
               key={product.id}
@@ -167,7 +167,7 @@ export function NewWelcomeUI(props: StepProps) {
               description={product.description}
             />
           ))}
-        </ProductGrid>
+        </Grid>
 
         <Flex justify="center">
           <Text size="xl" variant="secondary" bold>
@@ -177,7 +177,7 @@ export function NewWelcomeUI(props: StepProps) {
 
         <SeerCard border="muted" radius="lg" padding="xl">
           <SeerCardContent>
-            <IconSeer size="sm" />
+            <IconSeer size="sm" variant="secondary" />
             <Flex direction="column" gap="xs">
               <Flex gap="sm" align="center">
                 <ProductTitle>{t('Seer: AI Debugging Agent')}</ProductTitle>
@@ -243,20 +243,6 @@ const ContentWrapper = styled(motion.div)`
 
 const NewWelcomeTitle = styled(Heading)`
   font-size: 32px;
-`;
-
-const ProductGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: ${space(2)};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const ProductCardContainer = styled(Container)`
