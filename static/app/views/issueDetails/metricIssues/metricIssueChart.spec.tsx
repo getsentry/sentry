@@ -65,7 +65,7 @@ describe('MetricIssueChart', () => {
 
     render(
       <IssueDetailsContext value={{...baseIssueDetailsContext, detectorDetails}}>
-        <MetricIssueChart group={group} project={project} />
+        <MetricIssueChart group={group} event={event} />
       </IssueDetailsContext>,
       {organization}
     );
@@ -85,7 +85,7 @@ describe('MetricIssueChart', () => {
 
     render(
       <IssueDetailsContext value={{...baseIssueDetailsContext, detectorDetails}}>
-        <MetricIssueChart group={group} project={project} />
+        <MetricIssueChart group={group} event={event} />
       </IssueDetailsContext>,
       {organization}
     );
