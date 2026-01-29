@@ -1053,17 +1053,20 @@ class GithubOrganizationSelection:
             installation_ids = [
                 installation["installation_id"] for installation in installation_info
             ]
-            org_integration_counts = {
-                item["integration__external_id"]: item["count"]
-                for item in OrganizationIntegration.objects.filter(
+            integration_install_counts = (
+                OrganizationIntegration.objects.filter(
                     integration__provider=GitHubIntegrationProvider.key,
                     integration__external_id__in=installation_ids,
                 )
                 .values("integration__external_id")
                 .annotate(count=Count("id"))
+            )
+            integration_install_counts_dict = {
+                item["integration__external_id"]: item["count"]
+                for item in integration_install_counts
             }
             for installation in installation_info:
-                installation["count"] = org_integration_counts.get(
+                installation["count"] = integration_install_counts_dict.get(
                     installation["installation_id"], 0
                 )
 
@@ -1083,7 +1086,9 @@ class GithubOrganizationSelection:
 
                 # NOTE: there may still be a race condition here where multiple orgs read the same count (0)
                 # the org integration creation logic is in finish_pipeline
-                is_orphaned_integration = org_integration_counts.get(chosen_installation_id, 0) == 0
+                can_install_chosen_installation = (
+                    integration_install_counts_dict.get(chosen_installation_id, 0) == 0
+                ) and has_scm_multi_org
 
                 # Validate the same org is installing and that they have the multi org feature
                 installing_organization_slug = pipeline.fetch_state("installing_organization_slug")
@@ -1093,9 +1098,7 @@ class GithubOrganizationSelection:
                     == self.active_user_organization.organization.slug
                 )
 
-                if (
-                    not has_scm_multi_org and not is_orphaned_integration
-                ) or not is_same_installing_org:
+                if not can_install_chosen_installation or not is_same_installing_org:
                     lifecycle.record_failure(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
                     return error(
                         request,
