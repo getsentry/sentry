@@ -9,11 +9,13 @@ from sentry.integrations.gitlab.metrics import (
     GitLabTaskInteractionType,
     GitLabWebhookUpdateHaltReason,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger("sentry.tasks.integrations.gitlab")
 
@@ -22,15 +24,17 @@ logger = logging.getLogger("sentry.tasks.integrations.gitlab")
     name="sentry.tasks.integrations.gitlab.update_project_webhook",
     namespace=integrations_tasks,
     silo_mode=SiloMode.REGION,
-    max_retries=3,
-    default_retry_delay=60,
+    retry=Retry(times=3, delay=60),
 )
+@retry(exclude=(Integration.DoesNotExist,))
 def update_project_webhook(integration_id: int, organization_id: int, repository_id: int) -> None:
     """
     Update a single project webhook for a GitLab integration.
     This task is spawned by update_all_project_webhooks for each repository.
     """
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         logger.warning(
             "update-project-webhook.integration-not-found",
@@ -98,14 +102,18 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
     name="sentry.tasks.integrations.gitlab.update_all_project_webhooks",
     namespace=integrations_tasks,
     silo_mode=SiloMode.REGION,
+    retry=Retry(times=3, delay=60),
 )
+@retry(exclude=(Integration.DoesNotExist,))
 def update_all_project_webhooks(integration_id: int, organization_id: int) -> None:
     """
     Spawn individual tasks to update all project webhooks for a GitLab integration.
     This is triggered when sync settings are changed to ensure all webhooks have the correct permissions.
     """
 
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         logger.warning(
             "update-all-project-webhooks.integration-not-found",

@@ -7,6 +7,7 @@ from django.db import IntegrityError, router, transaction
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
 from sentry.integrations.services.repository.model import RpcCreateRepository
@@ -152,3 +153,14 @@ class DatabaseBackedRepositoryService(RepositoryService):
             RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=organization_integration_id
             ).delete()
+
+    def schedule_update_gitlab_project_webhooks(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+    ) -> None:
+        update_all_project_webhooks.delay(
+            integration_id=integration_id,
+            organization_id=organization_id,
+        )
