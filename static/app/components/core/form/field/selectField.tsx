@@ -1,5 +1,3 @@
-import {components as SelectComponents} from 'react-select/src/components';
-
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
@@ -41,7 +39,7 @@ export function SelectField({
             Input: SelectInput,
             IndicatorsContainer: ({
               children,
-            }: React.ComponentProps<typeof SelectComponents.IndicatorsContainer>) => (
+            }: React.ComponentProps<typeof components.IndicatorsContainer>) => (
               <Flex padding="sm" gap="sm" align="center">
                 {indicator}
                 {children}
