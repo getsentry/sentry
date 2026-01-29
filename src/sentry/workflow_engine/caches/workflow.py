@@ -1,3 +1,5 @@
+from typing import Literal
+
 from django.db.models import Q
 
 from sentry.models.environment import Environment
@@ -11,15 +13,18 @@ from sentry.workflow_engine.utils.metrics import metrics_incr
 CACHE_TTL = 300
 METRIC_PREFIX = "workflow_engine.cache.processing_workflow"
 
+ID_or_wildcard = int | Literal["*"]
 
-def processing_workflow_cache_key(detector_id: int, env_id: int | None) -> str:
+
+def processing_workflow_cache_key(
+    detector_id: ID_or_wildcard, env_id: ID_or_wildcard | None
+) -> str:
     return f"workflows_by_detector_env:{detector_id}:{env_id}"
 
 
 def invalidate_processing_workflows(detector_id: int | None, env_id: int | None) -> bool:
     if detector_id is None:
-        # TODO - clear the whole cache, wild card?
-        raise Exception("Not implemented")
+        detector_id = "*"
 
     if env_id is None:
         # TODO - set a wild card for the env_id?
