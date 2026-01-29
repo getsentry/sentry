@@ -16,7 +16,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
-import {NewWelcomeUI} from 'sentry/views/onboarding/components/newWelcome';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -51,7 +50,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function LegacyWelcomeUI(props: StepProps) {
+function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const {activateSidebar} = useOnboardingSidebar();
@@ -138,17 +137,6 @@ function LegacyWelcomeUI(props: StepProps) {
       )}
     </FallingError>
   );
-}
-
-function TargetedOnboardingWelcome(props: StepProps) {
-  // const organization = useOrganization();
-  const hasNewWelcomeUI = true; // organization.features.includes('onboarding-new-welcome-ui');
-
-  if (hasNewWelcomeUI) {
-    return <NewWelcomeUI {...props} />;
-  }
-
-  return <LegacyWelcomeUI {...props} />;
 }
 
 export default TargetedOnboardingWelcome;

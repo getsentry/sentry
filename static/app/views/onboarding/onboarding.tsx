@@ -34,17 +34,29 @@ import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
+import {NewWelcomeUI} from './components/newWelcome';
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
-import type {StepDescriptor} from './types';
+import type {StepDescriptor, StepProps} from './types';
 import TargetedOnboardingWelcome from './welcome';
+
+function WelcomeStep(props: StepProps) {
+  const organization = useOrganization();
+  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
+
+  if (hasNewWelcomeUI) {
+    return <NewWelcomeUI {...props} />;
+  }
+
+  return <TargetedOnboardingWelcome {...props} />;
+}
 
 export const onboardingSteps: StepDescriptor[] = [
   {
     id: 'welcome',
     title: t('Welcome'),
-    Component: TargetedOnboardingWelcome,
+    Component: WelcomeStep,
     cornerVariant: 'top-right',
   },
   {
