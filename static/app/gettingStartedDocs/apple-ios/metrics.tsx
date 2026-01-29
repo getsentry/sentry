@@ -16,7 +16,7 @@ export const metrics: OnboardingConfig = {
             {
               code: <code />,
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/macos/migration/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/migration/" />
               ),
             }
           ),
@@ -112,7 +112,7 @@ SentrySDK.metrics.count(
             'For more detailed information, see the [link:metrics documentation].',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/macos/metrics/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/metrics/" />
               ),
             }
           ),
