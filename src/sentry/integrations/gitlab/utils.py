@@ -49,6 +49,7 @@ class GitLabApiClientPath:
     statuses = "/projects/{project}/statuses/{sha}"
     commit_statuses = "/projects/{project}/repository/commits/{sha}/statuses"
     user = "/user"
+    users = "/users"
 
     @staticmethod
     def build_api_url(base_url, path) -> str:
