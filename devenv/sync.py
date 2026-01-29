@@ -288,7 +288,7 @@ Then, use it to run sync this time:
         (
             "docker",
             "exec",
-            "sentry-postgres-1",
+            "postgres-postgres-1",
             "psql",
             "sentry",
             "postgres",
