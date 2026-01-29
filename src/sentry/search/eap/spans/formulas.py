@@ -20,6 +20,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.search.eap import constants
+from sentry.search.eap.aggregate_utils import resolve_key_eq_value_filter
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     FormulaDefinition,
@@ -28,7 +29,6 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
-from sentry.search.eap.spans.aggregates import resolve_key_eq_value_filter
 from sentry.search.eap.spans.utils import (
     WEB_VITALS_MEASUREMENTS,
     operate_multiple_columns,
