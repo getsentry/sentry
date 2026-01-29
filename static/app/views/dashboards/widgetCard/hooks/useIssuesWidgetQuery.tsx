@@ -76,7 +76,6 @@ export function useIssuesSeriesQuery(
 
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<IssuesSeriesResponse[] | undefined>(undefined);
-  const fetchFnRefsRef = useRef<Array<{current: () => Promise<void>}>>([]);
 
   const filteredWidget = useMemo(
     () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
@@ -135,34 +134,23 @@ export function useIssuesSeriesQuery(
       ] satisfies ApiQueryKey;
     });
 
-    // Adjust fetchFnRefs array to match the number of queries while preserving existing refs
-    const noop = () => Promise.resolve();
-    while (fetchFnRefsRef.current.length < keys.length) {
-      fetchFnRefsRef.current.push({current: noop});
-    }
-    fetchFnRefsRef.current.length = keys.length;
-
     return keys;
   }, [filteredWidget, organization, pageFilters]);
 
   const createQueryFn = useCallback(
-    (queryIndex: number) =>
+    () =>
       async (context: any): Promise<ApiResult<IssuesSeriesResponse>> => {
         if (queue) {
           return new Promise((resolve, reject) => {
-            const fetchFnRef = fetchFnRefsRef.current[queryIndex];
-            if (!fetchFnRef) {
-              reject(new Error('fetchFnRef not initialized'));
-              return;
-            }
-
-            fetchFnRef.current = async () => {
-              try {
-                const result = await fetchDataQuery<IssuesSeriesResponse>(context);
-                resolve(result);
-              } catch (error) {
-                reject(error instanceof Error ? error : new Error(String(error)));
-              }
+            const fetchFnRef = {
+              current: async () => {
+                try {
+                  const result = await fetchDataQuery<IssuesSeriesResponse>(context);
+                  resolve(result);
+                } catch (error) {
+                  reject(error instanceof Error ? error : new Error(String(error)));
+                }
+              },
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
@@ -174,9 +162,9 @@ export function useIssuesSeriesQuery(
   );
 
   const queryResults = useQueries({
-    queries: queryKeys.map((queryKey, queryIndex) => ({
+    queries: queryKeys.map(queryKey => ({
       queryKey,
-      queryFn: createQueryFn(queryIndex),
+      queryFn: createQueryFn(),
       staleTime: 0,
       enabled,
       retry: false,
@@ -259,7 +247,6 @@ export function useIssuesTableQuery(
 
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<IssuesTableResponse[] | undefined>(undefined);
-  const fetchFnRefsRef = useRef<Array<{current: () => Promise<void>}>>([]);
 
   const filteredWidget = useMemo(
     () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
@@ -302,34 +289,23 @@ export function useIssuesTableQuery(
       return baseQueryKey;
     });
 
-    // Adjust fetchFnRefs array to match the number of queries while preserving existing refs
-    const noop = () => Promise.resolve();
-    while (fetchFnRefsRef.current.length < keys.length) {
-      fetchFnRefsRef.current.push({current: noop});
-    }
-    fetchFnRefsRef.current.length = keys.length;
-
     return keys;
   }, [filteredWidget, organization, pageFilters, cursor, limit]);
 
   const createQueryFnTable = useCallback(
-    (queryIndex: number) =>
+    () =>
       async (context: any): Promise<ApiResult<IssuesTableResponse>> => {
         if (queue) {
           return new Promise((resolve, reject) => {
-            const fetchFnRef = fetchFnRefsRef.current[queryIndex];
-            if (!fetchFnRef) {
-              reject(new Error('fetchFnRef not initialized'));
-              return;
-            }
-
-            fetchFnRef.current = async () => {
-              try {
-                const result = await fetchDataQuery<IssuesTableResponse>(context);
-                resolve(result);
-              } catch (error) {
-                reject(error instanceof Error ? error : new Error(String(error)));
-              }
+            const fetchFnRef = {
+              current: async () => {
+                try {
+                  const result = await fetchDataQuery<IssuesTableResponse>(context);
+                  resolve(result);
+                } catch (error) {
+                  reject(error instanceof Error ? error : new Error(String(error)));
+                }
+              },
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
@@ -340,9 +316,9 @@ export function useIssuesTableQuery(
   );
 
   const queryResults = useQueries({
-    queries: queryKeys.map((queryKey, queryIndex) => ({
+    queries: queryKeys.map(queryKey => ({
       queryKey,
-      queryFn: createQueryFnTable(queryIndex),
+      queryFn: createQueryFnTable(),
       staleTime: 0,
       enabled,
       retry: false,
