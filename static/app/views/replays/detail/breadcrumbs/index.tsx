@@ -20,7 +20,7 @@ import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
 // Estimated row height - matches previous minHeight from cellMeasurer config
-const ESTIMATED_ROW_HEIGHT = 47;
+const ESTIMATED_ROW_HEIGHT = 50;
 
 export default function Breadcrumbs() {
   const replay = useReplayReader();
@@ -41,9 +41,6 @@ export default function Breadcrumbs() {
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     overscan: 30,
-    // Add padding when scrolling to ensure the target item isn't right at the edge
-    scrollPaddingStart: 24,
-    scrollPaddingEnd: 90,
   });
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -147,7 +144,6 @@ export default function Breadcrumbs() {
                       <BreadcrumbRow
                         key={virtualItem.key}
                         ref={virtualizer.measureElement}
-                        data-index={virtualItem.index}
                         index={virtualItem.index}
                         frame={item}
                         startTimestampMs={startTimestampMs}

@@ -26,7 +26,7 @@ function useScrollToCurrentItem({frames, virtualizer}: Opts) {
       const index = frames.indexOf(currentItem);
       if (index >= 0) {
         // Center the current item in the viewport
-        virtualizer.scrollToIndex(index, {align: 'center'});
+        virtualizer.scrollToIndex(index, {align: 'center', behavior: 'smooth'});
       }
     }
   }, [frames, currentItem, virtualizer]);

@@ -62,6 +62,7 @@ function BreadcrumbRow({
   return (
     <BreadcrumbItem
       ref={ref}
+      index={index}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
