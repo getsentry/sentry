@@ -1,5 +1,9 @@
 import uuid
 
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageMeta
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesResponse
+from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta
+
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -366,18 +370,18 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         )
 
         # Patch the RPC call to capture the request payload
-        with patch("sentry.snuba.spans_rpc.snuba_rpc.timeseries_rpc") as mock_timeseries_rpc:
-            # Return a minimal valid response
+        with patch(
+            "sentry.snuba.rpc_dataset_common.snuba_rpc.timeseries_rpc"
+        ) as mock_timeseries_rpc:
+            # Return a minimal valid response using proper protobuf types
             mock_timeseries_rpc.return_value = [
-                type(
-                    "MockResponse",
-                    (),
-                    {
-                        "result_type": 0,
-                        "timeseries": [],
-                        "meta": type("Meta", (), {"request_id": "test", "has_more": False})(),
-                    },
-                )()
+                TimeSeriesResponse(
+                    result_timeseries=[],
+                    meta=ResponseMeta(
+                        request_id="test",
+                        downsampled_storage_meta=DownsampledStorageMeta(),
+                    ),
+                )
             ]
 
             self.do_request(
