@@ -22,6 +22,7 @@ from sentry.preprod.authentication import (
     LaunchpadRpcSignatureAuthentication,
 )
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
+from sentry.preprod.tasks import dispatch_preprod_artifact_features
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -381,6 +382,15 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                     "caller": "artifact_update_endpoint",
                 }
             )
+
+            # Dispatch SIZE_ANALYSIS and BUILD_DISTRIBUTION features now that
+            # preprocessing has set artifact properties (app_id, artifact_type, etc)
+            if head_artifact.state == PreprodArtifact.ArtifactState.PROCESSED:
+                dispatch_preprod_artifact_features.apply_async(
+                    kwargs={
+                        "preprod_artifact_id": artifact_id_int,
+                    }
+                )
 
         mobile_app_info = getattr(head_artifact, "mobile_app_info", None)
         build_version = mobile_app_info.build_version if mobile_app_info else None

@@ -144,62 +144,14 @@ def assemble_preprod_artifact(
         return
 
     try:
-        requested_features: list[PreprodFeature] = []
-
-        artifact = PreprodArtifact.objects.get(id=artifact_id)
-
-        run_size, size_skip_reason = should_run_size(artifact)
-        logger.info(
-            "Size decision",
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-                "run_size": run_size,
-                "reason": size_skip_reason,
-            },
-        )
-
-        requested_features.append(PreprodFeature.PRE_PROCESS)
-
-        if run_size:
-            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-            PreprodArtifactSizeMetrics.objects.get_or_create(
-                preprod_artifact=artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                defaults={
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
-                },
-            )
-        else:
-            error_code = (
-                PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
-                if size_skip_reason == "quota"
-                else PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
-            )
-            error_message = (
-                "No quota available for size analysis"
-                if size_skip_reason == "quota"
-                else "Size analysis was not requested for this build"
-            )
-            PreprodArtifactSizeMetrics.objects.get_or_create(
-                preprod_artifact=artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                defaults={
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
-                    "error_code": error_code,
-                    "error_message": error_message,
-                },
-            )
-
-        run_distribution, _ = should_run_distribution(artifact)
-        if run_distribution:
-            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
-
+        # Emit only PRE_PROCESS feature at this stage.
+        # SIZE_ANALYSIS and BUILD_DISTRIBUTION are dispatched later by
+        # dispatch_preprod_artifact_features after preprocessing sets artifact properties.
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
-            requested_features=requested_features,
+            requested_features=[PreprodFeature.PRE_PROCESS],
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
@@ -234,6 +186,106 @@ def assemble_preprod_artifact(
             "organization_id": org_id,
             "organization_slug": organization.slug,
             "checksum": checksum,
+        },
+    )
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.dispatch_preprod_artifact_features",
+    retry=Retry(times=3),
+    namespace=preprod_tasks,
+    processing_deadline_duration=30,
+    silo_mode=SiloMode.REGION,
+)
+def dispatch_preprod_artifact_features(
+    preprod_artifact_id: int,
+    **kwargs: Any,
+) -> None:
+    """
+    Dispatches SIZE_ANALYSIS and BUILD_DISTRIBUTION features for a preprod artifact.
+    Called after preprocessing has set artifact properties (app_id, artifact_type, etc).
+    """
+    try:
+        artifact = PreprodArtifact.objects.select_related("project__organization").get(
+            id=preprod_artifact_id
+        )
+    except PreprodArtifact.DoesNotExist:
+        logger.exception(
+            "PreprodArtifact not found for feature dispatch",
+            extra={"preprod_artifact_id": preprod_artifact_id},
+        )
+        return
+
+    project = artifact.project
+    organization = project.organization
+    bind_organization_context(organization)
+
+    requested_features: list[PreprodFeature] = []
+
+    # SIZE_ANALYSIS check
+    run_size, size_skip_reason = should_run_size(artifact)
+    logger.info(
+        "Size decision",
+        extra={
+            "preprod_artifact_id": preprod_artifact_id,
+            "project_id": project.id,
+            "organization_id": organization.id,
+            "run_size": run_size,
+            "reason": size_skip_reason,
+        },
+    )
+
+    if run_size:
+        requested_features.append(PreprodFeature.SIZE_ANALYSIS)
+        PreprodArtifactSizeMetrics.objects.get_or_create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            defaults={
+                "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            },
+        )
+    else:
+        error_code = (
+            PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
+            if size_skip_reason == "quota"
+            else PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
+        )
+        error_message = (
+            "No quota available for size analysis"
+            if size_skip_reason == "quota"
+            else "Size analysis was not requested for this build"
+        )
+        PreprodArtifactSizeMetrics.objects.get_or_create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            defaults={
+                "state": PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+                "error_code": error_code,
+                "error_message": error_message,
+            },
+        )
+
+    # BUILD_DISTRIBUTION check
+    run_distribution, _ = should_run_distribution(artifact)
+    if run_distribution:
+        requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+
+    # Only emit to Kafka if there are features to run
+    if requested_features:
+        produce_preprod_artifact_to_kafka(
+            project_id=project.id,
+            organization_id=organization.id,
+            artifact_id=preprod_artifact_id,
+            requested_features=requested_features,
+        )
+
+    logger.info(
+        "Dispatched preprod artifact features",
+        extra={
+            "preprod_artifact_id": preprod_artifact_id,
+            "project_id": project.id,
+            "organization_id": organization.id,
+            "requested_features": [f.value for f in requested_features],
         },
     )
 
