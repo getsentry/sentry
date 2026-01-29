@@ -111,18 +111,18 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         serializer = ProjectSeerPreferencesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        all_repos_to_check: list[tuple[str, str, str]] = []  # (provider, external_id, name)
+        all_repos_to_check: set[tuple[str, str, str]] = set()  # (provider, external_id, name)
         for repo_data in serializer.validated_data.get("repositories", []):
             repo_org_id = repo_data.get("organization_id")
             if repo_org_id is not None and repo_org_id != project.organization.id:
                 return Response({"detail": "Invalid repository"}, status=400)
             repo_data["organization_id"] = project.organization.id
 
-            provider = repo_data.get("provider")
-            external_id = repo_data.get("external_id")
-            owner = repo_data.get("owner")
-            name = repo_data.get("name")
-            all_repos_to_check.append((provider, external_id, f"{owner}/{name}"))
+            provider = repo_data["provider"]
+            external_id = repo_data["external_id"]
+            owner = repo_data["owner"]
+            name = repo_data["name"]
+            all_repos_to_check.add((provider, external_id, f"{owner}/{name}"))
 
         if all_repos_to_check:
             repo_q = Q()

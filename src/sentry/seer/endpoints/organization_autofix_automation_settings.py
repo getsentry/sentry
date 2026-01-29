@@ -250,7 +250,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 if proj_id in projects_by_id
             }
 
-        all_repos_to_check: list[tuple[str, str, str]] = []  # (provider, external_id, name)
+        all_repos_to_check: set[tuple[str, str, str]] = set()  # (provider, external_id, name)
         for repos_data in filtered_repo_mappings.values():
             for repo_data in repos_data:
                 repo_org_id = repo_data.get("organization_id")
@@ -258,11 +258,11 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     return Response({"detail": "Invalid repository"}, status=400)
                 repo_data["organization_id"] = organization.id
 
-                provider = repo_data.get("provider")
-                external_id = repo_data.get("external_id")
-                owner = repo_data.get("owner")
-                name = repo_data.get("name")
-                all_repos_to_check.append((provider, external_id, f"{owner}/{name}"))
+                provider = repo_data["provider"]
+                external_id = repo_data["external_id"]
+                owner = repo_data["owner"]
+                name = repo_data["name"]
+                all_repos_to_check.add((provider, external_id, f"{owner}/{name}"))
 
         if all_repos_to_check:
             repo_q = Q()
