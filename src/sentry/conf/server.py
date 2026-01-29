@@ -71,8 +71,7 @@ def env(
     try:
         rv = _env_cache[key]
     except KeyError:
-        # TODO: check this is actually still correct, since granian doesn't fork
-        if "SENTRY_RUNNING_GRANIAN" in os.environ:
+        if "SENTRY_RUNNING_UWSGI" in os.environ:
             # We do this so when the process forks off into uwsgi
             # we want to actually be popping off values. This is so that
             # at runtime, the variables aren't actually available.
@@ -2759,7 +2758,7 @@ BETA_GROUPING_CONFIG = ""
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
-SENTRY_USE_GRANIAN = True
+SENTRY_USE_UWSGI = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
