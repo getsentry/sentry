@@ -31,7 +31,13 @@ import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
 // See also: `IntegrationProviderSlug` in sentry/integrations/types.py
 // `vsts` is ignored for now, not on the early roadmap in January 2026.
-const SCM_PROVIDER_KEYS = ['github', 'gitlab', 'bitbucket', 'bitbucket_server'];
+const SCM_PROVIDER_KEYS = [
+  'github',
+  'github_enterprise',
+  'gitlab',
+  'bitbucket',
+  'bitbucket_server',
+];
 
 /**
  * Fetches all SCM integrations for an organization, filtering for Seer related SCM providers.
