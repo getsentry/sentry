@@ -18,6 +18,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -247,6 +248,16 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 for proj_id, repos in project_repo_mappings.items()
                 if proj_id in projects_by_id
             }
+
+        for repos_data in filtered_repo_mappings.values():
+            for repo_data in repos_data:
+                repo_exists = Repository.objects.filter(
+                    organization_id=organization.id,
+                    provider=repo_data.get("provider"),
+                    external_id=repo_data.get("external_id"),
+                ).exists()
+                if not repo_exists:
+                    return Response({"detail": "Invalid repository"}, status=400)
 
         preferences_to_set: list[dict[str, Any]] = []
 
