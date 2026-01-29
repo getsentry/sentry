@@ -21,7 +21,7 @@ describe('AssertionFailureTree', () => {
 
     render(<AssertionFailureTree assertion={assertion} />);
 
-    const rows = screen.getAllByRole('assertion-failure-tree-row');
+    const rows = screen.getAllByTestId('assertion-failure-tree-row');
     expect(rows).toHaveLength(2);
 
     expect(within(rows[0]!).getByText('Assert All')).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('AssertionFailureTree', () => {
 
     render(<AssertionFailureTree assertion={assertion} />);
 
-    const rows = screen.getAllByRole('assertion-failure-tree-row');
+    const rows = screen.getAllByTestId('assertion-failure-tree-row');
     expect(rows).toHaveLength(4);
 
     expect(within(rows[0]!).getByText('Assert All')).toBeInTheDocument();

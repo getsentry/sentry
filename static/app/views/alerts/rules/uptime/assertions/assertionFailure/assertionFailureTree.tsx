@@ -1,7 +1,10 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {t} from 'sentry/locale';
 import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
 
 import {Tree} from './models/tree';
@@ -15,9 +18,15 @@ const CONTENT_PADDING_PX = 8;
 
 function leftOffsetFromDepth(depth: number): number {
   return (
-    depth * INDENT_PX +
+    // Connector centering for 0 depth
     Math.floor(INDENT_PX / 2) +
+    // Indentation for the current depth
+    depth * INDENT_PX +
+    // Additional offset for each depth level
+    // Difference between start of previous row content and
+    // current row connectors.
     depth * DEPTH_OFFSET_PX +
+    // Gap between horizontal connector and content at current depth
     depth * CONTENT_PADDING_PX
   );
 }
@@ -61,8 +70,13 @@ function Connector({
   );
 }
 
-export function AssertionFailureTree({assertion}: {assertion: Assertion}) {
-  const tree = Tree.FromAssertion(assertion);
+function AssertionFailureTreeContent({assertion}: {assertion: Assertion | string}) {
+  const tree = useMemo(() => {
+    const parsedAssertion =
+      typeof assertion === 'string' ? (JSON.parse(assertion) as Assertion) : assertion;
+
+    return Tree.FromAssertion(parsedAssertion);
+  }, [assertion]);
 
   return (
     <Container
@@ -94,21 +108,28 @@ export function AssertionFailureTree({assertion}: {assertion: Assertion}) {
 
         return (
           <Flex
-            role="assertion-failure-tree-row"
+            data-test-id="assertion-failure-tree-row"
             key={node.value.id}
             position="absolute"
             top={`${rowTop}px`}
             left={`${rowLeft}px`}
-            height={`${ROW_HEIGHT_PX}px`}
-            width="100%"
-            align="center"
             right="0px"
+            height={`${ROW_HEIGHT_PX}px`}
+            align="center"
           >
             {node.renderRow()}
           </Flex>
         );
       })}
     </Container>
+  );
+}
+
+export function AssertionFailureTree({assertion}: {assertion: Assertion | string}) {
+  return (
+    <ErrorBoundary mini message={t('Failed to display assertion failures')}>
+      <AssertionFailureTreeContent assertion={assertion} />
+    </ErrorBoundary>
   );
 }
 
