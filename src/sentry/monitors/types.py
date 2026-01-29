@@ -9,8 +9,9 @@ from django.utils.text import slugify
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.workflow_engine.types import DataSourceType
 
-DATA_SOURCE_CRON_MONITOR = "cron_monitor"
+DATA_SOURCE_CRON_MONITOR = DataSourceType.CRON_MONITOR
 
 
 class CheckinTrace(TypedDict):

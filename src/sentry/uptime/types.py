@@ -7,7 +7,9 @@ from typing import Any, Literal, Required, TypedDict
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckStatus, CheckStatusReasonType
 
-DATA_SOURCE_UPTIME_SUBSCRIPTION = "uptime_subscription"
+from sentry.workflow_engine.types import DataSourceType
+
+DATA_SOURCE_UPTIME_SUBSCRIPTION = DataSourceType.UPTIME_SUBSCRIPTION
 """
 The workflow engine DataSource type used for registering handlers and fetching
 the uptime sbuscription data source.

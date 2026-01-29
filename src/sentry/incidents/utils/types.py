@@ -42,4 +42,6 @@ class AlertRuleActivationConditionType(Enum):
     DEPLOY_CREATION = 1
 
 
-DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"
+from sentry.workflow_engine.types import DataSourceType
+
+DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
