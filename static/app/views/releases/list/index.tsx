@@ -226,25 +226,35 @@ export default function ReleasesList() {
   const selectedProjectIds = useMemo(() => {
     const selectedIds = selection.projects.filter(id => id !== ALL_ACCESS_PROJECTS);
 
-    // If no specific projects selected (All Projects), use all accessible project IDs
+    // If no specific projects selected, pass [-1] to represent "all projects"
+    // This avoids expanding to hundreds of project IDs which causes URL length issues
     return selectedIds.length === 0
-      ? projects.map(p => p.id)
+      ? [`${ALL_ACCESS_PROJECTS}`]
       : selectedIds.map(id => `${id}`);
-  }, [selection.projects, projects]);
+  }, [selection.projects]);
 
   const shouldShowMobileBuildsTab = useMemo(() => {
     if (!organization.features?.includes('preprod-frontend-routes')) {
       return false;
     }
 
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
     // Check if at least one project has a mobile platform
-    const hasAnyStrictlyMobileProject = selectedProjectIds
+    const hasAnyStrictlyMobileProject = projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform, false));
 
     return hasAnyStrictlyMobileProject;
-  }, [organization.features, selectedProjectIds]);
+  }, [organization.features, selectedProjectIds, projects]);
 
   const selectedTab = useMemo(() => {
     if (!shouldShowMobileBuildsTab) {
@@ -359,11 +369,20 @@ export default function ReleasesList() {
   );
 
   const hasAnyMobileProject = useMemo(() => {
-    return selectedProjectIds
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
+    return projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform));
-  }, [selectedProjectIds]);
+  }, [selectedProjectIds, projects]);
 
   const showReleaseAdoptionStages =
     hasAnyMobileProject && selection.environments.length === 1;
