@@ -220,13 +220,6 @@ class TestUptimeHandler(UptimeTestCase):
 
         now = datetime.now()
 
-        old_time_ms = int((now - timedelta(hours=1)).timestamp() * 1000)
-        UptimeResponseCapture.objects.create(
-            uptime_subscription=uptime_subscription,
-            file_id=1,
-            scheduled_check_time_ms=old_time_ms,
-        )
-
         self.handle_result(
             detector,
             uptime_subscription,
