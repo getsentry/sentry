@@ -75,8 +75,6 @@ class TraceExplorerAISetup(OrganizationEndpoint):
         projects = self.get_projects(request, organization, project_ids=project_ids)
         validated_project_ids = [p.id for p in projects]
 
-        # Ensure all requested projects were found and accessible
-        # Returns same error for non-existent and inaccessible projects
         if project_ids and len(validated_project_ids) != len(project_ids):
             return Response(
                 {"detail": "You do not have permission to perform this action."},
