@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Collection, Sequence
-from dataclasses import asdict, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 
@@ -21,6 +21,7 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContextData,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
+    TriggerResult,
     get_data_conditions_for_group,
     process_data_condition_group,
 )
@@ -97,13 +98,19 @@ def _get_data_conditions_for_group_by_dcg(dcg_ids: Sequence[int]) -> dict[int, l
     )
 
 
+@dataclass(frozen=True)
+class TriggeredWorkflow:
+    workflow: Workflow
+    result: TriggerResult
+
+
 @sentry_sdk.trace
 @scopedstats.timer()
 def evaluate_workflow_triggers(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
     event_start_time: datetime,
-) -> tuple[set[Workflow], dict[Workflow, DelayedWorkflowItem]]:
+) -> tuple[set[TriggeredWorkflow], dict[Workflow, DelayedWorkflowItem]]:
     """
     Returns a tuple of (triggered_workflows, queue_items_by_workflow)
     - triggered_workflows: set of workflows that were triggered
@@ -111,7 +118,7 @@ def evaluate_workflow_triggers(
       in the next step (evaluate action filters) to enqueue workflows with slow conditions
       within that function
     """
-    triggered_workflows: set[Workflow] = set()
+    triggered_workflows: set[TriggeredWorkflow] = set()
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
 
     dcg_ids = [
@@ -128,6 +135,7 @@ def evaluate_workflow_triggers(
         project.organization,
     )
 
+    tainted_untriggered, untainted_untriggered = 0, 0
     for workflow in workflows:
         when_data_conditions = None
         if dcg_id := workflow.when_condition_group_id:
@@ -163,7 +171,7 @@ def evaluate_workflow_triggers(
                 )
         else:
             if evaluation.triggered:
-                triggered_workflows.add(workflow)
+                triggered_workflows.add(TriggeredWorkflow(workflow, evaluation))
                 if dual_processing_logs_enabled:
                     try:
                         detector = WorkflowEventContext.get().detector
@@ -180,10 +188,22 @@ def evaluate_workflow_triggers(
                         )
                     except DetectorWorkflow.DoesNotExist:
                         continue
+            else:
+                if evaluation.is_tainted():
+                    tainted_untriggered += 1
+                else:
+                    untainted_untriggered += 1
 
+    metrics_incr("process_workflows.triggered_workflows", len(triggered_workflows))
     metrics_incr(
-        "process_workflows.triggered_workflows",
-        len(triggered_workflows),
+        "process_workflows.workflows_evaluated",
+        tainted_untriggered + untainted_untriggered,
+        tags={"tainted": True},
+    )
+    metrics_incr(
+        "process_workflows.workflows_evaluated",
+        untainted_untriggered,
+        tags={"tainted": False},
     )
 
     # TODO - Remove `environment` access once it's in the shared logger.
@@ -206,7 +226,9 @@ def evaluate_workflow_triggers(
             "event_id": event_id,
             "event_data": asdict(event_data),
             "event_environment_id": environment.id if environment else None,
-            "triggered_workflows": [workflow.id for workflow in triggered_workflows],
+            "triggered_workflows": [
+                triggered_workflow.workflow.id for triggered_workflow in triggered_workflows
+            ],
             "queue_workflows": sorted(wf.id for wf in queue_items_by_workflow.keys()),
         },
     )
@@ -217,7 +239,7 @@ def evaluate_workflow_triggers(
 @sentry_sdk.trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
-    workflows: set[Workflow],
+    workflows: set[TriggeredWorkflow],
     event_data: WorkflowEventData,
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
     event_start_time: datetime,
@@ -231,8 +253,12 @@ def evaluate_workflows_action_filters(
     # to evaluate all fast conditions
     all_workflows = workflows.union(set(queue_items_by_workflow.keys()))
 
-    action_conditions_to_workflow = {
-        wdcg.condition_group: wdcg.workflow
+    triggered_wf_to_tained = {wf.workflow: wf.result for wf in workflows}
+
+    action_conditions_to_workflow: dict[DataConditionGroup, TriggeredWorkflow] = {
+        wdcg.condition_group: TriggeredWorkflow(
+            wdcg.workflow, triggered_wf_to_tained.get(wdcg.workflow, TriggerResult.FALSE)
+        )
         for wdcg in WorkflowDataConditionGroup.objects.select_related(
             "workflow", "condition_group"
         ).filter(workflow__in=all_workflows)
@@ -256,7 +282,9 @@ def evaluate_workflows_action_filters(
         )
     }
 
-    for action_condition_group, workflow in action_conditions_to_workflow.items():
+    workflow_to_result = {workflow.id: workflow.result for workflow in workflows}
+    for action_condition_group, triggered_workflow in action_conditions_to_workflow.items():
+        workflow = triggered_workflow.workflow
         env = env_by_id.get(workflow.environment_id) if workflow.environment_id else None
         workflow_event_data = replace(event_data, workflow_env=env)
         group_evaluation, slow_conditions = process_data_condition_group(
@@ -303,6 +331,16 @@ def evaluate_workflows_action_filters(
                         delayed_workflow_item.passing_if_group_ids.append(action_condition_group.id)
                 else:
                     filtered_action_groups.add(action_condition_group)
+                    workflow_to_result[workflow.id] &= group_evaluation.logic_result
+
+    tainted, untained = 0, 0
+    for result in workflow_to_result.values():
+        if result.is_tainted():
+            tainted += 1
+        else:
+            untained += 1
+    metrics_incr("process_workflows.workflows_evaluated", tainted, tags={"tainted": True})
+    metrics_incr("process_workflows.workflows_evaluated", untained, tags={"tainted": False})
 
     event_id = (
         event_data.event.event_id
