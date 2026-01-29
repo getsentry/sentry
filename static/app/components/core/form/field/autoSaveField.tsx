@@ -121,7 +121,10 @@ export function AutoSaveField<
 
   const form = useScrapsForm({
     formId: `${name}-${id}-(auto-save)`,
-    defaultValues: {[name]: initialValue},
+    defaultValues: {[name]: initialValue} as Record<
+      TFieldName,
+      z.infer<TSchema>[TFieldName]
+    >,
     validators: {
       onChange: schema.pick({[name]: true}) as never,
     },
@@ -133,19 +136,15 @@ export function AutoSaveField<
       },
     },
     onSubmit: ({value}) => {
-      return mutation.mutateAsync(
-        value as Record<TFieldName, z.infer<TSchema>[TFieldName]>
-      );
+      return mutation.mutateAsync(value);
     },
   });
-
-  const AppField = form.AppField as any;
 
   return (
     <form.AppForm>
       <AutoSaveContextProvider value={{status: mutation.status}}>
         <form.FormWrapper>
-          <AppField name={name}>{(field: never) => children(field)}</AppField>
+          <form.AppField name={name}>{field => children(field as never)}</form.AppField>
         </form.FormWrapper>
       </AutoSaveContextProvider>
     </form.AppForm>
