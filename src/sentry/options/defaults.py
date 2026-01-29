@@ -1480,8 +1480,27 @@ register(
 
 # The poll limit for the tempest service.
 #
-# 348 every 5 min ~ 100k per day
-register("tempest.poll-limit", default=348, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# 25 every 1 min ~ 36k per day
+register("tempest.poll-limit", default=25, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Timeout in seconds for fetching the latest crash ID from Tempest.
+# This should be less than the task processing_deadline_duration (60s).
+register("tempest.latest-id-timeout", default=55, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Timeout in seconds for fetching crashes from Tempest.
+# This should be less than the task processing_deadline_duration (60s).
+register("tempest.crashes-timeout", default=55, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Task processing deadline in seconds (for documentation/monitoring reference).
+# Note: The actual @instrumented_task decorator requires compile-time constants,
+# so changing this option won't affect running tasks. This documents the expected
+# value and can be used for configuring monitoring alerts.
+register("tempest.task-deadline-seconds", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Extra buffer time (in seconds) added to task deadline for lock duration.
+# Lock duration = task-deadline-seconds + lock-buffer-seconds
+# This ensures the lock outlives the task to prevent race conditions.
+register("tempest.lock-buffer-seconds", default=30, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
