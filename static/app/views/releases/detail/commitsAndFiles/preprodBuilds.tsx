@@ -74,15 +74,28 @@ export default function PreprodBuilds() {
 
   const queryParams: Record<string, any> = {
     per_page: 25,
-    release_version: params.release,
   };
 
   if (cursor) {
     queryParams.cursor = cursor;
   }
 
-  if (urlSearchQuery?.trim()) {
-    queryParams.query = urlSearchQuery.trim();
+  // Parse release version (format: "app_id@version+build_number" or "app_id@version")
+  // and convert to structured query.
+  let releaseQuery = '';
+  if (params.release) {
+    const [appId, versionPart] = params.release.split('@');
+    const buildVersion = versionPart?.split('+')[0];
+    if (appId && buildVersion) {
+      releaseQuery = `app_id:${appId} build_version:${buildVersion}`;
+    }
+  }
+
+  // Combine release filter with user search query
+  const combinedQuery = [releaseQuery, urlSearchQuery?.trim()].filter(Boolean).join(' ');
+
+  if (combinedQuery) {
+    queryParams.query = combinedQuery;
   }
 
   if (projectId) {
