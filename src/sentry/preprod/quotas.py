@@ -38,12 +38,15 @@ def has_installable_quota(
     return quotas.backend.has_usage_quota(organization.id, DataCategory.INSTALLABLE_BUILD)
 
 
+SkipReason = str | None
+
+
 def should_run_feature(
     artifact: PreprodArtifact,
     query_key: str,
     quota_check: Callable[[], bool],
     feature: str | PreprodFeature,
-) -> bool:
+) -> tuple[bool, SkipReason]:
     """
     Check if a feature should run for an artifact based on quota and query filter.
 
@@ -54,7 +57,8 @@ def should_run_feature(
         feature: Name of the feature for logging purposes
 
     Returns:
-        True if the feature should run, False otherwise
+        A tuple of (should_run, skip_reason) where skip_reason is None if should_run
+        is True, 'quota' if quota is exceeded, or 'filtered' if filtered out by query.
     """
     project = artifact.project
     organization = project.organization
@@ -69,7 +73,7 @@ def should_run_feature(
                 "feature": feature,
             },
         )
-        return False
+        return False, "quota"
 
     query = project.get_option(query_key, default="")
 
@@ -83,7 +87,7 @@ def should_run_feature(
                 "feature": feature,
             },
         )
-        return True
+        return True, None
 
     try:
         result = artifact_matches_query(artifact, query, organization)
@@ -99,7 +103,7 @@ def should_run_feature(
             },
         )
         sentry_sdk.capture_exception(e)
-        return True
+        return True, None
     else:
         logger.info(
             "Artifact %s feature filter",
@@ -112,10 +116,10 @@ def should_run_feature(
                 "feature": feature,
             },
         )
-        return result
+        return result, None if result else "filtered"
 
 
-def should_run_size(artifact: PreprodArtifact, actor: Any = None) -> bool:
+def should_run_size(artifact: PreprodArtifact, actor: Any = None) -> tuple[bool, SkipReason]:
     organization = artifact.project.organization
     return should_run_feature(
         artifact,
@@ -125,7 +129,9 @@ def should_run_size(artifact: PreprodArtifact, actor: Any = None) -> bool:
     )
 
 
-def should_run_distribution(artifact: PreprodArtifact, actor: Any = None) -> bool:
+def should_run_distribution(
+    artifact: PreprodArtifact, actor: Any = None
+) -> tuple[bool, SkipReason]:
     organization = artifact.project.organization
     return should_run_feature(
         artifact,

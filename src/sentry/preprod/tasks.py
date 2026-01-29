@@ -148,7 +148,18 @@ def assemble_preprod_artifact(
 
         artifact = PreprodArtifact.objects.get(id=artifact_id)
 
-        if should_run_size(artifact):
+        run_size, size_skip_reason = should_run_size(artifact)
+        logger.info(
+            "Size decision",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "run_size": run_size,
+                "reason": size_skip_reason,
+            },
+        )
+
+        if run_size:
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
             PreprodArtifactSizeMetrics.objects.get_or_create(
                 preprod_artifact=artifact,
@@ -157,8 +168,29 @@ def assemble_preprod_artifact(
                     "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
                 },
             )
+        else:
+            error_code = (
+                PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
+                if size_skip_reason == "quota"
+                else PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
+            )
+            error_message = (
+                "No quota available for size analysis"
+                if size_skip_reason == "quota"
+                else "Size analysis was not requested for this build"
+            )
+            PreprodArtifactSizeMetrics.objects.get_or_create(
+                preprod_artifact=artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                defaults={
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+                    "error_code": error_code,
+                    "error_message": error_message,
+                },
+            )
 
-        if should_run_distribution(artifact):
+        run_distribution, _ = should_run_distribution(artifact)
+        if run_distribution:
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         produce_preprod_artifact_to_kafka(
