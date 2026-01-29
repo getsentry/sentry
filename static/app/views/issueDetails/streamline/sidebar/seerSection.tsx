@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
 import {
@@ -35,19 +37,19 @@ import {SeerSectionCtaButton} from './seerSectionCtaButton';
 function SeerWelcomeEntrypoint() {
   return (
     <WelcomeContainer>
-      <WelcomeTextContainer>
+      <Stack gap="sm">
         <Text>{t('Meet Seer, the AI debugging agent.')}</Text>
-      </WelcomeTextContainer>
+      </Stack>
       <WelcomeImageContainer>
         <img src={autofixSetupImg} alt="Seer AI debugging agent" />
       </WelcomeImageContainer>
-      <WelcomeTextContainer>
+      <Stack gap="sm">
         <Text>
           {t(
             'Find the root cause of the issue, and even open a PR to fix it, in minutes.'
           )}
         </Text>
-      </WelcomeTextContainer>
+      </Stack>
     </WelcomeContainer>
   );
 }
@@ -223,7 +225,7 @@ export default function SeerSection({
       sectionKey={SectionKey.SEER}
       preventCollapse={!hasStreamlinedUI}
     >
-      <SeerSectionContainer>
+      <Stack>
         {renderSectionContent()}
         {event &&
           showCtaButton &&
@@ -244,15 +246,10 @@ export default function SeerSection({
               hasStreamlinedUI={hasStreamlinedUI}
             />
           ))}
-      </SeerSectionContainer>
+      </Stack>
     </SidebarFoldSection>
   );
 }
-
-const SeerSectionContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
@@ -322,10 +319,4 @@ const WelcomeImageContainer = styled('div')`
     max-width: 100%;
     height: auto;
   }
-`;
-
-const WelcomeTextContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
 `;

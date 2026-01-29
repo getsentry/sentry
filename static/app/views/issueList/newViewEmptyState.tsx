@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -79,7 +81,7 @@ export function NewViewEmptyState() {
   );
 
   return (
-    <Wrapper>
+    <Stack justify="center" align="center" marginTop="3xl">
       <Card>
         <CardHeading>{t('Suggested Queries')}</CardHeading>
         <p>{t('Here are a few to get you started.')}</p>
@@ -127,7 +129,7 @@ export function NewViewEmptyState() {
           </QueryGrid>
         </Card>
       )}
-    </Wrapper>
+    </Stack>
   );
 }
 
@@ -142,14 +144,6 @@ const TooltipSubLink = styled(Link)`
   :hover {
     color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: ${space(4)};
 `;
 
 const Card = styled(Panel)`

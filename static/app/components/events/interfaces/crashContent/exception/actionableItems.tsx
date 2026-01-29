@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -297,7 +299,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
   return (
     <List symbol="bullet">
       <StyledListItem>
-        <ErrorTitleFlex>
+        <Flex justify="between" align="center" gap="md">
           <strong>
             {title} ({numErrors})
           </strong>
@@ -311,7 +313,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
           >
             {expanded ? t('Collapse') : t('Expand')}
           </ToggleButton>
-        </ErrorTitleFlex>
+        </Flex>
         {expanded && (
           <div>
             {desc && <Description>{desc}</Description>}
@@ -497,13 +499,6 @@ const ToggleButton = styled(Button)`
   :focus {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const ErrorTitleFlex = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const HiddenDiv = styled('div')`

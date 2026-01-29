@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -304,9 +306,9 @@ export default function IssueTagsPreview({
 
   if (isPending || isHighlightPending) {
     return (
-      <IssueTagPreviewSection>
+      <Stack justify="center" padding="md lg" gap="xs">
         <Placeholder width="340px" height="90px" />
-      </IssueTagPreviewSection>
+      </Stack>
     );
   }
 
@@ -315,7 +317,7 @@ export default function IssueTagsPreview({
   }
 
   return (
-    <IssueTagPreviewSection>
+    <Stack justify="center" padding="md lg" gap="xs">
       <TagsPreview>
         {tagsToPreview.map(tag => (
           <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
@@ -325,17 +327,9 @@ export default function IssueTagsPreview({
         tags={tagsToPreview}
         includeFeatureFlags={includeFeatureFlags}
       />
-    </IssueTagPreviewSection>
+    </Stack>
   );
 }
-
-const IssueTagPreviewSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-`;
 
 const TagsPreview = styled('div')`
   width: 340px;
