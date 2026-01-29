@@ -570,7 +570,6 @@ class SlackActionEndpoint(Endpoint):
         group: Group,
         user: RpcUser,
     ) -> None:
-
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
             action=action,

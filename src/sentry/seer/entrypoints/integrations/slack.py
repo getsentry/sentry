@@ -446,7 +446,7 @@ def handle_prepare_autofix_update(
     """
     threads: list[SlackThreadDetails] = []
     incoming_thread = SlackThreadDetails(thread_ts=thread_ts, channel_id=channel_id)
-    existing_cache = SeerOperatorAutofixCache.get_pre_autofix_cache(
+    existing_cache = SeerOperatorAutofixCache[SlackEntrypointCachePayload].get(
         entrypoint_key=str(SlackEntrypoint.key),
         group_id=group.id,
     )
