@@ -2,11 +2,14 @@ import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {updateUser} from 'sentry/actionCreators/account';
-import AvatarChooser from 'sentry/components/avatarChooser';
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+
+import {updateUser} from 'sentry/actionCreators/account';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import AvatarChooser from 'sentry/components/avatarChooser';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -16,12 +19,15 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
-import type {ApiQueryKey, QueryClient} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
 
 // The avatar endpoint ("/users/me/avatar/") returns a User-like type without `options` and other properties that are present in User
 export type ChangeAvatarUser = Omit<
@@ -48,27 +54,7 @@ const accountDetailsSchema = z.object({
   username: z.string().min(1, 'Username is required'),
 });
 
-function getUserMutationOptions(
-  api: ReturnType<typeof useApi>,
-  queryClient: QueryClient,
-  handleSubmitSuccess: (user: User) => void
-) {
-  return mutationOptions({
-    mutationFn: async (data: Partial<User>) => {
-      const response = await api.requestPromise(USER_ENDPOINT, {
-        method: 'PUT',
-        data,
-      });
-      return response as User;
-    },
-    onSuccess: (data: User) => {
-      handleSubmitSuccess(data);
-    },
-  });
-}
-
 function AccountDetails() {
-  const api = useApi();
   const organization = useOrganization({allowNull: true});
   const queryClient = useQueryClient();
   const {
@@ -108,11 +94,19 @@ function AccountDetails() {
     onSubmitSuccess: handleSubmitSuccess,
   };
 
-  const userMutationOptions = getUserMutationOptions(
-    api,
-    queryClient,
-    handleSubmitSuccess
-  );
+  const userMutationOptions = mutationOptions({
+    mutationFn: (data: Partial<User>) => {
+      return fetchMutation<User>({
+        method: 'PUT',
+        url: USER_ENDPOINT,
+        data,
+      });
+    },
+    onSuccess: data => {
+      handleSubmitSuccess(data);
+      addSuccessMessage(t('Account details updated'));
+    },
+  });
 
   return (
     <Fragment>
@@ -126,11 +120,7 @@ function AccountDetails() {
           mutationOptions={userMutationOptions}
         >
           {field => (
-            <field.Layout.Row
-              label={t('Name')}
-              hintText={t('Your full name')}
-              required
-            >
+            <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
               <field.Input
                 value={field.state.value}
                 onChange={field.handleChange}
@@ -168,9 +158,7 @@ function AccountDetails() {
             </Text>
           </Stack>
           <Container flexGrow={1}>
-            <InputGroup>
-              <InputGroup.Input value={user.id} disabled />
-            </InputGroup>
+            <Input value={user.id} disabled />
           </Container>
         </Flex>
       </FieldGroup>
