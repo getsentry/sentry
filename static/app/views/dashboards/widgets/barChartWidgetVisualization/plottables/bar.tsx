@@ -155,7 +155,7 @@ export class Bar implements BarPlottable {
   }
 
   get categories(): string[] {
-    return this.categoricalSeries.data.map(item => item.label);
+    return this.categoricalSeries.data.map(item => item.category);
   }
 
   handleChartRef?: (ref: ReactEchartsRef) => void;
@@ -208,7 +208,9 @@ export class Bar implements BarPlottable {
           opacity: 1.0,
         },
         data: this.categoricalSeries.data.map(item =>
-          isHorizontal ? [item.value, item.label] : {name: item.label, value: item.value}
+          isHorizontal
+            ? [item.value, item.category]
+            : {name: item.category, value: item.value}
         ),
       }),
     ];

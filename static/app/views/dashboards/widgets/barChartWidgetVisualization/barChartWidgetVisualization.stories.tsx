@@ -479,7 +479,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
             plottables={[
               new Bar(sampleCountCategoricalData, {
                 onClick: item => {
-                  setClickedItem(`${item.label}: ${item.value}`);
+                  setClickedItem(`${item.category}: ${item.value}`);
                 },
               }),
             ]}

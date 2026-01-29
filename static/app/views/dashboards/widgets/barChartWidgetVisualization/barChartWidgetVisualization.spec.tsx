@@ -34,8 +34,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0]),
-            new Bar(sampleStackedCategoricalData[1]),
+            new Bar(sampleStackedCategoricalData[0]!),
+            new Bar(sampleStackedCategoricalData[1]!),
           ]}
         />
       );
@@ -48,8 +48,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0], {stack: 'all'}),
-            new Bar(sampleStackedCategoricalData[1], {stack: 'all'}),
+            new Bar(sampleStackedCategoricalData[0]!, {stack: 'all'}),
+            new Bar(sampleStackedCategoricalData[1]!, {stack: 'all'}),
           ]}
         />
       );
@@ -95,8 +95,8 @@ describe('BarChartWidgetVisualization', () => {
           valueUnit: null,
         },
         data: [
-          {label: 'A', value: null},
-          {label: 'B', value: null},
+          {category: 'A', value: null},
+          {category: 'B', value: null},
         ],
       };
 
@@ -123,8 +123,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0]),
-            new Bar(sampleStackedCategoricalData[1]),
+            new Bar(sampleStackedCategoricalData[0]!),
+            new Bar(sampleStackedCategoricalData[1]!),
           ]}
           showLegend="never"
         />
@@ -187,8 +187,8 @@ describe('Bar Plottable', () => {
         yAxis: 'count()',
         meta: {valueType: 'integer', valueUnit: null},
         data: [
-          {label: 'A', value: null},
-          {label: 'B', value: null},
+          {category: 'A', value: null},
+          {category: 'B', value: null},
         ],
       };
       const bar = new Bar(nullSeries);
@@ -223,7 +223,7 @@ describe('Bar Plottable', () => {
 
       bar.onClick(0);
 
-      expect(onClickMock).toHaveBeenCalledWith({label: 'Chrome', value: 1250}, 0);
+      expect(onClickMock).toHaveBeenCalledWith({category: 'Chrome', value: 1250}, 0);
     });
 
     it('calls onHighlight handler with correct item', () => {
@@ -232,7 +232,7 @@ describe('Bar Plottable', () => {
 
       bar.onHighlight(1);
 
-      expect(onHighlightMock).toHaveBeenCalledWith({label: 'Firefox', value: 890}, 1);
+      expect(onHighlightMock).toHaveBeenCalledWith({category: 'Firefox', value: 890}, 1);
     });
 
     it('calls onDownplay handler with correct item', () => {
@@ -241,7 +241,7 @@ describe('Bar Plottable', () => {
 
       bar.onDownplay(2);
 
-      expect(onDownplayMock).toHaveBeenCalledWith({label: 'Safari', value: 650}, 2);
+      expect(onDownplayMock).toHaveBeenCalledWith({category: 'Safari', value: 650}, 2);
     });
 
     it('does not throw when handler not provided', () => {

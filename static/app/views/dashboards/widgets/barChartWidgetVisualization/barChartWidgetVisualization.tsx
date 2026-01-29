@@ -371,7 +371,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
         if (!defined(categoryLabel) || typeof categoryLabel !== 'string') return;
 
         const value = extractValue(event.value, orientation);
-        const categoricalItem: CategoricalItem = {label: categoryLabel, value};
+        const categoricalItem: CategoricalItem = {category: categoryLabel, value};
 
         if (plottable.categories.includes(categoryLabel)) {
           // Access the native event for position data

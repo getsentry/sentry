@@ -152,9 +152,9 @@ export type CategoricalValueType = (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[nu
  */
 export interface CategoricalItem {
   /**
-   * The category label displayed on the X axis.
+   * The category value for this data point.
    */
-  label: string;
+  category: string;
   /**
    * The numeric value for this category.
    */
