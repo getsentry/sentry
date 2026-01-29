@@ -239,8 +239,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         </p>
 
         <ul>
-          <li>Look through all plottables and determine their data types</li>
-          <li>Use the most common type for Y axis formatting</li>
+          <li>Use the data type from the first plottable for Y axis formatting</li>
           <li>Format values using appropriate units (ms, KB, /s, %, etc.)</li>
         </ul>
 
@@ -264,19 +263,6 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         </p>
         <MediumWidget>
           <BarChartWidgetVisualization plottables={[new Bars(sampleLargeValueData)]} />
-        </MediumWidget>
-
-        <p>
-          When combining series with different data types (e.g., count and duration), the
-          chart uses the most common type for the Y axis:
-        </p>
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[
-              new Bars(sampleCountCategoricalData, {alias: 'Count'}),
-              new Bars(sampleDurationCategoricalData, {alias: 'Duration'}),
-            ]}
-          />
         </MediumWidget>
       </Fragment>
     );

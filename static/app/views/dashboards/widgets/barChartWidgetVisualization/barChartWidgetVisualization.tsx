@@ -8,8 +8,6 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import groupBy from 'lodash/groupBy';
-import mapValues from 'lodash/mapValues';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -113,32 +111,15 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
   const theme = useTheme();
   const renderToString = useRenderToString();
 
-  // Group plottables by their data type
-  const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
+  // Determine data type from first plottable (all plottables expected to be same type)
+  const dataType = props.plottables[0]?.dataType ?? FALLBACK_TYPE;
 
-  // Count field types
-  const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
-
-  // Sort field types by frequency
-  const axisTypes = Object.keys(fieldTypeCounts)
-    .toSorted((a, b) => fieldTypeCounts[b]! - fieldTypeCounts[a]!)
-    .filter(axisType => !!axisType);
-
-  // Use the most common type for the value axis
-  const valueAxisType = axisTypes.length > 0 ? axisTypes[0]! : FALLBACK_TYPE;
-
-  // Create a map of units by plottable data type
-  const unitsByType = mapValues(plottablesByType, plottables =>
-    uniq(plottables.map(plottable => plottable.dataUnit))
-  );
-
-  // Narrow down to one unit per data type
-  const unitForType = mapValues(unitsByType, (relevantUnits, type) => {
-    if (relevantUnits.length === 1) {
-      return relevantUnits[0]!;
-    }
-    return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
-  });
+  // Determine unit - use first plottable's unit or fallback
+  const units = uniq(props.plottables.map(p => p.dataUnit).filter(Boolean));
+  const dataUnit =
+    units.length === 1
+      ? units[0]
+      : FALLBACK_UNIT_FOR_FIELD_TYPE[dataType as AggregationOutputType];
 
   // Extract all unique categories from all plottables
   const allCategories = uniq(props.plottables.flatMap(plottable => plottable.categories));
@@ -148,7 +129,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     type: 'value',
     axisLabel: {
       formatter: (value: number) =>
-        formatYAxisValue(value, valueAxisType, unitForType[valueAxisType] ?? undefined),
+        formatYAxisValue(value, dataType, dataUnit ?? undefined),
     },
     splitLine: {
       lineStyle: {
@@ -210,7 +191,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
 
     const seriesOfPlottable = plottable.toSeries({
       color,
-      unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
+      unit: dataUnit,
       theme,
     });
 
@@ -264,21 +245,11 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
 
             const numericValue = extractValue(param.value);
 
-            // Format the value based on the plottable's data type
-            let formattedValue: string;
-            if (numericValue !== null && defined(param.seriesIndex)) {
-              const correspondingPlottable = seriesIndexToPlottableRangeMap.get(
-                param.seriesIndex
-              );
-              const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
-              formattedValue = formatTooltipValue(
-                numericValue,
-                fieldType,
-                unitForType[fieldType] ?? undefined
-              );
-            } else {
-              formattedValue = numericValue?.toLocaleString() ?? '';
-            }
+            // Format the value based on the chart's data type
+            const formattedValue =
+              numericValue === null
+                ? ''
+                : formatTooltipValue(numericValue, dataType, dataUnit ?? undefined);
 
             // param.marker is an HTML string with a colored circle, sanitize it
             const marker = typeof param.marker === 'string' ? param.marker : '';
