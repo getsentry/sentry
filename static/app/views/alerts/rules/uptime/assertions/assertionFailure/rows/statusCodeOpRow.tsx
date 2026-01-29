@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Text} from 'sentry/components/core/text/text';
@@ -15,8 +17,8 @@ export function StatusCodeOpRow({node}: {node: StatusCodeOpTreeNode}) {
 
   const {symbol, label} = comparisonOption;
 
-  return (
-    <Text variant="muted" ellipsis>
+  const content = (
+    <Fragment>
       <Text variant="danger">[Failed] </Text>
       Status Code | Rule:{' '}
       <Text variant="primary">
@@ -26,6 +28,14 @@ export function StatusCodeOpRow({node}: {node: StatusCodeOpTreeNode}) {
         </Tooltip>{' '}
         {node.value.value}
       </Text>
-    </Text>
+    </Fragment>
+  );
+
+  return (
+    <Tooltip title={<Text variant="muted">{content}</Text>} showOnlyOnOverflow>
+      <Text variant="muted" ellipsis>
+        {content}
+      </Text>
+    </Tooltip>
   );
 }

@@ -33,6 +33,14 @@ type Props = {
   uptimeChecks: UptimeCheck[];
 };
 
+type ColumnKey =
+  | 'timestamp'
+  | 'checkStatus'
+  | 'httpStatusCode'
+  | 'durationMs'
+  | 'regionName'
+  | 'traceId';
+
 /**
  * This value is used when a trace was not recorded since the field is required.
  * It will never link to trace, so omit the row to avoid confusion.
@@ -41,7 +49,7 @@ const EMPTY_TRACE = '00000000000000000000000000000000';
 
 const emptyCell = '\u2014';
 
-const DETAILS_DRAWER_WIDTH = '40%';
+const DETAILS_DRAWER_WIDTH = '650px';
 
 /**
  * The number of system uptime spans that are always recorded for each uptime check.
@@ -91,7 +99,7 @@ export function UptimeChecksGrid({project, traceSampling, uptimeChecks}: Props) 
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
             project={project}
-            column={column as GridColumnOrder<keyof UptimeCheck>}
+            column={column as GridColumnOrder<ColumnKey>}
             traceSampling={traceSampling}
             check={dataRow}
             spanCount={traceSpanCounts?.[dataRow.traceId]}
@@ -110,7 +118,7 @@ function CheckInBodyCell({
   traceSampling,
 }: {
   check: UptimeCheck;
-  column: GridColumnOrder<keyof UptimeCheck>;
+  column: GridColumnOrder<ColumnKey>;
   project: Project;
   spanCount: number | undefined;
   traceSampling: boolean;
@@ -236,6 +244,7 @@ function CheckInBodyCell({
               query: {
                 includeUptime: '1',
                 timestamp: new Date(timestamp).getTime() / 1000,
+                node: `uptime-check-${check.traceItemId}`,
               },
             }}
           >
