@@ -56,18 +56,6 @@ describe('BarChartWidgetVisualization', () => {
       // The chart should render without errors
       expect(document.querySelector('canvas')).toBeDefined();
     });
-
-    it('renders horizontal orientation', () => {
-      render(
-        <BarChartWidgetVisualization
-          plottables={[new Bars(sampleCountCategoricalData)]}
-          orientation="horizontal"
-        />
-      );
-
-      // The chart should render without errors
-      expect(document.querySelector('canvas')).toBeDefined();
-    });
   });
 
   describe('Empty Data Handling', () => {

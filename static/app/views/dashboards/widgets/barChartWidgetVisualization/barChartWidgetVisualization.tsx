@@ -87,12 +87,6 @@ export interface BarChartWidgetVisualizationProps {
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   /**
-   * The orientation of the bars.
-   * - `vertical`: Categories on X-axis, values on Y-axis (default)
-   * - `horizontal`: Values on X-axis, categories on Y-axis
-   */
-  orientation?: 'vertical' | 'horizontal';
-  /**
    * React ref for the chart.
    */
   ref?: React.Ref<ReactEchartsRef>;
@@ -118,9 +112,6 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
   const theme = useTheme();
   const renderToString = useRenderToString();
-
-  const orientation = props.orientation ?? 'vertical';
-  const isHorizontal = orientation === 'horizontal';
 
   // Group plottables by their data type
   const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
@@ -152,8 +143,8 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
   // Extract all unique categories from all plottables
   const allCategories = uniq(props.plottables.flatMap(plottable => plottable.categories));
 
-  // Configure the value axis (Y for vertical, X for horizontal)
-  const valueAxisConfig: YAXisComponentOption | XAXisComponentOption = {
+  // Configure the Y axis (value axis)
+  const yAxis: YAXisComponentOption = {
     type: 'value',
     axisLabel: {
       formatter: (value: number) =>
@@ -172,8 +163,8 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     },
   };
 
-  // Configure the category axis (X for vertical, Y for horizontal)
-  const categoryAxisConfig: XAXisComponentOption | YAXisComponentOption = {
+  // Configure the X axis (category axis)
+  const xAxis: XAXisComponentOption = {
     type: 'category',
     data: allCategories,
     axisLabel: {
@@ -193,15 +184,6 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
       alignWithLabel: true,
     },
   };
-
-  // Set up axes based on orientation
-  const xAxis: XAXisComponentOption = isHorizontal
-    ? (valueAxisConfig as XAXisComponentOption)
-    : (categoryAxisConfig as XAXisComponentOption);
-
-  const yAxis: YAXisComponentOption = isHorizontal
-    ? (categoryAxisConfig as YAXisComponentOption)
-    : (valueAxisConfig as YAXisComponentOption);
 
   // Set up color palette for plottables without explicit colors
   const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
@@ -228,7 +210,6 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
 
     const seriesOfPlottable = plottable.toSeries({
       color,
-      orientation,
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
       theme,
     });

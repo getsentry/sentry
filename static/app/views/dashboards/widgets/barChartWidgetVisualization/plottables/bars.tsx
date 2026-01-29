@@ -51,10 +51,6 @@ export interface BarPlottingOptions {
    */
   color?: string;
   /**
-   * The orientation of the bar chart.
-   */
-  orientation?: 'vertical' | 'horizontal';
-  /**
    * The unit of the data, used for formatting.
    */
   unit?: DataUnit | null;

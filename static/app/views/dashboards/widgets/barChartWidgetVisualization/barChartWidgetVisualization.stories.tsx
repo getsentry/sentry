@@ -36,7 +36,6 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         </p>
 
         <ul>
-          <li>configurable orientation (vertical or horizontal bars)</li>
           <li>stacked bar support</li>
           <li>automatic Y-axis formatting based on data types</li>
           <li>legend and tooltip support</li>
@@ -54,12 +53,6 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
           <SmallWidget>
             <BarChartWidgetVisualization
               plottables={[new Bars(sampleDurationCategoricalData)]}
-            />
-          </SmallWidget>
-          <SmallWidget>
-            <BarChartWidgetVisualization
-              plottables={[new Bars(sampleCountCategoricalData)]}
-              orientation="horizontal"
             />
           </SmallWidget>
         </Storybook.SideBySide>
@@ -117,45 +110,6 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
     );
   });
 
-  story('Orientation', () => {
-    return (
-      <Fragment>
-        <p>
-          The <code>orientation</code> prop controls whether bars are displayed vertically
-          or horizontally. The default is <code>"vertical"</code>.
-        </p>
-
-        <p>Vertical (default)</p>
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[new Bars(sampleCountCategoricalData)]}
-            orientation="vertical"
-          />
-        </MediumWidget>
-
-        <p>Horizontal</p>
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[new Bars(sampleCountCategoricalData)]}
-            orientation="horizontal"
-          />
-        </MediumWidget>
-
-        <p>
-          Horizontal bars are particularly useful when you have long category labels or
-          many categories:
-        </p>
-
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[new Bars(sampleDurationCategoricalData)]}
-            orientation="horizontal"
-          />
-        </MediumWidget>
-      </Fragment>
-    );
-  });
-
   story('Stacking', () => {
     return (
       <Fragment>
@@ -194,18 +148,6 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
             />
           </MediumWidget>
         </Storybook.SideBySide>
-
-        <p>Stacking also works with horizontal orientation:</p>
-
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[
-              new Bars(sampleStackedCategoricalData[0]!, {stack: 'all'}),
-              new Bars(sampleStackedCategoricalData[1]!, {stack: 'all'}),
-            ]}
-            orientation="horizontal"
-          />
-        </MediumWidget>
       </Fragment>
     );
   });
@@ -259,56 +201,30 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <p>
           In a <Storybook.JSXNode name="BarChartWidgetVisualization" />, the X axis
           displays category labels. The labels are automatically truncated when they are
-          too long to fit. For long labels, consider using horizontal orientation to give
-          more room for the text.
+          too long to fit.
         </p>
 
-        <p>Short labels (vertical):</p>
+        <p>Short labels:</p>
         <MediumWidget>
           <BarChartWidgetVisualization
             plottables={[new Bars(sampleCountCategoricalData)]}
           />
         </MediumWidget>
 
-        <p>
-          Long labels get truncated in vertical orientation. Notice how the endpoint paths
-          are cut off:
-        </p>
+        <p>Long labels get truncated. Notice how the endpoint paths are cut off:</p>
         <MediumWidget>
           <BarChartWidgetVisualization plottables={[new Bars(sampleLongLabelData)]} />
         </MediumWidget>
 
         <p>
-          Horizontal orientation gives more room for long labels, making them fully
-          readable:
-        </p>
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[new Bars(sampleLongLabelData)]}
-            orientation="horizontal"
-          />
-        </MediumWidget>
-
-        <p>
           When you have many categories, the chart will scale to fit them. With 12
-          categories in vertical orientation, the bars become narrower:
+          categories, the bars become narrower:
         </p>
         <LargeWidget>
           <BarChartWidgetVisualization
             plottables={[new Bars(sampleManyCategoriesData)]}
           />
         </LargeWidget>
-
-        <p>
-          Horizontal orientation with many categories works well when you have vertical
-          space:
-        </p>
-        <TallWidget>
-          <BarChartWidgetVisualization
-            plottables={[new Bars(sampleManyCategoriesData)]}
-            orientation="horizontal"
-          />
-        </TallWidget>
       </Fragment>
     );
   });
@@ -510,15 +426,6 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <MediumWidget>
           <BarChartWidgetVisualization plottables={[new Bars(sampleSparseData)]} />
         </MediumWidget>
-
-        <p>Same data with horizontal orientation:</p>
-
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[new Bars(sampleSparseData)]}
-            orientation="horizontal"
-          />
-        </MediumWidget>
       </Fragment>
     );
   });
@@ -529,20 +436,11 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
         <p>
           Bar charts can display negative values, which is useful for showing
           deltas/changes, comparisons, or any data that can go below zero. Bars extend
-          downward (or leftward in horizontal mode) from the zero line.
+          downward from the zero line.
         </p>
 
         <MediumWidget>
           <BarChartWidgetVisualization plottables={[new Bars(sampleNegativeData)]} />
-        </MediumWidget>
-
-        <p>Horizontal orientation with negative values:</p>
-
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[new Bars(sampleNegativeData)]}
-            orientation="horizontal"
-          />
         </MediumWidget>
       </Fragment>
     );
@@ -572,17 +470,6 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
             )}
           />
         </LargeWidget>
-
-        <p>Horizontal stacked version:</p>
-
-        <TallWidget>
-          <BarChartWidgetVisualization
-            plottables={sampleMultiSeriesData.map(
-              series => new Bars(series, {stack: 'browsers'})
-            )}
-            orientation="horizontal"
-          />
-        </TallWidget>
       </Fragment>
     );
   });
@@ -620,10 +507,4 @@ const LargeWidget = styled('div')`
   position: relative;
   width: 600px;
   height: 300px;
-`;
-
-const TallWidget = styled('div')`
-  position: relative;
-  width: 420px;
-  height: 400px;
 `;
