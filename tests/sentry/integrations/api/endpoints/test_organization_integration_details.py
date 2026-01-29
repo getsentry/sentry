@@ -1,11 +1,11 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import responses
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
-from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.auditlogentry import AuditLogEntry
@@ -75,21 +75,28 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             data={"provider": self.integration.provider, "name": "config"},
         ).exists()
 
-    @patch.object(IntegrationInstallation, "update_organization_config")
-    def test_update_config_error(self, mock_update_config: MagicMock) -> None:
+    def test_update_config_error(self) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
 
-        mock_update_config.side_effect = IntegrationError("hello")
-        response = self.get_error_response(
-            self.organization.slug, self.integration.id, **config, status_code=400
-        )
-        assert response.data["detail"] == ["hello"]
+        with patch.object(
+            GitlabIntegration,
+            "update_organization_config",
+            side_effect=IntegrationError("hello"),
+        ):
+            response = self.get_error_response(
+                self.organization.slug, self.integration.id, **config, status_code=400
+            )
+            assert response.data["detail"] == ["hello"]
 
-        mock_update_config.side_effect = ApiError("hi")
-        response = self.get_error_response(
-            self.organization.slug, self.integration.id, **config, status_code=400
-        )
-        assert response.data["detail"] == ["hi"]
+        with patch.object(
+            GitlabIntegration,
+            "update_organization_config",
+            side_effect=ApiError("hi"),
+        ):
+            response = self.get_error_response(
+                self.organization.slug, self.integration.id, **config, status_code=400
+            )
+            assert response.data["detail"] == ["hi"]
 
 
 @control_silo_test
