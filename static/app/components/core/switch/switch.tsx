@@ -16,8 +16,8 @@ const toggleWrapperSize = {
 };
 
 const toggleButtonSize = {
-  sm: {width: 20, height: 20, icon: 14, iconOffset: 2},
-  lg: {width: 24, height: 24, icon: 16, iconOffset: 3},
+  sm: {width: 20, height: 20},
+  lg: {width: 24, height: 24},
 };
 
 const NativeHiddenCheckbox = styled('input')<{
@@ -29,6 +29,7 @@ const NativeHiddenCheckbox = styled('input')<{
   left: 0;
   width: 100%;
   height: 100%;
+  cursor: pointer;
 
   &:focus-visible + div {
     ${p => p.theme.focusRing()};
@@ -95,7 +96,6 @@ const NativeHiddenCheckbox = styled('input')<{
     border-bottom: 1px solid
       ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
     border-left: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
-    transition: transform ${p => p.theme.motion.spring.slow};
 
     > div {
       background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
@@ -110,6 +110,7 @@ const NativeHiddenCheckbox = styled('input')<{
   }
 
   &:disabled {
+    cursor: not-allowed;
     + div {
       opacity: ${p => p.theme.tokens.interactive.disabled};
 
@@ -135,7 +136,6 @@ export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
         type="checkbox"
         nativeSize={size}
         {...props}
-        style={{cursor: props.disabled ? 'not-allowed' : 'pointer'}}
       />
       <Container
         width={`${toggleWrapperSize[size].width}px`}
