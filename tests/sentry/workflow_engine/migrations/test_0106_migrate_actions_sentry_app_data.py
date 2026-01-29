@@ -1,3 +1,6 @@
+from django.db import connections
+from django.db.migrations.executor import MigrationExecutor
+
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.outbox import outbox_runner
@@ -36,27 +39,38 @@ class TestMigrateActionsSentryAppData(TestMigrations):
             },
         )
 
+    def validate_action(self, action):
+        action.refresh_from_db()
+        assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
+        assert action.config.get("target_identifier") == str(self.sentry_app.id)
+        assert action.config.get("target_type") == ActionTarget.SENTRY_APP
+
     def test_migration(self) -> None:
-        self.installation_uuid_action.refresh_from_db()
-        self.sentry_app_id_action.refresh_from_db()
-
         with outbox_runner():
-            assert (
-                self.installation_uuid_action.config.get("sentry_app_identifier")
-                == SentryAppIdentifier.SENTRY_APP_ID
-            )
-            assert self.installation_uuid_action.config.get("target_identifier") == str(
-                self.sentry_app.id
-            )
-            assert (
-                self.installation_uuid_action.config.get("target_type") == ActionTarget.SENTRY_APP
-            )
+            pass
 
-            assert (
-                self.sentry_app_id_action.config.get("sentry_app_identifier")
-                == SentryAppIdentifier.SENTRY_APP_ID
-            )
-            assert self.sentry_app_id_action.config.get("target_identifier") == str(
-                self.sentry_app.id
-            )
-            assert self.sentry_app_id_action.config.get("target_type") == ActionTarget.SENTRY_APP
+        self.validate_action(self.installation_uuid_action)
+        self.validate_action(self.sentry_app_id_action)
+
+    def test_migration_idempotent(self) -> None:
+        # execute all the outbox jobs from the initial migration
+        with outbox_runner():
+            pass
+
+        self.validate_action(self.installation_uuid_action)
+        self.validate_action(self.sentry_app_id_action)
+
+        # run the migration again
+        conn = connections[self.connection]
+        executor = MigrationExecutor(conn)
+        executor.loader.build_graph()  # reload.
+        migrate_to = [(self.app, self.migrate_to)]
+        self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
+
+        # execute all the outbox jobs from the 2nd migration
+        with outbox_runner():
+            pass
+
+        # check that everything is still as expected
+        self.validate_action(self.installation_uuid_action)
+        self.validate_action(self.sentry_app_id_action)
