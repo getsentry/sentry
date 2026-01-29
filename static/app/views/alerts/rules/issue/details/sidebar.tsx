@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -38,10 +40,10 @@ function Conditions({rule, teams, projectSlug}: Props) {
   return (
     <ConditionsContainer>
       <Step>
-        <StepContainer>
-          <ChevronContainer>
+        <Flex align="start" flexGrow={1}>
+          <Flex align="center" padding="xs md xs 0">
             <IconChevron variant="muted" direction="right" size="sm" />
-          </ChevronContainer>
+          </Flex>
           <StepContent>
             <StepLead>
               {tct('[when:When] an event is captured [selector]', {
@@ -55,14 +57,14 @@ function Conditions({rule, teams, projectSlug}: Props) {
               </ConditionsBadge>
             ))}
           </StepContent>
-        </StepContainer>
+        </Flex>
       </Step>
       {rule.filters.length ? (
         <Step>
-          <StepContainer>
-            <ChevronContainer>
+          <Flex align="start" flexGrow={1}>
+            <Flex align="center" padding="xs md xs 0">
               <IconChevron variant="muted" direction="right" size="sm" />
-            </ChevronContainer>
+            </Flex>
             <StepContent>
               <StepLead>
                 {tct('[if:If] [selector] of these filters match', {
@@ -76,14 +78,14 @@ function Conditions({rule, teams, projectSlug}: Props) {
                 </ConditionsBadge>
               ))}
             </StepContent>
-          </StepContainer>
+          </Flex>
         </Step>
       ) : null}
       <Step>
-        <StepContainer>
-          <ChevronContainer>
+        <Flex align="start" flexGrow={1}>
+          <Flex align="center" padding="xs md xs 0">
             <IconChevron variant="muted" direction="right" size="sm" />
-          </ChevronContainer>
+          </Flex>
           <div>
             <StepLead>
               {tct('[then:Then] perform these actions', {
@@ -106,7 +108,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
               <ConditionsBadge>{t('Do nothing')}</ConditionsBadge>
             )}
           </div>
-        </StepContainer>
+        </Flex>
       </Step>
     </ConditionsContainer>
   );
@@ -190,12 +192,6 @@ const Step = styled('div')`
   }
 `;
 
-const StepContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-grow: 1;
-`;
-
 const StepContent = styled('div')`
   &::before {
     content: '';
@@ -211,12 +207,6 @@ const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const ChevronContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} 0;
 `;
 
 const Badge = styled('span')`

@@ -1,10 +1,9 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -82,11 +81,11 @@ function SetupMessagingIntegrationButton({
           <Button
             size="sm"
             icon={
-              <IconWrapper>
+              <Flex gap="md">
                 {providerKeys.map((value: string) => {
                   return <PluginIcon key={value} pluginId={value} size={16} />;
                 })}
-              </IconWrapper>
+              </Flex>
             }
             disabled={disabled}
             title={
@@ -125,10 +124,5 @@ function SetupMessagingIntegrationButton({
     </IntegrationFeatures>
   );
 }
-
-const IconWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 export default SetupMessagingIntegrationButton;

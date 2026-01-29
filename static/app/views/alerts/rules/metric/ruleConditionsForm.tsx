@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
@@ -732,7 +734,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                       />
                     ) : (
-                      <SearchContainer>
+                      <Flex align="center" gap="md">
                         <SearchQueryBuilder
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
@@ -811,7 +813,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                               )}
                             />
                           ))}
-                      </SearchContainer>
+                      </Flex>
                     );
                   }}
                 </FormField>
@@ -914,12 +916,6 @@ const StyledPanelBody = styled(PanelBody)`
   h4 {
     margin-bottom: ${space(1)};
   }
-`;
-
-const SearchContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const StyledListItem = styled(ListItem)`
