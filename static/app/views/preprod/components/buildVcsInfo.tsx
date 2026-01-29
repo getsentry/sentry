@@ -162,7 +162,13 @@ export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
   return hasVcsInfo ? (
     <KeyValueData.Card title="Build Metadata" contentItems={vcsInfoContentItems} />
   ) : (
-    <Container border="primary" radius="md" padding="md" width="100%">
+    <Container
+      border="primary"
+      radius="md"
+      padding="md"
+      width="100%"
+      marginBottom={{xs: 'lg', lg: '0'}}
+    >
       <Flex direction="column" gap="sm">
         <Text bold>{t('Missing Git metadata')}</Text>
         <Text variant="muted" size="sm">
