@@ -161,6 +161,28 @@ export function SelectRow({
     return [false, defaultColumnOptions];
   }, [defaultColumnOptions, state.dataset, field]);
 
+  const sortSelectedFirst = useCallback(
+    (selectedOption: string): Array<SelectValue<string>> => {
+      // put selected option first, preserving order, in a single pass
+      // THERE'S A BETTER WAY TO DO THIS, I'LL FIX THIS LATER
+      const result: Array<SelectValue<string>> = [];
+      let foundSelected: SelectValue<string> | undefined;
+
+      for (const option of columnOptions) {
+        if (option.value === selectedOption && !foundSelected) {
+          foundSelected = option;
+        } else {
+          result.push(option);
+        }
+      }
+      if (foundSelected) {
+        result.unshift(foundSelected);
+      }
+      return result;
+    },
+    [columnOptions]
+  );
+
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
       <AggregateCompactSelect
@@ -429,7 +451,14 @@ export function SelectRow({
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
             searchable
-            options={columnOptions}
+            options={
+              field.kind === FieldValueKind.FUNCTION
+                ? sortSelectedFirst(
+                    parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? ''
+                  )
+                : sortSelectedFirst(field.field)
+              // columnOptions
+            }
             value={
               field.kind === FieldValueKind.FUNCTION
                 ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
