@@ -4,24 +4,13 @@ from datetime import datetime, timedelta, timezone
 
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
-
-MOCK_ASSERTION_FAILURE_DATA = {
-    "root": {
-        "op": "and",
-        "children": [
-            {
-                "op": "not",
-                "operand": {"op": "json_path", "value": '$.components[?@.status == "operational"]'},
-            },
-        ],
-    }
-}
 
 
 class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
