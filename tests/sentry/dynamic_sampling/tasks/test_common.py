@@ -9,6 +9,7 @@ from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     get_organization_volume,
 )
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -141,18 +142,18 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
 
 
 @freeze_time(MOCK_DATETIME)
-class TestGetActiveOrgsSpanMetric(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+class TestGetActiveOrgsSegmentsMeasure(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     """
-    Tests for GetActiveOrgs using span metrics with is_segment filter.
+    Tests for GetActiveOrgs using SamplingMeasure.SEGMENTS (span metrics with is_segment filter).
     """
 
     @property
     def now(self):
         return MOCK_DATETIME
 
-    def test_get_active_orgs_with_span_metric_only_counts_segment_spans(self) -> None:
+    def test_get_active_orgs_segments_measure_only_counts_segment_spans(self) -> None:
         """
-        Test that span metrics only count spans with is_segment=true.
+        Test that SEGMENTS measure only counts spans with is_segment=true.
         """
         org1 = self.create_organization("test-org-1")
         project1 = self.create_project(organization=org1)
@@ -178,14 +179,14 @@ class TestGetActiveOrgsSpanMetric(BaseMetricsLayerTestCase, TestCase, SnubaTestC
         )
 
         found_orgs = []
-        for orgs in GetActiveOrgs(max_orgs=10, use_span_metric=True):
+        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
             found_orgs.extend(orgs)
 
         assert org1.id in found_orgs
 
-    def test_get_active_orgs_span_metric_multiple_orgs(self) -> None:
+    def test_get_active_orgs_segments_measure_multiple_orgs(self) -> None:
         """
-        Test GetActiveOrgs with span metrics for multiple organizations.
+        Test GetActiveOrgs with SEGMENTS measure for multiple organizations.
         """
         # Create 5 orgs with span metrics
         created_org_ids = []
@@ -203,7 +204,7 @@ class TestGetActiveOrgsSpanMetric(BaseMetricsLayerTestCase, TestCase, SnubaTestC
             )
 
         found_orgs = []
-        for orgs in GetActiveOrgs(max_orgs=10, use_span_metric=True):
+        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
             found_orgs.extend(orgs)
 
         for org_id in created_org_ids:
@@ -211,18 +212,18 @@ class TestGetActiveOrgsSpanMetric(BaseMetricsLayerTestCase, TestCase, SnubaTestC
 
 
 @freeze_time(MOCK_DATETIME)
-class TestGetActiveOrgsVolumesSpanMetric(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+class TestGetActiveOrgsVolumesSegmentsMeasure(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     """
-    Tests for GetActiveOrgsVolumes using span metrics with is_segment filter.
+    Tests for GetActiveOrgsVolumes using SamplingMeasure.SEGMENTS (span metrics with is_segment filter).
     """
 
     @property
     def now(self):
         return MOCK_DATETIME
 
-    def test_get_active_orgs_volumes_with_span_metric(self) -> None:
+    def test_get_active_orgs_volumes_segments_measure(self) -> None:
         """
-        Test that GetActiveOrgsVolumes correctly queries span metrics with is_segment filter.
+        Test that GetActiveOrgsVolumes correctly queries SEGMENTS measure with is_segment filter.
         """
         org = self.create_organization("test-org")
         project = self.create_project(organization=org)
@@ -256,7 +257,7 @@ class TestGetActiveOrgsVolumesSpanMetric(BaseMetricsLayerTestCase, TestCase, Snu
         )
 
         found_volumes = []
-        for volumes in GetActiveOrgsVolumes(max_orgs=10, use_span_metric=True):
+        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
             found_volumes.extend(volumes)
 
         # Should only find the is_segment=true metrics
@@ -265,7 +266,7 @@ class TestGetActiveOrgsVolumesSpanMetric(BaseMetricsLayerTestCase, TestCase, Snu
         assert found_volumes[0].total == 15  # 5 + 10
         assert found_volumes[0].indexed == 5  # only keep
 
-    def test_get_active_orgs_volumes_span_metric_excludes_non_segment(self) -> None:
+    def test_get_active_orgs_volumes_segments_measure_excludes_non_segment(self) -> None:
         """
         Test that non-segment spans are excluded from volume calculation.
         """
@@ -283,7 +284,7 @@ class TestGetActiveOrgsVolumesSpanMetric(BaseMetricsLayerTestCase, TestCase, Snu
         )
 
         found_volumes = []
-        for volumes in GetActiveOrgsVolumes(max_orgs=10, use_span_metric=True):
+        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
             found_volumes.extend(volumes)
 
         # Should find no volumes since there are no is_segment=true spans

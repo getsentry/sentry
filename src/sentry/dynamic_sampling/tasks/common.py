@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import (
@@ -21,6 +22,7 @@ from snuba_sdk import (
 from sentry import quotas
 from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -33,6 +35,37 @@ ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
 
 ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
+
+
+class MeasureConfig(TypedDict):
+    """Configuration for a sampling measure query."""
+
+    mri: str
+    use_case_id: UseCaseID
+    tags: dict[str, str]
+
+
+# Configuration for each sampling measure type
+MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
+    # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
+    SamplingMeasure.SEGMENTS: {
+        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.SPANS,
+        "tags": {"is_segment": "true"},
+    },
+    # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
+    SamplingMeasure.SPANS: {
+        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.SPANS,
+        "tags": {},
+    },
+    # TRANSACTIONS: TransactionMRI without tag filters (legacy)
+    SamplingMeasure.TRANSACTIONS: {
+        "mri": TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+        "use_case_id": UseCaseID.TRANSACTIONS,
+        "tags": {},
+    },
+}
 
 
 class GetActiveOrgs:
@@ -50,19 +83,12 @@ class GetActiveOrgs:
         max_projects: int | None = None,
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
-        use_span_metric: bool = False,
+        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ) -> None:
-        if use_span_metric:
-            is_segment_string_id = indexer.resolve_shared_org("is_segment")
-            self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
-            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
-            self.use_case_id = UseCaseID.SPANS
-        else:
-            self.is_segment_tag = None
-            self.metric_id = indexer.resolve_shared_org(
-                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-            )
-            self.use_case_id = UseCaseID.TRANSACTIONS
+        config = MEASURE_CONFIGS[measure]
+        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
+        self.use_case_id = config["use_case_id"]
+        self.tag_filters = config["tags"]
 
         self.offset = 0
         self.last_result: list[tuple[int, int]] = []
@@ -91,8 +117,10 @@ class GetActiveOrgs:
                 Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
             ]
-            if self.is_segment_tag is not None:
-                where_conditions.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
+            for tag_name, tag_value in self.tag_filters.items():
+                tag_string_id = indexer.resolve_shared_org(tag_name)
+                tag_column = f"tags_raw[{tag_string_id}]"
+                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
 
             query = (
                 Query(
@@ -214,22 +242,15 @@ class GetActiveOrgsVolumes:
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep: bool = True,
         orgs: list[int] | None = None,
-        use_span_metric: bool = False,
+        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ) -> None:
         self.include_keep = include_keep
         self.orgs = orgs
 
-        if use_span_metric:
-            is_segment_string_id = indexer.resolve_shared_org("is_segment")
-            self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
-            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
-            self.use_case_id = UseCaseID.SPANS
-        else:
-            self.is_segment_tag = None
-            self.metric_id = indexer.resolve_shared_org(
-                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-            )
-            self.use_case_id = UseCaseID.TRANSACTIONS
+        config = MEASURE_CONFIGS[measure]
+        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
+        self.use_case_id = config["use_case_id"]
+        self.tag_filters = config["tags"]
 
         if self.include_keep:
             decision_string_id = indexer.resolve_shared_org("decision")
@@ -275,8 +296,10 @@ class GetActiveOrgsVolumes:
             Condition(Column("metric_id"), Op.EQ, self.metric_id),
         ]
 
-        if self.is_segment_tag is not None:
-            where.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
+        for tag_name, tag_value in self.tag_filters.items():
+            tag_string_id = indexer.resolve_shared_org(tag_name)
+            tag_column = f"tags_raw[{tag_string_id}]"
+            where.append(Condition(Column(tag_column), Op.EQ, tag_value))
 
         if self.orgs:
             where.append(Condition(Column("org_id"), Op.IN, self.orgs))
