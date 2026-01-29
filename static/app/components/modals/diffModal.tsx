@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IssueDiff} from 'sentry/components/issueDiff';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,8 +58,8 @@ function DiffModal({
 const modalCss = css`
   position: absolute;
   padding: 0;
-  inset: ${p => p.theme.space['2xl']};
-  width: calc(100% - 2 * ${p => p.theme.space['2xl']});
+  inset: ${space(3)};
+  width: calc(100% - 2 * ${space(3)});
 
   [role='document'] {
     height: 100%;
