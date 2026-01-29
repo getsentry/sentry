@@ -165,7 +165,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
     return (
       <Body data-test-id="feature-tour">
         <CloseButton
-          borderless
+          priority="transparent"
           size="zero"
           onClick={closeModal}
           icon={<IconClose />}

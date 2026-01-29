@@ -259,7 +259,7 @@ function DeprecatedLine({
                   is_frame_expanded: isShowFramesToggleExpanded,
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={e => {
                   onShowFramesToggle?.(e);
                 }}
@@ -324,7 +324,7 @@ function DeprecatedLine({
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
-                borderless
+                priority="transparent"
               >
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>

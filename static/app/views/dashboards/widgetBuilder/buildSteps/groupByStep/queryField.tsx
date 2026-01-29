@@ -58,7 +58,7 @@ export function QueryField({
               aria-label={t('Drag to reorder')}
               icon={<IconGrabbable size="xs" />}
               size="zero"
-              borderless
+              priority="transparent"
             />
           )}
           <TableQueryField
@@ -74,7 +74,7 @@ export function QueryField({
           {canDelete && (
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               onClick={onDelete}
               icon={<IconDelete />}
               title={t('Remove group')}

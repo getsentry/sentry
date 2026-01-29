@@ -136,7 +136,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             collapsed ? t('Show %s fingerprints', id) : t('Collapse %s fingerprints', id)
           }
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
           onClick={handleToggleEvents}
         />
@@ -151,15 +151,15 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
                 icon={<IconLink variant="accent" />}
                 title={t('View latest event')}
                 aria-label={t('View latest event')}
-                borderless
+                priority="transparent"
                 size="xs"
                 style={{marginLeft: space(1)}}
               />
-              <EventDetails>
+              <Flex justify="between" padding="md">
                 <Text size="md" data-issue-title-primary>
                   {latestEvent.title}
                 </Text>
-              </EventDetails>
+              </Flex>
             </Flex>
           ) : null}
         </MergedEventList>
@@ -203,12 +203,6 @@ const MergedEventList = styled('div')`
   overflow: hidden;
   border: none;
   background-color: ${p => p.theme.tokens.background.primary};
-`;
-
-const EventDetails = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: ${space(1)};
 `;
 
 export default MergedItem;

@@ -487,9 +487,6 @@ function MenuItem(props: {
 
   const story = storyQuery.data?.[0];
 
-  const figmaLink =
-    story && isMDXStory(story) ? story.exports.frontmatter?.resources?.figma : null;
-
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
@@ -606,13 +603,22 @@ function MenuItem(props: {
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
-                    if (figmaLink) {
-                      window.open(figmaLink, '_blank');
+                    if (
+                      story &&
+                      isMDXStory(story) &&
+                      story.exports.frontmatter?.resources?.figma
+                    ) {
+                      window.open(story.exports.frontmatter?.resources?.figma, '_blank');
                       props.onAction();
                     }
                   },
                 })}
-                disabled={storyQuery.isLoading || !figmaLink}
+                disabled={
+                  storyQuery.isLoading ||
+                  !story ||
+                  !isMDXStory(story) ||
+                  !story.exports.frontmatter?.resources?.figma
+                }
                 icon={
                   storyQuery.isLoading ? (
                     <LoadingIndicator mini size={12} />

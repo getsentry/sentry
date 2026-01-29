@@ -136,8 +136,8 @@ function DrawerNavigator({
 /**
  * Explorer-based Seer Drawer component.
  *
- * This is the new UI for Autofix when seer-explorer is enabled.
- * It uses the Explorer agent for all analysis instead
+ * This is the new UI for Autofix when both seer-explorer and autofix-on-explorer
+ * feature flags are enabled. It uses the Explorer agent for all analysis instead
  * of the legacy Celery pipeline.
  */
 export function ExplorerSeerDrawer({
@@ -395,12 +395,13 @@ export function ExplorerSeerDrawer({
 
           {/* Status card when processing */}
           <AnimatePresence initial={false}>
-            {runState.status === 'processing' && !isChatAlreadyOpen && (
+            {runState.status === 'processing' && (
               <ExplorerStatusCard
                 key="status_card"
                 status={runState.status}
                 loadingBlock={loadingBlock}
                 blocks={blocks}
+                isChatAlreadyOpen={isChatAlreadyOpen}
                 onOpenChat={handleOpenChat}
               />
             )}

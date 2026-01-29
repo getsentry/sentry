@@ -177,7 +177,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           options={TREND_FUNCTION_OPTIONS}
           onChange={onChangeTrendType}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
           )}
           offset={4}
         />
