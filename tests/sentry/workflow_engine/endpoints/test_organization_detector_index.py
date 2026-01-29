@@ -191,7 +191,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"id": "not-an-id"},
             status_code=400,
         )
-        assert response.data == {"id": ["Invalid ID format"]}
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
@@ -494,6 +495,16 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id, "query": "lookfor"}
         )
         assert {d["name"] for d in response3.data} == {detector.name, detector2.name}
+
+    def test_query_invalid_search_key(self) -> None:
+        self.create_detector(project=self.project, name="Test Detector", type=MetricIssue.slug)
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "tpe:metric"},
+            status_code=400,
+        )
+        assert "query" in response.data
+        assert "Invalid key for this search: tpe" in str(response.data["query"])
 
     def test_query_by_assignee_user_email(self) -> None:
         user = self.create_user(email="assignee@example.com")
@@ -1472,7 +1483,8 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
 
-        assert "Invalid ID format" in str(response.data["id"])
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_update_detectors_no_matching_detectors(self) -> None:
         response = self.get_error_response(
@@ -1799,7 +1811,8 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
 
-        assert "Invalid ID format" in str(response.data["id"])
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_delete_detectors_filtering_ignored_with_ids(self) -> None:
         # Other project detector

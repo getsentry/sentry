@@ -28,7 +28,7 @@ const ModalHeader = styled('header')`
   h5,
   h6 {
     font-size: 20px;
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     margin-bottom: 0;
     line-height: 1.1;
   }
@@ -40,14 +40,14 @@ function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
       aria-label={t('Close Modal')}
       size="xs"
       icon={<IconClose size="xs" />}
-      borderless
+      priority="transparent"
       {...p}
     />
   );
 }
 
 const ModalBody = styled('section')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   p:last-child {
     margin-bottom: 0;

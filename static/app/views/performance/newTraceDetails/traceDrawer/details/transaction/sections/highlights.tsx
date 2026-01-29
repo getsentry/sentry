@@ -45,7 +45,7 @@ export function TransactionHighlights(props: HighlightProps) {
     <HeaderContentWrapper>
       <span>{props.node.value.transaction}</span>
       <CopyToClipboardButton
-        borderless
+        priority="transparent"
         size="zero"
         aria-label={t('Copy transaction name to clipboard')}
         text={props.node.value.transaction}
@@ -101,7 +101,7 @@ const HeaderContentWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   word-break: break-word;
   line-height: 1.4;
 `;

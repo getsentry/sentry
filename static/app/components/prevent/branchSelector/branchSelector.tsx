@@ -7,7 +7,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSelector/useInfiniteRepositoryBranches';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconBranch} from 'sentry/icons/iconBranch';
@@ -102,7 +102,7 @@ export function BranchSelector() {
             closeOverlay();
           }}
           size="zero"
-          borderless
+          priority="transparent"
         >
           {t('Reset to all branches')}
         </ResetButton>
@@ -149,14 +149,14 @@ export function BranchSelector() {
             data-test-id="page-filter-branch-selector"
             {...triggerProps}
           >
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" maxWidth="200px" position="relative">
               <Flex align="center" gap="sm">
-                <IconContainer>
+                <Container flex="1 0 14px" height="14px">
                   <IconBranch />
-                </IconContainer>
+                </Container>
                 <TriggerLabel>{branch || ALL_BRANCHES}</TriggerLabel>
               </Flex>
-            </TriggerLabelWrap>
+            </Container>
           </OverlayTrigger.Button>
         );
       }}
@@ -164,12 +164,6 @@ export function BranchSelector() {
     />
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-  max-width: 200px;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;
@@ -188,14 +182,9 @@ const OptionLabel = styled('span')`
   }
 `;
 
-const IconContainer = styled('div')`
-  flex: 1 0 14px;
-  height: 14px;
-`;
-
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
   margin: -${space(0.5)} -${space(0.5)};

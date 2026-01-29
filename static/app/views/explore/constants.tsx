@@ -78,6 +78,41 @@ export const SENTRY_LOG_STRING_TAGS: string[] = [
 
 export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NUMBER];
 
+// Preprod default attributes based on src/sentry/preprod/eap/write.py
+export const SENTRY_PREPROD_STRING_TAGS: string[] = [
+  'app_id',
+  'app_name',
+  'build_configuration_name',
+  'build_number',
+  'build_version',
+  'git_base_ref',
+  'git_head_ref',
+  'git_pr_number',
+  'platform_name',
+];
+
+export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [];
+
+export const HIDDEN_PREPROD_ATTRIBUTES = [
+  'min_install_size',
+  'tags[min_install_size,number]',
+  'tags[max_install_size,number]',
+  'min_download_size',
+  'tags[min_download_size,number]',
+  'tags[max_download_size,number]',
+  'size_metric_id',
+  'tags[size_metric_id,number]',
+  'preprod_artifact_id',
+  'tags[preprod_artifact_id,number]',
+  'processing_version',
+  'tags[processing_version,number]',
+  'sub_item_type',
+  'artifact_state',
+  'tags[artifact_state,number]',
+  'tags[artifact_date_built,number]',
+  'tags[build_number,number]',
+];
+
 export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [
   TraceMetricKnownFieldKey.TIMESTAMP,
 ];

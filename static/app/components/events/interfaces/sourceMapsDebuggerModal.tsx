@@ -2027,7 +2027,7 @@ const CompletionNoteContainer = styled('div')`
 `;
 
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p =>
     ({
       none: p.theme.tokens.content.secondary,
@@ -2057,9 +2057,9 @@ const MonoBlock = styled('code')`
   color: ${p => p.theme.colors.gray500};
   background: ${p => p.theme.colors.gray100};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
 `;
 
@@ -2096,7 +2096,7 @@ const DebuggerSectionContainer = styled('div')`
   gap: ${space(1.5)};
   h5 {
     margin-bottom: 0;
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
   h6 {
     font-size: 1rem;

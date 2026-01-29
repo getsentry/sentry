@@ -15,7 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, RuleSerializerResponse
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
@@ -284,7 +284,7 @@ class ProjectRulesPostSerializer(serializers.Serializer):
     environment = serializers.CharField(
         required=False, allow_null=True, help_text="The name of the environment to filter by."
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
     frequency = serializers.IntegerField(
@@ -535,7 +535,7 @@ A list of actions that take place when all required conditions and filters for t
 - `integration` - The integration ID associated with Jira.
 - `project` - The ID of the Jira project.
 - `issuetype` - The ID of the type of issue that the ticket should be created as.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+- `dynamic_form_fields` - A list of any custom fields you want to include in the ticket as objects.
 ```json
 {
     "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
@@ -549,7 +549,7 @@ A list of actions that take place when all required conditions and filters for t
 - `integration` - The integration ID associated with Jira Server.
 - `project` - The ID of the Jira Server project.
 - `issuetype` - The ID of the type of issue that the ticket should be created as.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+- `dynamic_form_fields` - A list of any custom fields you want to include in the ticket as objects.
 ```json
 {
     "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
@@ -601,7 +601,7 @@ A list of actions that take place when all required conditions and filters for t
 - `integration` - The integration ID.
 - `project` - The ID of the Azure DevOps project.
 - `work_item_type` - The type of work item to create.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the work item as objects.
+- `dynamic_form_fields` - A list of any custom fields you want to include in the work item as objects.
 ```json
 {
     "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
@@ -682,7 +682,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     @extend_schema(
-        operation_id="List a Project's Issue Alert Rules",
+        operation_id="(DEPRECATED) List a Project's Issue Alert Rules",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
@@ -695,6 +695,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project: Project) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Fetch an Organization's Monitors](/api/monitors/fetch-an-organizations-monitors) and [Fetch Alerts](/api/monitors/fetch-alerts) instead.
+
+
         Return a list of active issue alert rules bound to a project.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
@@ -719,7 +723,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create an Issue Alert Rule for a Project",
+        operation_id="(DEPRECATED) Create an Issue Alert Rule for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -735,6 +739,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     )
     def post(self, request: Request, project) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Create a Monitor for a Project](/api/monitors/create-a-monitor-for-a-project) and [Create an Alert for an Organization](/api/monitors/create-an-alert-for-an-organization) instead.
+
+
         Create a new issue alert rule for the given project.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:

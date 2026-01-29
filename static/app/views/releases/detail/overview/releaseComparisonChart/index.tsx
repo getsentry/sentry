@@ -1102,7 +1102,7 @@ export default function ReleaseComparisonChart({
             </ShowMoreTitle>
             <Flex justify="end" align="center" column="2 / -1">
               <Button
-                borderless
+                priority="transparent"
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
                 aria-label={t('Toggle additional charts')}
@@ -1137,7 +1137,7 @@ const DescriptionCell = styled(Cell)`
 `;
 
 const Change = styled('div')<{color?: string}>`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   ${p => p.color && `color: ${p.color}`}
 `;
 
@@ -1173,7 +1173,7 @@ const ShowMoreWrapper = styled('div')`
 
 const ShowMoreTitle = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: inline-grid;
   grid-template-columns: auto auto;
   gap: 10px;

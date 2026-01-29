@@ -27,6 +27,11 @@ standard_cases = [
         "traceparent: <traceparent>",
     ),
     ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
+    (
+        "traceparent - aws, but not word boundary",
+        "abc1-67891233-abcdef012345678912345678",
+        "abc1<int>-abcdef012345678912345678",
+    ),
     ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
     (
         "uuid - multiple",
@@ -70,24 +75,42 @@ standard_cases = [
     ("duration - 1.234s", "1.234s", "<duration>"),
     ("duration - 10s", "10s", "<duration>"),
     ("duration - 100.0000s", "100.0000s", "<duration>"),
-    ("hex", "0x9af8c3b", "<hex>"),
-    ("hex", "9af8c3b0", "<hex>"),
-    ("hex", "9af8c3b09af8c3b0", "<hex>"),
-    ("hex - missing numbers", "aaffccbb", "aaffccbb"),
+    ("hex with prefix - lowercase, 4 digits", "0x9af8", "<hex>"),
+    ("hex with prefix - uppercase, 4 digits", "0x9AF8", "<hex>"),
+    ("hex with prefix - lowercase, 8 digits", "0x9af8c3be", "<hex>"),
+    ("hex with prefix - uppercase, 8 digits", "0x9AF8C3BE", "<hex>"),
+    ("hex with prefix - lowercase, 10 digits", "0x9af8c3be3a", "<hex>"),
+    ("hex with prefix - uppercase, 10 digits", "0x9AF8C3BE3A", "<hex>"),
+    ("hex with prefix - lowercase, 16 digits", "0x9af8c3be3a1231fe", "<hex>"),
+    ("hex with prefix - uppercase, 16 digits", "0x9AF8C3BE3A1231FE", "<hex>"),
+    ("hex with prefix - lowercase, 24 digits", "0x9af8c3be3a1231fe1121acb1", "<hex>"),
+    ("hex with prefix - uppercase, 24 digits", "0x9AF8C3BE3A1231FE1121ACB1", "<hex>"),
+    ("hex with prefix - lowercase, no numbers", "0xdeadbeef", "<hex>"),
+    ("hex with prefix - uppercase, no numbers", "0xDEADBEEF", "<hex>"),
+    ("hex without prefix - lowercase, 4 digits", "9af8", "9af8"),
+    ("hex without prefix - uppercase, 4 digits", "9AF8", "9AF8"),
+    ("hex without prefix - lowercase, 8 digits", "9af8c3be", "<hex>"),
+    ("hex without prefix - uppercase, 8 digits", "9AF8C3BE", "9AF8C3BE"),
+    ("hex without prefix - lowercase, 10 digits", "9af8c3be3a", "9af8c3be3a"),
+    ("hex without prefix - uppercase, 10 digits", "9AF8C3BE3A", "9AF8C3BE3A"),
+    ("hex without prefix - lowercase, 16 digits", "9af8c3be3a1231fe", "<hex>"),
+    ("hex without prefix - uppercase, 16 digits", "9AF8C3BE3A1231FE", "9AF8C3BE3A1231FE"),
     (
-        "hex - not 4 or 8 bytes",
-        "4aaa 9aaaaaaaa 10aaaaaaaa 15aaaaaaaaaaaaa 17aaaaaaaaaaaaaaa",
-        "4aaa 9aaaaaaaa 10aaaaaaaa 15aaaaaaaaaaaaa 17aaaaaaaaaaaaaaa",
+        "hex without prefix - lowercase, 24 digits",
+        "9af8c3be3a1231fe1121acb1",
+        "9af8c3be3a1231fe1121acb1",
     ),
+    (
+        "hex without prefix - uppercase, 24 digits",
+        "9AF8C3BE3A1231FE1121ACB1",
+        "9AF8C3BE3A1231FE1121ACB1",
+    ),
+    ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
+    ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
     ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
-    (
-        "int - traceparent word boundary",
-        "abcd1-67891233-abcdef012345678912345678",
-        "abcd1<int>-abcdef012345678912345678",
-    ),
     ("int - date - invalid day", "2006-01-40", "<int><int><int>"),
     ("int - date - invalid month", "2006-20-02", "<int><int><int>"),
     ("int - date - invalid year", "10000-01-02", "<int><int><int>"),
@@ -120,35 +143,37 @@ experimental_cases: list[tuple[str, str, str]] = [
 def test_parameterize_standard(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected == parameterizer.parameterize_all(input)
-    assert f"prefix {expected}" == f"prefix {parameterizer.parameterize_all(input)}"
-    assert f"{expected} suffix" == f"{parameterizer.parameterize_all(input)} suffix"
-    assert f"prefix {expected} suffix" == f"prefix {parameterizer.parameterize_all(input)} suffix"
+    assert parameterizer.parameterize_all(input) == expected
+    assert parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
+    assert parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
+    assert parameterizer.parameterize_all(f"prefix {input} suffix") == f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
 def test_parameterize_standard_not_experimental(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected != parameterizer.parameterize_all(input)
-    assert f"prefix {expected}" != f"prefix {parameterizer.parameterize_all(input)}"
-    assert f"{expected} suffix" != f"{parameterizer.parameterize_all(input)} suffix"
-    assert f"prefix {expected} suffix" != f"prefix {parameterizer.parameterize_all(input)} suffix"
+    assert parameterizer.parameterize_all(input) != expected
+    assert parameterizer.parameterize_all(f"prefix {input}") != f"prefix {expected}"
+    assert parameterizer.parameterize_all(f"{input} suffix") != f"{expected} suffix"
+    assert parameterizer.parameterize_all(f"prefix {input} suffix") != f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_parameterize_experimental(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
 ) -> None:
-    parameterizer = experimental_parameterizer
-    assert expected == parameterizer.parameterize_all(input)
-    assert f"prefix {expected}" == f"prefix {parameterizer.parameterize_all(input)}"
-    assert f"{expected} suffix" == f"{parameterizer.parameterize_all(input)} suffix"
-    assert f"prefix {expected} suffix" == f"prefix {parameterizer.parameterize_all(input)} suffix"
+    assert experimental_parameterizer.parameterize_all(input) == expected
+    assert experimental_parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
+    assert experimental_parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
+    assert (
+        experimental_parameterizer.parameterize_all(f"prefix {input} suffix")
+        == f"prefix {expected} suffix"
+    )
 
 
 # These are test cases that we should fix
-@pytest.mark.xfail()
+@pytest.mark.xfail(strict=True)
 @pytest.mark.parametrize(
     ("name", "input", "expected"),
     [
@@ -162,11 +187,11 @@ def test_parameterize_experimental(
 def test_fail_parameterize(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
+    assert parameterizer.parameterize_all(input) == expected
 
 
-# These are test cases were we're too aggressive
-@pytest.mark.xfail()
+# These are test cases where we're too aggressive
+@pytest.mark.xfail(strict=True)
 @pytest.mark.parametrize(
     ("name", "input", "expected"),
     [
@@ -176,4 +201,4 @@ def test_fail_parameterize(
 def test_too_aggressive_parameterize(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
+    assert parameterizer.parameterize_all(input) == expected

@@ -462,7 +462,7 @@ export function TimeRangeSelector({
                           {showRelative && (
                             <Button
                               size="xs"
-                              borderless
+                              priority="transparent"
                               icon={<IconArrow direction="left" />}
                               onClick={() => setShowAbsoluteSelector(false)}
                             >
@@ -550,10 +550,10 @@ const FooterMessage = styled('p')`
   padding: ${space(0.75)} ${space(1)};
   margin: ${space(0.5)} 0;
   border-radius: ${p => p.theme.radius.md};
-  border: solid 1px ${p => p.theme.alert.warning.border};
-  background: ${p => p.theme.alert.warning.backgroundLight};
+  border: solid 1px ${p => p.theme.colors.yellow200};
+  background: ${p => p.theme.colors.yellow100};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const FooterWrap = styled('div')`

@@ -383,6 +383,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
@@ -1086,11 +1087,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autopilot-run-sdk-update-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -1428,6 +1429,9 @@ SENTRY_PROJECT_KEY: int | None = None
 # Used as a default when in SINGLE_ORGANIZATION mode.
 SENTRY_ORGANIZATION: int | None = None
 
+# Default organization ID for granting superuser privileges (typically organization 1 in SaaS mode)
+SENTRY_DEFAULT_ORGANIZATION_ID = 1
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
@@ -1623,6 +1627,10 @@ ENFORCE_CONCURRENT_RATE_LIMITS = False
 # Rate Limit Group Category Defaults
 SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI = 999
 SENTRY_RATELIMITER_GROUP_CLI = 999
+
+# Impersonation Rate Limiting
+# Fixed rate limit applied during impersonation sessions (requests per second)
+SENTRY_IMPERSONATION_RATE_LIMIT = 30
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -2741,8 +2749,10 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
 WINTER_2023_GROUPING_CONFIG = "newstyle:2023-01-11"
-FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
-DEFAULT_GROUPING_CONFIG = WINTER_2023_GROUPING_CONFIG
+FALL_2025_GROUPING_CONFIG = "newstyle:2026-01-20"
+# Note: When the default config here is updated, `DEFAULT_ENHANCEMENTS_BASE` in
+# `sentry.grouping.enhancer.__init__` *may* also need to be updated.
+DEFAULT_GROUPING_CONFIG = FALL_2025_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts

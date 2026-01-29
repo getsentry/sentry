@@ -1,5 +1,6 @@
 import type {Series} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -77,7 +78,9 @@ export function getReleasesSeriesQueryOptions({
 }: ReleaseSeriesQueryOptions): ApiQueryKey {
   const field = fieldsToDerivedMetrics(aggregate);
   return [
-    `/organizations/${organization.slug}/metrics/data/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/metrics/data/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         field: [field],

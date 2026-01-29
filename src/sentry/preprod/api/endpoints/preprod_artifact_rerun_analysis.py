@@ -23,7 +23,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
-from sentry.preprod.quota import has_installable_quota, has_size_quota
+from sentry.preprod.quotas import should_run_distribution, should_run_size
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +66,13 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
 
         # Empty list is valid - triggers default processing behavior
         requested_features: list[PreprodFeature] = []
-        if has_size_quota(organization, actor=request.user):
+
+        run_size, _ = should_run_size(head_artifact, actor=request.user)
+        if run_size:
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-        if has_installable_quota(organization, actor=request.user):
+
+        run_distribution, _ = should_run_distribution(head_artifact, actor=request.user)
+        if run_distribution:
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         if PreprodFeature.SIZE_ANALYSIS in requested_features:

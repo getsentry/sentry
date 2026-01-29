@@ -9,6 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -35,15 +36,23 @@ export default function ProjectEventRedirect() {
   const params = useParams<{eventId: string; projectId: string}>();
   const datetimeSelection = normalizeDateTimeParams(location.query);
 
-  // Construct the eventSlug in the format expected by the events API: "projectSlug:eventId"
-  const eventSlug = `${params.projectId}:${params.eventId}`;
-
   const {
     data: event,
     isPending,
     error,
   } = useApiQuery<Event>(
-    [`/organizations/${organization.slug}/events/${eventSlug}/`],
+    [
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: params.projectId,
+            eventId: params.eventId,
+          },
+        }
+      ),
+    ],
     {staleTime: 2 * 60 * 1000} // 2 minutes in milliseconds
   );
 

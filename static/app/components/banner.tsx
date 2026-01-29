@@ -61,7 +61,6 @@ function Banner({
       {isDismissable ? (
         <CloseButton
           type="button"
-          borderless
           size="xs"
           priority="link"
           icon={<IconClose />}
@@ -129,7 +128,7 @@ const BannerSubtitle = styled('div')`
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;
 

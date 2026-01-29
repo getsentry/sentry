@@ -170,7 +170,6 @@ export function SubscriptionUpsellBanner({
       </div>
       <BannerImage src={subscription.canTrial ? businessTrial : businessUpgrade} />
       <CloseBannerButton
-        borderless
         priority="link"
         aria-label={t('Dismiss')}
         icon={<IconClose variant="muted" />}
@@ -199,7 +198,7 @@ const IntegationBannerTitle = styled('div')`
   display: flex;
   align-items: baseline;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
   font-weight: 600;
 `;

@@ -33,8 +33,8 @@ export function DomainStatusLink({domain}: Props) {
 
 const ExternalDomainLink = styled(ExternalLink)`
   display: inline-flex;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   gap: ${space(1)};
 `;

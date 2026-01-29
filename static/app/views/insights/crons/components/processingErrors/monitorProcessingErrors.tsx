@@ -95,7 +95,7 @@ export function MonitorProcessingErrors({
                   aria-label={isExpanded ? t('Collapse') : t('Expand')}
                   aria-expanded={isExpanded}
                   size="zero"
-                  borderless
+                  priority="transparent"
                   onClick={() => setExpanded(isExpanded ? '' : `${projectId}:${index}`)}
                 />
                 {onDismiss && (
@@ -104,7 +104,7 @@ export function MonitorProcessingErrors({
                     aria-label={t('Dismiss Errors')}
                     size="zero"
                     title={t('Dismiss Errors')}
-                    borderless
+                    priority="transparent"
                     onClick={() =>
                       openConfirmModal({
                         header: t('Dismiss'),
@@ -205,5 +205,5 @@ const StyledStructuredEventData = styled(StructuredEventData)`
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

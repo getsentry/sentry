@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from sentry import audit_log, features
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
@@ -45,9 +46,11 @@ class WorkflowValidator(CamelSnakeSerializer):
         required=False,
         help_text=WORKFLOW_CONFIG_HELP_TEXT,
     )
-    environment_id = serializers.IntegerField(
-        required=False, help_text="The name of the environment for the alert to evaluate in"
-    )  # TODO fix this, we pass the name, not the ID
+    environment = EnvironmentField(
+        required=False,
+        allow_null=True,
+        help_text="The name of the environment for the alert to evaluate in",
+    )
 
     triggers = BaseDataConditionGroupValidator(
         required=False,
@@ -272,12 +275,14 @@ class WorkflowValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(Workflow)):
             when_condition_group = condition_group_validator.create(validated_value["triggers"])
 
+            environment = validated_value.get("environment")
+
             workflow = Workflow.objects.create(
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
                 config=validated_value["config"],
                 organization_id=self.context["organization"].id,
-                environment_id=validated_value.get("environment_id"),
+                environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
                 created_by_id=self.context["request"].user.id,
             )

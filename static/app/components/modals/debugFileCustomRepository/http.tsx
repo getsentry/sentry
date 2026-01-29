@@ -196,7 +196,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}
-              borderless
+              priority="transparent"
             />
           )}
         </FieldGroup>

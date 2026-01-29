@@ -1,3 +1,4 @@
+import pytest
 from django.core import mail
 
 from sentry.eventstream.types import EventStreamEventType
@@ -133,6 +134,15 @@ class NotifyEmailFormTest(TestCase):
 
 class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
     rule_cls = NotifyEmailAction
+
+    @pytest.fixture(autouse=True)
+    def with_feature_flags(self):
+        with override_options(
+            {
+                "workflow_engine.issue_alert.group.type_id.ga": [1],
+            }
+        ):
+            yield
 
     def setUp(self):
         self.one_min_ago = before_now(minutes=1).isoformat()

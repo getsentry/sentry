@@ -59,7 +59,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  telemetry_live_search: (args, isLoading) => {
+  telemetry_live_search: (args, isLoading, linkParams) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
     const projectSlugs = args.project_slugs;
@@ -85,10 +85,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Queried logs${projectInfo}: '${question}'`;
     }
 
-    // Default to spans
+    // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
-      : `Queried spans${projectInfo}: '${question}'`;
+      : linkParams?.mode === 'traces'
+        ? `Queried traces${projectInfo}: '${question}'...`
+        : `Queried spans${projectInfo}: '${question}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
@@ -588,6 +590,9 @@ export function buildToolLinkUrl(
       if (mode) {
         queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
       }
+      if (mode === 'traces') {
+        queryParams.table = 'trace';
+      }
 
       if (aggregateFields.length > 0) {
         queryParams.aggregateField = aggregateFields;
@@ -911,4 +916,15 @@ export function getExplorerUrl(runId: number | string): string {
 
 export function getLangfuseUrl(runId: number | string): string {
   return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`;
+}
+
+/**
+ * Checks if Seer Explorer is enabled for the organization.
+ * Requires all of the following conditions:
+ * - 'seer-explorer' feature flag
+ * - Organization has open membership
+ * Does not check general AI features access or org consent.
+ */
+export function isSeerExplorerEnabled(organization: Organization): boolean {
+  return organization.openMembership && organization.features.includes('seer-explorer');
 }

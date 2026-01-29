@@ -119,7 +119,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           options={SLOWEST_FUNCTION_OPTIONS}
           onChange={onChangeFunctionType}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
           )}
           offset={4}
         />
@@ -289,7 +289,7 @@ const SlowestFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;

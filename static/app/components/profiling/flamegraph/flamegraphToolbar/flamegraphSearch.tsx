@@ -440,14 +440,14 @@ function FlamegraphSearch({
             </StyledTrailingText>
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
               onClick={onPreviousSearchClick}
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" direction="down" />}
               aria-label={t('Previous')}
               onClick={onNextSearchClick}
@@ -473,7 +473,7 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 
 const StyledTrailingText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

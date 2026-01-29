@@ -72,7 +72,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
               aria-label={t('Copy Issue Short-ID')}
               onClick={handleCopyShortId}
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconCopy size="xs" variant="muted" />}
             />
           )}
@@ -81,7 +81,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
       {!isHovered && group.isPublic && shareUrl && (
         <Button
           size="zero"
-          borderless
+          priority="transparent"
           aria-label={t('View issue share settings')}
           icon={<IconGlobe size="xs" variant="muted" />}
           title={tct('This issue has been shared [link:with a public link].', {
@@ -112,8 +112,8 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
 }
 
 const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {Button} from 'sentry/components/core/button';
@@ -44,7 +45,7 @@ export function Toolbar({
               size="xs"
               aria-label={t('Drag Widget')}
               icon={<IconGrabbable />}
-              borderless
+              priority="transparent"
               className={DRAG_HANDLE_CLASS}
               disabled={disableDrag}
             />
@@ -60,7 +61,7 @@ export function Toolbar({
               data-test-id="widget-edit"
               aria-label={t('Edit Widget')}
               size="xs"
-              borderless
+              priority="transparent"
               onClick={onEdit}
               icon={<IconEdit />}
               disabled={disableEdit}
@@ -76,7 +77,7 @@ export function Toolbar({
             <Button
               aria-label={t('Duplicate Widget')}
               size="xs"
-              borderless
+              priority="transparent"
               onClick={onDuplicate}
               icon={<IconCopy />}
               disabled={disableDuplicate}
@@ -92,7 +93,7 @@ export function Toolbar({
             <Button
               data-test-id="widget-delete"
               aria-label={t('Delete Widget')}
-              borderless
+              priority="transparent"
               size="xs"
               onClick={onDelete}
               icon={<IconDelete />}

@@ -40,7 +40,7 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
             icon={<IconClose />}
             onClick={dismiss}
             size="zero"
-            borderless
+            priority="transparent"
             aria-label={t('Dismiss banner')}
           />
         }
@@ -64,6 +64,6 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
 }
 
 const AlertHeader = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
 `;

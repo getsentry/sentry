@@ -221,7 +221,7 @@ export function AutofixInsightCard({
             {isExpandable && (
               <Button
                 size="zero"
-                borderless
+                priority="transparent"
                 title={isExpanded ? t('Hide evidence') : t('Show evidence')}
                 icon={
                   <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
@@ -231,7 +231,7 @@ export function AutofixInsightCard({
             )}
             <EditButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={handleEdit}
               icon={<FlippedReturnIcon />}
               aria-label={t('Edit insight')}
@@ -326,9 +326,9 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
 `;
 
 const ContextMarkedText = styled(MarkedText)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;
 
@@ -362,7 +362,7 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background: ${p => p.theme.alert.info.backgroundLight};
+  background: ${p => p.theme.colors.blue100};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   position: relative;

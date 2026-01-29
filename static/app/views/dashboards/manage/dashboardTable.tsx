@@ -88,7 +88,7 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      borderless
+      priority="transparent"
       icon={
         <IconStar
           variant={favorited ? 'warning' : 'muted'}
@@ -389,7 +389,7 @@ function DashboardTable({
 export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.tokens.content.primary};
   display: block;

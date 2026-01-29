@@ -172,7 +172,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <InputGroup.TrailingItems>
                         <ClearButton
                           size="xs"
-                          borderless
+                          priority="transparent"
                           icon={<IconClose size="xs" />}
                           onClick={() => {
                             setBranchInputValue('');
@@ -191,7 +191,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                     size="xs"
                     icon={<IconAdd />}
                     onClick={addBranchOverride}
-                    borderless
+                    priority="transparent"
                   >
                     {t('Add an override for a tag')}
                   </AddOverrideButton>
@@ -258,7 +258,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       </Flex>
                       <Button
                         size="sm"
-                        borderless
+                        priority="transparent"
                         icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
@@ -324,7 +324,7 @@ const RepoName = styled('div')`
 `;
 
 const RepoProvider = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
@@ -351,16 +351,16 @@ const SettingsGroup = styled('div')`
 const BranchInputLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.text};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${p => p.theme.space.sm};
   gap: ${p => p.theme.space.md};
 `;
 
 const SubHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const StyledTextArea = styled(TextArea)`

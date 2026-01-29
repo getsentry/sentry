@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -57,7 +59,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
   );
 
   return (
-    <CardSpacing>
+    <Container padding="xs xs 0 xs" position="relative">
       <a
         href={replayDetailsPathname}
         onClick={e => {
@@ -96,14 +98,9 @@ export default function ReplayListItem({replay, onClick}: Props) {
           <InteractionStateLayer />
         </Flex>
       </a>
-    </CardSpacing>
+    </Container>
   );
 }
-
-const CardSpacing = styled('div')`
-  position: relative;
-  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
-`;
 
 const ArchivedWrapper = styled(Flex)`
   width: ${p => p.theme.space['2xl']};
@@ -127,8 +124,8 @@ const SubText = styled('div')`
 
 const DisplayName = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: normal;
   display: block;
   width: 100%;

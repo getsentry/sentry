@@ -177,12 +177,12 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               {t('Compare Build')}
             </Button>
           </Link>
-          <Feature features="organizations:preprod-issues">
+          <Feature features="organizations:preprod-frontend-routes">
             <LinkButton
               size="sm"
               icon={<IconSettings />}
               aria-label={t('Settings')}
-              to={`/settings/${organization.slug}/projects/${projectId}/preprod/`}
+              to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
             />
           </Feature>
           <ConfirmDelete

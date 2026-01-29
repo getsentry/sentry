@@ -128,7 +128,7 @@ function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
           <td key="expand">
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => toggleRow(row.id)}
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
@@ -162,8 +162,8 @@ const MetadataContent = styled('pre')`
   padding: ${space(1.5)};
   border-radius: 4px;
   overflow-x: auto;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
   white-space: pre-wrap;
   word-wrap: break-word;
 `;

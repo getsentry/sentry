@@ -140,7 +140,7 @@ class TestProcessWorkflowActivity(TestCase):
 
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
-    def test_process_workflow_activity__no_workflows(self, mock_logger) -> None:
+    def test_process_workflow_activity__no_workflows(self, mock_logger: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
             return_value=set(),
@@ -179,8 +179,11 @@ class TestProcessWorkflowActivity(TestCase):
     )
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__workflows__no_actions(
-        self, mock_logger, mock_eval_actions, mock_evaluate
-    ):
+        self,
+        mock_logger: mock.MagicMock,
+        mock_eval_actions: mock.MagicMock,
+        mock_evaluate: mock.MagicMock,
+    ) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
         self.create_detector_workflow(
             detector=self.detector,
@@ -219,7 +222,7 @@ class TestProcessWorkflowActivity(TestCase):
     @mock.patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity(
-        self, mock_logger, mock_filter_actions: mock.MagicMock
+        self, mock_logger: mock.MagicMock, mock_filter_actions: mock.MagicMock
     ) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
@@ -253,7 +256,7 @@ class TestProcessWorkflowActivity(TestCase):
     @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__success_logs(
-        self, mock_logger, mock_evaluate_workflow_triggers
+        self, mock_logger: mock.MagicMock, mock_evaluate_workflow_triggers: mock.MagicMock
     ) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
