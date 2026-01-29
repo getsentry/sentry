@@ -672,6 +672,47 @@ def trigger_coding_agent_launch(
         return {"success": False}
 
 
+def validate_repo(
+    *,
+    organization_id: int,
+    provider: str,
+    external_id: str,
+    owner: str,
+    name: str,
+) -> dict[str, Any]:
+    """
+    Validate that a repository exists and belongs to the given organization.
+
+    Args:
+        organization_id: The Sentry organization ID
+        provider: The SCM provider (e.g., "github", "github_enterprise")
+        external_id: The repository's external ID in the provider's system
+        owner: The repository owner (e.g., "getsentry")
+        name: The repository name (e.g., "sentry")
+
+    Returns:
+        {"valid": True, "integration_id": <int|None>} if valid
+        {"valid": False, "reason": <str>} if invalid
+    """
+    expected_name = f"{owner}/{name}"
+
+    repo = Repository.objects.filter(
+        Q(provider=provider) | Q(provider=f"integrations:{provider}"),
+        organization_id=organization_id,
+        external_id=external_id,
+        name=expected_name,
+        status=ObjectStatus.ACTIVE,
+    ).first()
+
+    if not repo:
+        return {"valid": False, "reason": "repository_not_found"}
+
+    if repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+        return {"valid": False, "reason": "unsupported_provider"}
+
+    return {"valid": True, "integration_id": repo.integration_id}
+
+
 def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
     """
     Check whether repository integrations exist and are active.
@@ -769,6 +810,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
     "check_repository_integrations_status": check_repository_integrations_status,
+    "validate_repo": validate_repo,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,
