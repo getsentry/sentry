@@ -185,15 +185,18 @@ def _make_rpc_requests(
                 rpc_rows = len(table_response.column_values[0].results)
             else:
                 rpc_rows = 0
+            logger_extra = {
+                "rpc_rows": rpc_rows,
+                "organization_id": request.meta.organization_id,
+                "page_token": table_response.page_token,
+                "meta": table_response.meta,
+                "debug": debug is not False,
+            }
+            if isinstance(debug, str):
+                logger_extra["debug_msg"] = debug
             logger.info(
                 "Table RPC query response",
-                extra={
-                    "rpc_rows": rpc_rows,
-                    "organization_id": request.meta.organization_id,
-                    "page_token": table_response.page_token,
-                    "meta": table_response.meta,
-                    "debug": debug,
-                },
+                extra=logger_extra,
             )
             metrics.distribution("snuba_rpc.table_response.length", rpc_rows)
         elif isinstance(request, TimeSeriesRequest):
@@ -205,14 +208,17 @@ def _make_rpc_requests(
                 rpc_rows = len(timeseries_response.result_timeseries[0].data_points)
             else:
                 rpc_rows = 0
+            logger_extra = {
+                "rpc_rows": rpc_rows,
+                "organization_id": request.meta.organization_id,
+                "meta": timeseries_response.meta,
+                "debug": debug is not False,
+            }
+            if isinstance(debug, str):
+                logger_extra["debug_msg"] = debug
             logger.info(
                 "Timeseries RPC query response",
-                extra={
-                    "rpc_rows": rpc_rows,
-                    "organization_id": request.meta.organization_id,
-                    "meta": timeseries_response.meta,
-                    "debug": debug,
-                },
+                extra=logger_extra,
             )
             metrics.distribution("snuba_rpc.timeseries_response.length", rpc_rows)
     return MultiRpcResponse(table_results, timeseries_results)
