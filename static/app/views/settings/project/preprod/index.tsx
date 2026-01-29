@@ -42,34 +42,32 @@ export default function PreprodSettings() {
         <PreprodQuotaAlert />
         <Stack gap="lg">
           <StatusCheckRules />
-          <Feature features="organizations:preprod-issues">
+          <FeatureFilter
+            settingsWriteKey={SIZE_ENABLED_QUERY_WRITE_KEY}
+            settingsReadKey={SIZE_ENABLED_QUERY_READ_KEY}
+            title={t('Size Analysis')}
+            successMessage={t('Size filter updated')}
+          >
+            <Text>
+              {t(
+                "Size Analysis helps monitor your mobile app's size in pre-production to prevent unexpected size increases (regressions) from reaching users."
+              )}
+            </Text>
+          </FeatureFilter>
+          <Feature features="organizations:preprod-build-distribution">
             <FeatureFilter
-              settingsWriteKey={SIZE_ENABLED_QUERY_WRITE_KEY}
-              settingsReadKey={SIZE_ENABLED_QUERY_READ_KEY}
-              title={t('Size Analysis')}
-              successMessage={t('Size filter updated')}
+              settingsWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
+              settingsReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
+              title={t('Build Distribution')}
+              successMessage={t('Distribution filter updated')}
+              display={PreprodBuildsDisplay.DISTRIBUTION}
             >
               <Text>
                 {t(
-                  "Size Analysis helps monitor your mobile app's size in pre-production to prevent unexpected size increases (regressions) from reaching users."
+                  'Build Distribution helps you securely distribute iOS builds to your internal teams and beta testers. Streamline your distribution workflow with automated uploads from CI.'
                 )}
               </Text>
             </FeatureFilter>
-            <Feature features="organizations:preprod-build-distribution">
-              <FeatureFilter
-                settingsWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
-                settingsReadKey={DISTRIBUTION_ENABLED_QUERY_READ_KEY}
-                title={t('Build Distribution')}
-                successMessage={t('Distribution filter updated')}
-                display={PreprodBuildsDisplay.DISTRIBUTION}
-              >
-                <Text>
-                  {t(
-                    'Build Distribution helps you securely distribute iOS builds to your internal teams and beta testers. Streamline your distribution workflow with automated uploads from CI.'
-                  )}
-                </Text>
-              </FeatureFilter>
-            </Feature>
           </Feature>
         </Stack>
       </Feature>
