@@ -3,9 +3,6 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
-import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -52,6 +49,7 @@ const USER_ENDPOINT_QUERY_KEY: ApiQueryKey = [USER_ENDPOINT];
 const accountDetailsSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   username: z.string().min(1, 'Username is required'),
+  id: z.string(),
 });
 
 function AccountDetails() {
@@ -150,17 +148,27 @@ function AccountDetails() {
           </AutoSaveField>
         )}
 
-        <Flex gap="sm" align="center" justify="between">
-          <Stack width="50%" gap="xs">
-            <Text as="label">{t('User ID')}</Text>
-            <Text size="sm" variant="muted">
-              {t('The unique identifier for your account. It cannot be modified.')}
-            </Text>
-          </Stack>
-          <Container flexGrow={1}>
-            <Input value={user.id} disabled />
-          </Container>
-        </Flex>
+        <AutoSaveField
+          name="id"
+          schema={accountDetailsSchema}
+          initialValue={user.id}
+          mutationOptions={userMutationOptions}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('User ID')}
+              hintText={t(
+                'The unique identifier for your account. It cannot be modified.'
+              )}
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveField>
       </FieldGroup>
       <Form initialData={user.options} {...formCommonProps}>
         <JsonForm
