@@ -234,7 +234,6 @@ function WidgetBuilderSlideout({
       <CloseButton
         priority="link"
         size="zero"
-        borderless
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
         onClick={onCloseWithModal}
@@ -281,7 +280,7 @@ function WidgetBuilderSlideout({
                           setShowTransactionsDeprecationAlert(false);
                         }}
                         size="zero"
-                        borderless
+                        priority="transparent"
                       />
                     }
                   >

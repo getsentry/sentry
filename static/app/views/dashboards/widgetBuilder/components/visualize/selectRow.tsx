@@ -143,6 +143,19 @@ export function SelectRow({
         ];
         return [true, options];
       }
+    } else if (
+      state.dataset === WidgetType.LOGS &&
+      field.kind === FieldValueKind.FUNCTION
+    ) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('logs'),
+            value: 'message',
+          },
+        ];
+        return [true, options];
+      }
     }
 
     return [false, defaultColumnOptions];

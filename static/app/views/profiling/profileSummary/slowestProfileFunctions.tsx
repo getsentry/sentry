@@ -119,7 +119,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           options={SLOWEST_FUNCTION_OPTIONS}
           onChange={onChangeFunctionType}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
           )}
           offset={4}
         />

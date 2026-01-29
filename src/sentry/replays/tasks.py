@@ -40,15 +40,22 @@ logger = logging.getLogger()
     silo_mode=SiloMode.REGION,
 )
 def delete_replay(
-    project_id: int, replay_id: str, has_seer_data: bool = False, **kwargs: Any
+    project_id: int,
+    replay_id: str,
+    has_seer_data: bool = False,
+    organization_id: int | None = None,
+    **kwargs: Any,
 ) -> None:
     """Asynchronously delete a replay."""
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
     publisher = initialize_replays_publisher(is_async=False)
     archive_replay(publisher, project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
-    if has_seer_data:
-        delete_seer_replay_data(project_id, [replay_id])
+
+    if has_seer_data and organization_id is not None:
+        # Note organization_id=None is a default, for backwards task compatibility.
+        delete_seer_replay_data(organization_id, project_id, [replay_id])
+
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "finished"})
 
 
@@ -197,7 +204,9 @@ def run_bulk_replay_delete_job(
             delete_matched_rows(job.project_id, results["rows"])
             if has_seer_data:
                 delete_seer_replay_data(
-                    job.project_id, [row["replay_id"] for row in results["rows"]]
+                    job.organization_id,
+                    job.project_id,
+                    [row["replay_id"] for row in results["rows"]],
                 )
     except Exception:
         logger.exception("Bulk delete replays failed.")
