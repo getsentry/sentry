@@ -1306,15 +1306,17 @@ describe('Modals -> WidgetViewerModal', () => {
             widgetType: WidgetType.RELEASE,
           };
           await renderModal({initialData, widget: mockWidget});
+          await waitFor(() => {
+            expect(metricsMock).toHaveBeenCalledWith(
+              '/organizations/org-slug/metrics/data/',
+              expect.objectContaining({
+                query: expect.objectContaining({
+                  groupBy: ['release'],
+                }),
+              })
+            );
+          });
           expect(await screen.findByText('release')).toBeInTheDocument();
-          expect(metricsMock).toHaveBeenCalledWith(
-            '/organizations/org-slug/metrics/data/',
-            expect.objectContaining({
-              query: expect.objectContaining({
-                groupBy: ['release'],
-              }),
-            })
-          );
         });
       }
     );
