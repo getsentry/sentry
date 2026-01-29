@@ -41,30 +41,6 @@ import SetupDocs from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 import TargetedOnboardingWelcome from './welcome';
 
-function WelcomeStep(props: StepProps) {
-  const organization = useOrganization();
-  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
-
-  if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
-
-  return <TargetedOnboardingWelcome {...props} />;
-}
-
-function ContainerVariable(
-  props: PropsWithChildren<{hasFooter: boolean; id: OnboardingStepId}>
-) {
-  const organization = useOrganization();
-  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
-
-  if (hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME)
-    return (
-      <ContainerNewWelcomeUI hasFooter={props.hasFooter}>
-        {props.children}
-      </ContainerNewWelcomeUI>
-    );
-  return <Container hasFooter={props.hasFooter}>{props.children}</Container>;
-}
-
 export const onboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
@@ -88,6 +64,57 @@ export const onboardingSteps: StepDescriptor[] = [
   },
 ];
 
+function WelcomeStep(props: StepProps) {
+  const organization = useOrganization();
+  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
+
+  if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
+
+  return <TargetedOnboardingWelcome {...props} />;
+}
+
+function ContainerVariable(
+  props: PropsWithChildren<{
+    hasFooter: boolean;
+    hasNewWelcomeUI: boolean;
+    id: OnboardingStepId;
+  }>
+) {
+  const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
+  const Component = newWelcomeUIStep ? ContainerNewWelcomeUI : Container;
+
+  return (
+    <Component hasFooter={props.hasFooter || newWelcomeUIStep}>
+      {props.children}
+    </Component>
+  );
+}
+
+function OnboardingStepVariable(
+  props: PropsWithChildren<{hasNewWelcomeUI: boolean; id: OnboardingStepId}>
+) {
+  const Component =
+    props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME
+      ? OnboardingStepNewUi
+      : OnboardingStep;
+
+  return (
+    <Component
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={{animate: {}}}
+      transition={testableTransition({
+        staggerChildren: 0.2,
+      })}
+      key={props.id}
+      data-test-id={`onboarding-step-${props.id}`}
+    >
+      {props.children}
+    </Component>
+  );
+}
+
 export function OnboardingWithoutContext() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -95,6 +122,8 @@ export function OnboardingWithoutContext() {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
+
+  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -250,7 +279,11 @@ export function OnboardingWithoutContext() {
           />
         </UpsellWrapper>
       </Header>
-      <ContainerVariable hasFooter={containerHasFooter} id={stepObj.id}>
+      <ContainerVariable
+        hasFooter={containerHasFooter}
+        id={stepObj.id}
+        hasNewWelcomeUI={hasNewWelcomeUI}
+      >
         {stepIndex > 0 && (
           <BackMotionDiv
             initial="initial"
@@ -277,17 +310,7 @@ export function OnboardingWithoutContext() {
           </BackMotionDiv>
         )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
-          <OnboardingStep
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={{animate: {}}}
-            transition={testableTransition({
-              staggerChildren: 0.2,
-            })}
-            key={stepObj.id}
-            data-test-id={`onboarding-step-${stepObj.id}`}
-          >
+          <OnboardingStepVariable id={stepObj.id} hasNewWelcomeUI={hasNewWelcomeUI}>
             {stepObj.Component && (
               <stepObj.Component
                 data-test-id={`onboarding-step-${stepObj.id}`}
@@ -301,7 +324,7 @@ export function OnboardingWithoutContext() {
                 genSkipOnboardingLink={genSkipOnboardingLink}
               />
             )}
-          </OnboardingStep>
+          </OnboardingStepVariable>
         </AnimatePresence>
         <AdaptivePageCorners
           // Controls the current corner variant
@@ -324,13 +347,13 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${space(3)};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};
-  margin-bottom: ${p => p.hasFooter && '72px'};
 `;
 
 const Container = styled('div')<{hasFooter: boolean}>`
@@ -371,6 +394,13 @@ const OnboardingStep = styled(motion.div)`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+`;
+
+const OnboardingStepNewUi = styled(motion.div)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const AdaptivePageCorners = styled(PageCorners)`
