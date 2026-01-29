@@ -14,10 +14,10 @@ class MockCachePayload(TypedDict):
 class SeerOperatorAutofixCacheTest(TestCase):
     def setUp(self):
         self.entrypoint_key = str(SeerEntrypointKey.SLACK)
-        self.pre_cache_key = SeerOperatorAutofixCache.get_pre_autofix_cache_key(
+        self.pre_cache_key = SeerOperatorAutofixCache._get_pre_autofix_cache_key(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID
         )
-        self.post_cache_key = SeerOperatorAutofixCache.get_post_autofix_cache_key(
+        self.post_cache_key = SeerOperatorAutofixCache._get_post_autofix_cache_key(
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
@@ -66,7 +66,7 @@ class SeerOperatorAutofixCacheTest(TestCase):
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         mock_cache_get.return_value = pre_cache_payload
 
-        result = SeerOperatorAutofixCache.get_pre_autofix_cache(
+        result = SeerOperatorAutofixCache._get_pre_autofix_cache(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID
         )
 
@@ -80,7 +80,7 @@ class SeerOperatorAutofixCacheTest(TestCase):
     def test_get_pre_autofix_cache_miss(self, mock_cache_get):
         mock_cache_get.return_value = None
 
-        result = SeerOperatorAutofixCache.get_pre_autofix_cache(
+        result = SeerOperatorAutofixCache._get_pre_autofix_cache(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID
         )
 
@@ -91,7 +91,7 @@ class SeerOperatorAutofixCacheTest(TestCase):
         post_cache_payload = MockCachePayload(thread_id="post_cache_payload")
         mock_cache_get.return_value = post_cache_payload
 
-        result = SeerOperatorAutofixCache.get_post_autofix_cache(
+        result = SeerOperatorAutofixCache._get_post_autofix_cache(
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
@@ -105,7 +105,7 @@ class SeerOperatorAutofixCacheTest(TestCase):
     def test_get_post_autofix_cache_miss(self, mock_cache_get):
         mock_cache_get.return_value = None
 
-        result = SeerOperatorAutofixCache.get_post_autofix_cache(
+        result = SeerOperatorAutofixCache._get_post_autofix_cache(
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
@@ -160,10 +160,10 @@ class SeerOperatorAutofixCacheTest(TestCase):
 class SeerOperatorAutofixCacheMigrateTest(TestCase):
     def setUp(self):
         self.entrypoint_key = str(SeerEntrypointKey.SLACK)
-        self.pre_cache_key = SeerOperatorAutofixCache.get_pre_autofix_cache_key(
+        self.pre_cache_key = SeerOperatorAutofixCache._get_pre_autofix_cache_key(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID
         )
-        self.post_cache_key = SeerOperatorAutofixCache.get_post_autofix_cache_key(
+        self.post_cache_key = SeerOperatorAutofixCache._get_post_autofix_cache_key(
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
