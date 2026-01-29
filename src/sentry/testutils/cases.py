@@ -143,6 +143,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.pytest.selenium import Browser
 from sentry.uptime.types import IncidentStatus
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -156,7 +157,6 @@ from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
-from tests.sentry.uptime.test_utils import MOCK_ASSERTION_FAILURE_DATA
 
 from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (

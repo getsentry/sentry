@@ -5,6 +5,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.uptime.consumers.eap_converter import (
     _anyvalue,
     convert_uptime_request_to_trace_item,
@@ -13,7 +14,6 @@ from sentry.uptime.consumers.eap_converter import (
 )
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
-from tests.sentry.uptime.test_utils import MOCK_ASSERTION_FAILURE_DATA
 
 
 class TestHelperFunctions(TestCase):

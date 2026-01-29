@@ -4,21 +4,6 @@ from sentry.uptime.utils import (
     generate_scheduled_check_times_ms,
 )
 
-MOCK_ASSERTION_FAILURE_DATA = {
-    "root": {
-        "op": "and",
-        "children": [
-            {
-                "op": "not",
-                "operand": {
-                    "op": "json_path",
-                    "value": '$.components[?@.status == "operational"]',
-                },
-            }
-        ],
-    }
-}
-
 
 class TestGenerateScheduledCheckTimesMs:
     def test_forward_single(self):

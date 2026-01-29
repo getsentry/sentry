@@ -18,6 +18,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.uptime.grouptype import (
     UptimeDetectorHandler,
     UptimeDomainCheckFailure,
@@ -33,7 +34,6 @@ from sentry.utils import json
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
-from tests.sentry.uptime.test_utils import MOCK_ASSERTION_FAILURE_DATA
 
 
 class ResolveUptimeIssueTest(UptimeTestCase):
