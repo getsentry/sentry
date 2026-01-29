@@ -5,7 +5,7 @@ import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
@@ -193,6 +193,7 @@ export function useMobileAppSizeSeriesQuery(
 
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
+    const timeseriesResultsUnits: Record<string, DataUnit> = {};
     const rawData: MobileAppSizeSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
@@ -221,6 +222,15 @@ export function useMobileAppSizeSeriesQuery(
       if (resultTypes) {
         Object.assign(timeseriesResultsTypes, resultTypes);
       }
+
+      const resultUnits = MobileAppSizeConfig.getSeriesResultUnit?.(
+        responseData,
+        filteredWidget.queries[requestIndex]!
+      );
+
+      if (resultUnits) {
+        Object.assign(timeseriesResultsUnits, resultUnits);
+      }
     });
 
     let finalRawData = rawData;
@@ -240,6 +250,7 @@ export function useMobileAppSizeSeriesQuery(
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
+      timeseriesResultsUnits,
       rawData: finalRawData,
     };
   })();
