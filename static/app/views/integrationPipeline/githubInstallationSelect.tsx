@@ -6,7 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {BaseAvatar} from 'sentry/components/core/avatar';
+import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
@@ -23,6 +23,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 type Installation = {
   avatar_url: string;
+  count: number;
   github_account: string;
   installation_id: string;
 };
@@ -75,7 +76,12 @@ export function GithubInstallationSelect({
   const source = 'github.multi_org';
 
   const doesntRequireUpgrade = (id: SelectKey): boolean => {
-    return hasSCMMultiOrg || isSelfHosted || id === '-1';
+    return (
+      hasSCMMultiOrg ||
+      isSelfHosted ||
+      id === '-1' ||
+      installation_info.find(i => i.installation_id === id)?.count === 0
+    );
   };
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
@@ -190,7 +196,11 @@ export function GithubInstallationSelect({
         <Stack alignSelf="flex-end" paddingTop="xl">
           {organization.features.includes('github-multi-org-upsell-modal') ? (
             <InstallButtonHook
-              hasSCMMultiOrg={hasSCMMultiOrg}
+              hasSCMMultiOrg={
+                hasSCMMultiOrg ||
+                installation_info.find(i => i.installation_id === installationID)
+                  ?.count === 0
+              }
               installationID={installationID}
               isSaving={isSaving}
               handleSubmit={handleSubmit}
