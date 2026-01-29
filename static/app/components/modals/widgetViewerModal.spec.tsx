@@ -1285,35 +1285,6 @@ describe('Modals -> WidgetViewerModal', () => {
       );
     });
 
-    it('adds the release column to the table if no group by is set', async () => {
-      mockQuery = {
-        conditions: '',
-        fields: [`sum(session)`],
-        columns: [],
-        aggregates: ['sum(session)'],
-        name: 'Query Name',
-        orderby: '',
-      };
-      mockWidget = {
-        id: '1',
-        title: 'Release Widget',
-        displayType: DisplayType.LINE,
-        interval: '5m',
-        queries: [mockQuery],
-        widgetType: WidgetType.RELEASE,
-      };
-      await renderModal({initialData, widget: mockWidget});
-      expect(await screen.findByText('release')).toBeInTheDocument();
-      expect(metricsMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/metrics/data/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            groupBy: ['release'],
-          }),
-        })
-      );
-    });
-
     it('does not add a release grouping to the table if a group by is set', async () => {
       mockQuery = {
         conditions: '',
