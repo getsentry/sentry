@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
-import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
+import {parseAsArrayOf, parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -17,6 +17,15 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
+
+/**
+ * Hook to read agent filters from URL. Use this to get the selected agents
+ * in any component that needs to filter by agents.
+ */
+export function useAgentFilters(): string[] {
+  const [agentFilters] = useQueryState(AGENT_URL_PARAM, parseAsArrayOf(parseAsString));
+  return agentFilters ?? [];
+}
 
 export function AgentSelector() {
   const organization = useOrganization();

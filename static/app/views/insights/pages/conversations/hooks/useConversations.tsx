@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -8,6 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {useAgentFilters} from 'sentry/views/insights/pages/conversations/components/agentSelector';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export interface ConversationUser {
@@ -41,10 +41,10 @@ export function useConversations() {
   const organization = useOrganization();
   const {cursor, setCursor} = useTableCursor();
   const pageFilters = usePageFilters();
-  const [agentFilters] = useQueryState('agent', parseAsArrayOf(parseAsString));
+  const agentFilters = useAgentFilters();
 
   const agentQuery =
-    agentFilters && agentFilters.length > 0
+    agentFilters.length > 0
       ? `${SpanFields.GEN_AI_AGENT_NAME}:[${agentFilters.map(a => `"${a}"`).join(',')}]`
       : '';
   const combinedQuery = useCombinedQuery(agentQuery) || undefined;
