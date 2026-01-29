@@ -195,7 +195,7 @@ def _trigger_autofix_task(
         if run_id and features.has(
             "organizations:seer-slack-workflows", group.project.organization
         ):
-            SeerOperator.migrate_autofix_cache(group_id=group_id, run_id=run_id)
+            SeerOperator.autofix_cache.migrate(from_group_id=group_id, to_run_id=run_id)
 
 
 def _get_event(
