@@ -1,5 +1,5 @@
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/types';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleCountCategoricalData: CategoricalSeries = {
   yAxis: 'count()',

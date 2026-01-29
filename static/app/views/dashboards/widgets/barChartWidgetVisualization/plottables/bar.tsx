@@ -3,14 +3,14 @@ import type {Theme} from '@emotion/react';
 import Color from 'color';
 import type {BarSeriesOption} from 'echarts';
 
-import barCategoricalSeries from 'sentry/components/charts/series/barCategorical';
+import barCategoricalSeries from 'sentry/components/charts/categorical/barCategorical';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import type {
   CategoricalItem,
   CategoricalSeries,
   CategoricalValueType,
-} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/types';
+} from 'sentry/views/dashboards/widgets/common/types';
 
 export interface BarConfig {
   /**

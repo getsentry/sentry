@@ -7,7 +7,7 @@ import {
   sampleStackedCategoricalData,
 } from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/sampleCountCategoricalData';
 import {Bar} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables/bar';
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/types';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 describe('BarChartWidgetVisualization', () => {
   beforeEach(() => {
@@ -34,8 +34,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0]!),
-            new Bar(sampleStackedCategoricalData[1]!),
+            new Bar(sampleStackedCategoricalData[0]),
+            new Bar(sampleStackedCategoricalData[1]),
           ]}
         />
       );
@@ -48,8 +48,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0]!, {stack: 'all'}),
-            new Bar(sampleStackedCategoricalData[1]!, {stack: 'all'}),
+            new Bar(sampleStackedCategoricalData[0], {stack: 'all'}),
+            new Bar(sampleStackedCategoricalData[1], {stack: 'all'}),
           ]}
         />
       );
@@ -123,8 +123,8 @@ describe('BarChartWidgetVisualization', () => {
       render(
         <BarChartWidgetVisualization
           plottables={[
-            new Bar(sampleStackedCategoricalData[0]!),
-            new Bar(sampleStackedCategoricalData[1]!),
+            new Bar(sampleStackedCategoricalData[0]),
+            new Bar(sampleStackedCategoricalData[1]),
           ]}
           showLegend="never"
         />

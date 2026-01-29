@@ -31,13 +31,15 @@ import {
   X_GUTTER,
   Y_GUTTER,
 } from 'sentry/views/dashboards/widgets/common/settings';
-import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  CategoricalItem,
+  LegendSelection,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
 import type {BarPlottable} from './plottables/bar';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
-import type {CategoricalItem} from './types';
 
 /**
  * Event data passed to the onBarClick callback.
