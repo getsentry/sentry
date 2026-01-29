@@ -192,34 +192,48 @@ export function NewWelcomeUI(props: StepProps) {
           </Text>
         </Flex>
 
-        <SeerCard border="muted" radius="lg" padding="xl">
-          <Flex direction="column" gap="md" flex="1">
-            <IconSeer legacySize="16px" variant="secondary" />
-            <Flex direction="column" gap="xs">
-              <Flex gap="sm" align="center">
-                <Text bold size="lg" density="comfortable">
-                  {t('Seer: AI Debugging Agent')}
-                </Text>
-                <FeatureBadge type="new" tooltipProps={{disabled: true}} />
-              </Flex>
-              <Text variant="muted" wrap="pre-line" density="comfortable">
-                {t(
-                  "Analyze issues, review PRs, and propose code fixes.\nBecause of course we have an AI tool, it's 2026."
-                )}
-              </Text>
+        <Container border="muted" radius="lg" padding="xl" overflow="hidden">
+          <Flex>
+            <Flex flex="1">
+              <Grid
+                columns="min-content 1fr"
+                rows="min-content min-content"
+                gap="xs lg"
+                align="center"
+                areas={`"cell1 cell2"
+                ". cell4"`}
+              >
+                <Flex area="cell1" align="center">
+                  <IconSeer legacySize="16px" variant="secondary" />
+                </Flex>
 
-              <Flex gap="xs" align="center">
-                <IconInfo size="xs" />
-                <Text variant="muted" size="xs" density="comfortable">
-                  {t('Requires additional setup')}
-                </Text>
-              </Flex>
+                <Flex gap="sm" align="center" area="cell2">
+                  <Text bold size="lg" density="comfortable">
+                    {t('Seer: AI Debugging Agent')}
+                  </Text>
+                  <FeatureBadge type="new" tooltipProps={{disabled: true}} />
+                </Flex>
+
+                <Stack gap="xl" area="cell4">
+                  <Text variant="muted" wrap="pre-line" density="comfortable">
+                    {t('Analyze issues, review PRs, and propose code fixes.')}
+                  </Text>
+
+                  <Flex gap="xs" align="center">
+                    <IconInfo size="xs" />
+                    <Text variant="muted" size="xs" density="comfortable">
+                      {t('Requires additional setup')}
+                    </Text>
+                  </Flex>
+                </Stack>
+              </Grid>
             </Flex>
+
+            <SeerIllustrationWrapper>
+              <img src={SeerIllustration} alt="" />
+            </SeerIllustrationWrapper>
           </Flex>
-          <SeerIllustrationWrapper>
-            <img src={SeerIllustration} alt="" />
-          </SeerIllustrationWrapper>
-        </SeerCard>
+        </Container>
 
         <Text variant="muted" bold>
           {t(
@@ -229,7 +243,7 @@ export function NewWelcomeUI(props: StepProps) {
       </ContentWrapper>
       <GenericFooter>
         {props.genSkipOnboardingLink()}
-        <Flex align="center" padding="none lg" style={{marginLeft: 'auto'}}>
+        <Flex align="center" padding="0 lg">
           <Button
             priority="primary"
             onClick={handleComplete}
@@ -262,20 +276,15 @@ const ContentWrapper = styled(motion.div)`
   gap: ${space(2)};
 `;
 
-const SeerCard = styled(Container)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(2)};
-  overflow: hidden;
-`;
-
 const SeerIllustrationWrapper = styled('div')`
   flex-shrink: 0;
+  margin-top: -20px;
+  margin-bottom: -40px;
+  margin-right: -10px;
 
   img {
     display: block;
-    max-height: 140px;
+    max-height: 120px;
     width: auto;
   }
 
