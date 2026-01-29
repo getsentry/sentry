@@ -33,7 +33,10 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import {isSizeInfoCompleted} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  BuildDetailsSizeAnalysisState,
+  isSizeInfoCompleted,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
@@ -122,6 +125,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   }
 
   const areActionsEnabled = isSizeInfoCompleted(buildDetailsData?.size_info);
+  const canRerunStatusChecks =
+    areActionsEnabled ||
+    buildDetailsData?.size_info?.state === BuildDetailsSizeAnalysisState.FAILED;
 
   const handleCompareClick = () => {
     if (!areActionsEnabled) {
@@ -220,8 +226,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                   ),
                   onAction: handleRerunStatusChecksAction,
                   textValue: t('Rerun Status Checks'),
-                  disabled: !areActionsEnabled,
-                  tooltip: areActionsEnabled
+                  disabled: !canRerunStatusChecks,
+                  tooltip: canRerunStatusChecks
                     ? undefined
                     : t('Size analysis must be completed to rerun status checks'),
                 },
