@@ -155,11 +155,11 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
                 size="xs"
                 style={{marginLeft: space(1)}}
               />
-              <EventDetails>
+              <Flex justify="between" padding="md">
                 <Text size="md" data-issue-title-primary>
                   {latestEvent.title}
                 </Text>
-              </EventDetails>
+              </Flex>
             </Flex>
           ) : null}
         </MergedEventList>
@@ -203,12 +203,6 @@ const MergedEventList = styled('div')`
   overflow: hidden;
   border: none;
   background-color: ${p => p.theme.tokens.background.primary};
-`;
-
-const EventDetails = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: ${space(1)};
 `;
 
 export default MergedItem;

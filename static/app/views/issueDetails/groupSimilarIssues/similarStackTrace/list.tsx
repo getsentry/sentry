@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -9,7 +10,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import SimilarSpectrum from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -69,7 +69,7 @@ function List({
 
   return (
     <Fragment>
-      <Header>
+      <Flex justify="end" marginBottom="md">
         {!hasSimilarityEmbeddingsFeature && (
           <SimilarSpectrum
             highSpectrumLabel={t('Similar')}
@@ -82,7 +82,7 @@ function List({
             lowSpectrumLabel={t('Less Similar')}
           />
         )}
-      </Header>
+      </Flex>
       <Panel>
         <Toolbar
           onMerge={onMerge}
@@ -105,11 +105,11 @@ function List({
           ))}
 
           {hasHiddenItems && !showAllItems && !hasSimilarityEmbeddingsFeature && (
-            <Footer>
+            <Flex justify="center" padding="lg">
               <Button onClick={() => setShowAllItems(true)}>
                 {t('Show %s issues below threshold', filteredItems.length)}
               </Button>
-            </Footer>
+            </Flex>
           )}
         </PanelBody>
       </Panel>
@@ -119,15 +119,3 @@ function List({
 }
 
 export default List;
-
-const Header = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: ${space(1)};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(1.5)};
-`;

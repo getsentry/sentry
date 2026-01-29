@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -156,7 +158,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
             </Fragment>
           )}
           {items.map((item, index) => (
-            <IconContainer key={index}>
+            <Flex align="center" flexShrink={0} gap="md" minHeight="24px" key={index}>
               <IconWrapper>{item.icon}</IconWrapper>
               <IconDescription>
                 <div>{item.title}</div>
@@ -166,7 +168,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
                   </IconSubtitle>
                 )}
               </IconDescription>
-            </IconContainer>
+            </Flex>
           ))}
           {projectSlug && projectId && (
             <ReleaseHighlight
@@ -200,7 +202,7 @@ function ReleaseHighlight({
   }
 
   return (
-    <IconContainer key="release">
+    <Flex align="center" flexShrink={0} gap="md" minHeight="24px" key="release">
       <IconWrapper>
         <IconReleases size="sm" variant="muted" />
       </IconWrapper>
@@ -213,7 +215,7 @@ function ReleaseHighlight({
           <StyledVersion version={releaseTag.value} projectId={projectId} />
         </VersionHoverCard>
       </IconDescription>
-    </IconContainer>
+    </Flex>
   );
 }
 
@@ -223,28 +225,20 @@ function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag | unde
   }
 
   return (
-    <IconContainer key="environment">
+    <Flex align="center" flexShrink={0} gap="md" minHeight="24px" key="environment">
       <IconWrapper>
         <IconWindow size="sm" variant="muted" />
       </IconWrapper>
       <IconDescription aria-label={t('Event environment')}>
         <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
       </IconDescription>
-    </IconContainer>
+    </Flex>
   );
 }
 
 const IconBar = styled('div')`
   position: relative;
   padding: 0;
-`;
-
-const IconContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-shrink: 0;
-  min-height: 24px;
 `;
 
 const IconDescription = styled('div')`
