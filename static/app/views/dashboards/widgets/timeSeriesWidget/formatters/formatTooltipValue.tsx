@@ -1,7 +1,11 @@
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {DurationUnit, SizeUnit, type RateUnit} from 'sentry/utils/discover/fields';
+import {
+  ABYTE_UNITS,
+  DurationUnit,
+  SizeUnit,
+  type RateUnit,
+} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatDollars, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';

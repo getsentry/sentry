@@ -9,7 +9,7 @@ import {
   tooltipFormatter,
   tooltipFormatterUsingAggregateOutputType,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, SizeUnit} from 'sentry/utils/discover/fields';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
 import {categorizeDuration} from './categorizeDuration';
@@ -50,6 +50,15 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
         scenario[2]
       );
     }
+  });
+
+  it('formats size with base 10 when unit is a decimal byte unit', () => {
+    expect(
+      tooltipFormatterUsingAggregateOutputType(50 * 1000 * 1000, 'size', SizeUnit.BYTE)
+    ).toBe('50 MB');
+    expect(tooltipFormatterUsingAggregateOutputType(1000, 'size', SizeUnit.BYTE)).toBe(
+      '1 KB'
+    );
   });
 });
 
@@ -120,6 +129,31 @@ describe('axisLabelFormatterUsingAggregateOutputType()', () => {
         axisLabelFormatterUsingAggregateOutputType(scenario[1], scenario[0])
       ).toEqual(scenario[2]);
     }
+  });
+
+  it('formats size with base 10 when unit is a decimal byte unit', () => {
+    expect(
+      axisLabelFormatterUsingAggregateOutputType(
+        50 * 1000 * 1000,
+        'size',
+        false,
+        undefined,
+        undefined,
+        0,
+        SizeUnit.BYTE
+      )
+    ).toBe('50 MB');
+    expect(
+      axisLabelFormatterUsingAggregateOutputType(
+        1000,
+        'size',
+        false,
+        undefined,
+        undefined,
+        0,
+        SizeUnit.BYTE
+      )
+    ).toBe('1 KB');
   });
 });
 
