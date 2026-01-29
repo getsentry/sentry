@@ -9,8 +9,6 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -1258,12 +1256,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
             <ContentIndent>
               <ConditionsPanel>
                 <PanelBody>
-                  <Flex align="start" margin="3xl 3xl 2xl md" position="relative">
+                  <Step>
                     <StepConnector />
-                    <Flex align="start" flexGrow={1} position="relative">
-                      <Flex align="center" padding="xs lg">
+                    <StepContainer>
+                      <ChevronContainer>
                         <IconChevron variant="muted" direction="right" size="sm" />
-                      </Flex>
+                      </ChevronContainer>
                       <StepContent>
                         <StepLead>
                           {tct(
@@ -1339,16 +1337,16 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           }
                         />
                       </StepContent>
-                    </Flex>
-                  </Flex>
+                    </StepContainer>
+                  </Step>
 
-                  <Flex align="start" margin="3xl 3xl 2xl md" position="relative">
+                  <Step>
                     <StepConnector />
 
-                    <Flex align="start" flexGrow={1} position="relative">
-                      <Flex align="center" padding="xs lg">
+                    <StepContainer>
+                      <ChevronContainer>
                         <IconChevron variant="muted" direction="right" size="sm" />
-                      </Flex>
+                      </ChevronContainer>
 
                       <StepContent data-test-id="rule-filters">
                         <StepLead>
@@ -1412,14 +1410,14 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           projectSlug={this.state.project.slug}
                         />
                       </StepContent>
-                    </Flex>
-                  </Flex>
+                    </StepContainer>
+                  </Step>
 
-                  <Flex align="start" margin="3xl 3xl 2xl md" position="relative">
-                    <Flex align="start" flexGrow={1} position="relative">
-                      <Flex align="center" padding="xs lg">
+                  <Step>
+                    <StepContainer>
+                      <ChevronContainer>
                         <IconChevron variant="muted" direction="right" size="sm" />
-                      </Flex>
+                      </ChevronContainer>
                       <StepContent>
                         <StepLead>
                           {tct('[then:Then] perform these actions', {
@@ -1470,8 +1468,8 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           </Button>
                         </TestButtonWrapper>
                       </StepContent>
-                    </Flex>
-                  </Flex>
+                    </StepContainer>
+                  </Step>
                 </PanelBody>
               </ConditionsPanel>
             </ContentIndent>
@@ -1633,8 +1631,22 @@ const SetConditionsListItem = styled(StyledListItem)`
   justify-content: space-between;
 `;
 
+const Step = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  margin: ${space(4)} ${space(4)} ${space(3)} ${space(1)};
+`;
+
 const StepHeader = styled('h5')`
   margin-bottom: ${space(1)};
+`;
+
+const StepContainer = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex-grow: 1;
 `;
 
 const StepContent = styled('div')`
@@ -1658,6 +1670,12 @@ const StepLead = styled('div')`
 
 const TestButtonWrapper = styled('div')`
   margin-top: ${space(1.5)};
+`;
+
+const ChevronContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(1.5)};
 `;
 
 const Badge = styled('span')`
