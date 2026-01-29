@@ -114,10 +114,20 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         for repo_data in serializer.validated_data.get("repositories", []):
             provider = repo_data.get("provider")
             external_id = repo_data.get("external_id")
+            repo_org_id = repo_data.get("organization_id")
+            owner = repo_data.get("owner")
+            name = repo_data.get("name")
+
+            if repo_org_id is not None and repo_org_id != project.organization.id:
+                return Response({"detail": "Invalid repository"}, status=400)
+
+            repo_data["organization_id"] = project.organization.id
+
             repo_exists = Repository.objects.filter(
                 Q(provider=provider) | Q(provider=f"integrations:{provider}"),
                 organization_id=project.organization.id,
                 external_id=external_id,
+                name=f"{owner}/{name}",
                 status=ObjectStatus.ACTIVE,
             ).exists()
 
@@ -129,7 +139,6 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             {
                 "preference": SeerProjectPreference.validate(
                     {
-                        # TODO: this should allow passing a partial preference object, upserting the rest.
                         **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,
