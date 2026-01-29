@@ -15,6 +15,7 @@ from .comment_webhooks import *  # noqa: F401,F403
 from .cron_monitor_broken_status_recovery import *  # noqa: F401,F403
 from .cron_monitor_created import *  # noqa: F401,F403
 from .data_consent_org_creation import *  # noqa: F401,F403
+from .event_processing_error_recorded import *  # noqa: F401,F403
 from .eventuser_endpoint_request import *  # noqa: F401,F403
 from .eventuser_equality_check import *  # noqa: F401,F403
 from .eventuser_snuba_for_projects import *  # noqa: F401,F403
