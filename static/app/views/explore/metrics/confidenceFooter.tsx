@@ -102,9 +102,9 @@ function ConfidenceMessage({
 
     const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
       rawMetricCounts.highAccuracy.count > 1 ? (
-        t('%s samples', <Count value={rawMetricCounts.highAccuracy.count} />)
+        t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
       ) : (
-        t('%s sample', <Count value={rawMetricCounts.highAccuracy.count} />)
+        t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
       )
     ) : (
       <Placeholder width={40} />
