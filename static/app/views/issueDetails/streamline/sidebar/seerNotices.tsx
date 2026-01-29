@@ -8,7 +8,7 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -248,9 +248,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                 title={t('Set Up the GitHub Integration')}
                 isCompleted={!needsGithubIntegration}
               >
-                <Flex justify="between" align="center" gap="2xl" width="100%">
-                  <Stack flex="0 0 75%" gap="xl" minWidth="0">
-                    <Stack gap="md">
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
                       <span>
                         {tct(
                           'Seer is [bold:a lot better] when it has your codebase as context.',
@@ -287,15 +287,15 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           }
                         )}
                       </span>
-                    </Stack>
-                  </Stack>
-                  <Flex justify="end" align="end" flexGrow={1}>
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
                     <CardIllustration
                       src={addIntegrationProvider}
                       alt="Add Integration"
                     />
-                  </Flex>
-                </Flex>
+                  </StepImageCol>
+                </StepContentRow>
                 <CustomStepButtons
                   showBack={false}
                   showNext={firstIncompleteIdx !== 0}
@@ -318,9 +318,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                 title={t('Pick Repositories to Work In')}
                 isCompleted={!needsRepoSelection}
               >
-                <Flex justify="between" align="center" gap="2xl" width="100%">
-                  <Stack flex="0 0 75%" gap="xl" minWidth="0">
-                    <Stack gap="md">
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
                       <span>
                         {t('Select the repos Seer can explore in this project.')}
                       </span>
@@ -329,12 +329,12 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           'You can also configure working branches and custom instructions so Seer fits your unique workflow.'
                         )}
                       </span>
-                    </Stack>
-                  </Stack>
-                  <Flex justify="end" align="end" flexGrow={1}>
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
                     <CardIllustration src={onboardingCompass} alt="Compass" />
-                  </Flex>
-                </Flex>
+                  </StepImageCol>
+                </StepContentRow>
                 <CustomStepButtons
                   showBack={firstIncompleteIdx !== 1}
                   showNext={lastIncompleteIdx !== 1}
@@ -358,20 +358,20 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                 title={t('Unleash Automation')}
                 isCompleted={!needsAutomation}
               >
-                <Flex justify="between" align="center" gap="2xl" width="100%">
-                  <Stack flex="0 0 75%" gap="xl" minWidth="0">
-                    <Stack gap="md">
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
                       <span>
                         {t(
                           'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
                         )}
                       </span>
-                    </Stack>
-                  </Stack>
-                  <Flex justify="end" align="end" flexGrow={1}>
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
                     <CardIllustration src={waitingForEventImg} alt="Waiting for Event" />
-                  </Flex>
-                </Flex>
+                  </StepImageCol>
+                </StepContentRow>
                 <CustomStepButtons
                   showBack={firstIncompleteIdx !== 2}
                   showNext={lastIncompleteIdx !== 2}
@@ -396,9 +396,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   title={t('Get Some Quick Wins')}
                   isCompleted={!needsFixabilityView}
                 >
-                  <Flex justify="between" align="center" gap="2xl" width="100%">
-                    <Stack flex="0 0 75%" gap="xl" minWidth="0">
-                      <Stack gap="md">
+                  <StepContentRow>
+                    <StepTextCol>
+                      <CardDescription>
                         <span>
                           {t(
                             'Seer scans all your issues and highlights the ones that are likely quick to fix.'
@@ -409,12 +409,12 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                             'Star the recommended issue view to keep an eye on quick debugging opportunities. You can customize the view later.'
                           )}
                         </span>
-                      </Stack>
-                    </Stack>
-                    <Flex justify="end" align="end" flexGrow={1}>
+                      </CardDescription>
+                    </StepTextCol>
+                    <StepImageCol>
                       <CardIllustration src={feedbackOnboardingImg} alt="Feedback" />
-                    </Flex>
-                  </Flex>
+                    </StepImageCol>
+                  </StepContentRow>
                   <CustomStepButtons
                     showBack={firstIncompleteIdx !== 3}
                     showNext={lastIncompleteIdx !== 3}
@@ -444,9 +444,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   }
                   isCompleted={!needsCursorIntegration}
                 >
-                  <Flex justify="between" align="center" gap="2xl" width="100%">
-                    <Stack flex="0 0 75%" gap="xl" minWidth="0">
-                      <Stack gap="md">
+                  <StepContentRow>
+                    <StepTextCol>
+                      <CardDescription>
                         {cursorIntegration ? (
                           <Fragment>
                             <span>
@@ -492,15 +492,15 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                             </span>
                           </Fragment>
                         )}
-                      </Stack>
-                    </Stack>
-                    <Flex justify="end" align="end" flexGrow={1}>
+                      </CardDescription>
+                    </StepTextCol>
+                    <StepImageCol>
                       <CursorCardIllustration
                         src={alertsEmptyStateImg}
                         alt="Cursor Integration"
                       />
-                    </Flex>
-                  </Flex>
+                    </StepImageCol>
+                  </StepContentRow>
                   <CustomStepButtons
                     showBack={firstIncompleteIdx !== 4}
                     showNext={false}
@@ -590,6 +590,14 @@ const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};
 `;
 
+function CardDescription(props: StackProps) {
+  return (
+    <Stack gap="md" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
+
 const CardIllustration = styled('img')`
   width: 100%;
   max-width: 200px;
@@ -607,6 +615,30 @@ const CursorCardIllustration = styled(CardIllustration)`
 const CursorPluginIcon = styled('div')`
   transform: translateY(3px);
 `;
+
+function StepContentRow(props: FlexProps) {
+  return (
+    <Flex justify="between" align="center" gap="2xl" width="100%" {...props}>
+      {props.children}
+    </Flex>
+  );
+}
+
+function StepTextCol(props: StackProps) {
+  return (
+    <Stack flex="0 0 75%" gap="xl" minWidth="0" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
+
+function StepImageCol(props: FlexProps) {
+  return (
+    <Flex align="end" justify="end" flexGrow={1} {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
 const StepsHeader = styled('h3')`
   display: flex;
