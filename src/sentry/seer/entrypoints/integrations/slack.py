@@ -417,9 +417,10 @@ def handle_prepare_autofix_update(
         entrypoint_key=str(SlackEntrypoint.key),
         group_id=group.id,
     )
-    if existing_cache and existing_cache["payload"]:
+    if existing_cache:
         threads = existing_cache["payload"].get("threads", [])
-    threads.append(incoming_thread)
+    if incoming_thread not in threads:
+        threads.append(incoming_thread)
 
     cache_payload = SlackEntrypointCachePayload(
         threads=threads,
