@@ -97,10 +97,7 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
                 return
 
             elif result["error"]["type"] == "invalid_scope":
-                credentials.message = (
-                    "Invalid OAuth scope. Please verify you are using the correct credentials "
-                    "from your PlayStation Developer Portal."
-                )
+                credentials.message = "Seems like the provided credentials have the wrong scope."
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
                 return

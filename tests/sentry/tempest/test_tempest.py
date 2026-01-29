@@ -86,8 +86,7 @@ class TempestTasksTest(TestCase):
 
         self.credentials.refresh_from_db()
         assert self.credentials.message == (
-            "Invalid OAuth scope. Please verify you are using the correct credentials "
-            "from your PlayStation Developer Portal."
+            "Seems like the provided credentials have the wrong scope."
         )
         assert self.credentials.message_type == MessageType.ERROR
         assert self.credentials.latest_fetched_item_id is None
