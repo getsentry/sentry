@@ -116,5 +116,5 @@ export const InputPathColumn = styled(Column)`
 export function ButtonWrapper(
   props: Omit<FlexProps<'span'>, 'as'> & {children?: ReactNode}
 ) {
-  return <Flex<'span'> gap="md" {...props} as="span" />;
+  return <Flex gap="md" {...props} as="span" />;
 }
