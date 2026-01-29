@@ -97,17 +97,28 @@ type ProductCardProps = {
 function ProductCard({icon, title, description}: ProductCardProps) {
   return (
     <Container border="muted" radius="lg" padding="xl">
-      <Stack gap="xl">
-        <Flex align="center">{icon}</Flex>
-        <Stack gap="xs">
+      <Grid
+        columns="min-content 1fr"
+        rows="min-content min-content"
+        gap="xs lg"
+        align="center"
+        areas={`"cell1 cell2"
+          ". cell4"`}
+      >
+        <Flex area="cell1" align="center">
+          {icon}
+        </Flex>
+        <Container area="cell2">
           <Text bold size="lg" density="comfortable">
             {title}
           </Text>
+        </Container>
+        <Container area="cell4">
           <Text variant="muted" size="md" density="comfortable">
             {description}
           </Text>
-        </Stack>
-      </Stack>
+        </Container>
+      </Grid>
     </Container>
   );
 }
@@ -144,7 +155,7 @@ export function NewWelcomeUI(props: StepProps) {
       <ContentWrapper {...fadeAway}>
         <Stack gap="2xl">
           <Flex direction="column" gap="lg" paddingBottom="2xl">
-            <NewWelcomeTitle as="h1">{t('Welcome to Sentry')}</NewWelcomeTitle>
+            <Heading as="h1">{t('Welcome to Sentry')}</Heading>
             <Text variant="muted" size="lg" bold wrap="pre-line" density="comfortable">
               {t(
                 "Your code is probably broken, and we'll help you fix it faster.\nWe're not just error monitoring anymore y'know."
@@ -249,10 +260,6 @@ const ContentWrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const NewWelcomeTitle = styled(Heading)`
-  font-size: 32px;
 `;
 
 const SeerCard = styled(Container)`
