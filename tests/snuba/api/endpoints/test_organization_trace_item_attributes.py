@@ -842,7 +842,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         span2 = self.create_span(
             {"sentry_tags": {"op": "bar"}}, start_ts=before_now(days=0, minutes=10)
         )
-        self.store_spans([span1, span2], is_eap=True)
+        self.store_spans([span1, span2])
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "span.op"})
         assert response.status_code == 200, response.content
@@ -872,7 +872,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         span2 = self.create_span(
             {"tags": {"tag.op2": "bar"}}, start_ts=before_now(days=0, minutes=10)
         )
-        self.store_spans([span1, span2], is_eap=True)
+        self.store_spans([span1, span2])
 
         all_keys: set[str] = set()
         for i in range(3):
