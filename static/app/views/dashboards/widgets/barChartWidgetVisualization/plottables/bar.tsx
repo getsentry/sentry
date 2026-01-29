@@ -1,8 +1,9 @@
 import type {Theme} from '@emotion/react';
+// eslint-disable-next-line no-restricted-imports
 import Color from 'color';
 import type {BarSeriesOption} from 'echarts';
 
-import barCategoricalSeries from 'sentry/components/charts/categorical/barCategorical';
+import barCategoricalSeries from 'sentry/components/charts/series/barCategorical';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import type {
