@@ -17,7 +17,7 @@ def has_stacktrace(event_data: Mapping[str, Any]) -> bool:
 
     Ignores empty stacktraces, and stacktraces whose frame list is empty.
     """
-    if event_data.get("stacktrace") and event_data["stacktrace"].get("frames"):
+    if get_path(event_data, "stacktrace", "frames"):
         return True
 
     # Check both exception and threads for stacktraces
@@ -31,7 +31,7 @@ def has_stacktrace(event_data: Mapping[str, Any]) -> bool:
         # Search for a stacktrace with frames, intentionally ignoring empty values because
         # they're not helpful
         for value in container.get("values", []):
-            if value.get("stacktrace", {}).get("frames"):
+            if get_path(value, "stacktrace", "frames"):
                 return True
 
     return False
