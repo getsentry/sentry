@@ -390,7 +390,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                   ...getAnalyticsDataForEvent(event),
                   streamline: false,
                 }}
-                borderless
+                priority="transparent"
                 onClick={() =>
                   copy(event.id, {
                     successMessage: t('Event ID copied to clipboard'),

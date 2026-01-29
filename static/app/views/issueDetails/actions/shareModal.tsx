@@ -214,7 +214,7 @@ export default function ShareIssueModal({
                     <ReshareButton
                       title={t('Generate new URL. Invalidates previous URL')}
                       aria-label={t('Generate new URL')}
-                      borderless
+                      priority="transparent"
                       size="sm"
                       icon={<IconRefresh />}
                       onClick={() => handlePublicShare(null, true)}

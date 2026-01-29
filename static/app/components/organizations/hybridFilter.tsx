@@ -294,7 +294,7 @@ export function HybridFilter<Value extends SelectKey>({
               {hasStagedChanges && (
                 <FooterInnerWrap>
                   <Button
-                    borderless
+                    priority="transparent"
                     size="xs"
                     onClick={() => {
                       closeOverlay();
@@ -405,7 +405,7 @@ export function HybridFilter<Value extends SelectKey>({
             closeOverlay();
           }}
           size="zero"
-          borderless
+          priority="transparent"
         >
           {t('Reset')}
         </ResetButton>
