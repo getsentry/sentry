@@ -1671,6 +1671,71 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.subscription.refresh_from_db()
         assert self.subscription.capture_response_on_failure is True
 
+    def test_response_capture_not_reenabled_when_user_disabled(self) -> None:
+        """
+        Test that capture_response_on_failure is not re-enabled on success when the user
+        has disabled response capture entirely via response_capture_enabled=False.
+        """
+        self.subscription.update(
+            response_capture_enabled=False,
+            capture_response_on_failure=False,
+        )
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics"),
+            self.feature("organizations:uptime"),
+            self.tasks(),
+        ):
+            self.send_result(result)
+
+        self.subscription.refresh_from_db()
+        assert not self.subscription.capture_response_on_failure
+
+    def test_response_capture_skipped_when_disabled_by_user(self) -> None:
+        """
+        Test that response capture is skipped when response_capture_enabled is False.
+        """
+        self.subscription.update(response_capture_enabled=False)
+
+        response_body = b"<html><body>Server Error</body></html>"
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [
+            {
+                **request_info,
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "response_headers": [
+                    ["Content-Type", "text/html"],
+                ],
+            }
+        ]
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            for call_args in metrics.incr.call_args_list:
+                assert call_args[0][0] != "uptime.response_capture.created"
+
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 0
+        )
+        assert File.objects.filter(type="uptime.response").count() == 0
+
 
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)
 class ProcessResultSerialTest(ProcessResultTest):
