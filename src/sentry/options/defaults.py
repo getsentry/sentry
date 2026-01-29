@@ -3094,6 +3094,12 @@ register(
     default=60,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enable stuck detector to log stack traces when subprocess initialization hangs
+register(
+    "spans.buffer.flusher.use-stuck-detector",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(

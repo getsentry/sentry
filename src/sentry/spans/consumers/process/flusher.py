@@ -193,6 +193,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             self._create_process_for_shards(process_index, shards)
 
     def _create_process_for_shards(self, process_index: int, shards: list[int]):
+        use_stuck_detector = options.get("spans.buffer.flusher.use-stuck-detector")
         self.process_healthy_since[process_index].value = 0
 
         logger.info("Creating flusher process %s for shards %s", process_index, shards)
@@ -209,6 +210,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 # synchronization primitives like multiprocessing.Value can
                 # only be done by the Process
                 shard_buffer,
+                use_stuck_detector=use_stuck_detector,
             )
             make_process = self.mp_context.Process
         else:
