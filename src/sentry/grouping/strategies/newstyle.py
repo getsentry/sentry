@@ -1000,12 +1000,20 @@ def kotlin_coroutine_framework_exceptions(exceptions: list[SingleException]) -> 
     if len(exceptions) < 2:
         return None
 
+    # Build a set of valid exception IDs for validation
+    valid_exception_ids = {
+        exc.mechanism.exception_id
+        for exc in exceptions
+        if exc.mechanism and exc.mechanism.exception_id is not None
+    }
+
     for exception in exceptions:
         if (
             exception.module == "kotlinx.coroutines.internal"
             and exception.type in KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES
             and exception.mechanism
             and exception.mechanism.parent_id is not None
+            and exception.mechanism.parent_id in valid_exception_ids
         ):
             # Return the parent as the main exception
             return exception.mechanism.parent_id
@@ -1027,5 +1035,5 @@ def _maybe_override_main_exception_id(event: Event, exceptions: list[SingleExcep
         if main_exception_id is not None:
             break
 
-    if main_exception_id:
+    if main_exception_id is not None:
         event.data["main_exception_id"] = main_exception_id

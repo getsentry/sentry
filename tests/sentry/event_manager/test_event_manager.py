@@ -442,6 +442,40 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
         assert "DiagnosticCoroutineContextException" in event.group.title
 
+    def test_kotlin_coroutine_diagnostic_exception_invalid_parent_id_keeps_default(self) -> None:
+        """DiagnosticCoroutineContextException with parent_id referencing non-existent exception should fall back."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "actual error",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 999,  # References non-existent exception
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        # Should fall back to default behavior (last exception) since parent_id is invalid
+        assert event.data["metadata"]["type"] == "DiagnosticCoroutineContextException"
+        assert event.group is not None
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
