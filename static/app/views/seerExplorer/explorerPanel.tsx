@@ -32,6 +32,7 @@ import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   getExplorerUrl,
   getLangfuseUrl,
+  isSeerExplorerEnabled,
   useCopySessionDataToClipboard,
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
@@ -746,7 +747,11 @@ function ExplorerPanel() {
     </PanelContainers>
   );
 
-  if (!organization?.features.includes('seer-explorer') || organization.hideAiFeatures) {
+  if (
+    !organization ||
+    organization.hideAiFeatures ||
+    !isSeerExplorerEnabled(organization)
+  ) {
     return null;
   }
 
