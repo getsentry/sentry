@@ -30,7 +30,6 @@ from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription, get_
 from sentry.uptime.subscriptions.subscriptions import resolve_uptime_issue
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.uptime.utils import build_detector_fingerprint_component, build_fingerprint
-from sentry.utils import json
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
@@ -103,11 +102,6 @@ class BuildEvidenceDisplayTest(UptimeTestCase):
         result = self.create_uptime_result()
         assert build_evidence_display(result) == [
             IssueEvidence(name="Failure reason", value="timeout - it timed out", important=True),
-            IssueEvidence(
-                name="Assertion Failure",
-                value=json.dumps(MOCK_ASSERTION_FAILURE_DATA),
-                important=False,
-            ),
             IssueEvidence(name="Duration", value="100ms", important=False),
             IssueEvidence(name="Method", value="HEAD", important=False),
             IssueEvidence(name="Status Code", value="500", important=False),
@@ -219,6 +213,36 @@ class TestUptimeHandler(UptimeTestCase):
         assert evaluation is not None
         assert isinstance(evaluation.result, IssueOccurrence)
         assert evaluation.result.evidence_data["response_capture_id"] == capture.id
+
+    def test_assertion_failure_evidence_data(self) -> None:
+        detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)
+        uptime_subscription = get_uptime_subscription(detector)
+
+        now = datetime.now()
+
+        old_time_ms = int((now - timedelta(hours=1)).timestamp() * 1000)
+        UptimeResponseCapture.objects.create(
+            uptime_subscription=uptime_subscription,
+            file_id=1,
+            scheduled_check_time_ms=old_time_ms,
+        )
+
+        self.handle_result(
+            detector,
+            uptime_subscription,
+            self.create_uptime_result(scheduled_check_time=now - timedelta(minutes=5)),
+        )
+
+        evaluation = self.handle_result(
+            detector,
+            uptime_subscription,
+            self.create_uptime_result(scheduled_check_time=now - timedelta(minutes=4)),
+        )
+        assert evaluation is not None
+        assert isinstance(evaluation.result, IssueOccurrence)
+        assert (
+            evaluation.result.evidence_data["assertion_failure_data"] == MOCK_ASSERTION_FAILURE_DATA
+        )
 
     def test_occurrence_excludes_old_response_capture(self) -> None:
         detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)
