@@ -230,12 +230,9 @@ const NewWelcomeWrapper = styled(motion.div)`
   flex-direction: column;
   max-width: 900px;
   width: 100%;
-  margin-top: auto;
-  margin-bottom: auto;
   margin-left: auto;
   margin-right: auto;
   padding: ${space(2)};
-  padding-bottom: 100px; /* Account for fixed footer (72px) + spacing */
   gap: ${space(4)};
 `;
 
