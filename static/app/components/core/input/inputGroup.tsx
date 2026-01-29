@@ -10,12 +10,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {InputProps} from '@sentry/scraps/input';
-import {Input as CoreInput} from '@sentry/scraps/input';
-import type {TextAreaProps} from '@sentry/scraps/textarea';
-import {TextArea as CoreTextArea} from '@sentry/scraps/textarea';
 
 import {space} from 'sentry/styles/space';
 import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
+
+// There is a cycle here if we import textarea from scraps.
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import type {TextAreaProps} from '../textarea';
+// eslint-disable-next-line  no-relative-import-paths/no-relative-import-paths
+import {TextArea as CoreTextArea} from '../textarea';
+
+import {Input as CoreInput} from './input';
 
 interface InputStyleProps {
   leadingWidth?: number;
