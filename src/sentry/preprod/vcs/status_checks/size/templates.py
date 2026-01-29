@@ -58,6 +58,8 @@ def format_status_check_messages(
                             analyzed_count += 1
                         case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
                             errored_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
+                            errored_count += 1
                         case _:
                             raise ValueError(f"Unknown size analysis state: {metrics.state}")
 
@@ -94,12 +96,14 @@ def format_status_check_messages(
         failed_artifacts = [a for a in artifacts if a.id in failed_artifact_ids]
         passed_artifacts = [a for a in artifacts if a.id not in failed_artifact_ids]
 
-        failed_count = len(failed_artifact_ids)
+        failed_metrics_count = sum(
+            len(size_metrics_map.get(a.id, [])) or 1 for a in failed_artifacts
+        )
         failed_header = ngettext(
-            "## ❌ %(count)d App Failed Size Checks",
-            "## ❌ %(count)d Apps Failed Size Checks",
-            failed_count,
-        ) % {"count": failed_count}
+            "## ❌ %(count)d Failed Size Check",
+            "## ❌ %(count)d Failed Size Checks",
+            failed_metrics_count,
+        ) % {"count": failed_metrics_count}
 
         summary_parts = []
 
@@ -110,12 +114,14 @@ def format_status_check_messages(
 
         # Passed apps section (if any)
         if passed_artifacts:
-            passed_count = len(passed_artifacts)
+            passed_metrics_count = sum(
+                len(size_metrics_map.get(a.id, [])) or 1 for a in passed_artifacts
+            )
             passed_header = ngettext(
-                "## %(count)d App Analyzed",
-                "## %(count)d Apps Analyzed",
-                passed_count,
-            ) % {"count": passed_count}
+                "## %(count)d Analyzed",
+                "## %(count)d Analyzed",
+                passed_metrics_count,
+            ) % {"count": passed_metrics_count}
             summary_parts.append(passed_header)
             summary_parts.append(_format_artifact_summary(passed_artifacts, size_metrics_map))
 
@@ -132,23 +138,6 @@ def format_status_check_messages(
     else:
         # Success or in-progress
         summary_parts = []
-
-        if analyzed_count > 0:
-            analyzed_header = ngettext(
-                "## %(count)d App Analyzed",
-                "## %(count)d Apps Analyzed",
-                analyzed_count,
-            ) % {"count": analyzed_count}
-            summary_parts.append(analyzed_header)
-        else:
-            # All apps still processing
-            processing_header = ngettext(
-                "## %(count)d App Processing",
-                "## %(count)d Apps Processing",
-                processing_count,
-            ) % {"count": processing_count}
-            summary_parts.append(processing_header)
-
         summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map))
         summary_parts.append(_format_configure_link(project, settings_url))
 
@@ -229,10 +218,7 @@ def _format_artifact_summary(
             f"{artifact.build_configuration.name or '--'}" if artifact.build_configuration else "--"
         )
 
-        # TODO(preprod): Add approval text once we have it
-        na_text = str(_("N/A"))
-
-        row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} | {na_text} |"
+        row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} |"
 
         group_key = "android" if artifact.is_android() else "ios"
         grouped_rows[group_key].append(row)
@@ -241,8 +227,8 @@ def _format_artifact_summary(
 
     def _render_table(rows: list[str], install_label: str) -> str:
         return _(
-            "| Name | Configuration | Version | Download Size | {install_label} | Approval |\n"
-            "|------|--------------|---------|----------|-----------------|----------|\n"
+            "| Name | Configuration | Version | Download Size | {install_label} |\n"
+            "|------|--------------|---------|----------|------------------|\n"
             "{table_rows}"
         ).format(table_rows="\n".join(rows), install_label=install_label)
 
@@ -292,7 +278,7 @@ def _get_settings_url(
     triggered_rules: list[TriggeredRule] | None = None,
 ) -> str:
     """Build the settings URL for the project's preprod settings page."""
-    base_url = f"/settings/projects/{project.slug}/builds/"
+    base_url = f"/settings/projects/{project.slug}/mobile-builds/"
     if triggered_rules:
         expanded_params = "&".join(f"expanded={tr.rule.id}" for tr in triggered_rules)
         return project.organization.absolute_url(base_url, query=expanded_params)
@@ -335,8 +321,6 @@ def _format_failed_checks_details(
             details_content.append(
                 f"- **{metric_display} - {measurement_display}** ≥ **{threshold_display}**"
             )
-
-    details_content.append(f"\n⚙️ [Configure status check rules]({settings_url})")
 
     return (
         f"<details>\n"

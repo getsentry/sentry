@@ -15,6 +15,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
 from sentry.replays.testutils import mock_replay
+from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
@@ -23,6 +24,7 @@ from sentry.seer.explorer.tools import (
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
+    get_comparative_attribute_distributions,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
     get_log_attributes_for_trace,
@@ -41,6 +43,7 @@ from sentry.testutils.cases import (
     ReplaysSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    TestCase,
     TraceMetricsTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
@@ -108,7 +111,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             ),
         ]
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
     def test_spans_timeseries_count_metric(self):
         """Test timeseries query with count() metric using real data"""
@@ -591,7 +594,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
         result = get_trace_waterfall(
             trace_id[:8] if use_short_id else trace_id, self.organization.id
         )
@@ -663,7 +666,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Call with short ID and wrong org
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -689,7 +692,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should find the trace using short ID by sliding back to the second window
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -717,7 +720,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should find the trace by sliding back through multiple windows
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -745,7 +748,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             )
             spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Should not find the trace since it's beyond the 90-day limit
         result = get_trace_waterfall(trace_id[:8], self.organization.id)
@@ -769,7 +772,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
             },
             start_ts=self.ten_mins_ago,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         result = get_trace_waterfall(trace_id, self.organization.id)
         assert isinstance(result, EAPTrace)
@@ -847,7 +850,7 @@ class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
                 ),
             ]
 
-            self.store_spans(spans, is_eap=True)
+            self.store_spans(spans)
 
             # Cross-project query should return both traces with pageload spans.
             result = execute_trace_table_query(
@@ -1033,7 +1036,7 @@ class TestGetIssueAndEventDetailsV2(
             start_ts=before_now(days=3, hours=23),
             duration=100,
         )
-        self.store_spans([span0, span1], is_eap=True)
+        self.store_spans([span0, span1])
 
         # Create events with shared stacktrace (should have same group)
         events: list[Event] = []
@@ -1211,7 +1214,7 @@ class TestGetIssueAndEventDetailsV2(
             start_ts=before_now(minutes=10),
             duration=100,
         )
-        self.store_spans([span0], is_eap=True)
+        self.store_spans([span0])
 
         # Create one event.
         data = load_data("python", timestamp=before_now(minutes=10))
@@ -1883,7 +1886,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         # Mock the profile data fetch and conversion
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
@@ -1918,7 +1921,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=200,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         # Mock the profile data
         mock_fetch_profile.return_value = {
@@ -1958,7 +1961,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             )
             for i, start_time in enumerate([span1_time, span2_time, span3_time])
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "test", "module": "test"}], "3")
@@ -1995,7 +1998,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=twenty_days_ago,
             duration=150,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "old_function", "module": "old"}], "4")
@@ -2020,7 +2023,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
         mock_convert_tree.return_value = ([{"function": "handler", "module": "server"}], "5")
@@ -2042,7 +2045,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
             start_ts=self.ten_mins_ago,
             duration=100,
         )
-        self.store_spans([span], is_eap=True)
+        self.store_spans([span])
 
         result = rpc_get_profile_flamegraph("notfound", self.organization.id)
 
@@ -2803,3 +2806,134 @@ class TestGetBaselineTagDistribution(APITransactionTestCase, SnubaTestCase, Sear
         # This verifies that we ARE querying both datasets and combining results
         assert dist_dict.get(("browser", "Safari")) == 4
         assert dist_dict.get(("os", "Mac")) == 4
+
+
+class TestGetComparativeAttributeDistributions(TestCase):
+    @patch("sentry.seer.explorer.tools.query_attribute_distributions")
+    def test_attr_comparison_calls_query_function(
+        self, mock_query_attribute_distributions: Mock
+    ) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+
+        mock_query_attribute_distributions.return_value = {
+            "cohort_2_distribution": [("span.op", "http.server", 100.0)],
+            "cohort_2_distribution_map": {"span.op": [{"label": "http.server", "value": 100.0}]},
+            "total_cohort_2": 1000,
+            "cohort_1_distribution": [("span.op", "http.server", 50.0)],
+            "cohort_1_distribution_map": {"span.op": [{"label": "http.server", "value": 50.0}]},
+            "total_cohort_1": 200,
+            "cohort_1_function_value": 500.5,
+        }
+
+        range_start = before_now(hours=9)
+        range_end = before_now(hours=7)
+
+        result = get_comparative_attribute_distributions(
+            organization_id=organization.id,
+            aggregate_function="count(span.duration)",
+            range_start=range_start.isoformat(),
+            range_end=range_end.isoformat(),
+            query="transaction:api",
+        )
+
+        assert result == {
+            "baseline_distribution": [("span.op", "http.server", 100.0)],
+            "total_baseline": 1000,
+            "outliers_distribution": [("span.op", "http.server", 50.0)],
+            "total_outliers": 200,
+            "outliers_function_value": 500.5,
+        }
+
+        assert mock_query_attribute_distributions.call_args is not None
+        call_kwargs = mock_query_attribute_distributions.call_args.kwargs
+
+        # Verify function parameters
+        assert call_kwargs["function_string"] == "count(span.duration)"
+        assert call_kwargs["above"] is True
+        assert call_kwargs["query_2"] == "transaction:api"
+
+        # Verify query_1 has rounded timestamps with minute precision and no timezone (conforming to sentry search syntax)
+        range_start_rounded_iso = range_start.replace(second=0, microsecond=0).strftime(
+            "%Y-%m-%dT%H:%M:%S"
+        )
+        range_end_rounded_iso = range_end.replace(second=0, microsecond=0).strftime(
+            "%Y-%m-%dT%H:%M:%S"
+        )
+        assert (
+            call_kwargs["query_1"]
+            == f"transaction:api timestamp:>={range_start_rounded_iso} timestamp:<={range_end_rounded_iso}"
+        )
+
+        # Verify snuba_params
+        snuba_params = call_kwargs["snuba_params"]
+        assert snuba_params.organization == organization
+        assert snuba_params.sampling_mode == "NORMAL"
+
+        # Baseline range defaults to include [range_start, range_end]
+        assert snuba_params.start <= range_start
+        assert snuba_params.end >= range_end
+        assert snuba_params.end <= datetime.now(UTC)
+
+    @patch("sentry.seer.explorer.tools.query_attribute_distributions")
+    def test_attr_comparison_empty_query_and_time_filter(
+        self, mock_query_attribute_distributions: Mock
+    ) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+
+        mock_query_attribute_distributions.return_value = {
+            "cohort_2_distribution": [],
+            "cohort_2_distribution_map": {},
+            "total_cohort_2": 0,
+            "cohort_1_distribution": [],
+            "cohort_1_distribution_map": {},
+            "total_cohort_1": 0,
+            "cohort_1_function_value": None,
+        }
+
+        range_start_iso = "2024-01-01T00:00:00.0000"
+        range_end_iso = "2024-01-01T00:05:00.0000"
+        start_iso = "2024-01-01T00:00:00"
+        end_iso = "2024-01-02T01:00:00"
+
+        result = get_comparative_attribute_distributions(
+            organization_id=organization.id,
+            aggregate_function="count(span.duration)",
+            range_start=range_start_iso,
+            range_end=range_end_iso,
+            query="",
+            start=start_iso,
+            end=end_iso,
+            stats_period=None,
+        )
+
+        assert result == {
+            "baseline_distribution": [],
+            "total_baseline": 0,
+            "outliers_distribution": [],
+            "total_outliers": 0,
+            "outliers_function_value": None,
+        }
+
+        call_kwargs = mock_query_attribute_distributions.call_args.kwargs
+        assert call_kwargs["query_2"] == ""
+        assert (
+            call_kwargs["query_1"]
+            == "timestamp:>=2024-01-01T00:00:00 timestamp:<=2024-01-01T00:05:00"
+        )
+
+        # Verify explicit start/end are used
+        snuba_params = call_kwargs["snuba_params"]
+        assert snuba_params.start == parse_iso_timestamp(start_iso)
+        assert snuba_params.end == parse_iso_timestamp(end_iso)
+
+    def test_attr_comparison_rejects_same_minute_range(self) -> None:
+        organization = self.create_organization()
+        with pytest.raises(ValueError):
+            get_comparative_attribute_distributions(
+                organization_id=organization.id,
+                aggregate_function="count(span.duration)",
+                range_start="2024-01-01T00:00:00",
+                range_end="2024-01-01T00:00:30",
+            )

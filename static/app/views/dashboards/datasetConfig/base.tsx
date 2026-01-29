@@ -241,6 +241,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * Generate the request promises for fetching
    * series data.
+   * @deprecated use useSeriesQuery instead
    */
   getSeriesRequest?: (
     api: Client,
@@ -270,6 +271,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * Generate the request promises for fetching
    * tabular data.
+   * @deprecated use useTableQuery instead
    */
   getTableRequest?: (
     api: Client,

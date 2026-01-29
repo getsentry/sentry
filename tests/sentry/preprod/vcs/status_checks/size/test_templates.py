@@ -681,9 +681,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         # Watch artifact should show N/A (no matching base watch metrics)
         lines = summary.split("\n")
         watch_line = next(line for line in lines if ", Watch)" in line)
-        # Count N/A occurrences in the watch line - should be 3 (change columns + approval)
+        # Count N/A occurrences in the watch line - should be 2 (change columns)
         na_count = watch_line.count("N/A")
-        assert na_count >= 2  # At least 2 N/A for the change columns
+        assert na_count == 2  # 2 N/A for the change columns
 
     def test_android_app_shows_uncompressed_label(self):
         """Test that Android apps show 'Uncompressed' instead of 'Install' in column header."""
@@ -799,22 +799,20 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.slug}"
         ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}?project={self.project.slug}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/builds/"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/"
 
         expected = f"""\
-## 2 Apps Analyzed
-
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.android`]({android_url}) | -- | 1.0.0 (1) | 1.0 MB (N/A) | 2.1 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.android`]({android_url}) | -- | 1.0.0 (1) | 1.0 MB (N/A) | 2.1 MB (N/A) |
 
 ### iOS Builds
 
-| Name | Configuration | Version | Download Size | Install Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (iOS)<br>`com.example.ios`]({ios_url}) | -- | 2.0.0 (2) | 2.1 MB (N/A) | 3.1 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Install Size |
+|------|--------------|---------|----------|------------------|
+| [-- (iOS)<br>`com.example.ios`]({ios_url}) | -- | 2.0.0 (2) | 2.1 MB (N/A) | 3.1 MB (N/A) |
 
 [Configure test_project status check rules]({settings_url})\
 """
@@ -1127,26 +1125,22 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         )
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
-        settings_url = (
-            f"http://testserver/settings/projects/{self.project.slug}/builds/?expanded=rule-1"
-        )
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) |
 
 <details>
 <summary>1 Failed Check</summary>
 
 `com.example.app` (Android)
 - **Download Size - Total Size** ≥ **52.4 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1224,16 +1218,16 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         )
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/builds/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.app`]({artifact_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) |
 
 <details>
 <summary>3 Failed Checks</summary>
@@ -1242,8 +1236,6 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 - **Download Size - Total Size** ≥ **52.4 MB**
 - **Install Size - Absolute Diff** ≥ **10.5 MB**
 - **Download Size - Relative Diff** ≥ **5.0%**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1331,22 +1323,22 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
         artifact1_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact1.id}?project={self.project.slug}"
         artifact2_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact2.id}?project={self.project.slug}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/builds/?expanded=rule-1&expanded=rule-2"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1&expanded=rule-2"
 
         expected = f"""\
-## ❌ 2 Apps Failed Size Checks
+## ❌ 2 Failed Size Checks
 
 ### iOS Builds
 
-| Name | Configuration | Version | Download Size | Install Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (iOS)<br>`com.example.app1`]({artifact1_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Install Size |
+|------|--------------|---------|----------|------------------|
+| [-- (iOS)<br>`com.example.app1`]({artifact1_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) |
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.app2`]({artifact2_url}) | -- | 2.0.0 (2) | 83.9 MB (N/A) | 157.3 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.app2`]({artifact2_url}) | -- | 2.0.0 (2) | 83.9 MB (N/A) | 157.3 MB (N/A) |
 
 <details>
 <summary>2 Failed Checks</summary>
@@ -1355,8 +1347,6 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 - **Download Size - Total Size** ≥ **52.4 MB**
 `com.example.app2` (Android)
 - **Install Size - Total Size** ≥ **104.9 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1434,35 +1424,31 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
         failed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{failed_artifact.id}?project={self.project.slug}"
         passed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{passed_artifact.id}?project={self.project.slug}"
-        settings_url = (
-            f"http://testserver/settings/projects/{self.project.slug}/builds/?expanded=rule-1"
-        )
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
 
         expected = f"""\
-## ❌ 1 App Failed Size Checks
+## ❌ 1 Failed Size Check
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.failed`]({failed_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.failed`]({failed_url}) | -- | 1.0.0 (1) | 104.9 MB (N/A) | 209.7 MB (N/A) |
 
 <details>
 <summary>1 Failed Check</summary>
 
 `com.example.failed` (Android)
 - **Download Size - Total Size** ≥ **52.4 MB**
-
-⚙️ [Configure status check rules]({settings_url})
 </details>
 
-## 1 App Analyzed
+## 1 Analyzed
 
 ### Android Builds
 
-| Name | Configuration | Version | Download Size | Uncompressed Size | Approval |
-|------|--------------|---------|----------|-----------------|----------|
-| [-- (Android)<br>`com.example.passed`]({passed_url}) | -- | 2.0.0 (2) | 21.0 MB (N/A) | 41.9 MB (N/A) | N/A |
+| Name | Configuration | Version | Download Size | Uncompressed Size |
+|------|--------------|---------|----------|------------------|
+| [-- (Android)<br>`com.example.passed`]({passed_url}) | -- | 2.0.0 (2) | 21.0 MB (N/A) | 41.9 MB (N/A) |
 
 [Configure test_project status check rules]({settings_url})\
 """

@@ -806,9 +806,7 @@ describe('Modals -> WidgetViewerModal', () => {
         expect(eventsStatsMock).toHaveBeenCalled();
       });
 
-      // TODO: this test is flakey in CI https://linear.app/getsentry/issue/BROWSE-264/fix-flakey-test
-      // eslint-disable-next-line jest/no-disabled-tests
-      it.skip('appends the orderby to the query if it is not already selected as an aggregate', async () => {
+      it('appends the orderby to the query if it is not already selected as an aggregate', async () => {
         const eventsStatsMock = mockEventsStats();
         mockEvents();
 
@@ -826,15 +824,18 @@ describe('Modals -> WidgetViewerModal', () => {
         });
 
         await renderModal({initialData, widget});
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalledWith(
+            '/organizations/org-slug/events-stats/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                field: ['country', 'count()', 'epm()'],
+              }),
+            })
+          );
+        });
+
         expect(await screen.findByText('epm()')).toBeInTheDocument();
-        expect(eventsStatsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events-stats/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              field: ['country', 'count()', 'epm()'],
-            }),
-          })
-        );
       });
     });
 
@@ -1195,7 +1196,7 @@ describe('Modals -> WidgetViewerModal', () => {
         url: '/organizations/org-slug/metrics/data/',
         body: MetricsTotalCountByReleaseIn24h(),
         headers: {
-          link:
+          Link:
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
         },
@@ -1233,6 +1234,9 @@ describe('Modals -> WidgetViewerModal', () => {
 
     it('renders table header and body', async () => {
       await renderModal({initialData, widget: mockWidget});
+      await waitFor(() => {
+        expect(metricsMock).toHaveBeenCalled();
+      });
       expect(await screen.findByText('release')).toBeInTheDocument();
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
       expect(screen.getByText('sum(session)')).toBeInTheDocument();

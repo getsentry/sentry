@@ -3,6 +3,7 @@ import debounce from 'lodash/debounce';
 
 import {Tag} from '@sentry/scraps/badge/tag';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -110,6 +111,13 @@ export function MetricSelector({
           });
         }
       }}
+      style={{width: '100%'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          style={{width: '100%', fontWeight: 'bold'}}
+        />
+      )}
     />
   );
 }

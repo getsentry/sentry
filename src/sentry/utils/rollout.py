@@ -1,3 +1,4 @@
+import random
 from collections.abc import Callable
 from typing import Any, TypeVar
 
@@ -6,8 +7,13 @@ from sentry.utils import metrics
 
 TData = TypeVar("TData")
 
-from sentry.options.manager import FLAG_ALLOW_EMPTY, FLAG_AUTOMATOR_MODIFIABLE, FLAG_MODIFIABLE_BOOL
-from sentry.utils.types import Bool, Sequence
+from sentry.options.manager import (
+    FLAG_ALLOW_EMPTY,
+    FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_MODIFIABLE_BOOL,
+    FLAG_MODIFIABLE_RATE,
+)
+from sentry.utils.types import Bool, Float, Sequence
 
 
 class SafeRolloutComparator:
@@ -78,6 +84,16 @@ class SafeRolloutComparator:
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.use_experimental_data_callsite_allowlist"
 
+    @classmethod
+    def _sample_rate_option_name(cls) -> str:
+        """
+        This is the sample rate for evaluating the experimental branch. When set to a value
+        less than 1.0, only that percentage of requests will actually perform the double-read.
+        This is useful for limiting latency impact on high-traffic callsites while still
+        collecting representative metrics. Default is 1.0 (100% of requests are evaluated).
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_experimental_sample_rate"
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         from sentry.options import register
@@ -100,17 +116,32 @@ class SafeRolloutComparator:
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
+        register(
+            cls._sample_rate_option_name(),
+            type=Float,
+            default=1.0,
+            flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+        )
 
     @classmethod
     def should_check_experiment(cls, callsite: str) -> bool:
         """
         This function should control whether you evaluate your experimental branch at
         all. Useful for rolling out by region or blocklisting callsites that throw.
+
+        The check includes:
+        1. Global eval option must be enabled
+        2. Callsite must not be in the blocklist
+        3. Random sampling based on the sample_rate option (default 1.0 = 100%)
         """
         if not options.get(cls._should_eval_option_name()):
             return False
 
-        return callsite not in options.get(cls._callsite_blocklist_option_name())
+        if callsite in options.get(cls._callsite_blocklist_option_name()):
+            return False
+
+        sample_rate = options.get(cls._sample_rate_option_name())
+        return random.random() < sample_rate
 
     @classmethod
     def should_use_experiment(cls, callsite: str) -> bool:

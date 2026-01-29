@@ -113,8 +113,6 @@ export const InputPathColumn = styled(Column)`
   grid-area: input-path;
 `;
 
-export function ButtonWrapper(
-  props: Omit<FlexProps<'span'>, 'as'> & {children?: ReactNode}
-) {
-  return <Flex gap="md" {...props} as="span" />;
+export function ButtonWrapper(props: Exclude<FlexProps<'span'>, {as?: never}>) {
+  return <Flex as="span" gap="md" {...props} />;
 }
