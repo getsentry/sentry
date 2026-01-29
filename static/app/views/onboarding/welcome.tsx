@@ -16,6 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
+import {NewWelcomeUI} from 'sentry/views/onboarding/components/newWelcome';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -50,7 +51,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome(props: StepProps) {
+function LegacyWelcomeUI(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const {activateSidebar} = useOnboardingSidebar();
@@ -109,7 +110,11 @@ function TargetedOnboardingWelcome(props: StepProps) {
               src={OnboardingInstall}
               cta={
                 <Fragment>
-                  <ButtonWithFill onClick={handleComplete} priority="primary">
+                  <ButtonWithFill
+                    onClick={handleComplete}
+                    priority="primary"
+                    data-test-id="onboarding-welcome-start"
+                  >
                     {t('Start')}
                   </ButtonWithFill>
                   {(fallCount === 0 || isFalling) && (
@@ -133,6 +138,17 @@ function TargetedOnboardingWelcome(props: StepProps) {
       )}
     </FallingError>
   );
+}
+
+function TargetedOnboardingWelcome(props: StepProps) {
+  // const organization = useOrganization();
+  const hasNewWelcomeUI = true; // organization.features.includes('onboarding-new-welcome-ui');
+
+  if (hasNewWelcomeUI) {
+    return <NewWelcomeUI {...props} />;
+  }
+
+  return <LegacyWelcomeUI {...props} />;
 }
 
 export default TargetedOnboardingWelcome;
