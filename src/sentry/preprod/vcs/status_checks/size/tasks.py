@@ -34,7 +34,10 @@ from sentry.preprod.models import (
     PreprodComparisonApproval,
 )
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
+from sentry.preprod.vcs.status_checks.size.templates import (
+    format_no_quota_messages,
+    format_status_check_messages,
+)
 from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -190,39 +193,57 @@ def create_preprod_status_check_task(
         for approval in approval_qs:
             approvals_map[approval.preprod_artifact_id] = approval
 
-    rules = _get_status_check_rules(preprod_artifact.project)
-    base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
-
-    status, triggered_rules = _compute_overall_status(
-        all_artifacts,
-        size_metrics_map,
-        rules=rules,
-        base_artifact_map=base_artifact_map,
-        base_metrics_by_artifact=base_size_metrics_map,
-        approvals_map=approvals_map,
-    )
-
-    title, subtitle, summary = format_status_check_messages(
-        all_artifacts,
-        size_metrics_map,
-        status,
-        preprod_artifact.project,
-        base_artifact_map,
-        base_size_metrics_map,
-        triggered_rules,
-    )
+    # Filter out SKIPPED artifacts (user didn't request size analysis)
+    all_artifacts = [
+        a for a in all_artifacts if not _is_artifact_size_skipped(size_metrics_map.get(a.id, []))
+    ]
+    if not all_artifacts:
+        logger.info(
+            "preprod.status_checks.create.all_skipped",
+            extra={"artifact_id": preprod_artifact.id},
+        )
+        return
 
     target_url = get_preprod_artifact_url(preprod_artifact)
 
-    completed_at: datetime | None = None
-    if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
-        completed_at = preprod_artifact.date_updated
-
-    # When no rules are configured, always show neutral status.
-    # When rules exist, show actual status (in_progress, failure, success).
-    if not rules:
+    # Check if any artifact hit quota limits - show neutral status with quota message
+    if _has_no_quota_artifact(all_artifacts, size_metrics_map):
+        title, subtitle, summary = format_no_quota_messages()
         status = StatusCheckStatus.NEUTRAL
         completed_at = preprod_artifact.date_updated
+        triggered_rules: list[TriggeredRule] = []
+    else:
+        rules = _get_status_check_rules(preprod_artifact.project)
+        base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
+
+        status, triggered_rules = _compute_overall_status(
+            all_artifacts,
+            size_metrics_map,
+            rules=rules,
+            base_artifact_map=base_artifact_map,
+            base_metrics_by_artifact=base_size_metrics_map,
+            approvals_map=approvals_map,
+        )
+
+        title, subtitle, summary = format_status_check_messages(
+            all_artifacts,
+            size_metrics_map,
+            status,
+            preprod_artifact.project,
+            base_artifact_map,
+            base_size_metrics_map,
+            triggered_rules,
+        )
+
+        completed_at: datetime | None = None
+        if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
+            completed_at = preprod_artifact.date_updated
+
+        # When no rules are configured, always show neutral status.
+        # When rules exist, show actual status (in_progress, failure, success).
+        if not rules:
+            status = StatusCheckStatus.NEUTRAL
+            completed_at = preprod_artifact.date_updated
 
     try:
         check_id = provider.create_status_check(
@@ -416,6 +437,30 @@ def _fetch_base_size_metrics(
         base_metrics_by_artifact.setdefault(metrics.preprod_artifact_id, []).append(metrics)
 
     return base_artifact_map, base_metrics_by_artifact
+
+
+def _is_artifact_size_skipped(
+    size_metrics_list: list[PreprodArtifactSizeMetrics],
+) -> bool:
+    """Check if artifact should be excluded because size analysis was skipped."""
+    if not size_metrics_list:
+        return False
+
+    return all(
+        m.error_code == PreprodArtifactSizeMetrics.ErrorCode.SKIPPED for m in size_metrics_list
+    )
+
+
+def _has_no_quota_artifact(
+    artifacts: list[PreprodArtifact],
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
+) -> bool:
+    """Check if any artifact has NO_QUOTA error."""
+    for artifact in artifacts:
+        for m in size_metrics_map.get(artifact.id, []):
+            if m.error_code == PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA:
+                return True
+    return False
 
 
 def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
