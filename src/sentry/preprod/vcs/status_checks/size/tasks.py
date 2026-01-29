@@ -92,7 +92,10 @@ def create_preprod_status_check_task(
 ) -> None:
     try:
         preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
-            "mobile_app_info"
+            "mobile_app_info",
+            "commit_comparison",
+            "project",
+            "project__organization",
         ).get(id=preprod_artifact_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
@@ -188,13 +191,14 @@ def create_preprod_status_check_task(
             approvals_map[approval.preprod_artifact_id] = approval
 
     rules = _get_status_check_rules(preprod_artifact.project)
-    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
+    base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
 
     status, triggered_rules = _compute_overall_status(
         all_artifacts,
         size_metrics_map,
         rules=rules,
-        base_size_metrics_map=base_size_metrics_map,
+        base_artifact_map=base_artifact_map,
+        base_metrics_by_artifact=base_size_metrics_map,
         approvals_map=approvals_map,
     )
 
@@ -203,6 +207,8 @@ def create_preprod_status_check_task(
         size_metrics_map,
         status,
         preprod_artifact.project,
+        base_artifact_map,
+        base_size_metrics_map,
         triggered_rules,
     )
 
@@ -386,27 +392,30 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
 
 def _fetch_base_size_metrics(
     artifacts: list[PreprodArtifact],
-) -> dict[int, PreprodArtifactSizeMetrics]:
-    """Fetch base artifact size metrics for head artifacts."""
+) -> tuple[dict[int, PreprodArtifact], dict[int, list[PreprodArtifactSizeMetrics]]]:
+    """Fetch base artifacts and their size metrics for head artifacts.
+
+    Returns:
+        Tuple of (base_artifact_map, base_metrics_by_artifact) where:
+        - base_artifact_map: head_artifact_id -> base_artifact
+        - base_metrics_by_artifact: base_artifact_id -> list of size metrics
+    """
     if not artifacts:
-        return {}
+        return {}, {}
 
     base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(artifacts)
     if not base_artifact_map:
-        return {}
+        return {}, {}
 
     base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact_id__in=[ba.id for ba in base_artifact_map.values()],
-        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
     )
 
-    result: dict[int, PreprodArtifactSizeMetrics] = {}
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]] = {}
     for metrics in base_size_metrics_qs:
-        for head_artifact_id, base_artifact in base_artifact_map.items():
-            if base_artifact.id == metrics.preprod_artifact_id:
-                result[head_artifact_id] = metrics
+        base_metrics_by_artifact.setdefault(metrics.preprod_artifact_id, []).append(metrics)
 
-    return result
+    return base_artifact_map, base_metrics_by_artifact
 
 
 def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
@@ -453,16 +462,16 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
     - Filters with the same key AND negation status are OR'd together
     - Different groups (different key or negation) are AND'd together
     - negated=True means the value should NOT match
-
-    If a rule has no filters, it matches all artifacts.
     """
     if not rule.filter_query or not str(rule.filter_query).strip():
         return True
 
     try:
-        search_filters = parse_search_query(
-            rule.filter_query, config=preprod_artifact_search_config
-        )
+        search_filters = [
+            f
+            for f in parse_search_query(rule.filter_query, config=preprod_artifact_search_config)
+            if isinstance(f, SearchFilter)
+        ]
     except InvalidSearchQuery:
         logger.warning(
             "preprod.status_checks.invalid_filter_query",
@@ -470,10 +479,11 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
         )
         return False
 
+    if not search_filters:
+        return True
+
     filters_by_group: dict[str, list[SearchFilter]] = {}
     for f in search_filters:
-        if not isinstance(f, SearchFilter):
-            continue
         group_key = f"{f.key.name}:{'negated' if f.is_negation else 'normal'}"
         if group_key not in filters_by_group:
             filters_by_group[group_key] = []
@@ -589,7 +599,8 @@ def _compute_overall_status(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
-    base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
+    base_artifact_map: dict[int, PreprodArtifact] | None = None,
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]] | None = None,
     approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[StatusCheckStatus, list[TriggeredRule]]:
     triggered_rules: list[TriggeredRule] = []
@@ -634,9 +645,20 @@ def _compute_overall_status(
                 ]
                 main_metric = main_metrics_list[0] if main_metrics_list else None
 
-                base_main_metric = (
-                    base_size_metrics_map.get(artifact.id) if base_size_metrics_map else None
-                )
+                # Rules only evaluate MAIN_ARTIFACT metrics
+                base_main_metric = None
+                if base_artifact_map and base_metrics_by_artifact:
+                    base_artifact = base_artifact_map.get(artifact.id)
+                    if base_artifact:
+                        base_main_metric = next(
+                            (
+                                m
+                                for m in base_metrics_by_artifact.get(base_artifact.id, [])
+                                if m.metrics_artifact_type
+                                == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+                            ),
+                            None,
+                        )
 
                 for rule in rules:
                     if _rule_matches_artifact(rule, context):
