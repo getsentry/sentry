@@ -6,10 +6,6 @@ AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
 
 
 class SeerOperatorAutofixCache[CachePayloadT]:
-    """
-    A class for managing autofix cache payloads for the Seer Operator.
-    Do not use this class directly, instead use `SeerOperator.autofix_cache`.
-    """
 
     @classmethod
     def get_pre_autofix_cache_key(cls, *, entrypoint_key: str, group_id: int) -> str:
@@ -37,7 +33,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def populate_pre_autofix_cache(
         cls, *, entrypoint_key: str, group_id: int, cache_payload: CachePayloadT
-    ) -> None:
+    ) -> SeerOperatorCacheResult:
         cache_key = cls.get_pre_autofix_cache_key(entrypoint_key=entrypoint_key, group_id=group_id)
         cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
         return {
@@ -69,11 +65,23 @@ class SeerOperatorAutofixCache[CachePayloadT]:
         }
 
     @classmethod
+    def populate_post_autofix_cache(
+        cls, *, entrypoint_key: str, run_id: int, cache_payload: CachePayloadT
+    ) -> SeerOperatorCacheResult:
+        cache_key = cls.get_post_autofix_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
+        cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
+        return {
+            "payload": cache_payload,
+            "source": "run_id",
+            "key": cache_key,
+        }
+
+    @classmethod
     def get(
         cls, *, entrypoint_key: str, group_id: int | None = None, run_id: int | None = None
     ) -> SeerOperatorCacheResult | None:
         if not group_id and not run_id:
-            raise ValueError("Either group_id or run_id must be provided.")
+            raise ValueError("At least one of group_id or run_id must be provided.")
 
         cache_result = None
         if run_id:
@@ -124,8 +132,11 @@ class SeerOperatorAutofixCache[CachePayloadT]:
             # If we don't have a pre-autofix cache, nothing to migrate, skip.
             if not pre_cache_result:
                 continue
+            post_cache_key = cls.get_post_autofix_cache_key(
+                entrypoint_key=entrypoint_key, run_id=to_run_id
+            )
             cache.set(
-                post_cache_result["key"],
+                post_cache_key,
                 pre_cache_result["payload"],
                 timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS,
             )

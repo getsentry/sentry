@@ -46,8 +46,6 @@ class SeerOperator[CachePayloadT]:
     It does this to ensure all entrypoints have consistent behavior and responses.
     """
 
-    autofix_cache: SeerOperatorAutofixCache[CachePayloadT]
-
     def __init__(self, entrypoint: SeerEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
         self.logging_ctx: dict[str, str] = {"entrypoint_key": str(entrypoint.key)}
@@ -127,12 +125,12 @@ class SeerOperator[CachePayloadT]:
         cache_payload = self.entrypoint.create_autofix_cache_payload()
 
         if cache_payload:
-            cache_key = self.autofix_cache.populate_autofix_cache(
+            cache_result = SeerOperatorAutofixCache.populate_post_autofix_cache(
                 entrypoint_key=str(self.entrypoint.key),
                 cache_payload=cache_payload,
                 run_id=run_id,
             )
-            self.logging_ctx["cache_key"] = cache_key
+            self.logging_ctx["cache_key"] = cache_result["key"]
         logger.info("operator.trigger_autofix_success", extra=self.logging_ctx)
 
 
@@ -169,7 +167,7 @@ def process_autofix_updates(
         return
 
     for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
-        cache_result = SeerOperator.autofix_cache.get(
+        cache_result = SeerOperatorAutofixCache.get(
             entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
         )
         if not cache_result:
