@@ -243,7 +243,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         />
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
           <Header
-            columns={{'2xs': '1fr 1.5fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}
+            columns={{
+              '2xs': '0.6fr 1.5fr 0.6fr',
+              xs: '0.6fr 2fr 0.6fr',
+              sm: '0.6fr 2fr 1fr 0.4fr',
+            }}
             background="secondary"
             borderBottom="primary"
           >
@@ -262,9 +266,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             >
               {t('Processing')}
             </Flex>
-            <Flex align="center" minWidth="0" padding="md lg">
-              {t('Details')}
-            </Flex>
+            <div />
           </Header>
           {filteredImages.length ? (
             <ScrollArea

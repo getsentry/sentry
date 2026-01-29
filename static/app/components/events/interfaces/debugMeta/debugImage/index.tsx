@@ -27,13 +27,18 @@ function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
 
   return (
     <Grid
-      columns={{'2xs': '1fr 1.5fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}
+      columns={{
+        '2xs': '0.6fr 1.5fr 0.6fr',
+        xs: '0.6fr 2fr 0.6fr',
+        sm: '0.6fr 2fr 1fr 0.4fr',
+      }}
       borderBottom={isLast ? undefined : 'primary'}
+      padding="sm md"
     >
       <Flex align="center" minWidth="0" padding="sm md">
         <Status status={status} />
       </Flex>
-      <Flex align="center" minWidth="0" padding="sm md">
+      <Flex align="center" minWidth="0" padding="sm 0">
         <Flex direction="column" minWidth="0" overflow="hidden">
           <Text ellipsis>
             {codeFilename && <Tooltip title={code_file}>{codeFilename}</Tooltip>}
