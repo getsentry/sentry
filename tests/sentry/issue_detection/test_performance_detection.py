@@ -9,6 +9,7 @@ from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.utils import total_span_time
 from sentry.issue_detection.performance_detection import (
+    PERFORMANCE_DETECTOR_CONFIG_MAPPINGS,
     EventPerformanceProblem,
     SettingsMode,
     _detect_performance_problems,
@@ -21,6 +22,7 @@ from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
+    registry,
 )
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -804,3 +806,10 @@ class WFEDetectorConfigTest(TestCase):
         settings = get_detection_settings(self.project, settings_mode=SettingsMode.WFE)
 
         assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 1000
+
+    def test_all_wfe_detector_types_are_registered_group_types(self) -> None:
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            group_type = registry.get_by_slug(mapping.wfe_detector_type)
+            assert (
+                group_type is not None
+            ), f"wfe_detector_type '{mapping.wfe_detector_type}' is not a registered GroupType slug"

@@ -312,7 +312,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             key="sentry:performance_issue_settings",
             value={"large_http_payload_filtered_paths": "/api/0/organizations/download/"},
         )
-        settings = get_detection_settings(project, organization=self.organization)
+        settings = get_detection_settings(project)
         spans = [
             create_span(
                 "http.client",
@@ -340,7 +340,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             key="sentry:performance_issue_settings",
             value={"large_http_payload_filtered_paths": "/api/0/organizations/user"},
         )
-        settings = get_detection_settings(project, organization=self.organization)
+        settings = get_detection_settings(project)
         spans = [
             create_span(
                 "http.client",

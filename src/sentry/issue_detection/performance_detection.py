@@ -56,21 +56,21 @@ SDKS_OF_INTEREST = [
 
 
 @dataclass(frozen=True)
-class ConfigFieldMapping:
-    """Maps a config field between WFE Detector.config and ProjectOption settings."""
-
-    project_option_key: str  # Key in get_merged_settings() result
-    hardcoded_value: Any | None = None  # If set, this is a constant value (not from config)
-
-
-@dataclass(frozen=True)
 class PerformanceDetectorConfigMapping:
-    """Complete mapping for a single performance detector type."""
+    """
+    Maps a PerformanceDetector's config to WFE Detector config and ProjectOptions.
 
-    settings_key: DetectorType  # e.g., DetectorType.SLOW_DB_QUERY
-    wfe_detector_type: str  # GroupType slug (e.g., "performance_slow_db_query")
-    detection_enabled_key: str  # ProjectOption key for detection_enabled fallback
-    config_fields: dict[str, ConfigFieldMapping]  # WFE field name -> mapping
+    The keys in option_keys are PerformanceDetector setting names (as used in
+    get_detection_settings) which also appear in WFE Detector.config. The values
+    are the corresponding ProjectOption keys for legacy/fallback settings.
+    """
+
+    settings_key: DetectorType
+    wfe_detector_type: (
+        str  # Name of the WFE Detector (should be the GroupType slug associated with it)
+    )
+    detection_enabled_key: str  # ProjectOption key for detection_enabled
+    option_keys: dict[str, str]  # detector setting name -> ProjectOption key
 
 
 # Mapping from DetectorType to WFE Detector configuration
@@ -79,38 +79,24 @@ PERFORMANCE_DETECTOR_CONFIG_MAPPINGS: dict[DetectorType, PerformanceDetectorConf
         settings_key=DetectorType.SLOW_DB_QUERY,
         wfe_detector_type="performance_slow_db_query",
         detection_enabled_key="slow_db_queries_detection_enabled",
-        config_fields={
-            "duration_threshold": ConfigFieldMapping(
-                project_option_key="slow_db_query_duration_threshold",
-            ),
-            "allowed_span_ops": ConfigFieldMapping(
-                project_option_key="",
-                hardcoded_value=["db"],
-            ),
+        option_keys={
+            "duration_threshold": "slow_db_query_duration_threshold",
         },
     ),
     DetectorType.LARGE_HTTP_PAYLOAD: PerformanceDetectorConfigMapping(
         settings_key=DetectorType.LARGE_HTTP_PAYLOAD,
         wfe_detector_type="performance_large_http_payload",
         detection_enabled_key="large_http_payload_detection_enabled",
-        config_fields={
-            "payload_size_threshold": ConfigFieldMapping(
-                project_option_key="large_http_payload_size_threshold",
-            ),
-            "filtered_paths": ConfigFieldMapping(
-                project_option_key="large_http_payload_filtered_paths",
-            ),
-            "minimum_span_duration": ConfigFieldMapping(
-                project_option_key="",
-                hardcoded_value=100,
-            ),
+        option_keys={
+            "payload_size_threshold": "large_http_payload_size_threshold",
+            "filtered_paths": "large_http_payload_filtered_paths",
         },
     ),
     DetectorType.QUERY_INJECTION: PerformanceDetectorConfigMapping(
         settings_key=DetectorType.QUERY_INJECTION,
         wfe_detector_type="query_injection_vulnerability",
         detection_enabled_key="db_query_injection_detection_enabled",
-        config_fields={},  # No configurable fields beyond detection_enabled
+        option_keys={},
     ),
 }
 
@@ -384,15 +370,12 @@ def _build_wfe_settings(
         wfe_option_settings[mapping.detection_enabled_key] = wfe_config["detection_enabled"]
 
         # For each config field: only set if present in WFE config
-        for field_name, field_mapping in mapping.config_fields.items():
-            if field_mapping.hardcoded_value is None:
-                # Track this key as WFE-managed
-                option_key = field_mapping.project_option_key
-                wfe_managed_keys.add(option_key)
+        for field_name, option_key in mapping.option_keys.items():
+            wfe_managed_keys.add(option_key)
 
-                if field_name in wfe_config:
-                    # TODO: Consider using None so we don't have to track managed keys.
-                    wfe_option_settings[option_key] = wfe_config[field_name]
+            if field_name in wfe_config:
+                # TODO: Consider using None so we don't have to track managed keys.
+                wfe_option_settings[option_key] = wfe_config[field_name]
 
     return wfe_option_settings, wfe_managed_keys
 
@@ -479,7 +462,6 @@ def _get_wfe_detector_configs(project: Project) -> dict[DetectorType, dict[str, 
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_detection_settings(
     project: Project | None = None,
-    organization: Organization | None = None,
     settings_mode: SettingsMode = SettingsMode.LEGACY,
 ) -> dict[DetectorType, dict[str, Any]]:
     settings = get_merged_settings(project, settings_mode)
