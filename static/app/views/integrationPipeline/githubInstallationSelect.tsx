@@ -23,7 +23,6 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 type Installation = {
   avatar_url: string;
-  count: number;
   github_account: string;
   installation_id: string;
 };
@@ -76,12 +75,7 @@ export function GithubInstallationSelect({
   const source = 'github.multi_org';
 
   const doesntRequireUpgrade = (id: SelectKey): boolean => {
-    return (
-      hasSCMMultiOrg ||
-      isSelfHosted ||
-      id === '-1' ||
-      installation_info.find(i => i.installation_id === id)?.count === 0
-    );
+    return hasSCMMultiOrg || isSelfHosted || id === '-1';
   };
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
@@ -196,11 +190,7 @@ export function GithubInstallationSelect({
         <Stack alignSelf="flex-end" paddingTop="xl">
           {organization.features.includes('github-multi-org-upsell-modal') ? (
             <InstallButtonHook
-              hasSCMMultiOrg={
-                hasSCMMultiOrg ||
-                installation_info.find(i => i.installation_id === installationID)
-                  ?.count === 0
-              }
+              hasSCMMultiOrg={hasSCMMultiOrg}
               installationID={installationID}
               isSaving={isSaving}
               handleSubmit={handleSubmit}
