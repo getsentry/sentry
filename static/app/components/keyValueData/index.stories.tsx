@@ -249,7 +249,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         actionButton: (
           <Button
             aria-label="Click me"
-            borderless
+            priority="transparent"
             size="zero"
             icon={<IconEdit size="xs" />}
           />

@@ -170,7 +170,6 @@ export function SubscriptionUpsellBanner({
       </div>
       <BannerImage src={subscription.canTrial ? businessTrial : businessUpgrade} />
       <CloseBannerButton
-        borderless
         priority="link"
         aria-label={t('Dismiss')}
         icon={<IconClose variant="muted" />}

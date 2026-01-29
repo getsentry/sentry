@@ -54,7 +54,6 @@ export function MetricCard(props: MetricCardProps) {
           <Button
             size="xs"
             priority="link"
-            borderless
             icon={action.icon}
             aria-label={action.ariaLabel}
             title={action.tooltip}

@@ -215,7 +215,7 @@ export function GroupInsightItemDiffTable({
                         <Flex align="start" gap="xs">
                           <Text monospace>{groupDiffItem.path}</Text>
                           <CopyToClipboardButton
-                            borderless
+                            priority="transparent"
                             size="zero"
                             text={groupDiffItem.path}
                             style={{flexShrink: 0}}

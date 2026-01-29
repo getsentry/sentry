@@ -115,7 +115,7 @@ function HoverHeader({
 
         {!hideCopy && copyContent && (
           <CopyToClipboardButton
-            borderless
+            priority="transparent"
             aria-label={t('Copy to clipboard')}
             data-test-id="quick-context-hover-header-copy-button"
             onCopy={() => {

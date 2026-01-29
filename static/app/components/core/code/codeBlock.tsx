@@ -183,7 +183,7 @@ export function CodeBlock({
           <CopyButton
             type="button"
             size="xs"
-            borderless
+            priority="transparent"
             onClick={handleCopy}
             title={tooltipTitle}
             tooltipProps={{position: 'left'}}

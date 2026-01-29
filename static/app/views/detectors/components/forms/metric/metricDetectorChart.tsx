@@ -406,7 +406,11 @@ export function MetricDetectorChart({
           value={selectedTimePeriod}
           onChange={opt => setSelectedTimePeriod(opt.value)}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} borderless prefix={t('Display')} />
+            <OverlayTrigger.Button
+              {...triggerProps}
+              priority="transparent"
+              prefix={t('Display')}
+            />
           )}
         />
       </ChartFooter>

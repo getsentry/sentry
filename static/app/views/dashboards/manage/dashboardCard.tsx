@@ -97,7 +97,7 @@ function DashboardCard({
               aria-label={favorited ? t('Unstar') : t('Star')}
             />
           }
-          borderless
+          priority="transparent"
           aria-label={favorited ? t('Starred Dashboard') : t('Star Dashboard')}
           size="xs"
           onClick={async () => {

@@ -848,7 +848,7 @@ function DynamicGrouping() {
                   </Text>
                   <Button
                     size="zero"
-                    borderless
+                    priority="transparent"
                     icon={<IconClose size="xs" />}
                     aria-label={t('Clear custom data')}
                     onClick={handleClearCustomData}

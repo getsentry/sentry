@@ -520,7 +520,11 @@ export default function AssigneeSelectorDropdown({
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
         {!loading && !noDropdown && (
-          <AssigneeTrigger borderless data-test-id="assignee-selector" {...props}>
+          <AssigneeTrigger
+            priority="transparent"
+            data-test-id="assignee-selector"
+            {...props}
+          >
             {avatarElement}
           </AssigneeTrigger>
         )}

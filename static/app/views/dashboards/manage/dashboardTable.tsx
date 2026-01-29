@@ -88,7 +88,7 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      borderless
+      priority="transparent"
       icon={
         <IconStar
           variant={favorited ? 'warning' : 'muted'}

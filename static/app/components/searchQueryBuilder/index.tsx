@@ -222,7 +222,7 @@ function ActionButtons({
             aria-pressed={isCaseInsensitive}
             size="zero"
             icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
-            borderless
+            priority="transparent"
             active={!isCaseInsensitive}
             onClick={() => {
               onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
@@ -235,7 +235,7 @@ function ActionButtons({
           aria-label={t('Clear search query')}
           size="zero"
           icon={<IconClose />}
-          borderless
+          priority="transparent"
           onClick={() => {
             setDisplayAskSeerFeedback(false);
             dispatch({type: 'CLEAR'});

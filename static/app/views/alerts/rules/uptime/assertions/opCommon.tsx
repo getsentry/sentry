@@ -82,7 +82,7 @@ export function OpContainer({
             </Text>
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconGrabbable size="xs" />}
               aria-label={t('Reorder assertion')}
               ref={setActivatorNodeRef}
@@ -96,7 +96,7 @@ export function OpContainer({
             {children}
             <Button
               size="sm"
-              borderless
+              priority="transparent"
               icon={<IconDelete />}
               aria-label={t('Remove assertion')}
               onClick={onRemove}

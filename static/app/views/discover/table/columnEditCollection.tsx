@@ -490,7 +490,7 @@ class ColumnEditCollection extends Component<Props, State> {
               onTouchStart={event => this.startDrag(event, i)}
               icon={<IconGrabbable size="xs" />}
               size="zero"
-              borderless
+              priority="transparent"
             />
           ) : singleColumn && showAliasField ? null : (
             <span />
@@ -533,7 +533,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 title={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
               />
             ) : (
               <RemoveButton
@@ -541,7 +541,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
               />
             )
           ) : singleColumn && showAliasField ? null : (

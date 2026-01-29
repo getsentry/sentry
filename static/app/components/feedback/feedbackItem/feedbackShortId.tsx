@@ -76,7 +76,7 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
           'aria-label': t('Short-ID copy actions'),
           icon: <IconChevron direction="down" size="xs" />,
           size: 'zero',
-          borderless: true,
+          priority: 'transparent',
           showChevron: false,
         }}
         position="bottom"

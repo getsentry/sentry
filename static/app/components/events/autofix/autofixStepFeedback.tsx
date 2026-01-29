@@ -77,14 +77,14 @@ export function AutofixStepFeedback({
     <Flex align="center" gap={gap}>
       <Button
         size={buttonSize}
-        borderless={compact}
+        priority={compact ? 'transparent' : undefined}
         icon={<IconThumb direction="up" size={iconSize} />}
         onClick={e => handleFeedback(true, e)}
         aria-label={t('This was helpful')}
       />
       <Button
         size={buttonSize}
-        borderless={compact}
+        priority={compact ? 'transparent' : undefined}
         icon={<IconThumb direction="down" size={iconSize} />}
         onClick={e => handleFeedback(false, e)}
         aria-label={t('This was not helpful')}

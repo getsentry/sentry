@@ -37,7 +37,7 @@ function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
               aria-expanded={index === expandedIndex}
               disabled={index === expandedIndex}
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => setExpandedIndex(index)}
             />
           </AccordionHeader>

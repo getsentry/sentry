@@ -107,7 +107,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                 <OverlayTrigger.Button
                   {...props}
                   size="zero"
-                  borderless
+                  priority="transparent"
                   showChevron={false}
                   title={keyCombinedTooltip}
                   aria-label={t('key comparison %s', keyCombinedLabel)}
@@ -183,7 +183,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                 <OverlayTrigger.Button
                   {...props}
                   size="zero"
-                  borderless
+                  priority="transparent"
                   showChevron={false}
                   title={valueCombinedTooltip}
                   aria-label={t('value comparison %s', valueCombinedLabel)}

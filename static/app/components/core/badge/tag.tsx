@@ -42,7 +42,6 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
           }}
           size="zero"
           priority="link"
-          borderless
           aria-label={t('Dismiss')}
           icon={<IconClose size="xs" />}
         />

@@ -95,7 +95,7 @@ function VisualizeGhostField({
           aria-label={t('Drag to reorder')}
           icon={<IconGrabbable size="xs" />}
           size="zero"
-          borderless
+          priority="transparent"
         />
         <FieldBar>
           {draggingField?.kind === FieldValueKind.EQUATION ? (
@@ -204,7 +204,7 @@ function VisualizeGhostField({
             />
           )}
           <Button
-            borderless
+            priority="transparent"
             icon={<IconDelete />}
             size="zero"
             disabled

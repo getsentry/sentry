@@ -126,7 +126,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
           />
           <ButtonBar gap="xs">
             <SettingsButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
               title={t('Settings')}

@@ -234,7 +234,7 @@ sentry-cli releases finalize "$VERSION"`;
                     )
               }
               size="xs"
-              borderless
+              priority="transparent"
               disabled={!canMakeIntegration}
               onClick={() => {
                 closeOverlay();

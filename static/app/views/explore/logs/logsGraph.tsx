@@ -181,7 +181,7 @@ function Graph({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconGraph type={chartIcon} />}
-              borderless
+              priority="transparent"
               showChevron={false}
               size="xs"
             />
@@ -200,7 +200,7 @@ function Graph({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconClock />}
-              borderless
+              priority="transparent"
               showChevron={false}
               size="xs"
             />
@@ -401,7 +401,7 @@ function ContextMenu({
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        borderless: true,
+        priority: 'transparent',
         showChevron: false,
         icon: <IconEllipsis />,
       }}

@@ -354,7 +354,7 @@ const PlatformCard = styled(
       {selected && visibleSelection && (
         <ClearButton
           icon={<IconClose />}
-          borderless
+          priority="transparent"
           size="xs"
           onClick={onClear}
           aria-label={t('Clear')}

@@ -413,7 +413,7 @@ function Dashboard({
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
             size="xs"
-            borderless
+            priority="transparent"
             icon={<IconResize />}
           />
         }

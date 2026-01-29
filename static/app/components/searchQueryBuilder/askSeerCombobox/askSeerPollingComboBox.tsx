@@ -476,7 +476,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             reset();
           }}
           aria-label={t('Close Seer Search')}
-          borderless
+          priority="transparent"
         />
       </ButtonsWrapper>
       {state.isOpen ? (

@@ -228,7 +228,11 @@ export default function IntervalSelector({
       position="bottom-end"
       menuWidth={200}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={t('Interval')} borderless>
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Interval')}
+          priority="transparent"
+        >
           {interval}
         </OverlayTrigger.Button>
       )}

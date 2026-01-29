@@ -134,7 +134,6 @@ export default function TempestSettings() {
                   aria-label={t('Dismiss Alert')}
                   title={t('Dismiss Alert')}
                   size="zero"
-                  borderless
                 />
               }
             >

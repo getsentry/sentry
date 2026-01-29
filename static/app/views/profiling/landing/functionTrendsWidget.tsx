@@ -331,7 +331,7 @@ function FunctionTrendsEntry({
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() => setExpanded()}
         />
         {project && (

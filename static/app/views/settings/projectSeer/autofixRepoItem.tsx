@@ -172,7 +172,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <InputGroup.TrailingItems>
                         <ClearButton
                           size="xs"
-                          borderless
+                          priority="transparent"
                           icon={<IconClose size="xs" />}
                           onClick={() => {
                             setBranchInputValue('');
@@ -191,7 +191,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                     size="xs"
                     icon={<IconAdd />}
                     onClick={addBranchOverride}
-                    borderless
+                    priority="transparent"
                   >
                     {t('Add an override for a tag')}
                   </AddOverrideButton>
@@ -258,7 +258,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       </Flex>
                       <Button
                         size="sm"
-                        borderless
+                        priority="transparent"
                         icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}

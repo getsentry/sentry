@@ -815,7 +815,7 @@ function AMCheckout(props: Props) {
             to={`/settings/${organization.slug}/billing/`}
             icon={<IconChevron direction="left" />}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={() => {
               trackGetsentryAnalytics('checkout.exit', {
                 subscription,

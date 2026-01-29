@@ -222,7 +222,7 @@ export default function OverviewTimeConsumingQueriesWidget(
               <Button
                 size="xs"
                 aria-label={t('Open Full-Screen View')}
-                borderless
+                priority="transparent"
                 icon={<IconExpand />}
                 onClick={() => {
                   openInsightChartModal({

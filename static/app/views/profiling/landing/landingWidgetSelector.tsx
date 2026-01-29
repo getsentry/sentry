@@ -86,7 +86,7 @@ export function LandingWidgetSelector({
       options={options}
       onChange={onWidgetChange}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
       )}
       offset={4}
     />
