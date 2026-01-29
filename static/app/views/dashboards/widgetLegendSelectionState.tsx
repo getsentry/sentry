@@ -63,8 +63,7 @@ class WidgetLegendSelectionState {
 
       const thisWidgetWithoutReleasesWasSelected =
         !(releasesKey in selected) &&
-        Object.values(selected).filter(value => value === showReleaseByDefault).length ===
-          1;
+        Object.values(selected).filter(value => value === false).length === 1;
 
       if (releasesSelectionDiffersFromDefault || thisWidgetWithoutReleasesWasSelected) {
         navigate(
@@ -149,12 +148,12 @@ class WidgetLegendSelectionState {
 
     return location.query.unselectedSeries
       ? this.decodeLegendQueryParam(widget)
-      : this.widgetRequiresLegendUnselection(widget)
+      : this.shouldShowReleaseByDefault(widget)
         ? {
             [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
               'Releases',
               widget.id
-            )]: this.shouldShowReleaseByDefault(widget),
+            )]: true,
           }
         : {};
   }
