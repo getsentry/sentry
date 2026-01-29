@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -16,7 +15,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Attrib
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.models.files.file import File
-from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+from sentry.preprod.eap.constants import get_preprod_trace_id
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.utils import snuba_rpc
 
@@ -144,13 +143,7 @@ def _delete_preprod_data_from_eap(
         return
 
     try:
-        # Generate trace_ids using the same logic as the write path.
-        # See produce_preprod_size_metric_to_eap and produce_preprod_build_distribution_to_eap
-        # which use: uuid.uuid5(PREPROD_NAMESPACE, str(artifact_id)).hex
-        trace_ids = [
-            uuid.uuid5(PREPROD_NAMESPACE, str(artifact_id)).hex
-            for artifact_id in preprod_artifact_ids
-        ]
+        trace_ids = [get_preprod_trace_id(artifact_id) for artifact_id in preprod_artifact_ids]
 
         trace_id_filter = ComparisonFilter(
             key=AttributeKey(name="sentry.trace_id", type=AttributeKey.TYPE_STRING),
