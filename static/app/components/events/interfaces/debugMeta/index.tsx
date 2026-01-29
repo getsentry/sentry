@@ -262,7 +262,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             >
               {t('Processing')}
             </Flex>
-            <Flex align="center" justify="end" minWidth="0" padding="md lg">
+            <Flex align="center" minWidth="0" padding="md lg">
               {t('Details')}
             </Flex>
           </Header>
