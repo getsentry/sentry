@@ -336,6 +336,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             "owner": "test-org",
             "name": "test-repo",
             "externalId": "12345",
+            "organizationId": self.organization.id,
         }
 
         response = self.client.post(
@@ -381,6 +382,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             "owner": "test-org",
             "name": "test-repo",
             "externalId": "12345",
+            "organizationId": self.organization.id,
         }
 
         response = self.client.post(
@@ -475,6 +477,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             "owner": "new-owner",
             "name": "new-repo",
             "externalId": "222",
+            "organizationId": self.organization.id,
         }
 
         response = self.client.post(
@@ -522,6 +525,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             "owner": "test-org",
             "name": "test-repo",
             "externalId": "12345",
+            "organizationId": self.organization.id,
         }
 
         response = self.client.post(
@@ -640,8 +644,8 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         # Include a duplicate (same organization_id, provider, external_id) and a new repo
         duplicate_repo = {
             "provider": "github",
-            "owner": "different-owner",
-            "name": "different-name",
+            "owner": "existing-owner",
+            "name": "existing-repo",
             "externalId": "111",
             "organizationId": self.organization.id,
         }
@@ -739,6 +743,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             "owner": "test-org",
             "name": "test-repo",
             "externalId": "12345",
+            "organizationId": self.organization.id,
         }
 
         response = self.client.post(
@@ -799,6 +804,77 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             "owner": "other-org",
             "name": "repo",
             "externalId": "other-org-repo-id",
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "projectRepoMappings": {
+                    str(project.id): [repo_data],
+                },
+            },
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_bulk_set_preferences.assert_not_called()
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    def test_post_rejects_mismatched_organization_id_in_repository_data(
+        self, mock_bulk_set_preferences
+    ):
+        """Test that POST fails when repository organization_id doesn't match the organization."""
+        project = self.create_project(organization=self.organization)
+        other_org = self.create_organization(owner=self.user)
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="github",
+            external_id="12345",
+        )
+
+        repo_data = {
+            "provider": "github",
+            "owner": "test-org",
+            "name": "test-repo",
+            "externalId": "12345",
+            "organizationId": other_org.id,
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "projectRepoMappings": {
+                    str(project.id): [repo_data],
+                },
+            },
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_bulk_set_preferences.assert_not_called()
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    def test_post_rejects_mismatched_repo_name_or_owner(self, mock_bulk_set_preferences):
+        """Test that POST fails when repository name/owner don't match the database record."""
+        project = self.create_project(organization=self.organization)
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="real-owner/real-repo",
+            provider="github",
+            external_id="12345",
+        )
+
+        repo_data = {
+            "provider": "github",
+            "owner": "injected-owner",
+            "name": "injected-name",
+            "externalId": "12345",
+            "organizationId": self.organization.id,
         }
 
         response = self.client.post(

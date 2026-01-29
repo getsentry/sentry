@@ -663,3 +663,51 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
         mock_post.assert_not_called()
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
+    def test_post_rejects_mismatched_organization_id_in_repository_data(
+        self, mock_post: MagicMock
+    ) -> None:
+        """Test that POST fails when repository organization_id doesn't match project's org."""
+        other_org = self.create_organization(owner=self.user)
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": other_org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_post.assert_not_called()
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
+    def test_post_rejects_mismatched_repo_name_or_owner(self, mock_post: MagicMock) -> None:
+        """Test that POST fails when repository name/owner don't match the database record."""
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "injected-owner",
+                    "name": "injected-name",
+                    "external_id": "123456",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_post.assert_not_called()
