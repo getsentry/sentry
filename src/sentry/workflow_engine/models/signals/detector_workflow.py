@@ -1,35 +1,46 @@
-from typing import TYPE_CHECKING
-
-from django.db.models.signals import post_save, pre_delete, pre_save
+from django.db.models.signals import post_migrate, pre_delete, pre_save
 from django.dispatch import receiver
 
 from sentry.workflow_engine.caches.workflow import invalidate_processing_workflows
-
-if TYPE_CHECKING:
-    from sentry.workflow_engine.models import DetectorWorkflow
+from sentry.workflow_engine.models import DetectorWorkflow
 
 
-# @receiver(post_migrate, sender=DetectorWorkflow)
-# TODO - handle post migrate?
+@receiver(post_migrate, sender=DetectorWorkflow)
+def invalidate_all_processing_cache(sender, **kwargs) -> None:
+    invalidate_processing_workflows()
 
 
 @receiver(pre_save, sender=DetectorWorkflow)
-def invalidate_processing_workflows_cache_pre(send, instance: DetectorWorkflow, **kwargs) -> None:
-    # TODO - lookup the previous releationships and clear those caches
-    pass
+def invalidate_processing_workflows_cache_pre(sender, instance: DetectorWorkflow, **kwargs) -> None:
+    """
+    Clear cache for BOTH old and new relationships when a DetectorWorkflow changes.
+
+    - On create: Clears cache for the new relationship
+    - On update: Clears cache for both old and new relationships
+    """
+
+    # If updating an existing instance, clear the old relationship cache
+    if instance.pk is not None:
+        try:
+            # This lookup trade-off is okay, because we rarely update these relationships
+            # Most cases are delete / create new DetectorWorkflow relationships.
+            old_instance = DetectorWorkflow.objects.get(pk=instance.pk)
+            invalidate_processing_workflows(
+                old_instance.detector_id, old_instance.workflow.environment_id
+            )
+        except DetectorWorkflow.DoesNotExist:
+            pass
+
+    # Always clear the new relationship cache
+    invalidate_processing_workflows(instance.detector_id, instance.workflow.environment_id)
 
 
 @receiver(pre_delete, sender=DetectorWorkflow)
-@receiver(post_save, sender=DetectorWorkflow)
-def invalidate_processing_workflows_cache(sender, instance: DetectorWorkflow, **kwargs) -> None:
+def invalidate_processing_workflows_cache_delete_relationship(
+    sender, instance: DetectorWorkflow, **kwargs
+) -> None:
     """
-    We need to invalidate the workflows being processed if the relationship between
-    the detector and the workflow changes.
-
-    The invalidation happens on:
-    - pre_save: Ensures any previous relationship caches are cleared
-    - post_save: Ensures the new relationships cache is cleared
-    - pre_delete: Ensures if we disconnect a workflow, it's not evaluated
+    Clear cache when a DetectorWorkflow is deleted to ensure the workflow
+    is no longer evaluated for this detector.
     """
-    # TODO - update this method to work as described in the comment
     invalidate_processing_workflows(instance.detector_id, instance.workflow.environment_id)
