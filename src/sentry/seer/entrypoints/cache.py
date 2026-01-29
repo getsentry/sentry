@@ -100,7 +100,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
 
         # If we do have a run_id cache, we can delete the pre-autofix cache to prevent autofix
         # updates targeting all matching groups from being sent, limiting updates to just this run.
-        if cache_result["source"] == "run_id":
+        if group_id and cache_result["source"] == "run_id":
             cache.delete(
                 cls.get_pre_autofix_cache_key(entrypoint_key=entrypoint_key, group_id=group_id)
             )

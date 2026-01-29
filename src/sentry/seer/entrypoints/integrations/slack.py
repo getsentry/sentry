@@ -20,7 +20,7 @@ from sentry.notifications.platform.templates.seer import (
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -378,7 +378,7 @@ def handle_prepare_autofix_update(
         group_id=group.id,
         group_link=group.get_absolute_url(),
     )
-    cache_result = SeerOperator.autofix_cache.populate_pre_autofix_cache(
+    cache_result = SeerOperatorAutofixCache.populate_pre_autofix_cache(
         entrypoint_key=str(SlackEntrypoint.key),
         group_id=group.id,
         cache_payload=cache_payload,
