@@ -1,10 +1,9 @@
-import {
-  sampleCountCategoricalData,
-  sampleDurationCategoricalData,
-  sampleStackedCategoricalData,
-} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/sampleCountCategoricalData';
+import {CategoricalSeriesFixture} from 'sentry-fixture/categoricalSeries';
+
+import {sampleCountCategoricalData} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/countCategorical';
+import {sampleDurationCategoricalData} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/durationCategorical';
+import {sampleStackedCategoricalData} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/stackedCategorical';
 import {Bars} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables/bars';
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 describe('Bar Plottable', () => {
   describe('Properties', () => {
@@ -44,24 +43,18 @@ describe('Bar Plottable', () => {
     });
 
     it('returns isEmpty true for empty data', () => {
-      const emptySeries: CategoricalSeries = {
-        valueAxis: 'count()',
-        meta: {valueType: 'integer', valueUnit: null},
-        values: [],
-      };
+      const emptySeries = CategoricalSeriesFixture({values: []});
       const bar = new Bars(emptySeries);
       expect(bar.isEmpty).toBe(true);
     });
 
     it('returns isEmpty true for all null values', () => {
-      const nullSeries: CategoricalSeries = {
-        valueAxis: 'count()',
-        meta: {valueType: 'integer', valueUnit: null},
+      const nullSeries = CategoricalSeriesFixture({
         values: [
           {category: 'A', value: null},
           {category: 'B', value: null},
         ],
-      };
+      });
       const bar = new Bars(nullSeries);
       expect(bar.isEmpty).toBe(true);
     });

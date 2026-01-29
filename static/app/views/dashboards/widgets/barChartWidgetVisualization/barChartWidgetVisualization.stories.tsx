@@ -7,20 +7,18 @@ import {CodeBlock} from 'sentry/components/core/code';
 import * as Storybook from 'sentry/stories';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 
-import {
-  sampleCountCategoricalData,
-  sampleDurationCategoricalData,
-  sampleLargeValueData,
-  sampleLongLabelData,
-  sampleManyCategoriesData,
-  sampleMultiSeriesData,
-  sampleNegativeData,
-  samplePercentageData,
-  sampleRateData,
-  sampleSizeData,
-  sampleSparseData,
-  sampleStackedCategoricalData,
-} from './fixtures/sampleCountCategoricalData';
+import {sampleCountCategoricalData} from './fixtures/countCategorical';
+import {sampleDurationCategoricalData} from './fixtures/durationCategorical';
+import {sampleLargeValueData} from './fixtures/largeValueCategorical';
+import {sampleLongLabelData} from './fixtures/longLabelCategorical';
+import {sampleManyCategoriesData} from './fixtures/manyCategoriesCategorical';
+import {sampleMultiSeriesData} from './fixtures/multiSeriesCategorical';
+import {sampleNegativeData} from './fixtures/negativeCategorical';
+import {samplePercentageData} from './fixtures/percentageCategorical';
+import {sampleRateData} from './fixtures/rateCategorical';
+import {sampleSizeData} from './fixtures/sizeCategorical';
+import {sampleSparseData} from './fixtures/sparseCategorical';
+import {sampleStackedCategoricalData} from './fixtures/stackedCategorical';
 import {Bars} from './plottables/bars';
 import {BarChartWidgetVisualization} from './barChartWidgetVisualization';
 

@@ -1,13 +1,12 @@
+import {CategoricalSeriesFixture} from 'sentry-fixture/categoricalSeries';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BarChartWidgetVisualization} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/barChartWidgetVisualization';
-import {
-  sampleCountCategoricalData,
-  sampleDurationCategoricalData,
-  sampleStackedCategoricalData,
-} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/sampleCountCategoricalData';
+import {sampleCountCategoricalData} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/countCategorical';
+import {sampleDurationCategoricalData} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/durationCategorical';
+import {sampleStackedCategoricalData} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/stackedCategorical';
 import {Bars} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables/bars';
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 describe('BarChartWidgetVisualization', () => {
   beforeEach(() => {
@@ -73,14 +72,7 @@ describe('BarChartWidgetVisualization', () => {
 
   describe('Empty Data Handling', () => {
     it('throws error when all plottables are empty', () => {
-      const emptySeries: CategoricalSeries = {
-        valueAxis: 'count()',
-        meta: {
-          valueType: 'integer',
-          valueUnit: null,
-        },
-        values: [],
-      };
+      const emptySeries = CategoricalSeriesFixture({values: []});
 
       expect(() =>
         render(<BarChartWidgetVisualization plottables={[new Bars(emptySeries)]} />)
@@ -88,17 +80,12 @@ describe('BarChartWidgetVisualization', () => {
     });
 
     it('throws error when all values are null', () => {
-      const nullValuesSeries: CategoricalSeries = {
-        valueAxis: 'count()',
-        meta: {
-          valueType: 'integer',
-          valueUnit: null,
-        },
+      const nullValuesSeries = CategoricalSeriesFixture({
         values: [
           {category: 'A', value: null},
           {category: 'B', value: null},
         ],
-      };
+      });
 
       expect(() =>
         render(<BarChartWidgetVisualization plottables={[new Bars(nullValuesSeries)]} />)
