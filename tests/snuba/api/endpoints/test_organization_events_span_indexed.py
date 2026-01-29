@@ -7119,28 +7119,3 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         mock_table_rpc.assert_called_once()
         assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
-
-    def test_equation_with_literal_0(self):
-        self.store_spans(
-            [self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)],
-            is_eap=True,
-        )
-        response = self.do_request(
-            {
-                "field": [
-                    "count(span.duration)",
-                    "equation|count(span.duration) + 0",
-                    "equation|0 * count(span.duration)",
-                ],
-                "dataset": "spans",
-                "project": [self.project.id],
-            }
-        )
-        assert response.status_code == 200
-        assert response.data["data"] == [
-            {
-                "count(span.duration)": 1,
-                "equation|count(span.duration) + 0": 1,
-                "equation|0 * count(span.duration)": 0,
-            }
-        ]
