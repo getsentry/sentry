@@ -193,14 +193,13 @@ describe('MessagesPanel', () => {
       />
     );
 
-    const assistantMessage = screen.getByText('Click me assistant').closest('div');
-    // Find the clickable message bubble (parent with onClick)
-    const messageBubble = assistantMessage?.closest('[class*="MessageBubble"]');
+    // Find the assistant text and click its parent container
+    const assistantText = screen.getByText('Click me assistant');
+    // The clickable area is the MessageBubble which contains the text
+    // We can click on the text itself - the event will bubble up
+    await userEvent.click(assistantText);
 
-    if (messageBubble) {
-      await userEvent.click(messageBubble);
-      expect(mockOnSelectNode).toHaveBeenCalledWith(node);
-    }
+    expect(mockOnSelectNode).toHaveBeenCalledWith(node);
   });
 
   it('displays user email when available', () => {
