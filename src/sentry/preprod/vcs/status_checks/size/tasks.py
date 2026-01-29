@@ -205,6 +205,7 @@ def create_preprod_status_check_task(
         return
 
     target_url = get_preprod_artifact_url(preprod_artifact)
+    completed_at: datetime | None = None
 
     # Check if any artifact hit quota limits - show neutral status with quota message
     if _has_no_quota_artifact(all_artifacts, size_metrics_map):
@@ -235,7 +236,6 @@ def create_preprod_status_check_task(
             triggered_rules,
         )
 
-        completed_at: datetime | None = None
         if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
             completed_at = preprod_artifact.date_updated
 
