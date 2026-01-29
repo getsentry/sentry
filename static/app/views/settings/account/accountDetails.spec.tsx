@@ -6,13 +6,6 @@ import AccountDetails from 'sentry/views/settings/account/accountDetails';
 
 jest.mock('scroll-to-element', () => 'scroll-to-element');
 
-// Mock react-select source import used by form components
-jest.mock('react-select/src/components', () => ({
-  components: {
-    IndicatorsContainer: ({children}: {children: React.ReactNode}) => children,
-  },
-}));
-
 function mockUserDetails(params?: any) {
   MockApiClient.clearMockResponses();
 
