@@ -29,6 +29,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface InstrumentationFixSectionProps {
   event: Event;
@@ -38,8 +39,8 @@ interface InstrumentationFixSectionProps {
 export function InstrumentationFixSection({group}: InstrumentationFixSectionProps) {
   const organization = useOrganization();
 
-  const isSeerExplorerEnabled =
-    organization.features.includes('seer-explorer') &&
+  const seerExplorerEnabled =
+    isSeerExplorerEnabled(organization) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
 
@@ -103,7 +104,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
     [triggerCodingAgentHandoff, runState?.run_id]
   );
 
-  if (!isSeerExplorerEnabled) {
+  if (!seerExplorerEnabled) {
     return null;
   }
 

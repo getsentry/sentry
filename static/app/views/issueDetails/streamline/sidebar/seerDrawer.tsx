@@ -40,6 +40,7 @@ import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerDrawerProps {
   event: Event;
@@ -213,7 +214,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
   // Route to Explorer-based drawer if both feature flags are enabled
   if (
-    organization.features.includes('seer-explorer') &&
+    isSeerExplorerEnabled(organization) &&
     organization.features.includes('autofix-on-explorer')
   ) {
     return (
@@ -521,7 +522,7 @@ export const useOpenSeerDrawer = ({
     }
 
     const isExplorerVersion =
-      organization.features.includes('seer-explorer') &&
+      isSeerExplorerEnabled(organization) &&
       organization.features.includes('autofix-on-explorer');
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
