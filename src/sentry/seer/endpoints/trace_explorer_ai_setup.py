@@ -71,15 +71,13 @@ class TraceExplorerAISetup(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids = {int(x) for x in request.data.get("project_ids", [])}
-        projects = self.get_projects(request, organization, project_ids=project_ids)
-        validated_project_ids = [p.id for p in projects]
-
-        if project_ids and len(validated_project_ids) != len(project_ids):
-            return Response(
-                {"detail": "You do not have permission to perform this action."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        raw_project_ids = request.data.get("project_ids", [])
+        if raw_project_ids:
+            project_ids = {int(x) for x in raw_project_ids}
+            projects = self.get_projects(request, organization, project_ids=project_ids)
+            validated_project_ids = [p.id for p in projects]
+        else:
+            validated_project_ids = []
 
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(
