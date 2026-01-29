@@ -210,7 +210,11 @@ export function NewWelcomeUI(props: StepProps) {
       <GenericFooter>
         {props.genSkipOnboardingLink()}
         <NextButtonWrapper>
-          <Button priority="primary" onClick={handleComplete} aria-label={t('Start')}>
+          <Button
+            priority="primary"
+            onClick={handleComplete}
+            data-test-id="onboarding-welcome-start"
+          >
             {t('Next')}
           </Button>
         </NextButtonWrapper>
