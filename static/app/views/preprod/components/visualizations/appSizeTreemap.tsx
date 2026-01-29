@@ -168,7 +168,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     const shouldHighlight = highlightInsights && hasFlaggedInsights;
 
     const borderColor = shouldHighlight
-      ? theme.colors.red400
+      ? theme.tokens.border.danger.vibrant
       : hasChildren && categoryInfo.translucentColor
         ? categoryInfo.translucentColor
         : categoryInfo.color;
