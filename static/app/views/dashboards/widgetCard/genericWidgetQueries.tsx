@@ -78,13 +78,8 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     response?: ResponseMeta
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
-  customDidUpdateComparator?: (
-    prevProps: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>,
-    nextProps: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
-  ) => boolean;
   dashboardFilters?: DashboardFilters;
   disabled?: boolean;
-  forceOnDemand?: boolean;
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
@@ -165,7 +160,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     cursor,
   });
 
-  // Use the appropriate results based on display type
   const hookResults = isChartDisplay ? hookSeriesResults : hookTableResults;
 
   // Track previous raw data to detect when new data arrives
