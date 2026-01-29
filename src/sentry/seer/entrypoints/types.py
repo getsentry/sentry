@@ -1,6 +1,7 @@
 from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
+from sentry.models.organization import Organization
 from sentry.sentry_apps.metrics import SentryAppEventType
 
 
@@ -19,6 +20,15 @@ class SeerEntrypoint[CachePayloadT](Protocol):
     """
 
     key: SeerEntrypointKey
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        """
+        Used by the operator (SeerOperator.has_access) to gate access prevent a workflow unless
+        the organization has access to at least one entrypoint. The operator will check for
+        seer-access prior to this check, so no need to repeat that check on the entrypoint.
+        """
+        ...
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         """
