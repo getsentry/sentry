@@ -40,7 +40,7 @@ function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
       aria-label={t('Close Modal')}
       size="xs"
       icon={<IconClose size="xs" />}
-      borderless
+      priority="transparent"
       {...p}
     />
   );

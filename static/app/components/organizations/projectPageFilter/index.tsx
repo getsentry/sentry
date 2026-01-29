@@ -269,7 +269,7 @@ export function ProjectPageFilter({
         trailingItems: ({isFocused}: any) => (
           <Fragment>
             <TrailingButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconOpen />}
               title={t('Project Details')}
@@ -283,7 +283,7 @@ export function ProjectPageFilter({
               visible={isFocused}
             />
             <TrailingButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconSettings />}
               title={t('Project Settings')}

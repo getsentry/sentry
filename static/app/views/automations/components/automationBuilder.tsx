@@ -118,7 +118,7 @@ export default function AutomationBuilder() {
         ))}
         <span>
           <PurpleTextButton
-            borderless
+            priority="transparent"
             icon={<IconAdd />}
             size="xs"
             onClick={() => actions.addIf()}
@@ -212,7 +212,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
-              borderless
+              priority="transparent"
               onClick={() => actions.removeIf(actionFilter.id)}
               className="delete-condition-group"
             />

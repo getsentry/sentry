@@ -297,7 +297,7 @@ function Task({task, hidePanel}: TaskProps) {
                 setShowSkipConfirmation(!showSkipConfirmation);
               }}
               size="zero"
-              borderless
+              priority="transparent"
               title={t('Skip Task')}
             />
           ) : undefined
@@ -484,7 +484,7 @@ function TaskGroup({
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"
-            borderless
+            priority="transparent"
           />
         }
       />

@@ -285,7 +285,7 @@ export function TeamSelector(props: Props) {
           >
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               disabled={!canAddTeam}
               onClick={() => handleAddTeamToProject(team)}
               icon={<IconAdd />}

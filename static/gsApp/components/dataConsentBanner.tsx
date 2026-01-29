@@ -84,7 +84,7 @@ function DataConsentBanner({
         analyticsEventName="Data Consent Banner: Dismissed"
         analyticsParams={{source}}
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}

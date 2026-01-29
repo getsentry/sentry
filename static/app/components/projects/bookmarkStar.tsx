@@ -51,7 +51,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
       busy={isBookmarking}
       onClick={() => handleBookmarkToggle({isBookmarked: !isBookmarked})}
       size="zero"
-      borderless
+      priority="transparent"
       className={className}
       icon={
         <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />

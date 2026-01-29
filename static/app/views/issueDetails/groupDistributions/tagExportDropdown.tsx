@@ -36,7 +36,7 @@ export default function TagExportDropdown({tagKey, group, organization, project}
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          borderless
+          priority="transparent"
           size="xs"
           aria-label={t('Export options')}
           icon={<IconDownload />}

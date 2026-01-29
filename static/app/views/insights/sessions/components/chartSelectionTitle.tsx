@@ -24,7 +24,7 @@ export default function ChartSelectionTitle({title}: Props) {
   return (
     <StyledCompactSelect
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
       )}
       offset={4}
       options={chartOptions}

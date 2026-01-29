@@ -76,7 +76,7 @@ function TagFacetsDistributionMeter({
           <TitleDescription>{topSegments[0]!.name || t('n/a')}</TitleDescription>
         </Tooltip>
         <ExpandToggleButton
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
           aria-label={t(

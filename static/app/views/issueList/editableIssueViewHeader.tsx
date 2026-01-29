@@ -72,7 +72,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
         onClick={handleBeginEditing}
         aria-label={t('Edit view name')}
         size="sm"
-        borderless
+        priority="transparent"
       />
     </ViewTitleWrapper>
   );

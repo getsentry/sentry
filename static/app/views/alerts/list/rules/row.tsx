@@ -345,7 +345,7 @@ function RuleListRow({
                       assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
                     }
                     size="zero"
-                    borderless
+                    priority="transparent"
                   >
                     {avatarElement}
                   </OverlayTrigger.Button>

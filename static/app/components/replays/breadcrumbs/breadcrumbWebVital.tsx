@@ -94,7 +94,7 @@ export function BreadcrumbWebVital({
         >
           <ValueObjectKey>{t('element')}</ValueObjectKey>
           <span>{': '}</span>
-          <SelectorButton size="zero" borderless>
+          <SelectorButton size="zero" priority="transparent">
             {key}
           </SelectorButton>
         </span>

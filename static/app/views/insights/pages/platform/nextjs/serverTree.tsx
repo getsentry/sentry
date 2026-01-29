@@ -321,7 +321,7 @@ function TreeNodeRenderer({
                     <code>{`${itemPath.join('/')}`}</code>
                     <Button
                       size="zero"
-                      borderless
+                      priority="transparent"
                       icon={<IconCopy size="xs" />}
                       aria-label={t('Copy')}
                       onClick={() => {

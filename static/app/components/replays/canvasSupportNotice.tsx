@@ -52,7 +52,7 @@ export function CanvasSupportNotice() {
           icon={<IconClose />}
           onClick={dismiss}
           size="zero"
-          borderless
+          priority="transparent"
         />
       }
     >

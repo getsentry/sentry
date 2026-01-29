@@ -281,7 +281,7 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
     <Button
       size="zero"
       style={{height: 'fit-content'}}
-      borderless
+      priority="transparent"
       onClick={onDelete}
       icon={<IconDelete />}
       title={t('Remove this filter')}

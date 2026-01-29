@@ -88,7 +88,7 @@ function SearchBar({
           {!!query && (
             <SearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={clearSearch}
               icon={<IconClose size="xs" />}
               aria-label={t('Clear')}

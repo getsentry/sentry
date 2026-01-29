@@ -169,7 +169,7 @@ export function MultiQueryModeChart({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconGraph type={visualizationType} />}
-                borderless
+                priority="transparent"
                 showChevron={false}
                 size="xs"
               />
@@ -193,7 +193,7 @@ export function MultiQueryModeChart({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconClock />}
-                borderless
+                priority="transparent"
                 showChevron={false}
                 size="xs"
               />
@@ -207,7 +207,7 @@ export function MultiQueryModeChart({
             key="contextMenu"
             triggerProps={{
               size: 'xs',
-              borderless: true,
+              priority: 'transparent',
               showChevron: false,
               icon: <IconEllipsis />,
             }}

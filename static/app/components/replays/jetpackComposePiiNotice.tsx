@@ -26,7 +26,7 @@ export function JetpackComposePiiNotice() {
             icon={<IconClose />}
             onClick={dismiss}
             size="zero"
-            borderless
+            priority="transparent"
           />
         }
       >

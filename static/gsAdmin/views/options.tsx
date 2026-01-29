@@ -62,7 +62,7 @@ function EditableOption({
       </td>
       <td key="edit">
         <Button
-          borderless
+          priority="transparent"
           icon={<IconEdit size="xs" />}
           size="zero"
           aria-label="edit"

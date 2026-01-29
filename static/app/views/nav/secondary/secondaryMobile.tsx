@@ -25,7 +25,7 @@ export function SecondaryMobile({handleClickBack}: Props) {
           icon={<IconChevron direction="left" />}
           aria-label={t('Back to primary navigation')}
           size="xs"
-          borderless
+          priority="transparent"
         />
         <HeaderLabel>
           {activeGroup ? PRIMARY_NAV_GROUP_CONFIG[activeGroup].label : ''}

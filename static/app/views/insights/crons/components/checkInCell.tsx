@@ -146,7 +146,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
       <ShortId shortId={getShortEventId(id)} />
       <CopyToClipboardButton
         size="zero"
-        borderless
+        priority="transparent"
         text={id.replaceAll('-', '')}
         title={t('Copy full check-in identifier')}
         aria-label={t('Copy Check-In ID')}

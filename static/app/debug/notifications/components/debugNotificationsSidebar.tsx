@@ -25,7 +25,7 @@ export function DebugNotificationsSidebar() {
               {registrations.map(registration => (
                 <Container key={registration.source} as="li">
                   <NotificationLinkButton
-                    borderless
+                    priority="transparent"
                     active={routeSource === registration.source}
                     to={
                       routeSource === registration.source

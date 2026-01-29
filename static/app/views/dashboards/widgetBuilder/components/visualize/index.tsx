@@ -885,7 +885,7 @@ function Visualize({error, setError}: VisualizeProps) {
                             isTableWidget &&
                             fields[index]?.kind === FieldValueKind.FIELD && (
                               <Button
-                                borderless
+                                priority="transparent"
                                 icon={<IconLink />}
                                 aria-label={t('Link field')}
                                 size="zero"
@@ -927,7 +927,7 @@ function Visualize({error, setError}: VisualizeProps) {
                           {(state.displayType !== DisplayType.BIG_NUMBER ||
                             datasetConfig.enableEquations) && (
                             <Button
-                              borderless
+                              priority="transparent"
                               icon={<IconDelete />}
                               size="zero"
                               disabled={

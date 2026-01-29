@@ -29,7 +29,7 @@ function UnmaskAlert() {
             icon={<IconClose />}
             onClick={dismiss}
             size="zero"
-            borderless
+            priority="transparent"
           />
         }
       >

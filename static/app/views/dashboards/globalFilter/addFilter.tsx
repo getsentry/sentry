@@ -111,7 +111,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       <Flex gap="md" justify="end">
         <Button
           size="xs"
-          borderless
+          priority="transparent"
           icon={<IconArrow direction="left" />}
           onClick={() => {
             resetSearch();

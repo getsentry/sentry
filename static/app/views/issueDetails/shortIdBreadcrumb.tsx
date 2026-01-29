@@ -94,7 +94,7 @@ export function ShortIdBreadcrumb({
             'aria-label': t('Issue copy actions'),
             icon: <IconChevron direction="down" size="sm" />,
             size: 'zero',
-            borderless: true,
+            priority: 'transparent',
             showChevron: false,
           }}
           position="bottom"

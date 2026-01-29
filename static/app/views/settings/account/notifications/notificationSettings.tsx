@@ -65,7 +65,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
           <LinkButton
             icon={<IconSettings size="sm" />}
             size="sm"
-            borderless
+            priority="transparent"
             aria-label={t('Notification Settings')}
             data-test-id="fine-tuning"
             to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[type]}/`}

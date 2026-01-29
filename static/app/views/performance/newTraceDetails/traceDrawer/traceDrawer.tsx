@@ -478,7 +478,6 @@ function TraceLayoutMinimizeButton(props: {
     <CloseButton
       priority="link"
       size="xs"
-      borderless
       aria-label={t('Close Drawer')}
       icon={<StyledIconClose />}
       onClick={props.onClick}

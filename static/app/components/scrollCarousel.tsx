@@ -138,7 +138,7 @@ export function ScrollCarousel({
           aria-label={isVertical ? t('Scroll up') : t('Scroll left')}
           icon={<StyledIconChevron direction={isVertical ? 'up' : 'left'} />}
           orientation={orientation}
-          borderless
+          priority="transparent"
         />
       )}
       {!isAtEnd && (
@@ -148,7 +148,7 @@ export function ScrollCarousel({
           aria-label={isVertical ? t('Scroll down') : t('Scroll right')}
           icon={<StyledIconChevron direction={isVertical ? 'down' : 'right'} />}
           orientation={orientation}
-          borderless
+          priority="transparent"
         />
       )}
     </ScrollCarouselWrapper>

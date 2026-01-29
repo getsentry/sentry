@@ -83,7 +83,7 @@ export default function Layout() {
             </Navigation>
             <div>
               <ThemeToggle
-                borderless
+                priority="transparent"
                 size="zero"
                 onClick={toggleTheme}
                 icon={

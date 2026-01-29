@@ -285,7 +285,7 @@ export function AutofixChanges({
               {t('Code Changes')}
               <Button
                 size="zero"
-                borderless
+                priority="transparent"
                 title={t('Chat with Seer')}
                 onClick={handleSelectFirstChange}
                 analyticsEventName="Autofix: Changes Chat"

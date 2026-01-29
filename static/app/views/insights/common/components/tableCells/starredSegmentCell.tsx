@@ -93,7 +93,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
       <Button
         onClick={toggleStarredTransaction}
         disabled={disabled}
-        borderless
+        priority="transparent"
         size="zero"
         icon={
           <IconStar

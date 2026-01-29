@@ -407,7 +407,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                   <Button
                     onClick={() => setSearchQuery(undefined)}
                     aria-label="Clear search"
-                    borderless
+                    priority="transparent"
                     size="zero"
                   >
                     <IconClose size="sm" />

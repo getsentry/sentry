@@ -101,7 +101,7 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
         maxMenuHeight={400}
         trigger={props => (
           <OverlayTrigger.Button
-            borderless
+            priority="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter Breadcrumbs')}
@@ -117,7 +117,7 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
         position="bottom-end"
         trigger={props => (
           <OverlayTrigger.IconButton
-            borderless
+            priority="transparent"
             icon={<IconSort />}
             aria-label={t('Sort Breadcrumbs')}
             title={t('Sort')}

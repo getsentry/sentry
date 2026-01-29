@@ -293,7 +293,7 @@ function WidgetInteractiveTitle({
       value={chartSetting}
       onChange={handleChange}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
       )}
       offset={4}
     />
@@ -355,7 +355,7 @@ function WidgetContainerActions({
         <OverlayTrigger.IconButton
           {...triggerProps}
           size="xs"
-          borderless
+          priority="transparent"
           aria-label={t('More')}
           icon={<IconEllipsis />}
         />
