@@ -130,7 +130,7 @@ SavedEntityTable.CellStar = function CellStar({
   return (
     <Button
       aria-label={isStarred ? t('Unstar') : t('Star')}
-      borderless
+      priority="transparent"
       icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={onClick}
@@ -207,7 +207,7 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
           {...triggerProps}
           aria-label={t('More options')}
           size="sm"
-          borderless
+          priority="transparent"
           icon={<IconEllipsis />}
           data-test-id="menu-trigger"
         />
