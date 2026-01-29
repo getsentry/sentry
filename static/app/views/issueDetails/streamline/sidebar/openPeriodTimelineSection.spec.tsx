@@ -16,7 +16,6 @@ describe('OpenPeriodTimelineSection', () => {
   const defaultProps: ComponentProps<typeof OpenPeriodTimelineSection> = {
     eventId: 'event-1',
     groupId: 'group-1',
-    evaluatedValue: '150',
   };
 
   it('renders loading error when open period is missing', async () => {
@@ -67,6 +66,5 @@ describe('OpenPeriodTimelineSection', () => {
     expect(screen.getByText('Status Changed')).toBeInTheDocument();
     expect(screen.getByText('Resolved')).toBeInTheDocument();
     expect(screen.getAllByText('Priority: high')).toHaveLength(2);
-    expect(screen.getByText('Value: 150')).toBeInTheDocument();
   });
 });
