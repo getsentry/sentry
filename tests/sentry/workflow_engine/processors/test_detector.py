@@ -867,6 +867,7 @@ class TestGetDetectorsForEvent(TestCase):
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
     def test_activity_update(self) -> None:
+        # only picks up metric detector because the group type does not enable the issue stream detector
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -877,9 +878,11 @@ class TestGetDetectorsForEvent(TestCase):
         result = get_detectors_for_event_data(event_data, detector=self.detector)
         assert result is not None
         assert result.preferred_detector == self.detector
-        assert result.detectors == {self.issue_stream_detector, self.detector}
+        assert result.detectors == {self.detector}
 
-    def test_error_event(self) -> None:
+    def test_error_group_type(self) -> None:
+        # default behavior for a group type is to pick up the issue stream detector
+        self.group.update(type=ErrorGroupType.type_id)
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
         assert result is not None
@@ -893,7 +896,7 @@ class TestGetDetectorsForEvent(TestCase):
         result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.detector
-        assert result.detectors == {self.issue_stream_detector, self.detector}
+        assert result.detectors == {self.detector}
 
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_event_without_detector(self, mock_logger: MagicMock) -> None:
@@ -913,6 +916,7 @@ class TestGetDetectorsForEvent(TestCase):
             culprit="",
         )
         self.group_event.occurrence = occurrence
+        self.group.update(type=PerformanceNPlusOneAPICallsGroupType.type_id)
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
@@ -941,6 +945,7 @@ class TestGetDetectorsForEvent(TestCase):
             culprit="",
         )
         self.group_event.occurrence = occurrence
+        self.group.update(type=PerformanceNPlusOneAPICallsGroupType.type_id)
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
@@ -957,17 +962,6 @@ class TestGetDetectorsForEvent(TestCase):
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
         assert result is None
-
-    def test_multiple_detectors(self) -> None:
-        event_data = WorkflowEventData(event=self.group_event, group=self.group)
-
-        # Default behavior: issue stream detector is included
-        result = get_detectors_for_event_data(event_data)
-
-        assert result is not None
-        assert result.issue_stream_detector == self.issue_stream_detector
-        assert result.event_detector == self.error_detector
-        assert result.preferred_detector == self.error_detector
 
 
 class TestGetPreferredDetector(TestCase):
