@@ -6,9 +6,11 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from slack_sdk.models.blocks.blocks import Block
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -70,6 +72,10 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             action=action, group_id=group.id
         )
         self.autofix_run_id = self.slack_request.callback_data.get("run_id")
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        return features.has("organizations:seer-slack-workflows", organization)
 
     @staticmethod
     def get_autofix_stopping_point_from_action(

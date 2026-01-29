@@ -64,6 +64,8 @@ from sentry.notifications.utils.participants import (
     get_suspect_commit_users,
 )
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
@@ -834,7 +836,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     )
                 )
 
-        if features.has("organizations:seer-slack-workflows", self.group.organization):
+        if SeerOperator.has_access(
+            organization=self.group.project.organization, entrypoint_key=SeerEntrypointKey.SLACK
+        ):
             autofix_button: ButtonElement = SeerSlackRenderer.render_autofix_button(
                 data=SeerAutofixTrigger(
                     group_id=self.group.id,

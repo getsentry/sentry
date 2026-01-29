@@ -44,6 +44,12 @@ class SlackEntrypointTest(TestCase):
             action=self.action,
         )
 
+    def test_has_access(self):
+        with self.feature("organizations:seer-slack-workflows"):
+            assert SlackEntrypoint.has_access(self.organization)
+        with self.feature({"organizations:seer-slack-workflows": False}):
+            assert not SlackEntrypoint.has_access(self.organization)
+
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     def test_on_trigger_autofix_error(self, mock_send_threaded_ephemeral_message):
         ep = self._get_entrypoint()
