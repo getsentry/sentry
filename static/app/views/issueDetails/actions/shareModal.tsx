@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -129,7 +131,7 @@ export default function ShareIssueModal({
         <h4>{t('Share Issue')}</h4>
       </Header>
       <Body>
-        <ModalContent>
+        <Stack gap="md">
           <UrlContainer>
             <TextContainer>
               <StyledAutoSelectText ref={urlRef}>{issueUrl}</StyledAutoSelectText>
@@ -245,17 +247,11 @@ export default function ShareIssueModal({
               )}
             </Fragment>
           )}
-        </ModalContent>
+        </Stack>
       </Body>
     </Fragment>
   );
 }
-
-const ModalContent = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-`;
 
 const UrlContainer = styled('div')`
   display: grid;
