@@ -1,6 +1,7 @@
 import logging
 import re
 from hashlib import md5 as _md5
+from urllib.parse import urlparse
 
 from django.utils.encoding import force_bytes
 
@@ -27,6 +28,7 @@ class JiraClient(ApiClient):
     USERS_URL = "/rest/api/2/user/assignable/search"
     ISSUE_URL = "/rest/api/2/issue/{}"
     SEARCH_URL = "/rest/api/2/search/"
+    SEARCH_V3_URL = "/rest/api/3/search/jql"
     COMMENT_URL = "/rest/api/2/issue/{}/comment"
     plugin_name = "jira"
 
@@ -84,6 +86,10 @@ class JiraClient(ApiClient):
     def get_issue(self, key):
         return self.get(self.ISSUE_URL.format(key))
 
+    def _is_cloud_instance(self) -> bool:
+        hostname = urlparse(self.base_url).hostname
+        return bool(hostname and hostname.endswith(".atlassian.net"))
+
     def create_comment(self, issue_key, comment):
         return self.post(self.COMMENT_URL.format(issue_key), data={"body": comment})
 
@@ -94,4 +100,5 @@ class JiraClient(ApiClient):
         else:
             jql = 'text ~ "{}"'.format(query.replace('"', '\\"'))
         jql = f'project="{project}" AND {jql}'
-        return self.get(self.SEARCH_URL, params={"jql": jql})
+        search_url = self.SEARCH_V3_URL if self._is_cloud_instance() else self.SEARCH_URL
+        return self.get(search_url, params={"jql": jql})
