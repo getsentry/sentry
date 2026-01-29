@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -9,7 +12,11 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
     IntArray,
 )
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
@@ -81,6 +88,113 @@ class OccurrencesRPCTest(TestCase):
         assert virtual_context is None
         assert resolved_column.public_alias == "count()"
         assert resolved_column.search_type == "integer"
+
+    def test_count_if_aggregate_greater_or_equals(self) -> None:
+        # count_if(filter_key, operator, value) uses default aggregate key (group_id)
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "count_if(timestamp, greaterOrEquals, 1704067200)"
+        )
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                    value=AttributeValue(val_double=1704067200.0),
+                )
+            ),
+            label="count_if(timestamp, greaterOrEquals, 1704067200)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.public_alias == "count_if(timestamp, greaterOrEquals, 1704067200)"
+        assert resolved_column.search_type == "integer"
+
+    def test_count_if_aggregate_less_than(self) -> None:
+        # count_if(filter_key, operator, value) uses default aggregate key (group_id)
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "count_if(timestamp, less, 1704067200)"
+        )
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    op=ComparisonFilter.OP_LESS_THAN,
+                    value=AttributeValue(val_double=1704067200.0),
+                )
+            ),
+            label="count_if(timestamp, less, 1704067200)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.search_type == "integer"
+
+    def test_count_if_aggregate_between(self) -> None:
+        # count_if(filter_key, operator, value1, value2) uses default aggregate key (group_id)
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "count_if(timestamp, between, 1704067200, 1704153600)"
+        )
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE
+                                ),
+                                op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=1704067200.0),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE
+                                ),
+                                op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=1704153600.0),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            label="count_if(timestamp, between, 1704067200, 1704153600)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.search_type == "integer"
+
+    def test_count_if_aggregate_invalid_operator(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            self.resolver.resolve_column("count_if(timestamp, invalidOp, 1704067200)")
+
+    def test_count_if_aggregate_between_missing_second_value(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
+            self.resolver.resolve_column("count_if(timestamp, between, 1704067200)")
+        assert "between operator requires two values" in str(exc_info.value)
+
+    def test_count_if_aggregate_between_invalid_order(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
+            self.resolver.resolve_column("count_if(timestamp, between, 1704153600, 1704067200)")
+        assert "must be greater than" in str(exc_info.value)
+
+    def test_min_aggregate(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("min(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MIN,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="min(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.public_alias == "min(timestamp)"
+        assert resolved_column.search_type == "string"  # timestamp is processed as string
 
 
 class OccurrencesTimeseriesTest(TestCase):
