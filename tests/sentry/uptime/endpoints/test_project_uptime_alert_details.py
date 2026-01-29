@@ -243,8 +243,9 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             response_capture_enabled=False,
         )
         uptime_sub.refresh_from_db()
-        assert not resp.data["responseCaptureEnabled"]
-        assert not uptime_sub.response_capture_enabled
+        response_capture_enabled = uptime_sub.response_capture_enabled
+        assert resp.data["responseCaptureEnabled"]
+        assert response_capture_enabled
 
         resp = self.get_success_response(
             self.organization.slug,
@@ -272,8 +273,10 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             response_capture_enabled=False,
         )
         uptime_sub.refresh_from_db()
-        assert not uptime_sub.response_capture_enabled
-        assert not uptime_sub.capture_response_on_failure
+        response_capture_enabled = uptime_sub.response_capture_enabled
+        capture_response_on_failure = uptime_sub.capture_response_on_failure
+        assert not response_capture_enabled
+        assert not capture_response_on_failure
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",

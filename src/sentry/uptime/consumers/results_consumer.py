@@ -670,7 +670,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
             return
 
-        if result["status"] == CHECKSTATUS_FAILURE:
+        if result["status"] == CHECKSTATUS_FAILURE and features.has(
+            "organizations:uptime-response-capture", organization
+        ):
             create_uptime_response_capture(subscription, result)
 
         if last_update_ms > 0:
