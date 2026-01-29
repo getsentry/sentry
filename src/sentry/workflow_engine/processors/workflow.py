@@ -6,13 +6,13 @@ from typing import DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import Q
 
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
+from sentry.workflow_engine.caches.workflow import get_processing_workflows
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -386,20 +386,7 @@ def _get_associated_workflows(
     This is a wrapper method to get the workflows associated with a detector and environment.
     Used in process_workflows to wrap the query + logging into a single method
     """
-    environment_filter = (
-        (Q(environment_id=None) | Q(environment_id=environment.id))
-        if environment
-        else Q(environment_id=None)
-    )
-    workflows = set(
-        Workflow.objects.filter(
-            environment_filter,
-            detectorworkflow__detector_id=detector.id,
-            enabled=True,
-        )
-        .select_related("environment")
-        .distinct()
-    )
+    workflows = get_processing_workflows(detector, environment)
 
     if workflows:
         metrics_incr(

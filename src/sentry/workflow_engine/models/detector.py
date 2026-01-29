@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
@@ -213,29 +211,20 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return conditions
 
+    def enforce_config_schema(self) -> None:
+        """
+        Ensures the detector type is valid in the grouptype registry.
+        This needs to be available independently so callers can validate configs
+        without saving.
+        """
+        group_type = self.group_type
+        if not group_type:
+            raise ValueError(f"No group type found with type {self.type}")
 
-def enforce_config_schema(instance: Detector) -> None:
-    """
-    Ensures the detector type is valid in the grouptype registry.
-    This needs to be available independently so callers can validate configs
-    without saving.
-    """
-    group_type = instance.group_type
-    if not group_type:
-        raise ValueError(f"No group type found with type {instance.type}")
+        if not group_type.detector_settings:
+            return
 
-    if not group_type.detector_settings:
-        return
+        if not isinstance(self.config, dict):
+            raise ValidationError("Detector config must be a dictionary")
 
-    if not isinstance(instance.config, dict):
-        raise ValidationError("Detector config must be a dictionary")
-
-    instance.validate_config(group_type.detector_settings.config_schema)
-
-
-@receiver(pre_save, sender=Detector)
-def enforce_config_schema_signal(sender, instance: Detector, **kwargs):
-    """
-    This needs to be a signal because the grouptype registry's entries are not available at import time.
-    """
-    enforce_config_schema(instance)
+        self.validate_config(group_type.detector_settings.config_schema)
