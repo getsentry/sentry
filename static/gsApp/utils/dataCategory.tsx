@@ -282,6 +282,35 @@ export function isByteCategory(category: DataCategory | string) {
   return category === DataCategory.ATTACHMENTS || category === DataCategory.LOG_BYTE;
 }
 
+/**
+ * Whether the category is an emerge category (size analysis or build distribution).
+ */
+export function isEmergeCategory(category: DataCategory | string) {
+  return (
+    category === DataCategory.SIZE_ANALYSIS || category === DataCategory.INSTALLABLE_BUILD
+  );
+}
+
+/**
+ * Get the unit suffix for a data category, used in admin UI for clarity.
+ * Returns a string like ' (in GB)' or ' (in builds)' to append to field labels.
+ */
+export function getCategoryUnitSuffix(category: DataCategory | string): string {
+  if (isByteCategory(category)) {
+    return ' (in GB)';
+  }
+  if (isContinuousProfiling(category)) {
+    return ' (in hours)';
+  }
+  if (category === DataCategory.SIZE_ANALYSIS) {
+    return ' (in builds)';
+  }
+  if (category === DataCategory.INSTALLABLE_BUILD) {
+    return ' (in installs)';
+  }
+  return '';
+}
+
 export function getChunkCategoryFromDuration(category: DataCategory) {
   if (category === DataCategory.PROFILE_DURATION) {
     return DataCategory.PROFILE_CHUNKS;
