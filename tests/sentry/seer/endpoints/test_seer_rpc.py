@@ -978,7 +978,10 @@ class TestSeerRpcMethods(APITestCase):
         """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
-        with self.feature("organizations:seer-webhooks"):
+        with (
+            self.feature("organizations:seer-webhooks"),
+            patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
+        ):
             result = send_seer_webhook(
                 event_name="root_cause_completed",
                 organization_id=self.organization.id,
@@ -1001,6 +1004,7 @@ class TestSeerRpcMethods(APITestCase):
         with (
             self.feature("organizations:seer-webhooks"),
             self.feature("organizations:seer-slack-workflows"),
+            patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
         ):
             result = send_seer_webhook(
                 event_name=event_name,
@@ -1011,9 +1015,9 @@ class TestSeerRpcMethods(APITestCase):
         assert result["success"]
         mock_process_autofix_updates.apply_async.assert_called_once_with(
             kwargs={
-                "run_id": event_payload["run_id"],
                 "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
                 "event_payload": event_payload,
+                "organization_id": self.organization.id,
             },
         )
         mock_broadcast.assert_called_once()

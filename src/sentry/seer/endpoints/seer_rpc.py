@@ -75,7 +75,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.entrypoints.operator import process_autofix_updates
+from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -607,18 +607,14 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         )
         return {"success": False, "error": "Organization not found or not active"}
 
-    if features.has("organizations:seer-slack-workflows", organization):
-        run_id = payload.get("run_id")
-        if not run_id:
-            logger.error("seer.webhook_run_id_not_found", extra={"payload": payload})
-        else:
-            process_autofix_updates.apply_async(
-                kwargs={
-                    "run_id": run_id,
-                    "event_type": sentry_app_event_type,
-                    "event_payload": payload,
-                }
-            )
+    if SeerOperator.has_access(organization=organization):
+        process_autofix_updates.apply_async(
+            kwargs={
+                "event_type": sentry_app_event_type,
+                "event_payload": payload,
+                "organization_id": organization_id,
+            }
+        )
 
     if not features.has("organizations:seer-webhooks", organization):
         return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
