@@ -1392,3 +1392,55 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             assert kwargs["status"] == StatusCheckStatus.NEUTRAL
             assert "Quota exceeded" in kwargs["subtitle"]
             assert "No quota available" in kwargs["summary"]
+
+    def test_skipped_triggering_artifact_uses_sibling_url(self):
+        """When triggering artifact is SKIPPED, target_url points to a non-SKIPPED sibling."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        skipped = Factories.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.skipped",
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=skipped,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+            error_code=PreprodArtifactSizeMetrics.ErrorCode.SKIPPED,
+        )
+
+        valid = Factories.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.valid",
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=valid,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_download_size=1024,
+            max_install_size=2048,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            skipped
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(skipped.id)
+
+            kwargs = mock_provider.create_status_check.call_args.kwargs
+            assert str(valid.id) in kwargs["target_url"]
+            assert str(skipped.id) not in kwargs["target_url"]

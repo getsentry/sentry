@@ -204,7 +204,12 @@ def create_preprod_status_check_task(
         )
         return
 
-    target_url = get_preprod_artifact_url(preprod_artifact)
+    url_artifact = (
+        preprod_artifact
+        if preprod_artifact.id in {a.id for a in all_artifacts}
+        else all_artifacts[0]
+    )
+    target_url = get_preprod_artifact_url(url_artifact)
     completed_at: datetime | None = None
 
     # Check if any artifact hit quota limits - show neutral status with quota message
