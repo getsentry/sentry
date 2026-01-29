@@ -209,8 +209,14 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     seriesIndexToPlottableMapRanges
   );
 
-  /** Extract the numeric value from ECharts data format ({name, value}). */
+  /** Extract the numeric value from ECharts tooltip param.value. */
   function extractValue(data: unknown): number | null {
+    // param.value can be either:
+    // 1. The numeric value directly (for bar charts with axis trigger)
+    // 2. An object {name, value} (depends on series config)
+    if (typeof data === 'number') {
+      return data;
+    }
     const value = (data as {value?: unknown} | null | undefined)?.value;
     return typeof value === 'number' ? value : null;
   }
