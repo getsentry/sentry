@@ -173,7 +173,7 @@ def fix_email_action_fallthrough_type(
                         "workflow_count": len(workflow_email_actions),
                     },
                 )
-                return
+                continue
 
             # Overwrite each workflow action with the translated data
             for i, workflow_action in enumerate(workflow_email_actions):
