@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
-import { IconClose, IconCheckmark } from 'sentry/icons';
+
+import {IconCheckmark, IconClose} from 'sentry/icons';
 
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onClick'> {
@@ -37,16 +38,16 @@ const NativeHiddenCheckbox = styled('input')<{
     background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
     border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
     border-right: 1px solid
-    ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
     border-bottom: 1px solid
-    ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
     border-left: 1px solid
-    ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
 
     transition: all ${p => p.theme.motion.spring.moderate};
 
-    [data-icon="checkmark"],
-    [data-icon="close"] {
+    [data-icon='checkmark'],
+    [data-icon='close'] {
       top: 50%;
       left: 50%;
       position: absolute;
@@ -64,24 +65,24 @@ const NativeHiddenCheckbox = styled('input')<{
   }
 
   & + div {
-    [data-icon="close"] {
+    [data-icon='close'] {
       opacity: 1;
       transform: scale(1) translate(-50%, -50%);
     }
 
-    [data-icon="checkmark"] {
+    [data-icon='checkmark'] {
       opacity: 0;
       transform: scale(0.94) translate(-50%, -50%);
     }
   }
 
   &:checked + div {
-    [data-icon="close"] {
+    [data-icon='close'] {
       opacity: 0;
       transform: scale(0.94) translate(-50%, -50%);
     }
 
-    [data-icon="checkmark"] {
+    [data-icon='checkmark'] {
       opacity: 1;
       transform: scale(1) translate(-50%, -50%);
     }
@@ -92,9 +93,9 @@ const NativeHiddenCheckbox = styled('input')<{
 
     border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
     border-right: 1px solid
-    ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
     border-bottom: 1px solid
-    ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
     border-left: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
     transition: transform ${p => p.theme.motion.spring.slow};
 
@@ -131,11 +132,39 @@ export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
       {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
        * so we need to use a different name, or somehow tell emotion to not create a type intersection.
        */}
-      <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} style={{cursor: props.disabled ? 'not-allowed' : 'pointer'}}/>
-      <Container width={`${toggleWrapperSize[size].width}px`} height={`${toggleWrapperSize[size].height}px`} pointerEvents="none" radius="sm">
-        <Container width={`${toggleButtonSize[size].width}px`} height={`${toggleButtonSize[size].height}px`} position="absolute" top="0" left="0" right="0" bottom="0" radius="sm">
-          <IconClose data-icon="close" variant="muted" size={size === 'sm' ? 'xs' : 'sm'} />
-          <IconCheckmark data-icon="checkmark" variant="accent" size={size === 'sm' ? 'xs' : 'sm'} />
+      <NativeHiddenCheckbox
+        ref={ref}
+        type="checkbox"
+        nativeSize={size}
+        {...props}
+        style={{cursor: props.disabled ? 'not-allowed' : 'pointer'}}
+      />
+      <Container
+        width={`${toggleWrapperSize[size].width}px`}
+        height={`${toggleWrapperSize[size].height}px`}
+        pointerEvents="none"
+        radius="sm"
+      >
+        <Container
+          width={`${toggleButtonSize[size].width}px`}
+          height={`${toggleButtonSize[size].height}px`}
+          position="absolute"
+          top="0"
+          left="0"
+          right="0"
+          bottom="0"
+          radius="sm"
+        >
+          <IconClose
+            data-icon="close"
+            variant="muted"
+            size={size === 'sm' ? 'xs' : 'sm'}
+          />
+          <IconCheckmark
+            data-icon="checkmark"
+            variant="accent"
+            size={size === 'sm' ? 'xs' : 'sm'}
+          />
         </Container>
       </Container>
     </Flex>

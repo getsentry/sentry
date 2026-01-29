@@ -14,12 +14,13 @@ resources:
     WAI-ARIA Switch Pattern: https://www.w3.org/WAI/ARIA/apg/patterns/switch/
 ---
 
-import {Switch} from 'sentry/components/core/switch';
-import * as Storybook from 'sentry/stories';
 import {Fragment, useState} from 'react';
 
+import {Switch} from 'sentry/components/core/switch';
+import * as Storybook from 'sentry/stories';
+
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
-import {Stack, Flex} from 'sentry/components/core/layout';
 
 import SwitchDocumentation from '!!type-loader!sentry/components/core/switch';
 
@@ -59,7 +60,6 @@ Switches are available in two sizes: `sm` (default) and `lg`.
 <Switch size="sm" defaultChecked />
 <Switch size="sm" defaultChecked disabled />
 ```
-
 
 ## Controlled or Uncontrolled State
 
