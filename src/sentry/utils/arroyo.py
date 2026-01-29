@@ -222,9 +222,10 @@ def _import_and_run(
 
     logger = logging.getLogger("sentry.utils.arroyo.subprocess")
 
-    init_done = threading.Event()
+    init_done: threading.Event | None = None
 
     if use_stuck_detector:
+        init_done = threading.Event()
 
         def stuck_detector() -> None:
             start = time.time()
@@ -259,7 +260,8 @@ def _import_and_run(
         logger.info("_import_and_run: unpickling args")
         args = pickle.loads(args_pickle)
     finally:
-        init_done.set()
+        if init_done:
+            init_done.set()
 
     logger.info("_import_and_run: calling main_fn")
     main_fn(*args, *additional_args)
