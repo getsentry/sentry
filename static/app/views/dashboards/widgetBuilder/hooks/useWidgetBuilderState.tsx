@@ -370,20 +370,26 @@ function useWidgetBuilderState(): {
           break;
         }
         case BuilderStateAction.SET_DATASET: {
-          setDataset(action.payload, options);
+          const config = getDatasetConfig(action.payload);
 
           let nextDisplayType = displayType;
           if (action.payload === WidgetType.ISSUE) {
             // Issues only support table display type
-            setDisplayType(DisplayType.TABLE, options);
             nextDisplayType = DisplayType.TABLE;
+          } else if (
+            nextDisplayType &&
+            !config.supportedDisplayTypes.includes(nextDisplayType) &&
+            config.supportedDisplayTypes.length > 0
+          ) {
+            // If the current display type is not supported by the new dataset,
+            // reset to the first supported display type. This can happen when switching
+            // between datasets in the UI
+            nextDisplayType = config.supportedDisplayTypes[0];
           }
 
-          const config = getDatasetConfig(action.payload);
-          setFields(
-            config.defaultWidgetQuery.fields?.map(field => explodeField({field})),
-            options
-          );
+          setDataset(action.payload, options);
+          setDisplayType(nextDisplayType, options);
+
           if (isChartDisplayType(nextDisplayType)) {
             setFields([], options);
             setYAxis(

@@ -16,7 +16,6 @@ import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import {getPlatformIconFromPlatform} from 'sentry/views/preprod/utils/labelUtils';
 
 export function PreprodBuildsHeaderCells({
   showProjectColumn,
@@ -59,9 +58,7 @@ export function PreprodBuildsRowCells({
           <Flex direction="column" gap="xs">
             <Flex align="center" gap="2xs">
               {build.app_info?.platform && (
-                <PlatformIcon
-                  platform={getPlatformIconFromPlatform(build.app_info.platform)}
-                />
+                <PlatformIcon platform={build.app_info.platform} />
               )}
               <Container paddingLeft="xs">
                 <Text size="lg" bold>

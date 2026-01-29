@@ -10,21 +10,6 @@ import {
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
-// Mapping of Launchpad platform to PlatformIcon platform
-// PlatformIcon definitions: https://sentry.sentry.io/stories/foundations/icons
-export function getPlatformIconFromPlatform(platform: Platform): 'apple' | 'android' {
-  switch (platform) {
-    case 'ios':
-    case 'macos':
-    case 'apple':
-      return 'apple';
-    case 'android':
-      return 'android';
-    default:
-      throw new Error(`Unsupported platform: ${platform}`);
-  }
-}
-
 export function getReadableArtifactTypeLabel(
   artifactType: BuildDetailsArtifactType | null
 ): string {
@@ -103,8 +88,6 @@ export function getLabels(
         installUnavailableTooltip: t('This app cannot be installed.'),
       };
     case 'apple':
-    case 'ios':
-    case 'macos':
     case undefined:
       return {
         installSizeLabel: t('Install Size'),
@@ -126,12 +109,8 @@ export function getReadablePlatformLabel(platform: Platform): string {
   switch (platform) {
     case 'apple':
       return 'Apple';
-    case 'ios':
-      return 'iOS';
     case 'android':
       return 'Android';
-    case 'macos':
-      return 'macOS';
     default:
       throw new Error(`Unknown platform: ${platform}`);
   }
