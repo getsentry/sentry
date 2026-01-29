@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class PreprodFeature(Enum):
+    PRE_PROCESS = "pre_process"
     SIZE_ANALYSIS = "size_analysis"
     BUILD_DISTRIBUTION = "build_distribution"
 
