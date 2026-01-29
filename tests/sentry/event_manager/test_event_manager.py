@@ -19,7 +19,8 @@ from django.core.cache import cache
 from django.db.models import F
 from django.utils import timezone
 
-from sentry import nodestore, tsdb
+from sentry import analytics, nodestore, tsdb
+from sentry.analytics.events.event_processing_error_recorded import EventProcessingErrorRecorded
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
@@ -4213,3 +4214,124 @@ def test_cogs_event_manager(
     # We cannot assert for exact length because manager save method adds some extra fields. So we
     # assert that the length is at least greater than the expected length.
     assert formatted["amount"] >= expected_len
+
+
+class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
+    """
+    Unit tests for processing error analytics recording.
+
+    These tests use store_event() which goes through the full EventManager flow.
+    Errors can come from:
+    1. Normalization (validation errors like invalid_data, future_timestamp)
+    2. Symbolication (js_*, native_*, proguard_* errors)
+    """
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_validation_errors_recorded_to_analytics(self, mock_random: mock.MagicMock) -> None:
+        """Test that validation errors from normalization are also recorded."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            event = self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            recorded_events = [
+                call[0][0]
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            expected_events = [
+                EventProcessingErrorRecorded(
+                    organization_id=self.project.organization_id,
+                    project_id=self.project.id,
+                    event_id=event.event_id,
+                    group_id=event.group_id,
+                    error_type="future_timestamp",
+                    platform="python",
+                ),
+            ]
+            assert recorded_events == expected_events
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_not_sampled(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that processing errors are not recorded when outside the 1% sample."""
+        mock_random.return_value = 0.5
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_no_errors(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that analytics is not recorded when there are no processing errors."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            self.store_event(
+                data=make_event(platform="python"),
+                project_id=self.project.id,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_feature_disabled(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that analytics is not recorded when feature flag is disabled."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature({"organizations:processing-error-analytics": False}),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0
