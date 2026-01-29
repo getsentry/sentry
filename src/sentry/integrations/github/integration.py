@@ -1088,7 +1088,7 @@ class GithubOrganizationSelection:
                 # the org integration creation logic is in finish_pipeline
                 can_install_chosen_installation = (
                     integration_install_counts_dict.get(chosen_installation_id, 0) == 0
-                ) and has_scm_multi_org
+                ) or has_scm_multi_org
 
                 # Validate the same org is installing and that they have the multi org feature
                 installing_organization_slug = pipeline.fetch_state("installing_organization_slug")
