@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.testutils.cases import IntegrationTestCase
@@ -104,8 +104,10 @@ class GitHubIntegrationPostInstallTest(IntegrationTestCase):
             integration=self.integration, organization_id=self.organization.id
         )
 
-    @patch("sentry.integrations.services.repository.repository_service.get_repositories")
-    @patch("sentry.integrations.tasks.migrate_repo.migrate_repo.apply_async")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.has_repo_access",
+        return_value=True,
+    )
     @patch("sentry.integrations.github.tasks.link_all_repos.link_all_repos.apply_async")
     @patch("sentry.integrations.github.tasks.codecov_account_link.codecov_account_link.apply_async")
     @patch("sentry.options.get")
@@ -113,49 +115,28 @@ class GitHubIntegrationPostInstallTest(IntegrationTestCase):
         self,
         mock_options_get,
         mock_codecov_task,
-        mock_link_repos,
-        mock_migrate_repo,
-        mock_get_repositories,
+        mock_has_repo_access,
+        mock_link_all_repos,
     ):
-        mock_repo1 = MagicMock()
-        mock_repo1.id = 1
-        mock_repo2 = MagicMock()
-        mock_repo2.id = 2
-        mock_get_repositories.return_value = [mock_repo1, mock_repo2]
+        # TODO: This currently migrates any orphaned repo to the newest installed GH integration
+        repo1 = self.create_repo(project=self.project, provider="github", external_id="1")
+        repo2 = self.create_repo(project=self.project, provider="github", external_id="2")
 
         mock_options_get.return_value = "app_1"
 
         provider = GitHubIntegrationProvider()
-        provider.post_install(
-            integration=self.integration, organization=self.organization, extra={"app_id": "app_1"}
-        )
+
+        with self.tasks():
+            provider.post_install(
+                integration=self.integration,
+                organization=self.organization,
+                extra={"app_id": "app_1"},
+            )
 
         mock_codecov_task.assert_called_once()
 
-        assert mock_migrate_repo.call_count == 2
+        repo1.refresh_from_db()
+        repo2.refresh_from_db()
 
-        expected_calls = [
-            call(
-                kwargs={
-                    "repo_id": 1,
-                    "integration_id": self.integration.id,
-                    "organization_id": self.organization.id,
-                }
-            ),
-            call(
-                kwargs={
-                    "repo_id": 2,
-                    "integration_id": self.integration.id,
-                    "organization_id": self.organization.id,
-                }
-            ),
-        ]
-        mock_migrate_repo.assert_has_calls(expected_calls, any_order=True)
-
-        mock_link_repos.assert_called_once_with(
-            kwargs={
-                "integration_key": "github",
-                "integration_id": self.integration.id,
-                "organization_id": self.organization.id,
-            }
-        )
+        assert repo1.integration_id == self.integration.id
+        assert repo2.integration_id == self.integration.id
