@@ -13,6 +13,12 @@ export enum ReleasesSortOption {
 }
 
 /**
+ * Default sort option used when no valid sort is specified or when
+ * a sort option's requirements aren't met (e.g., ADOPTION requires exactly one environment).
+ */
+export const DEFAULT_RELEASES_SORT = ReleasesSortOption.DATE;
+
+/**
  * Sort options available for dashboard release filtering.
  *
  * Note: CRASH_FREE_USERS and CRASH_FREE_SESSIONS are intentionally excluded.

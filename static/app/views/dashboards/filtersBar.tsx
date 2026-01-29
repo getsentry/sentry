@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
@@ -9,7 +9,11 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
+import {
+  DEFAULT_RELEASES_SORT,
+  RELEASES_SORT_OPTIONS,
+  ReleasesSortOption,
+} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -19,6 +23,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
@@ -142,6 +147,15 @@ export default function FiltersBar({
 
   // Release sort state - validates and defaults to DATE via custom parser
   const [releaseSort, setReleaseSort] = useQueryState('sortReleasesBy', parseReleaseSort);
+
+  // Reset sort to default if ADOPTION is selected but environment requirement isn't met
+  const {selection} = usePageFilters();
+  const {environments} = selection;
+  useEffect(() => {
+    if (releaseSort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
+      setReleaseSort(DEFAULT_RELEASES_SORT);
+    }
+  }, [releaseSort, environments.length, setReleaseSort]);
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -309,10 +323,10 @@ const parseReleaseSort = createParser({
     if (value in RELEASES_SORT_OPTIONS) {
       return value as ReleasesSortOption;
     }
-    return ReleasesSortOption.DATE;
+    return DEFAULT_RELEASES_SORT;
   },
   serialize: (value: ReleasesSortOption): string => value,
-}).withDefault(ReleasesSortOption.DATE);
+}).withDefault(DEFAULT_RELEASES_SORT);
 
 const Wrapper = styled('div')`
   display: flex;

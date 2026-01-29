@@ -3,7 +3,7 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import type {ApiResult} from 'sentry/api';
-import {ReleasesSortOption} from 'sentry/constants/releases';
+import {DEFAULT_RELEASES_SORT, ReleasesSortOption} from 'sentry/constants/releases';
 import type {Release} from 'sentry/types/release';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -52,11 +52,11 @@ export function useReleases(
 
   // Normalize sort option: ADOPTION requires exactly one environment because it
   // calculates the percentage of sessions/users in that specific environment.
-  // Reset to DATE if the requirement isn't met.
+  // Reset to default if the requirement isn't met.
   const activeSort =
     sortBy === ReleasesSortOption.ADOPTION && environments.length !== 1
-      ? ReleasesSortOption.DATE
-      : (sortBy ?? ReleasesSortOption.DATE);
+      ? DEFAULT_RELEASES_SORT
+      : (sortBy ?? DEFAULT_RELEASES_SORT);
 
   // Fetch releases
   const releaseResults = useApiQuery<Release[]>(
