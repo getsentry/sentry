@@ -112,7 +112,6 @@ function parseUserContent(node: AITraceSpanNode): string | null {
     | string
     | undefined;
 
-  // Use || instead of ?? so empty strings also fall back to request messages
   const requestMessages =
     inputMessages ||
     (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);

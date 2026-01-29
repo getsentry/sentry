@@ -66,6 +66,33 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('Assistant response text')).toBeInTheDocument();
   });
 
+  it('prefers gen_ai.output.messages over gen_ai.response.text for assistant', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
+    const outputMessages = JSON.stringify([
+      {role: 'assistant', content: 'Hello from OUTPUT messages'},
+    ]);
+
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Fallback response text',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('Hello from OUTPUT messages')).toBeInTheDocument();
+    expect(screen.queryByText('Fallback response text')).not.toBeInTheDocument();
+  });
+
   it('prefers gen_ai.input.messages over gen_ai.request.messages', () => {
     const inputMessages = JSON.stringify([
       {role: 'user', content: 'Hello from INPUT messages'},

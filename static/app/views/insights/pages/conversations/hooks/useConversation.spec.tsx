@@ -66,6 +66,48 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(inputMessages);
   });
 
+  it('maps gen_ai.output.messages to node attributes', async () => {
+    const outputMessages = JSON.stringify([
+      {role: 'assistant', content: 'Hello from output'},
+    ]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-output/`,
+      body: [
+        {
+          'gen_ai.conversation.id': 'conv-output',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1000.5,
+          'precise.start_ts': 1000.0,
+          project: 'test-project',
+          'project.id': 1,
+          'span.description': 'AI generation',
+          'span.op': 'gen_ai.generate',
+          'span.status': 'ok',
+          span_id: 'span-output',
+          trace: 'trace-output',
+          'gen_ai.operation.type': 'ai_client',
+          'gen_ai.output.messages': outputMessages,
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-output'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(1);
+    const node = result.current.nodes[0];
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(outputMessages);
+  });
+
   it('maps gen_ai.request.messages to node attributes', async () => {
     const requestMessages = JSON.stringify([
       {role: 'user', content: 'Hello from request'},
