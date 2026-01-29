@@ -31,37 +31,12 @@ import {
   X_GUTTER,
   Y_GUTTER,
 } from 'sentry/views/dashboards/widgets/common/settings';
-import type {
-  CategoricalItem,
-  LegendSelection,
-} from 'sentry/views/dashboards/widgets/common/types';
+import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
 import type {CategoricalBarChartPlottable} from './plottables/bars';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
-
-/**
- * Event data passed to the onBarClick callback.
- */
-export interface BarClickEvent {
-  /**
-   * The clicked bar's category and value.
-   */
-  item: CategoricalItem;
-  /**
-   * The plottable this bar belongs to.
-   */
-  plottable: CategoricalBarChartPlottable;
-  /**
-   * Click position relative to chart DOM (for floating menu positioning).
-   */
-  position: {x: number; y: number};
-  /**
-   * Series field name.
-   */
-  seriesName: string;
-}
 
 export interface BarChartWidgetVisualizationProps {
   /**
@@ -76,10 +51,6 @@ export interface BarChartWidgetVisualizationProps {
    * A mapping of series name to boolean. If the value is `false`, the series is hidden.
    */
   legendSelection?: LegendSelection;
-  /**
-   * Callback when user clicks a bar. Provides data and position for action menus.
-   */
-  onBarClick?: (event: BarClickEvent) => void;
   /**
    * Callback that returns an updated `LegendSelection` after user manipulation.
    */
@@ -304,38 +275,6 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
 
   const handleClick: EChartClickHandler = event => {
     runHandler(event, 'onClick');
-
-    // Call visualization-level onBarClick callback if provided
-    if (props.onBarClick && event.seriesIndex !== undefined) {
-      const plottable = seriesIndexToPlottableRangeMap.get(event.seriesIndex);
-      if (plottable) {
-        // Use event.name which contains the category label from ECharts,
-        // not allCategories[event.dataIndex] which would be incorrect when
-        // plottables have different category sets
-        const categoryLabel = event.name;
-        if (!defined(categoryLabel) || typeof categoryLabel !== 'string') return;
-
-        const value = extractValue(event.value);
-        const categoricalItem: CategoricalItem = {category: categoryLabel, value};
-
-        if (plottable.categories.includes(categoryLabel)) {
-          // Access the native event for position data
-          // ECharts attaches the native event to params.event
-          const nativeEvent = (event as {event?: {offsetX?: number; offsetY?: number}})
-            .event;
-
-          props.onBarClick({
-            item: categoricalItem,
-            plottable,
-            seriesName: event.seriesName ?? plottable.name,
-            position: {
-              x: nativeEvent?.offsetX ?? 0,
-              y: nativeEvent?.offsetY ?? 0,
-            },
-          });
-        }
-      }
-    }
   };
 
   const handleHighlight: EChartHighlightHandler = event => {
