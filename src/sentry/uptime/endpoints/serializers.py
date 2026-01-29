@@ -2,6 +2,7 @@ from collections.abc import MutableMapping, Sequence
 from typing import Any, Literal, TypedDict, cast, override
 
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
+    Assertion,
     CheckStatus,
     CheckStatusReasonType,
 )
@@ -156,9 +157,11 @@ class EapCheckEntrySerializerResponse(TypedDict):
     scheduledCheckTime: str
     checkStatus: SerializedCheckStatus
     checkStatusReason: CheckStatusReasonType | None
+    assertionFailureData: Assertion | None
     httpStatusCode: int | None
     durationMs: int
     traceId: str
+    traceItemId: str
     incidentStatus: int
     environment: str
     region: str
@@ -187,6 +190,7 @@ class EapCheckEntrySerializer(Serializer):
             "scheduledCheckTime": obj.scheduled_check_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checkStatus": check_status,
             "checkStatusReason": obj.check_status_reason,
+            "assertionFailureData": obj.assertion_failure_data,
             "httpStatusCode": obj.http_status_code,
             "durationMs": obj.duration_ms,
             "traceId": obj.trace_id,
@@ -194,6 +198,7 @@ class EapCheckEntrySerializer(Serializer):
             "environment": obj.environment,
             "region": obj.region,
             "regionName": region_name,
+            "traceItemId": obj.trace_item_id,
         }
 
 

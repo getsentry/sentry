@@ -99,7 +99,6 @@ export default function OSBrowserDropdownFilter({
           data-visible-on-hover
           icon={<IconEllipsis size="xs" />}
           size="zero"
-          translucentBorder
         />
       )}
     />
