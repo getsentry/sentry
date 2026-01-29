@@ -78,6 +78,8 @@ class TraceExplorerAISetup(OrganizationEndpoint):
                 project_ids = {int(x) for x in raw_project_ids}
             except (ValueError, TypeError):
                 raise ParseError("Invalid project_id value")
+            if any(pid <= 0 for pid in project_ids):
+                raise ParseError("Invalid project_id value")
             projects = self.get_projects(request, organization, project_ids=project_ids)
             validated_project_ids = [p.id for p in projects]
         else:

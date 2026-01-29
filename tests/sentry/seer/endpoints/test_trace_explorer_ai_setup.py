@@ -98,6 +98,21 @@ class TraceExplorerAISetupTest(APITestCase):
         mock_fire_setup_request.assert_not_called()
 
     @with_feature("organizations:gen-ai-features")
+    @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
+    def test_negative_project_id_returns_400(self, mock_fire_setup_request):
+        """Test that negative project_id (like -1 sentinel) returns 400"""
+        self.login_as(self.user)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            project_ids=[-1],
+        )
+
+        assert response.data["detail"] == "Invalid project_id value"
+        mock_fire_setup_request.assert_not_called()
+
+    @with_feature("organizations:gen-ai-features")
     def test_requires_authentication(self):
         response = self.get_error_response(
             self.organization.slug,
