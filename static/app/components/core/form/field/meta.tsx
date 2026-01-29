@@ -1,5 +1,5 @@
 import {useFieldId} from '@sentry/scraps/form/field/baseField';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 function HintText(props: {children: string}) {
@@ -20,9 +20,12 @@ function Label(props: {children: string; required?: boolean}) {
   return (
     <Container width="fit-content">
       {containerProps => (
-        <Text {...containerProps} as="label" htmlFor={fieldId}>
-          {props.children} {props.required ? <Text variant="danger">*</Text> : null}
-        </Text>
+        <Flex gap="xs">
+          <Text {...containerProps} as="label" htmlFor={fieldId}>
+            {props.children}
+          </Text>
+          {props.required ? <Text variant="danger">*</Text> : null}
+        </Flex>
       )}
     </Container>
   );
