@@ -37,7 +37,7 @@ import Status from './debugImage/status';
 import DebugImage from './debugImage';
 import {combineStatus, getFileName, normalizeId} from './utils';
 
-const ROW_HEIGHT = 60;
+const ROW_HEIGHT = 45;
 const MAX_HEIGHT = 400;
 
 function shouldSkipSection(
@@ -243,7 +243,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         />
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
           <Header
-            columns={{xs: '1fr 1.5fr 0fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}
+            columns={{'2xs': '1fr 1.5fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}
             background="secondary"
             borderBottom="primary"
           >
@@ -255,7 +255,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             </Flex>
             <Flex
               align="center"
-              display={{xs: 'none', sm: 'flex'}}
+              display={{'2xs': 'none', xs: 'none'}}
               minWidth="0"
               paddingTop="md"
               paddingBottom="md"

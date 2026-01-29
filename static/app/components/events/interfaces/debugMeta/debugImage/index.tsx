@@ -15,8 +15,8 @@ import Status from './status';
 
 type Props = {
   image: ImageWithCombinedStatus;
+  isLast: boolean;
   onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
-  isLast?: boolean;
 };
 
 function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
@@ -27,7 +27,7 @@ function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
 
   return (
     <Grid
-      columns={{xs: '1fr 1.5fr 0fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}
+      columns={{'2xs': '1fr 1.5fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}
       borderBottom={isLast ? undefined : 'primary'}
     >
       <Flex align="center" minWidth="0" padding="sm md">
@@ -50,8 +50,8 @@ function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
       </Flex>
       <Flex
         align="center"
-        display={{xs: 'none', sm: 'flex'}}
         minWidth="0"
+        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
         padding="sm md"
       >
         {unwind_status || debug_status ? (
