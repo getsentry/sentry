@@ -43,6 +43,10 @@ describe('MetricDetectorTriggeredSection', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
       body: [
         {
           id: '101',
@@ -143,6 +147,7 @@ describe('MetricDetectorTriggeredSection', () => {
     // Check sections exist by aria-label
     expect(await screen.findByRole('region', {name: 'Message'})).toBeInTheDocument();
     expect(screen.getByRole('region', {name: 'Triggered Condition'})).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Timeline'})).toBeInTheDocument();
 
     // Check message content
     expect(screen.getByText('Subtitle')).toBeInTheDocument();

@@ -603,6 +603,24 @@ const BlockContent = styled(MarkedText)`
     font-size: ${p => p.theme.font.size.lg};
   }
 
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: ${p => p.theme.space.md} 0;
+  }
+
+  th,
+  td {
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+    text-align: left;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+
+  th {
+    background: ${p => p.theme.tokens.background.secondary};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
+  }
+
   p:first-child,
   li:first-child,
   ul:first-child,
