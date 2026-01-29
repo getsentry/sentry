@@ -18,7 +18,7 @@ from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.uptime.utils import build_fingerprint, generate_scheduled_check_times_ms
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
     DetectorThresholds,
@@ -58,6 +58,15 @@ def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
             important=True,
         )
         evidence_display.extend([reason_evidence])
+
+    assertion_failure_data = result.get("assertion_failure_data")
+    if assertion_failure_data:
+        assertion_failure_evidence = IssueEvidence(
+            name="Assertion Failure",
+            value=json.dumps(assertion_failure_data),
+            important=False,
+        )
+        evidence_display.append(assertion_failure_evidence)
 
     duration_evidence = IssueEvidence(
         name="Duration",

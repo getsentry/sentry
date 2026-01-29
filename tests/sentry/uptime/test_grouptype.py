@@ -29,9 +29,11 @@ from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription, get_
 from sentry.uptime.subscriptions.subscriptions import resolve_uptime_issue
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.uptime.utils import build_detector_fingerprint_component, build_fingerprint
+from sentry.utils import json
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
+from tests.sentry.uptime.test_utils import MOCK_ASSERTION_FAILURE_DATA
 
 
 class ResolveUptimeIssueTest(UptimeTestCase):
@@ -101,6 +103,11 @@ class BuildEvidenceDisplayTest(UptimeTestCase):
         result = self.create_uptime_result()
         assert build_evidence_display(result) == [
             IssueEvidence(name="Failure reason", value="timeout - it timed out", important=True),
+            IssueEvidence(
+                name="Assertion Failure",
+                value=json.dumps(MOCK_ASSERTION_FAILURE_DATA),
+                important=False,
+            ),
             IssueEvidence(name="Duration", value="100ms", important=False),
             IssueEvidence(name="Method", value="HEAD", important=False),
             IssueEvidence(name="Status Code", value="500", important=False),

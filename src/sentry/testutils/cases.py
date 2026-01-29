@@ -156,6 +156,7 @@ from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
+from tests.sentry.uptime.test_utils import MOCK_ASSERTION_FAILURE_DATA
 
 from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
@@ -3188,20 +3189,7 @@ class UptimeTestCaseMixin:
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
-            "assertion_failure_data": {
-                "root": {
-                    "op": "and",
-                    "children": [
-                        {
-                            "op": "not",
-                            "operand": {
-                                "op": "json_path",
-                                "value": '$.components[?@.status == "operational"]',
-                            },
-                        }
-                    ],
-                }
-            },
+            "assertion_failure_data": MOCK_ASSERTION_FAILURE_DATA,
             **optional_fields,
         }
 
