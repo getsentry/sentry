@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import Feature from 'sentry/components/acl/feature';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -47,13 +46,7 @@ export default function PreprodSettings() {
             settingsReadKey={SIZE_ENABLED_QUERY_READ_KEY}
             title={t('Size Analysis')}
             successMessage={t('Size filter updated')}
-          >
-            <Text>
-              {t(
-                "Size Analysis helps monitor your mobile app's size in pre-production to prevent unexpected size increases (regressions) from reaching users."
-              )}
-            </Text>
-          </FeatureFilter>
+          />
           <Feature features="organizations:preprod-build-distribution">
             <FeatureFilter
               settingsWriteKey={DISTRIBUTION_ENABLED_QUERY_WRITE_KEY}
@@ -61,13 +54,7 @@ export default function PreprodSettings() {
               title={t('Build Distribution')}
               successMessage={t('Distribution filter updated')}
               display={PreprodBuildsDisplay.DISTRIBUTION}
-            >
-              <Text>
-                {t(
-                  'Build Distribution helps you securely distribute iOS builds to your internal teams and beta testers. Streamline your distribution workflow with automated uploads from CI.'
-                )}
-              </Text>
-            </FeatureFilter>
+            />
           </Feature>
         </Stack>
       </Feature>
