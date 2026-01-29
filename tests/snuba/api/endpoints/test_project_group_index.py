@@ -1403,7 +1403,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_assign_unassigned_issue_to_team_not_member_of(self) -> None:
         """
         Test that a user CAN assign an UNASSIGNED issue to a team they are not a member of.
-        
+
         This ensures that unassigned issues can be freely assigned to any team, while still
         preventing unauthorized reassignment from one team to another (which is tested in
         test_cannot_reassign_from_other_team).
@@ -1508,7 +1508,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         """
         Test that a member CAN assign an UNASSIGNED issue to any team that has
         access to the project, even if they're not a member of that team.
-        
+
         This is a regression test for the bug where members couldn't assign
         unassigned issues after the IDOR fix was introduced.
         """
@@ -1547,7 +1547,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         """
         Test that a member CAN reassign an issue that is assigned to a user
         to any team that has access to the project.
-        
+
         User assignments don't have the same restrictions as team assignments.
         """
         self.organization.flags.allow_joinleave = False

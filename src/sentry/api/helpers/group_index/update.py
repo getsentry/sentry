@@ -1089,9 +1089,7 @@ def validate_bulk_reassignment(
     # Collect team IDs for groups that are currently assigned to teams
     # (excludes unassigned groups and groups assigned to users)
     current_team_ids = {
-        assignee.team_id
-        for assignee in current_assignees.values()
-        if assignee.team_id is not None
+        assignee.team_id for assignee in current_assignees.values() if assignee.team_id is not None
     }
 
     # If there are no team assignments, allow the assignment
