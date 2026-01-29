@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
 from sentry.workflow_engine.caches.workflow import invalidate_processing_workflows
@@ -13,9 +13,15 @@ if TYPE_CHECKING:
 # TODO - handle post migrate?
 
 
+@receiver(pre_save, sender=DetectorWorkflow)
+def invalidate_processing_workflows_cache_pre(send, instance: DetectorWorkflow, **kwargs) -> None:
+    # TODO - lookup the previous releationships and clear those caches
+    pass
+
+
 @receiver(pre_delete, sender=DetectorWorkflow)
 @receiver(post_save, sender=DetectorWorkflow)
-def invalidate_processing_workflows_cache(sender, instance: DetectorWorkflow) -> None:
+def invalidate_processing_workflows_cache(sender, instance: DetectorWorkflow, **kwargs) -> None:
     """
     We need to invalidate the workflows being processed if the relationship between
     the detector and the workflow changes.
