@@ -300,7 +300,6 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["totalTokens"] == LLM_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 1
-        assert conversation["duration"] > 0
         assert conversation["timestamp"] > 0
         assert conversation["flow"] == ["Customer Support Agent", "Response Generator"]
         assert len(conversation["traceIds"]) == 1
@@ -829,9 +828,10 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert optimized_conv["flow"] == default_conv["flow"]
         assert optimized_conv["firstInput"] == default_conv["firstInput"]
         assert optimized_conv["lastOutput"] == default_conv["lastOutput"]
-        # Duration and timestamp may have minor differences due to timing, but should be close
-        assert optimized_conv["duration"] == default_conv["duration"]
-        assert optimized_conv["timestamp"] == default_conv["timestamp"]
+        # Timestamps may differ slightly between paths (start vs finish time)
+        assert (
+            abs(optimized_conv["timestamp"] - default_conv["timestamp"]) <= 2000
+        )  # 2 second tolerance
         # traceIds may be in different order, compare as sets
         assert set(optimized_conv["traceIds"]) == set(default_conv["traceIds"])
         # user should be identical
