@@ -389,7 +389,6 @@ def show_rule_evaluation(artifact_id: int) -> None:
         if not size_metrics:
             continue
 
-        # Look up base metric using the new structure
         base_metric = None
         base_artifact = base_artifact_map.get(art.id)
         if base_artifact:
