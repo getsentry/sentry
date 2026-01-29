@@ -103,6 +103,10 @@ interface UseMetricDetectorChartProps {
    */
   end?: string | null;
   height?: number;
+  /**
+   * Display a persistent highlight area for the open period with the given ID.
+   */
+  highlightedOpenPeriodId?: string;
   start?: string | null;
   statsPeriod?: string | null;
 }
@@ -175,6 +179,7 @@ export function useMetricDetectorChart({
   end,
   detector,
   openPeriods,
+  highlightedOpenPeriodId,
   height = CHART_HEIGHT,
 }: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
   const navigate = useNavigate();
@@ -238,6 +243,7 @@ export function useMetricDetectorChart({
 
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
+    highlightedIncidentId: highlightedOpenPeriodId,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
@@ -288,12 +294,16 @@ export function useMetricDetectorChart({
 
     // Line series not working well with the custom series type
     baseSeries.push(openPeriodMarkerResult.incidentMarkerSeries as any);
+    if (openPeriodMarkerResult.highlightedIncidentAreaSeries) {
+      baseSeries.push(openPeriodMarkerResult.highlightedIncidentAreaSeries as any);
+    }
 
     return baseSeries;
   }, [
     thresholdAdditionalSeries,
     filteredAnomalyThresholdSeries,
     openPeriodMarkerResult.incidentMarkerSeries,
+    openPeriodMarkerResult.highlightedIncidentAreaSeries,
   ]);
 
   const yAxes = useMemo(() => {
