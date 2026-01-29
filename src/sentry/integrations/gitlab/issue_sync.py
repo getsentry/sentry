@@ -6,10 +6,12 @@ from typing import Any
 from urllib.parse import quote
 
 from sentry import features
+from sentry.integrations.gitlab.types import GitLabIssueAction, GitLabIssueStatus
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.model import RpcUser
@@ -23,6 +25,7 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     inbound_status_key = "sync_status_reverse"
+    outbound_status_key = "sync_status_forward"
     resolution_strategy_key = "resolution_strategy"
 
     def check_feature_flag(self) -> bool:
@@ -164,7 +167,93 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         Propagate a sentry issue's status to a linked GitLab issue's status.
         For GitLab, we only support opened/closed states.
         """
-        raise NotImplementedError
+
+        client = self.get_client()
+        project_path, issue_iid = self.split_external_issue_key(external_issue.key)
+
+        if not project_path or not issue_iid:
+            logger.warning(
+                "status-outbound.invalid-key",
+                extra={
+                    "external_issue_key": external_issue.key,
+                    "provider": self.model.provider,
+                },
+            )
+            return
+
+        # Get the project mapping to determine what status to use
+        external_project = integration_service.get_integration_external_project(
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+            external_id=project_path,
+        )
+
+        log_context = {
+            "provider": self.model.provider,
+            "integration_id": external_issue.integration_id,
+            "is_resolved": is_resolved,
+            "issue_key": external_issue.key,
+            "project_path": project_path,
+        }
+
+        if not external_project:
+            logger.info("external-project-not-found", extra=log_context)
+            return
+
+        desired_state = (
+            external_project.resolved_status if is_resolved else external_project.unresolved_status
+        )
+
+        # Fetch current GitLab issue state
+        try:
+            # URL-encode project_path since it's a path_with_namespace
+            encoded_project_path = quote(project_path, safe="")
+            issue_data = client.get_issue(encoded_project_path, issue_iid)
+        except ApiError as e:
+            self.raise_error(e)
+
+        current_state = issue_data.get("state")
+
+        # Don't update if it's already in the desired state
+        if current_state == desired_state:
+            logger.info(
+                "sync_status_outbound.unchanged",
+                extra={
+                    **log_context,
+                    "current_state": current_state,
+                    "desired_state": desired_state,
+                },
+            )
+            return
+
+        # Determine state_event parameter for GitLab API
+        # GitLab uses "close" to transition to closed, "reopen" to transition to opened
+        if desired_state == GitLabIssueStatus.CLOSED.value:
+            state_event = GitLabIssueAction.CLOSE.value
+        elif desired_state == GitLabIssueStatus.OPENED.value:
+            state_event = GitLabIssueAction.REOPEN.value
+        else:
+            logger.warning(
+                "sync_status_outbound.invalid-desired-state",
+                extra={**log_context, "desired_state": desired_state},
+            )
+            return
+
+        # Update the issue state
+        try:
+            encoded_project_path = quote(project_path, safe="")
+            client.update_issue_status(encoded_project_path, issue_iid, state_event)
+            logger.info(
+                "sync_status_outbound.success",
+                extra={
+                    **log_context,
+                    "old_state": current_state,
+                    "new_state": desired_state,
+                    "state_event": state_event,
+                },
+            )
+        except ApiError as e:
+            self.raise_error(e)
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         """
