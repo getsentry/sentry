@@ -368,7 +368,7 @@ export function EventGraph({
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.tokens.border.transparent.neutral.muted,
-            color: theme.tokens.dataviz.semantic.neutral,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -411,7 +411,7 @@ export function EventGraph({
           borderColor: theme.tokens.border.transparent.neutral.muted,
           color: isUnfilteredStatsEnabled
             ? theme.tokens.dataviz.semantic.accent
-            : theme.tokens.dataviz.semantic.neutral,
+            : theme.tokens.dataviz.semantic.other,
         },
         data: eventSeries,
         animation: false,

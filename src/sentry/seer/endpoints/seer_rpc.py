@@ -75,7 +75,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.entrypoints.operator import process_autofix_updates
+from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -607,18 +607,14 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         )
         return {"success": False, "error": "Organization not found or not active"}
 
-    if features.has("organizations:seer-slack-workflows", organization):
-        run_id = payload.get("run_id")
-        if not run_id:
-            logger.error("seer.webhook_run_id_not_found", extra={"payload": payload})
-        else:
-            process_autofix_updates.apply_async(
-                kwargs={
-                    "run_id": run_id,
-                    "event_type": sentry_app_event_type,
-                    "event_payload": payload,
-                }
-            )
+    if SeerOperator.has_access(organization=organization):
+        process_autofix_updates.apply_async(
+            kwargs={
+                "event_type": sentry_app_event_type,
+                "event_payload": payload,
+                "organization_id": organization_id,
+            }
+        )
 
     if not features.has("organizations:seer-webhooks", organization):
         return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
@@ -670,6 +666,47 @@ def trigger_coding_agent_launch(
             },
         )
         return {"success": False}
+
+
+def validate_repo(
+    *,
+    organization_id: int,
+    provider: str,
+    external_id: str,
+    owner: str,
+    name: str,
+) -> dict[str, Any]:
+    """
+    Validate that a repository exists and belongs to the given organization.
+
+    Args:
+        organization_id: The Sentry organization ID
+        provider: The SCM provider (e.g., "github", "github_enterprise")
+        external_id: The repository's external ID in the provider's system
+        owner: The repository owner (e.g., "getsentry")
+        name: The repository name (e.g., "sentry")
+
+    Returns:
+        {"valid": True, "integration_id": <int|None>} if valid
+        {"valid": False, "reason": <str>} if invalid
+    """
+    expected_name = f"{owner}/{name}"
+
+    repo = Repository.objects.filter(
+        Q(provider=provider) | Q(provider=f"integrations:{provider}"),
+        organization_id=organization_id,
+        external_id=external_id,
+        name=expected_name,
+        status=ObjectStatus.ACTIVE,
+    ).first()
+
+    if not repo:
+        return {"valid": False, "reason": "repository_not_found"}
+
+    if repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+        return {"valid": False, "reason": "unsupported_provider"}
+
+    return {"valid": True, "integration_id": repo.integration_id}
 
 
 def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
@@ -769,6 +806,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
     "check_repository_integrations_status": check_repository_integrations_status,
+    "validate_repo": validate_repo,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,

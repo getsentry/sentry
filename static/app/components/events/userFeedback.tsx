@@ -46,7 +46,7 @@ export function EventUserFeedback({
           <Flex align="center" gap="md">
             <ActivityAuthor>{report.name}</ActivityAuthor>
             <CopyButton
-              borderless
+              priority="transparent"
               onClick={() =>
                 copy(report.email, {successMessage: t('Copied email to clipboard')})
               }

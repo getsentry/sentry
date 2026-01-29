@@ -401,7 +401,7 @@ function NativeFrame({
                 is_frame_expanded: isShowFramesToggleExpanded,
               }}
               size="zero"
-              borderless
+              priority="transparent"
               onClick={e => {
                 onShowFramesToggle?.(e);
               }}
@@ -440,7 +440,7 @@ function NativeFrame({
               <ToggleButton
                 type="button"
                 size="zero"
-                borderless
+                priority="transparent"
                 aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
                 icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
