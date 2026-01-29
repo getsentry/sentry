@@ -92,7 +92,7 @@ export function VisualizeEquation({
         />
       </Flex>
       <Button
-        borderless
+        priority="transparent"
         icon={<IconDelete />}
         size="zero"
         onClick={onDelete}

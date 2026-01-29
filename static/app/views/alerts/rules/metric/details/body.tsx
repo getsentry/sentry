@@ -312,7 +312,7 @@ function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
                 setShowTransactionsDeprecationAlert(false);
               }}
               size="zero"
-              borderless
+              priority="transparent"
             />
           }
         >

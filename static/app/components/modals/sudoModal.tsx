@@ -301,7 +301,7 @@ function SudoModal({
                       {t('COPS/CSM')}
                     </Button>
                   ) : (
-                    <Button borderless size="sm" onClick={handleChangeReason}>
+                    <Button priority="transparent" size="sm" onClick={handleChangeReason}>
                       {t('Change reason')}
                     </Button>
                   )}

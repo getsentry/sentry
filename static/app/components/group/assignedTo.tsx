@@ -286,7 +286,7 @@ function AssignedTo({
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}
-              borderless
+              priority="transparent"
               size="xs"
             />
           </GuideAnchor>

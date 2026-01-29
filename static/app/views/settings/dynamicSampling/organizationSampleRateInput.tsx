@@ -59,7 +59,7 @@ export function OrganizationSampleRateInput({
             <Button
               title={t('Proportionally scale project rates')}
               aria-label={t('Proportionally scale project rates')}
-              borderless
+              priority="transparent"
               size="sm"
               onClick={() => onBulkEditChange?.(true)}
               icon={<IconEdit />}

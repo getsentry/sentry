@@ -601,7 +601,7 @@ function FileDiff({
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
-            borderless
+            priority="transparent"
           />
         </FileHeader>
       )}

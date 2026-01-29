@@ -120,7 +120,7 @@ export function CollapsibleChainLink({
           ) : (
             <AddButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => setIsAdding(true)}
               title={t('Give feedback and rethink the answer')}
               aria-label={t('Give feedback and rethink the answer')}

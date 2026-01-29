@@ -159,7 +159,7 @@ function ActiveLogDisplay({
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
           size="xs"
-          borderless
+          priority="transparent"
           aria-label={t('Retry step')}
           title={t('Retry step')}
           onClick={() =>
@@ -328,7 +328,7 @@ export function AutofixOutputStream({
               />
               <StyledButton
                 type="submit"
-                borderless
+                priority="transparent"
                 aria-label={t('Submit Comment')}
                 size="zero"
               >

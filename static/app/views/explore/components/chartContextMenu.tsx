@@ -177,7 +177,7 @@ function ChartContextMenu({
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        borderless: true,
+        priority: 'transparent',
         showChevron: false,
         icon: <IconEllipsis />,
       }}

@@ -31,7 +31,7 @@ export default function AutomationBuilderRow({
           aria-label={t('Delete row')}
           size="sm"
           icon={<IconDelete />}
-          borderless
+          priority="transparent"
           onClick={onDelete}
           className="delete-row"
         />

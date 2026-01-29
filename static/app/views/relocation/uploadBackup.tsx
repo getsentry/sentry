@@ -132,7 +132,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
               <Button
                 aria-label={t('Remove file')}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
                 size="xs"
                 onClick={() => setFile(undefined)}
               />

@@ -84,7 +84,7 @@ function FeatureDisabled({
           )}
         </HelpText>
         <CopyButton
-          borderless
+          priority="transparent"
           icon={<IconCopy />}
           onClick={() => copy(snippet)}
           size="xs"

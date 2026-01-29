@@ -221,7 +221,7 @@ export function AutofixInsightCard({
             {isExpandable && (
               <Button
                 size="zero"
-                borderless
+                priority="transparent"
                 title={isExpanded ? t('Hide evidence') : t('Show evidence')}
                 icon={
                   <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
@@ -231,7 +231,7 @@ export function AutofixInsightCard({
             )}
             <EditButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={handleEdit}
               icon={<FlippedReturnIcon />}
               aria-label={t('Edit insight')}

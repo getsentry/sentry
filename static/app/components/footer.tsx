@@ -64,7 +64,7 @@ function BaseFooter({className}: Props) {
       <RightLinks>
         {appState === 'stale' && (
           <Button
-            borderless
+            priority="transparent"
             size="xs"
             onClick={() => window.location.reload()}
             title={t(

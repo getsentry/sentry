@@ -48,7 +48,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         analyticsEventKey="data_consent_banner.dismissed"
         analyticsEventName="Data Consent Banner: Dismissed"
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => closeModal()}

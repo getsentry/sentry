@@ -54,7 +54,6 @@ export function Step({
         {stepTitle}
         <ToggleButton
           priority="link"
-          borderless
           size="zero"
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}

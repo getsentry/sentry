@@ -439,7 +439,7 @@ class TriggersChart extends PureComponent<Props, State> {
               trigger={triggerProps => (
                 <OverlayTrigger.Button
                   {...triggerProps}
-                  borderless
+                  priority="transparent"
                   prefix={t('Display')}
                 />
               )}

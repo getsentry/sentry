@@ -117,7 +117,7 @@ export function EventList({group}: EventListProps) {
                 <ButtonBar gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -131,7 +131,7 @@ export function EventList({group}: EventListProps) {
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{

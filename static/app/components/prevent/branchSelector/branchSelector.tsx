@@ -102,7 +102,7 @@ export function BranchSelector() {
             closeOverlay();
           }}
           size="zero"
-          borderless
+          priority="transparent"
         >
           {t('Reset to all branches')}
         </ResetButton>

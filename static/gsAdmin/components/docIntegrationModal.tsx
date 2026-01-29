@@ -104,7 +104,7 @@ function DocIntegrationModal(props: Props) {
           }}
         />
         <RemoveButton
-          borderless
+          priority="transparent"
           icon={<IconClose />}
           size="zero"
           onClick={e => {

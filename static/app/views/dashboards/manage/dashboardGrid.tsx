@@ -158,7 +158,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

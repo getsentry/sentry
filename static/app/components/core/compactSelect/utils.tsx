@@ -244,7 +244,7 @@ export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
       data-key={item.key}
       visible={visible}
       size="zero"
-      borderless
+      priority="transparent"
       // Remove this button from keyboard navigation and the accessibility tree, since
       // the outer list component implements a roving `tabindex` system that would be
       // messed up if there was a focusable, non-selectable button in the middle of it.

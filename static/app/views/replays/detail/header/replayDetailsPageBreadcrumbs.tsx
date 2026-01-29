@@ -96,7 +96,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             >
               <LinkButton
                 size="zero"
-                borderless
+                priority="transparent"
                 icon={<IconChevron direction="left" size="xs" />}
                 disabled={!previousReplay}
                 aria-label={t('Previous replay based on search query')}
@@ -123,7 +123,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             >
               <LinkButton
                 size="zero"
-                borderless
+                priority="transparent"
                 icon={<IconChevron direction="right" size="xs" />}
                 disabled={!nextReplay}
                 aria-label={t('Next replay based on search query')}
@@ -172,7 +172,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
                 size="zero"
-                borderless
+                priority="transparent"
                 icon={<IconCopy size="xs" variant="muted" />}
               />
             )}

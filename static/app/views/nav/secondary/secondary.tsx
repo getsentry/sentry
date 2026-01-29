@@ -111,7 +111,7 @@ function SectionTitle({
     return (
       <SectionTitleCollapsible
         size="sm"
-        borderless
+        priority="transparent"
         isMobile={layout === NavLayout.MOBILE}
         onClick={() => {
           setIsCollapsed(!isCollapsed);

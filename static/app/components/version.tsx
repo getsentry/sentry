@@ -128,7 +128,7 @@ function Version({
     >
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
       <CopyToClipboardButton
-        borderless
+        priority="transparent"
         text={version}
         size="zero"
         aria-label={t('Copy version to clipboard')}

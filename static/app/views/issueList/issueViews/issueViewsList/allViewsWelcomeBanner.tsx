@@ -28,7 +28,7 @@ export default function AllViewsWelcomeBanner() {
           analyticsEventKey="issue_views.all_views.banner_dismissed"
           analyticsEventName="Issue Views: All Views Banner Dismissed"
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconClose size="xs" />}
           aria-label={t('Dismiss')}
           onClick={() => dismissPrompt()}

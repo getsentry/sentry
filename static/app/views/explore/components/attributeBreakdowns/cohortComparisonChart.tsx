@@ -146,7 +146,7 @@ export function Chart({
           </AttributeBreakdownsComponent.PopulationIndicator>
           <Button
             size="zero"
-            borderless
+            priority="transparent"
             icon={<IconExpand size="xs" />}
             aria-label={t('Expand chart')}
             onClick={() =>

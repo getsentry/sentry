@@ -146,7 +146,7 @@ function ReleaseHeader({
           <Version version={version} anchor={false} truncate />
           <IconWrapper>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={version}
               title={version}

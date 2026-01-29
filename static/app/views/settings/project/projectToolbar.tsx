@@ -91,7 +91,7 @@ export default function ProjectToolbarSettings() {
                 {domain: <strong>{domain}</strong>}
               )}
               <CopyToClipboardButton
-                borderless
+                priority="transparent"
                 size="zero"
                 text={domain}
                 aria-label={t('Copy domain to clipboard')}

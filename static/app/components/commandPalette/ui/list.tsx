@@ -117,7 +117,7 @@ export function CommandPaletteList({
         >
           {selectedAction && (
             <Button
-              borderless
+              priority="transparent"
               size="sm"
               icon={<IconArrow direction="left" />}
               onClick={() => {

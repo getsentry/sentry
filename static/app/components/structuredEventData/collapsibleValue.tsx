@@ -64,7 +64,7 @@ export function CollapsibleValue({
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
-          borderless
+          priority="transparent"
           data-base-with-toggle={baseLevelPadding}
         />
       ) : null}

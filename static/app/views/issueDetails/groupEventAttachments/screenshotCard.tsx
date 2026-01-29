@@ -126,7 +126,7 @@ export function ScreenshotCard({
               {...triggerProps}
               aria-label={t('Actions')}
               size="xs"
-              borderless
+              priority="transparent"
               icon={<IconEllipsis direction="down" size="sm" />}
             />
           )}

@@ -731,7 +731,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
           <StyledSettingsButton
-            borderless
+            priority="transparent"
             size="zero"
             icon={<IconSettings variant="muted" />}
             title={t('Dynamic Sampling Settings')}

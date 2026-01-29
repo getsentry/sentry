@@ -134,7 +134,7 @@ function ChartWidget({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconGraph type={chartTypeIconMap[chartType]} />}
-                borderless
+                priority="transparent"
                 showChevron={false}
                 size="xs"
               />
@@ -151,7 +151,7 @@ function ChartWidget({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconClock />}
-                borderless
+                priority="transparent"
                 showChevron={false}
                 size="xs"
               />

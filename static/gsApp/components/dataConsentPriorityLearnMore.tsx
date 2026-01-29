@@ -71,7 +71,7 @@ function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscripti
         analyticsEventKey="data_consent_priority.dismiss"
         analyticsEventName="Data Consent Priority: Dismiss"
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}

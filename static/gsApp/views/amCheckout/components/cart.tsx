@@ -943,7 +943,7 @@ function Cart({
             <Button
               aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
               onClick={() => setSummaryIsOpen(!summaryIsOpen)}
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
             />

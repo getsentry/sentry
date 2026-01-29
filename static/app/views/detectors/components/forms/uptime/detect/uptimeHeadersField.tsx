@@ -117,7 +117,7 @@ function UptimHeadersControl(props: any) {
                 disabled={disabled}
                 icon={<IconDelete />}
                 size="sm"
-                borderless
+                priority="transparent"
                 aria-label={
                   headerName
                     ? t('Remove %s', disambiguateHeaderName(index))

@@ -332,7 +332,7 @@ function NumericFilterSelector({
           ? ({closeOverlay}: any) => (
               <FooterWrap>
                 <FooterInnerWrap>
-                  <Button borderless size="xs" onClick={closeOverlay}>
+                  <Button priority="transparent" size="xs" onClick={closeOverlay}>
                     {t('Cancel')}
                   </Button>
                   <Button

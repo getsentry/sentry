@@ -61,7 +61,6 @@ function Banner({
       {isDismissable ? (
         <CloseButton
           type="button"
-          borderless
           size="xs"
           priority="link"
           icon={<IconClose />}

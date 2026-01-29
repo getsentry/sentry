@@ -234,7 +234,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
           onDismiss?.();
         }}
         size="zero"
-        borderless
+        priority="transparent"
         title={t('Dismiss')}
         aria-label={t('Dismiss trial notice')}
       />
