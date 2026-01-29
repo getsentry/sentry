@@ -55,7 +55,7 @@ class FileIOMainThreadDetectorTest(TestCase):
         event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = FileIOMainThreadDetector(settings, event)
 
         assert detector.is_creation_allowed_for_project(project)
@@ -66,7 +66,7 @@ class FileIOMainThreadDetectorTest(TestCase):
             value={"file_io_on_main_thread_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = FileIOMainThreadDetector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
