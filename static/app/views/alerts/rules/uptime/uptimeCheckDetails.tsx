@@ -27,7 +27,7 @@ export function UptimeCheckDetails({check, project}: Props) {
     projectId: project.id.toString(),
     traceId: check.traceId,
     traceItemType: TraceItemDataset.UPTIME_RESULTS,
-    referrer: 'api.explore.log-item-details', // TODO: change to span details
+    referrer: 'uptime-check-details',
     enabled: true,
   });
 

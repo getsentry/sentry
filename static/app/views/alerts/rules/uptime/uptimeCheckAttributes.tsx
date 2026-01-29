@@ -2,12 +2,11 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Text} from 'sentry/components/core/text';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,7 +36,7 @@ export function UptimeCheckAttributes({
   const theme = useTheme();
 
   const filteredAndSortedAttributes = useMemo(() => {
-    const sortedAttributes = [...attributes].sort((a, b) => {
+    const sortedAttributes = attributes.toSorted((a, b) => {
       return a.name.localeCompare(b.name);
     });
 
@@ -94,19 +93,19 @@ export function UptimeCheckAttributes({
             />
           </div>
         ) : (
-          <NoAttributesMessage>
+          <StyledFlex
+            justify="center"
+            align="center"
+            color={theme.tokens.content.secondary}
+          >
             <p>{t('No matching attributes found')}</p>
-          </NoAttributesMessage>
+          </StyledFlex>
         )}
       </Stack>
     </FoldSection>
   );
 }
 
-const NoAttributesMessage = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: ${space(4)};
-  color: ${p => p.theme.tokens.content.secondary};
+const StyledFlex = styled(Flex)`
+  margin: ${p => p.theme.space['3xl']};
 `;

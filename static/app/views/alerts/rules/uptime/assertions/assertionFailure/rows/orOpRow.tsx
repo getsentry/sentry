@@ -1,9 +1,10 @@
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
 import {Text} from 'sentry/components/core/text/text';
+import {t} from 'sentry/locale';
 
 export function OrOpRow() {
-  const label = 'Assert Any';
+  const label = t('Assert Any');
 
   return (
     <Tooltip title={label} showOnlyOnOverflow>
