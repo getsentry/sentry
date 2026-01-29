@@ -67,12 +67,17 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             model=slack_request.integration, organization_id=organization_id
         )
         self.action = action
-        self.autofix_stopping_point = self.set_autofix_stopping_point(action=action)
+        self.autofix_stopping_point = self.get_autofix_stopping_point_from_action(
+            action=action, group_id=group.id
+        )
         self.autofix_run_id = self.slack_request.callback_data.get("run_id")
 
-    def set_autofix_stopping_point(self, *, action: BlockKitMessageAction) -> AutofixStoppingPoint:
+    @staticmethod
+    def get_autofix_stopping_point_from_action(
+        *, action: BlockKitMessageAction, group_id: int
+    ) -> AutofixStoppingPoint:
         """
-        Sets the autofix stopping point from a passed BlockKitMessageAction.
+        Parses the autofix stopping point from a passed BlockKitMessageAction.
         XXX: We could attempt to interpret it from the slack_request value, but this will make
         it explicit which we use in case there's multiple in the body.
         """
@@ -87,14 +92,13 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             logger.warning(
                 "entrypoint.invalid_autofix_stopping_point",
                 extra={
-                    "entrypoint_key": self.key,
+                    "entrypoint_key": SeerEntrypointKey.SLACK,
                     "stopping_point": action.value,
                     "action_id": action.action_id,
-                    "group_id": self.group.id,
+                    "group_id": group_id,
                 },
             )
-        self.autofix_stopping_point = stopping_point
-        return self.autofix_stopping_point
+        return stopping_point
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         _send_thread_update(
@@ -149,7 +153,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     @staticmethod
     def on_autofix_update(
         event_type: SentryAppEventType,
-        # TODO(leander): Type this out better
         event_payload: dict[str, Any],
         cache_payload: SlackEntrypointCachePayload,
     ) -> None:
@@ -364,7 +367,7 @@ def handle_prepare_autofix_update(
     group: Group,
     organization_id: int,
     integration_id: int,
-):
+) -> None:
     """
     Use parameters to create a payload for the operator to populate the pre-autofix cache.
     This will allow for a future migration of the cache to post-autofix for subsequent updates.
