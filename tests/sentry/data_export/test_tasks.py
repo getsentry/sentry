@@ -708,7 +708,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             )
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -799,7 +799,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             )
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         logs = [
             self.create_ourlog(
@@ -897,7 +897,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             ),
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -1054,7 +1054,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             )
             for _ in range(5)
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -1162,7 +1162,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             ),
         ]
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,

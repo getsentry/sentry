@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {SnubaQueryDataSourceFixture} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -17,6 +18,14 @@ describe('MetricDetectorTriggeredSection', () => {
     conditionResult: true,
   };
   const dataSource = SnubaQueryDataSourceFixture();
+  const openPeriodStartDate = '2024-01-01T00:00:00Z';
+  const openPeriodEndDate = '2024-01-01T00:05:00.000Z';
+  const defaultGroup = GroupFixture();
+  const defaultEvent = EventFixture();
+  const defaultProps: ComponentProps<typeof MetricDetectorTriggeredSection> = {
+    group: defaultGroup,
+    event: defaultEvent,
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -32,6 +41,23 @@ describe('MetricDetectorTriggeredSection', () => {
       url: '/organizations/org-slug/issues/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [
+        {
+          id: '101',
+          start: openPeriodStartDate,
+          end: openPeriodEndDate,
+          isOpen: false,
+          eventId: 'event-1',
+          activities: [],
+        },
+      ],
+    });
   });
 
   it('renders nothing when event has no occurrence', () => {
@@ -39,7 +65,9 @@ describe('MetricDetectorTriggeredSection', () => {
       occurrence: null,
     });
 
-    const {container} = render(<MetricDetectorTriggeredSection event={event} />);
+    const {container} = render(
+      <MetricDetectorTriggeredSection {...defaultProps} event={event} />
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -63,7 +91,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricDetectorTriggeredSection event={event} />);
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     expect(screen.getByRole('region', {name: 'Message'})).toBeInTheDocument();
     expect(screen.getByText('Subtitle')).toBeInTheDocument();
@@ -88,7 +116,9 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    const {container} = render(<MetricDetectorTriggeredSection event={event} />);
+    const {container} = render(
+      <MetricDetectorTriggeredSection {...defaultProps} event={event} />
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -112,11 +142,12 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricDetectorTriggeredSection event={event} />);
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     // Check sections exist by aria-label
     expect(await screen.findByRole('region', {name: 'Message'})).toBeInTheDocument();
     expect(screen.getByRole('region', {name: 'Triggered Condition'})).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Timeline'})).toBeInTheDocument();
 
     // Check message content
     expect(screen.getByText('Subtitle')).toBeInTheDocument();
@@ -136,18 +167,17 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   it('renders contributing issues section for errors dataset', async () => {
-    const eventDateCreated = '2024-01-01T00:00:00Z';
     // Start date is eventDateCreated minus the timeWindow (60 seconds) minus 1 extra minute
     const startDate = '2023-12-31T23:58:00.000Z';
-    const endDate = '2017-10-17T02:41:20.000Z'; // Mocked time in test env
 
     const contributingIssuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [GroupFixture()],
     });
-
     const event = EventFixture({
-      dateCreated: eventDateCreated,
+      dateCreated: openPeriodStartDate,
+      eventID: 'event-1',
+      groupID: '123',
       occurrence: {
         id: '1',
         eventId: 'event-1',
@@ -166,7 +196,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricDetectorTriggeredSection event={event} />);
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     await waitFor(() => {
       expect(
@@ -180,7 +210,7 @@ describe('MetricDetectorTriggeredSection', () => {
         query: expect.objectContaining({
           query: 'issue.type:error event.type:error is:unresolved',
           start: startDate,
-          end: endDate,
+          end: openPeriodEndDate,
         }),
       })
     );
@@ -225,7 +255,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricDetectorTriggeredSection event={event} />);
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     // Check that the boolean logic error alert is shown
     expect(
@@ -239,7 +269,7 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2017-10-17T02%3A41%3A20.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
+      '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2024-01-01T00%3A05%3A00.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
     );
   });
 });

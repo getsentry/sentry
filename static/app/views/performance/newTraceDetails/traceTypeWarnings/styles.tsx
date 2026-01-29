@@ -71,7 +71,7 @@ function Banner(props: BannerProps) {
         position="bottom-end"
         triggerProps={{
           showChevron: false,
-          borderless: true,
+          priority: 'transparent',
           icon: <IconClose variant="muted" />,
         }}
         size="xs"

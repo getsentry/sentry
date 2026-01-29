@@ -1196,7 +1196,7 @@ describe('Modals -> WidgetViewerModal', () => {
         url: '/organizations/org-slug/metrics/data/',
         body: MetricsTotalCountByReleaseIn24h(),
         headers: {
-          link:
+          Link:
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
         },
@@ -1234,6 +1234,9 @@ describe('Modals -> WidgetViewerModal', () => {
 
     it('renders table header and body', async () => {
       await renderModal({initialData, widget: mockWidget});
+      await waitFor(() => {
+        expect(metricsMock).toHaveBeenCalled();
+      });
       expect(await screen.findByText('release')).toBeInTheDocument();
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
       expect(screen.getByText('sum(session)')).toBeInTheDocument();
@@ -1274,7 +1277,7 @@ describe('Modals -> WidgetViewerModal', () => {
         tableData: [],
         seriesData: [],
       });
-      expect(metricsMock).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(1));
       await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(2));
       expect(router.location.query).toEqual(

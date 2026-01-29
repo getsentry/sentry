@@ -584,6 +584,7 @@ export function SearchQueryBuilderCombobox<
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});
+
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput

@@ -1,7 +1,0 @@
----
-source: tests/sentry/grouping/test_categorization.py::test_categorization
----
-
-
-EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (thread_id:_, crashed:_)
-  C:\Windows\System32\DriverStore\FileReposi  DllMain category=driver

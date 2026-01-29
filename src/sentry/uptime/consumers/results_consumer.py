@@ -28,6 +28,7 @@ from sentry.uptime.autodetect.result_handler import handle_onboarding_result
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.grouptype import UptimePacketValue
 from sentry.uptime.models import (
+    RESPONSE_BODY_SEPARATOR,
     UptimeResponseCapture,
     UptimeSubscription,
     UptimeSubscriptionRegion,
@@ -77,9 +78,6 @@ TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 # The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
 MAX_SYNTHETIC_MISSED_CHECKS = 100
-
-
-RESPONSE_BODY_SEPARATOR = b"\r\n\r\n---BODY---\r\n\r\n"
 
 
 def format_response_for_storage(
@@ -365,6 +363,7 @@ def create_backfill_misses(
                 "actual_check_time_ms": result["actual_check_time_ms"],
                 "duration_ms": 0,
                 "request_info": None,
+                "assertion_failure_data": None,
             }
             produce_eap_uptime_result(
                 detector,

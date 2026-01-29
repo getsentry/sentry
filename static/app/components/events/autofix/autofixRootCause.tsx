@@ -591,7 +591,7 @@ function AutofixRootCauseDisplay({
           {t('Root Cause')}
           <Button
             size="zero"
-            borderless
+            priority="transparent"
             title={t('Chat with Seer')}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"

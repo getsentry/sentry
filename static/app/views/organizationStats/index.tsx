@@ -263,7 +263,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
-        return organization.features.includes('seer-billing');
+        return (
+          organization.features.includes('seer-billing') &&
+          organization.features.includes('seer-added')
+        );
       }
       if ([DataCategory.LOG_BYTE].includes(opt.value)) {
         return organization.features.includes('ourlogs-enabled');
@@ -285,10 +288,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !hasProfilingStats;
       }
       if (opt.value === DataCategory.SIZE_ANALYSIS) {
-        return organization.features.includes('size-analysis-billing');
+        return organization.features.includes('expose-category-size-analysis');
       }
       if (opt.value === DataCategory.INSTALLABLE_BUILD) {
-        return organization.features.includes('installable-build-billing');
+        return organization.features.includes('expose-category-installable-build');
       }
       return true;
     }).map(opt => {

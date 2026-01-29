@@ -71,7 +71,8 @@ def env(
     try:
         rv = _env_cache[key]
     except KeyError:
-        if "SENTRY_RUNNING_UWSGI" in os.environ:
+        # TODO: check this is actually still correct, since granian doesn't fork
+        if "SENTRY_RUNNING_GRANIAN" in os.environ:
             # We do this so when the process forks off into uwsgi
             # we want to actually be popping off values. This is so that
             # at runtime, the variables aren't actually available.
@@ -1087,11 +1088,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autopilot-run-sdk-update-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -1627,6 +1628,10 @@ ENFORCE_CONCURRENT_RATE_LIMITS = False
 # Rate Limit Group Category Defaults
 SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI = 999
 SENTRY_RATELIMITER_GROUP_CLI = 999
+
+# Impersonation Rate Limiting
+# Fixed rate limit applied during impersonation sessions (requests per second)
+SENTRY_IMPERSONATION_RATE_LIMIT = 30
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -2754,7 +2759,7 @@ BETA_GROUPING_CONFIG = ""
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
-SENTRY_USE_UWSGI = True
+SENTRY_USE_GRANIAN = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
