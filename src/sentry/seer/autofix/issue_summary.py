@@ -31,6 +31,7 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
@@ -192,9 +193,7 @@ def _trigger_autofix_task(
             )
             run_id = response.data.get("run_id")
 
-        if run_id and features.has(
-            "organizations:seer-slack-workflows", group.project.organization
-        ):
+        if run_id and SeerOperator.has_access(organization=group.project.organization):
             SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
 
 

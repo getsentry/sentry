@@ -4,6 +4,7 @@ from typing import Any
 from rest_framework.response import Response
 
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix import trigger_autofix as _trigger_autofix
 from sentry.seer.autofix.autofix import update_autofix
 from sentry.seer.autofix.types import (
@@ -14,7 +15,8 @@ from sentry.seer.autofix.types import (
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
-from sentry.seer.entrypoints.types import SeerEntrypoint
+from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
+from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -49,6 +51,32 @@ class SeerOperator[CachePayloadT]:
     def __init__(self, entrypoint: SeerEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
         self.logging_ctx: dict[str, str] = {"entrypoint_key": str(entrypoint.key)}
+
+    @classmethod
+    def has_access(
+        cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey | None = None
+    ) -> bool:
+        """
+        Checks if the organization has access to Seer, and atleast one entrypoint.
+        If an entrypoint_key is provided, ensures the organization has access to that entrypoint.
+        """
+        if not has_seer_access(organization):
+            return False
+
+        if entrypoint_key:
+            if entrypoint_key not in entrypoint_registry.registrations:
+                logger.warning(
+                    "operator.invalid_entrypoint_key",
+                    extra={"entrypoint_key": entrypoint_key, "organization_id": organization.id},
+                )
+                return False
+            entrypoint_cls = entrypoint_registry.registrations[entrypoint_key]
+            return entrypoint_cls.has_access(organization)
+
+        return any(
+            entrypoint_cls.has_access(organization=organization)
+            for entrypoint_cls in entrypoint_registry.registrations.values()
+        )
 
     def trigger_autofix(
         self,
