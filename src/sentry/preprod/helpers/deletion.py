@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -11,10 +12,11 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemFilterWithType,
     TraceItemType,
 )
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, IntArray
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.models.files.file import File
+from sentry.preprod.eap.constants import PREPROD_NAMESPACE
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.utils import snuba_rpc
 
@@ -133,15 +135,27 @@ def _delete_preprod_data_from_eap(
 ) -> None:
     """
     Delete all preprod data (both size metrics and build distribution) from EAP for the given artifacts.
+
+    Deletes by trace_id, which is a column-level filter allowed by Snuba's deletion settings.
+    The trace_id is computed deterministically from the artifact ID using the same UUID5 logic
+    as the write path in preprod/eap/write.py.
     """
     if not preprod_artifact_ids:
         return
 
     try:
-        artifact_id_filter = ComparisonFilter(
-            key=AttributeKey(name="preprod_artifact_id", type=AttributeKey.TYPE_INT),
+        # Generate trace_ids using the same logic as the write path.
+        # See produce_preprod_size_metric_to_eap and produce_preprod_build_distribution_to_eap
+        # which use: uuid.uuid5(PREPROD_NAMESPACE, str(artifact_id)).hex
+        trace_ids = [
+            uuid.uuid5(PREPROD_NAMESPACE, str(artifact_id)).hex
+            for artifact_id in preprod_artifact_ids
+        ]
+
+        trace_id_filter = ComparisonFilter(
+            key=AttributeKey(name="sentry.trace_id", type=AttributeKey.TYPE_STRING),
             op=ComparisonFilter.OP_IN,
-            value=AttributeValue(val_int_array=IntArray(values=preprod_artifact_ids)),
+            value=AttributeValue(val_str_array=StrArray(values=trace_ids)),
         )
 
         request = DeleteTraceItemsRequest(
@@ -155,7 +169,7 @@ def _delete_preprod_data_from_eap(
             filters=[
                 TraceItemFilterWithType(
                     item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
-                    filter=TraceItemFilter(comparison_filter=artifact_id_filter),
+                    filter=TraceItemFilter(comparison_filter=trace_id_filter),
                 )
             ],
         )
