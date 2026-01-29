@@ -13,7 +13,7 @@ import {fieldContext, formContext, useFormContext} from './formContext';
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
     const InvalidInput = document.querySelector(
-      `#${formApi.formId} [aria-invalid="true"]`
+      `#${CSS.escape(formApi.formId)} [aria-invalid="true"]`
     ) as HTMLInputElement;
 
     InvalidInput?.focus();
