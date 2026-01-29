@@ -32,7 +32,7 @@ export function ReleasesSortSelect({
         const filter = RELEASES_SORT_OPTIONS[name];
         if (name !== ReleasesSortOption.ADOPTION) {
           return {
-            label: filter.label,
+            label: filter,
             value: name,
           };
         }
@@ -41,7 +41,7 @@ export function ReleasesSortSelect({
         // the percentage of sessions/users in that specific environment
         const isNotSingleEnvironment = environments.length !== 1;
         return {
-          label: filter.label,
+          label: filter,
           value: name,
           disabled: isNotSingleEnvironment,
           tooltip: isNotSingleEnvironment

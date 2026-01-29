@@ -96,7 +96,6 @@ export function ReleasesSelectControl({
             sortBy:
               sortBy in RELEASES_SORT_OPTIONS
                 ? RELEASES_SORT_OPTIONS[sortBy as keyof typeof RELEASES_SORT_OPTIONS]
-                    .label
                 : sortBy,
           }),
           options: [

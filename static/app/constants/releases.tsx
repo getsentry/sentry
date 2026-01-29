@@ -21,11 +21,11 @@ export enum ReleasesSortOption {
  * See: static/app/views/releases/list/releasesSortOptions.tsx
  */
 export const RELEASES_SORT_OPTIONS = {
-  [ReleasesSortOption.SESSIONS_24_HOURS]: {label: t('Active Sessions')},
-  [ReleasesSortOption.USERS_24_HOURS]: {label: t('Active Users')},
-  [ReleasesSortOption.ADOPTION]: {label: t('Adoption')},
-  [ReleasesSortOption.BUILD]: {label: t('Build Number')},
-  [ReleasesSortOption.DATE]: {label: t('Date Created')},
-  [ReleasesSortOption.SEMVER]: {label: t('Semantic Version')},
-  [ReleasesSortOption.SESSIONS]: {label: t('Total Sessions')},
+  [ReleasesSortOption.SESSIONS_24_HOURS]: t('Active Sessions'),
+  [ReleasesSortOption.USERS_24_HOURS]: t('Active Users'),
+  [ReleasesSortOption.ADOPTION]: t('Adoption'),
+  [ReleasesSortOption.BUILD]: t('Build Number'),
+  [ReleasesSortOption.DATE]: t('Date Created'),
+  [ReleasesSortOption.SEMVER]: t('Semantic Version'),
+  [ReleasesSortOption.SESSIONS]: t('Total Sessions'),
 } as const;
