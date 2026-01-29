@@ -47,7 +47,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project
+                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project, {}, {}
                 )
 
                 assert title == "Size Analysis"
@@ -67,7 +67,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         with pytest.raises(ValueError, match="No metrics exist for VCS size status check"):
-            format_status_check_messages([artifact], {}, StatusCheckStatus.SUCCESS, self.project)
+            format_status_check_messages(
+                [artifact], {}, StatusCheckStatus.SUCCESS, self.project, {}, {}
+            )
 
     def test_processed_state_with_metrics_no_previous(self):
         """Test formatting for processed state with metrics but no previous build."""
@@ -92,7 +94,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [size_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -122,7 +124,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project
+                    [artifact], {}, StatusCheckStatus.IN_PROGRESS, self.project, {}, {}
                 )
 
                 assert expected in summary
@@ -147,7 +149,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             )
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, {}, StatusCheckStatus.IN_PROGRESS, self.project
+            artifacts, {}, StatusCheckStatus.IN_PROGRESS, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -191,7 +193,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS, self.project
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -225,7 +227,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [pending_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS, self.project
+            [artifact], size_metrics_map, StatusCheckStatus.IN_PROGRESS, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -259,7 +261,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], {}, StatusCheckStatus.FAILURE, self.project
+            [artifact], {}, StatusCheckStatus.FAILURE, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -287,7 +289,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
                 )
 
                 title, subtitle, summary = format_status_check_messages(
-                    [artifact], {}, StatusCheckStatus.FAILURE, self.project
+                    [artifact], {}, StatusCheckStatus.FAILURE, self.project, {}, {}
                 )
 
                 assert expected_error in summary
@@ -337,7 +339,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         artifacts.append(failed_artifact)
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, size_metrics_map, StatusCheckStatus.FAILURE, self.project
+            artifacts, size_metrics_map, StatusCheckStatus.FAILURE, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -380,7 +382,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             size_metrics_map[artifact.id] = [size_metrics]
 
         title, subtitle, summary = format_status_check_messages(
-            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            artifacts, size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -423,7 +425,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, watch_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -481,7 +483,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [main_metrics, feature_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -519,7 +521,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             build_number=41,
         )
 
-        self.create_preprod_artifact_size_metrics(
+        base_size_metrics = self.create_preprod_artifact_size_metrics(
             base_artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
@@ -550,8 +552,16 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         size_metrics_map = {head_artifact.id: [head_size_metrics]}
 
+        base_artifact_map = {head_artifact.id: base_artifact}
+        base_metrics_by_artifact = {base_artifact.id: [base_size_metrics]}
+
         title, subtitle, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [head_artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            base_artifact_map,
+            base_metrics_by_artifact,
         )
 
         assert title == "Size Analysis"
@@ -588,7 +598,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         size_metrics_map = {artifact.id: [size_metrics]}
 
         title, subtitle, summary = format_status_check_messages(
-            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
         )
 
         assert title == "Size Analysis"
@@ -601,7 +611,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "N/A" in data_line  # Change columns show N/A
 
     def test_size_changes_with_different_artifact_types(self):
-        """Test that size changes only compare the same artifact types."""
+        """Test that size changes only compare the same artifact types (Watch-to-Watch, Main-to-Main)."""
 
         head_commit_comparison = CommitComparison.objects.create(
             head_repo_name="test/repo",
@@ -618,7 +628,6 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             organization_id=self.organization.id,
         )
 
-        # Create base artifact with only MAIN_ARTIFACT metrics
         base_artifact = self.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit_comparison,
@@ -628,7 +637,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             build_number=10,
         )
 
-        self.create_preprod_artifact_size_metrics(
+        base_main_metrics = self.create_preprod_artifact_size_metrics(
             base_artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
@@ -670,8 +679,16 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         size_metrics_map = {head_artifact.id: [head_main_metrics, head_watch_metrics]}
 
+        base_artifact_map = {head_artifact.id: base_artifact}
+        base_metrics_by_artifact = {base_artifact.id: [base_main_metrics]}
+
         _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [head_artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            base_artifact_map,
+            base_metrics_by_artifact,
         )
 
         # Main artifact should show changes (has matching base)
@@ -684,6 +701,104 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         # Count N/A occurrences in the watch line - should be 2 (change columns)
         na_count = watch_line.count("N/A")
         assert na_count == 2  # 2 N/A for the change columns
+
+    def test_size_changes_with_watch_base_metrics(self):
+        """Test that Watch-to-Watch comparison works when base Watch metrics exist."""
+
+        head_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="head_sha_watch_test",
+            base_sha="base_sha_watch_test",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_commit_comparison = CommitComparison.objects.create(
+            head_repo_name="test/repo",
+            head_sha="base_sha_watch_test",
+            provider="github",
+            organization_id=self.organization.id,
+        )
+
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=base_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="1.0.1",
+            build_number=10,
+        )
+
+        base_main_metrics = self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=int(2.8 * 1024 * 1024),
+            max_download_size=int(2.8 * 1024 * 1024),
+            min_install_size=int(6.5 * 1024 * 1024),
+            max_install_size=int(6.5 * 1024 * 1024),
+        )
+
+        base_watch_metrics = self.create_preprod_artifact_size_metrics(
+            base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=400 * 1024,
+            max_download_size=400 * 1024,
+            min_install_size=800 * 1024,
+            max_install_size=800 * 1024,
+        )
+
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=head_commit_comparison,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="1.0.2",
+            build_number=11,
+        )
+
+        head_main_metrics = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=3 * 1024 * 1024,
+            max_download_size=3 * 1024 * 1024,
+            min_install_size=int(6.8 * 1024 * 1024),
+            max_install_size=int(6.8 * 1024 * 1024),
+        )
+
+        head_watch_metrics = self.create_preprod_artifact_size_metrics(
+            head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=512 * 1024,
+            max_download_size=512 * 1024,
+            min_install_size=1024 * 1024,
+            max_install_size=1024 * 1024,
+        )
+
+        size_metrics_map = {head_artifact.id: [head_main_metrics, head_watch_metrics]}
+
+        base_artifact_map = {head_artifact.id: base_artifact}
+        base_metrics_by_artifact = {base_artifact.id: [base_main_metrics, base_watch_metrics]}
+
+        _, _, summary = format_status_check_messages(
+            [head_artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            base_artifact_map,
+            base_metrics_by_artifact,
+        )
+
+        assert "+209.7 KB" in summary
+        assert "+314.6 KB" in summary
+
+        lines = summary.split("\n")
+        watch_line = next(line for line in lines if ", Watch)" in line)
+        assert "+114.7 KB" in watch_line
+        assert "+229.4 KB" in watch_line
 
     def test_android_app_shows_uncompressed_label(self):
         """Test that Android apps show 'Uncompressed' instead of 'Install' in column header."""
@@ -710,7 +825,12 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         android_size_metrics_map = {android_artifact.id: [android_size_metrics]}
 
         title, subtitle, android_summary = format_status_check_messages(
-            [android_artifact], android_size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [android_artifact],
+            android_size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            {},
+            {},
         )
 
         # Android app should show "Uncompressed" instead of "Install"
@@ -740,7 +860,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         ios_size_metrics_map = {ios_artifact.id: [ios_size_metrics]}
 
         title, subtitle, ios_summary = format_status_check_messages(
-            [ios_artifact], ios_size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [ios_artifact], ios_size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
         )
 
         # iOS app should show "Install" not "Uncompressed"
@@ -795,6 +915,8 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             size_metrics_map,
             StatusCheckStatus.SUCCESS,
             self.project,
+            {},
+            {},
         )
 
         android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.slug}"
@@ -907,8 +1029,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
 
         size_metrics_map = {head_debug_artifact.id: [head_debug_metrics]}
 
+        from sentry.preprod.vcs.status_checks.size.tasks import _fetch_base_size_metrics
+
+        base_artifact_map, base_metrics_by_artifact = _fetch_base_size_metrics(
+            [head_debug_artifact]
+        )
+
         _, _, summary = format_status_check_messages(
-            [head_debug_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [head_debug_artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            base_artifact_map,
+            base_metrics_by_artifact,
         )
 
         # Verify current sizes are shown
@@ -988,11 +1121,18 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
 
         size_metrics_map = {head_artifact.id: [head_metrics]}
 
-        _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
-        )
+        from sentry.preprod.vcs.status_checks.size.tasks import _fetch_base_size_metrics
 
-        # Verify that comparison works properly for same configuration
+        base_artifact_map, base_metrics_by_artifact = _fetch_base_size_metrics([head_artifact])
+
+        _, _, summary = format_status_check_messages(
+            [head_artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            base_artifact_map,
+            base_metrics_by_artifact,
+        )
         assert "3.3 MB" in summary  # Current download size
         assert "6.5 MB" in summary  # Current install size
         assert "+104.9 KB" in summary  # 3.3MB - 3.1MB = 104.9KB
@@ -1062,7 +1202,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         size_metrics_map = {head_artifact.id: [head_metrics]}
 
         _, _, summary = format_status_check_messages(
-            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project
+            [head_artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
         )
 
         # Verify current sizes are shown
@@ -1121,6 +1261,8 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             size_metrics_map,
             StatusCheckStatus.FAILURE,
             self.project,
+            {},
+            {},
             triggered_rules=[triggered_rule],
         )
 
@@ -1140,7 +1282,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 <summary>1 Failed Check</summary>
 
 `com.example.app` (Android)
-- **Download Size - Total Size** ≥ **52.4 MB**
+- **Download Size (Total Size)** > **52.4 MB**
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1214,6 +1356,8 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             size_metrics_map,
             StatusCheckStatus.FAILURE,
             self.project,
+            {},
+            {},
             triggered_rules=triggered_rules,
         )
 
@@ -1233,9 +1377,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 <summary>3 Failed Checks</summary>
 
 `com.example.app` (Android)
-- **Download Size - Total Size** ≥ **52.4 MB**
-- **Install Size - Absolute Diff** ≥ **10.5 MB**
-- **Download Size - Relative Diff** ≥ **5.0%**
+- **Download Size (Total Size)** > **52.4 MB**
+- **Install Size (Absolute Diff)** > **10.5 MB**
+- **Download Size (Relative Diff)** > **5.0%**
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1318,6 +1462,8 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             size_metrics_map,
             StatusCheckStatus.FAILURE,
             self.project,
+            {},
+            {},
             triggered_rules=triggered_rules,
         )
 
@@ -1344,9 +1490,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 <summary>2 Failed Checks</summary>
 
 `com.example.app1` (iOS)
-- **Download Size - Total Size** ≥ **52.4 MB**
+- **Download Size (Total Size)** > **52.4 MB**
 `com.example.app2` (Android)
-- **Install Size - Total Size** ≥ **104.9 MB**
+- **Install Size (Total Size)** > **104.9 MB**
 </details>
 
 [Configure test_project status check rules]({settings_url})\
@@ -1419,6 +1565,8 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             size_metrics_map,
             StatusCheckStatus.FAILURE,
             self.project,
+            {},
+            {},
             triggered_rules=triggered_rules,
         )
 
@@ -1439,7 +1587,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 <summary>1 Failed Check</summary>
 
 `com.example.failed` (Android)
-- **Download Size - Total Size** ≥ **52.4 MB**
+- **Download Size (Total Size)** > **52.4 MB**
 </details>
 
 ## 1 Analyzed
