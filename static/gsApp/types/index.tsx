@@ -37,6 +37,7 @@ declare global {
   }
 
   namespace React {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- T required for declaration merging with React.DOMAttributes
     interface DOMAttributes<T> {
       'data-test-id'?: string;
     }
@@ -1197,6 +1198,12 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * How usage is tallied for the category
    */
   tallyType: 'usage' | 'seat';
+  /**
+   * Feature flag required for admin-only product trials.
+   * When set, this category can have product trials started by admins
+   * only if the organization has this feature flag enabled.
+   */
+  adminOnlyProductTrialFeature?: string | null;
   /**
    * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
    */

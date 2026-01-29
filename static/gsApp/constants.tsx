@@ -61,6 +61,7 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
       checkoutTooltip: null,
       tallyType: 'usage',
       hasPerCategory: false,
+      adminOnlyProductTrialFeature: null,
     };
   }
 );
