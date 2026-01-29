@@ -685,7 +685,7 @@ describe('ExploreToolbar', () => {
 
     await userEvent.click(within(section).getByText(/Save as/));
     await userEvent.hover(
-      within(section).getByRole('menuitemradio', {name: 'An Alert for'})
+      within(section).getByRole('menuitemradio', {name: 'Alert for'})
     );
     await userEvent.click(
       await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
@@ -730,7 +730,7 @@ describe('ExploreToolbar', () => {
     const section = screen.getByTestId('section-save-as');
 
     await userEvent.click(within(section).getByText(/Save as/));
-    await userEvent.click(within(section).getByText('A Dashboard widget'));
+    await userEvent.click(within(section).getByText('Dashboard widget'));
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
