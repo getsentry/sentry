@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import { IconClose, IconCheckmark } from 'sentry/icons';
 
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onClick'> {
@@ -18,11 +19,6 @@ const toggleButtonSize = {
   lg: {width: 24, height: 24, icon: 16, iconOffset: 3},
 };
 
-/** We inject hex colors as background image, which requires escaping the hex characters */
-function urlEscapeHex(hex: string) {
-  return hex.replace(/#/g, '%23');
-}
-
 const NativeHiddenCheckbox = styled('input')<{
   nativeSize: NonNullable<SwitchProps['size']>;
 }>`
@@ -32,73 +28,75 @@ const NativeHiddenCheckbox = styled('input')<{
   left: 0;
   width: 100%;
   height: 100%;
-  cursor: pointer;
 
   &:focus-visible + div {
     ${p => p.theme.focusRing()};
   }
 
   + div {
-    border-radius: ${p => p.theme.radius.sm};
-    pointer-events: none;
-
     background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
     border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
     border-right: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
     border-bottom: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
     border-left: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
-    transition: all 100ms ease-in-out;
+    ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+
+    transition: all ${p => p.theme.motion.spring.moderate};
+
+    [data-icon="checkmark"],
+    [data-icon="close"] {
+      top: 50%;
+      left: 50%;
+      position: absolute;
+      transform: scale(0.94) translate(-50%, -50%);
+      transform-origin: center center;
+      transition: all ${p => p.theme.motion.spring.fast};
+    }
 
     > div {
-      border-radius: ${p => p.theme.radius.sm};
       background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
       border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
-
-      width: ${p => toggleButtonSize[p.nativeSize].width}px;
-      height: ${p => toggleButtonSize[p.nativeSize].height}px;
-      position: absolute;
-      top: 0;
-      left: 0;
+      transition: transform ${p => p.theme.motion.spring.moderate};
       transform: translateY(-1px);
-      transition:
-        all ${p => p.theme.motion.smooth.moderate},
-        transform ${p => p.theme.motion.exit.slow};
+    }
+  }
 
-      &:after {
-        /** The icon is not clickable */
-        pointer-events: none;
-        position: absolute;
-        content: '';
-        display: block;
-        width: ${p => toggleButtonSize[p.nativeSize].icon}px;
-        height: ${p => toggleButtonSize[p.nativeSize].icon}px;
-        top: ${p => toggleButtonSize[p.nativeSize].iconOffset}px;
-        left: ${p => toggleButtonSize[p.nativeSize].iconOffset}px;
-        background-repeat: no-repeat;
-        background-size: ${p => toggleButtonSize[p.nativeSize].icon}px
-          ${p => toggleButtonSize[p.nativeSize].icon}px;
-        transition: transform ${p => p.theme.motion.snap.slow};
-        /* stylelint-disable */
-        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p =>
-          urlEscapeHex(
-            p.theme.tokens.interactive.chonky.embossed.neutral.content.secondary
-          )}" d="M5.03 3.97a.75.75 0 0 0-1.06 1.06L6.94 8l-2.97 2.97a.75.75 0 1 0 1.06 1.06L8 9.06l2.97 2.97a.75.75 0 1 0 1.06-1.06L9.06 8l2.97-2.97a.75.75 0 0 0-1.06-1.06L8 6.94 5.03 3.97Z" clip-rule="evenodd"/></svg>');
-        /* stylelint-enable */
-      }
+  & + div {
+    [data-icon="close"] {
+      opacity: 1;
+      transform: scale(1) translate(-50%, -50%);
+    }
+
+    [data-icon="checkmark"] {
+      opacity: 0;
+      transform: scale(0.94) translate(-50%, -50%);
+    }
+  }
+
+  &:checked + div {
+    [data-icon="close"] {
+      opacity: 0;
+      transform: scale(0.94) translate(-50%, -50%);
+    }
+
+    [data-icon="checkmark"] {
+      opacity: 1;
+      transform: scale(1) translate(-50%, -50%);
     }
   }
 
   &:checked + div {
     background: ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+
     border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
     border-right: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
     border-bottom: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
     border-left: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    transition: transform ${p => p.theme.motion.spring.slow};
 
     > div {
       background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
@@ -109,23 +107,12 @@ const NativeHiddenCheckbox = styled('input')<{
             toggleWrapperSize[p.nativeSize].width -
             toggleButtonSize[p.nativeSize].width}px
         );
-
-      &:after {
-        /* stylelint-disable */
-        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path fill="${p =>
-          urlEscapeHex(
-            p.theme.tokens.interactive.chonky.embossed.neutral.content.accent
-          )}" fill-rule="evenodd" d="M13.53 4.22c.3.3.3.77 0 1.06l-6.5 6.5a.75.75 0 0 1-1.08-.02l-3.5-3.75A.75.75 0 0 1 3.55 7l2.97 3.18 5.95-5.95c.3-.3.77-.3 1.06 0Z" clip-rule="evenodd"/></svg>');
-        /* stylelint-enable */
-      }
     }
   }
 
   &:disabled {
-    cursor: not-allowed;
-
     + div {
-      opacity: 0.6;
+      opacity: ${p => p.theme.tokens.interactive.disabled};
 
       > div {
         transform: translateY(0px) translateX(0px);
@@ -138,30 +125,19 @@ const NativeHiddenCheckbox = styled('input')<{
   }
 `;
 
-const FakeCheckbox = styled('div')<{
-  size: NonNullable<SwitchProps['size']>;
-}>`
-  width: ${p => toggleWrapperSize[p.size].width}px;
-  height: ${p => toggleWrapperSize[p.size].height}px;
-`;
-
 export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
   return (
-    <SwitchWrapper>
+    <Flex display="inline-flex" justify="start" position="relative">
       {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
        * so we need to use a different name, or somehow tell emotion to not create a type intersection.
        */}
-      <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} />
-      <FakeCheckbox size={size}>
-        <Container />
-      </FakeCheckbox>
-    </SwitchWrapper>
+      <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} style={{cursor: props.disabled ? 'not-allowed' : 'pointer'}}/>
+      <Container width={`${toggleWrapperSize[size].width}px`} height={`${toggleWrapperSize[size].height}px`} pointerEvents="none" radius="sm">
+        <Container width={`${toggleButtonSize[size].width}px`} height={`${toggleButtonSize[size].height}px`} position="absolute" top="0" left="0" right="0" bottom="0" radius="sm">
+          <IconClose data-icon="close" variant="muted" size={size === 'sm' ? 'xs' : 'sm'} />
+          <IconCheckmark data-icon="checkmark" variant="accent" size={size === 'sm' ? 'xs' : 'sm'} />
+        </Container>
+      </Container>
+    </Flex>
   );
 }
-
-const SwitchWrapper = styled('div')`
-  position: relative;
-  cursor: pointer;
-  display: inline-flex;
-  justify-content: flex-start;
-`;
