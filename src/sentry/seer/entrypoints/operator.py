@@ -52,8 +52,21 @@ class SeerOperator[CachePayloadT]:
         self.logging_ctx: dict[str, str] = {"entrypoint_key": str(entrypoint.key)}
 
     @classmethod
-    def get_autofix_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
-        return f"seer:autofix:{entrypoint_key}:{run_id}"
+    def get_pre_autofix_cache_key(cls, *, entrypoint_key: str, group_id: int) -> str:
+        """
+        The group cache key is used to store entrypoint-specific cache payloads BEFORE an autofix
+        run has been started, thus requires a group_id. When an autofix run does start, Seer emits a
+        webhook with the run_id and group_id, so we can relocate the cache to the post-autofix key.
+        """
+        return f"seer:pre_autofix:{entrypoint_key}:{group_id}"
+
+    @classmethod
+    def get_post_autofix_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
+        """
+        The autofix cache key is used to store entrypoint-specific cache payloads AFTER an autofix
+        run has been started, thus requires a run_id.
+        """
+        return f"seer:post_autofix:{entrypoint_key}:{run_id}"
 
     def trigger_autofix(
         self,
@@ -96,7 +109,7 @@ class SeerOperator[CachePayloadT]:
             elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                 payload = AutofixCreatePRPayload(type="create_pr")
             else:
-                logger.error("operator.invalid_stopping_point", extra=self.logging_ctx)
+                logger.warning("operator.invalid_stopping_point", extra=self.logging_ctx)
                 self.entrypoint.on_trigger_autofix_error(error="Invalid stopping point provided")
                 return
 
@@ -112,14 +125,14 @@ class SeerOperator[CachePayloadT]:
         # Let the entrypoint signal to the external service that no run was started :/
         if error_message:
             self.logging_ctx["error_message"] = error_message
-            logger.info("operator.trigger_autofix_error", extra=self.logging_ctx)
+            logger.warning("operator.trigger_autofix_error", extra=self.logging_ctx)
             self.entrypoint.on_trigger_autofix_error(error=error_message)
             return
 
         run_id = raw_response.data.get("run_id") if not run_id else run_id
         # Shouldn't ever happen, but if it we have no run_id, we can't listen for updates
         if not run_id:
-            logger.info("operator.trigger_autofix_no_run_id", extra=self.logging_ctx)
+            logger.warning("operator.trigger_autofix_no_run_id", extra=self.logging_ctx)
             self.entrypoint.on_trigger_autofix_error(error="An unknown error has occurred")
             return
 
@@ -130,12 +143,65 @@ class SeerOperator[CachePayloadT]:
         cache_payload = self.entrypoint.create_autofix_cache_payload()
 
         if cache_payload:
-            cache_key = self.get_autofix_cache_key(
-                entrypoint_key=str(self.entrypoint.key), run_id=run_id
+            cache_key = SeerOperator.populate_autofix_cache(
+                entrypoint_key=str(self.entrypoint.key),
+                cache_payload=cache_payload,
+                run_id=run_id,
             )
             self.logging_ctx["cache_key"] = cache_key
-            cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
         logger.info("operator.trigger_autofix_success", extra=self.logging_ctx)
+
+    @staticmethod
+    def populate_autofix_cache(
+        *,
+        entrypoint_key: str,
+        cache_payload: CachePayloadT,
+        group_id: int | None = None,
+        run_id: int | None = None,
+    ) -> str:
+        if (not group_id and not run_id) or (group_id and run_id):
+            raise ValueError("Either group_id or run_id must be provided, but not both.")
+
+        if group_id:
+            cache_key = SeerOperator.get_pre_autofix_cache_key(
+                entrypoint_key=entrypoint_key, group_id=group_id
+            )
+        else:
+            # mypy can't interpret the first conditional, so we assert here.
+            assert run_id is not None
+            cache_key = SeerOperator.get_post_autofix_cache_key(
+                entrypoint_key=entrypoint_key, run_id=run_id
+            )
+
+        cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
+        return cache_key
+
+    @staticmethod
+    def migrate_autofix_cache(
+        *,
+        group_id: int,
+        run_id: int,
+        overwrite: bool = False,
+    ) -> None:
+        """
+        Migrate from a pre-autofix cache (keyed on group_id) to a post-autofix cache (keyed on run_id),
+        if one exists. If overwrite is True, any existing post-autofix cache will be overwritten.
+        """
+        for entrypoint_key in entrypoint_registry.registrations.keys():
+            pre_cache_key = SeerOperator.get_pre_autofix_cache_key(
+                entrypoint_key=entrypoint_key, group_id=group_id
+            )
+            pre_cache_payload = cache.get(pre_cache_key)
+            post_cache_key = SeerOperator.get_post_autofix_cache_key(
+                entrypoint_key=entrypoint_key, run_id=run_id
+            )
+            post_cache_payload = cache.get(post_cache_key)
+            if not overwrite and post_cache_payload:
+                continue
+            if not pre_cache_payload:
+                continue
+            cache.set(post_cache_key, pre_cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
+            cache.delete(pre_cache_key)
 
 
 @instrumented_task(
@@ -145,25 +211,55 @@ class SeerOperator[CachePayloadT]:
     retry=None,
 )
 def process_autofix_updates(
-    run_id: int, event_type: SentryAppEventType, event_payload: dict[str, Any]
+    *, event_type: SentryAppEventType, event_payload: dict[str, Any], organization_id: int
 ) -> None:
     """
-    Use the registry to iterate over all entrypoints and check if this run_id has been cached.
-    If so, call the entrypoint's handler with the payload it had previously cached.
+    Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
+    has a cache. If so, call the entrypoint's handler with the payload it had previously cached.
     """
-    logging_ctx = {"event_type": event_type, "run_id": run_id}
+
+    run_id = event_payload.get("run_id")
+    group_id = event_payload.get("group_id")
+    logging_ctx = {"event_type": event_type, "run_id": run_id, "group_id": group_id}
+
+    if not run_id or not group_id:
+        logger.warning("operator.missing_identifiers", extra=logging_ctx)
+        return
 
     if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
         logger.info("operator.skipping_update", extra=logging_ctx)
         return
 
+    try:
+        Group.objects.get(id=group_id, project__organization_id=organization_id)
+    except Group.DoesNotExist:
+        logger.warning("operator.group_not_found", extra=logging_ctx)
+        return
+
     for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
-        cache_key = SeerOperator.get_autofix_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
-        logging_ctx["cache_key"] = cache_key
-        cache_payload = cache.get(cache_key)
+        pre_cache_key = SeerOperator.get_pre_autofix_cache_key(
+            entrypoint_key=entrypoint_key, group_id=group_id
+        )
+        logging_ctx["pre_cache_key"] = pre_cache_key
+        pre_cache_payload = cache.get(pre_cache_key)
+
+        post_cache_key = SeerOperator.get_post_autofix_cache_key(
+            entrypoint_key=entrypoint_key, run_id=run_id
+        )
+        logging_ctx["post_cache_key"] = post_cache_key
+        post_cache_payload = cache.get(post_cache_key)
+
+        # We prefer the run cache payload since it's more narrow
+        # A group can have multiple runs, and that means many threads to post updates to.
+        # A run has a single group, and (usually) a single thread to post updates to.
+        cache_payload = post_cache_payload or pre_cache_payload
         if not cache_payload:
             logger.info("operator.no_cache_payload", extra=logging_ctx)
             continue
+        if post_cache_payload:
+            cache.delete(pre_cache_key)
+
+        logging_ctx["cache_source"] = "run_id" if post_cache_payload else "group_id"
         try:
             entrypoint_cls.on_autofix_update(
                 event_type=event_type, event_payload=event_payload, cache_payload=cache_payload

@@ -80,8 +80,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
         except ValueError:
             logger.warning(
-                "invalid_autofix_stopping_point",
+                "entrypoint.invalid_autofix_stopping_point",
                 extra={
+                    "entrypoint_key": self.key,
                     "stopping_point": action.value,
                     "action_id": action.action_id,
                     "group_id": self.group.id,
@@ -103,7 +104,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
-
         _send_thread_update(
             install=self.install,
             channel_id=self.channel_id,
@@ -124,8 +124,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
         except (IntegrationError, TypeError, KeyError):
             logger.warning(
-                "slack.autofix.update_message_failed",
+                "entrypoint.update_message_failed",
                 extra={
+                    "entrypoint_key": SlackEntrypoint.key,
                     "channel_id": self.channel_id,
                     "message_ts": self.thread_ts,
                     "organization_id": self.organization_id,
@@ -133,14 +134,31 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
-        return SlackEntrypointCachePayload(
-            thread_ts=self.thread_ts,
-            channel_id=self.channel_id,
+        return SlackEntrypoint.create_autofix_cache_payload_manually(
+            group=self.group,
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
-            project_id=self.group.project.id,
-            group_id=self.group.id,
-            group_link=self.group.get_absolute_url(),
+            thread_ts=self.thread_ts,
+            channel_id=self.channel_id,
+        )
+
+    @staticmethod
+    def create_autofix_cache_payload_manually(
+        *,
+        group: Group,
+        organization_id: int,
+        integration_id: int,
+        thread_ts: str,
+        channel_id: str,
+    ) -> SlackEntrypointCachePayload:
+        return SlackEntrypointCachePayload(
+            thread_ts=thread_ts,
+            channel_id=channel_id,
+            organization_id=organization_id,
+            integration_id=integration_id,
+            project_id=group.project_id,
+            group_id=group.id,
+            group_link=group.get_absolute_url(),
         )
 
     @staticmethod
@@ -155,6 +173,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         logging_ctx = {
             "event_type": event_type,
             "cache_payload": cache_payload,
+            "entrypoint_key": SlackEntrypoint.key,
         }
         integration = integration_service.get_integration(
             integration_id=cache_payload["integration_id"],
@@ -163,7 +182,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             status=ObjectStatus.ACTIVE,
         )
         if not integration:
-            logger.warning("integration_not_found", extra=logging_ctx)
+            logger.warning("entrypoint.integration_not_found", extra=logging_ctx)
             return
 
         install = SlackIntegration(
