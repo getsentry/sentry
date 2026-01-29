@@ -73,6 +73,25 @@ class TempestTasksTest(TestCase):
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
+    def test_fetch_latest_item_id_invalid_scope(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {
+            "error": {
+                "type": "invalid_scope",
+                "message": "...",
+            }
+        }
+
+        fetch_latest_item_id(self.credentials.id)
+
+        self.credentials.refresh_from_db()
+        assert self.credentials.message == (
+            "Seems like the provided credentials have the wrong scope."
+        )
+        assert self.credentials.message_type == MessageType.ERROR
+        assert self.credentials.latest_fetched_item_id is None
+
+    @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_unexpected_response(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
