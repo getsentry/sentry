@@ -1,21 +1,28 @@
 import {Fragment} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
+import {mutationOptions} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {updateUser} from 'sentry/actionCreators/account';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import type {FieldObject} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -38,6 +45,12 @@ export type ChangeAvatarUser = Omit<
 
 const USER_ENDPOINT = '/users/me/';
 const USER_ENDPOINT_QUERY_KEY: ApiQueryKey = [USER_ENDPOINT];
+
+const accountDetailsSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  username: z.string().min(1, 'Username is required'),
+  id: z.string(),
+});
 
 function AccountDetails() {
   const organization = useOrganization({allowNull: true});
@@ -79,28 +92,84 @@ function AccountDetails() {
     onSubmitSuccess: handleSubmitSuccess,
   };
 
-  const formConfig = cloneDeep(accountDetailsFields);
-
-  const userIdField: FieldObject = {
-    name: 'userId',
-    type: 'string',
-    disabled: true,
-    label: t('User ID'),
-    setValue(_, _name) {
-      return user.id;
+  const userMutationOptions = mutationOptions({
+    mutationFn: (data: Partial<User>) => {
+      return fetchMutation<User>({
+        method: 'PUT',
+        url: USER_ENDPOINT,
+        data,
+      });
     },
-    help: `The unique identifier for your account. It cannot be modified.`,
-  };
-
-  formConfig[0]!.fields = [...formConfig[0]!.fields, userIdField];
+    onSuccess: data => {
+      handleSubmitSuccess(data);
+      addSuccessMessage(t('Account details updated'));
+    },
+  });
 
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Account Details')} />
       <SettingsPageHeader title={t('Account Details')} />
-      <Form initialData={user} {...formCommonProps}>
-        <JsonForm forms={formConfig} additionalFieldProps={{user}} />
-      </Form>
+      <FieldGroup title={t('Account Details')}>
+        <AutoSaveField
+          name="name"
+          schema={accountDetailsSchema}
+          initialValue={user.name}
+          mutationOptions={userMutationOptions}
+        >
+          {field => (
+            <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. John Doe"
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveField>
+
+        {user.email !== user.username && (
+          <AutoSaveField
+            name="username"
+            schema={accountDetailsSchema}
+            initialValue={user.username}
+            mutationOptions={userMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row label={t('Username')} required>
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. name@example.com"
+                  disabled={user.isManaged}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveField>
+        )}
+
+        <AutoSaveField
+          name="id"
+          schema={accountDetailsSchema}
+          initialValue={user.id}
+          mutationOptions={userMutationOptions}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('User ID')}
+              hintText={t(
+                'The unique identifier for your account. It cannot be modified.'
+              )}
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveField>
+      </FieldGroup>
       <Form initialData={user.options} {...formCommonProps}>
         <JsonForm
           forms={accountPreferencesFields}
