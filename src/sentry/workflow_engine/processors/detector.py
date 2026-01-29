@@ -281,9 +281,12 @@ def get_detectors_for_event_data(
     issue_stream_detector: Detector | None = None
 
     try:
-        issue_stream_detector = Detector.get_issue_stream_detector_for_project(
-            event_data.group.project_id
-        )
+        if event_data.group.type not in options.get(
+            "workflow_engine.group.type_id.disable_issue_stream_detector"
+        ):
+            issue_stream_detector = Detector.get_issue_stream_detector_for_project(
+                event_data.group.project_id
+            )
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.detectors.error")
         logger.exception(
