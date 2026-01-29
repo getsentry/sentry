@@ -187,6 +187,13 @@ export enum SizeUnit {
   EXABYTE = 'exabyte',
 }
 
+// NOTE: These units are treated as base 10 (SI) vs. base 2 (IEC). That
+// intuitively makes sense for units like "kilobyte" (vs. kibibyte) where the
+// unit itself indicates its base. If this list contains "byte" (the default
+// unit for size data in Sentry), "byte" becomes a base 10 unit everywhere. That
+// will force effectively all tables and chart to format size data multipliers
+// using base 10. This is not a problem, it's just an important implication to
+// be aware of.
 export const ABYTE_UNITS = [
   'byte',
   'kilobyte',
