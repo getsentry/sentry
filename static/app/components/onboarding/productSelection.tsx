@@ -92,15 +92,19 @@ export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
-  dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
+  dotnet: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [
@@ -143,6 +147,7 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  godot: [ProductSolution.LOGS],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   java: [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -232,6 +237,7 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  native: [ProductSolution.LOGS],
   node: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -322,6 +328,7 @@ export const platformProductAvailability = {
   'php-symfony': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   python: [
@@ -447,6 +454,8 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
+  unity: [ProductSolution.LOGS],
+  unreal: [ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
