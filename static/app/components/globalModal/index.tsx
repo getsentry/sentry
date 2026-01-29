@@ -257,7 +257,11 @@ function GlobalModal({onClose}: Props) {
                 })}
               >
                 <Surface variant="overlay" elevation="high">
-                  <Content role="document">{renderedChild}</Content>
+                  {p => (
+                    <Content role="document" {...p}>
+                      {renderedChild}
+                    </Content>
+                  )}
                 </Surface>
               </Modal>
             )}
