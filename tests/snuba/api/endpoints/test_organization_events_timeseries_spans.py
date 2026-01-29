@@ -103,6 +103,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 ],
             )
         self.store_spans(spans)
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
 
         response = self._do_request(
             data={
@@ -112,6 +113,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "debug": "wmak",
             },
         )
         assert response.status_code == 200, response.content

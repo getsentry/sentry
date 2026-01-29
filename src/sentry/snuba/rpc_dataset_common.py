@@ -342,7 +342,7 @@ class RPCBase:
     def _run_table_query(
         cls,
         query: TableQuery,
-        debug: bool = False,
+        debug: str | bool = False,
     ) -> EAPResponse:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
@@ -406,7 +406,7 @@ class RPCBase:
         cls,
         rpc_response: TraceItemTableResponse,
         table_request: TableRequest,
-        debug: bool = False,
+        debug: str | bool = False,
     ) -> EAPResponse:
         """Process the results"""
         final_data: SnubaData = []
@@ -420,7 +420,10 @@ class RPCBase:
             if attribute not in columns_by_name:
                 logger.warning(
                     "A column was returned by the rpc but not a known column",
-                    extra={"attribute": attribute},
+                    extra={
+                        "attribute": attribute,
+                        "debug": debug,
+                    },
                 )
                 continue
             resolved_column = columns_by_name[attribute]
@@ -553,9 +556,11 @@ class RPCBase:
             raise InvalidSearchQuery("start, end and interval are required")
 
     @classmethod
-    def _run_timeseries_rpc(cls, debug: bool, rpc_request: TimeSeriesRequest) -> TimeSeriesResponse:
+    def _run_timeseries_rpc(
+        cls, debug: str | bool, rpc_request: TimeSeriesRequest
+    ) -> TimeSeriesResponse:
         try:
-            return snuba_rpc.timeseries_rpc([rpc_request])[0]
+            return snuba_rpc.timeseries_rpc([rpc_request], debug=debug)[0]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if debug:
@@ -867,7 +872,8 @@ class RPCBase:
                 resolver=table_search_resolver,
                 equations=equations,
                 additional_queries=additional_queries,
-            )
+            ),
+            debug=params.debug,
         )
         # There aren't any top events, just return an empty dict and save a query
         if len(top_events["data"]) == 0:
@@ -911,7 +917,7 @@ class RPCBase:
 
         """Run the query"""
         try:
-            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
+            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests, debug=params.debug)
             rpc_response = timeseries_rpc_response[0]
             if len(timeseries_rpc_response) > 1:
                 other_response = timeseries_rpc_response[1]

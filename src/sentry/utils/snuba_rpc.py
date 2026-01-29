@@ -91,12 +91,16 @@ class SnubaRPCRequest(Protocol):
     ) -> RequestMeta: ...
 
 
-def table_rpc(requests: list[TraceItemTableRequest]) -> list[TraceItemTableResponse]:
-    return _make_rpc_requests(table_requests=requests).table_response
+def table_rpc(
+    requests: list[TraceItemTableRequest], debug: str | bool = False
+) -> list[TraceItemTableResponse]:
+    return _make_rpc_requests(table_requests=requests, debug=debug).table_response
 
 
-def timeseries_rpc(requests: list[TimeSeriesRequest]) -> list[TimeSeriesResponse]:
-    return _make_rpc_requests(timeseries_requests=requests).timeseries_response
+def timeseries_rpc(
+    requests: list[TimeSeriesRequest], debug: str | bool = False
+) -> list[TimeSeriesResponse]:
+    return _make_rpc_requests(timeseries_requests=requests, debug=debug).timeseries_response
 
 
 def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
@@ -110,6 +114,7 @@ def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
 def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
+    debug: str | bool = False,
 ) -> MultiRpcResponse:
     """Given lists of requests batch and run them together"""
     # Throw the two lists together, _make_rpc_requests will just run them all
@@ -132,6 +137,7 @@ def _make_rpc_requests(
                 "referrer": request.meta.referrer,
                 "organization_id": request.meta.organization_id,
                 "trace_item_type": request.meta.trace_item_type,
+                "debug": debug,
             },
         )
 
@@ -183,6 +189,7 @@ def _make_rpc_requests(
                     "organization_id": request.meta.organization_id,
                     "page_token": table_response.page_token,
                     "meta": table_response.meta,
+                    "debug": debug,
                 },
             )
             metrics.distribution("snuba_rpc.table_response.length", rpc_rows)
@@ -201,6 +208,7 @@ def _make_rpc_requests(
                     "rpc_rows": rpc_rows,
                     "organization_id": request.meta.organization_id,
                     "meta": timeseries_response.meta,
+                    "debug": debug,
                 },
             )
             metrics.distribution("snuba_rpc.timeseries_response.length", rpc_rows)
