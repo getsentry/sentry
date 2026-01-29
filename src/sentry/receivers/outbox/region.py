@@ -17,6 +17,7 @@ from sentry import options
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.auth.services.auth import auth_service
 from sentry.auth.services.orgauthtoken import orgauthtoken_rpc_service
+from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_region_outbox
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -30,7 +31,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
+from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.region import get_local_region
+from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +45,45 @@ def update_sentry_app_action_data(
     object_identifier: int,
     **kwds: Any,
 ):
-    pass
+    try:
+        action = Action.objects.get(
+            id=shard_identifier,
+            type=Action.Type.SENTRY_APP,
+            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+        )
+        installs = app_service.get_many(
+            filter={
+                "uuids": [action.config.get("target_identifier")],
+                "status": SentryAppInstallationStatus.INSTALLED,
+            }
+        )
+        if len(installs) > 1:
+            # XXX: we don't actually expect this to happen, but since get_many could return more than one we should check
+            logger.info(
+                "Multiple sentry app installations found",
+                extra={
+                    "action_id": action.id,
+                    "installation_uuid": action.config.get("target_identifier"),
+                },
+            )
+            return
+
+        if not installs:
+            logger.info(
+                "No sentry app installation found",
+                extra={
+                    "action_id": action.id,
+                    "installation_uuid": action.config.get("target_identifier"),
+                },
+            )
+            return
+
+        action.config["target_identifier"] = str(installs[0].sentry_app.id)
+        action.config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
+        action.save()
+
+    except Action.DoesNotExist:
+        logger.info("Could not update Action", extra={"action_id": shard_identifier})
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
