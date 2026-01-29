@@ -181,13 +181,13 @@ export interface CategoricalSeriesMeta {
  */
 export interface CategoricalSeries {
   /**
-   * The data points in this series.
-   */
-  data: CategoricalItem[];
-  /**
    * Metadata about the series.
    */
   meta: CategoricalSeriesMeta;
+  /**
+   * The data points in this series.
+   */
+  values: CategoricalItem[];
   /**
    * The field name or aggregate function this series represents.
    */

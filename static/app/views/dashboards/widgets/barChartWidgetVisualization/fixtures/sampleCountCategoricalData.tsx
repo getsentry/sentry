@@ -7,7 +7,7 @@ export const sampleCountCategoricalData: CategoricalSeries = {
     valueType: 'integer',
     valueUnit: null,
   },
-  data: [
+  values: [
     {category: 'Chrome', value: 1250},
     {category: 'Firefox', value: 890},
     {category: 'Safari', value: 650},
@@ -22,7 +22,7 @@ export const sampleDurationCategoricalData: CategoricalSeries = {
     valueType: 'duration',
     valueUnit: DurationUnit.MILLISECOND,
   },
-  data: [
+  values: [
     {category: '/api/users', value: 245},
     {category: '/api/orders', value: 520},
     {category: '/api/products', value: 180},
@@ -38,7 +38,7 @@ export const sampleStackedCategoricalData: CategoricalSeries[] = [
       valueType: 'integer',
       valueUnit: null,
     },
-    data: [
+    values: [
       {category: 'Monday', value: 450},
       {category: 'Tuesday', value: 520},
       {category: 'Wednesday', value: 480},
@@ -52,7 +52,7 @@ export const sampleStackedCategoricalData: CategoricalSeries[] = [
       valueType: 'integer',
       valueUnit: null,
     },
-    data: [
+    values: [
       {category: 'Monday', value: 45},
       {category: 'Tuesday', value: 32},
       {category: 'Wednesday', value: 28},
@@ -71,7 +71,7 @@ export const sampleLongLabelData: CategoricalSeries = {
     valueType: 'integer',
     valueUnit: null,
   },
-  data: [
+  values: [
     {category: '/api/v2/organizations/:orgId/projects/:projectId/issues', value: 450},
     {category: '/api/v2/users/:userId/preferences/notifications', value: 320},
     {category: '/api/v2/teams/:teamId/members/:memberId/roles', value: 280},
@@ -89,7 +89,7 @@ export const samplePercentageData: CategoricalSeries = {
     valueType: 'percentage',
     valueUnit: null,
   },
-  data: [
+  values: [
     {category: 'iOS', value: 0.9945},
     {category: 'Android', value: 0.9823},
     {category: 'React Native', value: 0.9756},
@@ -107,7 +107,7 @@ export const sampleSizeData: CategoricalSeries = {
     valueType: 'size',
     valueUnit: SizeUnit.BYTE,
   },
-  data: [
+  values: [
     {category: '/api/assets', value: 2_500_000},
     {category: '/api/images', value: 8_750_000},
     {category: '/api/videos', value: 45_000_000},
@@ -125,7 +125,7 @@ export const sampleRateData: CategoricalSeries = {
     valueType: 'rate',
     valueUnit: RateUnit.PER_SECOND,
   },
-  data: [
+  values: [
     {category: 'GET /users', value: 125.5},
     {category: 'POST /orders', value: 45.2},
     {category: 'GET /products', value: 89.7},
@@ -143,7 +143,7 @@ export const sampleSparseData: CategoricalSeries = {
     valueType: 'integer',
     valueUnit: null,
   },
-  data: [
+  values: [
     {category: 'Jan', value: 1200},
     {category: 'Feb', value: null},
     {category: 'Mar', value: 1450},
@@ -162,7 +162,7 @@ export const sampleNegativeData: CategoricalSeries = {
     valueType: 'integer',
     valueUnit: null,
   },
-  data: [
+  values: [
     {category: 'Chrome', value: 150},
     {category: 'Firefox', value: -45},
     {category: 'Safari', value: -120},
@@ -180,7 +180,7 @@ export const sampleLargeValueData: CategoricalSeries = {
     valueType: 'integer',
     valueUnit: null,
   },
-  data: [
+  values: [
     {category: 'United States', value: 12_500_000},
     {category: 'European Union', value: 8_200_000},
     {category: 'Asia Pacific', value: 15_800_000},
@@ -198,7 +198,7 @@ export const sampleManyCategoriesData: CategoricalSeries = {
     valueType: 'integer',
     valueUnit: null,
   },
-  data: [
+  values: [
     {category: 'Category 1', value: 234},
     {category: 'Category 2', value: 456},
     {category: 'Category 3', value: 321},
@@ -221,7 +221,7 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
   {
     yAxis: 'count() by browser:chrome',
     meta: {valueType: 'integer', valueUnit: null},
-    data: [
+    values: [
       {category: 'Mon', value: 450},
       {category: 'Tue', value: 520},
       {category: 'Wed', value: 480},
@@ -232,7 +232,7 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
   {
     yAxis: 'count() by browser:firefox',
     meta: {valueType: 'integer', valueUnit: null},
-    data: [
+    values: [
       {category: 'Mon', value: 280},
       {category: 'Tue', value: 310},
       {category: 'Wed', value: 295},
@@ -243,7 +243,7 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
   {
     yAxis: 'count() by browser:safari',
     meta: {valueType: 'integer', valueUnit: null},
-    data: [
+    values: [
       {category: 'Mon', value: 180},
       {category: 'Tue', value: 195},
       {category: 'Wed', value: 170},
@@ -254,7 +254,7 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
   {
     yAxis: 'count() by browser:edge',
     meta: {valueType: 'integer', valueUnit: null},
-    data: [
+    values: [
       {category: 'Mon', value: 120},
       {category: 'Tue', value: 135},
       {category: 'Wed', value: 125},
@@ -265,7 +265,7 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
   {
     yAxis: 'count() by browser:opera',
     meta: {valueType: 'integer', valueUnit: null},
-    data: [
+    values: [
       {category: 'Mon', value: 45},
       {category: 'Tue', value: 52},
       {category: 'Wed', value: 48},

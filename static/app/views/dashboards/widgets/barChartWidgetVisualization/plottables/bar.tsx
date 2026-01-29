@@ -147,7 +147,7 @@ export class Bar implements BarPlottable {
   }
 
   get isEmpty(): boolean {
-    return this.categoricalSeries.data.every(item => item.value === null);
+    return this.categoricalSeries.values.every(item => item.value === null);
   }
 
   get needsColor(): boolean {
@@ -155,27 +155,27 @@ export class Bar implements BarPlottable {
   }
 
   get categories(): string[] {
-    return this.categoricalSeries.data.map(item => item.category);
+    return this.categoricalSeries.values.map(item => item.category);
   }
 
   handleChartRef?: (ref: ReactEchartsRef) => void;
 
   onClick(dataIndex: number): void {
-    const item = this.categoricalSeries.data[dataIndex];
+    const item = this.categoricalSeries.values[dataIndex];
     if (item && this.config.onClick) {
       this.config.onClick(item, dataIndex);
     }
   }
 
   onHighlight(dataIndex: number): void {
-    const item = this.categoricalSeries.data[dataIndex];
+    const item = this.categoricalSeries.values[dataIndex];
     if (item && this.config.onHighlight) {
       this.config.onHighlight(item, dataIndex);
     }
   }
 
   onDownplay(dataIndex: number): void {
-    const item = this.categoricalSeries.data[dataIndex];
+    const item = this.categoricalSeries.values[dataIndex];
     if (item && this.config.onDownplay) {
       this.config.onDownplay(item, dataIndex);
     }
@@ -207,7 +207,7 @@ export class Bar implements BarPlottable {
         itemStyle: {
           opacity: 1.0,
         },
-        data: this.categoricalSeries.data.map(item =>
+        data: this.categoricalSeries.values.map(item =>
           isHorizontal
             ? [item.value, item.category]
             : {name: item.category, value: item.value}

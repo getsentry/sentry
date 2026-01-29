@@ -79,7 +79,7 @@ describe('BarChartWidgetVisualization', () => {
           valueType: 'integer',
           valueUnit: null,
         },
-        data: [],
+        values: [],
       };
 
       expect(() =>
@@ -94,7 +94,7 @@ describe('BarChartWidgetVisualization', () => {
           valueType: 'integer',
           valueUnit: null,
         },
-        data: [
+        values: [
           {category: 'A', value: null},
           {category: 'B', value: null},
         ],
@@ -176,7 +176,7 @@ describe('Bar Plottable', () => {
       const emptySeries: CategoricalSeries = {
         yAxis: 'count()',
         meta: {valueType: 'integer', valueUnit: null},
-        data: [],
+        values: [],
       };
       const bar = new Bar(emptySeries);
       expect(bar.isEmpty).toBe(true);
@@ -186,7 +186,7 @@ describe('Bar Plottable', () => {
       const nullSeries: CategoricalSeries = {
         yAxis: 'count()',
         meta: {valueType: 'integer', valueUnit: null},
-        data: [
+        values: [
           {category: 'A', value: null},
           {category: 'B', value: null},
         ],
