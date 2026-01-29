@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -56,20 +57,15 @@ export function DateSelector() {
             data-test-id="prevent-time-selector"
             {...triggerProps}
           >
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" position="relative">
               <TriggerLabel>{defaultLabel}</TriggerLabel>
-            </TriggerLabelWrap>
+            </Container>
           </OverlayTrigger.Button>
         );
       }}
     />
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;
