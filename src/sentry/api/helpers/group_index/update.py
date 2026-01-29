@@ -1054,7 +1054,8 @@ def validate_bulk_reassignment(
     When assigning to a team, a user is permitted if any of the following are true:
     - They have team:admin scope, OR
     - They are a member of the target team, OR
-    - ALL groups are currently assigned to teams the user is a member of
+    - The group is unassigned or assigned to a user (not a team), OR
+    - ALL groups with team assignments are currently assigned to teams the user is a member of
       (allows reassignment from own team to any team)
     """
     if assigned_actor is None or not assigned_actor.is_team:
@@ -1079,27 +1080,26 @@ def validate_bulk_reassignment(
     if user_is_target_team_member:
         return
 
+    # Get current team assignments
     current_assignees = {
         assignee.group_id: assignee
         for assignee in GroupAssignee.objects.filter(group__in=group_list).select_related("team")
     }
 
-    groups_with_team_assignment = {
-        group_id for group_id, assignee in current_assignees.items() if assignee.team_id is not None
-    }
-    all_group_ids = {group.id for group in group_list}
-
-    if groups_with_team_assignment != all_group_ids:
-        # Some groups are either unassigned or assigned to users (not teams)
-        # User cannot reassign these to a team they're not a member of
-        raise serializers.ValidationError(
-            {"assignedTo": "You do not have permission to assign this owner"}
-        )
-
+    # Collect team IDs for groups that are currently assigned to teams
+    # (excludes unassigned groups and groups assigned to users)
     current_team_ids = {
-        current_assignees[group_id].team_id for group_id in groups_with_team_assignment
+        assignee.team_id
+        for assignee in current_assignees.values()
+        if assignee.team_id is not None
     }
 
+    # If there are no team assignments, allow the assignment
+    # This covers unassigned groups and groups assigned to users
+    if not current_team_ids:
+        return
+
+    # Check if user is a member of all currently assigned teams
     user_team_memberships = set(
         OrganizationMemberTeam.objects.filter(
             team_id__in=current_team_ids,

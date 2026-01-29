@@ -1400,11 +1400,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["assignedTo"] is None
 
-    def test_assign_team_not_member_of_when_open_membership_disabled(self) -> None:
+    def test_assign_unassigned_issue_to_team_not_member_of(self) -> None:
         """
-        Test that a user cannot assign an issue to a team they are not a member of
-        when Open Membership is disabled. This is a regression test for an authorization
-        bypass vulnerability.
+        Test that a user CAN assign an UNASSIGNED issue to a team they are not a member of.
+        
+        This ensures that unassigned issues can be freely assigned to any team, while still
+        preventing unauthorized reassignment from one team to another (which is tested in
+        test_cannot_reassign_from_other_team).
         """
         # Disable Open Membership
         self.organization.flags.allow_joinleave = False
@@ -1424,15 +1426,19 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         other_team = self.create_team(organization=group.project.organization, name="other-team")
         group.project.add_team(other_team)
 
+        # Issue is unassigned
+        assert not GroupAssignee.objects.filter(group=group).exists()
+
         self.login_as(user=member_user)
 
         url = f"{self.path}?id={group.id}"
         response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
 
-        # Should fail because user is not a member of other_team
-        assert response.status_code == 400, response.content
-        assert "do not have permission" in str(response.data) or "permission" in str(response.data)
-        assert not GroupAssignee.objects.filter(group=group, team=other_team).exists()
+        # Should succeed - members can assign unassigned issues to any team
+        assert response.status_code == 200, response.content
+        assert response.data["assignedTo"]["id"] == str(other_team.id)
+        assert response.data["assignedTo"]["type"] == "team"
+        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
 
     def test_assign_team_not_member_of_with_team_admin_scope(self) -> None:
         """
@@ -1490,6 +1496,86 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.login_as(user=member_user)
 
         # Now try to reassign to the other team (which member is not part of)
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["assignedTo"]["id"] == str(other_team.id)
+        assert response.data["assignedTo"]["type"] == "team"
+        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
+
+    def test_member_can_assign_unassigned_issue_to_any_team(self) -> None:
+        """
+        Test that a member CAN assign an UNASSIGNED issue to any team that has
+        access to the project, even if they're not a member of that team.
+        
+        This is a regression test for the bug where members couldn't assign
+        unassigned issues after the IDOR fix was introduced.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        group = self.create_group()
+
+        # Create a member user who only belongs to a specific team
+        member_user = self.create_user("member@example.com")
+        member_team = self.create_team(organization=group.project.organization, name="member-team")
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[member_team]
+        )
+        group.project.add_team(member_team)
+
+        # Create a second team that the member is NOT a member of
+        other_team = self.create_team(organization=group.project.organization, name="other-team")
+        group.project.add_team(other_team)
+
+        # Issue is unassigned
+        assert not GroupAssignee.objects.filter(group=group).exists()
+
+        self.login_as(user=member_user)
+
+        # Member should be able to assign unassigned issue to any team
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["assignedTo"]["id"] == str(other_team.id)
+        assert response.data["assignedTo"]["type"] == "team"
+        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
+
+    def test_member_can_reassign_user_assigned_issue_to_any_team(self) -> None:
+        """
+        Test that a member CAN reassign an issue that is assigned to a user
+        to any team that has access to the project.
+        
+        User assignments don't have the same restrictions as team assignments.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        group = self.create_group()
+
+        # Create a member user who only belongs to a specific team
+        member_user = self.create_user("member@example.com")
+        member_team = self.create_team(organization=group.project.organization, name="member-team")
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[member_team]
+        )
+        group.project.add_team(member_team)
+
+        # Assign issue to a user
+        other_user = self.create_user("other@example.com")
+        self.create_member(user=other_user, organization=self.organization, role="member")
+        GroupAssignee.objects.assign(group, other_user, member_user)
+        assert GroupAssignee.objects.filter(group=group, user_id=other_user.id).exists()
+
+        # Create a team that the member is NOT a member of
+        other_team = self.create_team(organization=group.project.organization, name="other-team")
+        group.project.add_team(other_team)
+
+        self.login_as(user=member_user)
+
+        # Member should be able to reassign from user to any team
         url = f"{self.path}?id={group.id}"
         response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
 
