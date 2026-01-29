@@ -58,8 +58,8 @@ function DiffModal({
 const modalCss = css`
   position: absolute;
   padding: 0;
-  inset: ${space(3)};
-  width: calc(100% - 2 * ${space(3)});
+  inset: ${p => p.theme.space['2xl']};
+  width: calc(100% - 2 * ${p => p.theme.space['2xl']});
 
   [role='document'] {
     height: 100%;
