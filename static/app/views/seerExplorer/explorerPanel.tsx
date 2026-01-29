@@ -595,19 +595,15 @@ function ExplorerPanel() {
       onUnminimize={handleUnminimize}
     >
       <TopBar
-        blocks={blocks}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSeerDrawerOpen={isSeerDrawerOpen}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
-        readOnly={readOnly}
-        onCreatePR={createPR}
         onFeedbackClick={handleFeedback}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
-        onPRWidgetClick={openPRWidget}
         onCopySessionClick={copySessionToClipboard}
         onCopyLinkClick={handleCopyLink}
         onSessionHistoryClick={openSessionHistory}
@@ -615,8 +611,6 @@ function ExplorerPanel() {
         isCopyLinkEnabled={!!runId}
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
-        prWidgetButtonRef={prWidgetButtonRef}
-        repoPRStates={repoPRStates}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
       />
       {menu}
@@ -706,6 +700,7 @@ function ExplorerPanel() {
         )}
       </BlocksContainer>
       <InputSection
+        blocks={blocks}
         enabled={!readOnly}
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
@@ -715,10 +710,14 @@ function ExplorerPanel() {
         isVisible={isVisible}
         wasJustInterrupted={wasJustInterrupted}
         onClear={() => setInputValue('')}
+        onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
         onInterrupt={interruptRun}
         onKeyDown={handleInputKeyDown}
+        onPRWidgetClick={openPRWidget}
+        prWidgetButtonRef={prWidgetButtonRef}
+        repoPRStates={repoPRStates}
         textAreaRef={textareaRef}
         fileApprovalActions={
           isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
