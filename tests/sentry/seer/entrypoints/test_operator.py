@@ -86,7 +86,7 @@ class SeerOperatorTest(TestCase):
         for entrypoint_key in entrypoint_registry.registrations.keys():
             assert not SeerOperator.has_access(
                 organization=self.group.project.organization,
-                entrypoint_key=entrypoint_key,
+                entrypoint_key=cast(SeerEntrypointKey, entrypoint_key),
             )
 
     @patch(
