@@ -1,5 +1,6 @@
 import {Button} from '@sentry/scraps/button';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,9 +17,11 @@ export function DisabledDetectorAction({detector}: {detector: Detector}) {
 
   if (isAnomalyDetector && !hasFeature) {
     return (
-      <Button size="sm" disabled>
-        {t('Enable')}
-      </Button>
+      <Tooltip title={t('Upgrade your plan to enable this monitor.')} isHoverable>
+        <Button size="sm" disabled>
+          {t('Enable')}
+        </Button>
+      </Tooltip>
     );
   }
 
