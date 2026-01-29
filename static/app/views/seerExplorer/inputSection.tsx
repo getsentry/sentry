@@ -166,19 +166,21 @@ function InputSection({
   if (!enabled) {
     return (
       <InputBlock>
-        <StyledInputGroup>
-          <InputGroup.TextArea
-            disabled
-            ref={textAreaRef}
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            onClick={onInputClick}
-            placeholder={getPlaceholder()}
-            rows={1}
-            data-test-id="seer-explorer-input"
-          />
-        </StyledInputGroup>
+        <InputRow>
+          <StyledInputGroup>
+            <InputGroup.TextArea
+              disabled
+              ref={textAreaRef}
+              value={inputValue}
+              onChange={onInputChange}
+              onKeyDown={onKeyDown}
+              onClick={onInputClick}
+              placeholder={getPlaceholder()}
+              rows={1}
+              data-test-id="seer-explorer-input"
+            />
+          </StyledInputGroup>
+        </InputRow>
       </InputBlock>
     );
   }
