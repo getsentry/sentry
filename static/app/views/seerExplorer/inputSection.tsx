@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -11,6 +11,8 @@ import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import PRWidget from 'sentry/views/seerExplorer/prWidget';
+import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface FileApprovalActions {
   currentIndex: number;
@@ -30,16 +32,21 @@ interface QuestionActions {
 }
 
 interface InputSectionProps {
+  blocks: Block[];
   enabled: boolean;
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
   onClear: () => void;
+  onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
   onInterrupt: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onPRWidgetClick: () => void;
+  prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
+  repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   fileApprovalActions?: FileApprovalActions;
   isMinimized?: boolean;
@@ -49,6 +56,7 @@ interface InputSectionProps {
 }
 
 function InputSection({
+  blocks,
   enabled,
   inputValue,
   focusedBlockIndex,
@@ -56,15 +64,23 @@ function InputSection({
   isPolling,
   interruptRequested,
   isVisible = false,
+  onCreatePR,
   onInputChange,
   onInputClick,
   onInterrupt,
   onKeyDown,
+  onPRWidgetClick,
+  prWidgetButtonRef,
+  repoPRStates,
   textAreaRef,
   fileApprovalActions,
   questionActions,
   wasJustInterrupted = false,
 }: InputSectionProps) {
+  // Check if there are any file patches for showing the PR widget
+  const hasCodeChanges = useMemo(() => {
+    return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
+  }, [blocks]);
   const getPlaceholder = () => {
     if (!enabled) {
       return 'This conversation is owned by another user and is read-only';
@@ -150,19 +166,21 @@ function InputSection({
   if (!enabled) {
     return (
       <InputBlock>
-        <StyledInputGroup>
-          <InputGroup.TextArea
-            disabled
-            ref={textAreaRef}
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            onClick={onInputClick}
-            placeholder={getPlaceholder()}
-            rows={1}
-            data-test-id="seer-explorer-input"
-          />
-        </StyledInputGroup>
+        <InputRow>
+          <StyledInputGroup>
+            <InputGroup.TextArea
+              disabled
+              ref={textAreaRef}
+              value={inputValue}
+              onChange={onInputChange}
+              onKeyDown={onKeyDown}
+              onClick={onInputClick}
+              placeholder={getPlaceholder()}
+              rows={1}
+              data-test-id="seer-explorer-input"
+            />
+          </StyledInputGroup>
+        </InputRow>
       </InputBlock>
     );
   }
@@ -284,19 +302,30 @@ function InputSection({
 
   return (
     <InputBlock>
-      <StyledInputGroup interrupted={wasJustInterrupted}>
-        <InputGroup.TextArea
-          ref={textAreaRef}
-          value={inputValue}
-          onChange={onInputChange}
-          onKeyDown={onKeyDown}
-          onClick={onInputClick}
-          placeholder={getPlaceholder()}
-          rows={1}
-          data-test-id="seer-explorer-input"
-        />
-        <InputGroup.TrailingItems>{renderActionButton()}</InputGroup.TrailingItems>
-      </StyledInputGroup>
+      <InputRow>
+        <StyledInputGroup interrupted={wasJustInterrupted}>
+          <InputGroup.TextArea
+            ref={textAreaRef}
+            value={inputValue}
+            onChange={onInputChange}
+            onKeyDown={onKeyDown}
+            onClick={onInputClick}
+            placeholder={getPlaceholder()}
+            rows={1}
+            data-test-id="seer-explorer-input"
+          />
+          <InputGroup.TrailingItems>{renderActionButton()}</InputGroup.TrailingItems>
+        </StyledInputGroup>
+        {enabled && hasCodeChanges && (
+          <PRWidget
+            ref={prWidgetButtonRef}
+            blocks={blocks}
+            repoPRStates={repoPRStates}
+            onCreatePR={onCreatePR}
+            onToggleMenu={onPRWidgetClick}
+          />
+        )}
+      </InputRow>
     </InputBlock>
   );
 }
@@ -311,8 +340,15 @@ const InputBlock = styled('div')`
   bottom: 0;
 `;
 
-const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
+const InputRow = styled('div')`
+  display: flex;
+  align-items: flex-end;
+  gap: ${p => p.theme.space.sm};
   margin: ${p => p.theme.space.sm};
+`;
+
+const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
+  flex: 1;
 
   textarea {
     resize: none;
@@ -354,10 +390,8 @@ const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
   }
 `;
 
-const Kbd = styled('kbd')`
+const Kbd = styled('span')`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.xs};
-  background: transparent;
-  left: 4px;
-  position: relative;
+  margin-left: ${p => p.theme.space.xs};
 `;
