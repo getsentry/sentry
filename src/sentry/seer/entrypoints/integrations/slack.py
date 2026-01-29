@@ -275,7 +275,8 @@ def send_thread_update(
     logging_ctx = {
         "entrypoint_key": SeerEntrypointKey.SLACK,
         "integration_id": install.model.id,
-        "thread": thread,
+        "thread_ts": thread["thread_ts"],
+        "channel_id": thread["channel_id"],
         "data_source": data.source,
         "ephemeral_user_id": ephemeral_user_id,
     }
@@ -363,8 +364,8 @@ def schedule_all_thread_updates(
     """Schedules a task for each thread update to allow retries."""
     try:
         orjson.dumps(data)
-    except orjson.JSONDecodeError:
-        raise ValueError("Invalid data object used for thread update. Must be JSON serializable.")
+    except orjson.JSONEncodeError:
+        raise TypeError("Invalid data object used for thread update. Must be JSON serializable.")
 
     for thread in threads:
         process_thread_update.apply_async(
