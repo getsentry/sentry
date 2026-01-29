@@ -395,12 +395,13 @@ export function ExplorerSeerDrawer({
 
           {/* Status card when processing */}
           <AnimatePresence initial={false}>
-            {runState.status === 'processing' && !isChatAlreadyOpen && (
+            {runState.status === 'processing' && (
               <ExplorerStatusCard
                 key="status_card"
                 status={runState.status}
                 loadingBlock={loadingBlock}
                 blocks={blocks}
+                isChatAlreadyOpen={isChatAlreadyOpen}
                 onOpenChat={handleOpenChat}
               />
             )}

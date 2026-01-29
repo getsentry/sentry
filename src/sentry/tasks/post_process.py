@@ -1628,7 +1628,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if is_seer_scanner_rate_limited(group.project, group.organization):
             return
 
-        generate_summary_and_run_automation.delay(group.id)
+        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
         # Triage signals V0 behaviour
         # If event count < 10, only generate summary (no automation)
@@ -1693,7 +1693,9 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     return
 
                 # No summary yet, generate summary + run automation in one go
-                generate_summary_and_run_automation.delay(group.id)
+                generate_summary_and_run_automation.delay(
+                    group.id, trigger_path="seat_based_seer_automation"
+                )
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
