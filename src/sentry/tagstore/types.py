@@ -99,7 +99,7 @@ class GroupTagKey(TagType):
         key: str,
         values_seen: int | None = None,
         count: int | None = None,
-        top_values=None,
+        top_values: tuple[GroupTagValue, ...] | None = None,
     ):
         self.group_id = group_id
         self.key = key

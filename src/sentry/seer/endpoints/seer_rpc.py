@@ -31,7 +31,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     StatsType,
     TraceItemStatsRequest,
 )
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
@@ -42,6 +41,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
+from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
@@ -75,7 +75,6 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.endpoints.utils import validate_date_params
 from sentry.seer.entrypoints.operator import process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
@@ -90,6 +89,7 @@ from sentry.seer.explorer.tools import (
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
+    get_comparative_attribute_distributions,
     get_issue_and_event_details_v2,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -100,15 +100,14 @@ from sentry.seer.explorer.tools import (
     rpc_get_trace_waterfall,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
-from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
 from sentry.utils.seer import can_use_prevent_ai_features
-from sentry.utils.snuba_rpc import table_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -374,16 +373,9 @@ def get_attributes_and_values(
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
-    stats_period, start, end = validate_date_params(stats_period, start, end)
-
-    if stats_period:
-        period = parse_stats_period(stats_period) or datetime.timedelta(days=7)
-        end_dt = datetime.datetime.now()
-        start_dt = end_dt - period
-    else:
-        # end and start should both be not None after validate_date_params
-        end_dt = datetime.datetime.fromisoformat(end or "")
-        start_dt = datetime.datetime.fromisoformat(start or "")
+    start_dt, end_dt = get_date_range_from_params(
+        {"start": start, "end": end, "statsPeriod": stats_period},
+    )
 
     start_time_proto = ProtobufTimestamp()
     start_time_proto.FromDatetime(start_dt)
@@ -522,238 +514,6 @@ def get_attributes_for_span(
 
     return {
         "attributes": attributes,
-    }
-
-
-def _parse_spans_response(
-    response, columns: list[ColumnDict], resolver: SearchResolver
-) -> list[dict[str, Any]]:
-    """
-    Parse protobuf response from TraceItemTable into a readable format.
-
-    The protobuf response has a structure like:
-    column_values {
-      attribute_name: "sentry.transaction"  # This is the internal name
-      results { val_str: "foo" }
-      results { val_str: "bar" }
-    }
-
-    This function converts it to:
-    [
-        {"transaction": "foo"},  # Using the user-facing column name
-        {"transaction": "bar"}
-    ]
-    """
-    if not hasattr(response, "column_values") or not response.column_values:
-        return []
-
-    column_data = {}
-    num_rows = 0
-
-    for column_values in response.column_values:
-        internal_column_name = column_values.attribute_name
-        values: list[str | float | None] = []
-
-        for result in column_values.results:
-            if hasattr(result, "is_null") and result.is_null:
-                values.append(None)
-            elif result.HasField("val_str"):
-                values.append(result.val_str)
-            elif result.HasField("val_double"):
-                values.append(result.val_double)
-            else:
-                values.append(None)
-        column_data[internal_column_name] = values
-        num_rows = max(num_rows, len(values))
-
-    internal_to_user_name: dict[str, str] = {}
-    for column in columns:
-        user_column_name = column["name"]
-        try:
-            resolved_column, _ = resolver.resolve_attribute(user_column_name)
-            internal_to_user_name[resolved_column.internal_name] = user_column_name
-        except Exception:
-            internal_to_user_name[user_column_name] = user_column_name
-
-    user_to_internal_name = {
-        user_name: internal_name for internal_name, user_name in internal_to_user_name.items()
-    }
-
-    ordered_column_data = []
-    for column in columns:
-        user_column_name = column["name"]
-        internal_column_name = user_to_internal_name.get(user_column_name)
-        if internal_column_name and internal_column_name in column_data:
-            ordered_column_data.append(column_data[internal_column_name])
-        else:
-            ordered_column_data.append([None] * num_rows)
-
-    spans = []
-    if ordered_column_data:
-        from itertools import zip_longest
-
-        for row_values in zip_longest(*ordered_column_data, fillvalue=None):
-            span = {}
-            for column, value in zip(columns, row_values):
-                span[column["name"]] = value
-            spans.append(span)
-
-    return spans
-
-
-def get_spans(
-    *,
-    org_id: int,
-    project_ids: list[int],
-    query: str = "",
-    sort: list[SortDict] | None = None,
-    stats_period: str = "7d",
-    columns: list[ColumnDict],
-    limit: int = 10,
-) -> dict[str, Any]:
-    """
-    Get spans using the TraceItemTable endpoint.
-
-    Args:
-        org_id: Organization ID
-        project_ids: List of project IDs to query
-        query: Search query string (optional) - will be converted to a TraceItemFilter
-        sort: Field to sort by (default: first column provided)
-        stats_period: Time period to query (default: 7d)
-        columns: List of columns with their type
-        limit: Maximum number of results to return
-
-    Returns:
-        Dictionary containing the spans data
-    """
-    if not columns:
-        raise ValidationError("At least one column must be provided")
-
-    period = parse_stats_period(stats_period)
-    if period is None:
-        period = datetime.timedelta(days=7)
-
-    end = datetime.datetime.now()
-    start = end - period
-
-    start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
-    end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
-
-    resolver = SearchResolver(
-        params=SnubaParams(
-            start=start,
-            end=end,
-        ),
-        config=SearchResolverConfig(),
-        definitions=SPAN_DEFINITIONS,
-    )
-
-    request_columns = []
-    for column in columns:
-        column_name = column["name"]
-        column_type = column["type"]
-
-        try:
-            resolved_column, _ = resolver.resolve_attribute(column_name)
-            internal_name = resolved_column.internal_name
-        except (InvalidSearchQuery, Exception):
-            internal_name = column_name
-
-        request_columns.append(
-            Column(
-                key=AttributeKey(
-                    name=internal_name,
-                    type=(
-                        AttributeKey.Type.TYPE_STRING
-                        if column_type == "TYPE_STRING"
-                        else AttributeKey.Type.TYPE_DOUBLE
-                    ),
-                )
-            )
-        )
-
-    order_by_list = []
-    if sort:
-        # Process all sort criteria in the order they are provided
-        for sort_item in sort:
-            sort_column_name = sort_item["name"]
-            resolved_column, _ = resolver.resolve_attribute(sort_column_name)
-            sort_column_name = resolved_column.internal_name
-            sort_column_type = (
-                AttributeKey.Type.TYPE_STRING
-                if sort_item["type"] == "TYPE_STRING"
-                else AttributeKey.Type.TYPE_DOUBLE
-            )
-            order_by_list.append(
-                TraceItemTableRequest.OrderBy(
-                    column=Column(
-                        key=AttributeKey(
-                            name=sort_column_name,
-                            type=sort_column_type,
-                        )
-                    ),
-                    descending=sort_item["descending"],
-                )
-            )
-    else:  # Default to first column if no sort is provided
-        column_name = columns[0]["name"]
-        resolved_column, _ = resolver.resolve_attribute(column_name)
-        sort_column_name = resolved_column.internal_name
-        sort_column_type = (
-            AttributeKey.Type.TYPE_STRING
-            if columns[0]["type"] == "TYPE_STRING"
-            else AttributeKey.Type.TYPE_DOUBLE
-        )
-        order_by_list = [
-            TraceItemTableRequest.OrderBy(
-                column=Column(
-                    key=AttributeKey(
-                        name=sort_column_name,
-                        type=sort_column_type,
-                    )
-                ),
-                descending=True,  # Default descending behavior
-            )
-        ]
-
-    query_filter = None
-    if query and query.strip():
-        query_filter, _, _ = resolver.resolve_query(query.strip())
-
-    meta = RequestMeta(
-        organization_id=org_id,
-        project_ids=project_ids,
-        cogs_category="events_analytics_platform",
-        referrer=Referrer.SEER_RPC.value,
-        start_timestamp=start_time_proto,
-        end_timestamp=end_time_proto,
-        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-    )
-
-    rpc_request = TraceItemTableRequest(
-        meta=meta,
-        columns=request_columns,
-        order_by=order_by_list,
-        filter=query_filter,
-        limit=min(max(limit, 1), 100),  # Force the upper limit to 100 to avoid abuse
-    )
-
-    responses = table_rpc([rpc_request])
-
-    if not responses:
-        return {"data": [], "meta": {}}
-
-    response = responses[0]
-    parsed_data = _parse_spans_response(response, columns, resolver)
-
-    return {
-        "data": parsed_data,
-        "meta": {
-            "columns": columns,
-            "total_rows": len(parsed_data),
-        },
     }
 
 
@@ -1030,7 +790,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
-    "get_spans": get_spans,
     "get_issue_filter_keys": get_issue_filter_keys,
     "get_filter_key_values": get_filter_key_values,
     "get_issues_stats": get_issues_stats,
@@ -1056,10 +815,14 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
+    "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
     "get_replay_metadata": get_replay_metadata,
+    #
+    # Issue Detection
+    "create_issue_occurrence": create_issue_occurrence,
 }
 
 

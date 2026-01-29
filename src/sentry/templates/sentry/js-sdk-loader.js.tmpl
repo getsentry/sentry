@@ -131,6 +131,11 @@
                 integrations.push(new SDK.Replay());
             }
         }
+        if (config.autoInjectFeedback && integrationNames.indexOf('Feedback') === -1) {
+            if (SDK.feedbackIntegration) {
+                integrations.push(SDK.feedbackIntegration());
+            }
+        }
         config.integrations = integrations;
     }
     function sdkIsLoaded() {

@@ -17,7 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
@@ -81,6 +81,7 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.cursors import Cursor, StringCursor
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
@@ -228,14 +229,10 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         project_id = request.GET.get("project_id")
         if project_id is None:
             raise ParseError(detail="Invalid project_id")
-        try:
-            project_id_int = int(project_id)
-        except ValueError:
-            raise ParseError(detail="Invalid project_id")
-        if project_id_int <= 0:
-            raise ParseError(detail="Invalid project_id")
+        project_id_int = to_valid_int_id("project_id", project_id)
 
         projects = self.get_projects(request, organization, project_ids={project_id_int})
+        assert projects  # should be guaranteed non-empty
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
@@ -590,7 +587,7 @@ Metric alert rule trigger actions follow the following structure:
         required=False,
         help_text="Optional value that the metric needs to reach to resolve the alert. If no value is provided, this is set automatically based on the lowest severity trigger's `alertThreshold`. For example, if the alert is set to trigger at the warning level when the number of errors is above 50, then the alert would be set to resolve when there are less than 50 errors. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
@@ -607,7 +604,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Metric Alert Rules",
+        operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
@@ -623,6 +620,10 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
+        ## Deprecated
+        🚧 Use [Fetch an Organization's Monitors](/api/monitors/fetch-an-organizations-monitors) and [Fetch Alerts](/api/monitors/fetch-alerts) instead.
+
+
         Return a list of active metric alert rules bound to an organization.
 
         A metric alert rule is a configuration that defines the conditions for triggering an alert.
@@ -637,7 +638,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         return self.fetch_metric_alert(request, organization, alert_rules)
 
     @extend_schema(
-        operation_id="Create a Metric Alert Rule for an Organization",
+        operation_id="(DEPRECATED) Create a Metric Alert Rule for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=OrganizationAlertRuleIndexPostSerializer,
         responses={
@@ -651,6 +652,10 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
+        ## Deprecated
+        🚧 Use [Create a Monitor for a Project](/api/monitors/create-a-monitor-for-a-project) and [Create an Alert for an Organization](/api/monitors/create-an-alert-for-an-organization) instead.
+
+
         Create a new metric alert rule for the given organization.
 
         A metric alert rule is a configuration that defines the conditions for triggering an alert.

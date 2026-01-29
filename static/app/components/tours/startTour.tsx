@@ -94,6 +94,7 @@ const Header = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
+  white-space: pre-line;
 `;
 
 export const startTourModalCss = css`

@@ -764,18 +764,20 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - רונית מגן"
 
-    def test_notify_users_with_their_timezones(self) -> None:
+    def test_notify_users_with_their_time_preferences(self) -> None:
         """
-        Test that ensures that datetime in issue alert email is in the user's timezone
+        Test that ensures that datetime in issue alert email is in the user's timezone, and their
+        preferred clock format (24h or 12h)
         """
         from django.template.defaultfilters import date
 
         timestamp = timezone.now()
         local_timestamp_s = timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
-        local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
+        local_timestamp_24h = date(local_timestamp_s, "N j, Y, H:i:s e")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
+            UserOption.objects.create(user=self.user, key="clock_24_hours", value=True)
 
         event = self.store_event(
             data={"message": "foobar", "level": "error", "timestamp": timestamp.isoformat()},
@@ -795,7 +797,14 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
-        assert local_timestamp in str(msg.alternatives)
+        assert local_timestamp_24h in str(msg.alternatives)
+
+        alert_notification = AlertRuleNotification(notification, ActionTargetType.ISSUE_OWNERS)
+        recipient_context = alert_notification.get_recipient_context(
+            Actor.from_orm_user(self.user), {}
+        )
+        assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
+        assert recipient_context["clock_24_hours"] is True
 
     def _test_invalid_timezone(self, s: str) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -816,6 +825,17 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     def test_context_invalid_timezone_garbage_value(self) -> None:
         self._test_invalid_timezone("not/a/real/timezone")
+
+    def test_recipient_context_clock_24_hours_false_by_default(self) -> None:
+        event = self.store_event(
+            data={"message": "foobar", "level": "error"},
+            project_id=self.project.id,
+        )
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
+        assert recipient_context["clock_24_hours"] is False
 
     def test_notify_with_suspect_commits(self) -> None:
         repo = Repository.objects.create(

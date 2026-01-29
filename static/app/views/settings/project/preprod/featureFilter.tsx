@@ -5,10 +5,10 @@ import {Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -16,27 +16,21 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 import {useFeatureFilter} from './useFeatureFilter';
 
-const FILTER_KEYS: TagCollection = {
-  platform: {key: 'platform', name: 'Platform'},
-  app_id: {key: 'app_id', name: 'App ID'},
-  build_configuration: {
-    key: 'build_configuration',
-    name: 'Build Configuration',
-  },
-  git_head_ref: {key: 'git_head_ref', name: 'Branch'},
-};
-
-const getTagValues = (
-  tag: {key: string; name: string},
-  _searchQuery: string
-): Promise<string[]> => {
-  if (tag.key === 'platform') {
-    return Promise.resolve(['android', 'ios']);
-  }
-  return Promise.resolve([]);
-};
-
 const EXAMPLE_BUILDS_COUNT = 5;
+const FEATURE_FILTER_ALLOWED_KEYS = [
+  'app_id',
+  'app_name',
+  'build_configuration_name',
+  'platform_name',
+  'build_number',
+  'build_version',
+  'git_head_ref',
+  'git_base_ref',
+  'git_head_sha',
+  'git_base_sha',
+  'git_head_repo_name',
+  'git_pr_number',
+];
 
 interface FeatureFilterProps {
   settingsReadKey: string;
@@ -44,6 +38,7 @@ interface FeatureFilterProps {
   successMessage: string;
   title: string;
   children?: React.ReactNode;
+  display?: PreprodBuildsDisplay;
 }
 
 export function FeatureFilter({
@@ -51,6 +46,7 @@ export function FeatureFilter({
   successMessage,
   settingsReadKey,
   settingsWriteKey,
+  display,
   children,
 }: FeatureFilterProps) {
   const organization = useOrganization();
@@ -63,9 +59,14 @@ export function FeatureFilter({
   );
   const [localQuery, setLocalQuery] = useState(query);
 
-  const handleQueryChange = useCallback((newQuery: string) => {
-    setLocalQuery(newQuery);
-  }, []);
+  const handleQueryChange = useCallback(
+    (newQuery: string, state: {queryIsValid: boolean}) => {
+      if (state.queryIsValid) {
+        setLocalQuery(newQuery);
+      }
+    },
+    []
+  );
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -104,16 +105,14 @@ export function FeatureFilter({
             )}
           </Text>
 
-          <SearchQueryBuilder
-            filterKeys={FILTER_KEYS}
-            getTagValues={getTagValues}
+          <PreprodSearchBar
             initialQuery={localQuery}
+            projects={[Number(project.id)]}
+            allowedKeys={FEATURE_FILTER_ALLOWED_KEYS}
             onChange={handleQueryChange}
             onSearch={handleSearch}
             searchSource="preprod_feature_filter"
-            disallowFreeText
             disallowLogicalOperators
-            placeholder={t('Add build filters...')}
             portalTarget={document.body}
           />
 
@@ -124,9 +123,10 @@ export function FeatureFilter({
           <PreprodBuildsTable
             builds={builds}
             isLoading={buildsQuery.isLoading}
-            error={!!buildsQuery.error}
+            error={buildsQuery.error}
             organizationSlug={organization.slug}
             hasSearchQuery={!!localQuery}
+            display={display}
           />
         </Stack>
       </PanelBody>
