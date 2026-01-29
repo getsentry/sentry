@@ -6,7 +6,7 @@ import {motion} from 'framer-motion';
 import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
@@ -96,7 +96,7 @@ type ProductCardProps = {
 
 function ProductCard({icon, title, description}: ProductCardProps) {
   return (
-    <ProductCardContainer border="primary" radius="md" padding="xl">
+    <ProductCardContainer border="muted" radius="lg" padding="xl">
       <Flex align="center">{icon}</Flex>
       <Flex direction="column" gap="xs">
         <ProductTitle>{title}</ProductTitle>
@@ -137,8 +137,8 @@ export function NewWelcomeUI(props: StepProps) {
       <WelcomeBackgroundNewUi />
       <ContentWrapper {...fadeAway}>
         <Stack gap="2xl">
-          <Flex direction="column" gap="lg">
-            <NewWelcomeTitle>{t('Welcome to Sentry')}</NewWelcomeTitle>
+          <Flex direction="column" gap="lg" paddingBottom="2xl">
+            <NewWelcomeTitle as="h1">{t('Welcome to Sentry')}</NewWelcomeTitle>
             <Text variant="muted" size="lg" bold wrap="pre-line">
               {t(
                 "Your code is probably broken, and we'll help you fix it faster.\nWe're not just error monitoring anymore y'know."
@@ -146,7 +146,7 @@ export function NewWelcomeUI(props: StepProps) {
             </Text>
           </Flex>
 
-          <TrialInfoLine>
+          <Flex align="center" gap="md">
             <IconBusiness size="sm" variant="accent" />
             <Text size="lg" bold variant="muted">
               {t('Your 14-day business trial includes')}{' '}
@@ -155,7 +155,7 @@ export function NewWelcomeUI(props: StepProps) {
               </ExternalLink>{' '}
               {t('to:')}
             </Text>
-          </TrialInfoLine>
+          </Flex>
         </Stack>
 
         <ProductGrid>
@@ -169,9 +169,13 @@ export function NewWelcomeUI(props: StepProps) {
           ))}
         </ProductGrid>
 
-        <PlusSeparator>+</PlusSeparator>
+        <Flex justify="center">
+          <Text size="xl" variant="secondary" bold>
+            +
+          </Text>
+        </Flex>
 
-        <SeerCard border="primary" radius="md">
+        <SeerCard border="muted" radius="lg" padding="xl">
           <SeerCardContent>
             <IconSeer size="sm" />
             <Flex direction="column" gap="xs">
@@ -237,15 +241,8 @@ const ContentWrapper = styled(motion.div)`
   gap: ${space(2)};
 `;
 
-const NewWelcomeTitle = styled('h1')`
+const NewWelcomeTitle = styled(Heading)`
   font-size: 32px;
-  margin: 0;
-`;
-
-const TrialInfoLine = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const ProductGrid = styled('div')`
@@ -272,13 +269,6 @@ const ProductTitle = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const PlusSeparator = styled('div')`
-  display: flex;
-  justify-content: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.lg};
-`;
-
 const SeerCard = styled(Container)`
   display: flex;
   align-items: center;
@@ -292,7 +282,6 @@ const SeerCardContent = styled('div')`
   flex-direction: column;
   gap: ${space(1.5)};
   flex: 1;
-  padding: ${space(2)};
 `;
 
 const SeerIllustrationWrapper = styled('div')`
