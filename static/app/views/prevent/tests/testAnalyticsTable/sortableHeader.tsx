@@ -35,7 +35,7 @@ function WrapToggle() {
 
   return (
     <Fragment>
-      | <WrapText>{wrapValue ? 'Wrap' : 'No Wrap'}</WrapText>
+      | {wrapValue ? 'Wrap' : 'No Wrap'}
       <span>
         <Switch checked={wrapValue} size="sm" onChange={toggle} />{' '}
       </span>
@@ -120,10 +120,6 @@ const StyledLink = styled(Link)`
   svg {
     vertical-align: top;
   }
-`;
-
-const WrapText = styled('span')`
-  margin-left: ${space(0.5)};
 `;
 
 const NonSortableHeader = styled('span')`

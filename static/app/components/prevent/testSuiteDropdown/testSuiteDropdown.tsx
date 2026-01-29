@@ -3,6 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -110,9 +111,9 @@ export function TestSuiteDropdown() {
 
         return (
           <OverlayTrigger.Button {...triggerProps}>
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" position="relative">
               <TriggerLabel>{label}</TriggerLabel>
-            </TriggerLabelWrap>
+            </Container>
             {remainingCount > 0 && (
               <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
             )}
@@ -122,11 +123,6 @@ export function TestSuiteDropdown() {
     />
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;

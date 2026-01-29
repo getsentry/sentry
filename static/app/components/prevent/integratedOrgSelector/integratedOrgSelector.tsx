@@ -7,7 +7,7 @@ import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -163,9 +163,9 @@ export function IntegratedOrgSelector() {
             data-test-id="page-filter-integrated-org-selector"
             {...triggerProps}
           >
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" maxWidth="200px" position="relative">
               <TriggerLabel>{integratedOrgName ?? DEFAULT_ORG_LABEL}</TriggerLabel>
-            </TriggerLabelWrap>
+            </Container>
           </OverlayTrigger.Button>
         );
       }}
@@ -174,12 +174,6 @@ export function IntegratedOrgSelector() {
     />
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-  max-width: 200px;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;
