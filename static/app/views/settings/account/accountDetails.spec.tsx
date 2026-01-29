@@ -6,6 +6,13 @@ import AccountDetails from 'sentry/views/settings/account/accountDetails';
 
 jest.mock('scroll-to-element', () => 'scroll-to-element');
 
+// Mock react-select source import used by form components
+jest.mock('react-select/src/components', () => ({
+  components: {
+    IndicatorsContainer: ({children}: {children: React.ReactNode}) => children,
+  },
+}));
+
 function mockUserDetails(params?: any) {
   MockApiClient.clearMockResponses();
 
@@ -24,7 +31,7 @@ describe('AccountDetails', () => {
   it('renders', async () => {
     render(<AccountDetails />);
 
-    expect(await screen.findByRole('textbox', {name: 'Name'})).toBeEnabled();
+    expect(await screen.findByPlaceholderText('e.g. John Doe')).toBeEnabled();
 
     expect(screen.getByRole('checkbox', {name: 'Use a 24-hour clock'})).toBeEnabled();
     expect(screen.getByRole('radiogroup', {name: 'Avatar Type'})).toBeEnabled();
@@ -34,7 +41,7 @@ describe('AccountDetails', () => {
     mockUserDetails({username: 'different@example.com'});
     render(<AccountDetails />);
 
-    expect(await screen.findByRole('textbox', {name: 'Username'})).toBeEnabled();
+    expect(await screen.findByPlaceholderText('e.g. name@example.com')).toBeEnabled();
   });
 
   describe('Managed User', () => {
@@ -42,7 +49,7 @@ describe('AccountDetails', () => {
       mockUserDetails({isManaged: true});
       render(<AccountDetails />);
 
-      expect(await screen.findByRole('textbox', {name: 'Name'})).toBeEnabled();
+      expect(await screen.findByPlaceholderText('e.g. John Doe')).toBeEnabled();
       expect(screen.queryByRole('textbox', {name: 'Password'})).not.toBeInTheDocument();
     });
 
@@ -50,7 +57,7 @@ describe('AccountDetails', () => {
       mockUserDetails({isManaged: true, username: 'different@example.com'});
       render(<AccountDetails />);
 
-      expect(await screen.findByRole('textbox', {name: 'Username'})).toBeDisabled();
+      expect(await screen.findByPlaceholderText('e.g. name@example.com')).toBeDisabled();
     });
   });
 
