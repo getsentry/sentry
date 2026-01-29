@@ -193,7 +193,7 @@ export function NewWelcomeUI(props: StepProps) {
         </Flex>
 
         <SeerCard border="muted" radius="lg" padding="xl">
-          <SeerCardContent>
+          <Flex direction="column" gap="md" flex="1">
             <IconSeer legacySize="16px" variant="secondary" />
             <Flex direction="column" gap="xs">
               <Flex gap="sm" align="center">
@@ -215,7 +215,7 @@ export function NewWelcomeUI(props: StepProps) {
                 </Text>
               </Flex>
             </Flex>
-          </SeerCardContent>
+          </Flex>
           <SeerIllustrationWrapper>
             <img src={SeerIllustration} alt="" />
           </SeerIllustrationWrapper>
@@ -229,7 +229,7 @@ export function NewWelcomeUI(props: StepProps) {
       </ContentWrapper>
       <GenericFooter>
         {props.genSkipOnboardingLink()}
-        <NextButtonWrapper>
+        <Flex align="center" padding="none lg" style={{marginLeft: 'auto'}}>
           <Button
             priority="primary"
             onClick={handleComplete}
@@ -237,7 +237,7 @@ export function NewWelcomeUI(props: StepProps) {
           >
             {t('Next')}
           </Button>
-        </NextButtonWrapper>
+        </Flex>
       </GenericFooter>
     </NewWelcomeWrapper>
   );
@@ -270,13 +270,6 @@ const SeerCard = styled(Container)`
   overflow: hidden;
 `;
 
-const SeerCardContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
-  flex: 1;
-`;
-
 const SeerIllustrationWrapper = styled('div')`
   flex-shrink: 0;
 
@@ -289,11 +282,4 @@ const SeerIllustrationWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
-`;
-
-const NextButtonWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  padding: 0 ${space(2)};
 `;
