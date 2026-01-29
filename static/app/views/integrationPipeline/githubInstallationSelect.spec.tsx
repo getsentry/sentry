@@ -123,13 +123,13 @@ describe('GithubInstallationSelect', () => {
     ).toBeInTheDocument();
   });
   it('does not render upsell if installation has 0 installs', async () => {
-    const installation_info_with_0_installs = installation_info.map(i => ({
+    const installationInfoWithNoInstalls = installation_info.map(i => ({
       ...i,
       count: 0,
     }));
     render(
       <GithubInstallationSelect
-        installation_info={installation_info_with_0_installs}
+        installation_info={installationInfoWithNoInstalls}
         organization={OrganizationFixture()}
       />
     );
