@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -251,10 +252,13 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
         for repos_data in filtered_repo_mappings.values():
             for repo_data in repos_data:
+                provider = repo_data.get("provider")
+                external_id = repo_data.get("external_id")
                 repo_exists = Repository.objects.filter(
+                    Q(provider=provider) | Q(provider=f"integrations:{provider}"),
                     organization_id=organization.id,
-                    provider=repo_data.get("provider"),
-                    external_id=repo_data.get("external_id"),
+                    external_id=external_id,
+                    status=ObjectStatus.ACTIVE,
                 ).exists()
                 if not repo_exists:
                     return Response({"detail": "Invalid repository"}, status=400)
