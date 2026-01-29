@@ -247,7 +247,7 @@ export function TracesTable() {
   );
 
   return (
-    <div>
+    <Container>
       <GridEditableContainer>
         <GridEditable
           isLoading={tracesRequest.isPending}
@@ -265,7 +265,7 @@ export function TracesTable() {
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
       <StyledPagination pageLinks={pageLinks} onCursor={setCursor} />
-    </div>
+    </Container>
   );
 }
 
