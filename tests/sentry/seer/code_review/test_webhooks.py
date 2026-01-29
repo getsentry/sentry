@@ -24,7 +24,6 @@ from sentry.seer.code_review.webhooks.task import (
     process_github_webhook_event,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 
 
 class ProcessGitHubWebhookEventTest(TestCase):
