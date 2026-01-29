@@ -74,7 +74,7 @@ describe('BarChartWidgetVisualization', () => {
   describe('Empty Data Handling', () => {
     it('throws error when all plottables are empty', () => {
       const emptySeries: CategoricalSeries = {
-        yAxis: 'count()',
+        valueAxis: 'count()',
         meta: {
           valueType: 'integer',
           valueUnit: null,
@@ -89,7 +89,7 @@ describe('BarChartWidgetVisualization', () => {
 
     it('throws error when all values are null', () => {
       const nullValuesSeries: CategoricalSeries = {
-        yAxis: 'count()',
+        valueAxis: 'count()',
         meta: {
           valueType: 'integer',
           valueUnit: null,
@@ -152,14 +152,24 @@ describe('Bar Plottable', () => {
       expect(bar.name).toBe('Custom Name');
     });
 
-    it('returns yAxis as name when no alias', () => {
+    it('returns valueAxis as name when no alias', () => {
       const bar = new Bar(sampleCountCategoricalData);
       expect(bar.name).toBe('count()');
+    });
+
+    it('returns name with groupBy when groupBy is present', () => {
+      const bar = new Bar(sampleStackedCategoricalData[0]!);
+      expect(bar.name).toBe('count() : status : success');
     });
 
     it('returns correct label', () => {
       const bar = new Bar(sampleCountCategoricalData, {alias: 'Custom Label'});
       expect(bar.label).toBe('Custom Label');
+    });
+
+    it('returns groupBy value as label when groupBy is present', () => {
+      const bar = new Bar(sampleStackedCategoricalData[0]!);
+      expect(bar.label).toBe('success');
     });
 
     it('returns correct dataType', () => {
@@ -174,7 +184,7 @@ describe('Bar Plottable', () => {
 
     it('returns isEmpty true for empty data', () => {
       const emptySeries: CategoricalSeries = {
-        yAxis: 'count()',
+        valueAxis: 'count()',
         meta: {valueType: 'integer', valueUnit: null},
         values: [],
       };
@@ -184,7 +194,7 @@ describe('Bar Plottable', () => {
 
     it('returns isEmpty true for all null values', () => {
       const nullSeries: CategoricalSeries = {
-        yAxis: 'count()',
+        valueAxis: 'count()',
         meta: {valueType: 'integer', valueUnit: null},
         values: [
           {category: 'A', value: null},

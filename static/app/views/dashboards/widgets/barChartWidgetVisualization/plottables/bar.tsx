@@ -6,6 +6,8 @@ import type {BarSeriesOption} from 'echarts';
 import barCategoricalSeries from 'sentry/components/charts/categorical/barCategorical';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {DataUnit} from 'sentry/utils/discover/fields';
+import {formatCategoricalSeriesLabel} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/formatters/formatCategoricalSeriesLabel';
+import {formatCategoricalSeriesName} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/formatters/formatCategoricalSeriesName';
 import type {
   CategoricalItem,
   CategoricalSeries,
@@ -131,11 +133,11 @@ export class Bar implements BarPlottable {
   }
 
   get name(): string {
-    return this.config.alias ?? this.categoricalSeries.yAxis;
+    return this.config.alias ?? formatCategoricalSeriesName(this.categoricalSeries);
   }
 
   get label(): string {
-    return this.config.alias ?? this.categoricalSeries.yAxis;
+    return this.config.alias ?? formatCategoricalSeriesLabel(this.categoricalSeries);
   }
 
   get dataType(): CategoricalValueType {

@@ -2,7 +2,7 @@ import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleCountCategoricalData: CategoricalSeries = {
-  yAxis: 'count()',
+  valueAxis: 'count()',
   meta: {
     valueType: 'integer',
     valueUnit: null,
@@ -17,7 +17,7 @@ export const sampleCountCategoricalData: CategoricalSeries = {
 };
 
 export const sampleDurationCategoricalData: CategoricalSeries = {
-  yAxis: 'p99(transaction.duration)',
+  valueAxis: 'p99(transaction.duration)',
   meta: {
     valueType: 'duration',
     valueUnit: DurationUnit.MILLISECOND,
@@ -33,7 +33,8 @@ export const sampleDurationCategoricalData: CategoricalSeries = {
 
 export const sampleStackedCategoricalData: CategoricalSeries[] = [
   {
-    yAxis: 'count() by status:success',
+    valueAxis: 'count()',
+    groupBy: [{key: 'status', value: 'success'}],
     meta: {
       valueType: 'integer',
       valueUnit: null,
@@ -47,7 +48,8 @@ export const sampleStackedCategoricalData: CategoricalSeries[] = [
     ],
   },
   {
-    yAxis: 'count() by status:error',
+    valueAxis: 'count()',
+    groupBy: [{key: 'status', value: 'error'}],
     meta: {
       valueType: 'integer',
       valueUnit: null,
@@ -66,7 +68,7 @@ export const sampleStackedCategoricalData: CategoricalSeries[] = [
  * Long category labels to demonstrate truncation behavior
  */
 export const sampleLongLabelData: CategoricalSeries = {
-  yAxis: 'count()',
+  valueAxis: 'count()',
   meta: {
     valueType: 'integer',
     valueUnit: null,
@@ -84,7 +86,7 @@ export const sampleLongLabelData: CategoricalSeries = {
  * Percentage data (values between 0 and 1)
  */
 export const samplePercentageData: CategoricalSeries = {
-  yAxis: 'crash_free_rate()',
+  valueAxis: 'crash_free_rate()',
   meta: {
     valueType: 'percentage',
     valueUnit: null,
@@ -102,7 +104,7 @@ export const samplePercentageData: CategoricalSeries = {
  * Size data in bytes
  */
 export const sampleSizeData: CategoricalSeries = {
-  yAxis: 'avg(http.response_content_length)',
+  valueAxis: 'avg(http.response_content_length)',
   meta: {
     valueType: 'size',
     valueUnit: SizeUnit.BYTE,
@@ -120,7 +122,7 @@ export const sampleSizeData: CategoricalSeries = {
  * Rate data (requests per second)
  */
 export const sampleRateData: CategoricalSeries = {
-  yAxis: 'spm()',
+  valueAxis: 'spm()',
   meta: {
     valueType: 'rate',
     valueUnit: RateUnit.PER_SECOND,
@@ -138,7 +140,7 @@ export const sampleRateData: CategoricalSeries = {
  * Data with null values to demonstrate sparse data handling
  */
 export const sampleSparseData: CategoricalSeries = {
-  yAxis: 'count()',
+  valueAxis: 'count()',
   meta: {
     valueType: 'integer',
     valueUnit: null,
@@ -157,7 +159,7 @@ export const sampleSparseData: CategoricalSeries = {
  * Data with negative values (useful for showing deltas/changes)
  */
 export const sampleNegativeData: CategoricalSeries = {
-  yAxis: 'change(count())',
+  valueAxis: 'change(count())',
   meta: {
     valueType: 'integer',
     valueUnit: null,
@@ -175,7 +177,7 @@ export const sampleNegativeData: CategoricalSeries = {
  * Large values to demonstrate Y-axis scaling
  */
 export const sampleLargeValueData: CategoricalSeries = {
-  yAxis: 'count()',
+  valueAxis: 'count()',
   meta: {
     valueType: 'integer',
     valueUnit: null,
@@ -193,7 +195,7 @@ export const sampleLargeValueData: CategoricalSeries = {
  * Many categories to demonstrate X-axis scaling
  */
 export const sampleManyCategoriesData: CategoricalSeries = {
-  yAxis: 'count()',
+  valueAxis: 'count()',
   meta: {
     valueType: 'integer',
     valueUnit: null,
@@ -219,7 +221,8 @@ export const sampleManyCategoriesData: CategoricalSeries = {
  */
 export const sampleMultiSeriesData: CategoricalSeries[] = [
   {
-    yAxis: 'count() by browser:chrome',
+    valueAxis: 'count()',
+    groupBy: [{key: 'browser', value: 'chrome'}],
     meta: {valueType: 'integer', valueUnit: null},
     values: [
       {category: 'Mon', value: 450},
@@ -230,7 +233,8 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
     ],
   },
   {
-    yAxis: 'count() by browser:firefox',
+    valueAxis: 'count()',
+    groupBy: [{key: 'browser', value: 'firefox'}],
     meta: {valueType: 'integer', valueUnit: null},
     values: [
       {category: 'Mon', value: 280},
@@ -241,7 +245,8 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
     ],
   },
   {
-    yAxis: 'count() by browser:safari',
+    valueAxis: 'count()',
+    groupBy: [{key: 'browser', value: 'safari'}],
     meta: {valueType: 'integer', valueUnit: null},
     values: [
       {category: 'Mon', value: 180},
@@ -252,7 +257,8 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
     ],
   },
   {
-    yAxis: 'count() by browser:edge',
+    valueAxis: 'count()',
+    groupBy: [{key: 'browser', value: 'edge'}],
     meta: {valueType: 'integer', valueUnit: null},
     values: [
       {category: 'Mon', value: 120},
@@ -263,7 +269,8 @@ export const sampleMultiSeriesData: CategoricalSeries[] = [
     ],
   },
   {
-    yAxis: 'count() by browser:opera',
+    valueAxis: 'count()',
+    groupBy: [{key: 'browser', value: 'opera'}],
     meta: {valueType: 'integer', valueUnit: null},
     values: [
       {category: 'Mon', value: 45},

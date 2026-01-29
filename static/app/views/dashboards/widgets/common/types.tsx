@@ -72,13 +72,19 @@ export type TimeSeriesItem = {
  */
 type IncompleteReason = 'INCOMPLETE_BUCKET';
 
-export type TimeSeriesGroupBy = {
+/**
+ * Shared base type for grouping information.
+ * The `value` can sometimes be an array, because some datasets support array values.
+ * e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
+ */
+export type GroupBy = {
   key: string;
-  /**
-   * The `value` of a `groupBy` can sometimes surprisingly be an array, because some datasets support array values. e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
-   */
   value: string | null | Array<string | null> | Array<number | null>;
 };
+
+// Aliases - allows divergence later if unique cases arise
+export type TimeSeriesGroupBy = GroupBy;
+export type CategoricalGroupBy = GroupBy;
 
 /**
  * Time series data. Unlike other time series abstractions, this is tightly supported by both the backend and the frontend. The `/events-timeseries/` endpoint uses this as the respone data, and `TimeSeriesWidgetVisualization` plottable objects accept this as the backing data.
@@ -185,11 +191,15 @@ export interface CategoricalSeries {
    */
   meta: CategoricalSeriesMeta;
   /**
+   * The aggregate function this series represents (e.g., "p95(span.duration)").
+   */
+  valueAxis: string;
+  /**
    * The data points in this series.
    */
   values: CategoricalItem[];
   /**
-   * The field name or aggregate function this series represents.
+   * Represents the grouping information for the series, if applicable.
    */
-  yAxis: string;
+  groupBy?: CategoricalGroupBy[] | null;
 }

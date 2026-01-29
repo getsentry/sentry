@@ -96,7 +96,7 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
 
         <CodeBlock language="json">
           {`{
-  "yAxis": "count()",
+  "valueAxis": "count()",
   "meta": {
     "valueType": "integer",
     "valueUnit": null
