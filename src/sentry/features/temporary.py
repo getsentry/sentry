@@ -250,6 +250,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:on-demand-metrics-ui-widgets", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Only enabled in sentry.io to enable onboarding flows.
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Enable new onboarding welcome and SDK setup UI
+    manager.add("organizations:onboarding-new-welcome-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -302,6 +304,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-backend-overview-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Mobile Vitals Insights module on dashboards platform
     manager.add("organizations:insights-mobile-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Mobile Session Health module on dashboards platform
+    manager.add("organizations:insights-mobile-session-health-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable web vitals module dashboard on dashboards platform
     manager.add("organizations:insights-web-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable all registered prebuilt dashboards to be synced to the database
@@ -369,6 +373,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:prevent-ai", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Prevent team Replay Assertions (Flows) POC
     manager.add("organizations:prevent-flows-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables recording processing errors to analytics for product validation
+    manager.add("organizations:processing-error-analytics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enabled for those orgs who participated in the profiling Beta program
@@ -637,6 +643,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-export", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable trace metrics in overlaying charts
+    manager.add("organizations:tracemetrics-overlay-charts-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics in replays UI
     manager.add("organizations:tracemetrics-replay-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics saved queries

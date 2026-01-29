@@ -28,6 +28,7 @@ from sentry.uptime.autodetect.result_handler import handle_onboarding_result
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.grouptype import UptimePacketValue
 from sentry.uptime.models import (
+    RESPONSE_BODY_SEPARATOR,
     UptimeResponseCapture,
     UptimeSubscription,
     UptimeSubscriptionRegion,
@@ -52,6 +53,7 @@ from sentry.uptime.utils import (
     build_backlog_task_scheduled_key,
     build_last_interval_change_timestamp_key,
     build_last_update_key,
+    generate_scheduled_check_times_ms,
     get_cluster,
 )
 from sentry.utils import json, metrics
@@ -76,9 +78,6 @@ TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 # The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
 MAX_SYNTHETIC_MISSED_CHECKS = 100
-
-
-RESPONSE_BODY_SEPARATOR = b"\r\n\r\n---BODY---\r\n\r\n"
 
 
 def format_response_for_storage(
@@ -343,7 +342,12 @@ def create_backfill_misses(
 
         synthetic_metric_tags = metric_tags.copy()
         synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
-        for i in range(0, num_missed_checks):
+        missed_times = generate_scheduled_check_times_ms(
+            last_update_ms + subscription_interval_ms,
+            subscription_interval_ms,
+            num_missed_checks,
+        )
+        for scheduled_time_ms in missed_times:
             missed_result: CheckResult = {
                 "guid": uuid.uuid4().hex,
                 "subscription_id": result["subscription_id"],
@@ -355,10 +359,11 @@ def create_backfill_misses(
                 "trace_id": uuid.uuid4().hex,
                 "span_id": uuid.uuid4().hex,
                 "region": result["region"],
-                "scheduled_check_time_ms": last_update_ms + ((i + 1) * subscription_interval_ms),
+                "scheduled_check_time_ms": scheduled_time_ms,
                 "actual_check_time_ms": result["actual_check_time_ms"],
                 "duration_ms": 0,
                 "request_info": None,
+                "assertion_failure_data": None,
             }
             produce_eap_uptime_result(
                 detector,

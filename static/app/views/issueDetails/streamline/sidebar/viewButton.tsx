@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 
 export function ViewButton({children, ...props}: LinkButtonProps) {
   return (
-    <TextButton borderless size="zero" preventScrollReset {...props}>
+    <TextButton priority="transparent" size="zero" preventScrollReset {...props}>
       {children}
     </TextButton>
   );
