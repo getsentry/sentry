@@ -101,4 +101,5 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.get_error_response(
                 self.organization.slug, project_id=-1, status_code=400
             )
-            assert response.data["detail"] == "Invalid project_id"
+            assert "project_id" in response.data
+            assert "not a valid integer id" in response.data["project_id"]

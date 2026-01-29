@@ -17,7 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
@@ -81,6 +81,7 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.cursors import Cursor, StringCursor
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
@@ -228,14 +229,10 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         project_id = request.GET.get("project_id")
         if project_id is None:
             raise ParseError(detail="Invalid project_id")
-        try:
-            project_id_int = int(project_id)
-        except ValueError:
-            raise ParseError(detail="Invalid project_id")
-        if project_id_int <= 0:
-            raise ParseError(detail="Invalid project_id")
+        project_id_int = to_valid_int_id("project_id", project_id)
 
         projects = self.get_projects(request, organization, project_ids={project_id_int})
+        assert projects  # should be guaranteed non-empty
         project = projects[0]
         enabled_features = on_demand_metrics_feature_flags(organization)
         prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
@@ -590,7 +587,7 @@ Metric alert rule trigger actions follow the following structure:
         required=False,
         help_text="Optional value that the metric needs to reach to resolve the alert. If no value is provided, this is set automatically based on the lowest severity trigger's `alertThreshold`. For example, if the alert is set to trigger at the warning level when the number of errors is above 50, then the alert would be set to resolve when there are less than 50 errors. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)

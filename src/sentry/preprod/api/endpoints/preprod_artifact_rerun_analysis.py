@@ -67,10 +67,12 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         # Empty list is valid - triggers default processing behavior
         requested_features: list[PreprodFeature] = []
 
-        if should_run_size(head_artifact, actor=request.user):
+        run_size, _ = should_run_size(head_artifact, actor=request.user)
+        if run_size:
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
 
-        if should_run_distribution(head_artifact, actor=request.user):
+        run_distribution, _ = should_run_distribution(head_artifact, actor=request.user)
+        if run_distribution:
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         if PreprodFeature.SIZE_ANALYSIS in requested_features:
