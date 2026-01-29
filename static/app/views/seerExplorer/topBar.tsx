@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -17,12 +16,9 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PRWidget from 'sentry/views/seerExplorer/prWidget';
-import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {toggleSeerExplorerPanel} from 'sentry/views/seerExplorer/utils';
 
 interface TopBarProps {
-  blocks: Block[];
   isCopyLinkEnabled: boolean;
   isCopySessionEnabled: boolean;
   isEmptyState: boolean;
@@ -31,46 +27,30 @@ interface TopBarProps {
   isSessionHistoryOpen: boolean;
   onCopyLinkClick: () => void;
   onCopySessionClick: () => void;
-  onCreatePR: (repoName?: string) => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
-  onPRWidgetClick: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
   onSizeToggleClick: () => void;
   panelSize: 'max' | 'med';
-  prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
-  readOnly: boolean;
-  repoPRStates: Record<string, RepoPRState>;
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 function TopBar({
-  blocks,
   isPolling,
   isEmptyState,
   isSeerDrawerOpen,
   isSessionHistoryOpen,
-  onCreatePR,
   onFeedbackClick,
   onNewChatClick,
-  onPRWidgetClick,
   onSessionHistoryClick,
   onCopySessionClick,
   onCopyLinkClick,
   onSizeToggleClick,
   panelSize,
-  prWidgetButtonRef,
-  readOnly,
-  repoPRStates,
   isCopySessionEnabled,
   isCopyLinkEnabled,
   sessionHistoryButtonRef,
 }: TopBarProps) {
-  // Check if there are any file patches
-  const hasCodeChanges = useMemo(() => {
-    return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
-  }, [blocks]);
-
   return (
     <Flex
       align="center"
@@ -125,23 +105,13 @@ function TopBar({
       <AnimatePresence initial={false}>
         {!isEmptyState && (
           <CenterSection
-            key={hasCodeChanges ? 'pr-widget' : 'seer-icon'}
+            key="seer-icon"
             initial={{opacity: 0, scale: 0.8, x: '-50%'}}
             animate={{opacity: 1, scale: 1, x: '-50%'}}
             exit={{opacity: 0, scale: 0.8, x: '-50%'}}
             transition={{duration: 0.12, ease: 'easeOut'}}
           >
-            {!readOnly && hasCodeChanges ? (
-              <PRWidget
-                ref={prWidgetButtonRef}
-                blocks={blocks}
-                repoPRStates={repoPRStates}
-                onCreatePR={onCreatePR}
-                onToggleMenu={onPRWidgetClick}
-              />
-            ) : (
-              <IconSeer animation={isPolling ? 'loading' : 'waiting'} size="md" />
-            )}
+            <IconSeer animation={isPolling ? 'loading' : 'waiting'} size="md" />
           </CenterSection>
         )}
       </AnimatePresence>

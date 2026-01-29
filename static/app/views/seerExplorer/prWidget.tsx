@@ -303,8 +303,8 @@ function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidge
   }
 
   return (
-    <Button ref={ref as any} size="xs" onClick={onToggleMenu}>
-      <Flex align="center" gap="sm">
+    <Button ref={ref as any} onClick={onToggleMenu}>
+      <Flex align="center" gap="md">
         <Flex>
           <Text variant="success" monospace>
             +{totalAdded}
@@ -316,11 +316,11 @@ function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidge
         {anyCreating ? (
           <LoadingIndicator size={12} />
         ) : allInSync ? (
-          <IconCheckmark size="xs" variant="success" />
+          <IconCheckmark variant="success" />
         ) : (
-          <Flex gap="xs">
-            <Text size="xs">{t('Push')}</Text>
-            <IconUpload size="xs" />
+          <Flex gap="sm">
+            <Text>{t('Push')}</Text>
+            <IconUpload />
           </Flex>
         )}
       </Flex>
