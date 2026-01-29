@@ -448,6 +448,3 @@ networks:
   devservices:
     name: devservices
     external: true
-
-volumes:
-  postgres-data:
