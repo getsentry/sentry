@@ -131,12 +131,7 @@ export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
       {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,
        * so we need to use a different name, or somehow tell emotion to not create a type intersection.
        */}
-      <NativeHiddenCheckbox
-        ref={ref}
-        type="checkbox"
-        nativeSize={size}
-        {...props}
-      />
+      <NativeHiddenCheckbox ref={ref} type="checkbox" nativeSize={size} {...props} />
       <Container
         width={`${toggleWrapperSize[size].width}px`}
         height={`${toggleWrapperSize[size].height}px`}
