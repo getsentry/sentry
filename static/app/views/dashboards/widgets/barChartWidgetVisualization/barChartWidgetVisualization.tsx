@@ -1,7 +1,8 @@
-import {useCallback, useRef} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
+import dompurify from 'dompurify';
 import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
@@ -13,6 +14,7 @@ import mapValues from 'lodash/mapValues';
 import BaseChart from 'sentry/components/charts/baseChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import {useRenderToString} from 'sentry/components/core/renderToString';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {
@@ -115,6 +117,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
   const theme = useTheme();
+  const renderToString = useRenderToString();
 
   const orientation = props.orientation ?? 'vertical';
   const isHorizontal = orientation === 'horizontal';
@@ -286,52 +289,61 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     // Get the category name from the first param
     const categoryName = seriesParams[0]?.name ?? '';
 
-    // Build tooltip content
-    const seriesHtml = seriesParams
-      .filter(param => {
-        const value = extractValue(param.value, orientation);
-        return value !== null;
-      })
-      .map(param => {
-        const seriesName = param.seriesName ?? '';
-        const displayName = truncationFormatter(
-          aliases[seriesName] ?? seriesName,
-          true,
-          false
-        );
+    // Build tooltip content using React components
+    const filteredParams = seriesParams.filter(param => {
+      const value = extractValue(param.value, orientation);
+      return value !== null;
+    });
 
-        const numericValue = extractValue(param.value, orientation);
+    return renderToString(
+      <Fragment>
+        <div className="tooltip-series">
+          {filteredParams.map(param => {
+            const seriesName = param.seriesName ?? '';
+            const displayName = truncationFormatter(
+              aliases[seriesName] ?? seriesName,
+              true,
+              false
+            );
 
-        // Format the value based on the plottable's data type
-        let formattedValue: string;
-        if (numericValue !== null && defined(param.seriesIndex)) {
-          const correspondingPlottable = seriesIndexToPlottableRangeMap.get(
-            param.seriesIndex
-          );
-          const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
-          formattedValue = formatTooltipValue(
-            numericValue,
-            fieldType,
-            unitForType[fieldType] ?? undefined
-          );
-        } else {
-          formattedValue = numericValue?.toLocaleString() ?? '';
-        }
+            const numericValue = extractValue(param.value, orientation);
 
-        // param.marker is an HTML string with a colored circle
-        const marker = typeof param.marker === 'string' ? param.marker : '';
+            // Format the value based on the plottable's data type
+            let formattedValue: string;
+            if (numericValue !== null && defined(param.seriesIndex)) {
+              const correspondingPlottable = seriesIndexToPlottableRangeMap.get(
+                param.seriesIndex
+              );
+              const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
+              formattedValue = formatTooltipValue(
+                numericValue,
+                fieldType,
+                unitForType[fieldType] ?? undefined
+              );
+            } else {
+              formattedValue = numericValue?.toLocaleString() ?? '';
+            }
 
-        return `<div><span class="tooltip-label">${marker} <strong>${displayName}</strong></span> ${formattedValue}</div>`;
-      })
-      .join('');
+            // param.marker is an HTML string with a colored circle, sanitize it
+            const marker = typeof param.marker === 'string' ? param.marker : '';
 
-    return [
-      `<div class="tooltip-series">${seriesHtml}</div>`,
-      '<div class="tooltip-footer tooltip-footer-centered">',
-      truncationFormatter(categoryName, true, false),
-      '</div>',
-      '<div class="tooltip-arrow"></div>',
-    ].join('');
+            return (
+              <div key={param.seriesIndex}>
+                <span className="tooltip-label">
+                  <span dangerouslySetInnerHTML={{__html: dompurify.sanitize(marker)}} />{' '}
+                  <strong>{displayName}</strong>
+                </span>{' '}
+                {formattedValue}
+              </div>
+            );
+          })}
+        </div>
+        <div className="tooltip-footer tooltip-footer-centered">
+          {truncationFormatter(categoryName, true, false)}
+        </div>
+        <div className="tooltip-arrow" />
+      </Fragment>
+    );
   };
 
   // Event handlers
