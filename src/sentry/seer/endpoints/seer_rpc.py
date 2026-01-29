@@ -47,7 +47,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -107,7 +106,6 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
-from sentry.utils.seer import can_use_prevent_ai_features
 
 logger = logging.getLogger(__name__)
 
@@ -286,45 +284,6 @@ class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_slugs: list[str]
 
 
-def get_sentry_organization_ids(
-    *, external_id: str, provider: str = "integrations:github", **kwargs
-) -> SentryOrganizaionIdsAndSlugs:
-    """
-    Get the Sentry organization ID for a given Repository.
-
-    Args:
-        external_id: The id of the repo in the provider's system
-        provider: The provider of the repository (e.g. "integrations:github")
-    """
-
-    # It's possible that multiple orgs will be returned for a given repo.
-    repositories = Repository.objects.filter(
-        provider=provider,
-        external_id=external_id,
-        status=ObjectStatus.ACTIVE,
-    )
-    repo_ids = repositories.values_list("id", flat=True)
-
-    # Filter to only repositories that have code mappings.
-    repo_ids_with_config = (
-        RepositoryProjectPathConfig.objects.filter(repository_id__in=repo_ids)
-        .values_list("repository_id", flat=True)
-        .distinct()
-    )
-
-    organization_ids = repositories.filter(id__in=repo_ids_with_config).values_list(
-        "organization_id", flat=True
-    )
-    organizations = Organization.objects.filter(id__in=organization_ids)
-    # We then filter out all orgs that didn't give us consent to use AI features.
-    orgs_with_consent = [org for org in organizations if can_use_prevent_ai_features(org)]
-
-    return {
-        "org_ids": [organization.id for organization in orgs_with_consent],
-        "org_slugs": [organization.slug for organization in orgs_with_consent],
-    }
-
-
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     seer_org_acknowledgement = get_seer_org_acknowledgement(org)
@@ -332,30 +291,6 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     return {
         "consent": seer_org_acknowledgement or github_extension_enabled,
     }
-
-
-# Used by the seer GH app to check for permissions before posting to an org
-def get_organization_seer_consent_by_org_name(
-    *, org_name: str, provider: str = "github"
-) -> dict[str, bool | str | None]:
-    org_integrations = integration_service.get_organization_integrations(
-        providers=[provider], name=org_name
-    )
-
-    # The URL where an org admin can enable Prevent-AI features
-    # Only returned if the org is not already consented
-    consent_url = None
-    for org_integration in org_integrations:
-        try:
-            org = Organization.objects.get(id=org_integration.organization_id)
-            if can_use_prevent_ai_features(org):
-                return {"consent": True}
-            # If this is the last org we will return this URL as the consent URL
-            consent_url = org.absolute_url("/settings/organization/")
-        except Organization.DoesNotExist:
-            continue
-
-    return {"consent": False, "consent_url": consent_url}
 
 
 def get_attributes_and_values(
@@ -802,7 +737,6 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
-    "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
     "check_repository_integrations_status": check_repository_integrations_status,
@@ -818,7 +752,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #
     # Bug prediction
-    "get_sentry_organization_ids": get_sentry_organization_ids,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
     "get_issues_by_raw_query": by_text_query.fetch_issues,
