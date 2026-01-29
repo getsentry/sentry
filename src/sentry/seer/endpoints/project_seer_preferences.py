@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.models import PreferenceResponse, SeerProjectPreference
@@ -107,6 +108,16 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     def post(self, request: Request, project: Project) -> Response:
         serializer = ProjectSeerPreferencesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        for repo_data in serializer.validated_data.get("repositories", []):
+            repo_exists = Repository.objects.filter(
+                organization_id=project.organization.id,
+                provider=repo_data.get("provider"),
+                external_id=repo_data.get("external_id"),
+            ).exists()
+
+            if not repo_exists:
+                return Response({"detail": "Invalid repository"}, status=400)
 
         path = "/v1/project-preference/set"
         body = orjson.dumps(
