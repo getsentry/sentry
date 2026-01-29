@@ -1,10 +1,12 @@
 import {useCallback, useState} from 'react';
 
-import {Stack} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
@@ -16,13 +18,27 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 import {useFeatureFilter} from './useFeatureFilter';
 
 const EXAMPLE_BUILDS_COUNT = 5;
+const FEATURE_FILTER_ALLOWED_KEYS = [
+  // 'app_id',
+  // 'app_name',
+  'build_configuration_name',
+  // 'platform_name',
+  // 'build_number',
+  // 'build_version',
+  'git_head_ref',
+  'git_base_ref',
+  'git_head_sha',
+  'git_base_sha',
+  'git_head_repo_name',
+  'git_pr_number',
+];
 
 interface FeatureFilterProps {
   settingsReadKey: string;
   settingsWriteKey: string;
   successMessage: string;
   title: string;
-  children?: React.ReactNode;
+  display?: PreprodBuildsDisplay;
 }
 
 export function FeatureFilter({
@@ -30,7 +46,7 @@ export function FeatureFilter({
   successMessage,
   settingsReadKey,
   settingsWriteKey,
-  children,
+  display,
 }: FeatureFilterProps) {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
@@ -78,19 +94,28 @@ export function FeatureFilter({
 
   return (
     <Panel>
-      <PanelHeader>{title}</PanelHeader>
+      <PanelHeader>
+        <Flex align="center" gap="xs">
+          {t('%s - Configuration', title)}
+          <PageHeadingQuestionTooltip
+            docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
+            title={t('Learn more about configuring build filters.')}
+          />
+        </Flex>
+      </PanelHeader>
       <PanelBody>
         <Stack gap="lg" style={{padding: '16px'}}>
-          {children}
-          <Text size="sm" variant="muted">
+          <Text>
             {t(
-              'Configure a filter to match specific builds. This feature will only apply to new builds that match the filter.'
+              'Builds matching this filter will process for %s. By default, all builds will process.',
+              title
             )}
           </Text>
 
           <PreprodSearchBar
             initialQuery={localQuery}
             projects={[Number(project.id)]}
+            allowedKeys={FEATURE_FILTER_ALLOWED_KEYS}
             onChange={handleQueryChange}
             onSearch={handleSearch}
             searchSource="preprod_feature_filter"
@@ -105,9 +130,10 @@ export function FeatureFilter({
           <PreprodBuildsTable
             builds={builds}
             isLoading={buildsQuery.isLoading}
-            error={!!buildsQuery.error}
+            error={buildsQuery.error}
             organizationSlug={organization.slug}
             hasSearchQuery={!!localQuery}
+            display={display}
           />
         </Stack>
       </PanelBody>

@@ -28,7 +28,11 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
 from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
@@ -48,6 +52,10 @@ logger = logging.getLogger(__name__)
 
 ENABLED_OPTION_KEY = "sentry:preprod_size_status_checks_enabled"
 RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
+
+# Action identifier for the "Approve" button on GitHub check runs.
+# This is sent back in the webhook payload when the button is clicked.
+APPROVE_SIZE_ACTION_IDENTIFIER = "approve_size"
 
 preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
@@ -84,7 +92,10 @@ def create_preprod_status_check_task(
 ) -> None:
     try:
         preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
-            "mobile_app_info"
+            "mobile_app_info",
+            "commit_comparison",
+            "project",
+            "project__organization",
         ).get(id=preprod_artifact_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
@@ -159,6 +170,7 @@ def create_preprod_status_check_task(
         return
 
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]] = {}
+    approvals_map: dict[int, PreprodComparisonApproval] = {}
     if all_artifacts:
         artifact_ids = [artifact.id for artifact in all_artifacts]
         size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -170,15 +182,34 @@ def create_preprod_status_check_task(
                 size_metrics_map[metrics.preprod_artifact_id] = []
             size_metrics_map[metrics.preprod_artifact_id].append(metrics)
 
+        approval_qs = PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=artifact_ids,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        for approval in approval_qs:
+            approvals_map[approval.preprod_artifact_id] = approval
+
     rules = _get_status_check_rules(preprod_artifact.project)
-    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts, preprod_artifact.project)
+    base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
 
     status, triggered_rules = _compute_overall_status(
-        all_artifacts, size_metrics_map, rules=rules, base_size_metrics_map=base_size_metrics_map
+        all_artifacts,
+        size_metrics_map,
+        rules=rules,
+        base_artifact_map=base_artifact_map,
+        base_metrics_by_artifact=base_size_metrics_map,
+        approvals_map=approvals_map,
     )
 
     title, subtitle, summary = format_status_check_messages(
-        all_artifacts, size_metrics_map, status, preprod_artifact.project, triggered_rules
+        all_artifacts,
+        size_metrics_map,
+        status,
+        preprod_artifact.project,
+        base_artifact_map,
+        base_size_metrics_map,
+        triggered_rules,
     )
 
     target_url = get_preprod_artifact_url(preprod_artifact)
@@ -187,10 +218,9 @@ def create_preprod_status_check_task(
     if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
         completed_at = preprod_artifact.date_updated
 
-    # Convert in-progress and failure to neutral to avoid blocking PR merges:
-    # - IN_PROGRESS: Can get stuck due to GitHub API rate limiting
-    # - FAILURE: No approval flow exists yet to allow users to merge despite failures
-    if status in (StatusCheckStatus.IN_PROGRESS, StatusCheckStatus.FAILURE):
+    # When no rules are configured, always show neutral status.
+    # When rules exist, show actual status (in_progress, failure, success).
+    if not rules:
         status = StatusCheckStatus.NEUTRAL
         completed_at = preprod_artifact.date_updated
 
@@ -207,6 +237,7 @@ def create_preprod_status_check_task(
             target_url=target_url,
             started_at=preprod_artifact.date_added,
             completed_at=completed_at,
+            include_approve_action=bool(triggered_rules),
         )
     except Exception as e:
         extra: dict[str, Any] = {
@@ -360,39 +391,31 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
 
 
 def _fetch_base_size_metrics(
-    artifacts: list[PreprodArtifact], project: Project
-) -> dict[int, PreprodArtifactSizeMetrics]:
+    artifacts: list[PreprodArtifact],
+) -> tuple[dict[int, PreprodArtifact], dict[int, list[PreprodArtifactSizeMetrics]]]:
+    """Fetch base artifacts and their size metrics for head artifacts.
+
+    Returns:
+        Tuple of (base_artifact_map, base_metrics_by_artifact) where:
+        - base_artifact_map: head_artifact_id -> base_artifact
+        - base_metrics_by_artifact: base_artifact_id -> list of size metrics
     """
-    Fetch base artifact main size metrics for size comparison in absolute_diff rules.
+    if not artifacts:
+        return {}, {}
 
-    Returns a map of {head_artifact_id: base_main_size_metrics} for artifacts that have
-    base artifacts with matching build configurations. Only returns the main artifact metrics.
-    """
-    base_artifact_map: dict[int, PreprodArtifact] = {}
-
-    for artifact in artifacts:
-        base_artifact = artifact.get_base_artifact_for_commit().first()
-        if base_artifact:
-            base_artifact_map[artifact.id] = base_artifact
-
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(artifacts)
     if not base_artifact_map:
-        return {}
+        return {}, {}
 
-    base_artifact_ids = list(base_artifact_map.values())
     base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact_id__in=[ba.id for ba in base_artifact_ids],
-        preprod_artifact__project__organization_id=project.organization_id,
-        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-    ).select_related("preprod_artifact")
+        preprod_artifact_id__in=[ba.id for ba in base_artifact_map.values()],
+    )
 
-    result: dict[int, PreprodArtifactSizeMetrics] = {}
-    for head_artifact_id, base_artifact in base_artifact_map.items():
-        for metrics in base_size_metrics_qs:
-            if metrics.preprod_artifact_id == base_artifact.id:
-                result[head_artifact_id] = metrics
-                break
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]] = {}
+    for metrics in base_size_metrics_qs:
+        base_metrics_by_artifact.setdefault(metrics.preprod_artifact_id, []).append(metrics)
 
-    return result
+    return base_artifact_map, base_metrics_by_artifact
 
 
 def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
@@ -401,7 +424,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     Returns a dict with keys matching the filter key format:
     - git_head_ref: The git_head_ref name (from commit_comparison.head_ref)
-    - platform_name: "ios" or "android" (derived from artifact_type)
+    - platform_name: "apple" or "android" (derived from artifact_type)
     - app_id: The app ID (e.g., "com.example.app")
     - build_configuration_name: The build configuration name
     """
@@ -412,7 +435,7 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     if artifact.artifact_type is not None:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            context["platform_name"] = "ios"
+            context["platform_name"] = "apple"
         elif artifact.artifact_type in (
             PreprodArtifact.ArtifactType.AAB,
             PreprodArtifact.ArtifactType.APK,
@@ -439,16 +462,16 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
     - Filters with the same key AND negation status are OR'd together
     - Different groups (different key or negation) are AND'd together
     - negated=True means the value should NOT match
-
-    If a rule has no filters, it matches all artifacts.
     """
     if not rule.filter_query or not str(rule.filter_query).strip():
         return True
 
     try:
-        search_filters = parse_search_query(
-            rule.filter_query, config=preprod_artifact_search_config
-        )
+        search_filters = [
+            f
+            for f in parse_search_query(rule.filter_query, config=preprod_artifact_search_config)
+            if isinstance(f, SearchFilter)
+        ]
     except InvalidSearchQuery:
         logger.warning(
             "preprod.status_checks.invalid_filter_query",
@@ -456,10 +479,11 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
         )
         return False
 
+    if not search_filters:
+        return True
+
     filters_by_group: dict[str, list[SearchFilter]] = {}
     for f in search_filters:
-        if not isinstance(f, SearchFilter):
-            continue
         group_key = f"{f.key.name}:{'negated' if f.is_negation else 'normal'}"
         if group_key not in filters_by_group:
             filters_by_group[group_key] = []
@@ -575,7 +599,9 @@ def _compute_overall_status(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
-    base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
+    base_artifact_map: dict[int, PreprodArtifact] | None = None,
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]] | None = None,
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[StatusCheckStatus, list[TriggeredRule]]:
     triggered_rules: list[TriggeredRule] = []
 
@@ -605,6 +631,9 @@ def _compute_overall_status(
 
         if rules:
             for artifact in artifacts:
+                if approvals_map and artifact.id in approvals_map:
+                    continue
+
                 context = _get_artifact_filter_context(artifact)
                 size_metrics_list = size_metrics_map.get(artifact.id, [])
 
@@ -616,9 +645,20 @@ def _compute_overall_status(
                 ]
                 main_metric = main_metrics_list[0] if main_metrics_list else None
 
-                base_main_metric = (
-                    base_size_metrics_map.get(artifact.id) if base_size_metrics_map else None
-                )
+                # Rules only evaluate MAIN_ARTIFACT metrics
+                base_main_metric = None
+                if base_artifact_map and base_metrics_by_artifact:
+                    base_artifact = base_artifact_map.get(artifact.id)
+                    if base_artifact:
+                        base_main_metric = next(
+                            (
+                                m
+                                for m in base_metrics_by_artifact.get(base_artifact.id, [])
+                                if m.metrics_artifact_type
+                                == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+                            ),
+                            None,
+                        )
 
                 for rule in rules:
                     if _rule_matches_artifact(rule, context):
@@ -773,6 +813,7 @@ class _StatusCheckProvider(ABC):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
+        include_approve_action: bool = False,
     ) -> str | None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
@@ -792,6 +833,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
+        include_approve_action: bool = False,
     ) -> str | None:
         with self._create_scm_interaction_event().capture() as lifecycle:
             mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
@@ -867,6 +909,15 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     "GitHub API rejects completed_at=null when status is 'completed'. "
                     "Omit completed_at entirely instead of setting it to None."
                 )
+
+            if include_approve_action:
+                check_data["actions"] = [
+                    {
+                        "label": "Approve",
+                        "description": "Approve size changes for this PR",
+                        "identifier": APPROVE_SIZE_ACTION_IDENTIFIER,
+                    }
+                ]
 
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)

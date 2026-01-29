@@ -159,7 +159,7 @@ export function InsightSourcesFooter({
               <FooterSubmitButton
                 type="submit"
                 size="zero"
-                borderless
+                priority="transparent"
                 title={t('Give feedback and rethink the answer')}
                 disabled={!newInsightText.trim()}
               >

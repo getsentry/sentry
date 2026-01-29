@@ -64,7 +64,7 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
       <ParticipantWrapper onClick={() => setIsExpanded(!isExpanded)} role="button">
         {children}
         <Button
-          borderless
+          priority="transparent"
           size="zero"
           icon={
             <IconChevron

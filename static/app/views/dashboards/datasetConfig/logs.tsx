@@ -49,16 +49,16 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['count()'],
+  fields: ['count(message)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count(message)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count(message)',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['count', '', undefined, undefined],
+  function: ['count', 'message', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 
@@ -70,7 +70,14 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
       acc[AggregationKey.COUNT] = {
         isSortable: true,
         outputType: null,
-        parameters: [],
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['string'],
+            defaultValue: 'message',
+            required: true,
+          },
+        ],
       };
     } else if (aggregate === AggregationKey.COUNT_UNIQUE) {
       acc[AggregationKey.COUNT_UNIQUE] = {
@@ -252,7 +259,7 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT
   ) {
-    return true; // COUNT() doesn't need parameters for logs
+    return option.value.meta.name === 'message';
   }
 
   const expectedDataTypes =

@@ -80,7 +80,7 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
         {filterBy && (
           <Button
             size="zero"
-            borderless
+            priority="transparent"
             icon={isFiltered ? <IconClose /> : <IconFilter />}
             title={filterLabel}
             aria-label={filterLabel}

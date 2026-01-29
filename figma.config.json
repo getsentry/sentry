@@ -1,0 +1,11 @@
+{
+  "codeConnect": {
+    "label": "React",
+    "parser": "react",
+    "interactiveSetupFigmaFileUrl": "https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=8157-12490&p=f&t=boeFn5xr6XF6ljEJ-0",
+    "include": ["**/*.{tsx,jsx}"],
+    "paths": {
+      "@sentry/scraps/*": ["static/app/components/core/*"]
+    }
+  }
+}
