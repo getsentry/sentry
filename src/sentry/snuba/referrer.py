@@ -658,6 +658,7 @@ class Referrer(StrEnum):
     EVENTSTORE_GET_UNFETCHED_TRANSACTIONS = "eventstore.get_unfetched_transactions"
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
+    GET_OCCURRENCES_WITH_SPANS = "get_occurrences_with_spans"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
     GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_CONDITIONS = (
         "getsentry.promotion.mobile_performance_adoption.check_conditions"
