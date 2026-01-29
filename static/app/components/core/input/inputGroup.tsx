@@ -265,8 +265,6 @@ InputGroup.TextArea = TextArea;
 InputGroup.LeadingItems = LeadingItems;
 InputGroup.TrailingItems = TrailingItems;
 
-export type {InputProps, TextAreaProps};
-
 const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
   ${p => p.disabled && `color: ${p.theme.tokens.content.disabled};`};
