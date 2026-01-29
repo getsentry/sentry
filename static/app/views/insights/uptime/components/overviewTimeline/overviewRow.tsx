@@ -158,7 +158,7 @@ function DetailsLink(props: LinkProps) {
 }
 
 function Name(props: {children: React.ReactNode}) {
-  return <Heading {...props} as="h3" size="lg" />;
+  return <Heading {...props} as="h3" size="lg" wordBreak="break-word" />;
 }
 
 function Details(props: {children: React.ReactNode}) {
