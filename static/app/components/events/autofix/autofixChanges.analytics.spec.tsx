@@ -25,6 +25,9 @@ jest.mock('sentry/components/core/button', () => ({
   LinkButton: jest.fn(props => {
     return <a href={props.href}>{props.children}</a>;
   }),
+  ButtonBar: jest.fn(props => {
+    return <div {...props}>{props.children}</div>;
+  }),
 }));
 
 jest.mock('sentry/components/events/autofix/useAutofix');
