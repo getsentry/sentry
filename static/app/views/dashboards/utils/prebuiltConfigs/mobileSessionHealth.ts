@@ -143,7 +143,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 
 const CRASH_RATE_TABLE: Widget = {
   id: 'crash-rate-table',
-  title: t('Crash Rate By Project'),
+  title: t('Crash Free Rate By Project'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.RELEASE,
   interval: '5m',
@@ -151,10 +151,11 @@ const CRASH_RATE_TABLE: Widget = {
     {
       name: '',
       conditions: '',
-      fields: ['project', 'crash_rate(session)'],
-      aggregates: ['crash_rate(session)'],
+      fields: ['project', 'crash_free_rate(session)'],
+      aggregates: ['crash_free_rate(session)'],
       columns: ['project'],
-      orderby: '-crash_rate(session)',
+      orderby: 'crash_free_rate(session)',
+      fieldAliases: [t('Project'), t('Crash Free Rate')],
     },
   ],
   layout: {x: 0, y: 6, w: 6, h: 2, minH: 2},
@@ -174,6 +175,12 @@ const RELEASE_TABLE: Widget = {
       aggregates: ['crash_free_rate(session)', 'sum(session)'],
       columns: ['project', 'release'],
       orderby: '-release',
+      fieldAliases: [
+        t('Project'),
+        t('Release'),
+        t('Crash Free Rate'),
+        t('Total Sessions'),
+      ],
     },
   ],
   layout: {x: 0, y: 8, w: 6, h: 3, minH: 2},
