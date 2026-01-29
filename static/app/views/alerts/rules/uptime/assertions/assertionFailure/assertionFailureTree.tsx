@@ -71,10 +71,12 @@ function Connector({
 }
 
 function AssertionFailureTreeContent({assertion}: {assertion: Assertion | string}) {
-  const parsedAssertion =
-    typeof assertion === 'string' ? (JSON.parse(assertion) as Assertion) : assertion;
+  const tree = useMemo(() => {
+    const parsedAssertion =
+      typeof assertion === 'string' ? (JSON.parse(assertion) as Assertion) : assertion;
 
-  const tree = useMemo(() => Tree.FromAssertion(parsedAssertion), [parsedAssertion]);
+    return Tree.FromAssertion(parsedAssertion);
+  }, [assertion]);
 
   return (
     <Container
