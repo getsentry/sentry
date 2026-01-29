@@ -130,15 +130,18 @@ def _make_rpc_requests(
             else "EndpointTimeSeries"
         )
         endpoint_names.append(endpoint_name)
+        logger_extra = {
+            "rpc_query": json.loads(MessageToJson(request)),
+            "referrer": request.meta.referrer,
+            "organization_id": request.meta.organization_id,
+            "trace_item_type": request.meta.trace_item_type,
+            "debug": debug is not False,
+        }
+        if isinstance(debug, str):
+            logger_extra["debug_msg"] = debug
         logger.info(
             f"Running a {endpoint_name} RPC query",  # noqa: LOG011
-            extra={
-                "rpc_query": json.loads(MessageToJson(request)),
-                "referrer": request.meta.referrer,
-                "organization_id": request.meta.organization_id,
-                "trace_item_type": request.meta.trace_item_type,
-                "debug": debug,
-            },
+            extra=logger_extra,
         )
 
     referrers = [req.meta.referrer for req in requests]
