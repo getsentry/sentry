@@ -4,6 +4,7 @@ import pytest
 
 from sentry.autopilot.tasks import (
     AutopilotDetectorName,
+    MissingSdkIntegrationFinishReason,
     MissingSdkIntegrationsResult,
     run_missing_sdk_integration_detector_for_organization,
     run_sdk_update_detector_for_organization,
@@ -325,7 +326,8 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         mock_state.status = "completed"
         mock_state.blocks = []
         mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(
-            missing_integrations=["anthropicIntegration", "openaiIntegration"]
+            missing_integrations=["anthropicIntegration", "openaiIntegration"],
+            finish_reason=MissingSdkIntegrationFinishReason.SUCCESS,
         )
         mock_client_instance.get_run.return_value = mock_state
         mock_seer_client.return_value = mock_client_instance
@@ -401,7 +403,9 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         mock_state = mock.MagicMock()
         mock_state.status = "completed"
         mock_state.blocks = []
-        mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(missing_integrations=[])
+        mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(
+            missing_integrations=[], finish_reason=MissingSdkIntegrationFinishReason.SUCCESS
+        )
         mock_client_instance.get_run.return_value = mock_state
         mock_seer_client.return_value = mock_client_instance
 
@@ -429,7 +433,9 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         mock_state = mock.MagicMock()
         mock_state.status = "completed"
         mock_state.blocks = []
-        mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(missing_integrations=[])
+        mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(
+            missing_integrations=[], finish_reason=MissingSdkIntegrationFinishReason.SUCCESS
+        )
         mock_client_instance.get_run.return_value = mock_state
         mock_seer_client.return_value = mock_client_instance
 
