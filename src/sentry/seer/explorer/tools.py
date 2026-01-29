@@ -59,6 +59,8 @@ from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
 
+MIN_STATS_INTERVAL = timedelta(minutes=15)
+
 
 def _get_full_trace_id(
     short_trace_id: str, organization: Organization, projects: list[Project]
@@ -213,7 +215,8 @@ def execute_timeseries_query(
     Execute a query to get chart/timeseries data by calling the events-stats endpoint.
 
     Arg notes:
-        interval: The interval of each bucket. Valid stats period format, e.g. '3h'.
+        interval: The interval of each bucket. Valid stats period format, e.g. '3h'. Default is dynamically determined from the date range, in OrganizationEventStatsEndpoint.
+        start/end/stats_period: The date range to query. This cannot be smaller than the MIN_STATS_INTERVAL.
         partial: Whether to allow partial buckets if the last bucket does not align with rollup.
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
@@ -233,6 +236,19 @@ def execute_timeseries_query(
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     # Note if both project_ids and project_slugs are provided, the API request will 400.
+
+    start_dt, end_dt = get_date_range_from_params(
+        {
+            "statsPeriod": stats_period,
+            "start": start,
+            "end": end,
+        },
+        optional=True,
+    )
+    if start_dt and end_dt and (end_dt - start_dt) <= MIN_STATS_INTERVAL:
+        raise BadRequest(
+            "Time range is too small, cannot be smaller than the minimum stats interval."
+        )
 
     params: dict[str, Any] = {
         "dataset": dataset,
