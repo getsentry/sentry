@@ -86,9 +86,7 @@ const NativeHiddenCheckbox = styled('input')<{
       opacity: 1;
       transform: scale(1) translate(-50%, -50%);
     }
-  }
 
-  &:checked + div {
     background: ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
 
     border-top: 3px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
