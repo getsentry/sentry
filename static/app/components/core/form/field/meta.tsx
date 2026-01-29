@@ -1,12 +1,14 @@
-import {useFieldId} from '@sentry/scraps/form/field/baseField';
+import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 function HintText(props: {children: string}) {
+  const id = useHintTextId();
+
   return (
     <Container width="fit-content">
       {containerProps => (
-        <Text {...containerProps} size="sm" variant="muted">
+        <Text {...containerProps} size="sm" variant="muted" id={id}>
           {props.children}
         </Text>
       )}

@@ -6,6 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 export type BaseFieldProps = Record<never, unknown>;
 
 type FieldChildrenProps = {
+  'aria-describedby': string;
   'aria-invalid': boolean;
   id: string;
   name: string;
@@ -46,6 +47,12 @@ export const useFieldId = () => {
   return field.form.formId + field.name;
 };
 
+export const useHintTextId = () => {
+  const fieldId = useFieldId();
+
+  return `${fieldId}-hint`;
+};
+
 export function BaseField(
   props: BaseFieldProps & {
     children: (props: FieldChildrenProps, state: FieldStateProps) => React.ReactNode;
@@ -55,10 +62,12 @@ export function BaseField(
   const hasError = field.state.meta.isTouched && !field.state.meta.isValid;
   const indicator = useFieldStateIndicator();
   const fieldId = useFieldId();
+  const hintTextId = useHintTextId();
 
   return props.children(
     {
       'aria-invalid': hasError,
+      'aria-describedby': hintTextId,
       onBlur: field.handleBlur,
       name: field.name,
       id: fieldId,
