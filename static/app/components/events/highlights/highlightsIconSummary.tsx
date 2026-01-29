@@ -130,7 +130,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
             <Fragment>
               <ScreenshotButton
                 type="button"
-                borderless
+                priority="transparent"
                 size="zero"
                 icon={<IconAttachment variant="muted" />}
                 title={t('View Screenshot')}
