@@ -266,7 +266,7 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert values[0]["value"] == 0
         assert values[1]["value"] == 1
 
-    def test_cross_trace_qurey_with_multiple_logs(self) -> None:
+    def test_cross_trace_query_with_multiple_logs(self) -> None:
         trace_id = uuid.uuid4().hex
         excluded_trace_id = uuid.uuid4().hex
         logs = [
@@ -384,7 +384,7 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
                 )
             ]
 
-            self.do_request(
+            response = self.do_request(
                 {
                     "field": ["tags[foo]", "count()"],
                     "query": "description:baz",
@@ -394,11 +394,14 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
                     "interval": "1d",
                     "statsPeriod": "1d",
                     "topEvents": 5,
+                    "excludeOther": 1,
                     "groupBy": ["tags[foo]"],
                     "logQuery": ["message:foo"],
                 }
             )
 
+            # Verify the response was successful
+            assert response.status_code == 200, response.content
             # Verify the RPC was called with trace_filters
             assert mock_timeseries_rpc.called
             # Get the requests argument (first positional argument)
