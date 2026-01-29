@@ -39,7 +39,15 @@ void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
     Settings->SendDefaultPii = true;
 
     // If your game/app doesn't have sensitive data, you can get screenshots on error events automatically
-    Settings->AttachScreenshot = true;
+    Settings->AttachScreenshot = true;${
+      params.isPerformanceSelected
+        ? `
+
+    // Set traces_sample_rate to 1.0 to capture 100% of transactions for tracing.
+    // We recommend adjusting this value in production.
+    Settings->TracesSampleRate = 1.0f;`
+        : ''
+    }
 }
 
 ...
@@ -111,6 +119,19 @@ export const onboarding: OnboardingConfig = {
           code: params.dsn.public,
         },
         {
+          type: 'conditional',
+          condition: params.isPerformanceSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable performance monitoring, set the [strong:Traces Sample Rate] option in the Sentry configuration window. For example, set it to [strong:1.0] to capture 100% of transactions.',
+                {strong: <strong />}
+              ),
+            },
+          ],
+        },
+        {
           type: 'text',
           text: tct(
             "By default, the SDK initializes automatically when the application starts. Alternatively, you can disable the [strong:Initialize SDK automatically] option, in which case you'll need to initialize the SDK manually",
@@ -142,6 +163,51 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isPerformanceSelected
+      ? ([
+          {
+            title: t('Tracing'),
+            content: [
+              {
+                type: 'text',
+                text: t(
+                  'You can measure the performance of your code by capturing transactions and spans.'
+                ),
+              },
+              {
+                type: 'code',
+                language: 'cpp',
+                code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
+
+// Start a transaction
+USentryTransaction* Transaction = SentrySubsystem->StartTransaction(
+    TEXT("test-transaction-name"),
+    TEXT("test-transaction-operation")
+);
+
+// Start a child span
+USentrySpan* Span = Transaction->StartChild(TEXT("test-child-operation"));
+
+// ... Perform your operation
+
+Span->Finish();
+Transaction->Finish();`,
+              },
+              {
+                type: 'text',
+                text: tct(
+                  'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/unreal/tracing/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     {
       title: t('Crash Reporter Client'),
       content: [
