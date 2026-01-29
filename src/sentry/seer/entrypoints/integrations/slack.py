@@ -4,12 +4,14 @@ import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, TypedDict
 
+import orjson
 from slack_sdk.models.blocks.blocks import Block
 
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import NotificationService
@@ -30,6 +32,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.locking.lock import Lock
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +115,13 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 },
             )
         return stopping_point
+
+    def get_autofix_lock(self) -> Lock:
+        return locks.get(
+            f"autofix:entrypoint:{self.key.value}:{self.group.id}:{self.autofix_stopping_point.value}",
+            duration=10,
+            name=f"autofix_entrypoint_{self.key.value}",
+        )
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         send_thread_update(
@@ -264,7 +274,7 @@ def send_thread_update(
     """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
     logging_ctx = {
         "entrypoint_key": SeerEntrypointKey.SLACK,
-        "install": install,
+        "integration_id": install.model.id,
         "thread": thread,
         "data_source": data.source,
         "ephemeral_user_id": ephemeral_user_id,
@@ -324,6 +334,14 @@ def process_thread_update(
         status=ObjectStatus.ACTIVE,
     )
     if not integration:
+        logger.warning(
+            "entrypoint.process_thread_update.integration_not_found",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "entrypoint_key": SeerEntrypointKey.SLACK.value,
+            },
+        )
         return
 
     send_thread_update(
@@ -343,6 +361,11 @@ def schedule_all_thread_updates(
     ephemeral_user_id: str | None = None,
 ) -> None:
     """Schedules a task for each thread update to allow retries."""
+    try:
+        orjson.dumps(data)
+    except orjson.JSONDecodeError:
+        raise ValueError("Invalid data object used for thread update. Must be JSON serializable.")
+
     for thread in threads:
         process_thread_update.apply_async(
             kwargs={
@@ -450,7 +473,7 @@ def handle_prepare_autofix_update(
         extra={
             "cache_key": cache_result["key"],
             "cache_source": cache_result["source"],
-            "threads_count": len(threads),
+            "thread_count": len(threads),
             "group_id": group.id,
             "organization_id": organization_id,
         },

@@ -60,6 +60,7 @@ from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 _logger = logging.getLogger(__name__)
 
@@ -569,18 +570,26 @@ class SlackActionEndpoint(Endpoint):
         group: Group,
         user: RpcUser,
     ) -> None:
+
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
             action=action,
             group=group,
             organization_id=group.project.organization_id,
         )
-        SeerOperator(entrypoint=entrypoint).trigger_autofix(
-            group=group,
-            user=user,
-            stopping_point=entrypoint.autofix_stopping_point,
-            run_id=entrypoint.autofix_run_id,
-        )
+        lock = entrypoint.get_autofix_lock()
+        try:
+            with lock.acquire():
+                SeerOperator(entrypoint=entrypoint).trigger_autofix(
+                    group=group,
+                    user=user,
+                    stopping_point=entrypoint.autofix_stopping_point,
+                    run_id=entrypoint.autofix_run_id,
+                )
+        except UnableToAcquireLock:
+            # Might be a double click, or Seer is taking it's time confirming the run start.
+            # The entrypoint will handle removing the button once it starts the run anyway.
+            return
 
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
