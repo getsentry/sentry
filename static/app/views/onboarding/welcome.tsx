@@ -110,7 +110,11 @@ function LegacyWelcomeUI(props: StepProps) {
               src={OnboardingInstall}
               cta={
                 <Fragment>
-                  <ButtonWithFill onClick={handleComplete} priority="primary">
+                  <ButtonWithFill
+                    onClick={handleComplete}
+                    priority="primary"
+                    data-test-id="onboarding-welcome-start"
+                  >
                     {t('Start')}
                   </ButtonWithFill>
                   {(fallCount === 0 || isFalling) && (
