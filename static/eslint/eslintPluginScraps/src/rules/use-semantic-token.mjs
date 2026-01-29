@@ -5,7 +5,7 @@
  * CSS properties based on their semantic category.
  */
 
-import {createStyleCollector} from '../ast/extractor/index.mjs';
+import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index.mjs';
 import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules.mjs';
 
 /**
@@ -41,6 +41,11 @@ export const useSemanticToken = {
   },
 
   create(context) {
+    // Fast bailout: skip files without emotion/styled patterns
+    if (!shouldAnalyze(context)) {
+      return {};
+    }
+
     const options = context.options[0] ?? {};
     /** @type {Set<string> | null} */
     const enabledCategories = options.enabledCategories
