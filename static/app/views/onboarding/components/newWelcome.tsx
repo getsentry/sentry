@@ -96,17 +96,19 @@ type ProductCardProps = {
 
 function ProductCard({icon, title, description}: ProductCardProps) {
   return (
-    <ProductCardContainer border="muted" radius="lg" padding="xl">
-      <Flex align="center">{icon}</Flex>
-      <Flex direction="column" gap="xs">
-        <Text bold size="lg" density="comfortable">
-          {title}
-        </Text>
-        <Text variant="muted" size="md" density="comfortable">
-          {description}
-        </Text>
-      </Flex>
-    </ProductCardContainer>
+    <Container border="muted" radius="lg" padding="xl">
+      <Stack gap="xl">
+        <Flex align="center">{icon}</Flex>
+        <Stack gap="xs">
+          <Text bold size="lg" density="comfortable">
+            {title}
+          </Text>
+          <Text variant="muted" size="md" density="comfortable">
+            {description}
+          </Text>
+        </Stack>
+      </Stack>
+    </Container>
   );
 }
 
@@ -194,6 +196,7 @@ export function NewWelcomeUI(props: StepProps) {
                   "Analyze issues, review PRs, and propose code fixes.\nBecause of course we have an AI tool, it's 2026."
                 )}
               </Text>
+
               <Flex gap="xs" align="center">
                 <IconInfo size="xs" />
                 <Text variant="muted" size="xs" density="comfortable">
@@ -250,12 +253,6 @@ const ContentWrapper = styled(motion.div)`
 
 const NewWelcomeTitle = styled(Heading)`
   font-size: 32px;
-`;
-
-const ProductCardContainer = styled(Container)`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
 `;
 
 const SeerCard = styled(Container)`
