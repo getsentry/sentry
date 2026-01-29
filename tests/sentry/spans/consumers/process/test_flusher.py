@@ -179,7 +179,10 @@ def test_flusher_waits_for_processes_to_start() -> None:
     with (
         mock.patch.object(SpanFlusher, "main", never_healthy_main),
         override_options(
-            {"spans.buffer.flusher.max-unhealthy-seconds": 0.5}
+            {
+                "spans.buffer.flusher.max-unhealthy-seconds": 0.5,
+                "spans.buffer.flusher.use-stuck-detector": False,
+            }
         ),  # Should raise RuntimeError because the process never reports as healthy
         pytest.raises(RuntimeError, match="process 0 \\(shards \\[0\\]\\) didn't start up"),
     ):
