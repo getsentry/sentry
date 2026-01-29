@@ -31,13 +31,13 @@ import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
 interface AppSizeTreemapProps {
+  highlightInsights: boolean;
+  insightsAvailable: boolean;
+  onHighlightInsightsChange: (enabled: boolean) => void;
   root: TreemapElement | null;
   searchQuery: string;
   alertMessage?: string;
-  highlightInsights?: boolean;
-  insightsAvailable?: boolean;
   onAlertClick?: () => void;
-  onHighlightInsightsChange?: (enabled: boolean) => void;
   onSearchChange?: (query: string) => void;
   unfilteredRoot?: TreemapElement;
 }
@@ -52,18 +52,18 @@ function FullscreenModalContent({
   onHighlightInsightsChange,
   insightsAvailable,
 }: {
+  initialHighlightInsights: boolean;
   initialSearch: string;
+  insightsAvailable: boolean;
+  onHighlightInsightsChange: (enabled: boolean) => void;
   unfilteredRoot: TreemapElement;
   alertMessage?: string;
-  initialHighlightInsights?: boolean;
-  insightsAvailable?: boolean;
   onAlertClick?: () => void;
-  onHighlightInsightsChange?: (enabled: boolean) => void;
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
   const [localHighlightInsights, setLocalHighlightInsights] = useState(
-    initialHighlightInsights ?? true
+    initialHighlightInsights
   );
   const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch, '');
 
@@ -74,7 +74,7 @@ function FullscreenModalContent({
 
   const handleHighlightInsightsChange = (enabled: boolean) => {
     setLocalHighlightInsights(enabled);
-    onHighlightInsightsChange?.(enabled);
+    onHighlightInsightsChange(enabled);
   };
 
   return (
@@ -391,7 +391,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
             ariaLabel: t('Toggle Insight Highlighting'),
             title: highlightInsights ? t('Hide Insights') : t('Insights'),
             icon: <IconLightning />,
-            onClick: () => onHighlightInsightsChange?.(!highlightInsights),
+            onClick: () => onHighlightInsightsChange(!highlightInsights),
             disabled: false,
             active: highlightInsights,
           },
