@@ -37,7 +37,6 @@ declare global {
   }
 
   namespace React {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- T required for declaration merging with React.DOMAttributes
     interface DOMAttributes<T> {
       'data-test-id'?: string;
     }
