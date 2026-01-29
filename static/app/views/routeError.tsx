@@ -93,7 +93,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
   // TODO(dcramer): show additional resource links
   return (
     <Alert.Container>
-      <Alert type="error" showIcon={false}>
+      <Alert variant="danger" showIcon={false}>
         <Heading>{t('Oops! Something went wrong')}</Heading>
         <p>
           {t(`
@@ -135,7 +135,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
 }
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.4;
   margin-bottom: ${space(1)};
 `;

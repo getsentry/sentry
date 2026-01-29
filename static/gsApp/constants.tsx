@@ -19,7 +19,7 @@ export const CPE_MULTIPLIER_TO_CENTS = 0.000001;
 export const GIGABYTE = 10 ** 9;
 
 // the first tier is the default tier
-export const SUPPORTED_TIERS = [PlanTier.AM3, PlanTier.AM2, PlanTier.AM1];
+const SUPPORTED_TIERS = [PlanTier.AM3, PlanTier.AM2, PlanTier.AM1];
 export const DEFAULT_TIER = SUPPORTED_TIERS[0];
 export const UPSELL_TIER = SUPPORTED_TIERS[1]; // TODO(am3): Update to DEFAULT_TIER when upsells are configured for AM3
 
@@ -215,5 +215,17 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 1,
     tallyType: 'seat',
     shortenedUnitName: t('contributor'),
+  },
+  [DataCategoryExact.SIZE_ANALYSIS]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SIZE_ANALYSIS],
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1,
+    shortenedUnitName: t('upload'),
+  },
+  [DataCategoryExact.INSTALLABLE_BUILD]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1,
+    shortenedUnitName: t('distribution'),
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

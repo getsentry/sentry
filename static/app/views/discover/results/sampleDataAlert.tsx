@@ -42,7 +42,7 @@ export function SampleDataAlert({query}: {query?: string}) {
 
   return (
     <Alert.Container>
-      <Alert type="warning">
+      <Alert variant="warning">
         <AlertContent>
           {t(
             'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
@@ -61,7 +61,7 @@ export function SampleDataAlert({query}: {query?: string}) {
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.color};
+  color: ${p => p.theme.colors.yellow500};
   pointer-events: all;
   &:hover {
     opacity: 0.5;

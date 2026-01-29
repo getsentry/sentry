@@ -114,8 +114,8 @@ export function IssueDetailsEventNavigation({
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
   const grayText = css`
-    color: ${theme.subText};
-    font-weight: ${theme.fontWeight.normal};
+    color: ${theme.tokens.content.secondary};
+    font-weight: ${theme.font.weight.sans.regular};
   `;
 
   return (
@@ -124,7 +124,7 @@ export function IssueDetailsEventNavigation({
         <LinkButton
           aria-label={t('Previous Event')}
           title={t('Previous Event')}
-          borderless
+          priority="transparent"
           size="xs"
           icon={<IconChevron direction="left" />}
           disabled={!defined(event?.previousEventID)}
@@ -148,7 +148,7 @@ export function IssueDetailsEventNavigation({
         <LinkButton
           aria-label={t('Next Event')}
           title={t('Next Event')}
-          borderless
+          priority="transparent"
           size="xs"
           icon={<IconChevron direction="right" />}
           disabled={!defined(event?.nextEventID)}

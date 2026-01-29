@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -37,7 +39,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
     return (
       <Flex gap="md" align="center" justify="center">
         <ArchivedWrapper>
-          <IconDelete color="gray500" size="md" />
+          <IconDelete variant="primary" size="md" />
         </ArchivedWrapper>
 
         <Flex direction="column" gap="xs">
@@ -57,7 +59,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
   );
 
   return (
-    <CardSpacing>
+    <Container padding="xs xs 0 xs" position="relative">
       <a
         href={replayDetailsPathname}
         onClick={e => {
@@ -88,7 +90,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
               {project ? <span>{project.slug}</span> : null}
               <span>{getShortEventId(replay.id)}</span>
               <Flex gap="xs">
-                <IconCalendar color="gray300" size="xs" />
+                <IconCalendar variant="muted" size="xs" />
                 <TimeSince date={replay.started_at} />
               </Flex>
             </Flex>
@@ -96,14 +98,9 @@ export default function ReplayListItem({replay, onClick}: Props) {
           <InteractionStateLayer />
         </Flex>
       </a>
-    </CardSpacing>
+    </Container>
   );
 }
-
-const CardSpacing = styled('div')`
-  position: relative;
-  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
-`;
 
 const ArchivedWrapper = styled(Flex)`
   width: ${p => p.theme.space['2xl']};
@@ -114,8 +111,11 @@ const ArchivedWrapper = styled(Flex)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.secondary};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
@@ -124,10 +124,14 @@ const SubText = styled('div')`
 
 const DisplayName = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: normal;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

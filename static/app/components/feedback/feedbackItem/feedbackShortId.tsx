@@ -76,7 +76,7 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
           'aria-label': t('Short-ID copy actions'),
           icon: <IconChevron direction="down" size="xs" />,
           size: 'zero',
-          borderless: true,
+          priority: 'transparent',
           showChevron: false,
         }}
         position="bottom"
@@ -113,6 +113,6 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
 }
 
 const ShortId = styled(TextOverflow)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

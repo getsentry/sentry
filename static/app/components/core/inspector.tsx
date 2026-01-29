@@ -2,7 +2,6 @@ import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
-import color from 'color';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -449,13 +448,13 @@ export function SentryComponentInspector() {
           }
 
           [data-sentry-component-trace][data-sentry-source-path]:not([data-inspector-skip]) {
-            box-shadow: 0 0 0 1px ${theme.tokens.border.success} !important;
-            background-color: ${color(theme.tokens.border.success).fade(0.95).toString()} !important;
+            box-shadow: 0 0 0 1px ${theme.tokens.border.success.vibrant} !important;
+            background-color: ${theme.tokens.border.success.muted} !important;
           }
 
           [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) {
-            box-shadow: 0 0 0 1px ${theme.tokens.border.accent} !important;
-            background-color: ${color(theme.tokens.border.accent).fade(0.6).toString()} !important;
+            box-shadow: 0 0 0 1px ${theme.tokens.border.accent.vibrant} !important;
+            background-color: ${theme.tokens.border.accent.muted} !important;
           }
 
           [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path*="app/components/core"],
@@ -487,9 +486,6 @@ function MenuItem(props: {
   });
 
   const story = storyQuery.data?.[0];
-
-  const figmaLink =
-    story && isMDXStory(story) ? story.exports.frontmatter?.resources?.figma : null;
 
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -607,13 +603,22 @@ function MenuItem(props: {
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
-                    if (figmaLink) {
-                      window.open(figmaLink, '_blank');
+                    if (
+                      story &&
+                      isMDXStory(story) &&
+                      story.exports.frontmatter?.resources?.figma
+                    ) {
+                      window.open(story.exports.frontmatter?.resources?.figma, '_blank');
                       props.onAction();
                     }
                   },
                 })}
-                disabled={storyQuery.isLoading || !figmaLink}
+                disabled={
+                  storyQuery.isLoading ||
+                  !story ||
+                  !isMDXStory(story) ||
+                  !story.exports.frontmatter?.resources?.figma
+                }
                 icon={
                   storyQuery.isLoading ? (
                     <LoadingIndicator mini size={12} />
@@ -672,7 +677,7 @@ function MenuItem(props: {
 function ComponentTag({el}: {el: TraceElement}) {
   if (isCoreComponent(el)) {
     return (
-      <Tag type="success">
+      <Tag variant="success">
         <Text size="sm" monospace>
           CORE
         </Text>
@@ -682,7 +687,7 @@ function ComponentTag({el}: {el: TraceElement}) {
 
   if (isViewComponent(el)) {
     return (
-      <Tag type="highlight">
+      <Tag variant="info">
         <Text size="sm" monospace>
           VIEW
         </Text>
@@ -691,7 +696,7 @@ function ComponentTag({el}: {el: TraceElement}) {
   }
 
   return (
-    <Tag type="warning">
+    <Tag variant="warning">
       <Text size="sm" monospace>
         SHARED
       </Text>

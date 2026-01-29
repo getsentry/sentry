@@ -153,7 +153,7 @@ export default function MonitorCreateForm() {
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
                           css={css`
                             input {
-                              font-family: ${theme.text.familyMono};
+                              font-family: ${theme.font.family.mono};
                             }
                           `}
                           required={selectedCrontab}
@@ -250,7 +250,7 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
   ${p =>
     p.highlighted
       ? css`
-          border: 2px solid ${p.theme.colors.blue400};
+          border: 2px solid ${p.theme.tokens.border.accent.vibrant};
         `
       : css`
           padding: 1px;
@@ -262,18 +262,18 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
 `;
 
 const ScheduleLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(2)};
 `;
 
 const Label = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SubHeading = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};
   text-transform: uppercase;
@@ -303,8 +303,8 @@ const IntervalInputs = styled(MultiColumnInput)`
 `;
 
 const CronstrueText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
   grid-column: auto / span 2;
 `;

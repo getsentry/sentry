@@ -43,7 +43,7 @@ export function MetricAlertQuotaIcon() {
           }
         )}
       >
-        <IconWarning color="subText" size="sm" />
+        <IconWarning variant="muted" size="sm" />
       </Tooltip>
     );
   }

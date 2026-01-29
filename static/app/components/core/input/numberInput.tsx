@@ -82,7 +82,7 @@ export function NumberInput({
           <StepButton
             ref={incrementButtonRef}
             size="zero"
-            borderless
+            priority="transparent"
             {...incrementProps}
             aria-label={incrementProps['aria-label'] ?? t('Increment')}
             icon={<StyledIconChevron direction="up" />}
@@ -90,7 +90,7 @@ export function NumberInput({
           <StepButton
             ref={decrementButtonRef}
             size="zero"
-            borderless
+            priority="transparent"
             {...decrementProps}
             aria-label={decrementProps['aria-label'] ?? t('Decrement')}
             icon={<StyledIconChevron direction="down" />}
@@ -114,7 +114,7 @@ const StepButton = styled(Button)`
   height: 50%;
   padding: 0 ${space(0.25)};
   min-height: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconChevron = styled(IconChevron)`

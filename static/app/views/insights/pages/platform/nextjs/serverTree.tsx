@@ -21,6 +21,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -70,7 +71,7 @@ const HOVERCARD_BODY_CLASS_NAME = 'ssrTreeHovercard';
 
 const getP95Threshold = (avg: number) => {
   return {
-    error: avg * 3,
+    danger: avg * 3,
     warning: avg * 2,
   };
 };
@@ -167,7 +168,9 @@ export function ServerTree() {
 
   const treeRequest = useApiQuery<TreeResponse>(
     [
-      `/organizations/${organization.slug}/insights/tree/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/insights/tree/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pageFilterChartParams,
@@ -265,7 +268,7 @@ function TreeNodeRenderer({
       <Fragment>
         <div>
           <PathWrapper style={{paddingLeft: indent * 18}}>
-            <IconCode color="subText" size="xs" />
+            <IconCode variant="muted" size="xs" />
             <TextOverflow>
               {exploreLink ? <Link to={exploreLink}>{item.name}</Link> : item.name}
             </TextOverflow>
@@ -296,9 +299,9 @@ function TreeNodeRenderer({
             direction={isCollapsed ? 'right' : 'down'}
           />
           {item.type === 'file' ? (
-            <IconFile color="subText" size="xs" />
+            <IconFile variant="muted" size="xs" />
           ) : (
-            <IconProject color="subText" size="xs" />
+            <IconProject variant="muted" size="xs" />
           )}
           <ClassNames>
             {({css: className}) => (
@@ -318,7 +321,7 @@ function TreeNodeRenderer({
                     <code>{`${itemPath.join('/')}`}</code>
                     <Button
                       size="zero"
-                      borderless
+                      priority="transparent"
                       icon={<IconCopy size="xs" />}
                       aria-label={t('Copy')}
                       onClick={() => {
@@ -360,9 +363,9 @@ const HeaderCell = styled('div')`
   padding: ${space(2)} ${space(0.75)};
   text-transform: uppercase;
   font-weight: 600;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  border-bottom: 1px solid ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   white-space: nowrap;
   line-height: 1;
   position: sticky;
@@ -381,7 +384,7 @@ const PathWrapper = styled('div')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   user-select: none;
   width: 10px;
@@ -392,8 +395,8 @@ const OneLineCodeBlock = styled('pre')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
   margin: 0;
@@ -404,7 +407,7 @@ const OneLineCodeBlock = styled('pre')`
 const TreeGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content min-content min-content;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   & > * {
     text-align: right;
@@ -427,7 +430,7 @@ const TreeGrid = styled('div')`
   & > *:nth-child(8n + 2),
   & > *:nth-child(8n + 3),
   & > *:nth-child(8n + 4) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

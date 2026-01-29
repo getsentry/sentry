@@ -133,7 +133,7 @@ function RequestUpdateAlert({
   return (
     <AlertWithCustomMargin
       system
-      type="info"
+      variant="info"
       trailingItems={
         <Button
           size="xs"
@@ -210,7 +210,7 @@ function UpdatePlanAlert({
 
   return (
     <AlertWithCustomMargin
-      type="info"
+      variant="info"
       system
       trailingItems={
         isAncientPlan || !canSelfServe ? (

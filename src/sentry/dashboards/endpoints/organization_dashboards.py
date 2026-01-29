@@ -65,12 +65,16 @@ class PrebuiltDashboardId(IntEnum):
     FRONTEND_SESSION_HEALTH = 1
     BACKEND_QUERIES = 2
     BACKEND_QUERIES_SUMMARY = 3
+    HTTP = 4
+    HTTP_DOMAIN_SUMMARY = 5
     WEB_VITALS = 6
     WEB_VITALS_SUMMARY = 7
     MOBILE_VITALS = 8
     MOBILE_VITALS_APP_STARTS = 9
     MOBILE_VITALS_SCREEN_LOADS = 10
     MOBILE_VITALS_SCREEN_RENDERING = 11
+    BACKEND_OVERVIEW = 12
+    MOBILE_SESSION_HEALTH = 13
 
 
 class PrebuiltDashboard(TypedDict):
@@ -101,6 +105,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
         "title": "Query Details",
     },
     {
+        "prebuilt_id": PrebuiltDashboardId.HTTP,
+        "title": "Outbound API Requests",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY,
+        "title": "Domain Details",
+    },
+    {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
         "title": "Web Vitals",
     },
@@ -123,6 +135,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
         "title": "Screen Rendering",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
+        "title": "Backend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
+        "title": "Mobile Session Health",
     },
 ]
 
@@ -291,6 +311,10 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
                 created_by_id=request.user.id
             )
+        elif filter_by == "excludePrebuilt":
+            dashboards = Dashboard.objects.filter(organization_id=organization.id).exclude(
+                prebuilt_id__isnull=False
+            )
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
@@ -458,7 +482,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if filter_by and filter_by in {"onlyFavorites", "owned"} or should_filter_by_prebuilt_ids:
+        if (
+            filter_by
+            and filter_by in {"onlyFavorites", "owned", "excludePrebuilt"}
+            or should_filter_by_prebuilt_ids
+        ):
             render_pre_built_dashboard = False
         elif pin_by and pin_by == "favorites":
             # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show
@@ -551,9 +579,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            duplicate = request.data.get("duplicate", False)
-
-            if not duplicate or retry >= MAX_RETRIES:
+            if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
 
             request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])

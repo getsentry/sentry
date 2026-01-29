@@ -2,6 +2,8 @@ import {useState} from 'react';
 import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -9,6 +11,7 @@ import {Text} from 'sentry/components/core/text';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {QuickStartProps} from 'sentry/views/insights/crons/components/manualCheckInGuides';
@@ -200,7 +203,11 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   const org = useOrganization();
 
   const {data: projectKeys} = useApiQuery<ProjectKey[]>(
-    [`/projects/${org.slug}/${project.slug}/keys/`],
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
+        path: {organizationIdOrSlug: org.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
     {staleTime: Infinity}
   );
 
@@ -241,7 +248,9 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
         )}
       </Text>
       <CompactSelect
-        triggerProps={{prefix: t('Guide')}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
+        )}
         searchable
         options={exampleOptions}
         value={selectedGuide}

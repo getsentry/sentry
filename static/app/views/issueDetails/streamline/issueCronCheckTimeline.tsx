@@ -217,8 +217,8 @@ const TimelineLegend = styled('div')`
 `;
 
 const TimelineLegendText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TimelineContainer = styled('div')`
@@ -233,9 +233,9 @@ const EnvironmentLabel = styled(Tooltip)`
   position: absolute;
   user-select: none;
   left: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 

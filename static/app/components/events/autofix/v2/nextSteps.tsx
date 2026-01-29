@@ -1,16 +1,24 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Container} from '@sentry/scraps/layout/container';
 import {Flex} from '@sentry/scraps/layout/flex';
 
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Text} from 'sentry/components/core/text';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {
+  useCodingAgentIntegrations,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
-import {IconChat} from 'sentry/icons';
+import {IconChat, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
 
 const STEP_LABELS: Record<AutofixExplorerStep, string> = {
@@ -35,9 +43,21 @@ interface ExplorerNextStepsProps {
    */
   onStartStep: (step: AutofixExplorerStep) => void;
   /**
+   * Whether there are coding agents already launched.
+   */
+  hasCodingAgents?: boolean;
+  /**
+   * Whether the chat panel is already open with this run.
+   */
+  isChatAlreadyOpen?: boolean;
+  /**
    * Whether an action is currently loading.
    */
   isLoading?: boolean;
+  /**
+   * Callback when a coding agent handoff is requested.
+   */
+  onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
   /**
    * Callback when the open chat button is clicked.
    */
@@ -51,7 +71,8 @@ interface ExplorerNextStepsProps {
  */
 function getAvailableNextSteps(
   artifacts: Record<string, Artifact>,
-  hasCodeChanges: boolean
+  hasCodeChanges: boolean,
+  hasCodingAgents: boolean
 ): AutofixExplorerStep[] {
   const hasRootCause = 'root_cause' in artifacts;
   const hasSolution = 'solution' in artifacts;
@@ -66,12 +87,13 @@ function getAvailableNextSteps(
   // After root cause, all steps become available (except ones already completed)
   const available: AutofixExplorerStep[] = [];
 
-  if (!hasSolution) {
+  // Don't show "Plan a Solution" if code changes have been initiated
+  if (!hasSolution && !hasCodeChanges && !hasCodingAgents) {
     available.push('solution');
   }
 
-  // Only show code changes if they don't already exist
-  if (!hasCodeChanges) {
+  // Only show code changes if they don't already exist and no coding agents are launched
+  if (!hasCodeChanges && !hasCodingAgents) {
     available.push('code_changes');
   }
 
@@ -87,6 +109,96 @@ function getAvailableNextSteps(
 }
 
 /**
+ * Renders a step button with optional dropdown for coding agent integrations.
+ */
+function StepButton({
+  step,
+  index,
+  isLoading,
+  isBusy,
+  codingAgentIntegrations,
+  onStepClick,
+  onCodingAgentHandoff,
+}: {
+  index: number;
+  isBusy: boolean;
+  onStepClick: () => void;
+  step: AutofixExplorerStep;
+  codingAgentIntegrations?: CodingAgentIntegration[];
+  isLoading?: boolean;
+  onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
+}) {
+  const priority = index === 0 ? 'primary' : 'default';
+
+  // Only show dropdown for code_changes step when integrations are available
+  if (step !== 'code_changes' || !codingAgentIntegrations?.length) {
+    return (
+      <Button
+        onClick={onStepClick}
+        disabled={isLoading}
+        busy={isBusy}
+        priority={priority}
+      >
+        {STEP_LABELS[step]}
+      </Button>
+    );
+  }
+
+  // Build dropdown items for coding agent integrations
+  const dropdownItems = codingAgentIntegrations.map(integration => {
+    const needsSetup = integration.requires_identity && !integration.has_identity;
+    const actionLabel = needsSetup
+      ? t('Setup %s', integration.name)
+      : t('Send to %s', integration.name);
+
+    return {
+      key: `agent:${integration.id ?? integration.provider}`,
+      label: (
+        <Flex gap="md" align="center">
+          <PluginIcon pluginId={integration.provider} size={16} />
+          <span>{actionLabel}</span>
+        </Flex>
+      ),
+      onAction: () => {
+        // OAuth redirect for integrations without identity
+        if (needsSetup) {
+          const currentUrl = window.location.href;
+          window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+          return;
+        }
+        onCodingAgentHandoff?.(integration);
+      },
+    };
+  });
+
+  return (
+    <ButtonBar merged gap="0">
+      <Button
+        onClick={onStepClick}
+        disabled={isLoading}
+        busy={isBusy}
+        priority={priority}
+      >
+        {STEP_LABELS[step]}
+      </Button>
+      <DropdownMenu
+        items={dropdownItems}
+        trigger={(triggerProps, isOpen) => (
+          <DropdownTrigger
+            {...triggerProps}
+            disabled={isLoading}
+            priority={priority}
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+            aria-label={t('More code fix options')}
+          />
+        )}
+        position="bottom-end"
+      />
+    </ButtonBar>
+  );
+}
+
+/**
  * Next steps buttons shown when an autofix run is completed.
  *
  * Shows available actions based on which artifacts have been generated.
@@ -94,29 +206,45 @@ function getAvailableNextSteps(
 export function ExplorerNextSteps({
   artifacts,
   hasCodeChanges,
+  hasCodingAgents = false,
+  isChatAlreadyOpen = false,
   onStartStep,
+  onCodingAgentHandoff,
   onOpenChat,
   isLoading,
 }: ExplorerNextStepsProps) {
-  const availableSteps = getAvailableNextSteps(artifacts, hasCodeChanges);
-  const [busyStep, setBusyStep] = useState<AutofixExplorerStep | null>(null);
+  const {data: codingAgentResponse} = useCodingAgentIntegrations();
+  const codingAgentIntegrations = codingAgentResponse?.integrations ?? [];
 
-  // Clear busy state when loading starts (step is triggered)
+  const availableSteps = getAvailableNextSteps(
+    artifacts,
+    hasCodeChanges,
+    hasCodingAgents
+  );
+  const [busyStep, setBusyStep] = useState<AutofixExplorerStep | null>(null);
+  const loadingIndicatorRef = useRef<ReturnType<typeof addLoadingMessage> | null>(null);
+
+  // Clear busy state and loading indicator when loading starts (step is triggered)
   useEffect(() => {
     if (isLoading && busyStep) {
       setBusyStep(null);
+      clearIndicators();
+      loadingIndicatorRef.current = null;
     }
   }, [isLoading, busyStep]);
 
-  // Clear busy state when the specific artifact for the busy step appears
+  // Clear busy state and loading indicator when the specific artifact for the busy step appears
   useEffect(() => {
     if (busyStep && busyStep in artifacts) {
       setBusyStep(null);
+      clearIndicators();
+      loadingIndicatorRef.current = null;
     }
   }, [artifacts, busyStep]);
 
   const handleStepClick = (step: AutofixExplorerStep) => {
     setBusyStep(step);
+    loadingIndicatorRef.current = addLoadingMessage(t('Starting...'));
     onStartStep(step);
   };
 
@@ -131,17 +259,18 @@ export function ExplorerNextSteps({
                   {t('Tell Seer what to do next...')}
                 </Text>
               </Flex>
-              <Flex gap="md">
+              <Flex gap="md" wrap="wrap">
                 {availableSteps.map((step, index) => (
-                  <Button
+                  <StepButton
                     key={step}
-                    onClick={() => handleStepClick(step)}
-                    disabled={isLoading}
-                    busy={busyStep === step}
-                    priority={index === 0 ? 'primary' : 'default'}
-                  >
-                    {STEP_LABELS[step]}
-                  </Button>
+                    step={step}
+                    index={index}
+                    isLoading={isLoading}
+                    isBusy={busyStep === step}
+                    codingAgentIntegrations={codingAgentIntegrations}
+                    onStepClick={() => handleStepClick(step)}
+                    onCodingAgentHandoff={onCodingAgentHandoff}
+                  />
                 ))}
               </Flex>
               <Text size="md" variant="muted">
@@ -153,6 +282,7 @@ export function ExplorerNextSteps({
                   onClick={onOpenChat}
                   priority="primary"
                   icon={<IconChat />}
+                  disabled={isChatAlreadyOpen}
                 >
                   {t('Open Chat')}
                 </Button>
@@ -169,6 +299,7 @@ export function ExplorerNextSteps({
                   onClick={onOpenChat}
                   priority="primary"
                   icon={<IconChat />}
+                  disabled={isChatAlreadyOpen}
                 >
                   {t('Open Chat')}
                 </Button>
@@ -183,4 +314,10 @@ export function ExplorerNextSteps({
 
 const AnimatedNextSteps = styled(motion.div)`
   transform-origin: top center;
+`;
+
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
+  border-left: none;
 `;

@@ -117,7 +117,7 @@ const Flex = styled('div')`
 const PerformanceScoreLabelContainer = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   min-width: 320px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
@@ -129,15 +129,15 @@ const PerformanceScoreLabelContainer = styled('div')`
 
 const PerformanceScoreLabel = styled('div')`
   width: 100%;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 export const PerformanceScoreSubtext = styled('div')`
   width: 100%;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: ${space(1)};
 `;
 

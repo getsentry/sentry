@@ -161,7 +161,7 @@ function SidebarContent() {
   // The panel shouldn't be activated in this case, but if so we'll show a message
   if (projects?.length > 0 && !shouldShowPerformanceTasks(projects)) {
     return (
-      <Alert type="info" showIcon={false}>
+      <Alert variant="info" showIcon={false}>
         {t("Performance isn't supported for your projects.")}
       </Alert>
     );
@@ -388,10 +388,10 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   margin-top: ${space(3)};
 `;
@@ -416,7 +416,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
 `;
 
@@ -429,6 +429,6 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   display: flex;
   align-items: center;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.successText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.success};
 `;

@@ -225,7 +225,7 @@ function ChartSelectionAlert() {
   }
 
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Flex align="center" justify="between">
         {t(
           'Drag to select a region in the chart above and see how its breakdowns differ from the baseline.'

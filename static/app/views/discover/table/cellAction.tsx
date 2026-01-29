@@ -443,7 +443,6 @@ function CellAction({
           trigger={triggerProps => (
             <ActionMenuTrigger
               {...triggerProps}
-              translucentBorder
               aria-label={t('Actions')}
               icon={<IconEllipsis size="xs" />}
               size="zero"
@@ -488,7 +487,10 @@ const ActionMenuTrigger = styled(Button)`
 const ActionMenuTriggerV2 = styled('div')<{hasLinks?: boolean}>`
   a,
   span {
-    color: ${p => (p.hasLinks ? p.theme.linkColor : p.theme.tokens.content.primary)};
+    color: ${p =>
+      p.hasLinks
+        ? p.theme.tokens.interactive.link.accent.rest
+        : p.theme.tokens.content.primary};
   }
   :hover {
     cursor: pointer;

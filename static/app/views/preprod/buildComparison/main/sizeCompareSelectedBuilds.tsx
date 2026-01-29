@@ -10,9 +10,11 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
@@ -32,7 +34,7 @@ function BuildButton({
   projectType,
 }: BuildButtonProps) {
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
+  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
@@ -41,7 +43,12 @@ function BuildButton({
   const dateBuilt = buildDetails.app_info?.date_built;
   const dateAdded = buildDetails.app_info?.date_added;
 
-  const buildUrl = `/organizations/${organization.slug}/preprod/${projectId}/${buildId}/`;
+  const buildUrl =
+    getSizeBuildPath({
+      organizationSlug: organization.slug,
+      projectId,
+      baseArtifactId: buildId,
+    }) ?? '';
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;
@@ -122,9 +129,8 @@ function BuildButton({
               }}
               size="zero"
               priority="transparent"
-              borderless
               aria-label={t('Clear base build')}
-              icon={<IconClose size="xs" color="purple400" />}
+              icon={<IconClose size="xs" variant="accent" />}
             />
           </CloseButtonWrapper>
         )}
@@ -194,7 +200,7 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
-  const {projectId} = useParams<{projectId: string}>();
+  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const platform = headBuildDetails.app_info?.platform ?? null;
   const project = ProjectsStore.getBySlug(projectId);
   const projectType = project?.platform ?? null;
@@ -214,7 +220,7 @@ export function SizeCompareSelectedBuilds({
       {baseBuildDetails ? (
         <BuildButton
           buildDetails={baseBuildDetails}
-          icon={<IconFocus size="xs" color="purple400" />}
+          icon={<IconFocus size="xs" variant="accent" />}
           label={t('Base')}
           onRemove={onClearBaseBuild}
           slot="base"
@@ -258,7 +264,7 @@ const BuildBranch = styled('span')`
 `;
 
 const SelectBuild = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   border-style: dashed;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};

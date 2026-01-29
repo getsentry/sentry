@@ -98,7 +98,7 @@ const Wrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   white-space: nowrap;
 
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {

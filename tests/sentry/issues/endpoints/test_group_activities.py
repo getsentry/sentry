@@ -10,7 +10,7 @@ class GroupActivitiesEndpointTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/activities/"
+        url = f"/api/0/organizations/{group.organization.id}/issues/{group.id}/activities/"
         response = self.client.get(
             url,
             format="json",
@@ -32,7 +32,7 @@ class GroupActivitiesEndpointTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/activities/"
+        url = f"/api/0/organizations/{group.organization.id}/issues/{group.id}/activities/"
         response = self.client.get(
             url,
             format="json",

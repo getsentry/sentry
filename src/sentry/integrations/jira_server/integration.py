@@ -1378,6 +1378,9 @@ class JiraServerIntegration(IssueSyncIntegration):
             }
         )
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name", "verify_ssl"]
+
 
 class JiraServerIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.JIRA_SERVER.value

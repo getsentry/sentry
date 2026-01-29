@@ -2,18 +2,16 @@ import {useEffect, useState} from 'react';
 import type {PaymentIntentResult, Stripe, StripeElements} from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import InnerIntentForm from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
-import type {StripeIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-function StripePaymentIntentForm(props: StripeIntentFormProps) {
+function PaymentIntentForm(props: IntentFormProps) {
   const {organization, referrer, onSuccess} = props;
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,7 +71,6 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
         trackGetsentryAnalytics('billing_failure.paid_now', {
           organization,
           referrer: decodeScalar(referrer),
-          isStripeComponent: true,
         });
         addSuccessMessage(t('Payment sent successfully.'));
         onSuccess?.();
@@ -82,19 +79,17 @@ function StripePaymentIntentForm(props: StripeIntentFormProps) {
   };
 
   return (
-    <Flex direction="column" gap="xl">
-      {isError && <Alert type="error">{errorMessage}</Alert>}
-      <InnerIntentForm
-        {...props}
-        buttonText={props.buttonText}
-        busyButtonText={t('Sending Payment...')}
-        isSubmitting={isSubmitting}
-        intentData={intentData}
-        onError={setErrorMessage}
-        handleSubmit={handleSubmit}
-      />
-    </Flex>
+    <InnerIntentForm
+      {...props}
+      buttonText={props.buttonText}
+      busyButtonText={t('Sending Payment...')}
+      isSubmitting={isSubmitting}
+      intentData={intentData}
+      onError={setErrorMessage}
+      handleSubmit={handleSubmit}
+      errorMessage={errorMessage}
+    />
   );
 }
 
-export default StripePaymentIntentForm;
+export default PaymentIntentForm;

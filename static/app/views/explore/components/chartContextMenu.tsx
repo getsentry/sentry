@@ -177,7 +177,7 @@ function ChartContextMenu({
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        borderless: true,
+        priority: 'transparent',
         showChevron: false,
         icon: <IconEllipsis />,
       }}
@@ -190,5 +190,5 @@ function ChartContextMenu({
 export default ChartContextMenu;
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;

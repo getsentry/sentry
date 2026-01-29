@@ -308,14 +308,14 @@ const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
 const EmptyHighlights = styled('div')`
   padding: ${space(2)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px dashed ${p => p.theme.translucentBorder};
+  border: 1px dashed ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => p.theme.tokens.background.secondary};
   grid-column: 1 / -1;
   display: flex;
   text-align: center;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const EmptyHighlightsContent = styled('div')`
@@ -336,7 +336,7 @@ const HighlightColumn = styled(TreeColumn)`
 `;
 
 const HighlightContextContent = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const highlightModalCss = (theme: Theme) => css`

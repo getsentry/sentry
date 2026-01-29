@@ -32,7 +32,7 @@ class PluginDeprecationAlert extends Component<Props, State> {
       <div>
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             trailingItems={
               <UpgradeNowButton
                 href={`${upgradeUrl}${queryParams}`}
@@ -58,7 +58,7 @@ class PluginDeprecationAlert extends Component<Props, State> {
 }
 
 const UpgradeNowButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   float: right;
 `;
 

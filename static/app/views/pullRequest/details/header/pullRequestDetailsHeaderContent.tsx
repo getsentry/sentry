@@ -87,13 +87,13 @@ export function PullRequestDetailsHeaderContent({
 function getPrStateBadge(state: PullRequestState): React.ReactNode | null {
   switch (state) {
     case 'open':
-      return <Tag type="success">Open</Tag>;
+      return <Tag variant="success">Open</Tag>;
     case 'closed':
-      return <Tag type="error">Closed</Tag>;
+      return <Tag variant="danger">Closed</Tag>;
     case 'merged':
-      return <Tag type="info">Merged</Tag>;
+      return <Tag variant="info">Merged</Tag>;
     case 'draft':
-      return <Tag type="default">Draft</Tag>;
+      return <Tag variant="muted">Draft</Tag>;
     default:
       return null;
   }

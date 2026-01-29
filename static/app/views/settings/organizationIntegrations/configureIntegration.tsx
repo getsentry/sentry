@@ -391,7 +391,7 @@ function ConfigureIntegration() {
 
         {instructions && instructions.length > 0 && (
           <Alert.Container>
-            <Alert type="info" showIcon={false}>
+            <Alert variant="info" showIcon={false}>
               {instructions.length === 1 ? (
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}

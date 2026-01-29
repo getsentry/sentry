@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DatePicker} from 'sentry/components/calendar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -145,7 +147,7 @@ function SpecificDatePicker({
                 />
                 {t('Include time')}
               </CheckboxLabel>
-              <TimeUtcWrapper>
+              <Flex align="center" marginTop="md" gap="xl">
                 <TimeInput
                   disabled={!hasTime}
                   time={time ?? DEFAULT_DAY_START_TIME}
@@ -175,7 +177,7 @@ function SpecificDatePicker({
                     checked={utc}
                   />
                 </UtcPickerLabel>
-              </TimeUtcWrapper>
+              </Flex>
             </ControlsWrapper>
             <ButtonsFooter>
               <ButtonBar>
@@ -273,14 +275,7 @@ const StyledInput = styled(Input)`
 
 const ControlsWrapper = styled('div')`
   padding: ${space(1.5)} ${space(2)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-`;
-
-const TimeUtcWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const UtcPickerLabel = styled('label')`
@@ -290,14 +285,14 @@ const UtcPickerLabel = styled('label')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   user-select: none;
   gap: ${space(1)};
   cursor: pointer;
 
   &:has(:disabled) {
     cursor: not-allowed;
-    color: ${p => p.theme.disabled};
+    color: ${p => p.theme.tokens.content.disabled};
   }
 `;
 
@@ -306,7 +301,7 @@ const CheckboxLabel = styled('label')`
   align-items: center;
   margin: 0;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
 `;

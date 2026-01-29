@@ -38,6 +38,7 @@ import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
+  ABYTE_UNITS,
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
@@ -59,7 +60,6 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {hasDrillDownFlowsFeature} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {
   DashboardFilterKeys,
   type DashboardFilters,
@@ -119,6 +119,7 @@ export type RenderFunctionBaggage = {
   disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  projects?: Project[];
   /**
    * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
    */
@@ -163,7 +164,7 @@ type FieldFormatters = {
 };
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 export const emptyStringValue = (
@@ -209,16 +210,6 @@ export const SIZE_UNITS = {
   petabyte: 1000 ** 5,
   exabyte: 1000 ** 6,
 };
-
-export const ABYTE_UNITS = [
-  'byte',
-  'kilobyte',
-  'megabyte',
-  'gigabyte',
-  'terabyte',
-  'petabyte',
-  'exabyte',
-];
 
 // TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
@@ -471,7 +462,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               showChevron: false,
               icon: (
                 <Fragment>
-                  <IconDownload color="gray500" size="sm" />
+                  <IconDownload variant="primary" size="sm" />
                   <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
@@ -506,7 +497,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
                 : undefined
             }
           >
-            <IconDownload color="gray500" size="sm" />
+            <IconDownload variant="primary" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
@@ -786,7 +777,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
         <Tooltip title={label.tooltipTitle} isHoverable>
-          <Tag type={label.type}>{label.name}</Tag>
+          <Tag variant={label.variant}>{label.name}</Tag>
         </Tooltip>
       ) : (
         <Container>{emptyValue}</Container>
@@ -1350,7 +1341,11 @@ const StyledProjectBadge = styled(ProjectBadge)`
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export function getFieldRenderer(
@@ -1411,17 +1406,8 @@ function wrapFieldRendererInDashboardLink(
   dashboardFilters: DashboardFilters | undefined = undefined
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
-    const {organization, location} = baggage;
-    const value = data[field];
-    const dashboardUrl = getDashboardUrl(
-      field,
-      value,
-      organization,
-      location,
-      widget,
-      dashboardFilters
-    );
-    if (hasDrillDownFlowsFeature(organization) && dashboardUrl) {
+    const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
+    if (dashboardUrl) {
       return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
     }
     return renderer(data, baggage);
@@ -1429,13 +1415,13 @@ function wrapFieldRendererInDashboardLink(
 }
 
 function getDashboardUrl(
+  data: EventData,
   field: string,
-  value: any,
-  organization: Organization,
-  location: Location,
+  baggage: RenderFunctionBaggage,
   widget: Widget | undefined = undefined,
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
+  const {organization, location, projects} = baggage;
   if (widget?.widgetType && dashboardFilters) {
     // Table widget only has one query
     const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
@@ -1452,7 +1438,9 @@ function getDashboardUrl(
 
       // Format the value as a proper filter condition string
       const mutableSearch = new MutableSearch('');
-      const formattedValue = mutableSearch.addFilterValueList(field, [value]).toString();
+      const formattedValue = mutableSearch
+        .addFilterValueList(field, [data[field]])
+        .toString();
 
       newTemporaryFilters.push({
         dataset: widget.widgetType,
@@ -1471,14 +1459,22 @@ function getDashboardUrl(
         'end',
       ]);
 
+      if ('project' in data) {
+        const projectId = projects?.find(project => project.slug === data.project)?.id;
+        if (projectId) {
+          filterParams.project = projectId;
+        }
+      }
+
       const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
         {
-          ...filterParams,
           [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
             JSON.stringify(filter)
           ),
+          ...filterParams,
         }
       )}`;
+
       return url;
     }
   }

@@ -1,6 +1,9 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
@@ -212,23 +215,26 @@ function Chart({
   }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
 
   const Title = (
-    <ChartTitle>
+    <Flex>
       <Widget.WidgetTitle
         title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
       />
-    </ChartTitle>
+    </Flex>
   );
 
   const Actions = (
     <Fragment>
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
-          triggerProps={{
-            icon: <IconGraph type={chartIcon} />,
-            borderless: true,
-            showChevron: false,
-            size: 'xs',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconGraph type={chartIcon} />}
+              priority="transparent"
+              showChevron={false}
+              size="xs"
+            />
+          )}
           value={chartType}
           menuTitle="Type"
           options={EXPLORE_CHART_TYPE_OPTIONS}
@@ -239,12 +245,15 @@ function Chart({
         <CompactSelect
           value={interval}
           onChange={option => setInterval(option.value)}
-          triggerProps={{
-            icon: <IconClock />,
-            borderless: true,
-            showChevron: false,
-            size: 'xs',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconClock />}
+              priority="transparent"
+              showChevron={false}
+              size="xs"
+            />
+          )}
           menuTitle="Interval"
           options={intervalOptions}
         />
@@ -347,8 +356,4 @@ const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(1)};
   margin-bottom: ${space(1)};
-`;
-
-const ChartTitle = styled('div')`
-  display: flex;
 `;

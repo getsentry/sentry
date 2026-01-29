@@ -8,7 +8,7 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -167,7 +167,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   ];
 
   const handleSetupCursorHandoff = useCallback(async () => {
-    if (!cursorIntegration) {
+    if (!cursorIntegration?.id) {
       return;
     }
 
@@ -212,7 +212,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const anyStepIncomplete = incompleteStepIndices.length > 0;
 
   return (
-    <NoticesContainer>
+    <Stack align="stretch">
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
@@ -534,7 +534,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       )}
       {/* Banners for unreadable repos */}
       {hasMultipleUnreadableRepos && (
-        <StyledAlert type="warning" key="multiple-repos">
+        <StyledAlert variant="warning" key="multiple-repos">
           {tct("Seer can't access these repositories: [repoList].", {
             repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
           })}
@@ -559,7 +559,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         </StyledAlert>
       )}
       {hasSingleUnreadableRepo && (
-        <StyledAlert type="warning" key="single-repo">
+        <StyledAlert variant="warning" key="single-repo">
           {unreadableRepos[0]?.provider.includes('github')
             ? tct(
                 "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
@@ -578,7 +578,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               )}
         </StyledAlert>
       )}
-    </NoticesContainer>
+    </Stack>
   );
 }
 
@@ -590,17 +590,13 @@ const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};
 `;
 
-const NoticesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-`;
-
-const CardDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+function CardDescription(props: StackProps) {
+  return (
+    <Stack gap="md" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
 
 const CardIllustration = styled('img')`
   width: 100%;
@@ -620,42 +616,42 @@ const CursorPluginIcon = styled('div')`
   transform: translateY(3px);
 `;
 
-const StepContentRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: ${space(3)};
-`;
+function StepContentRow(props: FlexProps) {
+  return (
+    <Flex justify="between" align="center" gap="2xl" width="100%" {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
-const StepTextCol = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  flex: 0 0 75%;
-  min-width: 0;
-`;
+function StepTextCol(props: StackProps) {
+  return (
+    <Stack flex="0 0 75%" gap="xl" minWidth="0" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
 
-const StepImageCol = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  flex-grow: 1;
-`;
+function StepImageCol(props: FlexProps) {
+  return (
+    <Flex align="end" justify="end" flexGrow={1} {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
 const StepsHeader = styled('h3')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(0.5)};
   margin-left: 1px;
 `;
 
 const StepsDivider = styled('hr')`
   border: none;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${space(3)} 0;
 `;
 
@@ -664,12 +660,12 @@ const CollapsedSummaryCard = styled('div')`
   align-items: center;
   gap: ${space(1)};
   background: ${p => p.theme.colors.pink500}10;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
   padding: ${space(1)};
   margin-bottom: ${space(2)};
   cursor: pointer;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 500;
   color: ${p => p.theme.tokens.content.primary};
   transition: box-shadow 0.2s;

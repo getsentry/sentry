@@ -490,7 +490,7 @@ class ColumnEditCollection extends Component<Props, State> {
               onTouchStart={event => this.startDrag(event, i)}
               icon={<IconGrabbable size="xs" />}
               size="zero"
-              borderless
+              priority="transparent"
             />
           ) : singleColumn && showAliasField ? null : (
             <span />
@@ -533,7 +533,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 title={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
               />
             ) : (
               <RemoveButton
@@ -541,7 +541,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
               />
             )
           ) : singleColumn && showAliasField ? null : (
@@ -677,7 +677,7 @@ function OnDemandEquationsWarning() {
           `This is using indexed data because we don't routinely collect metrics for equations.`
         )}
       >
-        <IconWarning color="warningText" />
+        <IconWarning variant="warning" />
       </Tooltip>
     </OnDemandContainer>
   );
@@ -744,7 +744,7 @@ const OnDemandContainer = styled('div')`
 
 const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
-  border: 2px dashed ${p => p.theme.border};
+  border: 2px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   height: ${p => p.theme.form.md.height};
 `;

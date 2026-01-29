@@ -1,18 +1,14 @@
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {FormSize} from 'sentry/utils/theme';
+import {inputStyles, type InputStylesProps} from './inputStyles';
 
-import {chonkInputStyles} from './input.chonk';
-
+export {type InputStylesProps} from './inputStyles';
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
     InputStylesProps {
   ref?: React.Ref<HTMLInputElement>;
 }
-
-export const inputStyles = (p: InputStylesProps & {theme: Theme}) => chonkInputStyles(p);
 
 /**
  * Basic input component.
@@ -38,13 +34,5 @@ export const Input = styled(
   }: InputProps) => <input {...props} ref={ref} size={nativeSize} />,
   {shouldForwardProp: prop => prop === 'nativeSize' || isPropValid(prop)}
 )`
-  ${inputStyles};
+  ${p => inputStyles(p)};
 `;
-
-export interface InputStylesProps {
-  monospace?: boolean;
-  nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
-  readOnly?: React.InputHTMLAttributes<HTMLInputElement>['readOnly'];
-  size?: FormSize;
-  type?: React.HTMLInputTypeAttribute;
-}

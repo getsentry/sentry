@@ -69,15 +69,20 @@ export function BaseTrafficWidget({
       countSeries &&
         new Bars(countSeries, {
           alias: trafficSeriesName,
-          color: theme.chart.neutral,
+          color: theme.tokens.dataviz.semantic.neutral,
         }),
       errorRateSeries &&
         new Line(errorRateSeries, {
           alias: t('Error Rate'),
-          color: theme.error,
+          color: theme.tokens.content.danger,
         }),
     ].filter(defined);
-  }, [data, theme.error, theme.chart.neutral, trafficSeriesName]);
+  }, [
+    data,
+    theme.tokens.content.danger,
+    theme.tokens.dataviz.semantic.neutral,
+    trafficSeriesName,
+  ]);
 
   const isEmpty = useMemo(
     () =>

@@ -83,7 +83,7 @@ export function MetricsSamplesTable({
       <StyledSimpleTableBody>
         {!overrideTableData?.length && error ? (
           <SimpleTable.Empty style={{minHeight: '140px'}}>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </SimpleTable.Empty>
         ) : overrideTableData?.length || data?.length ? (
           (overrideTableData ?? data ?? []).map((row, i) => (

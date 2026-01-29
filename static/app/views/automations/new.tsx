@@ -1,6 +1,7 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Observer} from 'mobx-react-lite';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -15,6 +16,7 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,10 +36,12 @@ import {EditableAutomationName} from 'sentry/views/automations/components/editab
 import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
+import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -73,21 +77,18 @@ const initialData = {
 export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
 
-  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, any>
-  >({});
-  const removeError = useCallback((errorId: string) => {
-    setAutomationBuilderErrors(prev => {
-      const {[errorId]: _removedError, ...remainingErrors} = prev;
-      return remainingErrors;
-    });
-  }, []);
+  const {
+    errors: automationBuilderErrors,
+    setErrors: setAutomationBuilderErrors,
+    removeError,
+  } = useAutomationBuilderErrors();
 
   const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
@@ -109,36 +110,77 @@ export default function AutomationNewSettings() {
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
-      const newAutomationData = getNewAutomationData(data as AutomationFormData, state);
 
-      if (Object.keys(errors).length === 0) {
-        try {
-          formModel.setFormSaving();
-          const automation = await createAutomation(newAutomationData);
-          onSubmitSuccess(formModel.getData());
-          trackAnalytics('automation.created', {
-            organization,
-            ...getAutomationAnalyticsPayload(newAutomationData),
-            success: true,
-          });
-          navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
-        } catch (err) {
-          onSubmitError(err);
-          trackAnalytics('automation.created', {
-            organization,
-            ...getAutomationAnalyticsPayload(newAutomationData),
-            success: false,
-          });
-        }
-      } else {
+      if (Object.keys(errors).length > 0) {
+        const analyticsPayload = getAutomationAnalyticsPayload(
+          getNewAutomationData({
+            data: data as AutomationFormData,
+            state,
+          })
+        );
+        Sentry.logger.warn('Create alert form validation failed', {
+          errors,
+          details: analyticsPayload,
+        });
         trackAnalytics('automation.created', {
           organization,
-          ...getAutomationAnalyticsPayload(newAutomationData),
+          ...analyticsPayload,
+          source: 'full',
+          success: false,
+        });
+        return;
+      }
+
+      formModel.setFormSaving();
+
+      const formData = await resolveDetectorIdsForProjects({
+        formData: data as AutomationFormData,
+        onSubmitError,
+        orgSlug: organization.slug,
+        projectIds: data.projectIds,
+        queryClient,
+      });
+      if (!formData) {
+        return;
+      }
+      const newAutomationData = getNewAutomationData({
+        data: formData,
+        state,
+      });
+      const analyticsPayload = getAutomationAnalyticsPayload(newAutomationData);
+
+      try {
+        const automation = await createAutomation(newAutomationData);
+        onSubmitSuccess(formModel.getData());
+        trackAnalytics('automation.created', {
+          organization,
+          ...analyticsPayload,
+          source: 'full',
+          success: true,
+        });
+        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+      } catch (err) {
+        onSubmitError(err);
+        Sentry.logger.warn('Create alert request failure', {
+          error: err,
+          details: analyticsPayload,
+        });
+        trackAnalytics('automation.created', {
+          organization,
+          ...analyticsPayload,
+          source: 'full',
           success: false,
         });
       }
     },
-    [createAutomation, state, navigate, organization]
+    [
+      state,
+      setAutomationBuilderErrors,
+      organization,
+      queryClient,
+      createAutomation,
+      navigate,
+    ]
   );
 
   return (
@@ -188,7 +230,7 @@ export default function AutomationNewSettings() {
           </StyledBody>
         </Layout.Page>
         <StickyFooter>
-          <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <Observer>
               {() => (
                 <Button priority="primary" type="submit" disabled={model.isSaving}>

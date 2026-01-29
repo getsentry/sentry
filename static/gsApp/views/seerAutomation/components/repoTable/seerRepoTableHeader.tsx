@@ -26,7 +26,6 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Name'), key: 'name', sortKey: 'name'},
-  {title: t('Projects'), key: 'projects'},
   {title: t('Code Review'), key: 'code_review'},
 ];
 
@@ -138,7 +137,7 @@ export default function SeerRepoTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap" gap="md">
             {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
             <a onClick={selectAll}>
@@ -153,7 +152,7 @@ export default function SeerRepoTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert type="warning" system>
+        <FullGridAlert variant="warning" system>
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString

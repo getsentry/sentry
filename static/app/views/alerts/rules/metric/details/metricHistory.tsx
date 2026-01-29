@@ -70,7 +70,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
       <Cell>
         {triggeredActivity.value && (
           <StatusIndicator
-            status={isCritical ? 'error' : 'warning'}
+            status={isCritical ? 'danger' : 'warning'}
             tooltipTitle={t('Status: %s', isCritical ? t('Critical') : t('Warning'))}
           />
         )}
@@ -200,13 +200,13 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Cell = styled('div')`
   display: flex;
   align-items: center;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1)};
 `;

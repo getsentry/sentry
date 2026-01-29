@@ -75,19 +75,6 @@ class PostProcessJob(TypedDict, total=False):
     has_escalated: bool
 
 
-def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
-    from sentry.sentry_apps.models.servicehook import ServiceHook
-
-    cache_key = f"servicehooks:1:{project_id}"
-    result = cache.get(cache_key)
-
-    if result is None:
-        hooks = ServiceHook.objects.filter(servicehookproject__project_id=project_id)
-        result = [(h.id, h.events) for h in hooks]
-        cache.set(cache_key, result, 60)
-    return result
-
-
 def _should_send_error_created_hooks(project):
     from sentry.models.organization import Organization
     from sentry.sentry_apps.models.servicehook import ServiceHook
@@ -242,6 +229,7 @@ def handle_owner_assignment(job):
         ASSIGNEE_EXISTS_KEY,
         ISSUE_OWNERS_DEBOUNCE_DURATION,
         ISSUE_OWNERS_DEBOUNCE_KEY,
+        GroupOwner,
     )
     from sentry.models.projectownership import ProjectOwnership
 
@@ -249,25 +237,38 @@ def handle_owner_assignment(job):
     project, group = event.project, event.group
 
     assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
-    assignees_exists = cache.get(assignee_key)
-    if assignees_exists is None:
-        assignees_exists = group.assignee_set.exists()
+    assignee_cache_value = cache.get(assignee_key)
+
+    # Debounce assignee existence check if ownership rules haven't changed since the last time assignee was checked
+    assignee_exists = None
+    if assignee_cache_value is not None:
+        # Cache stores (value, timestamp) tuple for timestamp-based invalidation
+        cached_assignee_exists, assignee_debounce_time = assignee_cache_value
+        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+        if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
+            assignee_exists = cached_assignee_exists
+
+    if assignee_exists is None:
+        assignee_exists = group.assignee_set.exists()
         cache.set(
             assignee_key,
-            assignees_exists,
-            (ASSIGNEE_EXISTS_DURATION if assignees_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
+            (assignee_exists, timezone.now().timestamp()),
+            (ASSIGNEE_EXISTS_DURATION if assignee_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
         )
 
-    if assignees_exists:
+    if assignee_exists:
         metrics.incr("sentry.task.post_process.handle_owner_assignment.assignee_exists")
         return
 
     issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
-    debounce_issue_owners = cache.get(issue_owners_key)
+    issue_owners_debounce_time = cache.get(issue_owners_key)
 
-    if debounce_issue_owners:
-        metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
-        return
+    # Debounce if ownership rules haven't changed since the last evaluation of issue owners
+    if issue_owners_debounce_time is not None:
+        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+        if ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time:
+            metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
+            return
 
     if should_issue_owners_ratelimit(
         project_id=project.id,
@@ -299,7 +300,7 @@ def handle_owner_assignment(job):
         issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
         cache.set(
             issue_owners_key,
-            True,
+            timezone.now().timestamp(),
             ISSUE_OWNERS_DEBOUNCE_DURATION,
         )
 
@@ -1211,23 +1212,13 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
+    if _should_single_process_event(job):
+        # we will kick off service hooks in the workflow engine task
+        return
 
-    event, has_alert = job["event"], job["has_alert"]
+    from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 
-    if features.has("projects:servicehooks", project=event.project):
-        allowed_events = {"event.created"}
-        if has_alert:
-            allowed_events.add("event.alert")
-
-        for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-            if any(e in allowed_events for e in events):
-                process_service_hook.delay(
-                    servicehook_id=servicehook_id,
-                    project_id=event.project_id,
-                    group_id=event.group_id,
-                    event_id=event.event_id,
-                )
+    kick_off_service_hooks(job["event"], job["has_alert"])
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
@@ -1637,7 +1628,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if is_seer_scanner_rate_limited(group.project, group.organization):
             return
 
-        generate_summary_and_run_automation.delay(group.id)
+        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
         # Triage signals V0 behaviour
         # If event count < 10, only generate summary (no automation)
@@ -1702,7 +1693,9 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     return
 
                 # No summary yet, generate summary + run automation in one go
-                generate_summary_and_run_automation.delay(group.id)
+                generate_summary_and_run_automation.delay(
+                    group.id, trigger_path="seat_based_seer_automation"
+                )
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {

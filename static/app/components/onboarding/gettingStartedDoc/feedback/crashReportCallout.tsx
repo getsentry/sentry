@@ -5,7 +5,7 @@ import {tct} from 'sentry/locale';
 export default function crashReportCallout({link}: {link: string}) {
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         {tct(
           `Interested in receiving feedback only when an error happens? [link:Read the docs] to learn how to set up our crash-report modal.`,
           {

@@ -24,7 +24,7 @@ function guidePrioritySort(a: Guide, b: Guide) {
   return a_priority - b_priority;
 }
 
-export type GuideStoreState = {
+type GuideStoreState = {
   /**
    * Anchors that are currently mounted
    */

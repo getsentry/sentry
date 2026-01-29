@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -12,7 +11,7 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
@@ -22,7 +21,6 @@ import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
   getLabels,
-  getPlatformIconFromPlatform,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
@@ -34,19 +32,18 @@ interface BuildCompareHeaderContentProps {
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, projectId} = props;
-  const theme = useTheme();
-  const project = ProjectsStore.getBySlug(projectId);
+  const organization = useOrganization();
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
       label: t('Releases'),
     },
   ];
 
   if (buildDetails.app_info.version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(project?.id, {
+      to: makeReleasesUrl(organization.slug, projectId, {
         query: buildDetails.app_info.version,
         tab: 'mobile-builds',
       }),
@@ -60,7 +57,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
 
   return (
     <Flex justify="between" align="center" gap="lg">
-      <Stack gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
+      <Stack gap="lg" padding="0 0 lg 0">
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
           <FeatureBadge type="beta" />
@@ -80,9 +77,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           <Flex gap="sm" align="center">
             <InfoIcon>
               {buildDetails.app_info.platform ? (
-                <PlatformIcon
-                  platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
-                />
+                <PlatformIcon platform={buildDetails.app_info.platform} />
               ) : null}
             </InfoIcon>
             <Text>
@@ -102,7 +97,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {buildDetails.app_info.build_configuration && (
             <Tooltip title={t('Build configuration')}>
               <Flex gap="sm" align="center">
-                <IconMobile size="sm" color="gray300" />
+                <IconMobile size="sm" variant="muted" />
                 <Text monospace>{buildDetails.app_info.build_configuration}</Text>
               </Flex>
             </Tooltip>
@@ -110,7 +105,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {isSizeInfoCompleted(buildDetails.size_info) && (
             <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
-                <IconCode size="sm" color="gray300" />
+                <IconCode size="sm" variant="muted" />
                 <Text underline="dotted">
                   {formattedPrimaryMetricInstallSize(buildDetails.size_info)}
                 </Text>
@@ -120,7 +115,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           {isSizeInfoCompleted(buildDetails.size_info) && (
             <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
-                <IconDownload size="sm" color="gray300" />
+                <IconDownload size="sm" variant="muted" />
                 <Text underline="dotted">
                   {formattedPrimaryMetricDownloadSize(buildDetails.size_info)}
                 </Text>

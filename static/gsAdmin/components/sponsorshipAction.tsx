@@ -55,7 +55,7 @@ class SponsorshipAction extends Component<Props, State> {
       <Fragment>
         {subscription.isSponsored && (
           <Alert.Container>
-            <Alert type="info">This account is already sponsored.</Alert>
+            <Alert variant="info">This account is already sponsored.</Alert>
           </Alert.Container>
         )}
         <SelectField

@@ -154,25 +154,25 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 }
 
 const ItemTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ItemValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   max-width: 400px;
 `;
 
 const ItemTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const ItemLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.subText};
+  text-decoration-color: ${p => p.theme.tokens.content.secondary};
 `;

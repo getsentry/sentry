@@ -218,7 +218,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         ) : (
           <StyledSearchIcon
             data-test-id="trace-search-success"
-            color="subText"
+            variant="muted"
             size="xs"
           />
         )}
@@ -252,7 +252,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
           <Fragment>
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
               disabled={status?.[1] === 'loading'}
@@ -260,7 +260,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron size="xs" direction="down" />}
               aria-label={t('Previous')}
               disabled={status?.[1] === 'loading'}
@@ -268,7 +268,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             />
             <StyledSearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               disabled={status?.[1] === 'loading'}
               onClick={onSearchClear}
               icon={<IconClose size="xs" />}
@@ -345,8 +345,8 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 `;
 
 const StyledTrailingText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledSearchBar = styled(InputGroup)`

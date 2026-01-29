@@ -1,34 +1,32 @@
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
-import withSubscription from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import useSubscription from 'getsentry/hooks/useSubscription';
 import {GDPRPanel} from 'getsentry/views/legalAndCompliance/gdprPanel';
 import {TermsAndConditions} from 'getsentry/views/legalAndCompliance/termsAndConditions';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
-type Props = RouteComponentProps<unknown, unknown> & {
-  organization: Organization;
-  subscription: Subscription;
-};
+export default function LegalAndCompliance() {
+  const organization = useOrganization();
+  const subscription = useSubscription();
 
-function LegalAndCompliance(props: Props) {
+  if (!subscription) {
+    return <LoadingIndicator />;
+  }
+
   return (
-    <SubscriptionPageContainer background="secondary" organization={props.organization}>
+    <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader
         title="Legal & Compliance"
-        action={OrganizationRegionAction({organization: props.organization})}
+        action={OrganizationRegionAction({organization})}
       />
-      <TermsAndConditions {...props} />
-      <GDPRPanel subscription={props.subscription} />
+      <TermsAndConditions subscription={subscription} />
+      <GDPRPanel subscription={subscription} />
     </SubscriptionPageContainer>
   );
 }
-
-export default withOrganization(withSubscription(LegalAndCompliance));

@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
@@ -47,7 +49,7 @@ function DebugFileRow({
 
   return (
     <Fragment>
-      <Column>
+      <Stack align="start">
         <div>
           <DebugId>{debugId || uuid}</DebugId>
         </div>
@@ -58,8 +60,8 @@ function DebugFileRow({
             <TimeSince date={dateCreated} />
           </TimeWrapper>
         </TimeAndSizeWrapper>
-      </Column>
-      <Column>
+      </Stack>
+      <Stack align="start">
         <Name>
           {symbolType === 'proguard' && objectName === 'proguard-mapping'
             ? '\u2015'
@@ -72,7 +74,7 @@ function DebugFileRow({
             <FeatureTags>
               {features.map(feature => (
                 <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
-                  <StyledTag>{feature}</StyledTag>
+                  <StyledTag variant="muted">{feature}</StyledTag>
                 </Tooltip>
               ))}
             </FeatureTags>
@@ -88,8 +90,8 @@ function DebugFileRow({
             </div>
           )}
         </Description>
-      </Column>
-      <RightColumn>
+      </Stack>
+      <Flex justify="end" align="start" marginTop="md">
         <ButtonBar gap="xs">
           <Tooltip
             disabled={hasRole}
@@ -137,7 +139,7 @@ function DebugFileRow({
             )}
           </Access>
         </ButtonBar>
-      </RightColumn>
+      </Flex>
     </Fragment>
   );
 }
@@ -157,29 +159,16 @@ const StyledTag = styled(Tag)`
   padding: ${space(0.5)};
 `;
 
-const Column = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const RightColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-  margin-top: ${space(1)};
-`;
-
 const DebugId = styled('code')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TimeAndSizeWrapper = styled('div')`
   width: 100%;
   display: flex;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-top: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
 `;
 
@@ -198,21 +187,25 @@ const TimeWrapper = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     line-height: 1.7;
   }
 `;
 
 const DetailsItem = styled('div')`
-  ${p => p.theme.overflowEllipsis}
-  margin-top: ${space(1)}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: ${space(1)};
 `;
 
 export default DebugFileRow;

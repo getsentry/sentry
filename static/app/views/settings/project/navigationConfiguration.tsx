@@ -21,6 +21,9 @@ export default function getConfiguration({
   const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const hasRevampedDataForwarding = organization?.features?.includes(
+    'data-forwarding-revamp-access'
+  );
   return [
     {
       id: 'settings-project',
@@ -60,6 +63,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
+          show: () => !hasRevampedDataForwarding,
         },
         {
           path: `${pathPrefix}/seer/`,
@@ -135,9 +139,9 @@ export default function getConfiguration({
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
         {
-          path: `${pathPrefix}/preprod/`,
-          title: t('Preprod'),
-          show: () => !!organization?.features?.includes('preprod-issues'),
+          path: `${pathPrefix}/mobile-builds/`,
+          title: t('Mobile Builds'),
+          show: () => !!organization?.features?.includes('preprod-frontend-routes'),
           badge: () => 'beta',
           description: t('Size analysis and build distribution configuration.'),
         },

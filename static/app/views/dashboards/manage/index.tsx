@@ -4,6 +4,8 @@ import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
@@ -27,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import localStorage from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -164,7 +167,9 @@ function ManageDashboards() {
     refetch: refetchDashboards,
   } = useApiQuery<DashboardListItem[]>(
     [
-      `/organizations/${organization.slug}/dashboards/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pick(location.query, ['cursor', 'query']),
@@ -410,7 +415,9 @@ function ManageDashboards() {
           />
         </SegmentedControl>
         <CompactSelect
-          triggerProps={{prefix: t('Sort By')}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
+          )}
           value={activeSort!.value}
           options={sortOptions}
           onChange={opt => handleSortChange(opt.value)}
@@ -425,7 +432,7 @@ function ManageDashboards() {
     return (
       <Layout.Page>
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t("You don't have access to this feature")}
           </Alert>
         </Alert.Container>
@@ -511,15 +518,10 @@ function ManageDashboards() {
 
     addLoadingMessage(t('Adding dashboard from template...'));
 
-    const newDashboard = await createDashboard(
-      api,
-      organization.slug,
-      {
-        ...dashboard,
-        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
-      },
-      true
-    );
+    const newDashboard = await createDashboard(api, organization.slug, {
+      ...dashboard,
+      widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+    });
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
     loadDashboard(newDashboard.id);
   }
@@ -665,8 +667,8 @@ const StyledActions = styled('div')`
 `;
 
 const TemplateSwitch = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};

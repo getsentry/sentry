@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
@@ -121,17 +123,17 @@ function GroupReplaysContent({group}: Props) {
     // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-        <ReplayHeader>
+        <Stack>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
-          <ReplayCountHeader>
+          <Flex align="center" gap="md">
             <IconUser size="sm" />
             {isFetching ? (
               <Placeholder height="18px" width="400px" />
             ) : (
               t('No replay data available.')
             )}
-          </ReplayCountHeader>
-        </ReplayHeader>
+          </Flex>
+        </Stack>
         <ReplayTable
           columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           error={fetchError}
@@ -148,9 +150,9 @@ function GroupReplaysContent({group}: Props) {
   return (
     <SelectedReplayIndexProvider>
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-        <ReplayHeader>
+        <Stack>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
-          <ReplayCountHeader>
+          <Flex align="center" gap="md">
             <IconUser size="sm" />
             {replayCount > 50
               ? tn(
@@ -163,8 +165,8 @@ function GroupReplaysContent({group}: Props) {
                   tn('is %s replay', 'are %s replays', replayCount),
                   tn('%s event', '%s events', group.count)
                 )}
-          </ReplayCountHeader>
-        </ReplayHeader>
+          </Flex>
+        </Stack>
 
         <GroupReplaysTable
           eventView={eventView}
@@ -334,35 +336,24 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
   ${p =>
     p.hasStreamlinedUI &&
     css`
-      border: 1px solid ${p.theme.border};
+      border: 1px solid ${p.theme.tokens.border.primary};
       border-radius: ${p.theme.radius.md};
       padding: ${space(1.5)};
     `}
 `;
 
-const ReplayCountHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const ReplayHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const StyledBreak = styled('hr')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1.5)};
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.tokens.border.primary};
 `;
 
 const ReplayFilterText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const OverlayText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const UpNext = styled('div')`

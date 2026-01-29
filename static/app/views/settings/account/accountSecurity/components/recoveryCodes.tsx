@@ -75,7 +75,7 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
         </ButtonBar>
       </PanelHeader>
       <PanelBody>
-        <PanelAlert type="warning">
+        <PanelAlert variant="warning">
           {t(
             'Make sure to save a copy of your recovery codes and store them in a safe place.'
           )}
@@ -97,6 +97,6 @@ const CodeContainer = styled(Panel)`
 `;
 
 const Code = styled(PanelItem)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   padding: ${space(2)};
 `;

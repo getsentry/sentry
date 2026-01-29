@@ -1,6 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -109,7 +111,7 @@ function NotificationActionItem({
           <Fragment>
             <div>{t('Send an email notification to the following roles')}</div>
             {recipientRoles?.map(role => (
-              <NotificationRecipientBadge type="default" key={role}>
+              <NotificationRecipientBadge variant="muted" key={role}>
                 {role}
               </NotificationRecipientBadge>
             ))}
@@ -119,7 +121,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('channel')}</div>
@@ -129,7 +131,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('service')}</div>
@@ -139,7 +141,7 @@ function NotificationActionItem({
         return (
           <Fragment>
             <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge type="default">
+            <NotificationRecipientBadge variant="muted">
               {action.targetDisplay}
             </NotificationRecipientBadge>
             <div>{t('team')}</div>
@@ -283,8 +285,10 @@ function NotificationActionItem({
     switch (serviceType) {
       case NotificationActionService.SENTRY_NOTIFICATION:
         return (
-          <NotificationActionFormContainer>
-            <NotificationActionCell>{renderDescription()}</NotificationActionCell>
+          <Flex justify="between" width="100%">
+            <Flex align="center" wrap="wrap" gap="xs">
+              {renderDescription()}
+            </Flex>
             <ButtonBar gap="xs">
               <Button onClick={handleCancel} size="xs">
                 {t('Cancel')}
@@ -293,7 +297,7 @@ function NotificationActionItem({
                 {t('Save')}
               </Button>
             </ButtonBar>
-          </NotificationActionFormContainer>
+          </Flex>
         );
       case NotificationActionService.SLACK:
         return (
@@ -337,16 +341,22 @@ function NotificationActionItem({
   return (
     <StyledCard isEditing={isEditing} data-test-id="notification-action">
       {isEditing ? (
-        <NotificationActionContainer data-test-id={`${serviceType}-form`}>
-          <IconContainer>{renderIcon()}</IconContainer>
+        <Flex align="center" width="100%" data-test-id={`${serviceType}-form`}>
+          <Flex align="center" marginRight="md">
+            {renderIcon()}
+          </Flex>
           {renderNotificationActionForm()}
-        </NotificationActionContainer>
+        </Flex>
       ) : (
         <Fragment>
-          <NotificationActionContainer data-test-id={`${serviceType}-action`}>
-            <IconContainer>{renderIcon()}</IconContainer>
-            <NotificationActionCell>{renderDescription()}</NotificationActionCell>
-          </NotificationActionContainer>
+          <Flex align="center" width="100%" data-test-id={`${serviceType}-action`}>
+            <Flex align="center" marginRight="md">
+              {renderIcon()}
+            </Flex>
+            <Flex align="center" wrap="wrap" gap="xs">
+              {renderDescription()}
+            </Flex>
+          </Flex>
           {renderEditButton()}
         </Fragment>
       )}
@@ -361,37 +371,12 @@ const StyledCard = styled(Card)<{isEditing: boolean}>`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   background-color: ${props =>
-    props.isEditing ? props.theme.colors.surface300 : 'inherit'};
-`;
-
-const IconContainer = styled('div')`
-  margin-right: ${space(1)};
-  display: flex;
-  align-items: center;
-`;
-
-const NotificationActionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  width: 100%;
-`;
-
-const NotificationActionCell = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-`;
-
-const NotificationActionFormContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
+    props.isEditing ? props.theme.tokens.background.tertiary : 'inherit'};
 `;
 
 const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.radius.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 export default NotificationActionItem;

@@ -18,7 +18,7 @@ const getColumns = (props: {columns?: number}) => {
 export const WidgetFooterTable = styled('div')<{columns?: number}>`
   display: grid;
   grid-template-columns: max-content 1fr repeat(${p => getColumns(p) - 2}, max-content);
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
 
   & > * {
@@ -32,7 +32,11 @@ export const WidgetFooterTable = styled('div')<{columns?: number}>`
   }
 
   & > *:nth-child(${p => getColumns(p)}n + 2) {
-    ${p => p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     padding-left: ${space(1.5)};
     min-width: 0px;
     text-align: left;
@@ -44,7 +48,7 @@ export const WidgetFooterTable = styled('div')<{columns?: number}>`
   }
 
   & > *:not(:nth-last-child(-n + ${p => getColumns(p)})) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

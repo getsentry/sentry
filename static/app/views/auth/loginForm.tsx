@@ -92,7 +92,7 @@ function LoginForm({authConfig}: Props) {
       >
         {error && (
           <Alert.Container>
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {error}
             </Alert>
           </Alert.Container>
@@ -130,7 +130,7 @@ const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
 const ProviderHeading = styled('div')`
   margin: 0;
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 24px;
 `;
 
@@ -147,13 +147,13 @@ const ProviderWrapper = styled('div')`
     top: 0;
     bottom: 0;
     left: -30px;
-    border-left: 1px solid ${p => p.theme.border};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const LostPasswordLink = styled(Link)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

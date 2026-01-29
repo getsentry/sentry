@@ -57,7 +57,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
         if not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         logger.info(
             "preprod.size_analysis.compare.api.download",
@@ -81,14 +81,14 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                     "base_size_metric_id": base_size_metric_id,
                 },
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
 
         if comparison_obj.file_id is None:
             logger.info(
                 "preprod.size_analysis.compare.api.download.no_file_id",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
 
         try:
             file_obj = File.objects.get(id=comparison_obj.file_id)
@@ -97,7 +97,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 "preprod.size_analysis.compare.api.download.no_file",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
 
         try:
             fp = file_obj.getfile()
@@ -106,7 +106,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 "preprod.size_analysis.compare.api.download.no_file_getfile",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Failed to retrieve size analysis comparison."}, status=500)
+            return Response({"detail": "Failed to retrieve size analysis comparison."}, status=500)
 
         response = FileResponse(
             fp,

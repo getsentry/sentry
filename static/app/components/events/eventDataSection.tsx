@@ -85,7 +85,7 @@ export function EventDataSection({
             {showPermalink ? (
               <Permalink className="permalink">
                 <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
-                  <StyledIconLink size="xs" color="subText" />
+                  <StyledIconLink size="xs" variant="muted" />
                 </PermalinkAnchor>
                 {titleNode}
               </Permalink>
@@ -147,9 +147,9 @@ const SectionHeader = styled('div')`
 
   & h3,
   & h3 a {
-    color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSize.md};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.md};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   & h3 {
@@ -159,13 +159,13 @@ const SectionHeader = styled('div')`
 
   & small {
     color: ${p => p.theme.tokens.content.primary};
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
   }
   & small > span {
     color: ${p => p.theme.tokens.content.primary};
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {

@@ -94,6 +94,12 @@ export const enum SectionKey {
   MCP_OUTPUT = 'mcp-output',
 
   SPAN_LINKS = 'span-links',
+
+  XRAY_DIFF = 'xray-diff',
+
+  INSTRUMENTATION_FIX = 'instrumentation-fix',
+
+  PROFILE_PREVIEW = 'profile-preview',
 }
 
 /**

@@ -43,7 +43,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 
-// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+// eslint-disable-next-line boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type OnboardingProps = {
@@ -349,7 +349,7 @@ const LogDrainsLinkWrapper = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BulletList = styled('ul')`
@@ -387,7 +387,7 @@ const Setup = styled('div')`
     right: 50%;
     top: 2.5%;
     height: 95%;
-    border-right: 1px ${p => p.theme.border} solid;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
 `;
 
@@ -420,7 +420,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;

@@ -84,7 +84,6 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
         {orientation === 'right' ? (
           <SideBySideOrientation
             timeseriesResult={timeseriesResult}
-            queryIndex={queryIndex}
             traceMetric={traceMetric}
             setOrientation={setUserPreferenceOrientation}
             orientation={orientation}
@@ -95,7 +94,6 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
         ) : (
           <StackedOrientation
             timeseriesResult={timeseriesResult}
-            queryIndex={queryIndex}
             traceMetric={traceMetric}
             setOrientation={setUserPreferenceOrientation}
             orientation={orientation}

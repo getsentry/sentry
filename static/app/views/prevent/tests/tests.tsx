@@ -39,7 +39,7 @@ import {TestSearchBar} from 'sentry/views/prevent/tests/testSearchBar/testSearch
 export function EmptySelectorsMessage() {
   return (
     <MessageContainer>
-      <StyledIconSearch color="subText" size="xl" />
+      <StyledIconSearch variant="muted" size="xl" />
       <Title>{t('It looks like there is nothing to show right now.')}</Title>
       <Subtitle>
         {t('Please select a repository and branch to view Test Analytics data.')}
@@ -86,7 +86,7 @@ export default function TestsPage() {
 
   return (
     <Grid gap="xl">
-      <ControlsContainer>
+      <Flex gap="xl">
         <PageFilterBar condensed>
           <IntegratedOrgSelector />
           <RepoSelector />
@@ -94,7 +94,7 @@ export default function TestsPage() {
           <DateSelector />
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
-      </ControlsContainer>
+      </Flex>
       {mainContent}
     </Grid>
   );
@@ -200,25 +200,20 @@ const MessageContainer = styled('div')`
   justify-items: center;
   align-items: center;
   text-align: center;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 14px;
 `;
 
 const StyledIconSearch = styled(IconSearch)`
   margin-right: ${p => p.theme.space.md};
-`;
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
 `;

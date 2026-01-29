@@ -17,7 +17,7 @@ export function SampleEventAlert({
   return (
     <Alert
       system
-      type="info"
+      variant="info"
       icon={<IconLightning />}
       trailingItems={
         <LinkButton

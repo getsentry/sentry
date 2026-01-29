@@ -1,4 +1,6 @@
+from collections.abc import Generator
 from datetime import datetime, timedelta
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -73,14 +75,14 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
 
     def call_post_process_group(
         self,
-        group_id,
-        is_new=False,
-        is_regression=False,
-        is_new_group_environment=True,
-        cache_key=None,
-        eventstream_type=EventStreamEventType.Generic.value,
-        include_occurrence=True,
-    ):
+        group_id: int,
+        is_new: bool = False,
+        is_regression: bool = False,
+        is_new_group_environment: bool = True,
+        cache_key: str | None = None,
+        eventstream_type: str = EventStreamEventType.Generic.value,
+        include_occurrence: bool = True,
+    ) -> str | None:
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
@@ -171,6 +173,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         with mock.patch(
             "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
+            assert error_event.group_id is not None
             self.call_post_process_group(error_event.group_id)
 
             # We currently don't have a detector for this issue type, so it should not call workflow_engine.
@@ -193,7 +196,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
 
     @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
+    def with_feature_flags(self) -> Generator[None]:
         with (
             Feature(
                 {
@@ -209,19 +212,19 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             yield
 
     @pytest.fixture(autouse=True)
-    def with_tasks(self):
+    def with_tasks(self) -> Generator[None]:
         with self.tasks():
             yield
 
     def create_error_event(
         self,
-        project=None,
-        detector=None,
-        environment=None,
-        fingerprint=None,
-        level="error",
+        project: Any = None,
+        detector: Detector | None = None,
+        environment: str | None = None,
+        fingerprint: str | None = None,
+        level: str = "error",
         tags: list[list[str]] | None = None,
-        group=None,
+        group: Group | None = None,
     ) -> Event:
         if project is None:
             project = self.project
@@ -246,7 +249,8 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
     def get_cache_key(self, event: Event) -> str:
         return cache_key_for_event({"project": event.project_id, "event_id": event.event_id})
 
-    def post_process_error(self, event: Event, **kwargs):
+    def post_process_error(self, event: Event, **kwargs: Any) -> None:
+        assert event.group_id is not None
         self.call_post_process_group(
             event.group_id,
             cache_key=self.get_cache_key(event),
@@ -524,11 +528,32 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             == {}
         )
 
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_service_hooks_integration(
+        self, mock_process_service_hook: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
 
-class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrationTest):
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [6001]})
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    def test_workflow_engine(self) -> None:
+        event = self.create_error_event()
+        self.post_process_error(event)
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
+
+
+class TestWorkflowEngineIntegrationPostProcessRollout(BaseWorkflowIntegrationTest):
+    def setUp(self) -> None:
+        self.project = self.create_project(create_default_detectors=True)
         occurrence_data = self.build_occurrence_data(
             type=FeedbackGroup.type_id,
             event_id=self.event.event_id,
@@ -545,11 +570,50 @@ class TestWorkflowEngineIntegrationFromFeedbackPostProcess(BaseWorkflowIntegrati
         self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
         assert group_info is not None
 
-        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
-        assert self.group.type == FeedbackGroup.type_id
+        self.feedback_group = Group.objects.get(id=group_info.group.id)
+        assert self.feedback_group.type == FeedbackGroup.type_id
 
+    @override_options(
+        {
+            "workflow_engine.issue_alert.group.type_id.ga": [1],
+        }
+    )
+    def test_errors_only_rollout(self) -> None:
         with mock.patch(
             "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
-            self.call_post_process_group(self.group.id)
-            mock_process_workflow.assert_called_once()
+            self.call_post_process_group(self.feedback_group.id)
+            assert not mock_process_workflow.called
+
+    @override_options(
+        {
+            "workflow_engine.issue_alert.group.type_id.ga": [1],
+            "workflow_engine.issue_alert.group.type_id.rollout": [6001],
+        }
+    )
+    @with_feature(
+        {
+            "organizations:workflow-engine-single-process-workflows": True,
+            "organizations:workflow-engine-log-evaluations": True,
+        }
+    )
+    @patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_rollout_new_issue_type(self, mock_logger: MagicMock) -> None:
+        with self.tasks():
+            self.call_post_process_group(self.feedback_group.id)
+
+        # log and exit because no workflows, but we fetched issue stream detector successfully
+        mock_logger.info.assert_any_call(
+            "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
+            extra={
+                "event_id": self.event.event_id,
+                "group_id": self.feedback_group.id,
+                "detection_type": "issue_stream",
+                "workflow_ids": None,
+                "triggered_workflow_ids": [],
+                "delayed_conditions": None,
+                "action_filter_group_ids": [],
+                "triggered_action_ids": [],
+                "debug_msg": "No workflows are associated with the detector in the event",
+            },
+        )

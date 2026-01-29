@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button, StyledButton} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -85,16 +88,16 @@ const getEventTypes = memoize((app: SentryApp) => {
 });
 
 function ResponseCode({code}: {code: number}) {
-  let type: TagProps['type'] = 'error';
+  let variant: TagProps['variant'] = 'danger';
   if (code <= 399 && code >= 300) {
-    type = 'warning';
+    variant = 'warning';
   } else if (code <= 299 && code >= 100) {
-    type = 'success';
+    variant = 'success';
   }
 
   return (
     <Tags>
-      <StyledTag type={type}>{code === 0 ? 'timeout' : code}</StyledTag>
+      <StyledTag variant={variant}>{code === 0 ? 'timeout' : code}</StyledTag>
     </Tags>
   );
 }
@@ -192,7 +195,9 @@ export default function RequestLog({app}: RequestLogProps) {
 
         <RequestLogFilters>
           <CompactSelect
-            triggerProps={{children: eventType}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps}>{eventType}</OverlayTrigger.Button>
+            )}
             value={eventType}
             options={getEventTypes(app).map(type => ({
               value: type,
@@ -202,10 +207,10 @@ export default function RequestLog({app}: RequestLogProps) {
           />
 
           <StyledErrorsOnlyButton onClick={handleChangeErrorsOnly}>
-            <ErrorsOnlyCheckbox>
+            <Flex align="center" gap="md">
               <Checkbox checked={errorsOnly} onChange={() => {}} />
               {t('Errors Only')}
-            </ErrorsOnlyCheckbox>
+            </Flex>
           </StyledErrorsOnlyButton>
         </RequestLogFilters>
       </div>
@@ -305,12 +310,6 @@ const RequestLogFilters = styled('div')`
   }
 `;
 
-const ErrorsOnlyCheckbox = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const StyledErrorsOnlyButton = styled(Button)`
   margin-left: -1px;
   border-top-left-radius: 0;
@@ -319,7 +318,7 @@ const StyledErrorsOnlyButton = styled(Button)`
 
 const StyledIconOpen = styled(IconOpen)`
   margin-left: 6px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Tags = styled('div')`

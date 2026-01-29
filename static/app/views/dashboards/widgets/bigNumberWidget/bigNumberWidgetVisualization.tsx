@@ -18,7 +18,7 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
+import {DEEMPHASIS_VARIANT, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 interface BigNumberWidgetVisualizationProps {
@@ -201,8 +201,8 @@ const NumberContainerOverride = styled('div')`
 `;
 
 const LoadingPlaceholder = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  font-size: ${p => p.theme.fontSize.lg};
+  color: ${p => p.theme.tokens.content[DEEMPHASIS_VARIANT]};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 BigNumberWidgetVisualization.LoadingPlaceholder = function () {

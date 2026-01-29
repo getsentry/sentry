@@ -43,7 +43,7 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
   if (isError) {
     return (
       <Alert.Container>
-        <Alert type="error">
+        <Alert variant="danger">
           {t(
             'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
           )}
@@ -150,8 +150,8 @@ const Pattern = styled('div')`
     content: '';
     background-image: linear-gradient(
       to right,
-      ${p => p.theme.colors.blue200} 0%,
-      ${p => p.theme.colors.blue400} 100%
+      ${p => p.theme.tokens.background.transparent.accent.muted} 0%,
+      ${p => p.theme.tokens.background.accent.vibrant} 100%
     );
     background-repeat: repeat-y;
   }
@@ -174,7 +174,7 @@ const Heading = styled('h1')`
 `;
 
 const Version = styled('small')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   line-height: inherit;
 `;
 

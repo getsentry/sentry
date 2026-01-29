@@ -314,7 +314,7 @@ describe('SiblingAutogroupNode', () => {
       node.errors.add(mockError);
 
       const theme = ThemeFixture();
-      expect(node.makeBarColor(theme)).toBe(theme.colors.red400);
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.graphics.danger.vibrant);
     });
 
     it('should return blue color when no errors are present', () => {
@@ -324,7 +324,7 @@ describe('SiblingAutogroupNode', () => {
 
       // No errors added, should default to blue
       const theme = ThemeFixture();
-      expect(node.makeBarColor(theme)).toBe(theme.colors.blue400);
+      expect(node.makeBarColor(theme)).toBe(theme.tokens.graphics.accent.vibrant);
     });
   });
 

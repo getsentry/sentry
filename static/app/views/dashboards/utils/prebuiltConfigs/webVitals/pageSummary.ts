@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
@@ -112,6 +112,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.lcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.LCP_SUMMARY,
         },
       ],
       thresholds: {
@@ -143,6 +144,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.fcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.FCP_SUMMARY,
         },
       ],
       thresholds: {
@@ -174,6 +176,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.inp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.INP_SUMMARY,
         },
       ],
       thresholds: {
@@ -205,6 +208,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.cls)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.CLS_SUMMARY,
         },
       ],
       thresholds: {
@@ -236,6 +240,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.ttfb)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.TTFB_SUMMARY,
         },
       ],
       thresholds: {
@@ -433,6 +438,122 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       ],
       layout: {
         y: 4,
+        w: 5,
+        h: 2,
+        x: 0,
+        minH: 2,
+      },
+    },
+    {
+      id: 'lcp-samples-table',
+      title: t('LCP Samples'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: `has:measurements.lcp`,
+          fields: [
+            'trace',
+            'lcp.element',
+            'measurements.lcp',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.lcp',
+            'timestamp',
+          ],
+          aggregates: [],
+          columns: [
+            'trace',
+            'lcp.element',
+            'measurements.lcp',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.lcp',
+            'timestamp',
+          ],
+          orderby: '-timestamp',
+        },
+      ],
+      layout: {
+        y: 6,
+        w: 5,
+        h: 2,
+        x: 0,
+        minH: 2,
+      },
+    },
+    {
+      id: 'inp-samples-table',
+      title: t('INP Samples'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: `has:measurements.inp`,
+          fields: [
+            'trace',
+            'measurements.inp',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.inp',
+            'timestamp',
+          ],
+          aggregates: [],
+          columns: [
+            'trace',
+            'measurements.inp',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.inp',
+            'timestamp',
+          ],
+          orderby: '-timestamp',
+        },
+      ],
+      layout: {
+        y: 8,
+        w: 5,
+        h: 2,
+        x: 0,
+        minH: 2,
+      },
+    },
+    {
+      id: 'cls-samples-table',
+      title: t('CLS Samples'),
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: `has:measurements.cls`,
+          fields: [
+            'trace',
+            'measurements.cls',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.cls',
+            'timestamp',
+          ],
+          aggregates: [],
+          columns: [
+            'trace',
+            'measurements.cls',
+            'profile.id',
+            'replay.id',
+            'measurements.score.ratio.cls',
+            'timestamp',
+          ],
+          orderby: '-timestamp',
+        },
+      ],
+      layout: {
+        y: 10,
         w: 5,
         h: 2,
         x: 0,

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -179,7 +179,7 @@ export function SpanDescription({
 
   const value =
     resolvedModule === ModuleName.DB ? (
-      <CodeSnippetWrapper>
+      <Stack flex="1">
         <StyledCodeSnippet
           language={dbSystem === 'mongodb' ? 'json' : 'sql'}
           isRounded={false}
@@ -199,7 +199,7 @@ export function SpanDescription({
         ) : (
           <MissingFrame />
         )}
-      </CodeSnippetWrapper>
+      </Stack>
     ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
       <Flex direction="column" width="100%">
         <Flex align="start" justify="between" gap="xs" padding="md">
@@ -211,7 +211,7 @@ export function SpanDescription({
             <LinkHint value={spanURL} />
           </Flex>
           <CopyToClipboardButton
-            borderless
+            priority="transparent"
             size="zero"
             aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
@@ -241,9 +241,11 @@ export function SpanDescription({
       span.name &&
       span.name !== span.op ? (
       <DescriptionWrapper>
-        <FormattedDescription>{span.name}</FormattedDescription>
+        <Flex align="center" minHeight="24px">
+          {span.name}
+        </Flex>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={span.name}
           aria-label={t('Copy span name to clipboard')}
@@ -254,12 +256,12 @@ export function SpanDescription({
       <DescriptionWrapper>
         {formattedDescription ? (
           <Fragment>
-            <FormattedDescription>
+            <Flex align="center" minHeight="24px">
               {formattedDescription}
               <LinkHint value={formattedDescription} />
-            </FormattedDescription>
+            </Flex>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={formattedDescription}
               aria-label={t('Copy formatted description to clipboard')}
@@ -358,19 +360,19 @@ function ResourceImage(props: {
   const {fileName, size, src, showImage = true} = props;
 
   return (
-    <ImageContainer>
-      <FilenameContainer>
+    <Stack align="center" gap="xs" width="100%">
+      <Flex justify="between" align="baseline" gap="md" width="100%">
         <span>
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
-      </FilenameContainer>
+      </Flex>
       {showImage && !hasError ? (
         <ImageWrapper>
           <img
@@ -388,36 +390,14 @@ function ResourceImage(props: {
       ) : (
         <MissingImage />
       )}
-    </ImageContainer>
+    </Stack>
   );
 }
-
-const FilenameContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  align-items: baseline;
-  gap: ${space(1)};
-  justify-content: space-between;
-`;
 
 const ImageWrapper = styled('div')`
   width: 200px;
   height: 180px;
   margin: auto;
-`;
-
-const ImageContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const CodeSnippetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
 `;
 
 const StyledLink = styled(Link)`
@@ -438,16 +418,10 @@ const StyledCodeSnippet = styled(CodeBlock)`
   }
 `;
 
-const FormattedDescription = styled('div')`
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-`;
-
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: flex-start;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

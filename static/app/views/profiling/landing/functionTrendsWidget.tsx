@@ -153,7 +153,7 @@ export function FunctionTrendsWidget({
         )}
         {isError && (
           <StatusContainer>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </StatusContainer>
         )}
         {!isError && !isLoading && !hasTrends && (
@@ -331,7 +331,7 @@ function FunctionTrendsEntry({
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() => setExpanded()}
         />
         {project && (
@@ -491,7 +491,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       },
       yAxis: {
         axisLabel: {
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
@@ -502,7 +502,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
       },
     };
-  }, [theme.tokens.content.muted]);
+  }, [theme.tokens.content.secondary]);
 
   return (
     <ChartZoom {...selection.datetime}>
@@ -549,7 +549,7 @@ const FunctionTrendsChartContainer = styled('div')`
 `;
 
 const DurationChange = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   align-items: center;
   gap: ${space(1)};

@@ -63,7 +63,7 @@ class UsageTable extends Component<Props> {
         </EmptyMessage>
       );
     }
-    return <IconWarning color="gray300" legacySize="48px" />;
+    return <IconWarning variant="muted" legacySize="48px" />;
   };
 
   loadProject(projectId: number) {
@@ -206,6 +206,6 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;

@@ -1,4 +1,7 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {initializeUrlState, updateEnvironments} from 'sentry/actionCreators/pageFilters';
@@ -7,20 +10,11 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const {organization, projects, router} = initializeOrg({
-  organization: {features: ['open-membership']},
-  projects: [
-    {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
-    {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
-  ],
-  router: {
-    location: {
-      pathname: '/organizations/org-slug/issues/',
-      query: {},
-    },
-    params: {},
-  },
-});
+const organization = OrganizationFixture({features: ['open-membership']});
+const projects = [
+  ProjectFixture({id: '1', slug: 'project-1', environments: ['prod', 'staging']}),
+  ProjectFixture({id: '2', slug: 'project-2', environments: ['prod', 'stage']}),
+];
 
 describe('EnvironmentPageFilter', () => {
   beforeEach(() => {
@@ -40,10 +34,11 @@ describe('EnvironmentPageFilter', () => {
   afterEach(() => PageFiltersStore.reset());
 
   it('renders & handles single selection', async () => {
-    render(<EnvironmentPageFilter />, {
-      router,
+    const {router} = render(<EnvironmentPageFilter />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Open menu
@@ -59,16 +54,15 @@ describe('EnvironmentPageFilter', () => {
 
     // Trigger label & router is updated
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {environment: ['prod']}})
-    );
+    expect(router.location.query).toEqual(expect.objectContaining({environment: 'prod'}));
   });
 
   it('handles multiple selection', async () => {
-    render(<EnvironmentPageFilter />, {
-      router,
+    const {router} = render(<EnvironmentPageFilter />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Open menu
@@ -83,27 +77,24 @@ describe('EnvironmentPageFilter', () => {
 
     // Trigger button & router are updated
     expect(screen.getByRole('button', {name: 'prod, stage'})).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {environment: ['prod', 'stage']}})
+    expect(router.location.query).toEqual(
+      expect.objectContaining({environment: ['prod', 'stage']})
     );
   });
 
   it('handles reset', async () => {
     const onReset = jest.fn();
-    render(<EnvironmentPageFilter onReset={onReset} />, {
-      router,
+    const {router} = render(<EnvironmentPageFilter onReset={onReset} />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Open the menu, select project-1
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
     await userEvent.click(screen.getByRole('row', {name: 'prod'}));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {environment: ['prod']},
-      })
-    );
+    expect(router.location.query).toEqual(expect.objectContaining({environment: 'prod'}));
 
     // Open menu again & click "Reset"
     await userEvent.click(screen.getByRole('button', {name: 'prod'}));
@@ -115,38 +106,34 @@ describe('EnvironmentPageFilter', () => {
   });
 
   it('responds to page filter changes, async e.g. from back button nav', async () => {
+    const mockRouter = RouterFixture({
+      location: {pathname: '/organizations/org-slug/issues/', query: {}},
+    });
+
     render(<EnvironmentPageFilter />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Confirm initial selection
     expect(await screen.findByRole('button', {name: 'All Envs'})).toBeInTheDocument();
 
     // Edit store value
-    act(() => updateEnvironments(['prod'], router));
+    act(() => updateEnvironments(['prod'], mockRouter));
 
     // <EnvironmentPageFilter /> is updated
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
   });
 
   it('displays a desynced state message', async () => {
-    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
-      organization: {features: ['open-membership']},
-      projects: [
-        {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
-        {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
-      ],
-      router: {
-        location: {
-          pathname: '/organizations/org-slug/issues/',
-          // the environment parameter needs to be non-null for desync detection to work
-          query: {environment: 'prod'},
-        },
-        params: {},
-      },
-    });
+    const desyncOrganization = OrganizationFixture({features: ['open-membership']});
+    // the environment parameter needs to be non-null for desync detection to work
+    const desyncLocation = {
+      pathname: '/organizations/org-slug/issues/',
+      query: {environment: 'prod'},
+    };
 
     PageFiltersStore.reset();
     initializeUrlState({
@@ -154,13 +141,12 @@ describe('EnvironmentPageFilter', () => {
       nonMemberProjects: [],
       organization: desyncOrganization,
       queryParams: {project: ['1'], environment: 'staging'},
-      router: desyncRouter,
+      router: RouterFixture({location: desyncLocation}),
     });
 
     render(<EnvironmentPageFilter />, {
-      router: desyncRouter,
       organization: desyncOrganization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {location: desyncLocation},
     });
 
     // Open menu

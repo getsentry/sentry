@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Flex, type FlexProps} from 'sentry/components/core/layout';
+import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
 
-interface SideBySideProps extends Omit<FlexProps, 'direction' | 'children'> {
-  children: React.ReactNode;
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+
+interface SideBySideProps extends Omit<FlexProps<any>, 'direction'> {
   vertical?: boolean;
 }
 
@@ -39,9 +39,6 @@ export const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 
   overflow: ${p => (p.display === 'block' ? 'auto' : 'hidden')};
 `;
 
-export const Section = styled('section')`
-  padding-top: ${p => p.theme.space['3xl']};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
-`;
+export function Section(props: Exclude<StackProps<'section'>, {as?: never}>) {
+  return <Stack as="section" paddingTop="3xl" gap="xl" minWidth="0" {...props} />;
+}

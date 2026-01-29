@@ -44,7 +44,7 @@ class InstalledPlugin extends Component<Props> {
     return (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {t(
               'Deleting this installation will disable the integration for this project and remove any configurations.'
             )}
@@ -132,7 +132,7 @@ class InstalledPlugin extends Component<Props> {
           </IntegrationItemBox>
           <div>
             <StyledLinkButton
-              borderless
+              priority="transparent"
               icon={<IconSettings />}
               to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
               data-test-id="integration-configure-button"
@@ -153,7 +153,7 @@ class InstalledPlugin extends Component<Props> {
             >
               <StyledButton
                 disabled={!hasAccess}
-                borderless
+                priority="transparent"
                 icon={<IconDelete />}
                 data-test-id="integration-remove-button"
               >
@@ -178,21 +178,21 @@ export default withApi(InstalledPlugin);
 
 const Container = styled('div')`
   padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: none;
   background-color: ${p => p.theme.tokens.background.primary};
 
   &:last-child {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const IntegrationItemBox = styled('div')`

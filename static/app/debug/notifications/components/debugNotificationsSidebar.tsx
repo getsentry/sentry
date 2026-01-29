@@ -25,7 +25,7 @@ export function DebugNotificationsSidebar() {
               {registrations.map(registration => (
                 <Container key={registration.source} as="li">
                   <NotificationLinkButton
-                    borderless
+                    priority="transparent"
                     active={routeSource === registration.source}
                     to={
                       routeSource === registration.source
@@ -47,7 +47,7 @@ export function DebugNotificationsSidebar() {
 
 const CategoryDivider = styled('hr')`
   margin: 0 auto;
-  border-color: ${p => p.theme.tokens.border.muted};
+  border-color: ${p => p.theme.tokens.border.secondary};
   width: calc(100% - ${p => p.theme.space.xl});
 `;
 
@@ -64,8 +64,8 @@ const NotificationLinkButton = styled(LinkButton, {
   position: relative;
   display: block;
   color: ${p =>
-    p.active ? p.theme.tokens.content.success : p.theme.tokens.content.muted};
-  font-weight: ${p => p.theme.fontWeight.normal};
+    p.active ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-align: left;
   /* Undo some button styles */
   height: auto;
@@ -83,7 +83,7 @@ const NotificationLinkButton = styled(LinkButton, {
     width: 4px;
     top: 50%;
     transform: translateY(-50%);
-    background: ${p => p.theme.tokens.graphics.success};
+    background: ${p => p.theme.tokens.graphics.success.vibrant};
     border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};
   }

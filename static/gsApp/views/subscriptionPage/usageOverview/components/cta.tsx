@@ -61,7 +61,9 @@ function Cta({
         {icon && <Flex align="center">{icon}</Flex>}
         {image && (
           <Flex align="center">
-            <Image src={image} alt={imageAlt} />
+            <Container maxWidth="200px">
+              <Image src={image} alt={imageAlt} />
+            </Container>
           </Flex>
         )}
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
@@ -359,7 +361,6 @@ function SetupCta({
   organization: Organization;
   selectedProduct: DataCategory | AddOnCategory;
 }) {
-  // TODO(isabella): refactor this whole file to be more reusable
   if (selectedProduct !== AddOnCategory.SEER) {
     return null;
   }

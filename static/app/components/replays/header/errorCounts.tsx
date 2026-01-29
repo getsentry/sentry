@@ -125,7 +125,7 @@ export default function ErrorCounts({replayErrors}: Props) {
                 />
               );
             })}
-          <Badge aria-label={t('hidden projects')} type="default">
+          <Badge aria-label={t('hidden projects')} variant="muted">
             +{extraProjectCount}
           </Badge>
         </StackedProjectBadges>
@@ -140,7 +140,7 @@ const Count = styled('span')`
 `;
 
 const ErrorCount = styled(Count)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ColumnTooltipContent = styled(CountTooltipContent)`

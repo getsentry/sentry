@@ -199,7 +199,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
         )}
         {isError && (
           <StatusContainer>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </StatusContainer>
         )}
         {!isError && !isLoading && !hasFunctions && (
@@ -315,10 +315,10 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           return {
             key: targetId,
             label: (
-              <DropdownItem>
+              <Flex justify="between" width="150px">
                 {getShortEventId(targetId)}
                 {timestamp}
-              </DropdownItem>
+              </Flex>
             ),
             textValue: targetId,
             to: generateProfileRouteFromProfileReference({
@@ -343,7 +343,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={setExpanded}
         />
         {project && (
@@ -368,7 +368,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           position="bottom-end"
           triggerProps={{
             icon: <IconEllipsis size="xs" />,
-            borderless: true,
+            priority: 'transparent',
             showChevron: false,
             size: 'xs',
             'aria-label': t('Example Profiles'),
@@ -446,7 +446,7 @@ function FunctionChart<F extends BreakdownFunction>({
       },
       yAxis: {
         axisLabel: {
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
@@ -457,7 +457,7 @@ function FunctionChart<F extends BreakdownFunction>({
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
       },
     };
-  }, [theme.tokens.content.muted]);
+  }, [theme.tokens.content.secondary]);
 
   if (stats?.isPending) {
     return (
@@ -470,7 +470,7 @@ function FunctionChart<F extends BreakdownFunction>({
   if (stats?.isError) {
     return (
       <StatusContainer>
-        <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+        <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
       </StatusContainer>
     );
   }
@@ -510,10 +510,4 @@ const StyledPagination = styled(Pagination)`
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
-`;
-
-const DropdownItem = styled('div')`
-  width: 150px;
-  display: flex;
-  justify-content: space-between;
 `;

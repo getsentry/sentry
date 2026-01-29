@@ -17,7 +17,7 @@ function AlertMessage({alert, system}: Props) {
 
   return (
     <Alert
-      type={alert.type}
+      variant={alert.variant}
       system={system}
       trailingItems={
         <StyledCloseButton
@@ -25,7 +25,7 @@ function AlertMessage({alert, system}: Props) {
           aria-label={t('Close')}
           onClick={alert.onClose ?? handleClose}
           size="zero"
-          borderless
+          priority="transparent"
         />
       }
     >

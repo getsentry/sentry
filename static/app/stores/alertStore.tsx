@@ -1,14 +1,14 @@
-import type {Theme} from '@emotion/react';
 import {createStore} from 'reflux';
 
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
+import type {AlertVariant} from 'sentry/utils/theme';
 
 import type {StrictStoreDefinition} from './types';
 
 type Alert = {
   message: React.ReactNode;
-  type: keyof Theme['alert'];
+  variant: AlertVariant;
   expireAfter?: number;
   id?: string;
   key?: number;

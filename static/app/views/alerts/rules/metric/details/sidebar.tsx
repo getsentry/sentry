@@ -130,10 +130,10 @@ function TriggerDescription({
 
 function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
   return type === 'critical'
-    ? theme.colors.chonk.red400
+    ? theme.tokens.background.danger.vibrant
     : type === 'warning'
-      ? theme.colors.chonk.yellow400
-      : theme.colors.chonk.green400;
+      ? theme.tokens.background.warning.vibrant
+      : theme.tokens.background.success.vibrant;
 }
 const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
   fill: ${p => getColor(p.theme, p.type)};
@@ -361,7 +361,7 @@ const Status = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StatusContainer = styled('div')`
@@ -375,7 +375,11 @@ const StatusContainer = styled('div')`
 `;
 
 const OverflowTableValue = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TriggerContainer = styled('div')`
@@ -392,8 +396,8 @@ const TriggerTitle = styled('div')`
 `;
 
 const TriggerTitleText = styled('h4')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   line-height: 24px;
   min-width: 40px;
@@ -414,11 +418,11 @@ const TriggerActions = styled('div')`
 
 const TriggerText = styled('span')`
   display: block;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

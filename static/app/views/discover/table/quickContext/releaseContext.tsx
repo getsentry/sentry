@@ -13,6 +13,7 @@ import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useUser} from 'sentry/utils/useUser';
@@ -34,9 +35,12 @@ function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
   const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
     [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(
-        dataRow.release
-      )}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          version: dataRow.release,
+        },
+      }),
     ],
     {
       staleTime: tenSecondInMs,
@@ -118,7 +122,7 @@ function ReleaseContext(props: BaseContextProps) {
           </ContextHeader>
           <ContextBody>
             {data.commitCount === 0 ? (
-              <IconNot color="gray500" size="md" />
+              <IconNot variant="primary" size="md" />
             ) : (
               <StyledAvatarList users={authors} maxVisibleAvatars={10} />
             )}
@@ -205,7 +209,7 @@ const ReleaseContextContainer = styled(ContextContainer)`
 
 const ReleaseBody = styled(ContextBody)`
   font-size: 13px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default ReleaseContext;

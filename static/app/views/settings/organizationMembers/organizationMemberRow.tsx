@@ -170,7 +170,11 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             </Fragment>
           ) : (
             <AuthStatus>
-              {has2fa ? <IconCheckmark color="success" /> : <IconFlag color="error" />}
+              {has2fa ? (
+                <IconCheckmark variant="success" />
+              ) : (
+                <IconFlag variant="danger" />
+              )}
               {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
             </AuthStatus>
           )}
@@ -284,13 +288,13 @@ const MemberDescription = styled(Link)`
 const UserName = styled('div')`
   display: block;
   overflow: hidden;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   text-overflow: ellipsis;
 `;
 
 const Email = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

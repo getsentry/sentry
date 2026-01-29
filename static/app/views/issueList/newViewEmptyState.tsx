@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -79,7 +81,7 @@ export function NewViewEmptyState() {
   );
 
   return (
-    <Wrapper>
+    <Stack justify="center" align="center" marginTop="3xl">
       <Card>
         <CardHeading>{t('Suggested Queries')}</CardHeading>
         <p>{t('Here are a few to get you started.')}</p>
@@ -112,7 +114,7 @@ export function NewViewEmptyState() {
               skipWrapper
               isHoverable
             >
-              <IconWarning color="subText" />
+              <IconWarning variant="muted" />
             </Tooltip>
           </CardHeading>
           <p>{t('Your personal saved searches.')}</p>
@@ -127,40 +129,32 @@ export function NewViewEmptyState() {
           </QueryGrid>
         </Card>
       )}
-    </Wrapper>
+    </Stack>
   );
 }
 
 const Bold = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TooltipSubLink = styled(Link)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: ${space(4)};
 `;
 
 const Card = styled(Panel)`
   width: 80%;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${space(2)};
 `;
 
 const CardHeading = styled('h2')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
   display: flex;
   align-items: center;
@@ -190,7 +184,7 @@ const QueryRow = styled('li')`
       bottom: 0;
       left: 0;
       right: 0;
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
   }
 `;
@@ -200,7 +194,7 @@ const QueryButton = styled('button')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   background: none;
   border: none;
   margin: 0;
@@ -211,7 +205,7 @@ const QueryButton = styled('button')`
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px ${p => p.theme.button.default.focusBorder};
+    box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
   }
 `;
 

@@ -8,7 +8,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from sentry import features
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models.environment import Environment
 from sentry.rules import rules
@@ -156,7 +156,7 @@ class RuleSerializer(RuleSetSerializer):
     name = serializers.CharField(max_length=256)
     environment = serializers.CharField(max_length=64, required=False, allow_null=True)
     actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
-    owner = ActorField(required=False, allow_null=True)
+    owner = OwnerActorField(required=False, allow_null=True)
 
     def validate_environment(self, environment):
         if environment is None:

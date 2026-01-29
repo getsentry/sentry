@@ -8,12 +8,12 @@ export function DismissableInfoAlert({children}: {children: React.ReactNode}) {
   const [dismissed, setDismissed] = useState(false);
   return dismissed ? null : (
     <Alert
-      type="info"
+      variant="info"
       trailingItems={
         <Button
           aria-label="Dismiss banner"
-          icon={<IconClose color="purple400" />}
-          borderless
+          icon={<IconClose variant="accent" />}
+          priority="transparent"
           onClick={() => setDismissed(true)}
           size="zero"
         />

@@ -1,27 +1,25 @@
-import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {ApiResult, Client} from 'sentry/api';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
-import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {IssuesSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {
   ISSUE_FIELD_TO_HEADER_MAP,
   ISSUE_TABLE_FIELDS,
 } from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
+import {
+  useIssuesSeriesQuery,
+  useIssuesTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useIssuesWidgetQuery';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -54,9 +52,6 @@ const DEFAULT_ISSUE_SERIES_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count(new_issues)',
 };
 
-const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_EXPAND = ['owners'];
-
 const DEFAULT_FIELD: QueryFieldValue = {
   field: 'issue',
   kind: FieldValueKind.FIELD,
@@ -65,20 +60,6 @@ const DEFAULT_FIELD: QueryFieldValue = {
 const DEFAULT_SERIES_FIELD: QueryFieldValue = {
   function: ['count', 'new_issues', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
-};
-
-type EndpointParams = Partial<PageFilters['datetime']> & {
-  environment: string[];
-  project: number[];
-  collapse?: string[];
-  cursor?: string;
-  expand?: string[];
-  groupStatsPeriod?: string | null;
-  limit?: number;
-  page?: number | string;
-  query?: string;
-  sort?: string;
-  statsPeriod?: string | null;
 };
 
 export type IssuesSeriesResponse = {
@@ -97,7 +78,6 @@ export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
   defaultSeriesWidgetQuery: DEFAULT_ISSUE_SERIES_WIDGET_QUERY,
   enableEquations: false,
   disableSortOptions,
-  getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
   SearchBar: IssuesSearchBar,
   useSearchBarDataProvider: useIssueListSearchBarDataProvider,
@@ -114,7 +94,8 @@ export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
     DisplayType.BAR,
   ],
   transformTable: transformIssuesResponseToTable,
-  getSeriesRequest: getIssuesSeriesRequest,
+  useSeriesQuery: useIssuesSeriesQuery,
+  useTableQuery: useIssuesTableQuery,
 };
 
 function disableSortOptions(_widgetQuery: WidgetQuery) {
@@ -145,7 +126,6 @@ export function transformIssuesResponseToTable(
   _organization: Organization,
   pageFilters: PageFilters
 ): TableData {
-  GroupStore.add(data);
   const transformedTableResults: TableDataRow[] = [];
   data.forEach(
     ({
@@ -222,85 +202,6 @@ function filterYAxisOptions() {
   return function (option: FieldValueOption) {
     return option.value.kind === FieldValueKind.FUNCTION;
   };
-}
-
-function getTableRequest(
-  api: Client,
-  _: Widget,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  __?: OnDemandControlContext,
-  limit?: number,
-  cursor?: string
-) {
-  const groupListUrl = `/organizations/${organization.slug}/issues/`;
-
-  const params: EndpointParams = {
-    project: pageFilters.projects ?? [],
-    environment: pageFilters.environments ?? [],
-    query: query.conditions,
-    sort: query.orderby || DEFAULT_SORT,
-    expand: DEFAULT_EXPAND,
-    limit: limit ?? DEFAULT_TABLE_LIMIT,
-    cursor,
-  };
-
-  if (pageFilters.datetime.period) {
-    params.statsPeriod = pageFilters.datetime.period;
-  }
-  if (pageFilters.datetime.end) {
-    params.end = getUtcDateString(pageFilters.datetime.end);
-  }
-  if (pageFilters.datetime.start) {
-    params.start = getUtcDateString(pageFilters.datetime.start);
-  }
-  if (pageFilters.datetime.utc) {
-    params.utc = pageFilters.datetime.utc;
-  }
-
-  return api.requestPromise(groupListUrl, {
-    includeAllArgs: true,
-    method: 'GET',
-    data: {
-      ...params,
-    },
-  });
-}
-
-function getIssuesSeriesRequest(
-  api: Client,
-  widget: Widget,
-  queryIndex: number,
-  organization: Organization,
-  pageFilters: PageFilters,
-  _onDemandControlContext?: OnDemandControlContext,
-  referrer?: string
-): Promise<ApiResult<IssuesSeriesResponse>> {
-  const requestData = getSeriesRequestData(
-    widget,
-    queryIndex,
-    organization,
-    pageFilters,
-    DiscoverDatasets.ISSUE_PLATFORM,
-    referrer
-  );
-
-  requestData.generatePathname = (_org: OrganizationSummary) =>
-    `/organizations/${organization.slug}/issues-timeseries/`;
-
-  requestData.queryExtras = {
-    ...requestData.queryExtras,
-    category: 'issue',
-  };
-
-  // TODO: For now we are reusing EventsStatsOptions which contains attributes
-  // not needed for issue requests.
-  const {dataset: _dataset, query: _query, ...prunedRequestData} = requestData;
-
-  return doEventsRequest<true>(api, prunedRequestData) as unknown as Promise<
-    ApiResult<IssuesSeriesResponse>
-  >;
 }
 
 export function transformIssuesResponseToSeries(data: IssuesSeriesResponse): Series[] {

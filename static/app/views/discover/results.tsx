@@ -36,6 +36,7 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -591,7 +592,7 @@ export class Results extends Component<Props, State> {
     }
     return (
       <Alert.Container>
-        <Alert type="error">{error}</Alert>
+        <Alert variant="danger">{error}</Alert>
       </Alert.Container>
     );
   }
@@ -608,7 +609,7 @@ export class Results extends Component<Props, State> {
     ) {
       return (
         <Alert.Container>
-          <Alert type="info">
+          <Alert variant="info">
             {t(
               "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
             )}
@@ -619,7 +620,7 @@ export class Results extends Component<Props, State> {
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>
-          <Alert type="info">
+          <Alert variant="info">
             {tct(
               'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
               {
@@ -641,7 +642,7 @@ export class Results extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -650,7 +651,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
               />
             }
           >
@@ -694,7 +695,7 @@ export class Results extends Component<Props, State> {
       });
       return (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {tct(
               'This query has been migrated to Explore, the fancy new UI that will soon replace Discover. Try it out in [explore:Explore] instead.',
               {
@@ -714,7 +715,7 @@ export class Results extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -723,7 +724,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
               />
             }
           >
@@ -748,7 +749,7 @@ export class Results extends Component<Props, State> {
     if (tips) {
       return tips.map((tip, index) => (
         <Alert.Container key={`tip-${index}`}>
-          <Alert type="info" key={`tip-${index}`}>
+          <Alert variant="info" key={`tip-${index}`}>
             <TipContainer as="span" text={tip} />
           </Alert>
         </Alert.Container>
@@ -974,7 +975,12 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
-      `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          queryId: decodeScalar(location.query.id)!,
+        },
+      }),
     ],
     [organization, location.query.id]
   );

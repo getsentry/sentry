@@ -2,6 +2,8 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -115,7 +117,7 @@ function Content({datePageFilterProps}: ContentProps) {
   return (
     <Layout.Body>
       <Layout.Main width="full">
-        <Flex>
+        <Flex justify="between" align="center">
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
@@ -148,7 +150,7 @@ function Content({datePageFilterProps}: ContentProps) {
                 : []),
               {
                 key: 'save-query',
-                label: t('A New Query'),
+                label: t('New Query'),
                 onAction: () => {
                   trackAnalytics('trace_explorer.save_query_modal', {
                     action: 'open',
@@ -228,10 +230,4 @@ export function MultiQueryModeContent() {
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(1)};
-`;
-
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;

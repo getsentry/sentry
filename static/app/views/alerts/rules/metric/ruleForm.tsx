@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link/link';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip/tooltip';
 
@@ -1513,7 +1514,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
                   <AlertListItem>
                     {
-                      <HeadingContainer>
+                      <Flex align="center" gap="sm">
                         {t('Set thresholds')}
                         {showExtrapolationModeChangeWarning && (
                           <WarningIcon
@@ -1534,13 +1535,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                             id="thresholds-warning-icon"
                           />
                         )}
-                      </HeadingContainer>
+                      </Flex>
                     }
                   </AlertListItem>
                   {thresholdTypeForm(formDisabled)}
                   {showErrorMigrationWarning && (
                     <Alert.Container>
-                      <Alert type="warning">
+                      <Alert variant="warning">
                         {tct(
                           "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
                           {
@@ -1594,7 +1595,7 @@ function getTimeWindowFromDataset(
 function WarningIcon({tooltipProps, id}: {id: string; tooltipProps?: TooltipProps}) {
   return (
     <Tooltip {...tooltipProps} title={tooltipProps?.title} skipWrapper>
-      <StyledIconWarning id={id} size="md" color="warning" />
+      <StyledIconWarning id={id} size="md" variant="warning" />
     </Tooltip>
   );
 }
@@ -1605,7 +1606,7 @@ const Main = styled(Layout.Main)`
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-top: 0;
 `;
 
@@ -1619,26 +1620,20 @@ const AlertName = styled(HeaderTitleLegend)`
 `;
 
 const AlertInfo = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.sans};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.subText};
+  background: ${p => p.theme.tokens.graphics.neutral.vibrant};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;
 
 const Aggregate = styled('span')`
   margin-right: ${space(1)};
-`;
-
-const HeadingContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

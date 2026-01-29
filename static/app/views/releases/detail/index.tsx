@@ -22,6 +22,7 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
 } from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -70,9 +71,18 @@ function ReleasesDetail({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
-    params.release
-  )}/`;
+  const releasePath = getApiUrl(
+    '/organizations/$organizationIdOrSlug/releases/$version/',
+    {
+      path: {organizationIdOrSlug: organization.slug, version: params.release},
+    }
+  );
+  const deploysPath = getApiUrl(
+    '/organizations/$organizationIdOrSlug/releases/$version/deploys/',
+    {
+      path: {organizationIdOrSlug: organization.slug, version: params.release},
+    }
+  );
 
   const {
     data: release,
@@ -97,10 +107,10 @@ function ReleasesDetail({
     refetch: refetchDeploys,
     isPending: isDeploysPending,
     error: deploysError,
-  } = useApiQuery<Deploy[]>(
-    [`${releasePath}deploys/`, {query: {project: location.query.project}}],
-    {staleTime: Infinity, enabled: isDeploysEnabled}
-  );
+  } = useApiQuery<Deploy[]>([deploysPath, {query: {project: location.query.project}}], {
+    staleTime: Infinity,
+    enabled: isDeploysEnabled,
+  });
 
   const {
     data: sessions = null,
@@ -109,7 +119,9 @@ function ReleasesDetail({
     error: sessionsError,
   } = useApiQuery<SessionApiResponse>(
     [
-      `/organizations/${organization.slug}/sessions/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: location.query.project,
@@ -149,7 +161,7 @@ function ReleasesDetail({
         <SentryDocumentTitle title={pageTitle}>
           <Layout.Page>
             <Alert.Container>
-              <Alert type="error">
+              <Alert variant="danger">
                 {possiblyWrongProject
                   ? t('This release may not be in your selected project.')
                   : t('There was an error loading the release details')}
@@ -265,7 +277,7 @@ function ReleasesDetailContainer() {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error">{t('This release could not be found.')}</Alert>
+          <Alert variant="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
       </Layout.Page>
     );

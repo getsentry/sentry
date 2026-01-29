@@ -130,11 +130,11 @@ export function AppSizeInsightsSidebarRow({
         <Text variant="primary" size="md" bold>
           {insight.name}
         </Text>
-        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
+        <Flex align="center" gap="sm" flexShrink={0}>
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
-          <Tag type="success" style={{minWidth: '56px', justifyContent: 'center'}}>
+          <Tag variant="success" style={{minWidth: '56px', justifyContent: 'center'}}>
             <Text size="sm" tabular variant="success">
               {formatUpside(insight.percentage / 100)}
             </Text>
@@ -183,7 +183,7 @@ export function AppSizeInsightsSidebarRow({
                   width: '100%',
                   overflow: 'hidden',
                   '& > :nth-child(odd)': {
-                    backgroundColor: theme.backgroundSecondary,
+                    backgroundColor: theme.tokens.background.secondary,
                   },
                 })}
               >
@@ -240,9 +240,7 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
       padding="xs sm"
       radius="sm"
       overflow="hidden"
-      style={{
-        minWidth: 0,
-      }}
+      minWidth={0}
     >
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
@@ -270,9 +268,7 @@ function DuplicateGroupFileRow({
         padding="xs sm"
         radius="sm"
         overflow="hidden"
-        style={{
-          minWidth: 0,
-        }}
+        minWidth={0}
       >
         <Text size="sm" ellipsis style={{flex: 1}} bold>
           {group.name}
@@ -360,18 +356,16 @@ function OptimizableImageFileRow({
         padding="xs sm"
         radius="sm"
         overflow="hidden"
-        style={{
-          minWidth: 0,
-        }}
+        minWidth={0}
       >
-        <Flex align="center" gap="xs" overflow="hidden" style={{minWidth: 0}}>
+        <Flex align="center" gap="xs" overflow="hidden" minWidth={0}>
           <Text size="sm" ellipsis style={{flex: 1}}>
             {file.path}
           </Text>
           {hasMetadata && (
             <Tooltip title={tooltipContent} isHoverable skipWrapper>
-              <Flex align="center" style={{flexShrink: 0}}>
-                <IconFlag size="xs" color="subText" />
+              <Flex align="center" flexShrink={0}>
+                <IconFlag size="xs" variant="muted" />
               </Flex>
             </Tooltip>
           )}

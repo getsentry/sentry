@@ -1,6 +1,10 @@
 import {useCallback, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  needsGitHubAuth,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import {
   setApiQueryData,
   useApiQuery,
@@ -14,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {
   Artifact,
   Block,
+  ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
@@ -89,6 +94,7 @@ interface ExplorerAutofixState {
   run_id: number;
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
+  coding_agents?: Record<string, ExplorerCodingAgentState>;
   pending_user_input?: {
     data: Record<string, unknown>;
     id: string;
@@ -109,6 +115,7 @@ const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
 
 const makeExplorerAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  {query: {mode: 'explorer'}},
 ];
 
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
@@ -327,6 +334,7 @@ export function useExplorerAutofix(
           `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
           {
             method: 'POST',
+            query: {mode: 'explorer'},
             data: {
               step,
               ...(runId !== undefined && {run_id: runId}),
@@ -399,6 +407,63 @@ export function useExplorerAutofix(
     );
   }, [queryClient, orgSlug, groupId]);
 
+  /**
+   * Trigger coding agent handoff for an existing run.
+   */
+  const triggerCodingAgentHandoff = useCallback(
+    async (runId: number, integration: CodingAgentIntegration) => {
+      setWaitingForResponse(true);
+
+      addLoadingMessage('Launching coding agent...');
+
+      const data: Record<string, string | number> = {
+        step: 'coding_agent_handoff',
+        run_id: runId,
+      };
+
+      if (integration.id === null) {
+        data.provider = integration.provider;
+      } else {
+        data.integration_id = parseInt(integration.id, 10);
+      }
+
+      try {
+        const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
+          await api.requestPromise(
+            `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+            {
+              method: 'POST',
+              query: {mode: 'explorer'},
+              data,
+            }
+          );
+
+        // Check for failures in the response
+        if (response.failures && response.failures.length > 0) {
+          const errorMessage =
+            response.failures[0]?.error_message ?? 'Failed to launch coding agent';
+          addErrorMessage(errorMessage);
+        }
+
+        // Invalidate to fetch fresh data
+        queryClient.invalidateQueries({
+          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+        });
+      } catch (e: any) {
+        if (needsGitHubAuth(e)) {
+          const currentUrl = window.location.href;
+          window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+          return;
+        }
+        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
+        throw e;
+      } finally {
+        setWaitingForResponse(false);
+      }
+    },
+    [api, orgSlug, groupId, queryClient]
+  );
+
   // Clear waiting state when we get a response
   if (waitingForResponse && runState) {
     const hasLoadingBlock = runState.blocks.some(block => block.loading);
@@ -432,5 +497,9 @@ export function useExplorerAutofix(
      * Reset the autofix state.
      */
     reset,
+    /**
+     * Trigger coding agent handoff for an existing run.
+     */
+    triggerCodingAgentHandoff,
   };
 }

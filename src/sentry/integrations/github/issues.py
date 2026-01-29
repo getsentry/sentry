@@ -7,12 +7,14 @@ from typing import Any, NoReturn
 
 from django.urls import reverse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization.service import organization_service
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -223,6 +225,17 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if not repo:
             raise IntegrationFormError({"repo": "Repository is required"})
 
+        # Check the repository belongs to the integration
+        if not Repository.objects.filter(
+            name=repo,
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+            status=ObjectStatus.ACTIVE,
+        ).exists():
+            raise IntegrationFormError(
+                {"repo": f"Given repository, {repo} does not belong to this installation"}
+            )
+
         # Create clean issue data with required fields
         if not data.get("title"):
             raise IntegrationFormError({"title": "Title is required"})
@@ -315,6 +328,16 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         if not repo:
             raise IntegrationFormError({"repo": "Repository is required"})
+
+        if not Repository.objects.filter(
+            name=repo,
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+            status=ObjectStatus.ACTIVE,
+        ).exists():
+            raise IntegrationFormError(
+                {"repo": f"Given repository, {repo} does not belong to this installation"}
+            )
 
         if not issue_num:
             raise IntegrationFormError({"externalIssue": "Issue number is required"})

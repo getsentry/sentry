@@ -4,7 +4,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -54,7 +54,7 @@ export default function ReplayComparisonModal({
         initialRightOffsetMs={initialRightOffsetMs}
       >
         <Header closeButton>
-          <ModalHeader>
+          <Flex justify="between" align="center" flex="1">
             <Title>
               {t('Hydration Error')}
               <Tooltip
@@ -83,7 +83,7 @@ export default function ReplayComparisonModal({
                   <Button
                     aria-label={t('Adjust diff')}
                     icon={<IconSliders size="md" />}
-                    borderless
+                    priority="transparent"
                   />
                 </AutoWideHovercard>
               ) : null}
@@ -100,27 +100,27 @@ export default function ReplayComparisonModal({
                 />
               ) : null}
             </Flex>
-          </ModalHeader>
+          </Flex>
         </Header>
         <Body>
           {isSameTimestamp ? (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t(
                   "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
                 )}
               </Alert>
             </Alert.Container>
           ) : null}
-          <RelativePosition>
+          <Container height="100%" position="relative">
             <ReplayDiffChooser />
-            <AbsoluteTopRight>
+            <Container position="absolute" top="0" right="0">
               <LearnMoreButton
                 onHover={() => focusTrap?.pause()}
                 onBlur={() => focusTrap?.unpause()}
               />
-            </AbsoluteTopRight>
-          </RelativePosition>
+            </Container>
+          </Container>
         </Body>
       </DiffCompareContextProvider>
     </AnalyticsArea>
@@ -129,14 +129,6 @@ export default function ReplayComparisonModal({
 
 const AutoWideHovercard = styled(Hovercard)`
   width: auto;
-`;
-
-const ModalHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-  flex: 1;
 `;
 
 const Title = styled('h4')`
@@ -152,15 +144,4 @@ const Before = styled('span')`
 const After = styled('span')`
   color: ${p => p.theme.colors.green400};
   font-weight: bold;
-`;
-
-const RelativePosition = styled('div')`
-  position: relative;
-  height: 100%;
-`;
-
-const AbsoluteTopRight = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
 `;

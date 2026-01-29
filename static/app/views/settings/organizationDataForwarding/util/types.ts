@@ -1,5 +1,12 @@
 import type {AvatarProject} from 'sentry/types/project';
 
+// Access to the feature is controlled by this flag permanently.
+// During release, we gate this check elsewhere by the
+// data-forwarding-revamp-access flag, so it's fine to omit here.
+export const DATA_FORWARDING_FEATURES = ['organizations:data-forwarding'];
+export const DATA_FORWARDING_DOCS_URL =
+  'https://docs.sentry.io/organization/integrations/data-forwarding/';
+
 export enum DataForwarderProviderSlug {
   SEGMENT = 'segment',
   SQS = 'sqs',

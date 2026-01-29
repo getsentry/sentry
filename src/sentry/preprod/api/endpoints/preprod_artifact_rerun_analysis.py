@@ -22,7 +22,8 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.producer import produce_preprod_artifact_to_kafka
+from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
+from sentry.preprod.quotas import should_run_distribution, should_run_size
 
 logger = logging.getLogger(__name__)
 
@@ -61,14 +62,29 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             )
         )
 
-        cleanup_old_metrics(head_artifact)
+        organization = head_artifact.project.organization
+
+        # Empty list is valid - triggers default processing behavior
+        requested_features: list[PreprodFeature] = []
+
+        run_size, _ = should_run_size(head_artifact, actor=request.user)
+        if run_size:
+            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
+
+        run_distribution, _ = should_run_distribution(head_artifact, actor=request.user)
+        if run_distribution:
+            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+
+        if PreprodFeature.SIZE_ANALYSIS in requested_features:
+            cleanup_old_metrics(head_artifact)
         reset_artifact_data(head_artifact)
 
         try:
             produce_preprod_artifact_to_kafka(
                 project_id=head_artifact.project.id,
-                organization_id=head_artifact.project.organization_id,
+                organization_id=organization.id,
                 artifact_id=head_artifact_id,
+                requested_features=requested_features,
             )
         except Exception:
             logger.exception(
@@ -76,7 +92,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
                 extra={
                     "artifact_id": head_artifact_id,
                     "user_id": request.user.id,
-                    "organization_id": head_artifact.project.organization_id,
+                    "organization_id": organization.id,
                     "project_id": head_artifact.project.id,
                 },
             )
@@ -92,7 +108,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             extra={
                 "artifact_id": head_artifact_id,
                 "user_id": request.user.id,
-                "organization_id": head_artifact.project.organization_id,
+                "organization_id": organization.id,
                 "project_id": head_artifact.project.id,
             },
         )
@@ -156,10 +172,15 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         reset_artifact_data(preprod_artifact)
 
         try:
+            # Admin endpoint bypasses quota checks and requests all features
             produce_preprod_artifact_to_kafka(
                 project_id=preprod_artifact.project.id,
                 organization_id=preprod_artifact.project.organization_id,
                 artifact_id=preprod_artifact_id,
+                requested_features=[
+                    PreprodFeature.SIZE_ANALYSIS,
+                    PreprodFeature.BUILD_DISTRIBUTION,
+                ],
             )
         except Exception as e:
             logger.exception(

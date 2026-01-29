@@ -159,7 +159,7 @@ function IntegrationExternalMappings(props: Props) {
         message={t('Are you sure you want to remove this external %s mapping?', type)}
       >
         <Button
-          borderless
+          priority="transparent"
           size="sm"
           icon={<IconDelete size="sm" />}
           aria-label={t('Remove user mapping')}
@@ -208,7 +208,7 @@ function IntegrationExternalMappings(props: Props) {
               <span>{mapping.externalName}</span>
             </ExternalNameColumn>
             <div>
-              <IconArrow direction="right" size="sm" color="gray300" />
+              <IconArrow direction="right" size="sm" variant="muted" />
             </div>
             <ExternalForm>{renderMappingName(mapping)}</ExternalForm>
             <div>{renderMappingActions(mapping)}</div>
@@ -256,7 +256,7 @@ const StyledPluginIcon = styled(PluginIcon)`
 `;
 
 const ExternalNameColumn = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const AddButton = styled(Button)`

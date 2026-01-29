@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -152,6 +152,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.lcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.LCP,
         },
       ],
       thresholds: {
@@ -183,6 +184,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.fcp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.FCP,
         },
       ],
       thresholds: {
@@ -214,6 +216,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.inp)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.INP,
         },
       ],
       thresholds: {
@@ -245,6 +248,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.cls)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.CLS,
         },
       ],
       thresholds: {
@@ -276,6 +280,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['p75(measurements.ttfb)'],
           columns: [],
           orderby: '',
+          slideOutId: SlideoutId.TTFB,
         },
       ],
       thresholds: {

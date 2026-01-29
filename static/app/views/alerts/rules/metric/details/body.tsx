@@ -3,6 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink, Link} from 'sentry/components/core/link';
@@ -11,8 +13,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {IconClose} from 'sentry/icons';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -120,7 +125,7 @@ export default function MetricDetailsBody({
     dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
       ? query
       : (query ? `(${query}) AND (${eventType})` : eventType).trim();
-  const relativeOptions = {
+  const relativeOptions: Record<string, string> = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
     ...(rule.detectionType === AlertRuleComparisonType.DYNAMIC
@@ -158,7 +163,7 @@ export default function MetricDetailsBody({
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <Alert type="warning">
+          <Alert variant="warning">
             {t('Alert Rule settings have been updated since this alert was triggered.')}
           </Alert>
         </StyledLayoutBody>
@@ -168,7 +173,7 @@ export default function MetricDetailsBody({
           {rule.snooze && (
             <Alert.Container>
               {rule.snoozeForEveryone ? (
-                <Alert type="info">
+                <Alert variant="info">
                   {tct(
                     "[creator] muted this alert for everyone so you won't get these notifications in the future.",
                     {
@@ -187,7 +192,7 @@ export default function MetricDetailsBody({
             rule={rule}
             project={project}
           />
-          <StyledSubHeader>
+          <Flex align="center" marginBottom="xl">
             <StyledTimeRangeSelector
               relative={timePeriod.period ?? ''}
               start={(timePeriod.custom && timePeriod.start) || null}
@@ -196,12 +201,13 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerProps={{
-                children: timePeriod.custom
-                  ? timePeriod.label
-                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    relativeOptions[timePeriod.period ?? ''],
-              }}
+              trigger={triggerProps => (
+                <TimeRangeSelectTrigger {...triggerProps}>
+                  {timePeriod.custom
+                    ? timePeriod.label
+                    : (relativeOptions[timePeriod.period ?? ''] ?? triggerProps.children)}
+                </TimeRangeSelectTrigger>
+              )}
             />
             {selectedIncident && (
               <Tooltip
@@ -218,7 +224,7 @@ export default function MetricDetailsBody({
                 </Link>
               </Tooltip>
             )}
-          </StyledSubHeader>
+          </Flex>
 
           {selectedIncident?.alertRule.detectionType ===
             AlertRuleComparisonType.DYNAMIC && (
@@ -246,7 +252,7 @@ export default function MetricDetailsBody({
             theme={theme}
           />
           <DetailWrapper>
-            <ActivityWrapper>
+            <Stack flex="1" width="100%">
               <MetricHistory incidents={incidents} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
@@ -274,7 +280,7 @@ export default function MetricDetailsBody({
                   filter={extractEventTypeFilterFromRule(rule)}
                 />
               )}
-            </ActivityWrapper>
+            </Stack>
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
@@ -299,7 +305,7 @@ function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
     return (
       <Alert.Container>
         <Alert
-          type="warning"
+          variant="warning"
           trailingItems={
             <StyledCloseButton
               icon={<IconClose size="sm" />}
@@ -308,7 +314,7 @@ function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
                 setShowTransactionsDeprecationAlert(false);
               }}
               size="zero"
-              borderless
+              priority="transparent"
             />
           }
         >
@@ -347,7 +353,7 @@ function MigratedAlertWarning({
   if (isEnabled) {
     return (
       <Alert.Container>
-        <Alert type="info">
+        <Alert variant="info">
           {tctCode(
             'To match the original behaviour, we’ve migrated this alert from a transaction-based alert to a span-based alert using a special compatibility mode. When you have a moment, please [editLink:edit] the alert updating its thresholds to account for [samplingLink:sampling].',
             {
@@ -384,21 +390,8 @@ const StyledLayoutBody = styled(Layout.Body)`
   }
 `;
 
-const ActivityWrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  width: 100%;
-`;
-
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
-`;
-
-const StyledSubHeader = styled('div')`
-  margin-bottom: ${space(2)};
-  display: flex;
-  align-items: center;
 `;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`

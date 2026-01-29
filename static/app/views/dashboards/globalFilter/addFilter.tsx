@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Tag as TagBadge} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -57,7 +57,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
     return Array.from(DATASET_CHOICES.entries()).map(([widgetType, label]) => ({
       label,
       value: widgetType,
-      trailingItems: <IconArrow direction="right" color="subText" size="xs" />,
+      trailingItems: <IconArrow direction="right" variant="muted" size="xs" />,
     }));
   }, []);
 
@@ -88,7 +88,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
           value: tag.key,
           label: prettifyTagKey(tag.key),
           trailingItems: (
-            <TagBadge>
+            <TagBadge variant="muted">
               <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
             </TagBadge>
           ),
@@ -111,7 +111,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       <Flex gap="md" justify="end">
         <Button
           size="xs"
-          borderless
+          priority="transparent"
           icon={<IconArrow direction="left" />}
           onClick={() => {
             resetSearch();
@@ -190,7 +190,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       }
       menuFooter={isSelectingFilterKey && filterOptionsMenuFooter}
       trigger={triggerProps => (
-        <SelectTrigger.IconButton
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Add Global Filter')}
           icon={<IconAdd size="sm" />}

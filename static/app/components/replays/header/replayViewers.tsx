@@ -29,7 +29,7 @@ export default function ReplayViewers({projectId, replayId}: Props) {
   });
 
   return isPending || isError ? (
-    <Placeholder width="55px" height="27px" />
+    <Placeholder width="25px" height="25px" />
   ) : (
     <AvatarList avatarSize={25} users={data?.data.viewed_by} />
   );

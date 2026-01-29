@@ -39,10 +39,9 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
       </div>
       <IntegrationBannerImage src={addIntegrationProvider} />
       <CloseBannerButton
-        borderless
         priority="link"
         aria-label={t('Dismiss')}
-        icon={<IconClose color="subText" />}
+        icon={<IconClose variant="muted" />}
         size="xs"
         onClick={onDismiss}
       />
@@ -52,22 +51,22 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
 
 const StacktraceIntegrationBannerWrapper = styled('div')`
   position: relative;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)};
   margin: ${space(1)} 0;
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
 `;
 
 const IntegationBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const IntegationBannerDescription = styled('div')`
@@ -80,7 +79,7 @@ const CloseBannerButton = styled(Button)`
   display: block;
   top: ${space(2)};
   right: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;

@@ -70,7 +70,7 @@ export default function GroupingInfo({
 
   return (
     <Fragment>
-      <ConfigHeader>
+      <Flex justify="between" marginBottom="2xs" gap="md">
         {hasStreamlinedUI && (
           <GroupInfoSummary
             event={event}
@@ -86,7 +86,7 @@ export default function GroupingInfo({
             {feedbackComponent}
           </div>
         )}
-      </ConfigHeader>
+      </Flex>
       <ToggleContainer>
         <SegmentedControl
           aria-label={t('Filter by contribution')}
@@ -120,13 +120,6 @@ export default function GroupingInfo({
   );
 }
 
-const ConfigHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space['2xs']};
-`;
-
 const ToggleContainer = styled(Flex)`
   justify-content: flex-start;
   padding-bottom: ${p => p.theme.space.lg};
@@ -134,5 +127,5 @@ const ToggleContainer = styled(Flex)`
 
 const VariantDivider = styled('hr')`
   padding-top: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;

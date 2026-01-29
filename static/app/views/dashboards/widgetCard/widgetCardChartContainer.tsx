@@ -109,8 +109,8 @@ export function WidgetCardChartContainer({
   return (
     <WidgetCardDataLoader
       widget={widget}
-      dashboardFilters={dashboardFilters}
       selection={selection}
+      dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
       onWidgetSplitDecision={onWidgetSplitDecision}
       onDataFetchStart={onDataFetchStart}
@@ -122,6 +122,7 @@ export function WidgetCardChartContainer({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
         confidence,
         sampleCount,
         isSampled,
@@ -156,6 +157,7 @@ export function WidgetCardChartContainer({
               windowWidth={windowWidth}
               onZoom={onZoom}
               timeseriesResultsTypes={timeseriesResultsTypes}
+              timeseriesResultsUnits={timeseriesResultsUnits}
               noPadding={noPadding}
               chartGroup={chartGroup}
               shouldResize={shouldResize}

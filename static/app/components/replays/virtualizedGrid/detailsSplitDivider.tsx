@@ -33,8 +33,8 @@ export default function DetailsSplitDivider({
       <CloseButtonWrapper>
         <Button
           aria-label={t('Hide details')}
-          borderless
-          icon={<IconClose size="sm" color="subText" />}
+          priority="transparent"
+          icon={<IconClose size="sm" variant="muted" />}
           onClick={(e: MouseEvent) => {
             e.preventDefault();
             onClose();
@@ -48,8 +48,8 @@ export default function DetailsSplitDivider({
 
 const StyledStacked = styled(Stacked)`
   position: relative;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const CloseButtonWrapper = styled('div')`

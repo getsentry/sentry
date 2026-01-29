@@ -1,30 +1,25 @@
 import {Fragment} from 'react';
+import {Outlet} from 'react-router-dom';
 
-import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
 import {DashboardState} from './types';
 import {DashboardBasicFeature} from './view';
 
-type Props = RouteComponentProps & {
-  api: Client;
-  children: React.ReactNode;
-  organization: Organization;
-};
-
-function DashboardsV2Container(props: Props) {
-  const {organization, children} = props;
+export default function DashboardsV2Container() {
+  const organization = useOrganization();
 
   if (organization.features.includes('dashboards-edit')) {
-    return <Fragment>{children}</Fragment>;
+    return (
+      <Fragment>
+        <Outlet />
+      </Fragment>
+    );
   }
 
   return (
@@ -36,7 +31,6 @@ function DashboardsV2Container(props: Props) {
           ) : dashboard ? (
             <ErrorBoundary>
               <DashboardDetail
-                {...props}
                 key={dashboard.id}
                 initialState={DashboardState.VIEW}
                 dashboard={dashboard}
@@ -52,5 +46,3 @@ function DashboardsV2Container(props: Props) {
     </DashboardBasicFeature>
   );
 }
-
-export default withApi(withOrganization(DashboardsV2Container));

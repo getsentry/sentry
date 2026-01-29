@@ -1,3 +1,4 @@
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
@@ -86,7 +87,9 @@ export function DropdownAddTeam({
       onClose={() => onSearch('')}
       onChange={selection => onSelect(selection.value)}
       menuTitle={<Text size="sm">{t('Teams')}</Text>}
-      triggerProps={{children: t('Add Team')}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>{t('Add Team')}</OverlayTrigger.Button>
+      )}
       searchPlaceholder={t('Search Teams')}
       emptyMessage={t('No Teams')}
       loading={isLoadingTeams}
@@ -100,7 +103,6 @@ export function DropdownAddTeam({
                 ? undefined
                 : t('You must be a Org Owner/Manager to create teams')
             }
-            borderless
             priority="link"
             size="xs"
             disabled={!canCreateTeam}

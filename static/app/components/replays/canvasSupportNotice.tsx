@@ -45,14 +45,14 @@ export function CanvasSupportNotice() {
 
   return (
     <StyledAlert
-      type="info"
+      variant="info"
       trailingItems={
         <Button
           aria-label={t('Dismiss banner')}
           icon={<IconClose />}
           onClick={dismiss}
           size="zero"
-          borderless
+          priority="transparent"
         />
       }
     >

@@ -31,7 +31,7 @@ function NoteDropdown({
       triggerProps={{
         size: 'zero',
         showChevron: false,
-        borderless: true,
+        priority: 'transparent',
         icon: <IconEllipsis />,
         'aria-label': t('Comment Actions'),
       }}

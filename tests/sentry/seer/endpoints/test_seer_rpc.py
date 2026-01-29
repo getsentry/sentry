@@ -23,8 +23,10 @@ from sentry.seer.endpoints.seer_rpc import (
     get_github_enterprise_integration_config,
     get_organization_seer_consent_by_org_name,
     get_sentry_organization_ids,
+    validate_repo,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 
@@ -916,7 +918,7 @@ class TestSeerRpcMethods(APITestCase):
             "success": False,
             "error": "Seer webhooks are not enabled for this organization",
         }
-        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
 
     @patch("sentry.features.has")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
@@ -933,7 +935,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"success": True}
-        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+        mock_features_has.assert_called_with("organizations:seer-webhooks", self.organization)
         mock_delay.assert_called_once_with(
             resource_name="seer",
             event_name="root_cause_started",
@@ -967,6 +969,54 @@ class TestSeerRpcMethods(APITestCase):
 
         # Verify that the task was called for each valid event
         assert mock_delay.call_count == len(seer_events)
+
+    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_operator_no_feature_flag(
+        self, mock_broadcast, mock_process_autofix_updates
+    ) -> None:
+        """Slack workflows flag should not affect broadcasting the webhooks."""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        with self.feature("organizations:seer-webhooks"):
+            result = send_seer_webhook(
+                event_name="root_cause_completed",
+                organization_id=self.organization.id,
+                payload={"run_id": 123},
+            )
+
+        assert result["success"]
+        mock_process_autofix_updates.assert_not_called()
+        mock_broadcast.assert_called_once()
+
+    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
+        """Slack workflows flag should not affect broadcasting the webhooks."""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        event_payload = {"run_id": 123}
+        event_name = "root_cause_completed"
+
+        with (
+            self.feature("organizations:seer-webhooks"),
+            self.feature("organizations:seer-slack-workflows"),
+        ):
+            result = send_seer_webhook(
+                event_name=event_name,
+                organization_id=self.organization.id,
+                payload=event_payload,
+            )
+
+        assert result["success"]
+        mock_process_autofix_updates.apply_async.assert_called_once_with(
+            kwargs={
+                "run_id": event_payload["run_id"],
+                "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+                "event_payload": event_payload,
+            },
+        )
+        mock_broadcast.assert_called_once()
 
     def test_check_repository_integrations_status_empty_list(self) -> None:
         """Test with empty input list"""
@@ -1476,3 +1526,262 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"integration_ids": [integration.id]}
+
+    def test_validate_repo_valid(self) -> None:
+        """Test when repository exists and matches all fields"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"valid": True, "integration_id": integration.id}
+
+    def test_validate_repo_valid_with_integrations_prefix(self) -> None:
+        """Test when provider is passed with integrations: prefix"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"valid": True, "integration_id": integration.id}
+
+    def test_validate_repo_not_found(self) -> None:
+        """Test when repository does not exist"""
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="nonexistent",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"valid": False, "reason": "repository_not_found"}
+
+    def test_validate_repo_wrong_org_id(self) -> None:
+        """Test that wrong organization_id returns not found (IDOR prevention)"""
+        org2 = self.create_organization(owner=self.user)
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=org2.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"valid": False, "reason": "repository_not_found"}
+
+    def test_validate_repo_wrong_owner(self) -> None:
+        """Test that wrong owner returns not found"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="wrong-owner",
+            name="sentry",
+        )
+
+        assert result == {"valid": False, "reason": "repository_not_found"}
+
+    def test_validate_repo_wrong_name(self) -> None:
+        """Test that wrong name returns not found"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="wrong-name",
+        )
+
+        assert result == {"valid": False, "reason": "repository_not_found"}
+
+    def test_validate_repo_wrong_external_id(self) -> None:
+        """Test that wrong external_id returns not found"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="wrong-external-id",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"valid": False, "reason": "repository_not_found"}
+
+    def test_validate_repo_inactive(self) -> None:
+        """Test that inactive repository returns not found"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.DISABLED,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"valid": False, "reason": "repository_not_found"}
+
+    def test_validate_repo_unsupported_provider(self) -> None:
+        """Test that unsupported provider returns appropriate error"""
+        integration = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gitlab:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:gitlab",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"valid": False, "reason": "unsupported_provider"}
+
+    def test_validate_repo_no_integration_id(self) -> None:
+        """Test when repository has no integration_id set"""
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=None,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"valid": True, "integration_id": None}
+
+    def test_validate_repo_github_enterprise(self) -> None:
+        """Test that github_enterprise provider works correctly"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github_enterprise", external_id="ghe:1"
+        )
+
+        Repository.objects.create(
+            name="mycompany/internal-repo",
+            organization_id=self.organization.id,
+            provider="integrations:github_enterprise",
+            external_id="789",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = validate_repo(
+            organization_id=self.organization.id,
+            provider="github_enterprise",
+            external_id="789",
+            owner="mycompany",
+            name="internal-repo",
+        )
+
+        assert result == {"valid": True, "integration_id": integration.id}

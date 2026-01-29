@@ -60,7 +60,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         all_size_metrics = list(head_artifact.get_size_metrics())
 

@@ -1,6 +1,8 @@
 import {type DashboardDetails} from 'sentry/views/dashboards/types';
+import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
 import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
+import {MOBILE_SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileSessionHealth';
 import {MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/appStarts';
 import {MOBILE_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/mobileVitals';
 import {MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenLoads';
@@ -23,6 +25,8 @@ export enum PrebuiltDashboardId {
   MOBILE_VITALS_APP_STARTS = 9,
   MOBILE_VITALS_SCREEN_LOADS = 10,
   MOBILE_VITALS_SCREEN_RENDERING = 11,
+  BACKEND_OVERVIEW = 12,
+  MOBILE_SESSION_HEALTH = 13,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -38,10 +42,12 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.WEB_VITALS]: WEB_VITALS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.WEB_VITALS_SUMMARY]: WEB_VITALS_SUMMARY_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_VITALS]: MOBILE_VITALS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_OVERVIEW]: BACKEND_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS]:
     MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS]:
     MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING]:
     MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.MOBILE_SESSION_HEALTH]: MOBILE_SESSION_HEALTH_PREBUILT_CONFIG,
 };

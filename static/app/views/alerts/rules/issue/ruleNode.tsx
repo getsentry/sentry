@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -461,7 +463,7 @@ function RuleNode({
     if (data.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
         return (
-          <FooterAlert type="error">
+          <FooterAlert variant="danger">
             {tct(
               "This project doesn't support sessions. [link:View supported platforms]",
               {
@@ -475,7 +477,7 @@ function RuleNode({
       }
 
       return (
-        <FooterAlert type="warning">
+        <FooterAlert variant="warning">
           {tct(
             'Percent of sessions affected is approximated by the ratio of the issue frequency to the number of sessions in the project. [link:Learn more.]',
             {
@@ -491,7 +493,7 @@ function RuleNode({
     if (data.id === IssueAlertActionType.SLACK) {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -506,7 +508,7 @@ function RuleNode({
     if (data.id === IssueAlertActionType.DISCORD) {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
@@ -525,7 +527,7 @@ function RuleNode({
       )
     ) {
       return (
-        <FooterAlert type="warning">
+        <FooterAlert variant="warning">
           {t(
             'Issue categories have been recently updated. Make a new selection to save changes.'
           )}
@@ -541,7 +543,7 @@ function RuleNode({
       return null;
     }
     return (
-      <FooterAlert type="error">
+      <FooterAlert variant="danger">
         {t(
           'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}
@@ -597,12 +599,12 @@ function RuleNode({
 
   return (
     <RuleRowContainer incompatible={incompatibleRule}>
-      <RuleRow>
-        <Rule>
+      <Flex align="center" padding="md">
+        <Flex align="center" wrap="wrap" flex="1">
           <input type="hidden" name="id" value={data.id} />
           {renderRow()}
           {renderIntegrationButton()}
-        </Rule>
+        </Flex>
         <DeleteButton
           disabled={disabled}
           aria-label={t('Delete Node')}
@@ -610,7 +612,7 @@ function RuleNode({
           size="sm"
           icon={<IconDelete />}
         />
-      </RuleRow>
+      </Flex>
       {renderIncompatibleRuleBanner()}
       {conditionallyRenderHelpfulBanner()}
     </RuleRowContainer>
@@ -641,24 +643,11 @@ const Separator = styled('span')`
   padding-bottom: ${space(0.5)};
 `;
 
-const RuleRow = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)};
-`;
-
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px ${p => p.theme.innerBorder} solid;
+  border: 1px ${p => p.theme.tokens.border.secondary} solid;
   border-color: ${p => (p.incompatible ? p.theme.colors.red200 : 'none')};
-`;
-
-const Rule = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  flex-wrap: wrap;
 `;
 
 const DeleteButton = styled(Button)`

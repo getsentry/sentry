@@ -9,6 +9,42 @@ from sentry.api.bases.organization import OrganizationAlertRulePermission, Organ
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.models.organization import Organization
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
+
+
+class OrganizationAlertRuleBaseEndpoint(OrganizationEndpoint):
+    """
+    Base endpoint for organization-scoped alert rule creation.
+
+    Provides permission checking for alert creation that handles both
+    org-level permissions and team admin project-scoped permissions.
+    """
+
+    def check_can_create_alert(self, request: Request, organization: Organization) -> None:
+        """
+        Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
+        permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
+        in their request.
+        """
+
+        # if the requesting user has any of these org-level permissions, then they can create an alert
+        if (
+            request.access.has_scope("alerts:write")
+            or request.access.has_scope("org:admin")
+            or request.access.has_scope("org:write")
+        ):
+            return
+
+        # team admins should be able to create alerts for the projects they have access to
+        projects = self.get_projects(request, organization)
+        # team admins will have alerts:write scoped to their projects, members will not
+        team_admin_has_access = all(
+            [request.access.has_project_scope(project, "alerts:write") for project in projects]
+        )
+        # all() returns True for empty list, so include a check for it
+        if not team_admin_has_access or not projects:
+            raise PermissionDenied
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
@@ -20,6 +56,7 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
+        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
 
         # Allow orgs that have downgraded plans to delete metric alerts
         if request.method != "DELETE" and not features.has(
@@ -31,7 +68,9 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
             raise PermissionDenied
 
         try:
-            kwargs["alert_rule"] = AlertRule.objects.get(projects=project, id=alert_rule_id)
+            kwargs["alert_rule"] = AlertRule.objects.get(
+                projects=project, id=validated_alert_rule_id
+            )
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -46,6 +85,7 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
+        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
 
         # Allow orgs that have downgraded plans to delete metric alerts
         if request.method != "DELETE" and not features.has(
@@ -55,7 +95,7 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
 
         try:
             kwargs["alert_rule"] = AlertRule.objects.get(
-                organization=organization, id=alert_rule_id
+                organization=organization, id=validated_alert_rule_id
             )
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist

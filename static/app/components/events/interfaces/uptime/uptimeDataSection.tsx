@@ -194,7 +194,7 @@ const DowntimeTooltipTitle = styled('div')`
 `;
 
 const DowntimeLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Text = styled('div')`
@@ -209,7 +209,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineLabels)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TimelineWidthTracker = styled('div')`

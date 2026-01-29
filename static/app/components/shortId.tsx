@@ -33,7 +33,7 @@ function ShortId({shortId, avatar, onClick, to, className}: Props) {
 }
 
 const StyledShortId = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   display: grid;
   grid-auto-flow: column;
   gap: 0.5em;
@@ -45,7 +45,7 @@ export const StyledAutoSelectText = styled(AutoSelectText)`
   min-width: 0;
 
   a & {
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
   }
 `;
 

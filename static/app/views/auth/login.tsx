@@ -9,6 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -44,7 +45,7 @@ function Login() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<AuthConfigResponse>(['/auth/config/'], {
+  } = useApiQuery<AuthConfigResponse>([getApiUrl('/auth/config/')], {
     staleTime: 0,
   });
 
@@ -111,7 +112,7 @@ function Login() {
           {orgId !== undefined && (
             <Alert.Container>
               <Alert
-                type="warning"
+                variant="warning"
                 trailingItems={
                   <LinkButton to="/" size="xs">
                     Reload
@@ -137,7 +138,7 @@ const StyledLoadingError = styled(LoadingError)`
 `;
 
 const Header = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 20px 40px 0;
 `;
 

@@ -20,7 +20,7 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
   return [
     <td key="version">
       <strong>{row.version}</strong>
-      {row.version === policy.version && <CurrentTag>current</CurrentTag>}
+      {row.version === policy.version && <CurrentTag variant="muted">current</CurrentTag>}
       {row.url ? (
         <div>
           <ExternalLink href={row.url}>{row.url}</ExternalLink>
@@ -82,7 +82,7 @@ const CurrentTag = styled(Tag)`
 
 const FileName = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default PolicyRevisions;

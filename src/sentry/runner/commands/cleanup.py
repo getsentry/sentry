@@ -554,6 +554,7 @@ def remove_expired_values_for_org_members(
 def delete_api_models(
     is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
+    from sentry.models.apidevicecode import ApiDeviceCode
     from sentry.models.apigrant import ApiGrant
     from sentry.models.apitoken import ApiToken
 
@@ -575,6 +576,15 @@ def delete_api_models(
                 queryset = queryset.filter(sentry_app_installation__isnull=True)
 
             queryset.delete()
+
+    # Device codes have short expiration times (10 minutes), so clean up
+    # any that have expired immediately without additional TTL buffer.
+    if is_filtered(ApiDeviceCode):
+        debug_output(">> Skipping ApiDeviceCode")
+    else:
+        debug_output("Removing expired values for ApiDeviceCode")
+        models_attempted.add(ApiDeviceCode.__name__.lower())
+        ApiDeviceCode.objects.filter(expires_at__lt=timezone.now()).delete()
 
 
 @continue_on_error("specialized_cleanup_exported_data")
@@ -603,7 +613,9 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.models.release import Release
     from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors.models import MonitorCheckIn
+    from sentry.preprod.models import PreprodArtifact
     from sentry.replays.models import ReplayRecordingSegment
+    from sentry.uptime.models import UptimeResponseCapture
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
@@ -613,11 +625,13 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (ArtifactBundle, "date_added", "date_added"),
         (MonitorCheckIn, "date_added", "date_added"),
         (GroupRuleStatus, "date_added", "date_added"),
+        (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
+        (UptimeResponseCapture, "date_added", "date_added"),
     ]
 
 
@@ -626,10 +640,12 @@ def remove_cross_project_models(
 ) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
+    from sentry.uptime.models import UptimeResponseCapture
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
     deletes.remove((File, "timestamp", "id"))
+    deletes.remove((UptimeResponseCapture, "date_added", "date_added"))
     return deletes
 
 

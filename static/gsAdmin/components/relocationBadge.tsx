@@ -1,6 +1,4 @@
-import type {Theme} from '@emotion/react';
-
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 
 import type {Relocation} from 'admin/types';
 
@@ -10,15 +8,15 @@ type Props = {
 
 function RelocationBadge({data}: Props) {
   let text = '';
-  let theme: keyof Theme['tag'] = 'default';
+  let theme: TagProps['variant'] = 'muted';
   switch (data.status) {
     case 'IN_PROGRESS':
       text = 'Working';
-      theme = 'highlight';
+      theme = 'info';
       break;
     case 'FAILURE':
       text = 'Failed';
-      theme = 'error';
+      theme = 'danger';
       break;
     case 'SUCCESS':
       text = 'Succeeded';
@@ -40,7 +38,7 @@ function RelocationBadge({data}: Props) {
     theme = 'promotion';
   }
 
-  return <Tag type={theme}>{text}</Tag>;
+  return <Tag variant={theme}>{text}</Tag>;
 }
 
 export default RelocationBadge;

@@ -200,7 +200,7 @@ class EventLifecycle:
 
     @staticmethod
     def _report_flow_error(message) -> None:
-        logger.error("EventLifecycle flow error: %s", message)
+        logger.warning("EventLifecycle flow error: %s", message)
 
     def _terminate(
         self,
@@ -432,7 +432,7 @@ class IntegrationWebhookEventType(StrEnum):
     String values preserve original GitHub naming for backward compatibility with existing metrics.
     """
 
-    CI_CHECK = "ci_check"
+    CI_CHECK = "ci_check"  # e.g. GitHub Check Runs
     # This represents a webhook event for an inbound sync operation, such as syncing external resources or data into Sentry.
     INBOUND_SYNC = "inbound_sync"
     INSTALLATION = "installation"

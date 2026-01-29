@@ -1,4 +1,5 @@
 import type {GroupOpenPeriod} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -9,6 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 type CommonParams = {
   cursor?: string;
   end?: string | null;
+  eventId?: string;
   limit?: number;
   start?: string | null;
   statsPeriod?: string | null;
@@ -27,7 +29,9 @@ function makeOpenPeriodsQueryKey({
   ...params
 }: UseOpenPeriodsParams & {orgSlug: string}): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/open-periods/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/open-periods/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       query: params,
     },
@@ -44,7 +48,30 @@ export function useOpenPeriods(
     makeOpenPeriodsQueryKey({orgSlug: organization.slug, ...params}),
     {
       staleTime: 0,
+      retry: false,
       ...options,
     }
   );
+}
+
+export function useEventOpenPeriod(
+  params: {
+    eventId: string;
+    groupId: string;
+  },
+  options: Partial<UseApiQueryOptions<GroupOpenPeriod[]>> = {}
+) {
+  const query = useOpenPeriods(
+    {
+      groupId: params.groupId,
+      eventId: params.eventId,
+      limit: 1,
+    },
+    options
+  );
+
+  return {
+    ...query,
+    openPeriod: query.data?.[0] ?? null,
+  };
 }

@@ -4,6 +4,8 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import type {ApiResult} from 'sentry/api';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -56,7 +58,7 @@ export default function FeedbackList({onItemSelect}: Props) {
   return (
     <Fragment>
       <FeedbackListHeader {...checkboxState} />
-      <FeedbackListItems>
+      <Stack flexGrow={1} paddingBottom="xs">
         <InfiniteListState
           queryResult={queryResult}
           backgroundUpdatingMessage={() => null}
@@ -97,17 +99,10 @@ export default function FeedbackList({onItemSelect}: Props) {
             loadingCompleteMessage={() => null}
           />
         </InfiniteListState>
-      </FeedbackListItems>
+      </Stack>
     </Fragment>
   );
 }
-
-const FeedbackListItems = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  padding-bottom: ${space(0.5)};
-`;
 
 const Centered = styled('div')`
   justify-self: center;
@@ -116,18 +111,18 @@ const Centered = styled('div')`
 const NoFeedbackWrapper = styled('div')`
   padding: ${space(4)} ${space(4)};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
 const NoFeedbackMessage = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.gray500};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;

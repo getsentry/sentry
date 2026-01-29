@@ -23,12 +23,11 @@ export function CopyToClipboardButton({
 
   return (
     <Button
-      translucentBorder
       onClick={e => {
         copy(text).then(onCopy).catch(onError);
         props.onClick?.(e);
       }}
-      icon={<IconCopy color="subText" />}
+      icon={<IconCopy variant="muted" />}
       {...props}
     />
   );

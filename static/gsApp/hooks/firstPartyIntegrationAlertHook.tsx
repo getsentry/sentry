@@ -1,5 +1,6 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
@@ -52,8 +53,8 @@ function FirstPartyIntegrationAlertHook({
   }
   const wrappedAlert = (
     <Alert.Container>
-      <Alert type="warning">
-        <InnerAlertWrapper>
+      <Alert variant="warning">
+        <Flex justify="between" width="100%">
           {alert}
           {!hideCTA && (
             <UpsellButton
@@ -66,7 +67,7 @@ function FirstPartyIntegrationAlertHook({
               }}
             />
           )}
-        </InnerAlertWrapper>
+        </Flex>
       </Alert>
     </Alert.Container>
   );
@@ -77,9 +78,3 @@ function FirstPartyIntegrationAlertHook({
   );
 }
 export default FirstPartyIntegrationAlertHook;
-
-const InnerAlertWrapper = styled('div')`
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-`;

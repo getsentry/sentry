@@ -28,6 +28,7 @@ import type {
 } from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
@@ -369,7 +370,9 @@ function UsageStatsOrganization({
 
   const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
     [
-      `/organizations/${organization.slug}/stats_v2/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: orgStatsQuery,
       },
@@ -687,7 +690,7 @@ const Footer = styled('div')`
   align-items: center;
   gap: ${space(1.5)};
   padding: ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   > *:first-child {
     flex-grow: 1;
   }
@@ -703,8 +706,8 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: ${p => p.theme.fontWeight.normal};
-    font-size: ${p => p.theme.fontSize.md};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
@@ -728,9 +731,9 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
           <StyledSettingsButton
-            borderless
+            priority="transparent"
             size="zero"
-            icon={<IconSettings color="subText" />}
+            icon={<IconSettings variant="muted" />}
             title={t('Dynamic Sampling Settings')}
             aria-label={t('Dynamic Sampling Settings')}
             to={`/settings/${organization.slug}/dynamic-sampling/`}

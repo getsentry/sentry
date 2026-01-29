@@ -13,7 +13,7 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -42,11 +42,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {AddAutofixRepoModalContent} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
-import {
-  MAX_REPOS_LIMIT,
-  SEER_THRESHOLD_OPTIONS,
-} from 'sentry/views/settings/projectSeer/constants';
+import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
+import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
 type ProjectState = {
   isPending: boolean;
@@ -95,14 +92,13 @@ function ProjectRow({onClick, project}: {onClick: () => void; project: Project})
           <ProjectAvatar project={project} title={project.slug} />
           <ProjectName>{project.slug}</ProjectName>
         </Flex>
-        <IconChevron direction="right" size="sm" color="gray300" />
+        <IconChevron direction="right" size="sm" variant="muted" />
       </Flex>
     </ClickablePanelItem>
   );
 }
 
 function ProjectRowWithUpdate({
-  isFetchingRepositories,
   onSuccess,
   onUpdateProjectState,
   project,
@@ -132,9 +128,8 @@ function ProjectRowWithUpdate({
       currentPreference?.repositories?.map((r: any) => r.external_id) || [];
 
     openModal(deps => (
-      <AddAutofixRepoModalContent
+      <AddAutofixRepoModal
         {...deps}
-        repositories={repositories}
         selectedRepoIds={currentRepoIds}
         onSave={(repoIds: string[]) => {
           const reposData = transformRepositoriesToApiFormat(
@@ -156,15 +151,12 @@ function ProjectRowWithUpdate({
             });
           }
         }}
-        isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
       />
     ));
   }, [
     organization.id,
     repositories,
     projectStates,
-    isFetchingRepositories,
     updateProjectSeerPreferences,
     project.id,
     project.slug,
@@ -714,10 +706,10 @@ function SeerAutomationOnboarding() {
               )}
             </StepDescription>
 
-            <AutoFixActionWrapper>
+            <Stack align="start" marginBottom="2xl" gap="xl">
               {projectsWithRepos.length > 0 && (
                 <Fragment>
-                  <ThresholdSelectorWrapper>
+                  <Flex align="center" gap="xl" width="100%">
                     <Flex gap="md" align="center">
                       <SelectorLabel>
                         {t('Automatically diagnose issues that are...')}
@@ -733,7 +725,7 @@ function SeerAutomationOnboarding() {
                         strategy="fixed"
                       />
                     </Flex>
-                  </ThresholdSelectorWrapper>
+                  </Flex>
                   <AutoTriggerFixesButton
                     fetching={fetching}
                     projectsWithRepos={projectsWithRepos}
@@ -747,7 +739,7 @@ function SeerAutomationOnboarding() {
                   {t('No projects recommended for auto-triggered fixes')}
                 </EmptyProjectsMessage>
               )}
-            </AutoFixActionWrapper>
+            </Stack>
 
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
@@ -768,7 +760,7 @@ function SeerAutomationOnboarding() {
               )}
             </StepDescription>
 
-            <ScanActionWrapper>
+            <Stack align="start" marginBottom="2xl" gap="md">
               <EnableIssueScansButton
                 fetching={fetching}
                 projectsWithoutRepos={projectsWithoutRepos}
@@ -778,7 +770,7 @@ function SeerAutomationOnboarding() {
                   {t('All projects are set up with Seer!')}
                 </EmptyProjectsMessage>
               )}
-            </ScanActionWrapper>
+            </Stack>
 
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
@@ -835,22 +827,22 @@ function SeerAutomationOnboarding() {
 }
 
 const ProjectName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StepDescription = styled('div')`
   margin-bottom: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const EmptyState = styled('div')`
   padding: ${space(2)};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const LoadingState = styled('div')`
@@ -859,7 +851,7 @@ const LoadingState = styled('div')`
   align-items: center;
   gap: ${space(1)};
   padding: ${space(3)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledGuidedSteps = styled(GuidedSteps)`
@@ -873,40 +865,18 @@ const ClickablePanelItem = styled(PanelItem)`
   padding-bottom: ${space(1)};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
-const ScanActionWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${space(1)};
-`;
-
 const EmptyProjectsMessage = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const AutoFixActionWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${space(2)};
-`;
-
-const ThresholdSelectorWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-  width: 100%;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SelectorLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const CustomizationList = styled('ul')`
@@ -915,7 +885,7 @@ const CustomizationList = styled('ul')`
 
   li {
     margin-bottom: ${space(1)};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 

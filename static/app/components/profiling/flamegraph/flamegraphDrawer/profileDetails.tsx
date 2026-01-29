@@ -533,7 +533,7 @@ const DetailsRow = styled('div')`
   overflow: hidden;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   > span,
   > a {
@@ -563,12 +563,12 @@ const ProfileDetailsBar = styled('div')<{layout: FlamegraphPreferences['layout']
     p.layout === 'table left' || p.layout === 'table right' ? '100%' : '260px'};
   height: ${p =>
     p.layout === 'table left' || p.layout === 'table right' ? '220px' : '100%'};
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
   grid-area: details;
   position: relative;
 
   > ul:first-child {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;

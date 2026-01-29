@@ -192,14 +192,14 @@ function Spacer() {
 }
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
   display: flex;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Title = styled('div')`

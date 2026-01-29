@@ -7,7 +7,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -61,9 +60,9 @@ export function GroupDetailsLayout({
             id={IssueDetailsTour.AGGREGATES}
             demoTourId={DemoTourStep.ISSUES_AGGREGATES}
             tourContext={IssueDetailsTourContext}
-            title={t('View data in aggregate')}
+            title={t('See overall impact')}
             description={t(
-              'The top section of the page always displays data in aggregate, including trends over time or tag value distributions.'
+              "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
             )}
             position="bottom"
           >
@@ -73,9 +72,9 @@ export function GroupDetailsLayout({
             id={IssueDetailsTour.EVENT_DETAILS}
             demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
             tourContext={IssueDetailsTourContext}
-            title={t('Explore details')}
+            title={t('Investigate the issue')}
             description={t(
-              'Here we capture everything we know about this data example, like context, trace, breadcrumbs, replay, and tags.'
+              'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
             )}
             position="top"
           >
@@ -112,40 +111,28 @@ const StyledLayoutBody = styled('div')<{
 `;
 
 const GroupContent = styled('section')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   display: flex;
   flex-direction: column;
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.translucentBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
+    border-bottom-width: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
-const NavigationSidebarWrapper = withChonk(
-  styled('div')<{
-    hasToggleSidebar: boolean;
-  }>`
-    position: relative;
-    display: flex;
-    padding: ${p =>
-      p.hasToggleSidebar
-        ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
-        : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
-  `,
-  styled('div')<{
-    hasToggleSidebar: boolean;
-  }>`
-    position: relative;
-    display: flex;
-    gap: ${space(0.5)};
-    padding: ${p =>
-      p.hasToggleSidebar
-        ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
-        : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
-  `
-);
+const NavigationSidebarWrapper = styled('div')<{
+  hasToggleSidebar: boolean;
+}>`
+  position: relative;
+  display: flex;
+  gap: ${space(0.5)};
+  padding: ${p =>
+    p.hasToggleSidebar
+      ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
+      : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
+`;
 
 const ContentPadding = styled('div')`
   min-height: 100vh;

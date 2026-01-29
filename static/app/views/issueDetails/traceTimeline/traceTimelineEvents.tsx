@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -118,8 +119,8 @@ const TimestampColumns = styled('div')`
   justify-content: space-between;
   margin-top: ${space(1)};
   text-align: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 function NodeGroup({
@@ -223,7 +224,7 @@ const IconNode = styled('div')`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
   background-color: ${p => color(p.theme.colors.red200).alpha(0.3).string()};

@@ -94,7 +94,7 @@ export function BreadcrumbWebVital({
         >
           <ValueObjectKey>{t('element')}</ValueObjectKey>
           <span>{': '}</span>
-          <SelectorButton size="zero" borderless>
+          <SelectorButton size="zero" priority="transparent">
             {key}
           </SelectorButton>
         </span>
@@ -138,7 +138,7 @@ const ValueObjectKey = styled('span')`
 `;
 
 const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-property);
 `;
 
@@ -147,10 +147,10 @@ const SelectorButton = styled(Button)`
   border: none;
   padding: 0 2px;
   border-radius: 2px;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0 ${space(0.5)};
   height: auto;
   min-height: auto;

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
@@ -369,7 +369,7 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <Alert system type="warning" showIcon={false}>
+        <Alert system variant="warning" showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
@@ -416,23 +416,38 @@ function IssueListActions({
 function useSelectedGroupsState() {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const selectedGroupState = useLegacyStore(SelectedGroupStore);
-  const selectedIds = SelectedGroupStore.getSelectedIds();
 
-  const projects = [...selectedIds]
-    .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!group?.project)
-    .map(group => group.project.slug);
+  const {selectedIdsSet, pageSelected, multiSelected, anySelected, selectedProjectSlug} =
+    useMemo(() => {
+      const {records} = selectedGroupState;
 
-  const uniqProjects = uniq(projects);
-  // we only want selectedProjectSlug set if there is 1 project
-  // more or fewer should result in a null so that the action toolbar
-  // can behave correctly.
-  const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+      // Compute selectedIds from records (equivalent to getSelectedIds)
+      const selectedIds = new Set([...records.keys()].filter(id => records.get(id)));
 
-  const pageSelected = SelectedGroupStore.allSelected();
-  const multiSelected = SelectedGroupStore.multiSelected();
-  const anySelected = SelectedGroupStore.anySelected();
-  const selectedIdsSet = SelectedGroupStore.getSelectedIds();
+      // Compute derived boolean values
+      const any = selectedIds.size > 0;
+      const multi = selectedIds.size > 1;
+      const all = any && selectedIds.size === records.size;
+
+      // Compute selectedProjectSlug
+      const projects = [...selectedIds]
+        .map(id => GroupStore.get(id))
+        .filter((group): group is Group => !!group?.project)
+        .map(group => group.project.slug);
+      const uniqProjects = uniq(projects);
+      // we only want selectedProjectSlug set if there is 1 project
+      // more or fewer should result in a null so that the action toolbar
+      // can behave correctly.
+      const projectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+
+      return {
+        selectedIdsSet: selectedIds,
+        pageSelected: all,
+        multiSelected: multi,
+        anySelected: any,
+        selectedProjectSlug: projectSlug,
+      };
+    }, [selectedGroupState]);
 
   useEffect(() => {
     setAllInQuerySelected(false);
@@ -479,7 +494,7 @@ const StickyActions = styled(Sticky)`
     border-radius: 0;
   }
 
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-top: none;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 `;
@@ -493,7 +508,7 @@ const ActionsBarContainer = styled('div')`
   padding-bottom: ${space(0.5)};
   padding-left: ${space(2)};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: 6px 6px 0 0;
 `;
 

@@ -76,7 +76,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -107,7 +106,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -123,7 +121,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -146,7 +143,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -166,7 +162,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}
@@ -186,7 +181,6 @@ describe('ProductSelect', () => {
         {...RouteComponentPropsFixture()}
         navigate={jest.fn()}
         api={api}
-        onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
       />,
       {organization}

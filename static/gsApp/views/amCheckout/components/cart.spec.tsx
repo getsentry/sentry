@@ -38,7 +38,6 @@ describe('Cart', () => {
   const props = {
     ...routerProps,
     navigate: jest.fn(),
-    isNewCheckout: true,
   };
   const businessPlan = PlanDetailsLookupFixture('am3_business')!;
   const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
@@ -110,12 +109,7 @@ describe('Cart', () => {
 
   it('renders with default selections', async () => {
     render(
-      <AMCheckout
-        api={new MockApiClient()}
-        checkoutTier={PlanTier.AM3}
-        onToggleLegacy={jest.fn()}
-        {...props}
-      />
+      <AMCheckout api={new MockApiClient()} checkoutTier={PlanTier.AM3} {...props} />
     );
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');

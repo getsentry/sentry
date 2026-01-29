@@ -249,7 +249,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         actionButton: (
           <Button
             aria-label="Click me"
-            borderless
+            priority="transparent"
             size="zero"
             icon={<IconEdit size="xs" />}
           />
@@ -261,7 +261,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         key: 'subject-node',
         subject: 'custom subject node',
         subjectNode: (
-          <span style={{color: theme.colors.blue400}}>
+          <span style={{color: theme.tokens.content.accent}}>
             Custom Subject Node <IconSentry />
           </span>
         ),
@@ -277,7 +277,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         key: 'null-subject-node',
         subject: 'null-subject-node',
         subjectNode: null,
-        value: <Alert type="warning">Custom value can also span full length</Alert>,
+        value: <Alert variant="warning">Custom value can also span full length</Alert>,
       },
     },
     {

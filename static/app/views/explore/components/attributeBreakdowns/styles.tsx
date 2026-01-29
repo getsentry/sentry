@@ -70,15 +70,15 @@ function FeedbackLink() {
 }
 
 const StyledIconSearch = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconTimer = styled(IconTimer)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ERROR_STATE_CONFIG: Record<
@@ -146,7 +146,7 @@ const ChartWrapper = styled('div')`
   flex-direction: column;
   height: 200px;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} 0 ${p => p.theme.space.lg};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
   min-width: 0;
 `;
@@ -162,15 +162,19 @@ const ChartHeaderWrapper = styled(Flex)`
 `;
 
 const ChartTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const PopulationIndicator = styled(Flex)<{color?: string}>`
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-weight: 500;
   color: ${p => p.color || p.theme.colors.gray500};
 
@@ -281,7 +285,7 @@ function Chart({
                 hideOverlap: false,
                 showMaxLabel: false,
                 showMinLabel: false,
-                color: theme.tokens.content.muted,
+                color: theme.tokens.content.secondary,
                 interval: 0,
                 fontSize: CHART_AXIS_LABEL_FONT_SIZE,
                 formatter: (value: string) =>

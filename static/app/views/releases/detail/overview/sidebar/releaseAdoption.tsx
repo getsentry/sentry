@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -143,7 +143,7 @@ function ReleaseAdoption({
     max: 100,
     axisLabel: {
       formatter: (value: number) => `${value}%`,
-      color: theme.tokens.content.muted,
+      color: theme.tokens.content.secondary,
     },
   };
 
@@ -252,7 +252,9 @@ function ReleaseAdoption({
             {adoptionStageLabel && !multipleEnvironments ? (
               <div>
                 <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                  <Tag variant={adoptionStageLabel.variant}>
+                    {adoptionStageLabel.name}
+                  </Tag>
                 </Tooltip>
                 <AdoptionEnvironment>
                   {tct(`in [environment]`, {environment})}
@@ -267,13 +269,13 @@ function ReleaseAdoption({
         </SidebarSection.Wrap>
       )}
       <SidebarSection.Wrap>
-        <RelativeBox>
+        <Container position="relative">
           <ErrorBoundary mini>
             {!loading && (
               <ChartLabel top="0px">
                 <SidebarSection.Title>
                   {t('Sessions Adopted')}
-                  <TooltipWrapper>
+                  <Container as="span" marginLeft="xs">
                     <QuestionTooltip
                       position="top"
                       title={t(
@@ -281,7 +283,7 @@ function ReleaseAdoption({
                       )}
                       size="sm"
                     />
-                  </TooltipWrapper>
+                  </Container>
                 </SidebarSection.Title>
               </ChartLabel>
             )}
@@ -290,7 +292,7 @@ function ReleaseAdoption({
               <ChartLabel top="140px">
                 <SidebarSection.Title>
                   {t('Users Adopted')}
-                  <TooltipWrapper>
+                  <Container as="span" marginLeft="xs">
                     <QuestionTooltip
                       position="top"
                       title={t(
@@ -298,14 +300,14 @@ function ReleaseAdoption({
                       )}
                       size="sm"
                     />
-                  </TooltipWrapper>
+                  </Container>
                 </SidebarSection.Title>
               </ChartLabel>
             )}
 
             {errored ? (
               <ErrorPanel height="280px">
-                <IconWarning color="gray300" size="lg" />
+                <IconWarning variant="muted" size="lg" />
               </ErrorPanel>
             ) : (
               <TransitionChart loading={loading} reloading={reloading} height="280px">
@@ -330,7 +332,7 @@ function ReleaseAdoption({
               </TransitionChart>
             )}
           </ErrorBoundary>
-        </RelativeBox>
+        </Container>
       </SidebarSection.Wrap>
     </div>
   );
@@ -344,18 +346,10 @@ const ChartLabel = styled('div')<{top: string}>`
   right: 0;
 `;
 
-const TooltipWrapper = styled('span')`
-  margin-left: ${space(0.5)};
-`;
-
 const AdoptionEnvironment = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   margin-left: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const RelativeBox = styled('div')`
-  position: relative;
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default ReleaseAdoption;

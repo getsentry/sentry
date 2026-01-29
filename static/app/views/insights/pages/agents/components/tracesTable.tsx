@@ -28,6 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
@@ -38,7 +39,6 @@ import {
   ErrorCell,
   NumberPlaceholder,
 } from 'sentry/views/insights/pages/agents/utils/cells';
-import {getExploreUrlWithProjectSelection} from 'sentry/views/insights/pages/agents/utils/getExploreUrlWithProjectSelection';
 import {
   getAgentRunsFilter,
   getHasAiSpansFilter,
@@ -87,6 +87,7 @@ const rightAlignColumns = new Set([
 ]);
 
 export function TracesTable() {
+  const {openTraceViewDrawer} = useTraceViewDrawer();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
@@ -148,7 +149,7 @@ export function TracesTable() {
 
   const traceErrorRequest = useSpans(
     {
-      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -233,9 +234,16 @@ export function TracesTable() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} query={combinedQuery} />;
+      return (
+        <BodyCell
+          column={column}
+          dataRow={dataRow}
+          query={combinedQuery}
+          openTraceViewDrawer={openTraceViewDrawer}
+        />
+      );
     },
-    [combinedQuery]
+    [combinedQuery, openTraceViewDrawer]
   );
 
   return (
@@ -265,14 +273,15 @@ const BodyCell = memo(function BodyCell({
   column,
   dataRow,
   query,
+  openTraceViewDrawer,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
+  openTraceViewDrawer: (traceSlug: string, spanId?: string, timestamp?: number) => void;
   query: string;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {openTraceViewDrawer} = useTraceViewDrawer();
 
   switch (column.key) {
     case 'traceId':
@@ -312,7 +321,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <ErrorCell
           value={dataRow.errors}
-          target={getExploreUrlWithProjectSelection({
+          target={getExploreUrl({
             query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
             organization,
             selection,
@@ -409,7 +418,7 @@ function AgentTags({agents}: {agents: string[]}) {
               },
             }}
           >
-            <Tag key={agent} type="default">
+            <Tag key={agent} variant="muted">
               {agent}
             </Tag>
           </Link>

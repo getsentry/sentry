@@ -64,7 +64,7 @@ function BaseFooter({className}: Props) {
       <RightLinks>
         {appState === 'stale' && (
           <Button
-            borderless
+            priority="transparent"
             size="xs"
             onClick={() => window.location.reload()}
             title={t(
@@ -93,7 +93,7 @@ function BaseFooter({className}: Props) {
 }
 
 const WaitingIndicator = styled('div')`
-  --pulsingIndicatorRing: ${p => p.theme.colors.gray200};
+  --pulsingIndicatorRing: ${p => p.theme.tokens.border.transparent.neutral.muted};
   ${pulsingIndicatorStyles};
   contain: layout;
 `;
@@ -117,10 +117,10 @@ const RightLinks = styled('div')`
 `;
 
 const FooterLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   &:focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.colors.blue400} 0 2px 0;
+    box-shadow: ${p => p.theme.tokens.focus.default} 0 2px 0;
   }
 `;
 
@@ -128,22 +128,22 @@ const SentryLogoLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   margin: 0 auto;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Build = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-left: ${space(1)};
 `;
 
 const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  border-top: 1px solid ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   align-content: center;
   padding: ${space(2)} ${space(4)};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */

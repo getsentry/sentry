@@ -83,7 +83,7 @@ export default function Layout() {
             </Navigation>
             <div>
               <ThemeToggle
-                borderless
+                priority="transparent"
                 size="zero"
                 onClick={toggleTheme}
                 icon={
@@ -133,7 +133,7 @@ const Sidebar = styled('section')`
   padding: ${space(3)} 0;
   gap: ${space(3)};
   background: ${p => p.theme.tokens.background.primary};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
 
   > * {
     padding: 0 ${space(4)};
@@ -146,22 +146,22 @@ const Logo = styled(Link)`
   gap: ${space(1)};
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
 `;
 
 const ThemeToggle = styled(Button)`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-weight: bold;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Navigation = styled('ul')`
   display: flex;
   flex-direction: column;
   list-style: none;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   overflow-y: auto;
   gap: ${space(0.25)};
@@ -177,7 +177,7 @@ const NavLink = styled(ListLink)`
   gap: ${space(1)};
 
   .active & {
-    color: ${p => p.theme.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
     margin-left: calc(-1 * (${space(1)} + var(--activeIndicatorWidth)));
   }
 
@@ -188,10 +188,10 @@ const NavLink = styled(ListLink)`
     height: ${space(3)};
     position: relative;
     top: -1px;
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 
   &:hover {
-    color: ${p => p.theme.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
   }
 `;

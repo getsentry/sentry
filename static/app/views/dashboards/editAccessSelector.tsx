@@ -4,6 +4,9 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
@@ -11,7 +14,6 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
 import {InnerWrap, LeadingItems} from 'sentry/components/core/menuListItem';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -148,7 +150,9 @@ function EditAccessSelector({
       return (
         <CollapsedAvatarTooltip>
           {allSelectedTeams.map((team, index) => (
-            <CollapsedAvatarTooltipListItem
+            <Flex
+              align="center"
+              gap="md"
               key={team.id}
               style={{
                 marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
@@ -156,7 +160,7 @@ function EditAccessSelector({
             >
               <TeamAvatar team={team} size={18} />
               <div>#{team.name}</div>
-            </CollapsedAvatarTooltipListItem>
+            </Flex>
           ))}
         </CollapsedAvatarTooltip>
       );
@@ -221,7 +225,7 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" size={listOnly ? 26 : 20} type="info">
+      <StyledBadge key="_all" size={listOnly ? 26 : 20} variant="info">
         {t('All')}
       </StyledBadge>
     ) : selectedOptions.length === 2 ? (
@@ -348,16 +352,20 @@ function EditAccessSelector({
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerProps={{
-        children: listOnly
-          ? [triggerAvatars]
-          : [
-              <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
-              triggerAvatars,
-            ],
-        borderless: listOnly,
-        style: listOnly ? {padding: 2} : {},
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          priority={listOnly ? 'transparent' : undefined}
+          style={listOnly ? {padding: 2} : {}}
+        >
+          {listOnly
+            ? [triggerAvatars]
+            : [
+                <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
+                triggerAvatars,
+              ]}
+        </OverlayTrigger.Button>
+      )}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {
@@ -403,10 +411,6 @@ const StyledCompactSelect = styled(CompactSelect)`
   ${LeadingItems} {
     margin-top: 0;
   }
-
-  ${CheckWrap} {
-    padding-bottom: 0;
-  }
 `;
 
 const StyledDisplayName = styled('div')`
@@ -442,12 +446,6 @@ const FilterButtons = styled(ButtonBar)`
 const CollapsedAvatarTooltip = styled('div')`
   max-height: 200px;
   overflow-y: auto;
-`;
-
-const CollapsedAvatarTooltipListItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const Plus = styled('span')`

@@ -340,11 +340,11 @@ const OpButton = styled(UnstyledButton, {
 
   :focus {
     background-color: ${p => p.theme.colors.gray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const OpLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -60,21 +60,23 @@ export function InsightDiffRow({
     <Container background="primary" radius="lg" padding="0" border="primary">
       <Flex direction="column" gap="0">
         <Flex align="center" justify="between" padding="xl">
-          <Flex direction="column" gap="xs" style={{flex: 1}}>
+          <Flex direction="column" gap="xs" flex={1}>
             <Flex align="center" gap="sm" justify="between">
               <Flex align="center" gap="sm">
                 <Heading as="h3">{config.name}</Heading>
                 <Flex align="center" gap="xs">
                   {statusCounts.new > 0 && (
-                    <Tag type="promotion">{t('New (%s)', statusCounts.new)}</Tag>
+                    <Tag variant="promotion">{t('New (%s)', statusCounts.new)}</Tag>
                   )}
                   {statusCounts.unresolved > 0 && (
-                    <Tag type="warning">
+                    <Tag variant="warning">
                       {t('Unresolved (%s)', statusCounts.unresolved)}
                     </Tag>
                   )}
                   {statusCounts.resolved > 0 && (
-                    <Tag type="success">{t('Resolved (%s)', statusCounts.resolved)}</Tag>
+                    <Tag variant="success">
+                      {t('Resolved (%s)', statusCounts.resolved)}
+                    </Tag>
                   )}
                 </Flex>
               </Flex>

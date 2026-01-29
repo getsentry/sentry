@@ -94,7 +94,7 @@ function IssueOwnerDebbuging() {
             <div>{source}</div>
             <div>
               <span>{rule}</span>
-              {!index && <StyledTag type="success">Assigned Rule</StyledTag>}
+              {!index && <StyledTag variant="success">Assigned Rule</StyledTag>}
             </div>
           </Fragment>
         ))}

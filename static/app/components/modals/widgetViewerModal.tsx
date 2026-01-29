@@ -9,6 +9,8 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 import moment from 'moment-timezone';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -90,6 +92,7 @@ import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -99,7 +102,7 @@ import {
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -452,11 +455,7 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  function renderTable({
-    tableResults,
-    loading,
-    pageLinks,
-  }: GenericWidgetQueriesChildrenProps) {
+  function renderTable({tableResults, loading, pageLinks}: GenericWidgetQueriesResult) {
     return ViewerTableV2({
       tableResults,
       loading,
@@ -483,7 +482,7 @@ function WidgetViewerModal(props: Props) {
     loading,
     pageLinks,
     totalCount,
-  }: GenericWidgetQueriesChildrenProps) => {
+  }: GenericWidgetQueriesResult) => {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
@@ -551,8 +550,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <IssueWidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -600,8 +597,6 @@ function WidgetViewerModal(props: Props) {
         }
         return (
           <WidgetQueries
-            api={api}
-            organization={organization}
             widget={tableWidget}
             selection={modalSelection}
             limit={
@@ -686,7 +681,7 @@ function WidgetViewerModal(props: Props) {
         )}
         {widget.queries.length > 1 && (
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {t(
                 'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
               )}
@@ -803,10 +798,10 @@ function WidgetViewerModal(props: Props) {
                 forceTransactions={metricsDataSide.forceTransactionsOnly}
               >
                 <Header closeButton>
-                  <WidgetHeader>
-                    <WidgetTitleRow>
+                  <Stack gap="md">
+                    <Flex align="center" gap="sm">
                       <h3>{widget.title}</h3>
-                    </WidgetTitleRow>
+                    </Flex>
                     {widget.description && (
                       <Tooltip
                         title={widget.description}
@@ -818,7 +813,7 @@ function WidgetViewerModal(props: Props) {
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       </Tooltip>
                     )}
-                  </WidgetHeader>
+                  </Stack>
                 </Header>
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
@@ -912,6 +907,13 @@ function OpenButton({
       openLabel = t('Open in Explore');
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
+    case WidgetType.TRACEMETRICS:
+      openLabel = t('Open in Explore');
+      path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
+      break;
+    case WidgetType.PREPROD_APP_SIZE:
+      // Mobile app size widgets are not integrated with Explore or Discover
+      return null;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
@@ -1043,9 +1045,7 @@ function ViewerTableV2({
   const aliases = decodeColumnAliases(
     tableColumns,
     tableWidget.queries[selectedQueryIndex]?.fieldAliases ?? [],
-    tableWidget.widgetType === WidgetType.ISSUE
-      ? datasetConfig?.getFieldHeaderMap?.()
-      : {}
+    datasetConfig?.getFieldHeaderMap?.(tableWidget.queries[selectedQueryIndex]) ?? {}
   );
 
   // Inject any prettified function names that aren't currently aliased into the aliases
@@ -1119,10 +1119,17 @@ function ViewerTableV2({
             field,
             meta as MetaType,
             widget,
-            organization
+            organization,
+            dashboardFilters
           )!;
 
-          if (field === 'transaction' && dataRow.transaction) {
+          // For SPANS widgets, the customRenderer already returns a link, so we shouldn't wrap it
+          // to avoid nested anchor tags
+          if (
+            field === 'transaction' &&
+            dataRow.transaction &&
+            widget.widgetType !== WidgetType.SPANS
+          ) {
             return function (cellData, baggage) {
               return (
                 <TransactionLink
@@ -1260,19 +1267,7 @@ const ResultsContainer = styled('div')`
 `;
 
 const EmptyQueryContainer = styled('span')`
-  color: ${p => p.theme.disabled};
-`;
-
-const WidgetHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
-
-const WidgetTitleRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
+  color: ${p => p.theme.tokens.content.disabled};
 `;
 
 export default withPageFilters(WidgetViewerModal);

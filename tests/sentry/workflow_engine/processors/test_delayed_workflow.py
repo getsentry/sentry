@@ -1037,6 +1037,58 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             event_id=self.event1.event_id,
         ).exists()
 
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
+    @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
+    def test_fire_actions_notification_uuid_propagation(
+        self, mock_process: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        """Verify notification_uuid from WorkflowFireHistory is passed to triggered actions."""
+        mock_process.return_value = (
+            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
+            [],
+        )
+
+        self.groups_to_dcgs = {
+            self.group1.id: {self.workflow1_if_dcgs[0]},
+            self.group2.id: {self.workflow2_if_dcgs[0]},
+        }
+
+        fire_actions_for_groups(
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.group_to_groupevent,
+        )
+
+        # Verify WorkflowFireHistory records were created
+        history1 = WorkflowFireHistory.objects.get(
+            workflow=self.workflow1,
+            group_id=self.group1.id,
+            event_id=self.event1.event_id,
+        )
+        history2 = WorkflowFireHistory.objects.get(
+            workflow=self.workflow2,
+            group_id=self.group2.id,
+            event_id=self.event2.event_id,
+        )
+
+        # Verify trigger_action was called for both workflows
+        assert mock_trigger.call_count == 2
+
+        # Extract notification_uuids from task calls
+        call_1_notification_uuid = mock_trigger.call_args_list[0].kwargs["kwargs"][
+            "notification_uuid"
+        ]
+        call_2_notification_uuid = mock_trigger.call_args_list[1].kwargs["kwargs"][
+            "notification_uuid"
+        ]
+
+        # Verify the notification_uuids match the WorkflowFireHistory records
+        fire_history_uuids = {str(history1.notification_uuid), str(history2.notification_uuid)}
+        task_uuids = {call_1_notification_uuid, call_2_notification_uuid}
+        assert fire_history_uuids == task_uuids
+
 
 class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
     def test_cleanup_redis(self) -> None:
@@ -1215,3 +1267,53 @@ class TestEventKeyAndInstance:
         assert dcg_to_timestamp[1] == timestamp2
         assert dcg_to_timestamp[2] == timestamp3
         assert 3 not in dcg_to_timestamp
+
+    def test_filter_by_workflow_ids_basic(self) -> None:
+        redis_data = {
+            "1:100::1:": '{"event_id": "event-1"}',
+            "2:101::2:": '{"event_id": "event-2"}',
+            "1:102::3:": '{"event_id": "event-3"}',
+            "3:103::4:": '{"event_id": "event-4"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        filtered = event_data.filter_by_workflow_ids({1, 2})
+
+        assert len(filtered.events) == 3
+        assert filtered.workflow_ids == {1, 2}
+        assert 3 not in filtered.workflow_ids
+
+    def test_filter_by_workflow_ids_empty_valid_ids(self) -> None:
+        redis_data = {
+            "1:100::1:": '{"event_id": "event-1"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        filtered = event_data.filter_by_workflow_ids(set())
+
+        assert len(filtered.events) == 0
+
+    def test_filter_by_workflow_ids_all_filtered(self) -> None:
+        redis_data = {
+            "1:100::1:": '{"event_id": "event-1"}',
+            "2:101::2:": '{"event_id": "event-2"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        filtered = event_data.filter_by_workflow_ids({999})
+
+        assert len(filtered.events) == 0
+
+    def test_filter_by_workflow_ids_preserves_cached_properties(self) -> None:
+        redis_data = {
+            "1:100:10:1,2:3": '{"event_id": "event-1"}',
+            "2:101:20:4:5": '{"event_id": "event-2"}',
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        filtered = event_data.filter_by_workflow_ids({1})
+
+        assert filtered.workflow_ids == {1}
+        assert filtered.group_ids == {100}
+        assert filtered.dcg_ids == {10, 1, 2, 3}
+        assert 20 not in filtered.dcg_ids

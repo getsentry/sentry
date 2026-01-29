@@ -42,10 +42,10 @@ const getLinkStyles = ({
   /* @TODO(jonasbadalic) This was defined on theme and only used here */
   border-radius: 2px;
   pointer-events: ${disabled ? 'none' : undefined};
-  color: ${disabled ? theme.disabled : undefined};
+  color: ${disabled ? theme.tokens.content.disabled : undefined};
 
   &:hover {
-    color: ${disabled ? theme.disabled : undefined};
+    color: ${disabled ? theme.tokens.content.disabled : undefined};
   }
 
   &:focus-visible {
@@ -64,7 +64,11 @@ export const Link = styled((props: LinkProps) => {
   const {Component, behavior} = useLinkBehavior(props);
 
   if (props.disabled) {
-    return <Anchor {...props} />;
+    // Removing the "to" prop here to prevent the anchor from being rendered with to="
+    // [object Object]" when "to" prop is a LocationDescriptor object. Have to create a
+    // new object here, as we can't delete the "to" prop as it is a required prop.
+    const {to: _to, ...restProps} = props;
+    return <Anchor {...restProps} />;
   }
 
   return <Component {...behavior()} />;

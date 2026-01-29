@@ -327,7 +327,7 @@ function ArchiveActions({
             aria-label={t('Archive options')}
             size={size}
             icon={
-              <IconChevron color="subText" direction={isOpen ? 'up' : 'down'} size="xs" />
+              <IconChevron variant="muted" direction={isOpen ? 'up' : 'down'} size="xs" />
             }
             disabled={disabled}
           />
@@ -361,5 +361,5 @@ const DropdownTrigger = styled(Button)`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

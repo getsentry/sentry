@@ -352,7 +352,7 @@ export const LogRowContent = memo(function LogRowContent({
                 aria-label={t('Toggle trace details')}
                 aria-expanded={expanded}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={() => toggleExpanded()}
               />
             ) : (
@@ -527,7 +527,7 @@ function LogRowDetails({
     return (
       <DetailsWrapper ref={ref}>
         <EmptyStreamWrapper>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </EmptyStreamWrapper>
       </DetailsWrapper>
     );
@@ -618,7 +618,6 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
       <Button
         priority="link"
         size="sm"
-        borderless
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -632,7 +631,6 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
       <Button
         priority="link"
         size="sm"
-        borderless
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -691,7 +689,6 @@ function LogRowDetailsActions({
         <Button
           priority="link"
           size="sm"
-          borderless
           onClick={betterCopyToClipboard}
           disabled={isPending || isError || !json}
         >

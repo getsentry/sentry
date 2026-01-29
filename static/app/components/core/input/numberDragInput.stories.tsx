@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import documentation from '!!type-loader!sentry/components/core/input/numberDragInput';
 import styled from '@emotion/styled';
 
-import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
+import {NumberDragInput} from 'sentry/components/core/input';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('NumberDragInput', (story, APIReference) => {
@@ -74,5 +74,5 @@ export default Storybook.story('NumberDragInput', (story, APIReference) => {
 
 const Label = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

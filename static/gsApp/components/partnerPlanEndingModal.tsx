@@ -110,7 +110,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
       <ImageHeader />
       <div>
         <PartnerPlanHeading>
-          <Tag icon={<IconClock />} type="promotion">
+          <Tag icon={<IconClock />} variant="promotion">
             {tn('%s day left', '%s days left', daysLeft)}
           </Tag>
           <h2 data-test-id="partner-plan-ending-header">
@@ -194,7 +194,7 @@ const PartnerPlanHeading = styled('div')`
   padding: ${space(3)} 0;
 
   p {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     margin: 0;
   }
 
@@ -206,14 +206,14 @@ const PartnerPlanHeading = styled('div')`
 const PathContainer = styled('div')`
   padding: ${space(3)};
   grid-auto-rows: max-content;
-  border: 1px solid ${p => p.theme.gray300};
+  border: 1px solid ${p => p.theme.colors.gray400};
   margin-left: auto;
   margin-right: auto;
   border-radius: 5px;
   width: 250px;
 
   &:first-of-type {
-    border: 1px solid ${p => p.theme.gray100};
+    border: 1px solid ${p => p.theme.colors.gray100};
   }
 `;
 
@@ -246,7 +246,7 @@ const Bullets = styled('div')`
   grid-auto-rows: max-content;
   gap: ${space(1)} ${space(1.5)};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1)};
 `;
 
@@ -257,8 +257,8 @@ const PathHeading = styled('h5')`
 
 const SubHeading = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
 `;
 

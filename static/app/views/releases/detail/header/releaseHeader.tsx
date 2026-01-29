@@ -55,7 +55,7 @@ function ReleaseHeader({
     {
       title: tct('Commits [count]', {
         count: (
-          <NavTabsBadge type="default">
+          <NavTabsBadge variant="muted">
             {formatAbbreviatedNumber(commitCount)}
           </NavTabsBadge>
         ),
@@ -66,7 +66,7 @@ function ReleaseHeader({
     {
       title: tct('Files Changed [count]', {
         count: (
-          <NavTabsBadge type="default">
+          <NavTabsBadge variant="muted">
             {formatAbbreviatedNumber(commitFilesChanged)}
           </NavTabsBadge>
         ),
@@ -87,7 +87,7 @@ function ReleaseHeader({
           </BadgeWrapper>
         ) : (
           <React.Fragment>
-            <NavTabsBadge type="default">
+            <NavTabsBadge variant="muted">
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>
@@ -146,7 +146,7 @@ function ReleaseHeader({
           <Version version={version} anchor={false} truncate />
           <IconWrapper>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={version}
               title={version}
@@ -192,7 +192,7 @@ const IconWrapper = styled('span')`
 
   &,
   a {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     display: flex;
     &:hover {
       cursor: pointer;

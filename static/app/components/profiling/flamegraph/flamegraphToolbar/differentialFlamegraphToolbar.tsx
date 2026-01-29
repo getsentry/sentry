@@ -54,5 +54,5 @@ const DifferentialFlamegraphToolbarContainer = styled('div')`
   align-items: center;
   padding: ${space(1)};
   gap: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;

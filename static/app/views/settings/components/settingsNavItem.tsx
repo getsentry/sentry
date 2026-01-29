@@ -31,12 +31,12 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
   if (badge === 'warning') {
     return (
       <Tooltip title={t('This setting needs review')} position="right">
-        <StyledBadge type="warning">{badge}</StyledBadge>
+        <StyledBadge variant="warning">{badge}</StyledBadge>
       </Tooltip>
     );
   }
   if (typeof badge === 'string' || typeof badge === 'number') {
-    return <StyledBadge type="default">{badge}</StyledBadge>;
+    return <StyledBadge variant="muted">{badge}</StyledBadge>;
   }
 
   return badge;
@@ -57,10 +57,10 @@ function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   height: auto;
   line-height: 1;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 3px ${space(0.75)};
   vertical-align: middle;
 `;

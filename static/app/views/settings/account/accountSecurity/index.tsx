@@ -165,7 +165,7 @@ export default function AccountSecurity() {
                     <AuthenticatorTitle>
                       {name}
                       {isBackupInterface && !isEnrolled && (
-                        <Tag type="info">{t('requires 2FA')}</Tag>
+                        <Tag variant="info">{t('requires 2FA')}</Tag>
                       )}
                     </AuthenticatorTitle>
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>
@@ -256,7 +256,7 @@ const AuthenticatorTitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const AuthenticatorDescription = styled(TextBlock)`

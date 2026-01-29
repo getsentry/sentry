@@ -76,9 +76,9 @@ function useIssueDetailsPromoModal() {
               src: issueDetailsPreview,
               alt: t('Preview of the issue details experience'),
             }}
-            header={t('Welcome to Issue Details')}
+            header={t('Welcome to issue details')}
             description={t(
-              "New around here? Tour the issue experience - we promise you'll be less confused."
+              "This is where you'll come every time something breaks. It shows what happened, why it happened, and what to do next.\n\nNew here? Take a tour - we promise you'll be less confused."
             )}
             onDismissTour={() => {
               handleEndTour();
@@ -269,19 +269,19 @@ export function NewIssueExperienceButton() {
 }
 
 const StyledDropdownButton = styled(DropdownButton)`
-  color: ${p => p.theme.button.primary.background};
+  color: ${p => p.theme.colors.blue400};
   :hover {
-    color: ${p => p.theme.button.primary.background};
+    color: ${p => p.theme.colors.blue400};
   }
 `;
 
 const TryNewButton = styled(Button)`
   background: linear-gradient(90deg, #3468d8, #248574);
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   &:hover,
   &:active,
   &:focus {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
   ::after {
     background: linear-gradient(90deg, #3468d8, #248574);
