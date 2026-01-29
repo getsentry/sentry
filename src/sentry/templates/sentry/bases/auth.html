@@ -41,8 +41,10 @@
 {{ block.super }}
 {% script %}
 <script>
-  // Refresh CSRF tokens for multi-tab scenarios
-  // When user logs in on one tab, CSRF rotates, other tabs need updated tokens
+  // HACK(jferge+claude): inline getCookie function from our utils,
+  // update the csrf token value in a rudimentary way (timer based)
+  // on auth forms to help out when users have multiple sentry tabs
+  // and are logged out
   (function() {
     function getCookie(name) {
       if (document.cookie && document.cookie !== '') {
