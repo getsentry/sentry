@@ -258,7 +258,7 @@ class Contexts(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         rv = {}
 
         # Note the alias is the key of the context entry
@@ -268,7 +268,7 @@ class Contexts(Interface):
             if value is not None:
                 rv[alias] = cls.normalize_context(alias, value)
 
-        return super().to_python(rv, **kwargs)
+        return super().to_python(rv)
 
     @classmethod
     def normalize_context(cls, alias, data):

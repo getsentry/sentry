@@ -99,7 +99,7 @@ class Http(Interface):
     FORM_TYPE = "application/x-www-form-urlencoded"
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         data.setdefault("query_string", [])
         for key in (
             "api_target",
@@ -114,7 +114,7 @@ class Http(Interface):
         ):
             data.setdefault(key, None)
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def to_json(self):
         return prune_empty_keys(
