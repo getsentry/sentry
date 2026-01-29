@@ -35,6 +35,12 @@ class AutopilotDetectorName(StrEnum):
     MISSING_SDK_INTEGRATION = "missing-sdk-integration"
 
 
+class MissingSdkIntegrationFinishReason(StrEnum):
+    SUCCESS = "success"
+    MISSING_SENTRY_INIT = "missing_sentry_init"
+    MISSING_DEPENDENCY_FILE = "missing_dependency_file"
+
+
 def create_instrumentation_issue(
     project_id: int,
     detector_name: str,
@@ -346,11 +352,11 @@ Once located, analyze ONLY that directory. Do not read files from parent or sibl
    - Go: `go.mod`
    - Java: `pom.xml` or `build.gradle`
    - PHP: `composer.json`
-   If you cannot find any dependency file, return `missing_dependency_file` as the finish reason and an empty list of missing integrations.
+   If you cannot find any dependency file, return `{MissingSdkIntegrationFinishReason.MISSING_DEPENDENCY_FILE}` as the finish reason and an empty list of missing integrations.
 
 2. **Read Sentry Configuration**
    Search for Sentry initialization (`Sentry.init` or `sentry_sdk.init`) within the project directory and note configured integrations.
-   If you cannot find any Sentry initialization, return `missing_sentry_init` as the finish reason and an empty list of missing integrations.
+   If you cannot find any Sentry initialization, return `{MissingSdkIntegrationFinishReason.MISSING_SENTRY_INIT}` as the finish reason and an empty list of missing integrations.
 
 3. **Read SDK Integrations Docs**
    Fetch the integrations table from: {integration_docs_url}
@@ -376,14 +382,14 @@ General-purpose integrations that don't require a specific package (e.g., `extra
 Return a JSON object with:
 - `missing_integrations`: Array of missing integration names using exact names from the docs
 - `finish_reason`: A short snake_case string describing the outcome:
-  - `done`: Successfully analyzed the project (even if no integrations are missing)
-  - `missing_sentry_init`: Could not find Sentry initialization code (`Sentry.init` or `sentry_sdk.init`)
-  - `missing_dependency_file`: Could not find any dependency file for the project
+  - `{MissingSdkIntegrationFinishReason.SUCCESS}`: Successfully analyzed the project (even if no integrations are missing)
+  - `{MissingSdkIntegrationFinishReason.MISSING_SENTRY_INIT}`: Could not find Sentry initialization code (`Sentry.init` or `sentry_sdk.init`)
+  - `{MissingSdkIntegrationFinishReason.MISSING_DEPENDENCY_FILE}`: Could not find any dependency file for the project
   - For other issues, use a descriptive snake_case reason (e.g., `docs_unavailable`)
 
-Example success: `{{"missing_integrations": ["zodErrorsIntegration"], "finish_reason": "done"}}`
-Example no missing: `{{"missing_integrations": [], "finish_reason": "done"}}`
-Example no init: `{{"missing_integrations": [], "finish_reason": "missing_sentry_init"}}`"""
+Example success: `{{"missing_integrations": ["zodErrorsIntegration"], "finish_reason": "{MissingSdkIntegrationFinishReason.SUCCESS}"}}`
+Example no missing: `{{"missing_integrations": [], "finish_reason": "{MissingSdkIntegrationFinishReason.SUCCESS}"}}`
+Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkIntegrationFinishReason.MISSING_SENTRY_INIT}"}}`"""
 
     try:
         run_id = client.start_run(
@@ -395,8 +401,19 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "missing_sentry
 
         # Extract the structured result
         result = state.get_artifact("missing_integrations", MissingSdkIntegrationsResult)
-        missing_integrations = result.missing_integrations if result else []
-        finish_reason = result.finish_reason if result else "done"
+        if result is None:
+            logger.warning(
+                "missing_sdk_integration_detector.no_artifact_result",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": project.id,
+                    "run_id": run_id,
+                },
+            )
+            return None
+
+        missing_integrations = result.missing_integrations
+        finish_reason = result.finish_reason
 
         logger.warning(
             "missing_sdk_integration_detector.integrations_found: %s",
@@ -413,7 +430,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "missing_sentry
         )
 
         # Only create issues if the detection was successful
-        if finish_reason == "done":
+        if finish_reason == MissingSdkIntegrationFinishReason.SUCCESS:
             for integration in missing_integrations:
                 create_instrumentation_issue(
                     project_id=project.id,
