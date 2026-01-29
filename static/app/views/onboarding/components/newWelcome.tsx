@@ -52,37 +52,37 @@ type ProductOption = {
 const PRODUCT_OPTIONS: ProductOption[] = [
   {
     id: 'error-monitoring',
-    icon: <IconWarning size="sm" variant="secondary" />,
+    icon: <IconWarning legacySize="16px" variant="secondary" />,
     title: t('Error monitoring'),
     description: t('Automatically capture exceptions and stack traces'),
   },
   {
     id: 'logging',
-    icon: <IconTerminal size="sm" variant="secondary" />,
+    icon: <IconTerminal legacySize="16px" variant="secondary" />,
     title: t('Logging'),
     description: t('See logs in context with errors and performance issues'),
   },
   {
     id: 'session-replay',
-    icon: <IconTimer size="sm" variant="secondary" />,
+    icon: <IconTimer legacySize="16px" variant="secondary" />,
     title: t('Session replay'),
     description: t('Watch real user sessions to see what went wrong'),
   },
   {
     id: 'metrics',
-    icon: <IconGraph size="sm" variant="secondary" />,
+    icon: <IconGraph legacySize="16px" variant="secondary" />,
     title: t('Metrics'),
     description: t('Custom metrics for tracking application performance and usage'),
   },
   {
     id: 'tracing',
-    icon: <IconSpan size="sm" variant="secondary" />,
+    icon: <IconSpan legacySize="16px" variant="secondary" />,
     title: t('Tracing'),
     description: t('Find slow transactions, bottlenecks, and timeouts'),
   },
   {
     id: 'profiling',
-    icon: <IconProfiling size="sm" variant="secondary" />,
+    icon: <IconProfiling legacySize="16px" variant="secondary" />,
     title: t('Profiling'),
     description: t('See the exact lines of code causing your performance bottlenecks.'),
   },
@@ -99,8 +99,12 @@ function ProductCard({icon, title, description}: ProductCardProps) {
     <ProductCardContainer border="muted" radius="lg" padding="xl">
       <Flex align="center">{icon}</Flex>
       <Flex direction="column" gap="xs">
-        <ProductTitle>{title}</ProductTitle>
-        <Text variant="muted">{description}</Text>
+        <Text bold size="lg" density="comfortable">
+          {title}
+        </Text>
+        <Text variant="muted" size="md" density="comfortable">
+          {description}
+        </Text>
       </Flex>
     </ProductCardContainer>
   );
@@ -139,7 +143,7 @@ export function NewWelcomeUI(props: StepProps) {
         <Stack gap="2xl">
           <Flex direction="column" gap="lg" paddingBottom="2xl">
             <NewWelcomeTitle as="h1">{t('Welcome to Sentry')}</NewWelcomeTitle>
-            <Text variant="muted" size="lg" bold wrap="pre-line">
+            <Text variant="muted" size="lg" bold wrap="pre-line" density="comfortable">
               {t(
                 "Your code is probably broken, and we'll help you fix it faster.\nWe're not just error monitoring anymore y'know."
               )}
@@ -148,7 +152,7 @@ export function NewWelcomeUI(props: StepProps) {
 
           <Flex align="center" gap="md">
             <IconBusiness size="sm" variant="accent" />
-            <Text size="lg" bold variant="muted">
+            <Text size="lg" bold variant="muted" density="comfortable">
               {t('Your 14-day business trial includes')}{' '}
               <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
                 {t('unlimited access')}
@@ -177,20 +181,22 @@ export function NewWelcomeUI(props: StepProps) {
 
         <SeerCard border="muted" radius="lg" padding="xl">
           <SeerCardContent>
-            <IconSeer size="sm" variant="secondary" />
+            <IconSeer legacySize="16px" variant="secondary" />
             <Flex direction="column" gap="xs">
               <Flex gap="sm" align="center">
-                <ProductTitle>{t('Seer: AI Debugging Agent')}</ProductTitle>
+                <Text bold size="lg" density="comfortable">
+                  {t('Seer: AI Debugging Agent')}
+                </Text>
                 <FeatureBadge type="new" tooltipProps={{disabled: true}} />
               </Flex>
-              <Text variant="muted" wrap="pre-line">
+              <Text variant="muted" wrap="pre-line" density="comfortable">
                 {t(
                   "Analyze issues, review PRs, and propose code fixes.\nBecause of course we have an AI tool, it's 2026."
                 )}
               </Text>
               <Flex gap="xs" align="center">
                 <IconInfo size="xs" />
-                <Text variant="muted" size="xs">
+                <Text variant="muted" size="xs" density="comfortable">
                   {t('Requires additional setup')}
                 </Text>
               </Flex>
@@ -250,10 +256,6 @@ const ProductCardContainer = styled(Container)`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-`;
-
-const ProductTitle = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SeerCard = styled(Container)`
