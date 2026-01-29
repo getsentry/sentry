@@ -59,7 +59,9 @@ from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
 
-MIN_STATS_INTERVAL = timedelta(minutes=15)
+MIN_STATS_INTERVAL = timedelta(
+    minutes=15
+)  # See get_interval_from_range in utils/dates.py (low fidelity)
 
 
 def _get_full_trace_id(
@@ -246,9 +248,7 @@ def execute_timeseries_query(
         optional=True,
     )
     if start_dt and end_dt and (end_dt - start_dt) <= MIN_STATS_INTERVAL:
-        raise BadRequest(
-            "Time range is too small, cannot be smaller than the minimum stats interval."
-        )
+        raise BadRequest("Time range is too small, must be larger than the minimum stats interval.")
 
     params: dict[str, Any] = {
         "dataset": dataset,
