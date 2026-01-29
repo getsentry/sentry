@@ -190,7 +190,6 @@ export class Bars implements CategoricalBarChartPlottable {
   ): Array<BarSeriesOption | LineSeriesOption> {
     const color = plottingOptions.color ?? this.config.color ?? undefined;
     const colorObject = color ? Color(color) : undefined;
-    const isHorizontal = plottingOptions.orientation === 'horizontal';
 
     return [
       barSeries({
@@ -213,11 +212,10 @@ export class Bars implements CategoricalBarChartPlottable {
         itemStyle: {
           opacity: 1.0,
         },
-        data: this.categoricalSeries.values.map(item =>
-          isHorizontal
-            ? [item.value, item.category]
-            : {name: item.category, value: item.value}
-        ),
+        data: this.categoricalSeries.values.map(item => ({
+          name: item.category,
+          value: item.value,
+        })),
       }),
     ];
   }

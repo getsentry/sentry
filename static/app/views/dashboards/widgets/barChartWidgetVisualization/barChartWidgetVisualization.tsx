@@ -249,23 +249,13 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
 
   /**
    * Extract the numeric value from ECharts data format.
-   * For vertical bars: {name: string, value: number} or just number
-   * For horizontal bars: [value, label] array
+   * Data is always {name: string, value: number} or just a number.
    */
-  function extractValue(
-    data: unknown,
-    currentOrientation: 'vertical' | 'horizontal'
-  ): number | null {
+  function extractValue(data: unknown): number | null {
     if (data === null || data === undefined) {
       return null;
     }
 
-    // For horizontal bars, data is [value, label]
-    if (currentOrientation === 'horizontal' && Array.isArray(data)) {
-      return typeof data[0] === 'number' ? data[0] : null;
-    }
-
-    // For vertical bars, data might be {name, value} or just a number
     if (typeof data === 'number') {
       return data;
     }
@@ -291,7 +281,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
 
     // Build tooltip content using React components
     const filteredParams = seriesParams.filter(param => {
-      const value = extractValue(param.value, orientation);
+      const value = extractValue(param.value);
       return value !== null;
     });
 
@@ -306,7 +296,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
               false
             );
 
-            const numericValue = extractValue(param.value, orientation);
+            const numericValue = extractValue(param.value);
 
             // Format the value based on the plottable's data type
             let formattedValue: string;
@@ -382,7 +372,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
         const categoryLabel = event.name;
         if (!defined(categoryLabel) || typeof categoryLabel !== 'string') return;
 
-        const value = extractValue(event.value, orientation);
+        const value = extractValue(event.value);
         const categoricalItem: CategoricalItem = {category: categoryLabel, value};
 
         if (plottable.categories.includes(categoryLabel)) {
