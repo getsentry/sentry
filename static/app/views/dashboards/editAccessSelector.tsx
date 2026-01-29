@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
-import AvatarList, {CollapsedAvatars, TeamAvatar} from '@sentry/scraps/avatar';
+import {AvatarList, CollapsedAvatars, TeamAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';

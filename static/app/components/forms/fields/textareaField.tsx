@@ -1,7 +1,7 @@
 import omit from 'lodash/omit';
 
-import type {TextAreaProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
+import type {TextAreaProps} from '@sentry/scraps/textarea';
 
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';

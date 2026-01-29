@@ -1,7 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from '@sentry/scraps/avatar';
+import {AvatarList} from '@sentry/scraps/avatar';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {DataSection} from 'sentry/components/events/styles';

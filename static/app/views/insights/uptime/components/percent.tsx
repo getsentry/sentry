@@ -1,6 +1,6 @@
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import type {BaseTextProps} from '@sentry/scraps/text';
+import type {TextProps} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
@@ -14,7 +14,7 @@ type UptimePercentProps = {
    * Text to display at the top of the uptime percent text tooltip
    */
   note?: React.ReactNode;
-  size?: BaseTextProps['size'];
+  size?: TextProps<'span'>['size'];
 };
 
 export function UptimePercent({summary, note, size}: UptimePercentProps) {

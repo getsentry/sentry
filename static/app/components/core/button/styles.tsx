@@ -1,4 +1,4 @@
-import type {DO_NOT_USE_ButtonProps as ButtonProps} from '@sentry/scraps/button';
+import type {ButtonProps} from '@sentry/scraps/button';
 
 // eslint-disable-next-line boundaries/element-types
 import {type SVGIconProps} from 'sentry/icons/svgIcon';

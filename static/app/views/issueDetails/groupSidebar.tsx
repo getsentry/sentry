@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from '@sentry/scraps/avatar';
+import {AvatarList} from '@sentry/scraps/avatar';
 
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';

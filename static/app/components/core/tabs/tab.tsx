@@ -13,7 +13,7 @@ import type {Theme} from 'sentry/utils/theme';
 
 import {tabsShouldForwardProp} from './utils';
 
-export interface BaseTabProps {
+interface BaseTabProps {
   children: React.ReactNode;
   disabled: boolean;
   hidden: boolean;
@@ -188,7 +188,7 @@ const StyledTabSelectionIndicator = styled('div')<{
         `};
 `;
 
-interface TabProps extends AriaTabProps {
+export interface TabProps extends AriaTabProps {
   item: Node<any>;
   orientation: Orientation;
   /**

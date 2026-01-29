@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from '@sentry/scraps/avatar';
+import {AvatarList} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t, tn} from 'sentry/locale';
