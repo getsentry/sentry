@@ -228,25 +228,10 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     seriesIndexToPlottableMapRanges
   );
 
-  /**
-   * Extract the numeric value from ECharts data format.
-   * Data is always {name: string, value: number} or just a number.
-   */
+  /** Extract the numeric value from ECharts data format ({name, value}). */
   function extractValue(data: unknown): number | null {
-    if (data === null || data === undefined) {
-      return null;
-    }
-
-    if (typeof data === 'number') {
-      return data;
-    }
-
-    if (typeof data === 'object' && 'value' in data) {
-      const val = (data as {value: unknown}).value;
-      return typeof val === 'number' ? val : null;
-    }
-
-    return null;
+    const value = (data as {value?: unknown} | null | undefined)?.value;
+    return typeof value === 'number' ? value : null;
   }
 
   // Create tooltip formatter for categorical bar charts
