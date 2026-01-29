@@ -18,12 +18,7 @@ interface InternalDefinition {
 
 interface SelectedGroupStoreDefinition extends StrictStoreDefinition<InternalDefinition> {
   add(ids: string[]): void;
-  allSelected(): boolean;
-  anySelected(): boolean;
   deselectAll(): void;
-  getSelectedIds(): Set<string>;
-  isSelected(itemId: string): boolean;
-  multiSelected(): boolean;
   onGroupChange(itemIds: Set<string>): void;
   prune(): void;
   reset(): void;
@@ -57,9 +52,11 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 
   add(ids) {
-    const allSelected = this.allSelected();
+    const {records} = this.state;
+    const selectedCount = [...records.values()].filter(Boolean).length;
+    const allSelected = selectedCount > 0 && selectedCount === records.size;
 
-    const newRecords = new Map(this.state.records);
+    const newRecords = new Map(records);
     ids.filter(id => !newRecords.has(id)).forEach(id => newRecords.set(id, allSelected));
     this.state = {...this.state, records: newRecords};
   },
@@ -74,30 +71,6 @@ const storeConfig: SelectedGroupStoreDefinition = {
       .forEach(id => newRecords.delete(id));
 
     this.state = {...this.state, lastSelected: null, records: newRecords};
-  },
-
-  allSelected() {
-    const itemIds = this.getSelectedIds();
-
-    return itemIds.size > 0 && itemIds.size === this.state.records.size;
-  },
-
-  anySelected() {
-    return this.getSelectedIds().size > 0;
-  },
-
-  multiSelected() {
-    return this.getSelectedIds().size > 1;
-  },
-
-  getSelectedIds() {
-    return new Set(
-      [...this.state.records.keys()].filter(id => this.state.records.get(id))
-    );
-  },
-
-  isSelected(itemId) {
-    return !!this.state.records.get(itemId);
   },
 
   deselectAll() {
@@ -121,10 +94,13 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 
   toggleSelectAll() {
-    const allSelected = !this.allSelected();
+    const {records} = this.state;
+    const selectedCount = [...records.values()].filter(Boolean).length;
+    const allCurrentlySelected = selectedCount > 0 && selectedCount === records.size;
+    const newSelectedState = !allCurrentlySelected;
 
-    const newRecords = new Map(this.state.records);
-    newRecords.forEach((_, id) => newRecords.set(id, allSelected));
+    const newRecords = new Map(records);
+    newRecords.forEach((_, id) => newRecords.set(id, newSelectedState));
     this.state = {...this.state, records: newRecords, lastSelected: null};
     this.trigger();
   },
