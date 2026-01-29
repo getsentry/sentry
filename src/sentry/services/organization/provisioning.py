@@ -8,6 +8,7 @@ from sentry_sdk import capture_exception
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
+from sentry.hybridcloud.rpc.service import RpcSlugCollisionException
 from sentry.hybridcloud.services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
@@ -105,14 +106,19 @@ class OrganizationProvisioningService:
             control_organization_provisioning_rpc_service,
         )
 
-        rpc_slug_reservation = (
-            control_organization_provisioning_rpc_service.update_organization_slug(
-                organization_id=organization_id,
-                desired_slug=slug,
-                require_exact=True,
-                region_name=destination_region_name,
+        try:
+            rpc_slug_reservation = (
+                control_organization_provisioning_rpc_service.update_organization_slug(
+                    organization_id=organization_id,
+                    desired_slug=slug,
+                    require_exact=True,
+                    region_name=destination_region_name,
+                )
             )
-        )
+        except RpcSlugCollisionException:
+            raise OrganizationSlugCollisionException(
+                f"Organization slug '{slug}' is already in use"
+            )
 
         rpc_org = organization_service.get(id=rpc_slug_reservation.organization_id)
 

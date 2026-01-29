@@ -1,5 +1,6 @@
 import pydantic
 import sentry_sdk
+from rest_framework import status
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +12,9 @@ from sentry.api.base import Endpoint, internal_all_silo_endpoint
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.service import RpcResolutionException, dispatch_to_local_service
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.hybridcloud.services.control_organization_provisioning.impl import (
+    SlugCollisionRpcException,
+)
 from sentry.utils.env import in_test_environment
 
 
@@ -65,6 +69,12 @@ class InternalRpcServiceEndpoint(Endpoint):
         except SerializableFunctionValueException as e:
             sentry_sdk.capture_exception()
             raise ParseError from e
+        except SlugCollisionRpcException:
+            # Return 409 Conflict for slug collisions so the caller can handle it appropriately
+            return Response(
+                data={"detail": "slug_collision", "message": "Organization slug already in use"},
+                status=status.HTTP_409_CONFLICT,
+            )
         except Exception as e:
             # Produce more detailed log
             if in_test_environment():
