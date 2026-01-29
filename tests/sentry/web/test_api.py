@@ -20,53 +20,6 @@ from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, re
 from sentry.utils import json
 
 
-class CrossDomainXmlTest(TestCase):
-    @cached_property
-    def path(self) -> str:
-        return reverse("sentry-api-crossdomain-xml", kwargs={"project_id": self.project.id})
-
-    @mock.patch("sentry.web.api.get_origins")
-    def test_output_with_global(self, get_origins: mock.MagicMock) -> None:
-        get_origins.return_value = "*"
-        resp = self.client.get(self.path)
-        get_origins.assert_called_once_with(self.project)
-        assert resp.status_code == 200, resp.content
-        self.assertEqual(resp["Content-Type"], "application/xml")
-        self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert b'<allow-access-from domain="*" secure="false" />' in resp.content
-
-    @mock.patch("sentry.web.api.get_origins")
-    def test_output_with_allowed_origins(self, get_origins: mock.MagicMock) -> None:
-        get_origins.return_value = ["disqus.com", "www.disqus.com"]
-        resp = self.client.get(self.path)
-        get_origins.assert_called_once_with(self.project)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Type"], "application/xml")
-        self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert b'<allow-access-from domain="disqus.com" secure="false" />' in resp.content
-        assert b'<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content
-
-    @mock.patch("sentry.web.api.get_origins")
-    def test_output_with_no_origins(self, get_origins: mock.MagicMock) -> None:
-        get_origins.return_value = []
-        resp = self.client.get(self.path)
-        get_origins.assert_called_once_with(self.project)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Type"], "application/xml")
-        self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert b"<allow-access-from" not in resp.content
-
-    def test_output_allows_x_sentry_auth(self) -> None:
-        resp = self.client.get(self.path)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Type"], "application/xml")
-        self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert (
-            b'<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
-            in resp.content
-        )
-
-
 class RobotsTxtTest(TestCase):
     @cached_property
     def path(self) -> str:

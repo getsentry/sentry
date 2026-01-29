@@ -131,11 +131,6 @@ urlpatterns += [
         WarmupEndpoint.as_view(),
         name="sentry-warmup",
     ),
-    re_path(
-        r"^api/(?P<project_id>[^/]+)/crossdomain\.xml$",
-        api.crossdomain_xml,
-        name="sentry-api-crossdomain-xml",
-    ),
     # Frontend client config
     re_path(
         r"^api/client-config/?$",
@@ -1276,12 +1271,6 @@ urlpatterns += [
         r"^favicon\.ico$",
         api.not_found,
         name="sentry-favicon-404",
-    ),
-    # crossdomain.xml
-    re_path(
-        r"^crossdomain\.xml$",
-        api.not_found,
-        name="sentry-crossdomain-404",
     ),
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
