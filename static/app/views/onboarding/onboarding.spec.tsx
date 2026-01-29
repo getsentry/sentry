@@ -42,7 +42,7 @@ describe('Onboarding', () => {
       }
     );
 
-    expect(screen.getByLabelText('Start')).toBeInTheDocument();
+    expect(screen.getByTestId('onboarding-welcome-start')).toBeInTheDocument();
   });
 
   it('renders the select platform step', async () => {
