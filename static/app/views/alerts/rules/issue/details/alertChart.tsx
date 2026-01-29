@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -108,13 +110,13 @@ export function IssueAlertDetailsChart({
       </StyledPanelBody>
       <ChartFooter>
         <FooterHeader>{t('Total Alerts')}</FooterHeader>
-        <FooterValue>
+        <Flex align="center" margin="0 md">
           {isPending ? (
             <Placeholder height="16px" width="50px" />
           ) : (
             totalAlertsTriggered.toLocaleString()
           )}
-        </FooterValue>
+        </Flex>
       </ChartFooter>
     </Panel>
   );
@@ -135,12 +137,6 @@ const FooterHeader = styled('h4')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1;
-`;
-
-const FooterValue = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(1)};
 `;
 
 /* Override padding to make chart appear centered */
