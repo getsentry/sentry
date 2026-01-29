@@ -95,6 +95,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
     <CompactSelect
       multiple
       searchable
+      clearable
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
