@@ -134,8 +134,8 @@ export function ToolbarSaveAs() {
   }
   items.push({
     key: 'save-query',
-    label: <span>{t('A New Query')}</span>,
-    textValue: t('A New Query'),
+    label: <span>{t('New Query')}</span>,
+    textValue: t('New Query'),
     onAction: () => {
       trackAnalytics('trace_explorer.save_query_modal', {
         action: 'open',
@@ -153,8 +153,8 @@ export function ToolbarSaveAs() {
   });
 
   const newAlertLabel = organization.features.includes('workflow-engine-ui')
-    ? t('A Monitor for')
-    : t('An Alert for');
+    ? t('Monitor for')
+    : t('Alert for');
 
   items.push({
     key: 'create-alert',
@@ -196,15 +196,15 @@ export function ToolbarSaveAs() {
 
   items.push({
     key: 'add-to-dashboard',
-    textValue: t('A Dashboard widget'),
+    textValue: t('Dashboard widget'),
     isSubmenu: chartOptions.length > 1 ? true : false,
     label: (
       <Feature
         hookName="feature-disabled:dashboards-edit"
         features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+        renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
       >
-        {t('A Dashboard widget')}
+        {t('Dashboard widget')}
       </Feature>
     ),
     disabled: disableAddToDashboard,
