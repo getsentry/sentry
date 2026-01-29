@@ -56,13 +56,10 @@ function GroupStatusChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    const marklineColor = theme.colors.gray400;
-    const marklineLabelColor = theme.tokens.content.secondary;
-
     const markLine = MarkLine({
       silent: true,
       lineStyle: {
-        color: marklineColor,
+        color: theme.tokens.border.transparent.neutral.moderate,
         type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
         opacity: 0.6,
         cap: 'round', // Rounded edges for the dashes
@@ -77,7 +74,7 @@ function GroupStatusChart({
         show: true,
         position: 'end',
         opacity: 1,
-        color: marklineLabelColor,
+        color: theme.tokens.content.secondary,
         fontFamily: 'Rubik',
         fontSize: 10,
         formatter: `${formattedMarkLine}`,
