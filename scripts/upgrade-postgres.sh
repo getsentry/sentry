@@ -1,6 +1,6 @@
 #!/bin/bash
 
-POSTGRES_CONTAINER="sentry-postgres-1"
+POSTGRES_CONTAINER="postgres-postgres-1"
 
 OLD_VERSION="9.6"
 NEW_VERSION="14"
