@@ -254,6 +254,11 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         default=False,
         help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
     )
+    response_capture_enabled = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="When enabled, response body and headers will be captured on check failures.",
+    )
     recovery_threshold = serializers.IntegerField(
         required=False,
         default=DEFAULT_RECOVERY_THRESHOLD,
@@ -342,6 +347,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             recovery_threshold=validated_data["recovery_threshold"],
             downtime_threshold=validated_data["downtime_threshold"],
             assertion=validated_data.get("assertion", None),
+            response_capture_enabled=validated_data.get("response_capture_enabled", True),
             **method_headers_body,
         )
 
@@ -375,6 +381,11 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             data["trace_sampling"]
             if "trace_sampling" in data
             else uptime_subscription.trace_sampling
+        )
+        response_capture_enabled = (
+            data["response_capture_enabled"]
+            if "response_capture_enabled" in data
+            else uptime_subscription.response_capture_enabled
         )
         status = data["status"] if "status" in data else instance.status
         recovery_threshold = (
@@ -419,6 +430,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
                 recovery_threshold=recovery_threshold,
                 downtime_threshold=downtime_threshold,
                 assertion=assertion,
+                response_capture_enabled=response_capture_enabled,
             )
         except UptimeMonitorNoSeatAvailable as err:
             # Nest seat availability errors under status. Since this is the
@@ -470,6 +482,11 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         default=False,
         help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
     )
+    response_capture_enabled = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="When enabled, response body and headers will be captured on check failures.",
+    )
     body = serializers.CharField(
         required=False,
         allow_null=True,
@@ -489,6 +506,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
             "timeout_ms",
             "method",
             "trace_sampling",
+            "response_capture_enabled",
             "body",
             "interval_seconds",
             "assertion",
@@ -541,6 +559,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
                 headers=validated_data.get("headers", None),
                 body=validated_data.get("body", None),
                 assertion=validated_data.get("assertion", None),
+                response_capture_enabled=validated_data.get("response_capture_enabled", True),
             )
         return uptime_subscription
 
@@ -737,6 +756,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
             body=data_source.get("body", NOT_SET),
             trace_sampling=data_source.get("trace_sampling", NOT_SET),
             assertion=data_source.get("assertion", NOT_SET),
+            response_capture_enabled=data_source.get("response_capture_enabled", NOT_SET),
         )
 
         create_audit_entry(
