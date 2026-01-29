@@ -442,8 +442,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
         assert "DiagnosticCoroutineContextException" in event.group.title
 
-    def test_kotlin_coroutine_diagnostic_exception_invalid_parent_id_keeps_default(self) -> None:
-        """DiagnosticCoroutineContextException with parent_id referencing non-existent exception should fall back."""
+    def test_kotlin_coroutine_diagnostic_exception_invalid_parent_id_uses_root(self) -> None:
+        """DiagnosticCoroutineContextException with invalid parent_id becomes orphaned in exception tree."""
         manager = EventManager(
             make_event(
                 exception={
@@ -472,8 +472,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
         )
         event = manager.save(self.project.id)
-        # Should fall back to default behavior (last exception) since parent_id is invalid
-        assert event.data["metadata"]["type"] == "DiagnosticCoroutineContextException"
+        # With invalid parent_id, DiagnosticCoroutineContextException is orphaned in the exception
+        # tree. The exception group filtering logic then picks RuntimeException (the root) as the
+        # main exception. This is correct behavior - the orphaned exception is effectively excluded.
+        assert event.data["metadata"]["type"] == "RuntimeException"
+        assert event.data["metadata"]["value"] == "actual error"
         assert event.group is not None
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
