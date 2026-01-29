@@ -35,7 +35,6 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
-from sentry.workflow_engine.models.detector import enforce_config_schema
 from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
 
 
@@ -196,7 +195,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             if "config" in validated_data:
                 instance.config = validated_data.get("config", instance.config)
                 try:
-                    enforce_config_schema(instance)
+                    instance.enforce_config_schema()
                 except JSONSchemaValidationError as error:
                     raise serializers.ValidationError({"config": [str(error)]})
 
@@ -277,7 +276,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             )
 
             try:
-                enforce_config_schema(detector)
+                detector.enforce_config_schema()
             except JSONSchemaValidationError as error:
                 # Surface schema errors as a user-facing validation error
                 raise serializers.ValidationError({"config": [str(error)]})
