@@ -420,7 +420,6 @@ export function TourGuide({
                             {isDismissVisible && (
                               <Button
                                 priority="transparent"
-                                borderless
                                 onClick={handleDismiss}
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
@@ -503,7 +502,7 @@ export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} priority="primary" size="sm" />;
 }
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" size="sm" borderless />;
+  return <Button {...props} priority="transparent" size="sm" />;
 }
 
 const BlurWindow = styled('div')`

@@ -261,12 +261,46 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       spanNodes.push(spanNode);
     }
 
-    // Construct the span tree
+    // Construct the span tree with cycle detection
     for (const span of spanNodes) {
       // If the span has no parent span id, nest it under the root
-      const parent = span.value.parent_span_id
-        ? (spanIdToNode.get(span.value.parent_span_id) ?? this)
-        : this;
+      if (!span.value.parent_span_id) {
+        span.parent = this;
+        this.children.push(span);
+        continue;
+      }
+
+      // Check for cycle: trace the parent chain to detect if it would create a cycle.
+      // If we loop back to the current span, attach it to the transaction root instead.
+      let hasCycle = false;
+      const ancestorChain = new Set<string>([span.value.span_id]);
+      let currentParentId: string | null | undefined = span.value.parent_span_id;
+
+      while (currentParentId) {
+        if (ancestorChain.has(currentParentId)) {
+          // Cycle detected - log to Sentry and attach to root instead
+          hasCycle = true;
+          // Avoid capturing the loop variable inside the arrow function
+          const cycleParentId = currentParentId;
+          Sentry.withScope(scope => {
+            scope.setFingerprint(['trace-tree-span-cycle-detected']);
+            scope.captureMessage('Span cycle detected in trace tree');
+            info(fmt`Span cycle detected: ${span.value.span_id} -> ${cycleParentId}`);
+          });
+          break;
+        }
+        ancestorChain.add(currentParentId);
+        const parentNode = spanIdToNode.get(currentParentId);
+        if (!parentNode?.value || !('parent_span_id' in parentNode.value)) {
+          break;
+        }
+        currentParentId = parentNode.value.parent_span_id;
+      }
+
+      // If cycle detected, attach to root; otherwise attach to parent
+      const parent = hasCycle
+        ? this
+        : (spanIdToNode.get(span.value.parent_span_id) ?? this);
 
       span.parent = parent;
       parent.children.push(span);

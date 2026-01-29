@@ -81,7 +81,12 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
-from sentry.spans.buffer_logger import BufferLogger, EvalshaData, emit_observability_metrics
+from sentry.spans.buffer_logger import (
+    BufferLogger,
+    EvalshaData,
+    compare_metrics,
+    emit_observability_metrics,
+)
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.utils import metrics, redis
@@ -216,6 +221,7 @@ class SpansBuffer:
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
         debug_traces = set(options.get("spans.buffer.debug-traces"))
         write_to_zset = options.get("spans.buffer.write-to-zset")
         write_to_set = options.get("spans.buffer.write-to-set")
@@ -230,7 +236,16 @@ class SpansBuffer:
             trees = self._group_by_parent(spans)
             pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
 
-            tree_items = list(trees.items())
+            # Split large subsegments into chunks to avoid Lua unpack() limits.
+            # Chunks share the same parent_span_id but are processed separately.
+            tree_items: list[tuple[tuple[str, str], list[Span]]] = []
+            for key, subsegment in trees.items():
+                if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
+                    for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
+                        tree_items.append((key, list(chunk)))
+                else:
+                    tree_items.append((key, subsegment))
+
             tree_batches: Sequence[Sequence[tuple[tuple[str, str], list[Span]]]]
             if pipeline_batch_size > 0:
                 tree_batches = list(itertools.batched(tree_items, pipeline_batch_size))
@@ -440,6 +455,7 @@ class SpansBuffer:
         metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
+        metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(tree_items))
 
         try:
             if write_to_zset:
@@ -450,6 +466,9 @@ class SpansBuffer:
                 emit_observability_metrics(
                     set_latency_metrics, set_gauge_metrics, longest_set_evalsha_data
                 )
+            if write_to_zset and write_to_set:
+                compare_metrics(zset_latency_metrics, set_latency_metrics)
+                compare_metrics(zset_gauge_metrics, set_gauge_metrics)
         except Exception as e:
             logger.exception("Error emitting observability metrics: %s", e)
 
@@ -780,12 +799,14 @@ class SpansBuffer:
                     p.zrem(flushed_segment.queue_key, zset_key, set_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    zset_redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    set_redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
-                        p.hdel(
-                            redirect_map_key,
-                            *[output_span.payload["span_id"] for output_span in span_batch],
-                        )
+                        span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                        if write_to_zset:
+                            p.hdel(zset_redirect_map_key, *span_ids)
+                        if write_to_set:
+                            p.hdel(set_redirect_map_key, *span_ids)
 
                 p.execute()

@@ -21,7 +21,6 @@ import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
   getLabels,
-  getPlatformIconFromPlatform,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
@@ -78,9 +77,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           <Flex gap="sm" align="center">
             <InfoIcon>
               {buildDetails.app_info.platform ? (
-                <PlatformIcon
-                  platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
-                />
+                <PlatformIcon platform={buildDetails.app_info.platform} />
               ) : null}
             </InfoIcon>
             <Text>

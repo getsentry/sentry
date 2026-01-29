@@ -40,6 +40,7 @@ import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerDrawerProps {
   event: Event;
@@ -108,10 +109,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="md">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -164,10 +165,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               crumbs={[
                 {
                   label: (
-                    <CrumbContainer>
+                    <Flex align="center" gap="md">
                       <ProjectAvatar project={project} />
                       <ShortId>{group.shortId}</ShortId>
-                    </CrumbContainer>
+                    </Flex>
                   ),
                 },
                 {label: getShortEventId(event.id)},
@@ -193,10 +194,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="md">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -213,7 +214,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
   // Route to Explorer-based drawer if both feature flags are enabled
   if (
-    organization.features.includes('seer-explorer') &&
+    isSeerExplorerEnabled(organization) &&
     organization.features.includes('autofix-on-explorer')
   ) {
     return (
@@ -380,10 +381,10 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           crumbs={[
             {
               label: (
-                <CrumbContainer>
+                <Flex align="center" gap="md">
                   <ProjectAvatar project={project} />
                   <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
+                </Flex>
               ),
             },
             {label: getShortEventId(event.id)},
@@ -521,7 +522,7 @@ export const useOpenSeerDrawer = ({
     }
 
     const isExplorerVersion =
-      organization.features.includes('seer-explorer') &&
+      isSeerExplorerEnabled(organization) &&
       organization.features.includes('autofix-on-explorer');
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
@@ -532,6 +533,7 @@ export const useOpenSeerDrawer = ({
         max-height: 100%;
       `,
       resizable: !isExplorerVersion,
+      drawerWidth: isExplorerVersion ? '50%' : undefined,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
@@ -617,12 +619,6 @@ const Header = styled('h3')`
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
   padding: 0;
-`;
-
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const ShortId = styled('div')`

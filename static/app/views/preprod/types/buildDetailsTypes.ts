@@ -83,11 +83,18 @@ interface BuildDetailsSizeInfoFailed {
   state: BuildDetailsSizeAnalysisState.FAILED;
 }
 
+interface BuildDetailsSizeInfoNotRan {
+  error_code: number;
+  error_message: string;
+  state: BuildDetailsSizeAnalysisState.NOT_RAN;
+}
+
 export type BuildDetailsSizeInfo =
   | BuildDetailsSizeInfoPending
   | BuildDetailsSizeInfoProcessing
   | BuildDetailsSizeInfoCompleted
-  | BuildDetailsSizeInfoFailed;
+  | BuildDetailsSizeInfoFailed
+  | BuildDetailsSizeInfoNotRan;
 
 export function isSizeInfoCompleted(
   sizeInfo: BuildDetailsSizeInfo | undefined
@@ -95,13 +102,23 @@ export function isSizeInfoCompleted(
   return sizeInfo?.state === BuildDetailsSizeAnalysisState.COMPLETED;
 }
 
-export function isSizeInfoProcessing(
+export function isSizeInfoPendingOrProcessing(
   sizeInfo: BuildDetailsSizeInfo | undefined
 ): boolean {
   return (
     sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING ||
     sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING
   );
+}
+
+export function isSizeInfoPending(sizeInfo: BuildDetailsSizeInfo | undefined): boolean {
+  return sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING;
+}
+
+export function isSizeInfoProcessing(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): boolean {
+  return sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING;
 }
 
 export function getMainArtifactSizeMetric(
@@ -130,6 +147,7 @@ export enum BuildDetailsSizeAnalysisState {
   PROCESSING = 1,
   COMPLETED = 2,
   FAILED = 3,
+  NOT_RAN = 4,
 }
 
 interface PostedStatusChecks {

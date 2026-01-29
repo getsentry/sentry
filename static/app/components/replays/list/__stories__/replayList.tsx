@@ -3,6 +3,8 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Container} from '@sentry/scraps/layout';
+
 import type {ApiResult} from 'sentry/api';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -43,11 +45,11 @@ export default function ReplayList({onSelect, queryResult}: Props) {
         )}
         emptyMessage={() => <NoReplays />}
         loadingMoreMessage={() => (
-          <Centered>
+          <Container justifySelf="center">
             <Tooltip title={t('Loading more replays...')}>
               <LoadingIndicator mini />
             </Tooltip>
-          </Centered>
+          </Container>
         )}
         loadingCompleteMessage={() => null}
       />
@@ -64,10 +66,6 @@ function NoReplays() {
     </NoReplaysWrapper>
   );
 }
-
-const Centered = styled('div')`
-  justify-self: center;
-`;
 
 const NoReplaysWrapper = styled('div')`
   padding: ${p => p.theme.space['3xl']};
