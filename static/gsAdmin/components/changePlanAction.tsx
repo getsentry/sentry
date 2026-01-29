@@ -1,6 +1,7 @@
 import React, {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -14,7 +15,6 @@ import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -250,7 +250,7 @@ function ChangePlanAction({
 
   const header = partnerPlanId ? null : (
     <React.Fragment>
-      <TabsContainer>
+      <Container marginBottom="xl">
         <Tabs
           value={activeTier}
           onChange={tab => {
@@ -268,7 +268,7 @@ function ChangePlanAction({
             ))}
           </TabList>
         </Tabs>
-      </TabsContainer>
+      </Container>
       <ul className="nav nav-pills">
         <li
           className={classNames({
@@ -353,9 +353,5 @@ type Options = {
 
 const triggerChangePlanAction = (opts: Options) =>
   openModal(deps => <ChangePlanAction {...deps} {...opts} />);
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 export default triggerChangePlanAction;

@@ -1,6 +1,8 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -55,7 +57,7 @@ function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
   );
 
   return (
-    <CarouselContainer>
+    <Container margin="2xs" position="relative">
       <CarouselItems ref={scrollContainerRef}>{children}</CarouselItems>
       {!isAtStart && (
         <StyledArrowButton
@@ -73,17 +75,9 @@ function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
           icon={<IconArrow direction="right" />}
         />
       )}
-    </CarouselContainer>
+    </Container>
   );
 }
-
-const CarouselContainer = styled('div')`
-  position: relative;
-  /* We provide some margin to make room for the scroll bar. It is applied on
-   * the top and bottom for consistency.
-   */
-  margin: ${space(0.25)};
-`;
 
 const CarouselItems = styled('div')`
   display: flex;

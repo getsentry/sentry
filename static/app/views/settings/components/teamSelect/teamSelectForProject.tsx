@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -124,11 +126,11 @@ function TeamRow({
 }) {
   return (
     <TeamPanelItem data-test-id="team-row-for-project">
-      <TeamPanelItemLeft>
+      <Container flexGrow={4}>
         <Link to={`/settings/${organization.slug}/teams/${team.slug}/`}>
           <TeamBadge team={team} />
         </Link>
-      </TeamPanelItemLeft>
+      </Container>
 
       <Confirm
         message={confirmMessage}
@@ -149,10 +151,6 @@ const TeamPanelItem = styled(PanelItem)`
   padding: ${space(2)};
   align-items: center;
   justify-content: space-between;
-`;
-
-const TeamPanelItemLeft = styled('div')`
-  flex-grow: 4;
 `;
 
 export default TeamSelect;

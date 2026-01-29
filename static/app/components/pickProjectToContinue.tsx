@@ -1,5 +1,6 @@
-import styled from '@emotion/styled';
 import type {LocationDescriptor, LocationDescriptorObject} from 'history';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
@@ -80,12 +81,7 @@ function PickProjectToContinue({
     }
   );
 
-  return <ContextPickerBackground />;
+  return <Container width="100%" height="100vh" />;
 }
-
-const ContextPickerBackground = styled('div')`
-  height: 100vh;
-  width: 100%;
-`;
 
 export default PickProjectToContinue;

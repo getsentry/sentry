@@ -9,7 +9,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
@@ -267,7 +267,7 @@ function OnboardingContent({
     replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   const radioButtons = (
-    <Header>
+    <Container padding="md 0">
       {showRadioButtons ? (
         <StyledRadioGroup
           label="mode"
@@ -325,7 +325,7 @@ function OnboardingContent({
           </Flex>
         )
       )}
-    </Header>
+    </Container>
   );
 
   if (isProjKeysLoading) {
@@ -415,10 +415,6 @@ function OnboardingContent({
     </Fragment>
   );
 }
-
-const Header = styled('div')`
-  padding: ${space(1)} 0;
-`;
 
 const TopRightBackgroundImage = styled('img')`
   position: absolute;

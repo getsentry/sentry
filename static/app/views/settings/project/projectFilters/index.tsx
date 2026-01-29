@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -44,7 +44,7 @@ export default function ProjectFilters() {
         <ProjectFiltersChart project={project} />
 
         {features.has('discard-groups') && (
-          <TabsContainer>
+          <Container marginBottom="xl">
             <Tabs value={filterType}>
               <TabList>
                 <TabList.Item
@@ -61,7 +61,7 @@ export default function ProjectFilters() {
                 </TabList.Item>
               </TabList>
             </Tabs>
-          </TabsContainer>
+          </Container>
         )}
 
         {filterType === 'discarded-groups' ? (
@@ -73,7 +73,3 @@ export default function ProjectFilters() {
     </Fragment>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;

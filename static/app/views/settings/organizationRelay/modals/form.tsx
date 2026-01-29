@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Input} from 'sentry/components/core/input';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -7,7 +9,6 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Relay} from 'sentry/types/relay';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
@@ -92,7 +93,7 @@ function Form({
           </TextCopyInput>
         </FieldGroup>
       ) : (
-        <FieldWrapper>
+        <Container paddingBottom="xl">
           <StyledField
             label={t('Public Key')}
             error={errors.publicKey}
@@ -115,7 +116,7 @@ function Form({
               'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
             )}
           </FieldHelp>
-        </FieldWrapper>
+        </Container>
       )}
       <FieldGroup
         flexibleControlStateSize
@@ -137,10 +138,6 @@ function Form({
 }
 
 export default Form;
-
-const FieldWrapper = styled('div')`
-  padding-bottom: ${space(2)};
-`;
 
 const StyledField = styled(FieldGroup)`
   padding-bottom: 0;

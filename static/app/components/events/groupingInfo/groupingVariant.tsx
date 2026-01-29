@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -171,7 +173,7 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
 
   const [data] = getVariantData();
   return (
-    <VariantWrapper>
+    <Container marginBottom="3xl">
       <Header>{renderTitle()}</Header>
 
       <KeyValueList
@@ -183,13 +185,9 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
         isContextData
         shouldSort={false}
       />
-    </VariantWrapper>
+    </Container>
   );
 }
-
-const VariantWrapper = styled('div')`
-  margin-bottom: ${space(4)};
-`;
 
 const Header = styled('div')`
   display: flex;

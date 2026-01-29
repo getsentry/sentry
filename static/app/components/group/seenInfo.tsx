@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
@@ -79,7 +79,9 @@ function SeenInfo({
               <StyledTimeSince date={dateGlobal} disabledAbsoluteTooltip />
             </Fragment>
           ) : (
-            <NoDateTime>{t('N/A')}</NoDateTime>
+            <Container as="span" marginRight="xs">
+              {t('N/A')}
+            </Container>
           )}
         </DateWrapper>
       </StyledHovercard>
@@ -125,10 +127,6 @@ const StyledDateTime = styled(DateTime)`
 
 const NoEnvironment = styled('div')`
   ${dateTimeCss};
-`;
-
-const NoDateTime = styled('span')`
-  margin-right: ${space(0.5)};
 `;
 
 const TooltipWrapper = styled('span')`

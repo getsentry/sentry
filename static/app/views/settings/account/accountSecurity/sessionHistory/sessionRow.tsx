@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import PanelItem from 'sentry/components/panels/panelItem';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
@@ -16,12 +18,12 @@ function SessionRow({
 }: Omit<InternetProtocol, 'id'>) {
   return (
     <SessionPanelItem>
-      <IpAndLocation>
+      <Container flex="1">
         <IpAddress>{ipAddress}</IpAddress>
         {countryCode && regionCode && (
           <CountryCode>{`${countryCode} (${regionCode})`}</CountryCode>
         )}
-      </IpAndLocation>
+      </Container>
       <div>
         <StyledTimeSince date={firstSeen} />
       </div>
@@ -44,10 +46,6 @@ const CountryCode = styled('div')`
 
 const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const IpAndLocation = styled('div')`
-  flex: 1;
 `;
 
 const SessionPanelItem = styled(PanelItem)`

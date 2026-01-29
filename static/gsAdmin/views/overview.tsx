@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
@@ -175,7 +175,7 @@ function CustomersByVolume() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   return (
-    <SectionFull>
+    <Container column="1 / 3">
       <SectionHeading>
         <span>
           Customers by Volume <small>(last 24h)</small>
@@ -217,7 +217,7 @@ function CustomersByVolume() {
         columnsForRow={getCustomerRow}
         inPanel
       />
-    </SectionFull>
+    </Container>
   );
 }
 
@@ -247,7 +247,7 @@ function Overview() {
         </SectionHeading>
         <DocIntegrationList />
       </div>
-      <SectionFull>
+      <Container column="1 / 3">
         <SectionHeading>Signups</SectionHeading>
         <p>
           Go{' '}
@@ -256,7 +256,7 @@ function Overview() {
           </a>
           .
         </p>
-      </SectionFull>
+      </Container>
     </OverviewContainer>
   );
 }
@@ -267,10 +267,6 @@ const OverviewContainer = styled('div')`
   grid-auto-flow: row;
   gap: 0 ${space(2)};
   margin-top: ${space(3)};
-`;
-
-const SectionFull = styled('div')`
-  grid-column: 1 / 3;
 `;
 
 const SectionHeading = styled('h3')`

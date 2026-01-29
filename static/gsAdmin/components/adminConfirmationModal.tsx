@@ -1,5 +1,6 @@
 import {Component, Fragment, isValidElement} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import type {
   ConfirmMessageRenderProps,
@@ -8,7 +9,6 @@ import type {
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import InputField from 'sentry/components/forms/fields/inputField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
-import {space} from 'sentry/styles/space';
 
 type ConfirmProps = React.ComponentProps<typeof Confirm>;
 
@@ -179,7 +179,7 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
         {bodyTopHalf}
 
         {showAuditFields && (
-          <AuditFields>
+          <Container marginTop="xl">
             <InputField
               data-test-id="url-field"
               name="ticket-url"
@@ -207,15 +207,11 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
               flexibleControlStateSize
               onChange={(notes: any) => this.setState({notes})}
             />
-          </AuditFields>
+          </Container>
         )}
       </Fragment>
     );
   }
 }
-
-const AuditFields = styled('div')`
-  margin-top: ${space(2)};
-`;
 
 export default AdminConfirmationModal;

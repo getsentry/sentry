@@ -2,7 +2,7 @@ import type {HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
 import {Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
@@ -180,6 +180,6 @@ export function Main({children, width = 'twothirds', ...props}: MainProps) {
 /**
  * Container for the right column the 66/33 layout
  */
-export const Side = styled('aside')`
-  grid-column: 2/3;
-`;
+export function Side(props: ContainerProps<'aside'>) {
+  return <Container as="aside" column="2/3" {...props} />;
+}

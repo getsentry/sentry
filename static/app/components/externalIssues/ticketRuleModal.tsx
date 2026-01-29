@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
@@ -425,7 +427,7 @@ export default function TicketRuleModal({
       title={title}
       navTabs={null}
       bodyText={
-        <BodyText>
+        <Container marginBottom="2xl">
           {link
             ? tct(
                 'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs:stay in sync] with the new Sentry Issue.',
@@ -435,16 +437,12 @@ export default function TicketRuleModal({
                 'When this alert is triggered [ticketType] will be created with the following fields.',
                 {ticketType}
               )}
-        </BodyText>
+        </Container>
       }
       getFieldProps={getTicketRuleFieldProps}
     />
   );
 }
-
-const BodyText = styled('div')`
-  margin-bottom: ${space(3)};
-`;
 
 const FieldErrorLabel = styled('label')`
   padding-bottom: ${space(2)};

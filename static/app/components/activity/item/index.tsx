@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
@@ -95,7 +95,7 @@ function ActivityItem({
       <StyledActivityBubble {...bubbleProps}>
         {header && (
           <ActivityHeader>
-            <ActivityHeaderContent>{header}</ActivityHeaderContent>
+            <Container flex="1">{header}</Container>
             {date && showDate && !showTime && <StyledTimeSince date={date} />}
             {date && showDate && showTime && <StyledDateTime timeOnly date={date} />}
 
@@ -125,10 +125,6 @@ const ActivityHeader = styled('div')`
   &:last-child {
     border-bottom: none;
   }
-`;
-
-const ActivityHeaderContent = styled('div')`
-  flex: 1;
 `;
 
 const ActivityBody = styled('div')`

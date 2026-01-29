@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
@@ -388,12 +390,12 @@ function SourceMapUploadsList({
                 }
               />
             </ItemHeader>
-            <ItemContent>
+            <Container padding="md xl">
               <SourceMapUploadDetails
                 sourceMapUpload={sourceMapUpload}
                 projectId={project.id}
               />
-            </ItemContent>
+            </Container>
           </Item>
         ))}
       </List>
@@ -506,10 +508,6 @@ const ItemTitle = styled(Link)`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const ItemContent = styled('div')`
-  padding: ${space(1)} ${space(2)};
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`

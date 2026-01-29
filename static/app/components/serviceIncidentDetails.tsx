@@ -5,6 +5,8 @@ import color from 'color';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Prose} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -84,7 +86,7 @@ export function ServiceIncidentDetails({incident}: Props) {
       >
         {t('Full Incident Details')}
       </LinkButton>
-      <AffectedServices>
+      <Container margin="xl 0">
         {affectedText}
         <ComponentList>
           {sortBy(incident.components, i => COMPONENT_STATUS_SORT.indexOf(i.status)).map(
@@ -95,7 +97,7 @@ export function ServiceIncidentDetails({incident}: Props) {
             )
           )}
         </ComponentList>
-      </AffectedServices>
+      </Container>
 
       <UpdatesList>
         {incident.incident_updates.map(({status, body, display_at, created_at}, key) => (
@@ -141,10 +143,6 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
 const Title = styled('h2')`
   font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(1)};
-`;
-
-const AffectedServices = styled('div')`
-  margin: ${space(2)} 0;
 `;
 
 const UpdatesList = styled(List)`

@@ -2,6 +2,8 @@ import {createContext, Fragment, useContext, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -166,7 +168,7 @@ function MergeAccounts() {
       <List symbol="colored-numeric">
         <StyledListItem>{t('Generate Verification Code')}</StyledListItem>
         <div>{t(`Check your email for your code. You'll need it in Step 3.`)}</div>
-        <ButtonSection>
+        <Container marginTop="md" marginBottom="2xl">
           <Button
             priority="primary"
             disabled={verificationCodeSent}
@@ -174,7 +176,7 @@ function MergeAccounts() {
           >
             {t('Generate verification code')}
           </Button>
-        </ButtonSection>
+        </Container>
         <AccountSelection
           users={users}
           onSelect={selectUser}
@@ -370,11 +372,6 @@ const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.font.size.xl};
   line-height: 1.3;
-`;
-
-const ButtonSection = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
 `;
 
 const StyledInput = styled(Input)`

@@ -1,6 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {tn} from 'sentry/locale';
@@ -68,7 +70,15 @@ export function CheckInTimeline<Status extends string>({
   );
 
   return (
-    <TimelineContainer role="figure" className={className} style={style}>
+    <Container
+      width="100%"
+      height="14px"
+      overflow="hidden"
+      position="relative"
+      role="figure"
+      className={className}
+      style={style}
+    >
       {jobTicks.map(jobTick => {
         const {left, startTs, width, stats, isStarting, isEnding} = jobTick;
 
@@ -95,7 +105,7 @@ export function CheckInTimeline<Status extends string>({
           </CheckInTooltip>
         );
       })}
-    </TimelineContainer>
+    </Container>
   );
 }
 
@@ -128,7 +138,7 @@ export function MockCheckInTimeline<Status extends string>({
   const startOffset = rollupConfig.timelineUnderscanWidth;
 
   return (
-    <TimelineContainer>
+    <Container width="100%" height="14px" overflow="hidden" position="relative">
       {mockTimestamps.map(ts => {
         const timestampMs = ts.getTime();
         const left =
@@ -152,16 +162,9 @@ export function MockCheckInTimeline<Status extends string>({
           </Tooltip>
         );
       })}
-    </TimelineContainer>
+    </Container>
   );
 }
-
-const TimelineContainer = styled('div')`
-  position: relative;
-  height: 14px;
-  width: 100%;
-  overflow: hidden;
-`;
 
 const JobTick = styled('div')<{
   roundedLeft: boolean;

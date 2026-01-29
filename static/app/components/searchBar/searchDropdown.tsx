@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -180,13 +180,13 @@ type HeaderItemProps = {
 
 function HeaderItem({group}: HeaderItemProps) {
   return (
-    <SearchDropdownGroup key={group.title}>
+    <Container as="li" key={group.title}>
       <SearchDropdownGroupTitle>
         {group.icon}
         {group.title && group.title}
         {group.desc && <span>{group.desc}</span>}
       </SearchDropdownGroupTitle>
-    </SearchDropdownGroup>
+    </Container>
   );
 }
 
@@ -511,8 +511,6 @@ const Info = styled('div')`
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
-
-const SearchDropdownGroup = styled('li')``;
 
 const SearchDropdownGroupTitle = styled('header')`
   display: flex;

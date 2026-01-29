@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {fetchDashboard, fetchDashboards} from 'sentry/actionCreators/dashboards';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -156,7 +158,7 @@ export function LinkToDashboardModal({
     <Fragment>
       <Header closeButton>{t('Link to Dashboard')}</Header>
       <Body>
-        <Wrapper>
+        <Container marginBottom="xl">
           <DashboardCreateLimitWrapper>
             {({hasReachedDashboardLimit, isLoading, limitMessage}) => {
               if (isDashboardListLoading) {
@@ -179,7 +181,7 @@ export function LinkToDashboardModal({
               );
             }}
           </DashboardCreateLimitWrapper>
-        </Wrapper>
+        </Container>
       </Body>
       <Footer>
         <StyledButtonBar gap="lg">
@@ -196,10 +198,6 @@ export function LinkToDashboardModal({
     </Fragment>
   );
 }
-
-const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 const StyledButtonBar = styled(ButtonBar)`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {

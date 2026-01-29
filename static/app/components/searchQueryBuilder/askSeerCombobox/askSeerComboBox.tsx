@@ -5,7 +5,7 @@ import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
@@ -413,7 +413,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
-      <InputWrapper>
+      <Container width="100%" height="100%" position="relative">
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
@@ -421,7 +421,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
-      </InputWrapper>
+      </Container>
       <ButtonsWrapper>
         <Button
           size="xs"
@@ -526,12 +526,6 @@ const PositionedSearchIconContainer = styled('div')`
 const SearchIcon = styled(IconSearch)`
   color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
-`;
-
-const InputWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 100%;
 `;
 
 const InvisibleInput = styled('input')`

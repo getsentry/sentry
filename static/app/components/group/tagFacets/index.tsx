@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
+import {Container} from '@sentry/scraps/layout';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
@@ -154,7 +156,7 @@ export default function TagFacets({
               : t('No tags found')}
           </NoTagsFoundContainer>
         ) : (
-          <Content>
+          <Container marginTop="xl">
             <span data-test-id="top-distribution-wrapper">
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
@@ -172,7 +174,7 @@ export default function TagFacets({
               tagKeys={remainingTagKeys}
               tagsData={tagsData}
             />
-          </Content>
+          </Container>
         )}
       </Fragment>
     </WrapperWithTitle>
@@ -266,10 +268,6 @@ const TagPlaceholders = styled('div')`
   gap: ${space(1)};
   grid-auto-flow: row;
   margin-top: ${space(1)};
-`;
-
-const Content = styled('div')`
-  margin-top: ${space(2)};
 `;
 
 const NoTagsFoundContainer = styled('p')`

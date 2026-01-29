@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
@@ -68,7 +68,9 @@ function DebugFileRow({
             : objectName}
         </Name>
         <Description>
-          <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
+          <Container as="span" margin="0 md md 0">
+            {getPrettyFileType(debugFile)}
+          </Container>
 
           {features && (
             <FeatureTags>
@@ -143,11 +145,6 @@ function DebugFileRow({
     </Fragment>
   );
 }
-
-const DescriptionText = styled('span')`
-  display: inline-flex;
-  margin: 0 ${space(1)} ${space(1)} 0;
-`;
 
 const FeatureTags = styled('div')`
   display: inline-flex;

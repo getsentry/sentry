@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -56,7 +58,7 @@ export default function SessionHistory() {
       <SettingsPageHeader
         title={t('Security')}
         tabs={
-          <TabsContainer>
+          <Container marginBottom="xl">
             <Tabs value={activeTab}>
               <TabList>
                 <TabList.Item key="settings" to={`${routePrefix}`}>
@@ -67,7 +69,7 @@ export default function SessionHistory() {
                 </TabList.Item>
               </TabList>
             </Tabs>
-          </TabsContainer>
+          </Container>
         }
       />
 
@@ -87,10 +89,6 @@ export default function SessionHistory() {
     </SentryDocumentTitle>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const SessionPanelHeader = styled(PanelHeader)`
   ${tableLayout}

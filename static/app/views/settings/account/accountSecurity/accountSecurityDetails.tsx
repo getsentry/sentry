@@ -7,6 +7,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -194,10 +196,10 @@ export default function AccountSecurityDetails() {
       />
 
       {authenticator.isEnrolled && authenticator.phone && (
-        <PhoneWrapper>
+        <Container marginTop="3xl">
           {t('Confirmation codes are sent to the following phone number')}:
           <Phone>{authenticator.phone}</Phone>
-        </PhoneWrapper>
+        </Container>
       )}
 
       <RecoveryCodes
@@ -217,10 +219,6 @@ const AuthenticatorDates = styled('div')`
 
 const DateLabel = styled('span')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const PhoneWrapper = styled('div')`
-  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const Phone = styled('span')`

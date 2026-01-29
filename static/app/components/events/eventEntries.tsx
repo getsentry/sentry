@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
@@ -61,9 +63,9 @@ function EventEntries({
 
   if (!event) {
     return (
-      <LatestEventNotAvailable>
+      <Container padding="xl 3xl">
         <h3>{t('Latest Event Not Available')}</h3>
-      </LatestEventNotAvailable>
+      </Container>
     );
   }
 
@@ -210,10 +212,6 @@ function Entries({
     </Fragment>
   );
 }
-
-const LatestEventNotAvailable = styled('div')`
-  padding: ${space(2)} ${space(4)};
-`;
 
 const BorderlessEventEntries = styled(EventEntries)`
   & ${DataSection} {

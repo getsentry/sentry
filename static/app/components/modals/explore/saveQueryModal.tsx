@@ -2,6 +2,8 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -100,7 +102,7 @@ function SaveQueryModal({
         <h4>{defined(initialName) ? t('Rename Query') : t('New Query')}</h4>
       </Header>
       <Body>
-        <Wrapper>
+        <Container marginBottom="xl">
           <SectionHeader>{t('Name')}</SectionHeader>
           <Input
             placeholder={
@@ -116,7 +118,7 @@ function SaveQueryModal({
                 : t('Enter a name for your new query')
             }
           />
-        </Wrapper>
+        </Container>
         {initialName === undefined && (
           <StarredWrapper>
             <Switch
@@ -146,10 +148,6 @@ function SaveQueryModal({
 }
 
 export default SaveQueryModal;
-
-const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 const StarredWrapper = styled('div')`
   display: flex;

@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -23,7 +24,6 @@ import FormModel from 'sentry/components/forms/model';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
@@ -389,21 +389,17 @@ export function ExternalIssueForm({
       }}
       title={title}
       navTabs={
-        <TabsContainer>
+        <Container marginBottom="xl">
           <Tabs value={action} onChange={handleClick}>
             <TabList>
               <TabList.Item key="create">{t('Create')}</TabList.Item>
               <TabList.Item key="link">{t('Link')}</TabList.Item>
             </TabList>
           </Tabs>
-        </TabsContainer>
+        </Container>
       }
       bodyText={null}
       getFieldProps={getExternalIssueFieldProps}
     />
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;

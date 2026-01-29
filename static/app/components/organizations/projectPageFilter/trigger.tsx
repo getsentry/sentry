@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -83,21 +84,16 @@ export function ProjectPageFilterTrigger({
         )
       }
     >
-      <TriggerLabelWrap>
+      <Container as="span" minWidth="0" position="relative">
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
-      </TriggerLabelWrap>
+      </Container>
       {remainingCount > 0 && (
         <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
       )}
     </OverlayTrigger.Button>
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;

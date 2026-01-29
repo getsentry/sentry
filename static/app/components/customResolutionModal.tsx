@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -182,7 +182,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           onClose={() => setSearchQuery('')}
         />
         {selectionError ? <ErrorText role="alert">{selectionError}</ErrorText> : null}
-        <ReleaseLinkWrapper>
+        <Container marginTop="md">
           {version ? (
             // Open release in new tab to avoid closing the modal
             <ExternalLink
@@ -199,9 +199,14 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
             </ExternalLink>
           ) : (
             // Placeholder to maintain layout when no version is selected
-            <PlaceholderLink aria-hidden="true" />
+            <Container
+              as="span"
+              display="inline-block"
+              minHeight="1.2em"
+              aria-hidden="true"
+            />
           )}
-        </ReleaseLinkWrapper>
+        </Container>
       </Body>
       <Footer>
         <Flex gap="sm" align="center" justify="end">
@@ -223,15 +228,6 @@ const StyledCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
-`;
-
-const ReleaseLinkWrapper = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-`;
-
-const PlaceholderLink = styled('span')`
-  display: inline-block;
-  min-height: 1.2em;
 `;
 
 const ErrorText = styled('div')`

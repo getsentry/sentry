@@ -8,6 +8,8 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {space} from 'sentry/styles/space';
@@ -51,7 +53,7 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   );
 
   return (
-    <InputWrapper>
+    <Container width="100%" height="100%" position="relative">
       {parsedQuery ? (
         <Highlight size={size}>
           <HighlightQuery parsedQuery={parsedQuery} cursorPosition={cursorPosition} />
@@ -74,15 +76,9 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
         placeholder={placeholder}
         disabled={disabled}
       />
-    </InputWrapper>
+    </Container>
   );
 }
-
-const InputWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 100%;
-`;
 
 const Highlight = styled('div')<{size: 'small' | 'normal'}>`
   padding: ${p =>

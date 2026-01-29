@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -61,10 +61,6 @@ export const SEER_THRESHOLD_MAP = [
   'always',
 ] as const;
 
-const SeerSelectLabel = styled('div')`
-  margin-bottom: ${space(0.5)};
-`;
-
 export const seerScannerAutomationField = {
   name: 'seerScannerAutomation',
   label: t('Scan Issues'),
@@ -86,7 +82,7 @@ export const autofixAutomatingTuningField = {
   type: 'choice',
   options: SEER_THRESHOLD_OPTIONS.map(option => ({
     value: option.value,
-    label: <SeerSelectLabel>{option.label}</SeerSelectLabel>,
+    label: <Container marginBottom="xs">{option.label}</Container>,
     details: option.details,
   })),
   saveOnBlur: true,
@@ -409,7 +405,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     options: [
       {
         value: 'root_cause',
-        label: <SeerSelectLabel>{t('Root Cause (default)')}</SeerSelectLabel>,
+        label: <Container marginBottom="xs">{t('Root Cause (default)')}</Container>,
         details: t('Seer will stop after identifying the root cause.'),
       },
       ...(hasCursorIntegration
@@ -417,7 +413,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
             {
               value: 'cursor_handoff',
               label: (
-                <SeerSelectLabel>{t('Hand off to Cursor Cloud Agent')}</SeerSelectLabel>
+                <Container marginBottom="xs">
+                  {t('Hand off to Cursor Cloud Agent')}
+                </Container>
               ),
               details: t(
                 "Seer will identify the root cause and hand off the fix to Cursor's cloud agent."
@@ -427,17 +425,17 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         : []),
       {
         value: 'solution',
-        label: <SeerSelectLabel>{t('Solution')}</SeerSelectLabel>,
+        label: <Container marginBottom="xs">{t('Solution')}</Container>,
         details: t('Seer will stop after planning out a solution.'),
       },
       {
         value: 'code_changes',
-        label: <SeerSelectLabel>{t('Code Changes')}</SeerSelectLabel>,
+        label: <Container marginBottom="xs">{t('Code Changes')}</Container>,
         details: t('Seer will stop after writing the code changes.'),
       },
       {
         value: 'open_pr',
-        label: <SeerSelectLabel>{t('Pull Request')}</SeerSelectLabel>,
+        label: <Container marginBottom="xs">{t('Pull Request')}</Container>,
         details: t('Seer will go all the way and open a pull request automatically.'),
       },
     ],

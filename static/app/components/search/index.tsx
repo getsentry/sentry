@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -188,7 +189,7 @@ function Search({
         debouncedSaveQueryMetrics(searchQuery);
 
         return (
-          <SearchWrapper role="search">
+          <Container position="relative" role="search">
             {renderInput({getInputProps})}
 
             {isValidSearch && isOpen ? (
@@ -221,7 +222,7 @@ function Search({
                 )}
               </SearchSources>
             ) : null}
-          </SearchWrapper>
+          </Container>
         );
       }}
     </AutoComplete>
@@ -230,7 +231,3 @@ function Search({
 
 export type {SearchProps};
 export {Search};
-
-const SearchWrapper = styled('div')`
-  position: relative;
-`;

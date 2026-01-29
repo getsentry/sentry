@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useProjects from 'sentry/utils/useProjects';
@@ -91,7 +90,9 @@ function NoProjectMessage({
 
       <Flex direction="column" justify="center">
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
-        <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
+        <Container marginBottom="xl">
+          {t('You need at least one project to use this view')}
+        </Container>
         <Actions>
           {orgHasProjects ? (
             <Fragment>
@@ -112,10 +113,6 @@ export default NoProjectMessage;
 const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
   width: 100%;
   height: auto;
-`;
-
-const HelpMessage = styled('div')`
-  margin-bottom: ${space(2)};
 `;
 
 const Actions = styled(ButtonBar)`

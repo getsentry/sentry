@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 
@@ -49,19 +51,23 @@ function UnstyledSettingsPageHeader({
   return (
     <div {...props}>
       <TitleAndActions isNarrow={isNarrow}>
-        <TitleWrapper>
-          {icon && <Icon>{icon}</Icon>}
+        <Container flex="1">
+          {icon && <Container marginRight="md">{icon}</Container>}
           {title && (
             <Title tabs={tabs} styled={noTitleStyles}>
               <Layout.Title>{title}</Layout.Title>
               {subtitle && <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>}
             </Title>
           )}
-        </TitleWrapper>
+        </Container>
         {action && <Action isNarrow={isNarrow}>{action}</Action>}
       </TitleAndActions>
 
-      {body && <BodyWrapper>{body}</BodyWrapper>}
+      {body && (
+        <Container flex="1" margin="0 0 2xl">
+          {body}
+        </Container>
+      )}
       {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
     </div>
   );
@@ -76,10 +82,6 @@ const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
   align-items: ${p => (p.isNarrow ? 'center' : 'flex-start')};
 `;
-const TitleWrapper = styled('div')`
-  flex: 1;
-`;
-
 const Title = styled('div')<TitleProps>`
   ${p =>
     !p.styled && `font-size: 20px; font-weight: ${p.theme.font.weight.sans.medium};`};
@@ -93,10 +95,6 @@ const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   padding: ${space(1.5)} 0 0;
 `;
 
-const Icon = styled('div')`
-  margin-right: ${space(1)};
-`;
-
 const Action = styled('div')<{isNarrow?: boolean}>`
   margin-top: ${p => (p.isNarrow ? '0' : space(4))};
 `;
@@ -108,10 +106,6 @@ const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
   margin-top: -${space(4)};
 `;
 
-const BodyWrapper = styled('div')`
-  flex: 1;
-  margin: 0 0 ${space(3)};
-`;
 const TabsWrapper = styled('div')`
   flex: 1;
   margin: 0;

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Button} from 'sentry/components/core/button';
@@ -9,7 +9,6 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import DebounceSearch from 'admin/components/debounceSearch';
@@ -81,7 +80,7 @@ export default function HomePage() {
     return <Overview />;
   }
   return (
-    <SplashWrapper>
+    <Container padding="2xl">
       <Flex align="center" margin="3xl 0">
         <HeaderTitle>Welcome to the Admin Portal!</HeaderTitle>
       </Flex>
@@ -99,7 +98,9 @@ export default function HomePage() {
         </Warning>
       </Flex>
       <div>
-        <SearchLabel>Users</SearchLabel>
+        <Container as="label" marginTop="xl">
+          Users
+        </Container>
         <DebounceSearch
           path="/users/"
           onSelectResult={userSelect}
@@ -109,7 +110,7 @@ export default function HomePage() {
           createSuggestionPath={buildUserPath}
         />
       </div>
-      <RegionPanel>
+      <Container padding="3xl 0">
         <CompactSelect
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
@@ -124,7 +125,9 @@ export default function HomePage() {
           }}
         />
 
-        <SearchLabel>Organizations</SearchLabel>
+        <Container as="label" marginTop="xl">
+          Organizations
+        </Container>
         <DebounceSearch
           host={regionUrl}
           path="/customers/"
@@ -135,7 +138,9 @@ export default function HomePage() {
           createSuggestionPath={buildOrgPath}
         />
 
-        <SearchLabel>Projects (by ID)</SearchLabel>
+        <Container as="label" marginTop="xl">
+          Projects (by ID)
+        </Container>
         <DebounceSearch
           createSuggestionPath={buildProjPath}
           onSelectResult={projSelect}
@@ -145,30 +150,17 @@ export default function HomePage() {
           path="/projects/?show=all"
           suggestionContent={renderProjSuggestion}
         />
-      </RegionPanel>
+      </Container>
 
-      <OverviewWrap>
+      <Container margin="xl 0">
         <div>Looking for the old overview page?</div>
         <Button size="xs" onClick={() => setOldSplash(true)}>
           click here
         </Button>
-      </OverviewWrap>
-    </SplashWrapper>
+      </Container>
+    </Container>
   );
 }
-
-const RegionPanel = styled('div')`
-  padding: ${space(4)} 0;
-`;
-
-const SearchLabel = styled('label')`
-  display: block;
-  margin-top: ${space(2)};
-`;
-
-const SplashWrapper = styled('div')`
-  padding: ${space(3)};
-`;
 
 const HeaderTitle = styled('h3')`
   margin: 0;
@@ -177,9 +169,6 @@ const HeaderTitle = styled('h3')`
   color: ${p => p.theme.tokens.content.primary};
 `;
 
-const OverviewWrap = styled('div')`
-  margin: ${space(2)} 0;
-`;
 const SecondaryText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -1,7 +1,5 @@
-import styled from '@emotion/styled';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
-export const ActionWrapper = styled('div')`
-  padding: ${space(1)} 0 0 0;
-`;
+export function ActionWrapper(props: ContainerProps<'div'>) {
+  return <Container padding="md 0 0 0" {...props} />;
+}

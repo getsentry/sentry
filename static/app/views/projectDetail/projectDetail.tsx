@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -23,7 +24,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -234,7 +234,7 @@ export default function ProjectDetail() {
             <Layout.Body noRowGap>
               <Layout.Main>
                 <PageAlert />
-                <ProjectFiltersWrapper>
+                <Container marginBottom="xl">
                   <ProjectFilters
                     query={query}
                     onSearch={handleSearch}
@@ -245,7 +245,7 @@ export default function ProjectDetail() {
                     }
                     tagValueLoader={tagValueLoader}
                   />
-                </ProjectFiltersWrapper>
+                </Container>
 
                 <ProjectScoreCards
                   organization={organization}
@@ -311,7 +311,3 @@ export default function ProjectDetail() {
     </SentryDocumentTitle>
   );
 }
-
-const ProjectFiltersWrapper = styled('div')`
-  margin-bottom: ${space(2)};
-`;

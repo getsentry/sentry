@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -199,7 +199,7 @@ class ProjectEnvironments extends Component<Props, State> {
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
-            <TabsContainer>
+            <Container marginBottom="xl">
               <Tabs value={isHidden ? 'hidden' : 'environments'}>
                 <TabList>
                   <TabList.Item key="environments" to={baseUrl}>
@@ -210,7 +210,7 @@ class ProjectEnvironments extends Component<Props, State> {
                   </TabList.Item>
                 </TabList>
               </Tabs>
-            </TabsContainer>
+            </Container>
           }
         />
         <ProjectPermissionAlert project={project} />
@@ -270,10 +270,6 @@ function EnvironmentRow({
 const EnvironmentItem = styled(PanelItem)`
   align-items: center;
   justify-content: space-between;
-`;
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
 `;
 
 const EnvironmentButton = styled(Button)`

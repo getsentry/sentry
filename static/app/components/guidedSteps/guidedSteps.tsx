@@ -10,7 +10,7 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
@@ -160,7 +160,7 @@ function Step(props: StepProps) {
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
       <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
-      <StepDetails>
+      <Container overflow="hidden">
         <StepHeading isActive={isActive}>
           {props.title}
           {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
@@ -169,7 +169,7 @@ function Step(props: StepProps) {
         {isActive && (
           <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
         )}
-      </StepDetails>
+      </Container>
     </StepWrapper>
   );
 }
@@ -305,10 +305,6 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
   p {
     margin-bottom: ${space(1)};
   }
-`;
-
-const StepDetails = styled('div')`
-  overflow: hidden;
 `;
 
 GuidedSteps.Step = Step;

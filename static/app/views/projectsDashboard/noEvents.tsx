@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -8,21 +10,13 @@ type Props = {
 
 function NoEvents({seriesCount}: Props) {
   return (
-    <Container>
+    <Container position="absolute" top="0" left="0" bottom="0" right="0">
       <EmptyText seriesCount={seriesCount}>{t('No activity yet.')}</EmptyText>
     </Container>
   );
 }
 
 export default NoEvents;
-
-const Container = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-`;
 
 const EmptyText = styled('div')<Props>`
   display: flex;

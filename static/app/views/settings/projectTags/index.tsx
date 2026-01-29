@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
@@ -20,7 +20,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types/group';
 import {
   setApiQueryData,
@@ -117,7 +116,9 @@ export default function ProjectTags() {
                   const enabled = canDelete && hasAccess;
                   return (
                     <TagPanelItem key={key} data-test-id="tag-row">
-                      <TagName>{key}</TagName>
+                      <Container flex="1" padding="xl">
+                        {key}
+                      </Container>
                       <Flex align="center" padding="xl">
                         <Confirm
                           message={t('Are you sure you want to remove this tag?')}
@@ -154,9 +155,4 @@ export default function ProjectTags() {
 const TagPanelItem = styled(PanelItem)`
   padding: 0;
   align-items: center;
-`;
-
-const TagName = styled('div')`
-  flex: 1;
-  padding: ${space(2)};
 `;
