@@ -3123,7 +3123,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
     # These paths are used by relay which is implicitly region scoped
-    "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
     "sentry-api-0-relay-register-response",
     "sentry-api-0-relay-projectconfigs",
