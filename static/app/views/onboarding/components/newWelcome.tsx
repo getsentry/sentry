@@ -5,7 +5,7 @@ import {motion} from 'framer-motion';
 
 import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -136,25 +136,27 @@ export function NewWelcomeUI(props: StepProps) {
     <NewWelcomeWrapper>
       <WelcomeBackgroundNewUi />
       <ContentWrapper {...fadeAway}>
-        <Flex direction="column" gap="sm">
-          <NewWelcomeTitle>{t('Welcome to Sentry')}</NewWelcomeTitle>
-          <Text variant="muted" size="lg" bold>
-            {t(
-              "Your code is probably broken, and we'll help you fix it faster. We're not just error monitoring anymore y'know."
-            )}
-          </Text>
-        </Flex>
+        <Stack gap="2xl">
+          <Flex direction="column" gap="lg">
+            <NewWelcomeTitle>{t('Welcome to Sentry')}</NewWelcomeTitle>
+            <Text variant="muted" size="lg" bold wrap="pre-line">
+              {t(
+                "Your code is probably broken, and we'll help you fix it faster.\nWe're not just error monitoring anymore y'know."
+              )}
+            </Text>
+          </Flex>
 
-        <TrialInfoLine>
-          <IconBusiness size="sm" variant="accent" />
-          <Text size="lg" bold variant="muted">
-            {t('Your 14-day business trial includes')}{' '}
-            <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
-              {t('unlimited access')}
-            </ExternalLink>{' '}
-            {t('to:')}
-          </Text>
-        </TrialInfoLine>
+          <TrialInfoLine>
+            <IconBusiness size="sm" variant="accent" />
+            <Text size="lg" bold variant="muted">
+              {t('Your 14-day business trial includes')}{' '}
+              <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
+                {t('unlimited access')}
+              </ExternalLink>{' '}
+              {t('to:')}
+            </Text>
+          </TrialInfoLine>
+        </Stack>
 
         <ProductGrid>
           {PRODUCT_OPTIONS.map(product => (
@@ -177,9 +179,9 @@ export function NewWelcomeUI(props: StepProps) {
                 <ProductTitle>{t('Seer: AI Debugging Agent')}</ProductTitle>
                 <FeatureBadge type="new" tooltipProps={{disabled: true}} />
               </Flex>
-              <Text variant="muted">
+              <Text variant="muted" wrap="pre-line">
                 {t(
-                  "Analyze issues, review PRs, and propose code fixes. Because of course we have an AI tool, it's 2026."
+                  "Analyze issues, review PRs, and propose code fixes.\nBecause of course we have an AI tool, it's 2026."
                 )}
               </Text>
               <Flex gap="xs" align="center">
@@ -232,7 +234,7 @@ const NewWelcomeWrapper = styled(motion.div)`
 const ContentWrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${space(2)};
 `;
 
 const NewWelcomeTitle = styled('h1')`
