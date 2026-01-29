@@ -323,14 +323,18 @@ Sentry.init({
 }
 
 function getVerifyStep(params: DocsParams): OnboardingStep[] {
+  const selected = getAgentIntegration(params);
+
+  if (selected === AgentIntegration.MASTRA) {
+    return mastraOnboarding.verify(params);
+  }
+
   const content: ContentBlock[] = [
     {
       type: 'text',
       text: t('Verify that your instrumentation works by simply calling your LLM.'),
     },
   ];
-
-  const selected = getAgentIntegration(params);
 
   if (selected === AgentIntegration.ANTHROPIC) {
     content.push({
@@ -451,7 +455,9 @@ const text = lastMessage.content;`,
   }
 
   if (selected === AgentIntegration.MASTRA) {
-    content.push(...(mastraOnboarding.verify(params)[0]?.content ?? []));
+    const mastraContent = mastraOnboarding.verify(params)[0]?.content ?? [];
+    // Skip the first element (text block) since it's already added above, push only the code block
+    content.push(...mastraContent.slice(1));
   }
 
   return [
