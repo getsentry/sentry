@@ -456,11 +456,11 @@ def _has_no_quota_artifact(
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
 ) -> bool:
     """Check if any artifact has NO_QUOTA error."""
-    for artifact in artifacts:
-        for m in size_metrics_map.get(artifact.id, []):
-            if m.error_code == PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA:
-                return True
-    return False
+    return any(
+        m.error_code == PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
+        for artifact in artifacts
+        for m in size_metrics_map.get(artifact.id, [])
+    )
 
 
 def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
