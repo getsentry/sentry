@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
@@ -14,10 +15,22 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
     _get_artifact_filter_context,
     _get_status_check_rules,
     _rule_matches_artifact,
+    preprod_artifact_search_config,
 )
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
+from sentry.preprod.vcs.status_checks.size.types import BaseSizeMetricsKey, StatusCheckRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+
+
+def _parse_filters(filter_query: str) -> list[SearchFilter]:
+    """Helper to parse a filter query string into SearchFilters for testing."""
+    if not filter_query or not filter_query.strip():
+        return []
+    return [
+        f
+        for f in parse_search_query(filter_query, config=preprod_artifact_search_config)
+        if isinstance(f, SearchFilter)
+    ]
 
 
 @region_silo_test
@@ -112,8 +125,8 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="build_configuration_name:Release",
         )
 
-        assert _rule_matches_artifact(rule_debug, context) is True
-        assert _rule_matches_artifact(rule_release, context) is False
+        assert _rule_matches_artifact(context, _parse_filters(rule_debug.filter_query)) is True
+        assert _rule_matches_artifact(context, _parse_filters(rule_release.filter_query)) is False
 
     def test_rule_matches_build_configuration_multiple_values(self):
         artifact = PreprodArtifact.objects.create(
@@ -135,7 +148,7 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="build_configuration_name:[Debug,Release]",
         )
 
-        assert _rule_matches_artifact(rule, context) is True
+        assert _rule_matches_artifact(context, _parse_filters(rule.filter_query)) is True
 
     def test_rule_matches_build_configuration_negated(self):
         artifact = PreprodArtifact.objects.create(
@@ -165,8 +178,10 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="!build_configuration_name:Debug",
         )
 
-        assert _rule_matches_artifact(rule_not_release, context) is True
-        assert _rule_matches_artifact(rule_not_debug, context) is False
+        assert (
+            _rule_matches_artifact(context, _parse_filters(rule_not_release.filter_query)) is True
+        )
+        assert _rule_matches_artifact(context, _parse_filters(rule_not_debug.filter_query)) is False
 
     def test_rule_matches_combined_filters(self):
         artifact = PreprodArtifact.objects.create(
@@ -204,9 +219,14 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="platform_name:apple build_configuration_name:Debug",
         )
 
-        assert _rule_matches_artifact(rule_apple_release, context) is True
-        assert _rule_matches_artifact(rule_android_release, context) is False
-        assert _rule_matches_artifact(rule_ios_debug, context) is False
+        assert (
+            _rule_matches_artifact(context, _parse_filters(rule_apple_release.filter_query)) is True
+        )
+        assert (
+            _rule_matches_artifact(context, _parse_filters(rule_android_release.filter_query))
+            is False
+        )
+        assert _rule_matches_artifact(context, _parse_filters(rule_ios_debug.filter_query)) is False
 
     def test_status_check_fails_when_rule_matches_and_exceeds_threshold(self):
         artifact = PreprodArtifact.objects.create(
@@ -613,10 +633,13 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_release,
         )
 
-        result = _fetch_base_size_metrics([head_artifact])
+        base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
 
-        assert head_artifact.id in result
-        assert result[head_artifact.id].id == base_metrics.id
+        key = BaseSizeMetricsKey(
+            head_artifact.id, PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT, None
+        )
+        assert key in base_size_metrics_map
+        assert base_size_metrics_map[key].id == base_metrics.id
 
     def test_fetch_base_size_metrics_with_different_build_config(self):
         base_commit_comparison = CommitComparison.objects.create(
@@ -662,9 +685,9 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_debug,
         )
 
-        result = _fetch_base_size_metrics([head_artifact])
+        base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
 
-        assert result == {}
+        assert base_size_metrics_map == {}
 
     def test_status_check_with_absolute_diff_rule(self):
         base_commit_comparison = CommitComparison.objects.create(
@@ -723,7 +746,7 @@ class StatusCheckFiltersTest(TestCase):
             )
         }
 
-        base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
+        _, base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
 
         rule = StatusCheckRule(
             id="rule1",
@@ -818,9 +841,11 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="!build_configuration_name:[Debug,Release]",
         )
 
-        assert _rule_matches_artifact(positive_rule, context) is False
-        assert _rule_matches_artifact(negated_rule, context) is False
-        assert _rule_matches_artifact(negated_in_rule, context) is False
+        assert _rule_matches_artifact(context, _parse_filters(positive_rule.filter_query)) is False
+        assert _rule_matches_artifact(context, _parse_filters(negated_rule.filter_query)) is False
+        assert (
+            _rule_matches_artifact(context, _parse_filters(negated_in_rule.filter_query)) is False
+        )
 
     def test_negated_filters_still_work_when_field_present(self):
         artifact = PreprodArtifact.objects.create(
@@ -849,8 +874,10 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="!build_configuration_name:Debug",
         )
 
-        assert _rule_matches_artifact(rule_not_release, context) is True
-        assert _rule_matches_artifact(rule_not_debug, context) is False
+        assert (
+            _rule_matches_artifact(context, _parse_filters(rule_not_release.filter_query)) is True
+        )
+        assert _rule_matches_artifact(context, _parse_filters(rule_not_debug.filter_query)) is False
 
     def test_combined_filters_fail_when_any_field_missing(self):
         artifact = PreprodArtifact.objects.create(
@@ -873,4 +900,4 @@ class StatusCheckFiltersTest(TestCase):
             filter_query="platform_name:apple !build_configuration_name:Debug",
         )
 
-        assert _rule_matches_artifact(rule, context) is False
+        assert _rule_matches_artifact(context, _parse_filters(rule.filter_query)) is False
