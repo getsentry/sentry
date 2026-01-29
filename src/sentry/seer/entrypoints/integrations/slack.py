@@ -4,7 +4,6 @@ import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, TypedDict
 
-import orjson
 from slack_sdk.models.blocks.blocks import Block
 
 from sentry import features
@@ -14,7 +13,11 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.notifications.platform.registry import provider_registry, template_registry
-from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.service import (
+    NotificationDataDto,
+    NotificationService,
+    NotificationServiceError,
+)
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
@@ -32,7 +35,9 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.lock import Lock
+from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
 
@@ -116,11 +121,12 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
         return stopping_point
 
-    def get_autofix_lock(self) -> Lock:
+    @staticmethod
+    def get_autofix_lock(*, group_id: int, stopping_point: AutofixStoppingPoint) -> Lock:
         return locks.get(
-            f"autofix:entrypoint:{self.key.value}:{self.group.id}:{self.autofix_stopping_point.value}",
+            f"autofix:entrypoint:{SeerEntrypointKey.SLACK.value}:{group_id}:{stopping_point.value}",
             duration=10,
-            name=f"autofix_entrypoint_{self.key.value}",
+            name=f"autofix_entrypoint_{SeerEntrypointKey.SLACK.value}",
         )
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
@@ -318,7 +324,7 @@ def process_thread_update(
     integration_id: int,
     organization_id: int,
     thread: SlackThreadDetails,
-    data: NotificationData,
+    serialized_data: dict[str, Any],
     ephemeral_user_id: str | None = None,
 ) -> None:
     """
@@ -327,6 +333,15 @@ def process_thread_update(
     """
 
     from sentry.integrations.slack.integration import SlackIntegration
+
+    try:
+        data_dto = NotificationDataDto.from_dict(serialized_data)
+    except (NotificationServiceError, NoRegistrationExistsError) as e:
+        logger.warning(
+            "entrypoint.process_thread_update.deserialize_error",
+            extra={"error": e, "data": serialized_data},
+        )
+        return
 
     integration = integration_service.get_integration(
         integration_id=integration_id,
@@ -348,7 +363,7 @@ def process_thread_update(
     send_thread_update(
         install=SlackIntegration(model=integration, organization_id=organization_id),
         thread=thread,
-        data=data,
+        data=data_dto.notification_data,
         ephemeral_user_id=ephemeral_user_id,
     )
 
@@ -362,10 +377,7 @@ def schedule_all_thread_updates(
     ephemeral_user_id: str | None = None,
 ) -> None:
     """Schedules a task for each thread update to allow retries."""
-    try:
-        orjson.dumps(data)
-    except orjson.JSONEncodeError:
-        raise TypeError("Invalid data object used for thread update. Must be JSON serializable.")
+    serialized_data = NotificationDataDto(notification_data=data).to_dict()
 
     for thread in threads:
         process_thread_update.apply_async(
@@ -373,7 +385,7 @@ def schedule_all_thread_updates(
                 "integration_id": integration_id,
                 "organization_id": organization_id,
                 "thread": thread,
-                "data": data,
+                "serialized_data": serialized_data,
                 "ephemeral_user_id": ephemeral_user_id,
             },
         )
@@ -445,37 +457,55 @@ def handle_prepare_autofix_update(
     This will allow for a future migration of the cache to post-autofix for subsequent updates.
     Merges threads if an existing cache entry exists for this group.
     """
+    logging_ctx = {
+        "entrypoint_key": SlackEntrypoint.key,
+        "group_id": group.id,
+        "organization_id": organization_id,
+        "integration_id": integration_id,
+        "thread_ts": thread_ts,
+        "channel_id": channel_id,
+    }
     threads: list[SlackThreadDetails] = []
     incoming_thread = SlackThreadDetails(thread_ts=thread_ts, channel_id=channel_id)
-    existing_cache = SeerOperatorAutofixCache[SlackEntrypointCachePayload].get(
-        entrypoint_key=str(SlackEntrypoint.key),
+    lock = SlackEntrypoint.get_autofix_lock(
         group_id=group.id,
+        stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
     )
-    if existing_cache:
-        threads = existing_cache["payload"].get("threads", [])
-    if incoming_thread not in threads:
-        threads.append(incoming_thread)
+    try:
+        with lock.blocking_acquire(initial_delay=0.1, timeout=3):
+            existing_cache = SeerOperatorAutofixCache[SlackEntrypointCachePayload].get(
+                entrypoint_key=str(SlackEntrypoint.key),
+                group_id=group.id,
+            )
+            if existing_cache:
+                threads = existing_cache["payload"].get("threads", [])
+            if incoming_thread not in threads:
+                threads.append(incoming_thread)
 
-    cache_payload = SlackEntrypointCachePayload(
-        threads=threads,
-        organization_id=organization_id,
-        integration_id=integration_id,
-        project_id=group.project_id,
-        group_id=group.id,
-        group_link=group.get_absolute_url(),
-    )
-    cache_result = SeerOperatorAutofixCache[SlackEntrypointCachePayload].populate_pre_autofix_cache(
-        entrypoint_key=str(SlackEntrypoint.key),
-        group_id=group.id,
-        cache_payload=cache_payload,
-    )
+            cache_result = SeerOperatorAutofixCache[
+                SlackEntrypointCachePayload
+            ].populate_pre_autofix_cache(
+                entrypoint_key=str(SlackEntrypoint.key),
+                group_id=group.id,
+                cache_payload=SlackEntrypointCachePayload(
+                    threads=threads,
+                    organization_id=organization_id,
+                    integration_id=integration_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    group_link=group.get_absolute_url(),
+                ),
+            )
+    except UnableToAcquireLock:
+        logger.warning("entrypoint.handle_prepare_autofix_update.lock_failed", extra=logging_ctx)
+        return
+
     logger.info(
         "entrypoint.handle_prepare_autofix_update",
         extra={
             "cache_key": cache_result["key"],
             "cache_source": cache_result["source"],
             "thread_count": len(threads),
-            "group_id": group.id,
-            "organization_id": organization_id,
+            **logging_ctx,
         },
     )

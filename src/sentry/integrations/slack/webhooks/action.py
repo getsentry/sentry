@@ -576,7 +576,10 @@ class SlackActionEndpoint(Endpoint):
             group=group,
             organization_id=group.project.organization_id,
         )
-        lock = entrypoint.get_autofix_lock()
+        lock = SlackEntrypoint.get_autofix_lock(
+            group_id=group.id,
+            stopping_point=entrypoint.autofix_stopping_point,
+        )
         try:
             with lock.acquire():
                 SeerOperator(entrypoint=entrypoint).trigger_autofix(
