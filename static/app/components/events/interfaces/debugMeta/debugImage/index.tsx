@@ -1,7 +1,6 @@
-import styled from '@emotion/styled';
-
 import {Button} from 'sentry/components/core/button';
-import {Grid} from 'sentry/components/core/layout';
+import {Flex, Grid} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   getFileName,
@@ -9,7 +8,6 @@ import {
 } from 'sentry/components/events/interfaces/debugMeta/utils';
 import NotAvailable from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 
 import Processings from './processings';
@@ -18,89 +16,57 @@ import Status from './status';
 type Props = {
   image: ImageWithCombinedStatus;
   onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
+  isLast?: boolean;
 };
 
-function DebugImage({image, onOpenImageDetailsModal}: Props) {
+function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;
   const codeFilename = getFileName(code_file);
   const debugFilename = getFileName(debug_file);
   const imageAddress = getImageAddress(image);
 
   return (
-    <Row columns={{xs: '1fr 1.5fr 0fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}>
-      <Cell>
+    <Grid
+      columns={{xs: '1fr 1.5fr 0fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}
+      borderBottom={isLast ? undefined : 'primary'}
+    >
+      <Flex align="center" minWidth="0" padding="sm md">
         <Status status={status} />
-      </Cell>
-      <Cell>
-        <ImageInfo>
-          <FileName>
+      </Flex>
+      <Flex align="center" minWidth="0" padding="sm md">
+        <Flex direction="column" minWidth="0" overflow="hidden">
+          <Text ellipsis>
             {codeFilename && <Tooltip title={code_file}>{codeFilename}</Tooltip>}
             {codeFilename !== debugFilename && debugFilename && (
-              <Secondary> ({debugFilename})</Secondary>
+              <Text variant="muted"> ({debugFilename})</Text>
             )}
-          </FileName>
-          {imageAddress && <Address>{imageAddress}</Address>}
-        </ImageInfo>
-      </Cell>
-      <Cell hideOnMobile>
+          </Text>
+          {imageAddress && (
+            <Text monospace size="sm" variant="muted">
+              {imageAddress}
+            </Text>
+          )}
+        </Flex>
+      </Flex>
+      <Flex
+        align="center"
+        display={{xs: 'none', sm: 'flex'}}
+        minWidth="0"
+        padding="sm md"
+      >
         {unwind_status || debug_status ? (
           <Processings unwind_status={unwind_status} debug_status={debug_status} />
         ) : (
           <NotAvailable />
         )}
-      </Cell>
-      <Cell align="right">
+      </Flex>
+      <Flex align="center" justify="end" minWidth="0" padding="sm md">
         <Button size="xs" onClick={() => onOpenImageDetailsModal(image)}>
           {t('View')}
         </Button>
-      </Cell>
-    </Row>
+      </Flex>
+    </Grid>
   );
 }
 
 export default DebugImage;
-
-const Row = styled(Grid)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const Cell = styled('div')<{align?: 'right'; hideOnMobile?: boolean}>`
-  padding: ${space(1.5)} ${space(2)};
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  ${p => p.align === 'right' && 'justify-content: flex-end;'}
-  ${p =>
-    p.hideOnMobile &&
-    `
-    display: none;
-    @media (min-width: ${p.theme.breakpoints.sm}) {
-      display: flex;
-    }
-  `}
-`;
-
-const ImageInfo = styled('div')`
-  min-width: 0;
-  overflow: hidden;
-`;
-
-const FileName = styled('div')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const Secondary = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Address = styled('div')`
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-`;

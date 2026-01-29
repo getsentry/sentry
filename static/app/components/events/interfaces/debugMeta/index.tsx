@@ -14,6 +14,7 @@ import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {
   DebugImageDetails,
   modalCss,
@@ -243,15 +244,27 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
           <Header
             columns={{xs: '1fr 1.5fr 0fr 0.6fr', sm: '1fr 2fr 1.5fr 0.6fr'}}
-            gap="sm"
-            padding="sm md"
             background="secondary"
             borderBottom="primary"
           >
-            <div>{t('Status')}</div>
-            <div>{t('Image')}</div>
-            <HideOnMobile>{t('Processing')}</HideOnMobile>
-            <RightAlign>{t('Details')}</RightAlign>
+            <Flex align="center" minWidth="0" padding="md lg">
+              {t('Status')}
+            </Flex>
+            <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
+              {t('Image')}
+            </Flex>
+            <Flex
+              align="center"
+              display={{xs: 'none', sm: 'flex'}}
+              minWidth="0"
+              paddingTop="md"
+              paddingBottom="md"
+            >
+              {t('Processing')}
+            </Flex>
+            <Flex align="center" justify="end" minWidth="0" padding="md lg">
+              {t('Details')}
+            </Flex>
           </Header>
           {filteredImages.length ? (
             <ScrollArea
@@ -274,6 +287,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
                   >
                     <DebugImage
                       image={filteredImages[row.index]!}
+                      isLast={row.index === filteredImages.length - 1}
                       onOpenImageDetailsModal={openDetails}
                     />
                   </div>
@@ -281,7 +295,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
               </div>
             </ScrollArea>
           ) : (
-            <Empty
+            <Flex
               direction="column"
               align="center"
               justify="center"
@@ -289,9 +303,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
               padding="lg"
               style={lockHeight ? {height: MAX_HEIGHT} : undefined}
             >
-              {searchTerm
-                ? t('No images match your search query')
-                : t('There are no images to be displayed')}
+              <Text align="center" variant="muted">
+                {searchTerm
+                  ? t('No images match your search query')
+                  : t('There are no images to be displayed')}
+              </Text>
               {searchTerm && (
                 <Button
                   size="sm"
@@ -302,7 +318,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
                   {filterSelections.length ? t('Reset filter') : t('Clear search')}
                 </Button>
               )}
-            </Empty>
+            </Flex>
           )}
         </Container>
       </Fragment>
@@ -317,22 +333,6 @@ const Header = styled(Grid)`
   text-transform: uppercase;
 `;
 
-const HideOnMobile = styled('div')`
-  display: none;
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-  }
-`;
-
-const RightAlign = styled('div')`
-  text-align: right;
-`;
-
 const ScrollArea = styled('div')`
   overflow-y: auto;
-`;
-
-const Empty = styled(Flex)`
-  text-align: center;
-  color: ${p => p.theme.tokens.content.secondary};
 `;
