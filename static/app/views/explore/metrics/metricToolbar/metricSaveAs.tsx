@@ -1,6 +1,7 @@
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useSaveAsMetricItems} from 'sentry/views/explore/metrics/useSaveAsMetricItems';
 
@@ -8,7 +9,11 @@ export function MetricSaveAs() {
   const [interval] = useChartInterval();
   const items = useSaveAsMetricItems({interval});
 
-  if (items.length === 0) {
+  const hasMultiVisualize = useOrganization().features.includes(
+    'tracemetrics-overlay-charts-ui'
+  );
+
+  if (items.length === 0 || hasMultiVisualize) {
     return null;
   }
 
