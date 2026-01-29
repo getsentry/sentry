@@ -1,7 +1,9 @@
 from unittest.mock import ANY, Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
+from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.integrations.slack import (
     SlackEntrypoint,
@@ -27,14 +29,24 @@ class SlackEntrypointTest(TestCase):
         self.slack_request.channel_id = self.channel_id
         self.slack_request.user_id = self.slack_user_id
         self.slack_request.data = {"message": {"ts": self.thread_ts}}
+        self.action = BlockKitMessageAction(
+            name=SlackAction.SEER_AUTOFIX_START.value,
+            label="Fix with Seer",
+            action_id=SlackAction.SEER_AUTOFIX_START.value,
+            value=AutofixStoppingPoint.ROOT_CAUSE.value,
+        )
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_autofix_error(self, mock_send_threaded_ephemeral_message):
-        ep = SlackEntrypoint(
+    def _get_entrypoint(self) -> SlackEntrypoint:
+        return SlackEntrypoint(
             slack_request=self.slack_request,
             group=self.group,
             organization_id=self.organization.id,
+            action=self.action,
         )
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_autofix_error(self, mock_send_threaded_ephemeral_message):
+        ep = self._get_entrypoint()
         ep.on_trigger_autofix_error(error="Test error")
         mock_send_threaded_ephemeral_message.assert_called_with(
             channel_id=self.channel_id,
@@ -55,11 +67,7 @@ class SlackEntrypointTest(TestCase):
                 "blocks": [],
             }
         }
-        ep = SlackEntrypoint(
-            slack_request=self.slack_request,
-            group=self.group,
-            organization_id=self.organization.id,
-        )
+        ep = self._get_entrypoint()
         ep.on_trigger_autofix_success(run_id=MOCK_RUN_ID)
         mock_send_threaded_ephemeral_message.assert_called_with(
             channel_id=self.channel_id,
@@ -70,11 +78,7 @@ class SlackEntrypointTest(TestCase):
         mock_update_message.assert_called_once()
 
     def test_create_autofix_cache_payload(self):
-        ep = SlackEntrypoint(
-            slack_request=self.slack_request,
-            group=self.group,
-            organization_id=self.organization.id,
-        )
+        ep = self._get_entrypoint()
         cache_payload = ep.create_autofix_cache_payload()
         SlackEntrypointCachePayload(**cache_payload)
         assert cache_payload["group_link"] == self.group.get_absolute_url()
@@ -87,11 +91,7 @@ class SlackEntrypointTest(TestCase):
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
     def test_on_autofix_update(self, mock_send_threaded_message):
-        ep = SlackEntrypoint(
-            slack_request=self.slack_request,
-            group=self.group,
-            organization_id=self.organization.id,
-        )
+        ep = self._get_entrypoint()
         for event_type, event_payload in MOCK_SEER_WEBHOOKS.items():
             cache_payload = ep.create_autofix_cache_payload()
             ep.on_autofix_update(
@@ -216,11 +216,7 @@ class SlackEntrypointTest(TestCase):
             }
         }
 
-        ep = SlackEntrypoint(
-            slack_request=self.slack_request,
-            group=self.group,
-            organization_id=self.organization.id,
-        )
+        ep = self._get_entrypoint()
         ep.on_trigger_autofix_success(run_id=MOCK_RUN_ID)
 
         mock_send_threaded_ephemeral_message.assert_called_once()

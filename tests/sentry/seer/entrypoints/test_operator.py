@@ -6,18 +6,14 @@ from rest_framework.response import Response
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.entrypoints.operator import (
-    AUTOFIX_CACHE_TIMEOUT_SECONDS,
-    SeerOperator,
-    process_autofix_updates,
-)
-from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
+from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey, SeerOperatorCacheResult
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import TestCase
 
 
 class MockCachePayload(TypedDict):
-    thread_id: uuid.UUID
+    thread_id: str
 
 
 class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
@@ -26,7 +22,7 @@ class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
     key = SeerEntrypointKey.SLACK
 
     def __init__(self):
-        self.thread_id = uuid.uuid4()
+        self.thread_id = str(uuid.uuid4())
         self.autofix_errors = []
         self.autofix_run_ids = []
         self.autofix_update_cache_payloads = []
@@ -50,23 +46,9 @@ class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
 
 
 class SeerOperatorTest(TestCase):
-
     def setUp(self):
         self.entrypoint = MockEntrypoint()
         self.operator = SeerOperator(self.entrypoint)
-
-    def _cache_get_side_effect(self, cache_key: str):
-        if cache_key == SeerOperator.get_autofix_cache_key(
-            entrypoint_key=self.entrypoint.key, run_id=MOCK_RUN_ID
-        ):
-            return {"thread_id": self.entrypoint.thread_id}
-        return None
-
-    def test_get_autofix_cache_key(self):
-        cache_key = SeerOperator.get_autofix_cache_key(
-            entrypoint_key=self.entrypoint.key, run_id=MOCK_RUN_ID
-        )
-        assert cache_key == f"seer:autofix:{self.entrypoint.key}:{MOCK_RUN_ID}"
 
     @patch(
         "sentry.seer.entrypoints.operator.update_autofix",
@@ -135,79 +117,84 @@ class SeerOperatorTest(TestCase):
         "sentry.seer.entrypoints.operator._trigger_autofix",
         return_value=Response({"run_id": MOCK_RUN_ID}, status=202),
     )
-    @patch("sentry.seer.entrypoints.operator.cache.set")
-    def test_trigger_autofix_cache_payload(self, mock_cache_set, _mock_trigger_autofix_helper):
-        mock_cache_set.reset_mock()
+    @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.populate_post_autofix_cache")
+    def test_trigger_autofix_creates_cache_payload(
+        self, mock_populate_post_autofix_cache, _mock_trigger_autofix_helper
+    ):
         self.operator.trigger_autofix(
             group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
         )
-        mock_cache_set.assert_called_with(
-            self.operator.get_autofix_cache_key(
-                entrypoint_key=self.entrypoint.key, run_id=MOCK_RUN_ID
-            ),
-            self.entrypoint.create_autofix_cache_payload(),
-            timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS,
-        )
-
-    @patch("sentry.seer.entrypoints.operator.logger.info")
-    def test_process_autofix_updates_ignore_non_seer_events(self, mock_logger_info):
-        process_autofix_updates(
+        mock_populate_post_autofix_cache.assert_called_with(
+            entrypoint_key=MockEntrypoint.key,
             run_id=MOCK_RUN_ID,
-            event_type=SentryAppEventType.ISSUE_CREATED,
-            event_payload={},
+            cache_payload=self.entrypoint.create_autofix_cache_payload(),
         )
-        mock_logger_info.assert_called_once_with("operator.skipping_update", extra=ANY)
 
     @patch.dict(
         "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
         {MockEntrypoint.key: MockEntrypoint},
     )
-    @patch("sentry.seer.entrypoints.operator.logger.info")
-    @patch("sentry.seer.entrypoints.operator.cache.get", return_value=None)
-    def test_process_autofix_updates_cache_miss(self, mock_cache_get, mock_logger_info):
+    @patch("sentry.seer.entrypoints.operator.logger")
+    def test_process_autofix_updates_early_exits(self, mock_logger):
         process_autofix_updates(
-            run_id=MOCK_RUN_ID,
             event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
             event_payload={},
+            organization_id=self.organization.id,
         )
-        mock_cache_get.assert_called_once_with(
-            SeerOperator.get_autofix_cache_key(
-                entrypoint_key=self.entrypoint.key, run_id=MOCK_RUN_ID
-            ),
-        )
-        mock_logger_info.assert_called_once_with("operator.no_cache_payload", extra=ANY)
+        mock_logger.warning.assert_called_once_with("operator.missing_identifiers", extra=ANY)
 
-    @patch("sentry.seer.entrypoints.operator.cache.get")
-    def test_process_autofix_updates(self, mock_cache_get):
-        # XXX: cache.get() is used everywhere, so side-effect to only affect our callsite
-        mock_cache_get.side_effect = self._cache_get_side_effect
+        mock_logger.reset_mock()
+        process_autofix_updates(
+            event_type=SentryAppEventType.ISSUE_CREATED,
+            event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+            organization_id=self.organization.id,
+        )
+        mock_logger.info.assert_called_once_with("operator.skipping_update", extra=ANY)
+
+        mock_logger.reset_mock()
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+            event_payload={"run_id": MOCK_RUN_ID, "group_id": -1},
+            organization_id=self.organization.id,
+        )
+        mock_logger.warning.assert_called_once_with("operator.group_not_found", extra=ANY)
+
+        mock_logger.reset_mock()
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+            event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+            organization_id=self.organization.id,
+        )
+        mock_logger.info.assert_called_with("operator.no_cache_payload", extra=ANY)
+
+    @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
+    def test_process_autofix_updates(self, mock_autofix_cache_get):
+        cache_payload = self.entrypoint.create_autofix_cache_payload()
+        mock_autofix_cache_get.side_effect = lambda **kwargs: SeerOperatorCacheResult(
+            payload=cache_payload, source="run_id", key="abc"
+        )
         mock_entrypoint_cls = Mock(spec=SeerEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
-        event_payload = {"imagine": "this was typesafe"}
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
         with patch.dict(
             "sentry.seer.entrypoints.operator.entrypoint_registry.registrations",
             {MockEntrypoint.key: mock_entrypoint_cls},
         ):
             process_autofix_updates(
-                run_id=MOCK_RUN_ID,
                 event_type=event_type,
                 event_payload=event_payload,
+                organization_id=self.organization.id,
             )
-            mock_cache_get.assert_called_once_with(
-                SeerOperator.get_autofix_cache_key(
-                    entrypoint_key=self.entrypoint.key, run_id=MOCK_RUN_ID
-                ),
-            )
-            mock_entrypoint_cls.on_autofix_update.assert_called_once_with(
-                event_type=event_type,
-                event_payload=event_payload,
-                cache_payload=self.entrypoint.create_autofix_cache_payload(),
-            )
+
+        mock_entrypoint_cls.on_autofix_update.assert_called_once_with(
+            event_type=event_type,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
 
     @patch("sentry.seer.entrypoints.operator.update_autofix")
     def test_solution_stopping_point_continues_to_code_changes(self, mock_update_autofix):
-        """Verify that SOLUTION stopping point sends payload that continues to CODE_CHANGES."""
         mock_update_autofix.return_value = Response({"run_id": MOCK_RUN_ID}, status=202)
 
         self.operator.trigger_autofix(

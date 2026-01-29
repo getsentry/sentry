@@ -1011,9 +1011,9 @@ class TestSeerRpcMethods(APITestCase):
         assert result["success"]
         mock_process_autofix_updates.apply_async.assert_called_once_with(
             kwargs={
-                "run_id": event_payload["run_id"],
                 "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
                 "event_payload": event_payload,
+                "organization_id": self.organization.id,
             },
         )
         mock_broadcast.assert_called_once()
