@@ -116,11 +116,7 @@ export function CategoricalSeriesWidgetVisualization(
     data: allCategories,
     axisLabel: {
       formatter: (value: string) =>
-        truncationFormatter(
-          value,
-          props.truncateCategoryLabels ? props.truncateCategoryLabels : true,
-          false
-        ),
+        truncationFormatter(value, props.truncateCategoryLabels ?? true, false),
     },
     axisLine: {
       lineStyle: {
