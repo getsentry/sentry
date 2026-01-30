@@ -207,10 +207,18 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         cls,
         data: SeerAutofixUpdate,
         extra_text: str | None = None,
+        stage_completed: bool = True,
     ) -> list[Block]:
-        markdown_text = (
-            f"_{data.working_text}_\n_{extra_text}_" if extra_text else f"_{data.working_text}_"
-        )
+        if stage_completed:
+            config = AUTOFIX_CONFIG.get(data.current_point)
+            working_text = config["forward_text"] if config else None
+        else:
+            working_text = data.working_text
+
+        if not working_text:
+            return []
+
+        markdown_text = f"_{working_text}_\n_{extra_text}_" if extra_text else f"_{working_text}_"
         return [
             SectionBlock(
                 text=MarkdownTextObject(text=markdown_text),

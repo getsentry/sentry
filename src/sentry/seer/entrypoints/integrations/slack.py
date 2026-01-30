@@ -441,10 +441,14 @@ def update_existing_message(
     parsed_blocks = [Block.parse(block) for block in blocks]
     if slack_user_id:
         parsed_blocks.extend(
-            SeerSlackRenderer.render_footer_blocks(data=data, extra_text=f"(ty <@{slack_user_id}>)")
+            SeerSlackRenderer.render_footer_blocks(
+                data=data, extra_text=f"(ty <@{slack_user_id}>)", stage_completed=False
+            )
         )
     else:
-        parsed_blocks.extend(SeerSlackRenderer.render_footer_blocks(data=data))
+        parsed_blocks.extend(
+            SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=False)
+        )
 
     renderable = SlackRenderable(
         blocks=[block for block in parsed_blocks if block is not None],
