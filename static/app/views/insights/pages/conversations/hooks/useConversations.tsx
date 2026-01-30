@@ -39,7 +39,7 @@ export function useConversations() {
   const organization = useOrganization();
   const {cursor, setCursor} = useTableCursor();
   const pageFilters = usePageFilters();
-  const combinedQuery = useCombinedQuery('') || undefined;
+  const combinedQuery = useCombinedQuery();
 
   const {
     data: rawData,
