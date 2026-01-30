@@ -88,7 +88,9 @@ def handle_issue_comment_event(
         return
 
     if comment_id:
-        skip_tada_reaction = features.has("organizations:skip-tada-reaction", organization)
+        github_rate_limit_sensitive = features.has(
+            "organizations:github-rate-limit-sensitive", organization
+        )
         delete_existing_reactions_and_adds_reaction(
             github_event=github_event,
             github_event_action=github_event_action,
@@ -98,7 +100,7 @@ def handle_issue_comment_event(
             pr_number=str(pr_number) if pr_number else None,
             comment_id=str(comment_id),
             reactions_to_delete=(
-                [GitHubReaction.HOORAY, GitHubReaction.EYES] if not skip_tada_reaction else []
+                [] if github_rate_limit_sensitive else [GitHubReaction.HOORAY, GitHubReaction.EYES]
             ),
             reaction_to_add=GitHubReaction.EYES,
             extra=extra,

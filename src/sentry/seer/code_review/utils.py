@@ -230,8 +230,8 @@ def _common_codegen_request_payload(
             },
             "config": {
                 "features": {"bug_prediction": True},
-                "skip_tada_reaction": features.has(
-                    "organizations:skip-tada-reaction", organization
+                "github_rate_limit_sensitive": features.has(
+                    "organizations:github-rate-limit-sensitive", organization
                 ),
             },
         },
