@@ -162,10 +162,7 @@ class ProjectContextProvider extends Component<Props, State> {
   fetchOrRedirectProject() {
     const {projectSlug} = this.props;
     if (projectSlug === ':projectId') {
-      navigateTo(
-        '/settings/projects/:projectId/filters/data-filters/',
-        this.props.router
-      );
+      navigateTo(this.props.router.location, this.props.router);
       return;
     }
 
