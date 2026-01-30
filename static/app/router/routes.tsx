@@ -1322,7 +1322,15 @@ function buildRoutes(): RouteObject[] {
         name: t('Organization'),
         component: withDomainRequired(NoOp),
         customerDomainOnlyRoute: true,
-        children: [orgSettingsRoutes, projectSettingsRoutes, subscriptionSettingsRoutes],
+        children: [
+          orgSettingsRoutes,
+          projectSettingsRoutes,
+          subscriptionSettingsRoutes,
+          {
+            path: 'select-project/:subpage?',
+            component: make(() => import('sentry/views/settings/selectProjectRedirect')),
+          },
+        ],
       },
       {
         path: ':orgId/',
@@ -1333,6 +1341,10 @@ function buildRoutes(): RouteObject[] {
           projectSettingsRoutes,
           subscriptionSettingsRoutes,
           legacySettingsRedirects,
+          {
+            path: 'select-project/:subpage?',
+            component: make(() => import('sentry/views/settings/selectProjectRedirect')),
+          },
         ],
       },
     ],
