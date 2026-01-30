@@ -285,7 +285,7 @@ class OrganizationEventsTraceEndpointTest(
     @override_options(
         {
             "performance.traces.pagination.max-iterations": 30,
-            "performance.traces.pagination.max-timeout": 150,
+            "performance.traces.pagination.max-timeout": 15,
             "performance.traces.pagination.query-limit": 1,
         }
     )

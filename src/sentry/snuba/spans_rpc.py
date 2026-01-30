@@ -135,14 +135,14 @@ class Spans(rpc_dataset_common.RPCBase):
                 )
             ],
         )
-        spans = []
+        spans: list[dict[str, Any]] = []
         start_time = int(time.time())
         MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
 
         @sentry_sdk.tracing.trace
         def process_item_groups(item_groups):
-            for item_group in response.item_groups:
+            for item_group in item_groups:
                 for span_item in item_group.items:
                     span: dict[str, Any] = {
                         "id": span_item.id,
@@ -173,9 +173,9 @@ class Spans(rpc_dataset_common.RPCBase):
                     spans.append(span)
 
         response = snuba_rpc.get_trace_rpc(request)
+        thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=2)
         for _ in range(MAX_ITERATIONS):
             columns_by_name = {col.proto_definition.name: col for col in columns}
-            thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=2)
             if response.page_token.end_pagination:
                 # always need to process the last response
                 process_item_groups(response.item_groups)
