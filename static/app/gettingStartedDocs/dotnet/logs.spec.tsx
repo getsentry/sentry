@@ -6,21 +6,20 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from '.';
 
-describe('python logs onboarding docs', () => {
-  it('renders logs onboarding docs correctly', () => {
+describe('dotnet logs onboarding docs', () => {
+  it('renders logs onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.LOGS],
     });
 
     // Verify logs configuration is shown
     expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs=True/))
+      await screen.findByText(textWithMarkupMatcher(/options\.EnableLogs/))
     ).toBeInTheDocument();
 
     // Verify logs verification code is shown
     expect(
-      screen.getByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
+      await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).toBeInTheDocument();
-    expect(screen.getByText(textWithMarkupMatcher(/import logging/))).toBeInTheDocument();
   });
 });
