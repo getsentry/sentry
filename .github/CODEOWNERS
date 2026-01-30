@@ -496,6 +496,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## Telemetry Experience
+/src/sentry/autopilot/                                                           @getsentry/telemetry-experience
+/tests/sentry/autopilot/                                                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
