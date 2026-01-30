@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
 import type {ApiResult} from 'sentry/api';
@@ -30,15 +29,11 @@ import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {
-  dashboardFiltersToString,
-  eventViewFromWidget,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
@@ -49,41 +44,6 @@ type SpansSeriesResponse =
   | MultiSeriesEventsStats
   | GroupedMultiSeriesEventsStats;
 type SpansTableResponse = TableData | EventsTableData;
-
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  // Apply dashboard filters if provided
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  // Clean widget to remove empty/invalid fields before API request
-  return cleanWidgetForRequest(processedWidget);
-}
 
 /**
  * Hook for fetching Spans widget series data (charts) using React Query.
@@ -112,7 +72,8 @@ export function useSpansSeriesQuery(
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -312,7 +273,8 @@ export function useSpansTableQuery(
 
   const prevRawDataRef = useRef<SpansTableResponse[] | undefined>(undefined);
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
