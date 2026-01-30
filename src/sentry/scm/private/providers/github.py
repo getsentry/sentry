@@ -1,0 +1,33 @@
+from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.scm.types import Provider, Reaction, Referrer, Repository
+
+REACTION_MAP = {
+    "+1": GitHubReaction.PLUS_ONE,
+    "-1": GitHubReaction.MINUS_ONE,
+    "laugh": GitHubReaction.LAUGH,
+    "confused": GitHubReaction.CONFUSED,
+    "heart": GitHubReaction.HEART,
+    "hooray": GitHubReaction.HOORAY,
+    "rocket": GitHubReaction.ROCKET,
+    "eyes": GitHubReaction.EYES,
+}
+
+
+REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
+
+
+class GitHubProvider(Provider):
+
+    def __init__(self, client: GitHubApiClient) -> None:
+        self.client = client
+
+    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
+        return False
+
+    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[None]:
+        self.client.get_issue_reactions(repository["name"], issue_id)
+
+    def create_issue_reaction(
+        self, repository: Repository, issue_id: str, reaction: Reaction
+    ) -> None:
+        self.client.create_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
