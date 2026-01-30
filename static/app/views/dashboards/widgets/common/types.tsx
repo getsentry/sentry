@@ -76,7 +76,7 @@ type IncompleteReason = 'INCOMPLETE_BUCKET';
  * The `value` can sometimes be an array, because some datasets support array values.
  * e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
  */
-export type GroupBy = {
+type GroupBy = {
   key: string;
   value: string | null | Array<string | null> | Array<number | null>;
 };

@@ -1,11 +1,15 @@
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
-import type {GroupBy} from 'sentry/views/dashboards/widgets/common/types';
 
 /**
  * TODO: Move this to the common types file once this chart is in use. This is a
  * temporary type to avoid issues with knip.
  */
+
+type GroupBy = {
+  key: string;
+  value: string | null | Array<string | null> | Array<number | null>;
+};
 
 export type CategoricalGroupBy = GroupBy;
 
