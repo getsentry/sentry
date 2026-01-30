@@ -53,22 +53,14 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
     );
   }
 
-  if (!metricsCardinality.outcome) {
-    return (
-      <Fragment>
-        {props.children({
-          forceTransactionsOnly: true,
-        })}
-      </Fragment>
-    );
-  }
-
+  // Always use MetricsSwitchHandler for consistent component structure
+  // to prevent remounting children when outcome changes
   return (
     <Fragment>
       <MetricsSwitchHandler
         eventView={props.eventView}
         location={props.location}
-        outcome={metricsCardinality.outcome}
+        outcome={metricsCardinality.outcome ?? {forceTransactionsOnly: false}}
         switcherChildren={props.children}
       />
     </Fragment>
