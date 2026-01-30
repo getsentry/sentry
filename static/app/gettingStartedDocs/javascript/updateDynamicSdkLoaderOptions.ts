@@ -7,6 +7,9 @@ import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
+// Note: LOGS and METRICS are intentionally omitted because they share a single
+// `hasLogsAndMetrics` backend flag. Showing individual messages would be misleading
+// (e.g., "Disabled Logs" when Metrics keeps the flag true).
 const PRODUCT_MESSAGES = {
   [ProductSolution.PERFORMANCE_MONITORING]: {
     enabled: t('Enabled Tracing in the Loader Script Config'),
@@ -25,18 +28,6 @@ const PRODUCT_MESSAGES = {
     disabled: t('Disabled Profiling in the Loader Script Config'),
     enableError: t('Failed to enable Profiling in the Loader Script Config'),
     disableError: t('Failed to disable Profiling in the Loader Script Config'),
-  },
-  [ProductSolution.LOGS]: {
-    enabled: t('Enabled Logs in the Loader Script Config'),
-    disabled: t('Disabled Logs in the Loader Script Config'),
-    enableError: t('Failed to enable Logs in the Loader Script Config'),
-    disableError: t('Failed to disable Logs in the Loader Script Config'),
-  },
-  [ProductSolution.METRICS]: {
-    enabled: t('Enabled Metrics in the Loader Script Config'),
-    disabled: t('Disabled Metrics in the Loader Script Config'),
-    enableError: t('Failed to enable Metrics in the Loader Script Config'),
-    disableError: t('Failed to disable Metrics in the Loader Script Config'),
   },
 };
 
