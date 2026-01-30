@@ -199,7 +199,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.message.parameter.0": {"bool_value": 1},
                     "sentry.message.parameter.1": {"int_value": 5},
                     "sentry.message.parameter.2": {"double_value": 10},
                     "sentry.message.parameter.value": {"double_value": 15},
