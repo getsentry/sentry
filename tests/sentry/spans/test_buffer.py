@@ -30,6 +30,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.write-to-zset": True,
     "spans.buffer.write-to-set": False,
     "spans.buffer.read-from-set": False,
+    "spans.buffer.evalsha-cumulative-logger-enabled": True,
 }
 
 
