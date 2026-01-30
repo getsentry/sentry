@@ -2,19 +2,19 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {Flex} from '@sentry/scraps/layout';
-import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
-
-import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

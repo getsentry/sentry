@@ -1,7 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import NotFound from 'sentry/components/errors/notFound';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import LoadingError from 'sentry/components/loadingError';

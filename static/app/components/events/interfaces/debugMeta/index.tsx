@@ -10,11 +10,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {
   DebugImageDetails,
   modalCss,

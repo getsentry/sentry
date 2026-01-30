@@ -2,8 +2,8 @@ import type {ReactNode} from 'react';
 import {Children, Fragment, useEffect} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
-import {Heading} from 'sentry/components/core/text';
 import {makeStorybookDocumentTitle} from 'sentry/stories/view/storyExports';
 import {StoryHeading} from 'sentry/stories/view/storyHeading';
 

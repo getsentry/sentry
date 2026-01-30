@@ -1,14 +1,13 @@
 import React from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';

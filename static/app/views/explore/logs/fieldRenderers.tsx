@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';

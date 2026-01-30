@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {type MotionNodeAnimationOptions} from 'framer-motion';
 
-import {inlineCodeStyles} from 'sentry/components/core/code/inlineCode';
+import {inlineCodeStyles} from '@sentry/scraps/code';
+
 import type {
   ImpactAssessmentArtifact,
   RootCauseArtifact,

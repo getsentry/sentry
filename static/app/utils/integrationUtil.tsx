@@ -1,6 +1,7 @@
 import * as qs from 'query-string';
 
-import type {Result} from 'sentry/components/core/select/async';
+import type {Result} from '@sentry/scraps/select';
+
 import {
   IconAsana,
   IconBitbucket,

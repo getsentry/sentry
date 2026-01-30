@@ -1,13 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {
-  SelectOption,
-  SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 

@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Placeholder from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,

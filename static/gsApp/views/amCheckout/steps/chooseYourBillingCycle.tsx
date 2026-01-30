@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';

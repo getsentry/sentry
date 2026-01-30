@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {space} from 'sentry/styles/space';
 
 export const PurpleTextButton = styled(Button)`

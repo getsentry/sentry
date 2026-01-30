@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {InlineCode} from '@sentry/scraps/code';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
-import {Heading, Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 

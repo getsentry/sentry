@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import documentation from '!!type-loader!sentry/components/core/input/inputGroup';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconAttachment, IconSearch, IconSettings} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';

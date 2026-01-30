@@ -1,9 +1,9 @@
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Heading} from 'sentry/components/core/text/heading';
 import {t, tct} from 'sentry/locale';
 import {
   CodeBlockWrapper,

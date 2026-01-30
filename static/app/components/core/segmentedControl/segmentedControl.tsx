@@ -11,9 +11,10 @@ import type {Node} from '@react-types/shared';
 import type {CollectionChildren} from '@react-types/shared/src/collections';
 import {LayoutGroup} from 'framer-motion';
 
-import {DO_NOT_USE_getButtonStyles} from 'sentry/components/core/button/styles';
-import type {TooltipProps} from 'sentry/components/core/tooltip';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Link} from 'sentry/components/core/link';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

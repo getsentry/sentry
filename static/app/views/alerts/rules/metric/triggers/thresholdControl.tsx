@@ -1,10 +1,10 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {NumberDragInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
 
-import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
-import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/types';

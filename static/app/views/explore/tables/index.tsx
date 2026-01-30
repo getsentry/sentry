@@ -1,12 +1,12 @@
 import {Fragment, useCallback} from 'react';
 
 import {Badge} from '@sentry/scraps/badge/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';

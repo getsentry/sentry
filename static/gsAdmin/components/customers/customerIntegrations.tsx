@@ -1,6 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {ExternalLink} from 'sentry/components/core/link';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 
 import ResultGrid from 'admin/components/resultGrid';

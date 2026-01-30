@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {Field} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

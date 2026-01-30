@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';

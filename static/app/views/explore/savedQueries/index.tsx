@@ -1,8 +1,7 @@
 import {useNavigate} from 'react-router-dom';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';

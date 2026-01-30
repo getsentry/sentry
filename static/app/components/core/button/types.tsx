@@ -1,6 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TooltipProps} from 'sentry/components/core/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
 
 // We do not want people using this type as it should only be used
 // internally by the different button implementations

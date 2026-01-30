@@ -1,5 +1,6 @@
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+
 import type {Crumb} from 'sentry/components/breadcrumbs';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {
   CrumbContainer,
   NavigationCrumbs,

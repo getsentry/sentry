@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Grid} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {DebugNotificationsExample} from 'sentry/debug/notifications/components/debugNotificationsExample';
 import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';

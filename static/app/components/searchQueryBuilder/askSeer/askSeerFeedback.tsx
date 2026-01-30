@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
+
 import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer, IconThumb} from 'sentry/icons';

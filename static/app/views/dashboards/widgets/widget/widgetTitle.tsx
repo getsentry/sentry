@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import {Tooltip} from 'sentry/components/core/tooltip';
 
 export interface WidgetTitleProps {
   title?: string;

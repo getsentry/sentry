@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

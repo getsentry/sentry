@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout/container';
 import {Flex} from '@sentry/scraps/layout/flex';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
 import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChat} from 'sentry/icons';

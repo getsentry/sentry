@@ -3,10 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
 
 import Access from 'sentry/components/acl/access';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Plugin} from 'sentry/types/integrations';

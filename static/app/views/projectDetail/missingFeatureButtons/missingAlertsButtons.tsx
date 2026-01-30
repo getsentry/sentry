@@ -1,5 +1,5 @@
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

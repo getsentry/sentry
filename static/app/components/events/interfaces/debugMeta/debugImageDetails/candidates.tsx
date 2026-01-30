@@ -4,9 +4,10 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';

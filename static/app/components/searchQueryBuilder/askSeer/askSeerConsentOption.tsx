@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {
   AskSeerLabel,

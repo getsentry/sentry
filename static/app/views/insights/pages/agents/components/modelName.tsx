@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {SpaceSize} from 'sentry/utils/theme';
 

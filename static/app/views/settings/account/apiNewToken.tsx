@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';

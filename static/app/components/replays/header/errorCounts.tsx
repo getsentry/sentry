@@ -2,10 +2,11 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import countBy from 'lodash/countBy';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Badge} from 'sentry/components/core/badge';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Badge} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

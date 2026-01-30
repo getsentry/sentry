@@ -1,6 +1,7 @@
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';

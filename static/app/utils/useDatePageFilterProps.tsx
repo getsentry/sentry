@@ -1,6 +1,7 @@
 import {useMemo, type ReactNode} from 'react';
 
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {t} from 'sentry/locale';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';

@@ -5,8 +5,9 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+
 import {DateRangePicker} from 'sentry/components/calendar';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

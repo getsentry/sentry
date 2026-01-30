@@ -1,8 +1,8 @@
 import beautify from 'js-beautify';
 
+import {CodeBlock} from '@sentry/scraps/code';
 import {Container} from '@sentry/scraps/layout';
 
-import {CodeBlock} from 'sentry/components/core/code';
 import Placeholder from 'sentry/components/placeholder';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import type {ReplayFrame} from 'sentry/utils/replays/types';

@@ -1,10 +1,9 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import QuestionTooltip from 'sentry/components/questionTooltip';

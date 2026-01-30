@@ -2,8 +2,9 @@ import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';

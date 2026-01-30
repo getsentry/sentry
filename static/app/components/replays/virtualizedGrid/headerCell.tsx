@@ -1,7 +1,8 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconArrow, IconInfo} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 

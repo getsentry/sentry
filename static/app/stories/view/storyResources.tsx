@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 
-import {Badge} from 'sentry/components/core/badge';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Badge} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconGithub} from 'sentry/icons';
 import * as Stories from 'sentry/stories';
 import {

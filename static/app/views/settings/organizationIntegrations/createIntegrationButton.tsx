@@ -1,6 +1,7 @@
+import {Button} from '@sentry/scraps/button';
+
 import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';

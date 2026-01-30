@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 
 export default function altCrashReportCallout() {

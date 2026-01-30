@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import Placeholder from 'sentry/components/placeholder';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -108,7 +109,11 @@ export default function RepoTokenTable({response, sort}: Props) {
   const navigate = useNavigate();
 
   const handleSort = (field: 'name') => {
-    const {cursor, navigation, ...queryWithoutPagination} = location.query;
+    const {
+      cursor: _cursor,
+      navigation: _navigation,
+      ...queryWithoutPagination
+    } = location.query;
 
     const newQuery = {...queryWithoutPagination};
 

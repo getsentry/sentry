@@ -2,7 +2,8 @@ import type React from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {
   CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX,
   CallTreeDynamicColumnsContainer,

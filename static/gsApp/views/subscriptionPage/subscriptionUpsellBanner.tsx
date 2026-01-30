@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 import businessUpgrade from 'getsentry-images/product_trial/business-upgrade-notrial.svg';
 import businessTrial from 'getsentry-images/product_trial/try-sentry-business-present.svg';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

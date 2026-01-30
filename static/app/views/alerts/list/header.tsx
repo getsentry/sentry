@@ -1,7 +1,7 @@
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {TabList} from '@sentry/scraps/tabs';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TabList} from 'sentry/components/core/tabs';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';

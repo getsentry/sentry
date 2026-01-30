@@ -1,6 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
+import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
-import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';

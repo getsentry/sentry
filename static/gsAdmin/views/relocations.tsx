@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
 
 import PageHeader from 'admin/components/pageHeader';
 import RelocationBadge from 'admin/components/relocationBadge';

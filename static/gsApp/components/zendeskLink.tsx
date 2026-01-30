@@ -1,6 +1,7 @@
 import React, {useEffect} from 'react';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';

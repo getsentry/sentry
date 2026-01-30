@@ -1,4 +1,5 @@
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {TeamAvatar} from '@sentry/scraps/avatar';
+
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

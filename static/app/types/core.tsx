@@ -4,8 +4,9 @@
  * Before a type is put here it should be required in multiple other types.
  * or used in multiple views.
  */
+import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+
 import type {getInterval} from 'sentry/components/charts/utils';
-import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
 import type {ALLOWED_SCOPES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 

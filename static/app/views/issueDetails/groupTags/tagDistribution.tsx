@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';

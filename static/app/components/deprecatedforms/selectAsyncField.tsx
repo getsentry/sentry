@@ -1,7 +1,5 @@
-import {
-  SelectAsync,
-  type SelectAsyncControlProps,
-} from 'sentry/components/core/select/async';
+import {SelectAsync, type SelectAsyncControlProps} from '@sentry/scraps/select';
+
 import {
   SelectField,
   type SelectFieldProps,

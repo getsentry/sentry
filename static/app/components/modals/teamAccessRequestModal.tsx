@@ -1,13 +1,14 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
   ModalRenderProps,
   TeamAccessRequestModalOptions,
 } from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';

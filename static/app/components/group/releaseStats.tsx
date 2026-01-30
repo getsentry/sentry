@@ -1,8 +1,9 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
+import {AlertLink} from '@sentry/scraps/alert';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';

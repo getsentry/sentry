@@ -1,4 +1,5 @@
-import {Stack} from 'sentry/components/core/layout';
+import {Stack} from '@sentry/scraps/layout';
+
 import ReplayBadge from 'sentry/components/replays/replayBadge';
 import * as Storybook from 'sentry/stories';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import type {ControlProps} from 'sentry/components/core/select';
+import {Flex} from '@sentry/scraps/layout';
+import type {ControlProps} from '@sentry/scraps/select';
+
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {space} from 'sentry/styles/space';
 import type {Organization, Team, TeamMember, TeamRole} from 'sentry/types/organization';

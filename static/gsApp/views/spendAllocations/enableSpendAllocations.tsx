@@ -1,9 +1,9 @@
 import type {Dispatch} from 'react';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 

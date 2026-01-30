@@ -1,9 +1,10 @@
 import moment from 'moment-timezone';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 
 import PageHeader from 'admin/components/pageHeader';
 import PromoCodeModal from 'admin/components/promoCodes/promoCodeModal';

@@ -3,12 +3,11 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import GridEditable from 'sentry/components/tables/gridEditable';

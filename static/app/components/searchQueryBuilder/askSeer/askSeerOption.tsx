@@ -2,9 +2,10 @@ import {useRef, useState} from 'react';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
   AskSeerLabel,
   AskSeerListItem,

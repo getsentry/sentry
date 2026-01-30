@@ -1,4 +1,5 @@
-import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+
 import {IconCopy} from 'sentry/icons';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 

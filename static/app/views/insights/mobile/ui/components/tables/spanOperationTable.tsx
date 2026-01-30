@@ -1,7 +1,8 @@
 import * as qs from 'query-string';
 
+import {Link} from '@sentry/scraps/link';
+
 import {getInterval} from 'sentry/components/charts/utils';
-import {Link} from 'sentry/components/core/link';
 import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';

@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 import type {HTMLMotionProps, Variants} from 'framer-motion';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';

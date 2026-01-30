@@ -1,4 +1,5 @@
-import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+
 import {IconBusiness} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 

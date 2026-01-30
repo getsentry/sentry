@@ -1,11 +1,11 @@
 import type React from 'react';
 import {useMemo} from 'react';
 
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import {
   IconAdd,
   IconCheckmark,

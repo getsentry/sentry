@@ -1,5 +1,6 @@
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+
 import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';

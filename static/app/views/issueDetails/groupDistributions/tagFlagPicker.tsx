@@ -1,4 +1,5 @@
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {t} from 'sentry/locale';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 

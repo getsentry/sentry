@@ -1,13 +1,13 @@
 import type {ComponentProps} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
 import {
   CompactSelect,
   type SelectOption,
   type SelectProps,
-} from 'sentry/components/core/compactSelect';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

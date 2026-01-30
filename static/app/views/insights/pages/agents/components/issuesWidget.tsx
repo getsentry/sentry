@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct} from 'sentry/locale';

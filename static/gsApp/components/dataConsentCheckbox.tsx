@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import {tct} from 'sentry/locale';
 

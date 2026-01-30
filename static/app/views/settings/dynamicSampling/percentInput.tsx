@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
+import {InputGroup, type InputProps} from '@sentry/scraps/input';
+
 import {space} from 'sentry/styles/space';
 
 export function PercentInput({ref, ...props}: InputProps) {

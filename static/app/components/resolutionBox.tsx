@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';

@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+
 import {getOnboardingTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {IconCheckmark, IconClock, IconNot} from 'sentry/icons';
 

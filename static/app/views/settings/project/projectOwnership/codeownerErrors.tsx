@@ -2,8 +2,9 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {space} from 'sentry/styles/space';
 import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 

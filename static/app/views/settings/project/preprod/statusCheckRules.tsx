@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import seerConfigBugSvg from 'sentry-images/spot/seer-config-bug-1.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Switch} from 'sentry/components/core/switch';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';

@@ -1,4 +1,4 @@
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
 
 import type {Relocation} from 'admin/types';
 

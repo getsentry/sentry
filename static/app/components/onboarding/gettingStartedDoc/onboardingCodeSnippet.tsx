@@ -2,7 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import beautify from 'js-beautify';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 

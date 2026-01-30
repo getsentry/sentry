@@ -2,8 +2,9 @@ import {useEffect} from 'react';
 import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InputGroup} from '@sentry/scraps/input';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

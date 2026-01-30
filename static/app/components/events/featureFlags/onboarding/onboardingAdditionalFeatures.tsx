@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

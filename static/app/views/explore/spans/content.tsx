@@ -2,7 +2,8 @@ import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from '@sentry/scraps/button';
+
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';

@@ -1,4 +1,5 @@
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import {logout} from 'sentry/actionCreators/account';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';

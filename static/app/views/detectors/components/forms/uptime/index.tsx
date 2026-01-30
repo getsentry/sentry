@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
-import {Stack} from 'sentry/components/core/layout';
+import {Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';

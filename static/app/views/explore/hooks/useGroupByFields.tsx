@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';

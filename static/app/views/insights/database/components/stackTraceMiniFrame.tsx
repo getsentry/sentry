@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

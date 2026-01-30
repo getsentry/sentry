@@ -2,8 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
-import {Select} from 'sentry/components/core/select';
+import {Button} from '@sentry/scraps/button';
+import {Select} from '@sentry/scraps/select';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';

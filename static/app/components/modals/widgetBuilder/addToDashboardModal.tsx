@@ -4,6 +4,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Select} from '@sentry/scraps/select';
+
 import {
   fetchDashboard,
   fetchDashboards,
@@ -15,10 +19,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Select} from 'sentry/components/core/select';
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

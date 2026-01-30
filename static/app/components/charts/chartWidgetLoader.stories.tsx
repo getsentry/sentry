@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import documentation from '!!type-loader!sentry/components/charts/chartWidgetLoader';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ChartWidgetLoader', (story, APIReference) => {

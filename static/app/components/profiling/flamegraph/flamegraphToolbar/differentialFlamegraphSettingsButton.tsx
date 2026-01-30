@@ -2,7 +2,8 @@ import {Fragment, useCallback, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {DifferentialFlamegraphMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';

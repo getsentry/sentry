@@ -1,9 +1,10 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {getOwnerList} from 'sentry/components/group/assignedTo';
 import {
   AssigneeSelector,

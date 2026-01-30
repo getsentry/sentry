@@ -1,10 +1,8 @@
 import {useMemo} from 'react';
 
-import type {
-  SelectOption,
-  SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
 import useProjects from 'sentry/utils/useProjects';
 

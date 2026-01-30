@@ -1,7 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
 import pick from 'lodash/pick';
 
-import type {GeneralSelectValue} from 'sentry/components/core/select';
+import type {GeneralSelectValue} from '@sentry/scraps/select';
+
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';

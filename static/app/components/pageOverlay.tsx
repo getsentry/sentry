@@ -3,7 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Prose} from 'sentry/components/core/text/prose';
+import {Prose} from '@sentry/scraps/text';
+
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
   changeOrganizationSlug,
@@ -7,7 +9,6 @@ import {
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';

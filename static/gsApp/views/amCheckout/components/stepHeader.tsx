@@ -1,6 +1,6 @@
 import kebabCase from 'lodash/kebabCase';
 
-import {Heading} from 'sentry/components/core/text';
+import {Heading} from '@sentry/scraps/text';
 
 type Props = {
   title: string;

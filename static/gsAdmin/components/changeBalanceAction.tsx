@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Heading, Text} from 'sentry/components/core/text';
 import InputField from 'sentry/components/forms/fields/inputField';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import TextField from 'sentry/components/forms/fields/textField';

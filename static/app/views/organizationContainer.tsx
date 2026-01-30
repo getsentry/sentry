@@ -1,9 +1,9 @@
 import {Outlet} from 'react-router-dom';
 import {useProfiler} from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
 
-import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import {ORGANIZATION_FETCH_ERROR_TYPES, ROOT_ELEMENT} from 'sentry/constants';
 import {t} from 'sentry/locale';

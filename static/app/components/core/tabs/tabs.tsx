@@ -5,12 +5,8 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
 
-import type {BaseTabProps} from 'sentry/components/core/tabs/tab';
-
+import type {TabProps} from './tab';
 import {tabsShouldForwardProp} from './utils';
-
-export {TabList, type TabListProps} from './tabList';
-export {TabPanels} from './tabPanels';
 
 export interface TabsProps<T>
   extends Omit<
@@ -41,7 +37,7 @@ export interface TabsProps<T>
    * Callback when the selected tab changes.
    */
   onChange?: (key: T) => void;
-  size?: BaseTabProps['size'];
+  size?: TabProps['size'];
   /**
    * [Controlled] Selected tab. Must match the `key` prop on the selected tab
    * item.

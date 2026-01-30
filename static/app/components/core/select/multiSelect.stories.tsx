@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Multiple Select', story => {
