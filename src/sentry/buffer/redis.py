@@ -277,7 +277,7 @@ class RedisBuffer(Buffer):
         return result
 
     @classmethod
-    def _dump_value(cls, value: str | datetime | date | int | float) -> tuple[str, str]:
+    def _dump_value(cls, value: str | datetime | date | int | float | dict) -> tuple[str, str]:
         if isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
@@ -290,6 +290,9 @@ class RedisBuffer(Buffer):
             type_ = "i"
         elif isinstance(value, float):
             type_ = "f"
+        elif isinstance(value, dict):
+            type_ = "j"
+            value = json.dumps(value)
         else:
             raise TypeError(type(value))
         return type_, str(value)
@@ -297,14 +300,14 @@ class RedisBuffer(Buffer):
     @classmethod
     def _load_values(
         cls, payload: dict[str, tuple[str, Any]]
-    ) -> dict[str, str | datetime | date | int | float]:
+    ) -> dict[str, str | datetime | date | int | float | dict]:
         result = {}
         for k, (t, v) in payload.items():
             result[k] = cls._load_value((t, v))
         return result
 
     @classmethod
-    def _load_value(cls, payload: tuple[str, Any]) -> str | datetime | date | int | float:
+    def _load_value(cls, payload: tuple[str, Any]) -> str | datetime | date | int | float | dict:
         (type_, value) = payload
         if type_ == "s":
             return force_str(value)
@@ -316,6 +319,8 @@ class RedisBuffer(Buffer):
             return int(value)
         elif type_ == "f":
             return float(value)
+        elif type_ == "j":
+            return json.loads(value)
         else:
             raise TypeError(f"invalid type: {type_}")
 
