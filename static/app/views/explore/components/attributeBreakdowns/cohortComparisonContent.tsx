@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
-import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';

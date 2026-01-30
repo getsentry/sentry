@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';

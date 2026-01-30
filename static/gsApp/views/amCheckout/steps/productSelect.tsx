@@ -2,11 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Badge} from '@sentry/scraps/badge';
+import {Badge, Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
 import {IconCheckmark, IconSeer, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';

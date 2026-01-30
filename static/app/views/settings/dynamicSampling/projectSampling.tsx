@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -8,7 +9,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

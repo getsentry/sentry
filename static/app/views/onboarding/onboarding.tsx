@@ -2,10 +2,10 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
 import {

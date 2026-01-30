@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';

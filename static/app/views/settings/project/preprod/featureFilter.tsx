@@ -1,7 +1,8 @@
 import {useCallback, useState} from 'react';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

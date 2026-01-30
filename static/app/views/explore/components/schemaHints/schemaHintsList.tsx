@@ -5,9 +5,9 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';

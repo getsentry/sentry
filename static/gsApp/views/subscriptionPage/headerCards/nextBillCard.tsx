@@ -1,9 +1,10 @@
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

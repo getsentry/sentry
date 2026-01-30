@@ -3,9 +3,9 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';

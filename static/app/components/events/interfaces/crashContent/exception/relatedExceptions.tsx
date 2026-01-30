@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ExceptionValue} from 'sentry/types/event';

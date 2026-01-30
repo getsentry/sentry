@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

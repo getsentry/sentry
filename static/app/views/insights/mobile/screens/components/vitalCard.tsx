@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {space} from 'sentry/styles/space';
 import {

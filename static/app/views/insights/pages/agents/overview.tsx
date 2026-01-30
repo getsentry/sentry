@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {useDismissable} from 'sentry/components/banner';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';

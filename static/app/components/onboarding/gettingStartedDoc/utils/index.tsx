@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {
   DocsParams,
