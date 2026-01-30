@@ -197,6 +197,12 @@ function makeCellActions({
     return null;
   }
 
+  // Starred transaction has it's own action on click
+  // so we don't want it to collide with the context menu
+  if (column.name === 'is_starred_transaction') {
+    return null;
+  }
+
   let value = dataRow[column.name];
 
   // error.handled is a strange field where null = true.
