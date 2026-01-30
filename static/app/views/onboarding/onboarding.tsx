@@ -354,6 +354,7 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${space(3)};
+  overflow: hidden;
 
   width: 100%;
   margin: 0 auto ${p => p.hasFooter && '72px'} 0;
