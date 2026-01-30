@@ -231,15 +231,15 @@ class SlackEntrypointTest(TestCase):
         mock_send_threaded_ephemeral_message.assert_called_once()
         mock_update_message.assert_called_once()
 
-    def test_get_autofix_lock(self):
-        lock = SlackEntrypoint.get_autofix_lock(
+    def test_get_autofix_lock_key(self):
+        lock_key = SlackEntrypoint.get_autofix_lock_key(
             group_id=self.group.id,
             stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
-        assert lock is not None
-        assert "autofix:entrypoint:slack" in lock.key
-        assert str(self.group.id) in lock.key
-        assert AutofixStoppingPoint.ROOT_CAUSE.value in lock.key
+        assert lock_key is not None
+        assert "autofix:entrypoint:slack" in lock_key
+        assert str(self.group.id) in lock_key
+        assert AutofixStoppingPoint.ROOT_CAUSE.value in lock_key
 
     @patch("sentry.seer.entrypoints.integrations.slack.process_thread_update")
     def test_schedule_all_thread_updates(self, mock_process_thread_update):

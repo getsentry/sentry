@@ -36,7 +36,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.locking.lock import Lock
 from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
@@ -122,11 +121,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         return stopping_point
 
     @staticmethod
-    def get_autofix_lock(*, group_id: int, stopping_point: AutofixStoppingPoint) -> Lock:
-        return locks.get(
-            f"autofix:entrypoint:{SeerEntrypointKey.SLACK.value}:{group_id}:{stopping_point.value}",
-            duration=10,
-            name=f"autofix_entrypoint_{SeerEntrypointKey.SLACK.value}",
+    def get_autofix_lock_key(*, group_id: int, stopping_point: AutofixStoppingPoint) -> str:
+        return (
+            f"autofix:entrypoint:{SeerEntrypointKey.SLACK.value}:{group_id}:{stopping_point.value}"
         )
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
@@ -467,10 +464,11 @@ def handle_prepare_autofix_update(
     }
     threads: list[SlackThreadDetails] = []
     incoming_thread = SlackThreadDetails(thread_ts=thread_ts, channel_id=channel_id)
-    lock = SlackEntrypoint.get_autofix_lock(
+    lock_key = SlackEntrypoint.get_autofix_lock_key(
         group_id=group.id,
         stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
     )
+    lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
     try:
         with lock.blocking_acquire(initial_delay=0.1, timeout=3):
             existing_cache = SeerOperatorAutofixCache[SlackEntrypointCachePayload].get(

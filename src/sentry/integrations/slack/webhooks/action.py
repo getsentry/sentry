@@ -48,6 +48,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -576,10 +577,11 @@ class SlackActionEndpoint(Endpoint):
             group=group,
             organization_id=group.project.organization_id,
         )
-        lock = SlackEntrypoint.get_autofix_lock(
+        lock_key = SlackEntrypoint.get_autofix_lock_key(
             group_id=group.id,
             stopping_point=entrypoint.autofix_stopping_point,
         )
+        lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
         try:
             with lock.acquire():
                 SeerOperator(entrypoint=entrypoint).trigger_autofix(
