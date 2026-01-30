@@ -79,8 +79,7 @@ const SliderThumbWrap = styled('div')<{
     background 0.1s;
 
   &:hover {
-    background: ${p =>
-      p.theme.tokens.interactive.chonky.embossed.accent.background.hover};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
   }
 
   ${p =>
@@ -105,11 +104,11 @@ const SliderThumbWrap = styled('div')<{
     p.isDisabled &&
     css`
       cursor: initial;
-      background: ${p.theme.tokens.background.disabled};
+      background: ${p.theme.tokens.background.secondary};
       color: ${p.theme.tokens.content.disabled};
 
       &:hover {
-        background: ${p.theme.tokens.background.disabled};
+        background: ${p.theme.tokens.background.secondary};
       }
     `};
 
