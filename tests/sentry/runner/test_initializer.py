@@ -1,8 +1,16 @@
 import types
 
 import pytest
+from django.core.cache import caches
+from django.test import override_settings
 
-from sentry.runner.initializer import ConfigurationError, apply_legacy_settings, bootstrap_options
+from sentry.options import default_store
+from sentry.runner.initializer import (
+    ConfigurationError,
+    apply_legacy_settings,
+    bind_cache_to_option_store,
+    bootstrap_options,
+)
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
@@ -250,3 +258,31 @@ def test_require_secret_key(settings) -> None:
     assert "system.secret-key" not in settings.SENTRY_OPTIONS
     with pytest.raises(ConfigurationError):
         apply_legacy_settings(settings)
+
+
+def test_bind_cache_to_option_store_with_options_cache() -> None:
+    from django.conf import settings
+
+    cache_config = settings.CACHES.copy()
+    cache_config["options"] = {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+
+    with override_settings(CACHES=cache_config):
+        bind_cache_to_option_store()
+
+        # Should use 'options' cache, not 'default'
+        assert default_store.cache == caches["options"]
+
+
+def test_bind_cache_to_option_store_without_options_cache() -> None:
+    from django.conf import settings
+
+    cache_config = settings.CACHES.copy()
+    cache_config.pop("options", None)
+
+    with override_settings(CACHES=cache_config):
+        bind_cache_to_option_store()
+
+        # Should use 'default' cache when 'options' doesn't exist
+        assert default_store.cache == caches["default"]
