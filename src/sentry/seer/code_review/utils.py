@@ -10,6 +10,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -227,7 +228,12 @@ def _common_codegen_request_payload(
                 "organization_id": organization.id,
                 "organization_slug": organization.slug,
             },
-            "config": {"features": {"bug_prediction": True}},
+            "config": {
+                "features": {"bug_prediction": True},
+                "skip_tada_reaction": features.has(
+                    "organizations:skip-tada-reaction", organization
+                ),
+            },
         },
     }
 
