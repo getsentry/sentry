@@ -15,6 +15,10 @@ export interface TimelineItemProps {
     iconBorder: string;
     title: string;
   };
+  /**
+   * Used by tanstack virtualizer to track the index of the item.
+   */
+  'data-index'?: number;
   icon?: React.ReactNode;
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;

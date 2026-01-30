@@ -1,14 +1,23 @@
 import {useCallback, useMemo, useState} from 'react';
-import type {IndexRange, SectionRenderedParams} from 'react-virtualized';
 
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+
+export interface VisibleRange {
+  startIndex: number;
+  stopIndex: number;
+}
 
 interface Props {
   currentTime: number;
   frames: ReplayFrame[];
   isTable: boolean;
   setScrollToRow: (row: number) => void;
+  /**
+   * Optional: Pass visible range directly (e.g., from virtualizer) to avoid
+   * needing to call onRowsRendered. When provided, internal state is not used.
+   */
+  visibleRange?: VisibleRange;
 }
 
 export default function useJumpButtons({
@@ -16,11 +25,14 @@ export default function useJumpButtons({
   frames,
   isTable,
   setScrollToRow,
+  visibleRange: externalVisibleRange,
 }: Props) {
-  const [visibleRange, setVisibleRange] = useState<IndexRange>({
+  const [internalVisibleRange, setInternalVisibleRange] = useState<VisibleRange>({
     startIndex: 0,
     stopIndex: 0,
   });
+
+  const visibleRange = externalVisibleRange ?? internalVisibleRange;
 
   const frameIndex = useMemo(() => {
     const frame = getNextReplayFrame({
@@ -47,11 +59,11 @@ export default function useJumpButtons({
     setScrollToRow(rowIndex + (jumpDownFurther ? 1 : 0));
   }, [isTable, rowIndex, setScrollToRow, visibleRange]);
 
-  const onRowsRendered = setVisibleRange;
+  const onRowsRendered = setInternalVisibleRange;
 
   const onSectionRendered = useCallback(
-    ({rowStartIndex, rowStopIndex}: SectionRenderedParams) => {
-      setVisibleRange({startIndex: rowStartIndex, stopIndex: rowStopIndex});
+    ({rowStartIndex, rowStopIndex}: {rowStartIndex: number; rowStopIndex: number}) => {
+      setInternalVisibleRange({startIndex: rowStartIndex, stopIndex: rowStopIndex});
     },
     []
   );

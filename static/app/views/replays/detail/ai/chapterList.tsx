@@ -231,7 +231,6 @@ function ChapterRow({
             allowShowSnippet={false}
             startTimestampMs={replay?.getStartTimestampMs() ?? 0}
             key={`breadcrumb-${j}`}
-            style={{}}
           />
         ))}
       </div>
