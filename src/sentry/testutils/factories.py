@@ -2173,6 +2173,7 @@ class Factories:
         body,
         date_updated: datetime,
         trace_sampling: bool = False,
+        assertion: Any | None = None,
     ):
         if url is None:
             url = petname.generate().title()
@@ -2194,6 +2195,7 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
 
     @staticmethod
