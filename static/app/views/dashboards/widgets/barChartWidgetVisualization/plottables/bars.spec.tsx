@@ -5,7 +5,7 @@ import {sampleDurationCategoricalData} from 'sentry/views/dashboards/widgets/bar
 import {sampleStackedCategoricalData} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/fixtures/stackedCategorical';
 import {Bars} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/plottables/bars';
 
-describe('Bar Plottable', () => {
+describe('Bars', () => {
   describe('Properties', () => {
     it('returns correct name from alias', () => {
       const bar = new Bars(sampleCountCategoricalData, {alias: 'Custom Name'});
