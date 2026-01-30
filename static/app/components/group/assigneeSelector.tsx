@@ -62,8 +62,10 @@ export function useHandleAssigneeChange({
       }
       onSuccess?.(updatedGroup.assignedTo);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
+    onError: (error: any) => {
+      const errorMessage =
+        error?.responseJSON?.assignedTo ?? t('Failed to update assignee');
+      addErrorMessage(errorMessage);
     },
   });
 
