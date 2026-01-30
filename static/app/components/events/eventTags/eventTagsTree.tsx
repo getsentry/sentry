@@ -16,6 +16,7 @@ import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
+
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
 
