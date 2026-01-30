@@ -1289,7 +1289,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 """
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed"
+        assert subtitle == ""
         assert summary == expected
 
     def test_multiple_triggered_rules_url_formatting(self):
@@ -1386,7 +1386,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 """
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed"
+        assert subtitle == ""
         assert summary == expected
 
     def test_multiple_apps_with_triggered_rules(self):
@@ -1499,7 +1499,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 """
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps analyzed"
+        assert subtitle == ""
         assert summary == expected
 
     def test_mixed_pass_fail_with_triggered_rules(self):
@@ -1602,5 +1602,5 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 """
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps analyzed"
+        assert subtitle == ""
         assert summary == expected

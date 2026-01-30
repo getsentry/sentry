@@ -83,7 +83,7 @@ def format_status_check_messages(
         raise ValueError("No metrics exist for VCS size status check")
 
     parts = []
-    if analyzed_count > 0:
+    if analyzed_count > 0 and not triggered_rules:
         parts.append(
             ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
             % {"count": analyzed_count}
