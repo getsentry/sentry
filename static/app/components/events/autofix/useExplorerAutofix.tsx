@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -297,6 +297,20 @@ export function useExplorerAutofix(
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
+  const intelligenceLevel = useMemo(() => {
+    const random = Math.random();
+
+    if (random < 1 / 3) {
+      return 'high';
+    }
+
+    if (random < 2 / 3) {
+      return 'medium';
+    }
+
+    return 'low';
+  }, []);
+
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
@@ -337,6 +351,7 @@ export function useExplorerAutofix(
             query: {mode: 'explorer'},
             data: {
               step,
+              intelligence_level: intelligenceLevel,
               ...(runId !== undefined && {run_id: runId}),
             },
           }
@@ -358,7 +373,7 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, orgSlug, groupId, queryClient, intelligenceLevel]
   );
 
   /**
