@@ -160,7 +160,7 @@ export function NewWelcomeUI(props: StepProps) {
             </Stack>
           </Stack>
 
-          <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg" flex={0.75}>
+          <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg">
             {PRODUCT_OPTIONS.map(product => (
               <NewWelcomeProductCard
                 key={product.id}
