@@ -173,8 +173,10 @@ function ProductCard({
         rows="min-content min-content"
         gap="xs lg"
         align="center"
-        areas={`"cell1 cell2"
-          ". cell4"`}
+        areas={`
+          "cell1 cell2"
+          ". cell4"
+        `}
       >
         <Flex area="cell1" align="center">
           {icon}
@@ -253,15 +255,15 @@ export function NewWelcomeUI(props: StepProps) {
                 <Container>
                   <Text size="lg" bold density="comfortable">
                     {t(
-                      'You’ve got 14 days of Business with unlimited access to everything below.'
+                      "You've got 14 days of Business with unlimited access to everything below."
                     )}
                   </Text>
                 </Container>
               </Flex>
               <Container>
                 <Text size="md" variant="muted">
-                  We’ll walk you through setup next. Start with what matters now, add the
-                  rest when you’re ready.
+                  We'll walk you through setup next. Start with what matters now, add the
+                  rest when you're ready.
                 </Text>
               </Container>
             </Stack>
@@ -281,47 +283,6 @@ export function NewWelcomeUI(props: StepProps) {
               />
             ))}
           </Grid>
-
-          {/* <Container border="muted" radius="lg" padding="xl" overflow="hidden">
-          <Flex>
-            <Flex flex="1">
-              <Grid
-                columns="min-content 1fr"
-                rows="min-content min-content"
-                gap="xs lg"
-                align="center"
-                areas={`"cell1 cell2"
-                ". cell4"`}
-              >
-                <Flex area="cell1" align="center">
-                  <IconSeer legacySize="16px" variant="secondary" />
-                </Flex>
-
-                <Flex gap="sm" align="center" area="cell2">
-                  <Text bold size="lg" density="comfortable">
-                    {t('Seer: AI Debugging Agent')}
-                  </Text>
-                  <FeatureBadge type="new" tooltipProps={{disabled: true}} />
-                </Flex>
-
-                <Stack gap="xl" area="cell4">
-                  <Text variant="muted" wrap="pre-line" density="comfortable">
-                    {t('Analyze issues, review PRs, and propose code fixes.')}
-                  </Text>
-
-                  <Flex gap="xs" align="center">
-                    <IconInfo size="xs" />
-                    <Text variant="muted" size="xs" density="comfortable">
-                      {t('Requires additional setup')}
-                    </Text>
-                  </Flex>
-                </Stack>
-              </Grid>
-            </Flex>
-
-
-          </Flex>
-        </Container> */}
 
           <Container>
             <Text size="md" variant="muted">
