@@ -96,7 +96,14 @@ export function StorySearch() {
       {item => {
         if (isSearchSection(item)) {
           return (
-            <Section key={item.key} title={<SectionTitle>{item.label}</SectionTitle>}>
+            <Section
+              key={item.key}
+              title={
+                <Text size="xs" uppercase>
+                  {item.label}
+                </Text>
+              }
+            >
               {item.options.map(storyItem => {
                 const subcategoryKey =
                   item.key === 'core'
@@ -113,7 +120,7 @@ export function StorySearch() {
                     {...({
                       label: storyItem.label,
                       trailingItems: subcategoryLabel ? (
-                        <Text size="sm" variant="muted">
+                        <Text size="xs" variant="muted" ellipsis>
                           {subcategoryLabel}
                         </Text>
                       ) : undefined,
@@ -144,7 +151,7 @@ function SearchInput(
   const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
 
   return (
-    <InputGroup style={{minHeight: 33, height: 33, width: 256}}>
+    <InputGroup>
       <InputGroup.LeadingItems disablePointerEvents>
         <IconSearch />
       </InputGroup.LeadingItems>
@@ -226,11 +233,13 @@ function SearchComboBox(props: SearchComboBoxProps) {
       {state.isOpen && (
         <StyledOverlay placement="bottom-start" ref={popoverRef}>
           <ListBox
+            size="sm"
+            virtualized
             listState={state}
             hasSearch={!!state.inputValue}
             overlayIsOpen={state.isOpen}
-            size="sm"
             {...listBoxProps}
+            style={{maxHeight: 320, minHeight: 132}}
           >
             {props.children}
           </ListBox>
@@ -245,32 +254,27 @@ const StorySearchContainer = styled('div')`
   width: 320px;
   flex-grow: 1;
   z-index: ${p => p.theme.zIndex.header};
-  padding: ${p => p.theme.space.md};
-  padding-right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  margin-left: -${p => p.theme.space['2xl']};
+  margin-left: -${p => p.theme.space.xl};
 `;
 
 const StyledOverlay = styled(Overlay)`
+  overflow: hidden;
   position: fixed;
   top: 48px;
   left: 256px;
   width: 320px;
-  max-height: calc(100dvh - 128px);
-  overflow-y: auto;
+
+  max-height: 320px;
+  min-height: 132px;
+  > div {
+    max-height: 320px !important;
+    min-height: 132px !important;
+  }
 
   /* Make section headers darker in this component */
   p[id][aria-hidden='true'] {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const SectionTitle = styled('span')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-weight: 600;
-  text-transform: uppercase;
 `;
 
 function getStoryTreeNodeFromKey(
