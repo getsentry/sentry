@@ -6,7 +6,7 @@ from django.db.migrations.state import StateApps
 from sentry.new_migrations.migrations import CheckedMigration
 
 
-def backfill_delete_assertions(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor):
+def backfill_delete_assertions(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     UptimeSubscription = apps.get_model("uptime", "UptimeSubscription")
 
     # Query all uptime detectors
