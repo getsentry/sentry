@@ -3,6 +3,7 @@ from unittest.mock import ANY, Mock, patch
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import NotificationDataDto
+from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -375,3 +376,93 @@ class SlackEntrypointTest(TestCase):
         call_kwargs = mock_populate_cache.call_args.kwargs
         cache_payload = call_kwargs["cache_payload"]
         assert len(cache_payload["threads"]) == 1
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_update_existing_message_removes_all_buttons_for_non_root_cause(
+        self, mock_update_message
+    ):
+        """Test that non-ROOT_CAUSE stopping points remove all buttons."""
+        self.slack_request.data = {
+            "message": {
+                "ts": self.thread_ts,
+                "text": "Issue notification",
+                "blocks": [
+                    {"type": "section", "text": {"type": "plain_text", "text": "Issue found"}},
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "action_id": "seer_autofix_start",
+                                "value": AutofixStoppingPoint.SOLUTION.value,
+                                "text": {"type": "plain_text", "text": "Plan a Solution"},
+                            },
+                            {
+                                "type": "button",
+                                "action_id": "other_action",
+                                "text": {"type": "plain_text", "text": "Other Action"},
+                            },
+                        ],
+                    },
+                ],
+            }
+        }
+
+        data = SeerAutofixUpdate(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            project_id=self.group.project.id,
+            group_id=self.group.id,
+            current_point=AutofixStoppingPoint.SOLUTION,
+            group_link=self.group.get_absolute_url(),
+            has_progressed=True,
+        )
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        update_existing_message(
+            request=self.slack_request,
+            install=install,
+            channel_id=self.channel_id,
+            message_ts=self.thread_ts,
+            data=data,
+            slack_user_id=self.slack_user_id,
+        )
+        mock_update_message.assert_called_once()
+        call_args = mock_update_message.call_args
+        renderable: SlackRenderable = call_args.kwargs["renderable"]
+        # Original section block + footer section + footer context (actions block removed entirely)
+        assert len(renderable["blocks"]) == 3
+        # No actions block with buttons
+        for block in renderable["blocks"]:
+            assert block.type != "actions"
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_update_existing_message_without_slack_user_id(self, mock_update_message):
+        """Test update_existing_message when slack_user_id is None."""
+        self.slack_request.data = {
+            "message": {
+                "ts": self.thread_ts,
+                "text": "Issue notification",
+                "blocks": [],
+            }
+        }
+
+        data = SeerAutofixUpdate(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            project_id=self.group.project.id,
+            group_id=self.group.id,
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            group_link=self.group.get_absolute_url(),
+            has_progressed=True,
+        )
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        update_existing_message(
+            request=self.slack_request,
+            install=install,
+            channel_id=self.channel_id,
+            message_ts=self.thread_ts,
+            data=data,
+            slack_user_id=None,
+        )
+
+        mock_update_message.assert_called_once()

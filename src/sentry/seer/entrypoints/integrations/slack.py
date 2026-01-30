@@ -456,7 +456,6 @@ def update_existing_message(
     )
 
     try:
-
         install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
     except (IntegrationError, TypeError, KeyError):
         logger.warning(
