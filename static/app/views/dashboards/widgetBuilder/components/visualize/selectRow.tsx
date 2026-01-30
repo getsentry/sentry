@@ -97,6 +97,25 @@ function validateParameter(
   return false;
 }
 
+export function sortSelectedFirst(
+  selectedOption: string,
+  options: Array<SelectValue<string>>
+) {
+  // Single-pass: move selected option to front while preserving order
+  const result: Array<SelectValue<string>> = [];
+  let selectedItem: SelectValue<string> | undefined;
+
+  for (const option of options) {
+    if (option.value === selectedOption) {
+      selectedItem = option;
+    } else {
+      result.push(option);
+    }
+  }
+
+  return selectedItem ? [selectedItem, ...result] : result;
+}
+
 export function SelectRow({
   field,
   index,
@@ -161,27 +180,19 @@ export function SelectRow({
     return [false, defaultColumnOptions];
   }, [defaultColumnOptions, state.dataset, field]);
 
-  const sortSelectedFirst = useCallback(
-    (selectedOption: string): Array<SelectValue<string>> => {
-      // put selected option first, preserving order, in a single pass
-      // THERE'S A BETTER WAY TO DO THIS, I'LL FIX THIS LATER
-      const result: Array<SelectValue<string>> = [];
-      let foundSelected: SelectValue<string> | undefined;
-
-      for (const option of columnOptions) {
-        if (option.value === selectedOption && !foundSelected) {
-          foundSelected = option;
-        } else {
-          result.push(option);
-        }
-      }
-      if (foundSelected) {
-        result.unshift(foundSelected);
-      }
-      return result;
-    },
-    [columnOptions]
+  const parsedFunction = useMemo(
+    () => parseFunction(stringFields?.[index] ?? ''),
+    [stringFields, index]
   );
+
+  const aggregateValue = parsedFunction?.name
+    ? getAggregateValueKey(parsedFunction.name)
+    : NONE;
+
+  const columnValue =
+    field.kind === FieldValueKind.FUNCTION
+      ? (parsedFunction?.arguments[0] ?? '')
+      : field.field;
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -189,12 +200,8 @@ export function SelectRow({
         searchable
         hasColumnParameter={hasColumnParameter}
         disabled={disabled || aggregateOptions.length <= 1}
-        options={aggregateOptions}
-        value={
-          parseFunction(stringFields?.[index] ?? '')?.name
-            ? getAggregateValueKey(parseFunction(stringFields?.[index] ?? '')?.name)
-            : NONE
-        }
+        options={sortSelectedFirst(aggregateValue, aggregateOptions)}
+        value={aggregateValue}
         position="bottom-start"
         menuFooter={
           state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
@@ -451,19 +458,8 @@ export function SelectRow({
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
             searchable
-            options={
-              field.kind === FieldValueKind.FUNCTION
-                ? sortSelectedFirst(
-                    parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? ''
-                  )
-                : sortSelectedFirst(field.field)
-              // columnOptions
-            }
-            value={
-              field.kind === FieldValueKind.FUNCTION
-                ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
-                : field.field
-            }
+            options={sortSelectedFirst(columnValue, columnOptions)}
+            value={columnValue}
             onChange={newField => {
               const newFields = cloneDeep(fields);
               const currentField = newFields[index]!;
