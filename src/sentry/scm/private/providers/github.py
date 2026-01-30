@@ -1,4 +1,5 @@
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.scm.helpers import is_rate_limited_with_allocation_policy
 from sentry.scm.types import Provider, Reaction, Referrer, Repository
 
 REACTION_MAP = {
@@ -22,7 +23,13 @@ class GitHubProvider(Provider):
         self.client = client
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
-        return False
+        return is_rate_limited_with_allocation_policy(
+            organization_id,
+            referrer,
+            provider="github",
+            window=3600,
+            allocation_policy=REFERRER_ALLOCATION,
+        )
 
     # TODO: Define contract for issue reaction response (can be None)
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[None]:

@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import cast
 
+from sentry import ratelimits
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -15,6 +16,47 @@ from sentry.scm.errors import (
 )
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
+
+
+def is_rate_limited(
+    organization_id: int,
+    referrer: Referrer,
+    provider: str,
+    limit: int,
+    window: int,
+) -> bool:
+    return ratelimits.backend.is_limited(
+        f"scm_platform.{organization_id}.{referrer}.{provider}", limit=limit, window=window
+    )
+
+
+def is_rate_limited_with_allocation_policy(
+    organization_id: int,
+    referrer: Referrer,
+    provider: str,
+    window: int,
+    allocation_policy: dict[str, int],
+) -> bool:
+    # Check if the referrer has reserved quota they have exclusive access to.
+    if referrer in allocation_policy:
+        has_allocated_space = is_rate_limited(
+            organization_id,
+            referrer,
+            provider,
+            limit=allocation_policy[referrer],
+            window=window,
+        )
+        if has_allocated_space:
+            return True
+
+    # Check if the shared pool has quota.
+    return is_rate_limited(
+        organization_id,
+        referrer,
+        provider,
+        limit=allocation_policy["shared"],
+        window=window,
+    )
 
 
 def map_integration_to_provider(
