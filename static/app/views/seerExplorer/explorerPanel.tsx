@@ -9,6 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
@@ -31,6 +32,7 @@ import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
   getExplorerUrl,
   getLangfuseUrl,
+  isSeerExplorerEnabled,
   useCopySessionDataToClipboard,
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
@@ -319,6 +321,10 @@ function ExplorerPanel() {
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
+  const conversationsUrl =
+    runId && organization?.slug
+      ? getConversationsUrl(organization.slug, runId)
+      : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -341,10 +347,11 @@ function ExplorerPanel() {
           ...(runId === null ? {} : {['seer.run_id']: runId}),
           ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
           ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+          ...(conversationsUrl ? {['conversations_url']: conversationsUrl} : {}),
         },
       });
     }
-  }, [openFeedbackForm, runId, langfuseUrl]);
+  }, [openFeedbackForm, runId, langfuseUrl, conversationsUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -588,19 +595,15 @@ function ExplorerPanel() {
       onUnminimize={handleUnminimize}
     >
       <TopBar
-        blocks={blocks}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSeerDrawerOpen={isSeerDrawerOpen}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
-        readOnly={readOnly}
-        onCreatePR={createPR}
         onFeedbackClick={handleFeedback}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
-        onPRWidgetClick={openPRWidget}
         onCopySessionClick={copySessionToClipboard}
         onCopyLinkClick={handleCopyLink}
         onSessionHistoryClick={openSessionHistory}
@@ -608,8 +611,6 @@ function ExplorerPanel() {
         isCopyLinkEnabled={!!runId}
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
-        prWidgetButtonRef={prWidgetButtonRef}
-        repoPRStates={repoPRStates}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
       />
       {menu}
@@ -699,6 +700,7 @@ function ExplorerPanel() {
         )}
       </BlocksContainer>
       <InputSection
+        blocks={blocks}
         enabled={!readOnly}
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
@@ -708,10 +710,14 @@ function ExplorerPanel() {
         isVisible={isVisible}
         wasJustInterrupted={wasJustInterrupted}
         onClear={() => setInputValue('')}
+        onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
         onInterrupt={interruptRun}
         onKeyDown={handleInputKeyDown}
+        onPRWidgetClick={openPRWidget}
+        prWidgetButtonRef={prWidgetButtonRef}
+        repoPRStates={repoPRStates}
         textAreaRef={textareaRef}
         fileApprovalActions={
           isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
@@ -740,7 +746,11 @@ function ExplorerPanel() {
     </PanelContainers>
   );
 
-  if (!organization?.features.includes('seer-explorer') || organization.hideAiFeatures) {
+  if (
+    !organization ||
+    organization.hideAiFeatures ||
+    !isSeerExplorerEnabled(organization)
+  ) {
     return null;
   }
 

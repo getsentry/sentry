@@ -63,7 +63,7 @@ function MobileTopbar() {
         icon={view === 'closed' ? <IconMenu /> : <IconClose />}
         aria-label={view === 'closed' ? t('Open main menu') : t('Close main menu')}
         size="sm"
-        borderless
+        priority="transparent"
       />
       {view === 'closed' ? null : (
         <NavigationOverlayPortal

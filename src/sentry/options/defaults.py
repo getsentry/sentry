@@ -3094,6 +3094,12 @@ register(
     default=60,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enable stuck detector to log stack traces when subprocess initialization hangs
+register(
+    "spans.buffer.flusher.use-stuck-detector",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
@@ -3106,6 +3112,14 @@ register(
 # subsegment triggers an EVALSHA call which can be slow. Set to 0 for unlimited.
 register(
     "spans.buffer.pipeline-batch-size",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of spans per EVALSHA call. Large subsegments are split into
+# chunks to avoid Lua unpack() limits. Set to 0 for unlimited.
+register(
+    "spans.buffer.max-spans-per-evalsha",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3419,6 +3433,13 @@ register(
     "workflow_engine.issue_alert.group.type_id.rollout",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.group.type_id.disable_issue_stream_detector",
+    type=Sequence,
+    default=[8001],  # MetricIssue.type_id
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

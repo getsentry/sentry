@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import hashlib
 import inspect
 import logging
 from collections.abc import Callable, Iterable, Mapping
@@ -397,6 +398,33 @@ class BaseView(View, OrganizationMixin):
         self.active_organization = determine_active_organization(request, organization_slug)
 
         if self.csrf_protect:
+            # Debug logging for CSRF issues on auth paths
+            if request.path.startswith("/auth/"):
+                csrf_cookie = request.COOKIES.get(settings.CSRF_COOKIE_NAME, "")
+                logger.info(
+                    "csrf.auth_request",
+                    extra={
+                        "path": request.path,
+                        "method": request.method,
+                        "ip_address": request.META.get("REMOTE_ADDR"),
+                        "csrf_cookie_present": bool(csrf_cookie),
+                        "csrf_cookie_hash": (
+                            hashlib.sha256(csrf_cookie.encode()).hexdigest()[:8]
+                            if csrf_cookie
+                            else None
+                        ),
+                        "session_key_hash": (
+                            hashlib.sha256(
+                                (request.session.session_key or "").encode()
+                            ).hexdigest()[:8]
+                            if hasattr(request, "session") and request.session
+                            else None
+                        ),
+                        "user_id": (
+                            getattr(request.user, "id", None) if hasattr(request, "user") else None
+                        ),
+                    },
+                )
             try:
                 del self.dispatch.__func__.csrf_exempt  # type: ignore[attr-defined]  # python/mypy#14123
             except AttributeError:

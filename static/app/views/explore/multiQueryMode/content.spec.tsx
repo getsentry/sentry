@@ -1140,7 +1140,7 @@ describe('MultiQueryModeContent', () => {
     });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
-    expect(await screen.findByText('A New Query')).toBeInTheDocument();
+    expect(await screen.findByText('New Query')).toBeInTheDocument();
   });
 
   it('highlights save button when query has changes', async () => {

@@ -82,7 +82,7 @@ export function ToolbarGroupByDropdown({
       {canDelete ? (
         <Button
           aria-label={t('Drag to reorder')}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconGrabbable size="sm" />}
           {...listeners}
@@ -107,7 +107,7 @@ export function ToolbarGroupByDropdown({
       {canDelete ? (
         <Button
           aria-label={t('Remove Column')}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnDelete()}
@@ -125,7 +125,6 @@ interface ToolbarVisualizeAddProps {
 export function ToolbarGroupByAddGroupBy({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
       size="zero"
       icon={<IconAdd />}
       onClick={add}

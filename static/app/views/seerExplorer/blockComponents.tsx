@@ -18,6 +18,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 
 import type {Block, TodoItem} from './types';
 import {
@@ -295,6 +296,10 @@ function BlockComponent({
           block_message: block.message.content.slice(0, 100),
           langfuse_url: runId ? getLangfuseUrl(runId) : undefined,
           explorer_url: runId ? getExplorerUrl(runId) : undefined,
+          conversations_url:
+            runId && organization.slug
+              ? getConversationsUrl(organization.slug, runId)
+              : undefined,
         });
         setFeedbackSubmitted(true); // disable button for rest of the session
       }
@@ -596,6 +601,24 @@ const BlockContent = styled(MarkedText)`
   h6 {
     margin: 0;
     font-size: ${p => p.theme.font.size.lg};
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: ${p => p.theme.space.md} 0;
+  }
+
+  th,
+  td {
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+    text-align: left;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+
+  th {
+    background: ${p => p.theme.tokens.background.secondary};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   p:first-child,

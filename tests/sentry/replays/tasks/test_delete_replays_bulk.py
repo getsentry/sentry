@@ -296,12 +296,20 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         first_call = mock_make_seer_api_request.call_args_list[0]
         assert first_call[1]["path"] == SEER_DELETE_SUMMARIES_ENDPOINT_PATH
         request_body = json.loads(first_call[1]["body"].decode())
-        assert request_body == {"replay_ids": ["a", "b"]}
+        assert request_body == {
+            "replay_ids": ["a", "b"],
+            "organization_id": self.job.organization_id,
+            "project_id": self.job.project_id,
+        }
 
         second_call = mock_make_seer_api_request.call_args_list[1]
         assert second_call[1]["path"] == SEER_DELETE_SUMMARIES_ENDPOINT_PATH
         request_body = json.loads(second_call[1]["body"].decode())
-        assert request_body == {"replay_ids": ["c"]}
+        assert request_body == {
+            "replay_ids": ["c"],
+            "organization_id": self.job.organization_id,
+            "project_id": self.job.project_id,
+        }
 
     @patch("requests.post")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")

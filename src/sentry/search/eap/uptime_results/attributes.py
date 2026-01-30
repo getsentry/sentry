@@ -84,6 +84,11 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="assertion_failure_data",
+            internal_name="assertion_failure_data",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="method",
             internal_name="method",
             search_type="string",

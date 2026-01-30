@@ -515,7 +515,7 @@ export function Control({
                         <ClearButton
                           onClick={() => onClear?.({overlayState})}
                           size="zero"
-                          borderless
+                          priority="transparent"
                         >
                           {t('Clear')}
                         </ClearButton>
