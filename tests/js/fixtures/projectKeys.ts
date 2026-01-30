@@ -45,6 +45,8 @@ export function ProjectKeysFixture(params: ProjectKey[] = []): ProjectKey[] {
         hasFeedback: false,
         hasPerformance: false,
         hasReplay: false,
+        hasDebug: false,
+        hasLogsAndMetrics: false,
       },
     },
     ...params,

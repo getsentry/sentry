@@ -85,6 +85,8 @@ export async function updateDynamicSdkLoaderOptions({
           hasPerformance: products.includes(ProductSolution.PERFORMANCE_MONITORING),
           hasReplay: products.includes(ProductSolution.SESSION_REPLAY),
           hasDebug: false,
+          hasFeedback: false,
+          hasLogsAndMetrics: false,
         },
       },
     });
