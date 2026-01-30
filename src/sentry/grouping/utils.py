@@ -64,8 +64,9 @@ def bool_from_string(value: str) -> bool | None:
 
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(message: str, event: Event) -> str:
-    """Replace values from a group's message with placeholders (to hide P.I.I. and
-    improve grouping when no stacktrace is available) and trim to at most 2 lines.
+    """
+    Replace values from a event's message with placeholders (in order to improve grouping) and trim
+    to at most 2 lines.
     """
     trimmed = "\n".join(
         # If there are multiple lines, grab the first two non-empty ones.
