@@ -199,7 +199,9 @@ describe('projectContext component', () => {
 
   it('calls navigateTo when projectSlug is :projectId', () => {
     const navigateRouter = RouterFixture({
-      location: {pathname: '/settings/projects/:projectId/filters/data-filters/'},
+      location: {
+        pathname: '/settings/org-slug/projects/:projectId/filters/data-filters/',
+      },
     });
     render(
       <ProjectContextProvider
@@ -215,7 +217,7 @@ describe('projectContext component', () => {
     );
 
     expect(navigateTo).toHaveBeenCalledWith(
-      {pathname: '/settings/projects/:projectId/filters/data-filters/'},
+      {pathname: '/settings/org-slug/projects/:projectId/filters/data-filters/'},
       navigateRouter
     );
   });
