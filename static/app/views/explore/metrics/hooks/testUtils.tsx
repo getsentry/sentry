@@ -1,16 +1,32 @@
 import type {ReactNode} from 'react';
 
-import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  defaultMetricQuery,
+  type BaseMetricQuery,
+  type TraceMetric,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
-export function MockMetricQueryParamsContext({children}: {children: ReactNode}) {
-  const mockQueryParams = defaultMetricQuery();
+interface MockMetricQueryParamsContextProps {
+  children: ReactNode;
+  metricQuery?: Partial<BaseMetricQuery>;
+  traceMetric?: TraceMetric;
+}
+
+export function MockMetricQueryParamsContext({
+  children,
+  metricQuery,
+  traceMetric = {name: 'mockMetric', type: 'counter'},
+}: MockMetricQueryParamsContextProps) {
+  const defaultQuery = defaultMetricQuery();
+  const queryParams = metricQuery?.queryParams ?? defaultQuery.queryParams;
+
   return (
     <MultiMetricsQueryParamsProvider>
       <MetricsQueryParamsProvider
-        traceMetric={{name: 'mockMetric', type: 'counter'}}
-        queryParams={mockQueryParams.queryParams}
+        traceMetric={traceMetric}
+        queryParams={queryParams}
         setQueryParams={() => {}}
         setTraceMetric={() => {}}
         removeMetric={() => {}}
