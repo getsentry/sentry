@@ -686,6 +686,7 @@ class TestTaintTracking(BaseWorkflowTest):
         assert stats == EvaluationStats(tainted=0, untainted=0)
 
     def test_trigger_stats_untainted_not_triggered(self) -> None:
+        assert self.workflow.when_condition_group
         self.workflow.when_condition_group.conditions.all().delete()
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
