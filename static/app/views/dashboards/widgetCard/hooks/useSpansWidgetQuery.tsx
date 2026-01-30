@@ -24,7 +24,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey, UseQueryResult} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
@@ -36,6 +36,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {combineQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -52,17 +53,6 @@ type SpansTableResponse = TableData | EventsTableData;
  */
 // Stable empty array to prevent infinite rerenders
 const EMPTY_ARRAY: any[] = [];
-
-function combineQueryResults(
-  results: Array<UseQueryResult<ApiResult<SpansSeriesResponse>, Error>>
-) {
-  return {
-    isFetching: results.some(q => q?.isFetching),
-    allHaveData: results.every(q => q?.data?.[0]),
-    errorMessage: results.find(q => q?.error)?.error?.message,
-    queryData: results.map(q => q.data),
-  };
-}
 
 export function useSpansSeriesQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}

@@ -1,4 +1,5 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
+import type {UseQueryResult} from '@tanstack/react-query';
 import {useQueries} from '@tanstack/react-query';
 
 import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
@@ -22,6 +23,17 @@ import {getReleasesRequestData} from './utils/releases';
 
 const EMPTY_ARRAY: any[] = [];
 
+function combineQueryResultsWithRequestError<T>(
+  results: Array<UseQueryResult<ApiResult<T>, Error>>
+) {
+  return {
+    isFetching: results.some(q => q?.isFetching),
+    allHaveData: results.every(q => q?.data?.[0]),
+    firstError: results.find(q => q?.error)?.error as RequestError | undefined,
+    queryData: results.map(q => q.data),
+  };
+}
+
 export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQueryResult {
   const {
     widget,
@@ -34,7 +46,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
   const api = useApi();
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(() => {
     return applyDashboardFiltersToWidget(
@@ -126,7 +137,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     [api, queue]
   );
 
-  const queryResults = useQueries({
+  const {isFetching, allHaveData, firstError, queryData} = useQueries({
     queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
       queryKey,
       queryFn: createQueryFn(useSessionAPI),
@@ -142,9 +153,10 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
+    combine: combineQueryResultsWithRequestError,
   });
 
-  const transformedData = (() => {
+  const transformedData = useMemo(() => {
     if (validationError) {
       return {
         loading: false,
@@ -153,15 +165,12 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       };
     }
 
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
-    const errorMessage = error
-      ? error.responseJSON?.detail
-        ? typeof error.responseJSON.detail === 'string'
-          ? error.responseJSON.detail
-          : error.responseJSON.detail.message
-        : error.message || t('An unknown error occurred.')
+    const errorMessage = firstError
+      ? firstError.responseJSON?.detail
+        ? typeof firstError.responseJSON.detail === 'string'
+          ? firstError.responseJSON.detail
+          : firstError.responseJSON.detail.message
+        : firstError.message || t('An unknown error occurred.')
       : undefined;
 
     if (!allHaveData || isFetching) {
@@ -176,12 +185,12 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     const timeseriesResults: Series[] = [];
     const rawData: SessionApiResponse[] = [];
 
-    queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, requestIndex) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = data[0];
       rawData[requestIndex] = responseData;
 
       const transformedResult = ReleasesConfig.transformSeries?.(
@@ -199,27 +208,22 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       });
     });
 
-    // Memoize raw data to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       tableResults: undefined,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [
+    validationError,
+    isFetching,
+    allHaveData,
+    firstError,
+    queryData,
+    filteredWidget,
+    organization,
+  ]);
 
   return transformedData;
 }
@@ -238,7 +242,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
   const api = useApi();
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(() => {
     return applyDashboardFiltersToWidget(
@@ -318,7 +321,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     [api, queue]
   );
 
-  const queryResults = useQueries({
+  const {isFetching, allHaveData, firstError, queryData} = useQueries({
     queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
       queryKey,
       queryFn: createQueryFn(useSessionAPI),
@@ -334,9 +337,10 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
+    combine: combineQueryResultsWithRequestError,
   });
 
-  const transformedData = (() => {
+  const transformedData = useMemo(() => {
     if (validationError) {
       return {
         loading: false,
@@ -345,15 +349,12 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       };
     }
 
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const error = queryResults.find(q => q?.error)?.error as RequestError | undefined;
-    const errorMessage = error
-      ? error.responseJSON?.detail
-        ? typeof error.responseJSON.detail === 'string'
-          ? error.responseJSON.detail
-          : error.responseJSON.detail.message
-        : error.message || t('An unknown error occurred.')
+    const errorMessage = firstError
+      ? firstError.responseJSON?.detail
+        ? typeof firstError.responseJSON.detail === 'string'
+          ? firstError.responseJSON.detail
+          : firstError.responseJSON.detail.message
+        : firstError.message || t('An unknown error occurred.')
       : undefined;
 
     if (!allHaveData || isFetching) {
@@ -369,13 +370,13 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     const rawData: SessionApiResponse[] = [];
     let responsePageLinks: string | undefined;
 
-    queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, i) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = data[0];
+      const responseMeta = data[2];
       rawData[i] = responseData;
 
       const tableData = ReleasesConfig.transformTable?.(
@@ -400,28 +401,24 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
     });
 
-    // Memoize raw data to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       timeseriesResults: undefined,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [
+    validationError,
+    isFetching,
+    allHaveData,
+    firstError,
+    queryData,
+    filteredWidget,
+    organization,
+    pageFilters,
+  ]);
 
   return transformedData;
 }
