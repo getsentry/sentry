@@ -326,8 +326,8 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/7.37.0/bundle.feedback.debug.min.js",
                 {"dsn": dsn, "debug": True, "autoInjectFeedback": True},
             ),
-            # Note: There is no bundle.tracing.feedback or bundle.replay.feedback.
-            # When feedback is combined with tracing or replay, we serve the full bundle.
+            # Note: There is no bundle.tracing.feedback.
+            # When feedback is combined with tracing (but not replay), we serve the full bundle.
             # Even though the full bundle includes replay, we should NOT enable replay config
             # because the user didn't explicitly enable replay.
             (
@@ -340,10 +340,11 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/7.37.0/bundle.tracing.replay.feedback.min.js",
                 {
                     "dsn": dsn,
-                    "tracesSampleRate": 1,
+                    "tracesSampleRate": 1,  # User explicitly enabled tracing
                     "autoInjectFeedback": True,
                 },
             ),
+            # Note: bundle.replay.feedback DOES exist, so we don't need to force tracing
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -351,10 +352,9 @@ class JavaScriptSdkLoaderTest(TestCase):
                         DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
                     }
                 },
-                b"/7.37.0/bundle.tracing.replay.feedback.min.js",
+                b"/7.37.0/bundle.replay.feedback.min.js",
                 {
                     "dsn": dsn,
-                    "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
                     "autoInjectFeedback": True,
@@ -457,17 +457,17 @@ class JavaScriptSdkLoaderTest(TestCase):
         dsn = self.projectkey.get_dsn(public=True)
 
         for data, expected_bundle, expected_options in [
-            # Logs and metrics alone (should include tracing)
+            # Logs and metrics alone (no tracing required, bundle.logs.metrics exists)
             (
                 {
                     "dynamicSdkLoaderOptions": {
                         DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
                     }
                 },
-                b"/10.0.0/bundle.tracing.logs.metrics.min.js",
-                {"dsn": dsn, "tracesSampleRate": 1, "enableLogs": True},
+                b"/10.0.0/bundle.logs.metrics.min.js",
+                {"dsn": dsn, "enableLogs": True},
             ),
-            # Logs and metrics with performance (same as above, tracing already included)
+            # Logs and metrics with performance (user explicitly enables tracing)
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -478,7 +478,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/10.0.0/bundle.tracing.logs.metrics.min.js",
                 {"dsn": dsn, "tracesSampleRate": 1, "enableLogs": True},
             ),
-            # Logs and metrics with debug
+            # Logs and metrics with debug (no tracing required)
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -486,10 +486,10 @@ class JavaScriptSdkLoaderTest(TestCase):
                         DynamicSdkLoaderOption.HAS_DEBUG.value: True,
                     }
                 },
-                b"/10.0.0/bundle.tracing.logs.metrics.debug.min.js",
-                {"dsn": dsn, "tracesSampleRate": 1, "debug": True, "enableLogs": True},
+                b"/10.0.0/bundle.logs.metrics.debug.min.js",
+                {"dsn": dsn, "debug": True, "enableLogs": True},
             ),
-            # Logs and metrics with replay (should use full bundle)
+            # Logs and metrics with replay (bundle.replay.logs.metrics exists, no tracing required)
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -497,7 +497,24 @@ class JavaScriptSdkLoaderTest(TestCase):
                         DynamicSdkLoaderOption.HAS_REPLAY.value: True,
                     }
                 },
-                b"/10.0.0/bundle.tracing.replay.feedback.logs.metrics.min.js",
+                b"/10.0.0/bundle.replay.logs.metrics.min.js",
+                {
+                    "dsn": dsn,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                    "enableLogs": True,
+                },
+            ),
+            # Logs and metrics with tracing and replay (bundle.tracing.replay.logs.metrics exists)
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.tracing.replay.logs.metrics.min.js",
                 {
                     "dsn": dsn,
                     "tracesSampleRate": 1,
@@ -507,8 +524,9 @@ class JavaScriptSdkLoaderTest(TestCase):
                 },
             ),
             # Logs and metrics with feedback (should use full bundle)
-            # Note: Even though the full bundle includes replay, we should NOT enable replay config
-            # because the user didn't explicitly enable replay.
+            # Note: There's no bundle.feedback.logs.metrics, so we must use full bundle.
+            # Even though the full bundle includes tracing and replay, we should NOT enable
+            # their configs because the user didn't explicitly enable them.
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -519,12 +537,32 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/10.0.0/bundle.tracing.replay.feedback.logs.metrics.min.js",
                 {
                     "dsn": dsn,
-                    "tracesSampleRate": 1,
                     "autoInjectFeedback": True,
                     "enableLogs": True,
                 },
             ),
-            # Logs and metrics with replay and feedback (full bundle)
+            # Logs and metrics with tracing and feedback (full bundle, replay not explicitly enabled)
+            # Note: There's no bundle.tracing.feedback.logs.metrics, so we must use full bundle.
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.tracing.replay.feedback.logs.metrics.min.js",
+                {
+                    "dsn": dsn,
+                    "tracesSampleRate": 1,  # User explicitly enabled tracing
+                    "autoInjectFeedback": True,
+                    "enableLogs": True,
+                },
+            ),
+            # Logs and metrics with replay and feedback (full bundle required)
+            # Note: There's no bundle.replay.feedback.logs.metrics
+            # Even though the full bundle includes tracing, we should NOT enable
+            # tracesSampleRate because the user didn't explicitly enable it.
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -536,7 +574,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/10.0.0/bundle.tracing.replay.feedback.logs.metrics.min.js",
                 {
                     "dsn": dsn,
-                    "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
                     "autoInjectFeedback": True,

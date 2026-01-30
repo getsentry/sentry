@@ -42,8 +42,10 @@ class LoaderInternalConfig(TypedDict):
     hasDebug: bool
     hasFeedback: bool
     hasLogsAndMetrics: bool
+    userEnabledPerformance: bool
     userEnabledReplay: bool
     userEnabledFeedback: bool
+    userEnabledLogsAndMetrics: bool
 
 
 class LoaderContext(TypedDict):
@@ -69,8 +71,10 @@ class JavaScriptSdkLoader(View):
                 "hasDebug": False,
                 "hasFeedback": False,
                 "hasLogsAndMetrics": False,
+                "userEnabledPerformance": False,
                 "userEnabledReplay": False,
                 "userEnabledFeedback": False,
+                "userEnabledLogsAndMetrics": False,
             }
 
         is_v7_sdk = sdk_version >= Version("7.0.0") and sdk_version < Version("8.0.0")
@@ -89,44 +93,52 @@ class JavaScriptSdkLoader(View):
 
         # Store the user's original preferences before we modify them for bundle selection.
         # We only want to enable features that the user explicitly requested.
+        user_enabled_performance = has_performance
         user_enabled_replay = has_replay
         user_enabled_feedback = has_feedback
+        user_enabled_logs_and_metrics = has_logs_and_metrics
 
         # The order in which these modifiers are added is important, as the
         # bundle name is built up from left to right.
         # https://docs.sentry.io/platforms/javascript/install/cdn/
 
-        # Available bundles: bundle, bundle.tracing, bundle.replay, bundle.feedback,
-        # bundle.tracing.replay, bundle.tracing.replay.feedback
-        # Note: There is NO bundle.tracing.feedback or bundle.replay.feedback.
-        # If feedback is combined with tracing or replay, we must use the full bundle.
+        # Available bundles:
+        # - bundle (base)
+        # - bundle.feedback
+        # - bundle.logs.metrics
+        # - bundle.replay
+        # - bundle.replay.feedback
+        # - bundle.replay.logs.metrics
+        # - bundle.tracing
+        # - bundle.tracing.logs.metrics
+        # - bundle.tracing.replay
+        # - bundle.tracing.replay.feedback
+        # - bundle.tracing.replay.feedback.logs.metrics
+        # - bundle.tracing.replay.logs.metrics
+        #
+        # Note: There is NO bundle.tracing.feedback (tracing + feedback without replay).
+        # If feedback is combined with tracing (without replay), we must use the full bundle.
+        #
+        # Note: There is NO bundle.feedback.logs.metrics, bundle.tracing.feedback.logs.metrics,
+        # or bundle.replay.feedback.logs.metrics. If feedback is combined with logs+metrics,
+        # we must use the full bundle (tracing.replay.feedback.logs.metrics).
 
         # Feedback bundles require SDK >= 7.85.0, but the frontend only allows selecting
         # major versions (7.x, 8.x), which resolve to versions that support feedback.
-        feedback_with_other_features = has_feedback and (has_performance or has_replay)
 
-        # When feedback is combined with tracing or replay, we must serve the full bundle
-        # which includes all three features. Update the flags accordingly for bundle selection.
-        if is_greater_or_equal_v7_sdk and feedback_with_other_features:
-            has_performance = True
+        # When feedback is combined with tracing (but not replay), we must serve the full bundle
+        # which includes tracing, replay, and feedback. Update the flags accordingly.
+        feedback_with_tracing_no_replay = has_feedback and has_performance and not has_replay
+        if is_greater_or_equal_v7_sdk and feedback_with_tracing_no_replay:
             has_replay = True
 
-        # Logs and metrics bundles require SDK >= 10.0.0 and tracing
-        # Available bundles: bundle.tracing.logs.metrics, bundle.tracing.replay.feedback.logs.metrics
-        # If logs+metrics is combined with replay or feedback, we must use the full bundle.
-        logs_metrics_with_other_features = has_logs_and_metrics and (has_replay or has_feedback)
-
-        # When logs+metrics is combined with replay or feedback, we must serve the full bundle
-        # which includes tracing, replay, feedback, logs, and metrics. Update the flags accordingly
-        # for bundle selection, but we won't enable features the user didn't explicitly request.
-        if is_greater_or_equal_v10_sdk and logs_metrics_with_other_features:
+        # Logs and metrics bundles require SDK >= 10.0.0.
+        # When logs+metrics is combined with feedback, we must serve the full bundle
+        # (tracing.replay.feedback.logs.metrics) because there's no feedback.logs.metrics bundle.
+        logs_metrics_with_feedback = has_logs_and_metrics and has_feedback
+        if is_greater_or_equal_v10_sdk and logs_metrics_with_feedback:
             has_performance = True
             has_replay = True
-            has_feedback = True
-
-        # Logs and metrics always require tracing (performance)
-        if is_greater_or_equal_v10_sdk and has_logs_and_metrics:
-            has_performance = True
 
         # We depend on fixes in the tracing bundle that are only available in v7
         if is_greater_or_equal_v7_sdk and has_performance:
@@ -148,6 +160,7 @@ class JavaScriptSdkLoader(View):
         else:
             # If SDK < 10.0.0, disable logs+metrics feature even if user requested it
             has_logs_and_metrics = False
+            user_enabled_logs_and_metrics = False
 
         # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
@@ -168,8 +181,10 @@ class JavaScriptSdkLoader(View):
             "hasDebug": has_debug,
             "hasFeedback": has_feedback,
             "hasLogsAndMetrics": has_logs_and_metrics,
+            "userEnabledPerformance": user_enabled_performance,
             "userEnabledReplay": user_enabled_replay,
             "userEnabledFeedback": user_enabled_feedback,
+            "userEnabledLogsAndMetrics": user_enabled_logs_and_metrics,
         }
 
     def _get_context(
@@ -209,21 +224,19 @@ class JavaScriptSdkLoader(View):
         if loader_config["hasDebug"]:
             config["debug"] = True
 
-        if loader_config["hasPerformance"]:
+        # Only enable feature configs if the user explicitly enabled them, not just because
+        # we're loading a bundle that includes those features for compatibility reasons.
+        if loader_config["userEnabledPerformance"]:
             config["tracesSampleRate"] = 1
 
-        # Only enable replay config if the user explicitly enabled it, not just because
-        # we're loading a bundle that includes replay for other features.
         if loader_config["userEnabledReplay"]:
             config["replaysSessionSampleRate"] = 0.1
             config["replaysOnErrorSampleRate"] = 1
 
-        # Only auto-inject feedback if the user explicitly enabled it, not just because
-        # we're loading a bundle that includes feedback for other features.
         if loader_config["userEnabledFeedback"]:
             config["autoInjectFeedback"] = True
 
-        if loader_config["hasLogsAndMetrics"]:
+        if loader_config["userEnabledLogsAndMetrics"]:
             config["enableLogs"] = True
 
         return (
