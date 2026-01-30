@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import documentation from '!!type-loader!sentry/views/dashboards/widgets/categoricalSeriesWidget/CategoricalSeriesWidgetVisualization';
+import documentation from '!!type-loader!sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
