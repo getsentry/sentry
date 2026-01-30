@@ -30,9 +30,8 @@ from sentry.grouping.strategies.base import (
     call_with_variants,
     strategy,
 )
-from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
-from sentry.grouping.utils import hash_from_values
+from sentry.grouping.utils import hash_from_values, normalize_message_for_grouping
 from sentry.interfaces.exception import Exception as ChainedException
 from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
