@@ -135,6 +135,7 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.preprod.grouptype import PreprodStaticGroupType
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
@@ -341,7 +342,8 @@ DEFAULT_EVENT_DATA = {
 }
 
 default_detector_config_data = {
-    MetricIssue.slug: {"threshold_period": 1, "detection_type": "static"}
+    MetricIssue.slug: {"threshold_period": 1, "detection_type": "static"},
+    PreprodStaticGroupType.slug: {},
 }
 
 

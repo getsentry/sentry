@@ -44,6 +44,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.preprod.grouptype import PreprodStaticGroupType
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -117,6 +118,7 @@ DETECTOR_TYPE_ALIASES = {
     "metric": MetricIssue.slug,
     "uptime": UptimeDomainCheckFailure.slug,
     "cron": MonitorIncidentType.slug,
+    "preprod": PreprodStaticGroupType.slug,
 }
 
 
@@ -323,11 +325,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
 
+        print("+post")
         # Restrict creating metric issue detectors by plan type
-        if detector_type == MetricIssue.slug and not features.has(
-            "organizations:incidents", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
+        # if detector_type == MetricIssue.slug and not features.has(
+        #    "organizations:incidents", organization, actor=request.user
+        # ):
+        #    print("+checkplan")
+        #    raise ResourceDoesNotExist
 
         project_id = request.data.get("projectId")
         if not project_id:
