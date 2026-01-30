@@ -141,8 +141,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         first_block_id = cls.create_first_block_id(group_id=data.group_id, run_id=data.run_id)
         link_button = cls._render_link_button(data=data)
         action_elements: list[InteractiveElement] = []
-        if not data.has_progressed and data.current_point != AutofixStoppingPoint.OPEN_PR:
+        if not data.has_progressed:
             action_elements.append(link_button)
+        if not data.has_progressed and data.current_point != AutofixStoppingPoint.OPEN_PR:
             action_elements.append(
                 cls.render_autofix_button(data=SeerAutofixTrigger.from_update(data))
             )
@@ -203,7 +204,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def render_footer_blocks(
-        cls, data: SeerAutofixUpdate, extra_text: str | None = None
+        cls,
+        data: SeerAutofixUpdate,
+        extra_text: str | None = None,
     ) -> list[Block]:
         markdown_text = (
             f"_{data.working_text}_\n_{extra_text}_" if extra_text else f"_{data.working_text}_"
