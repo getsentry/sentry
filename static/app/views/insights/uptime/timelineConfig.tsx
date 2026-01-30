@@ -27,7 +27,7 @@ export const reasonToText: Record<
 > = {
   [CheckStatusReason.FAILURE]: check => {
     if (check.assertionFailureData) {
-      return t('Assertion Failed');
+      return t('Assertions Failed');
     }
 
     // TODO(epurkhiser): Not all failures include a HTTP status code, we
