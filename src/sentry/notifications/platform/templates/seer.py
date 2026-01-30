@@ -67,16 +67,16 @@ class SeerAutofixUpdate(NotificationData):
     source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_UPDATE
 
     @property
-    def working_text(self) -> str:
+    def next_point(self) -> AutofixStoppingPoint | None:
         match self.current_point:
             case AutofixStoppingPoint.ROOT_CAUSE:
-                return "Seer is analyzing the root cause..."
+                return AutofixStoppingPoint.SOLUTION
             case AutofixStoppingPoint.SOLUTION:
-                return "Seer is working on the solution..."
+                return AutofixStoppingPoint.CODE_CHANGES
             case AutofixStoppingPoint.CODE_CHANGES:
-                return "Seer is writing code..."
+                return AutofixStoppingPoint.OPEN_PR
             case AutofixStoppingPoint.OPEN_PR:
-                return "Seer is drafting a pull request..."
+                return None
 
 
 @template_registry.register(SeerAutofixUpdate.source)
@@ -132,18 +132,6 @@ class SeerAutofixTrigger(NotificationData):
     run_id: int | None = None
     source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_TRIGGER
     stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
-
-    @property
-    def label(self) -> str:
-        match self.stopping_point:
-            case AutofixStoppingPoint.ROOT_CAUSE:
-                return "Fix with Seer"
-            case AutofixStoppingPoint.SOLUTION:
-                return "Plan a Solution"
-            case AutofixStoppingPoint.CODE_CHANGES:
-                return "Write Code Changes"
-            case AutofixStoppingPoint.OPEN_PR:
-                return "Draft a PR"
 
     @staticmethod
     def from_update(update: SeerAutofixUpdate) -> SeerAutofixTrigger:

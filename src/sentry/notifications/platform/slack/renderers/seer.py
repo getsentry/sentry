@@ -30,39 +30,30 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 
 class AutofixStageConfig(TypedDict):
     heading: str
-    forward_text: str | None
-    past_steps: list[str]
+    label: str
+    working_text: str | None
 
 
 AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
-        forward_text="Seer is working on the solution...",
-        past_steps=[":hourglass: analyzing the root cause..."],
+        label="Fix with Seer",
+        working_text="Seer is analyzing the root cause...",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
         heading=":test_tube:  *Proposed Solution*",
-        forward_text="Seer is writing the code...",
-        past_steps=[":white_check_mark: root cause analyzed", ":hourglass: planning solution..."],
+        label="Plan a Solution",
+        working_text="Seer is working on the solution...",
     ),
     AutofixStoppingPoint.CODE_CHANGES: AutofixStageConfig(
         heading=":pencil2:  *Code Change Suggestions*",
-        forward_text="Seer is drafting a pull request...",
-        past_steps=[
-            ":white_check_mark: root cause analyzed",
-            ":white_check_mark: solution planned",
-            ":hourglass: generating code changes...",
-        ],
+        label="Write Code Changes",
+        working_text="Seer is writing the code...",
     ),
     AutofixStoppingPoint.OPEN_PR: AutofixStageConfig(
         heading=":link:  *Pull Request*",
-        forward_text=None,
-        past_steps=[
-            ":white_check_mark: root cause analyzed",
-            ":white_check_mark: solution planned",
-            ":white_check_mark: code changes generated",
-            ":hourglass: drafting the pull request...",
-        ],
+        label="Draft a PR",
+        working_text="Seer is drafting a pull request...",
     ),
 }
 
@@ -98,7 +89,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.integrations.slack.message_builder.types import SlackAction
 
         return ButtonElement(
-            text=data.label,
+            text=AUTOFIX_CONFIG[data.stopping_point]["label"],
             style="primary",
             value=data.stopping_point.value,
             action_id=encode_action_id(
@@ -115,7 +106,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 SectionBlock(text=data.error_title),
                 SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
             ],
-            text="Seer Autofix Error",
+            text=f"Error while Seer was attempting a fix: {data.error_title}",
         )
 
     @classmethod
@@ -170,7 +161,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
         if data.has_progressed and data.current_point != AutofixStoppingPoint.OPEN_PR:
             blocks.extend(cls.render_footer_blocks(data=data))
-        return SlackRenderable(blocks=blocks, text="Seer Autofix Update")
+        return SlackRenderable(blocks=blocks, text="Seer has an update on fixing the issue!")
 
     @classmethod
     def _render_link_button(cls, data: SeerAutofixUpdate) -> LinkButtonElement:
@@ -194,16 +185,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         extra_text: str | None = None,
         stage_completed: bool = True,
     ) -> list[Block]:
-        if stage_completed:
-            config = AUTOFIX_CONFIG.get(data.current_point)
-            working_text = config["forward_text"] if config else None
-        else:
-            working_text = data.working_text
-
-        if not working_text:
+        rendered_point = data.next_point if stage_completed else data.current_point
+        if not rendered_point:
             return []
-
-        markdown_text = f"_{working_text}_\n_{extra_text}_" if extra_text else f"_{working_text}_"
+        config = AUTOFIX_CONFIG[rendered_point]
+        markdown_text = (
+            f"_{config['working_text']}_\n_{extra_text}_"
+            if extra_text
+            else f"_{config['working_text']}_"
+        )
         return [
             SectionBlock(
                 text=MarkdownTextObject(text=markdown_text),
