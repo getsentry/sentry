@@ -38,6 +38,8 @@ class GroupOpenPeriodActivity(DefaultFieldsModel):
     # The priority associated with this activity row.
     # Can be None if the row corresponds to open period closure.
     value = models.IntegerField(null=True)
+    # The event ID that triggered this activity
+    event_id = models.CharField(max_length=32, null=True)
     notification_uuid = models.UUIDField("notification_uuid", default=generate_random_uuid)
 
     class Meta:
