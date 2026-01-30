@@ -101,11 +101,13 @@ export default Storybook.story('BarChartWidgetVisualization', (story, APIReferen
 }`}
         </CodeBlock>
 
-        <MediumWidget>
-          <BarChartWidgetVisualization
-            plottables={[new Bars(sampleCountCategoricalData)]}
-          />
-        </MediumWidget>
+        <div>
+          <MediumWidget>
+            <BarChartWidgetVisualization
+              plottables={[new Bars(sampleCountCategoricalData)]}
+            />
+          </MediumWidget>
+        </div>
       </Fragment>
     );
   });
