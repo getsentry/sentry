@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {StyledButton} from '@sentry/scraps/button';
 
-// eslint-disable-next-line boundaries/element-types
 import type {SpaceSize} from 'sentry/utils/theme';
 
 interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {

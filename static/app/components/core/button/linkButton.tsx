@@ -5,7 +5,6 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-// eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
