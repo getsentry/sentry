@@ -7,7 +7,6 @@ from typing import Any
 
 from urllib3.exceptions import HTTPError
 
-from sentry import options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -98,9 +97,8 @@ def process_github_webhook_event(
     try:
         path = get_seer_endpoint_for_event(github_event).value
 
-        # Validate payload with Pydantic if enabled (except for CHECK_RUN events which use minimal payload)
-        should_validate = options.get("seer.code_review.validate_webhook_payload", False)
-        if should_validate and github_event != GithubWebhookType.CHECK_RUN:
+        # Validate payload with Pydantic (except for CHECK_RUN events which use minimal payload)
+        if github_event != GithubWebhookType.CHECK_RUN:
             # Parse with appropriate model based on request type to enforce
             # organization_id and integration_id requirements for PR closed
             request_type = event_payload.get("request_type")
