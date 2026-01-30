@@ -1,4 +1,5 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -109,4 +110,123 @@ describe('CreateIssueViewModal', () => {
       })
     );
   }, 10_000);
+
+  describe('AI title generation', () => {
+    const aiTitleProps = {
+      Body: ModalBody,
+      Header: makeClosableHeader(jest.fn()),
+      Footer: ModalFooter,
+      CloseButton: makeCloseButton(jest.fn()),
+      closeModal: jest.fn(),
+      analyticsSurface: 'issues-feed' as const,
+    };
+
+    it('generates title when feature flag is enabled and query exists', async () => {
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'My Unresolved Errors'},
+      });
+
+      const organization = OrganizationFixture({
+        features: ['issue-view-ai-title'],
+      });
+
+      render(
+        <CreateIssueViewModal {...aiTitleProps} query="is:unresolved level:error" />,
+        {
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(mockGenerateTitle).toHaveBeenCalledWith(
+          '/organizations/org-slug/issue-view-title/generate/',
+          expect.objectContaining({
+            method: 'POST',
+            data: {query: 'is:unresolved level:error'},
+          })
+        );
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue(
+          'My Unresolved Errors'
+        );
+      });
+    });
+
+    it('does not generate title when feature flag is disabled', () => {
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated Title'},
+      });
+
+      const organization = OrganizationFixture({
+        features: [],
+      });
+
+      render(<CreateIssueViewModal {...aiTitleProps} query="is:unresolved" />, {
+        organization,
+      });
+
+      expect(mockGenerateTitle).not.toHaveBeenCalled();
+    });
+
+    it('does not generate title when no query is provided', () => {
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated Title'},
+      });
+
+      const organization = OrganizationFixture({
+        features: ['issue-view-ai-title'],
+      });
+
+      render(<CreateIssueViewModal {...aiTitleProps} />, {organization});
+
+      expect(mockGenerateTitle).not.toHaveBeenCalled();
+    });
+
+    it('uses incoming name when provided and feature flag disabled', () => {
+      const organization = OrganizationFixture({
+        features: [],
+      });
+
+      render(<CreateIssueViewModal {...aiTitleProps} name="My Custom View" />, {
+        organization,
+      });
+
+      expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('My Custom View');
+    });
+
+    it('prefers generated name over incoming name', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'AI Generated Title'},
+      });
+
+      const organization = OrganizationFixture({
+        features: ['issue-view-ai-title'],
+      });
+
+      render(
+        <CreateIssueViewModal
+          {...aiTitleProps}
+          query="is:unresolved"
+          name="Incoming Name"
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue(
+          'AI Generated Title'
+        );
+      });
+    });
+  });
 });

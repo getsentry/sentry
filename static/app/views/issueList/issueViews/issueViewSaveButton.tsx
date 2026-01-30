@@ -25,6 +25,7 @@ import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useI
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
+import {useGenerateIssueViewTitle} from 'sentry/views/issueList/queries/useGenerateIssueViewTitle';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type IssueViewSaveButtonProps = {
@@ -34,8 +35,10 @@ type IssueViewSaveButtonProps = {
 
 function SegmentedIssueViewSaveButton({
   openCreateIssueViewModal,
+  query,
 }: {
   openCreateIssueViewModal: () => void;
+  query: string;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -44,10 +47,15 @@ function SegmentedIssueViewSaveButton({
   const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
+  const {mutateAsync: generateTitle} = useGenerateIssueViewTitle();
   const user = useUser();
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
+  const hasAiTitleFeature = organization.features.includes('issue-view-ai-title');
+  const isNewView = location.query.new === 'true';
+  const hasDefaultName = view?.name === 'New View';
+
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -58,18 +66,35 @@ function SegmentedIssueViewSaveButton({
     }
   };
 
-  const saveView = () => {
+  const saveView = async () => {
     if (view) {
       trackAnalytics('issue_views.save.clicked', {organization});
+
+      let name = view.name;
+      if ((isNewView || hasDefaultName) && hasAiTitleFeature && query) {
+        try {
+          const result = await generateTitle({query});
+          name = result.title;
+        } catch {
+          // Fall back to existing name if generation fails
+        }
+      }
+
       updateGroupSearchView(
         {
           id: view.id,
-          name: view.name,
+          name,
           ...createIssueViewFromUrl({query: location.query}),
         },
         {
           onSuccess: () => {
             addSuccessMessage(t('Saved changes'));
+            if (isNewView) {
+              navigate({
+                pathname: location.pathname,
+                query: {...location.query, new: undefined},
+              });
+            }
           },
         }
       );
@@ -208,7 +233,10 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   }
 
   return (
-    <SegmentedIssueViewSaveButton openCreateIssueViewModal={openCreateIssueViewModal} />
+    <SegmentedIssueViewSaveButton
+      openCreateIssueViewModal={openCreateIssueViewModal}
+      query={query}
+    />
   );
 }
 
