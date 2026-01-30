@@ -149,7 +149,6 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     Configure Seer settings for a new or existing organization migrating to new Seer pricing.
 
     Sets:
-    - Org-level: enable_seer_coding=True
     - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium" or "off"
     - Seer API (all projects): automated_run_stopping_point="code_changes" or "open_pr"
 
