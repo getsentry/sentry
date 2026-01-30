@@ -41,7 +41,7 @@ const fadeAway: MotionProps = {
   transition: testableTransition({duration: 0.8}),
 };
 
-type ProductOption = {
+interface ProductOption {
   description: string;
   icon: React.ReactNode;
   id: OnboardingWelcomeProductId;
@@ -49,7 +49,7 @@ type ProductOption = {
   badge?: React.ReactNode;
   extra?: React.ReactNode;
   footer?: React.ReactNode;
-};
+}
 
 // Product options in display order (3x2 grid: row1: Error, Logging, Session; row2: Metrics, Tracing, Profiling)
 const PRODUCT_OPTIONS: ProductOption[] = [
