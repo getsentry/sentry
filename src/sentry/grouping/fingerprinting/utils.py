@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 from sentry.db.models.fields.node import NodeData
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -12,6 +12,10 @@ from sentry.stacktraces.processing import get_crash_frame_from_event_data
 from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.safe import get_path
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+
+if TYPE_CHECKING:
+    from sentry.services.eventstore.models import Event
+
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -278,7 +282,7 @@ def resolve_fingerprint_variable(
 
 
 def resolve_fingerprint_values(
-    fingerprint: list[str], event_data: NodeData, use_legacy_unknown_variable_handling: bool = False
+    fingerprint: list[str], event: Event, use_legacy_unknown_variable_handling: bool = False
 ) -> list[str]:
     def _resolve_single_entry(entry: str) -> str:
         variable_key = parse_fingerprint_entry_as_variable(entry)
@@ -291,7 +295,7 @@ def resolve_fingerprint_values(
         # can remove `use_legacy_unknown_variable_handling` and just return the value given by
         # `resolve_fingerprint_variable`
         resolved_value = resolve_fingerprint_variable(
-            variable_key, event_data, use_legacy_unknown_variable_handling
+            variable_key, event.data, use_legacy_unknown_variable_handling
         )
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
