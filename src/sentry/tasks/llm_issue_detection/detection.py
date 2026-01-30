@@ -41,7 +41,7 @@ MAX_LLM_FIELD_LENGTH = 2000
 
 
 seer_issue_detection_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL,
+    settings.SEER_AUTOFIX_URL,
     timeout=SEER_TIMEOUT_S,
     retries=0,
     maxsize=10,
