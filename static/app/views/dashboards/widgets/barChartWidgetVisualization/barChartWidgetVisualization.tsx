@@ -8,6 +8,9 @@ import type {
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import BaseChart from 'sentry/components/charts/baseChart';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {useRenderToString} from 'sentry/components/core/renderToString';
@@ -225,18 +228,18 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
             const marker = typeof param.marker === 'string' ? param.marker : '';
 
             return (
-              <div key={param.seriesIndex}>
-                <span className="tooltip-label">
-                  <span dangerouslySetInnerHTML={{__html: dompurify.sanitize(marker)}} />{' '}
-                  <strong>{displayName}</strong>
-                </span>{' '}
-                {formattedValue}
-              </div>
+              <Flex key={param.seriesIndex} gap="sm" align="center">
+                <Flex gap="sm" align="center" className="tooltip-label">
+                  <span dangerouslySetInnerHTML={{__html: dompurify.sanitize(marker)}} />
+                  <Text bold>{displayName}</Text>
+                </Flex>
+                <Text>{formattedValue}</Text>
+              </Flex>
             );
           })}
         </div>
         <div className="tooltip-footer tooltip-footer-centered">
-          {truncationFormatter(categoryName, true, false)}
+          <Text>{truncationFormatter(categoryName, true, false)}</Text>
         </div>
         <div className="tooltip-arrow" />
       </Fragment>
