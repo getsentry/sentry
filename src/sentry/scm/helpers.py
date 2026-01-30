@@ -1,8 +1,17 @@
+from collections.abc import Callable
+
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMIntegrationNotFound, SCMUnsupportedIntegrationSpecified
+from sentry.scm.errors import (
+    SCMIntegrationNotFound,
+    SCMRateLimitExceeded,
+    SCMRepositoryInactive,
+    SCMRepositoryNotFound,
+    SCMRepositoryOrganizationMismatch,
+    SCMUnsupportedIntegrationSpecified,
+)
 from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import ExternalId, Provider, ProviderName, Repository
+from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
 
 def fetch_service_provider(repository: Repository) -> Provider:
@@ -46,3 +55,51 @@ def fetch_repository(
         "organization_id": repo.organization_id,
         "status": repo.status,
     }
+
+
+def _fetch_repository(
+    organization_id: int,
+    repository_id: RepositoryId,
+    fetch_repository: Callable[[int, RepositoryId], Repository | None],
+) -> Repository:
+    repository = fetch_repository(organization_id, repository_id)
+    if not repository:
+        raise SCMRepositoryNotFound(organization_id, repository_id)
+    if repository["status"] != "active":
+        raise SCMRepositoryInactive(repository)
+    if repository["organization_id"] != organization_id:
+        raise SCMRepositoryOrganizationMismatch(repository)
+    return repository
+
+
+def _fetch_service_provider(
+    organization_id: int,
+    repository: Repository,
+    *,
+    referrer: Referrer = "shared",
+    fetch_service_provider: Callable[[Repository], Provider] = fetch_service_provider,
+) -> Provider:
+    provider = fetch_service_provider(repository)
+    if provider.is_rate_limited(organization_id, referrer):
+        raise SCMRateLimitExceeded(provider, organization_id, referrer)
+
+    return provider
+
+
+def exec_provider_fn[T](
+    organization_id: int,
+    repository_id: RepositoryId,
+    *,
+    referrer: Referrer = "shared",
+    fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
+    fetch_service_provider: Callable[[Repository], Provider] = fetch_service_provider,
+    provider_fn: Callable[[Repository, Provider], T],
+) -> T:
+    repository = _fetch_repository(organization_id, repository_id, fetch_repository)
+    provider = _fetch_service_provider(
+        organization_id,
+        repository,
+        referrer=referrer,
+        fetch_service_provider=fetch_service_provider,
+    )
+    return provider_fn(repository, provider)
