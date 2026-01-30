@@ -91,4 +91,11 @@ describe('apple-macos onboarding docs', () => {
     expect(stopMatches.length).toBeGreaterThan(0);
     stopMatches.forEach(match => expect(match).toBeInTheDocument());
   });
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
+  });
 });
