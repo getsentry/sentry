@@ -134,37 +134,39 @@ describe('Onboarding', () => {
       jest.useFakeTimers();
       const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
 
-      render(
-        <OnboardingContextProvider>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: '/onboarding/org-slug/welcome/',
+      try {
+        render(
+          <OnboardingContextProvider>
+            <OnboardingWithoutContext />
+          </OnboardingContextProvider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/onboarding/org-slug/welcome/',
+              },
+              route: '/onboarding/:orgId/:step/',
             },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
+          }
+        );
 
-      await userEvent.click(screen.getByRole('link', {name: 'Skip onboarding.'}), {
-        delay: null,
-      });
+        await userEvent.click(screen.getByRole('link', {name: 'Skip onboarding.'}), {
+          delay: null,
+        });
 
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_clicked_skip',
-        expect.objectContaining({
-          source: 'targeted_onboarding',
-        })
-      );
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'growth.onboarding_clicked_skip',
+          expect.objectContaining({
+            source: 'targeted_onboarding',
+          })
+        );
 
-      jest.runAllTimers();
+        jest.runAllTimers();
 
-      expect(openSpy).toHaveBeenCalled();
-
-      jest.useRealTimers();
-      openSpy.mockRestore();
+        expect(openSpy).toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+        openSpy.mockRestore();
+      }
     });
   });
 
@@ -241,38 +243,40 @@ describe('Onboarding', () => {
         features: ['onboarding-new-welcome-ui'],
       });
 
-      render(
-        <OnboardingContextProvider>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${organization.slug}/welcome/`,
+      try {
+        render(
+          <OnboardingContextProvider>
+            <OnboardingWithoutContext />
+          </OnboardingContextProvider>,
+          {
+            organization,
+            initialRouterConfig: {
+              location: {
+                pathname: `/onboarding/${organization.slug}/welcome/`,
+              },
+              route: '/onboarding/:orgId/:step/',
             },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
+          }
+        );
 
-      await userEvent.click(screen.getByRole('link', {name: 'Skip onboarding'}), {
-        delay: null,
-      });
+        await userEvent.click(screen.getByRole('button', {name: 'Skip onboarding'}), {
+          delay: null,
+        });
 
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_clicked_skip',
-        expect.objectContaining({
-          source: 'targeted_onboarding',
-        })
-      );
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'growth.onboarding_clicked_skip',
+          expect.objectContaining({
+            source: 'targeted_onboarding',
+          })
+        );
 
-      jest.runAllTimers();
+        jest.runAllTimers();
 
-      expect(openSpy).toHaveBeenCalled();
-
-      jest.useRealTimers();
-      openSpy.mockRestore();
+        expect(openSpy).toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+        openSpy.mockRestore();
+      }
     });
   });
 
