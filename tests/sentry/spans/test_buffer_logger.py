@@ -4,6 +4,7 @@ from unittest import mock
 from unittest.mock import call
 
 from sentry.spans.buffer_logger import BufferLogger, compare_metrics, emit_observability_metrics
+from sentry.testutils.helpers.options import override_options
 
 
 @mock.patch("sentry.spans.buffer_logger.time")
@@ -12,47 +13,48 @@ def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
     Test that batches are accumulated with cumulative latency tracking,
     and that trimming occurs when exceeding MAX_ENTRIES (1000).
     """
-    mock_time.time.return_value = 1000.0
+    with override_options({"spans.buffer.evalsha-cumulative-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
 
-    buffer_logger = BufferLogger()
+        buffer_logger = BufferLogger()
 
-    # Process first batch - all entries should be tracked
-    buffer_logger.log(
-        [
-            ("project1:trace1", 50),
-            ("project1:trace1", 150),
-            ("project1:trace1", 200),
-            ("project2:trace2", 120),
-        ]
-    )
+        # Process first batch - all entries should be tracked
+        buffer_logger.log(
+            [
+                ("project1:trace1", 50),
+                ("project1:trace1", 150),
+                ("project1:trace1", 200),
+                ("project2:trace2", 120),
+            ]
+        )
 
-    # Verify cumulative latency is tracked (50 + 150 + 200 = 400)
-    assert buffer_logger._data["project1:trace1"] == (3, 400)
-    assert buffer_logger._data["project2:trace2"] == (1, 120)
+        # Verify cumulative latency is tracked (50 + 150 + 200 = 400)
+        assert buffer_logger._data["project1:trace1"] == (3, 400)
+        assert buffer_logger._data["project2:trace2"] == (1, 120)
 
-    buffer_logger.log([("project1:trace1", 180), ("project2:trace2", 80)])
+        buffer_logger.log([("project1:trace1", 180), ("project2:trace2", 80)])
 
-    assert buffer_logger._data["project1:trace1"] == (4, 580)  # 400 + 180
-    assert buffer_logger._data["project2:trace2"] == (2, 200)  # 120 + 80
+        assert buffer_logger._data["project1:trace1"] == (4, 580)  # 400 + 180
+        assert buffer_logger._data["project2:trace2"] == (2, 200)  # 120 + 80
 
-    # Test trimming: add 1100 entries to exceed MAX_ENTRIES
-    entries_to_add = []
-    for i in range(1100):
-        # Create entries with different latencies
-        # Lower i values get higher latencies to test trimming
-        latency = 1000 - i if i < 500 else 100
-        entries_to_add.append((f"project{i}:trace{i}", latency))
+        # Test trimming: add 1100 entries to exceed MAX_ENTRIES
+        entries_to_add = []
+        for i in range(1100):
+            # Create entries with different latencies
+            # Lower i values get higher latencies to test trimming
+            latency = 1000 - i if i < 500 else 100
+            entries_to_add.append((f"project{i}:trace{i}", latency))
 
-    buffer_logger.log(entries_to_add)
+        buffer_logger.log(entries_to_add)
 
-    # Verify trimming occurred - should be exactly 1000 entries
-    assert len(buffer_logger._data) == 50
+        # Verify trimming occurred - should be exactly 1000 entries
+        assert len(buffer_logger._data) == 50
 
-    assert "project0:trace0" in buffer_logger._data
-    assert "project10:trace10" in buffer_logger._data
+        assert "project0:trace0" in buffer_logger._data
+        assert "project10:trace10" in buffer_logger._data
 
-    # Verify low-latency entries from the end were removed
-    assert "project1099:trace1099" not in buffer_logger._data
+        # Verify low-latency entries from the end were removed
+        assert "project1099:trace1099" not in buffer_logger._data
 
 
 @mock.patch("sentry.spans.buffer_logger.logger")
@@ -62,39 +64,40 @@ def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
     Test periodic logging (every 1 minute) of top 50 entries by cumulative latency,
     and verify dictionary is cleared after logging.
     """
-    mock_time.time.side_effect = [
-        1000.0,  # Set _last_log_time on first log
-        1000.0,
-        1000.0,
-        1061.0,
-    ]
+    with override_options({"spans.buffer.evalsha-cumulative-logger-enabled": True}):
+        mock_time.time.side_effect = [
+            1000.0,  # Set _last_log_time on first log
+            1000.0,
+            1000.0,
+            1061.0,
+        ]
 
-    buffer_logger = BufferLogger()
+        buffer_logger = BufferLogger()
 
-    buffer_logger.log([("high_project:trace", 150)] * 10)
+        buffer_logger.log([("high_project:trace", 150)] * 10)
 
-    entries = [(f"project{i}:trace{i}", 100) for i in range(1000)]
-    buffer_logger.log(entries)
+        entries = [(f"project{i}:trace{i}", 100) for i in range(1000)]
+        buffer_logger.log(entries)
 
-    assert len(buffer_logger._data) == 50
+        assert len(buffer_logger._data) == 50
 
-    buffer_logger.log([("trigger:trace", 50)])
+        buffer_logger.log([("trigger:trace", 50)])
 
-    assert mock_logger.info.call_count == 1
+        assert mock_logger.info.call_count == 1
 
-    call_args = mock_logger.info.call_args
-    assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
-    extra = call_args[1]["extra"]
+        call_args = mock_logger.info.call_args
+        assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
+        extra = call_args[1]["extra"]
 
-    entries_list = extra["top_slow_operations"]
-    assert len(entries_list) == 50
+        entries_list = extra["top_slow_operations"]
+        assert len(entries_list) == 50
 
-    assert entries_list[0] == "high_project:trace:10:1500"
+        assert entries_list[0] == "high_project:trace:10:1500"
 
-    assert extra["num_tracked_keys"] == 50
+        assert extra["num_tracked_keys"] == 50
 
-    assert len(buffer_logger._data) == 0
-    assert buffer_logger._last_log_time is None
+        assert len(buffer_logger._data) == 0
+        assert buffer_logger._last_log_time is None
 
 
 @mock.patch("sentry.spans.buffer_logger.logger")

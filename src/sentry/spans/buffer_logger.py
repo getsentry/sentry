@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 
+from sentry import options
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,10 @@ class BufferLogger:
 
         :param entries: List of tuples containing (project_and_trace, latency_ms) pairs.
         """
+
+        if not options.get("spans.buffer.evalsha-cumulative-logger-enabled"):
+            return
+
         if not self._last_log_time:
             self._last_log_time = time.time()
 
