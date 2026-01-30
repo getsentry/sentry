@@ -214,7 +214,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
             return
 
         if not asynchronous:
-            produce_future.result()  # Wait for the message to be delivered to Kafka
+            try:
+                produce_future.result()  # Wait for the message to be delivered to Kafka
+            except Exception as error:
+                logger.exception("Could not wait for message delivery: %s", error)
 
     def requires_post_process_forwarder(self) -> bool:
         return True
