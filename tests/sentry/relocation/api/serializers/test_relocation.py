@@ -18,10 +18,8 @@ class RelocationSerializerTest(TestCase):
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
-        self.superuser = self.create_user(
-            "superuser", is_superuser=True, is_staff=True, is_active=True
-        )
-        self.login_as(user=self.superuser, superuser=True)
+        self.staff_user = self.create_user("staff_user", is_staff=True, is_active=True)
+        self.login_as(user=self.staff_user, staff=True)
 
         self.first_imported_user = self.create_user(email="first@example.com")
         self.second_imported_user = self.create_user(email="second@example.com")
@@ -57,7 +55,7 @@ class RelocationSerializerTest(TestCase):
     def test_in_progress(self) -> None:
         relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             status=Relocation.Status.IN_PROGRESS.value,
             step=Relocation.Step.UPLOADING.value,
@@ -73,9 +71,9 @@ class RelocationSerializerTest(TestCase):
         assert result["dateAdded"] == TEST_DATE_ADDED
         assert result["dateUpdated"] == TEST_DATE_UPDATED
         assert result["uuid"] == str(relocation.uuid)
-        assert result["creator"]["id"] == str(self.superuser.id)
-        assert result["creator"]["email"] == str(self.superuser.email)
-        assert result["creator"]["username"] == str(self.superuser.username)
+        assert result["creator"]["id"] == str(self.staff_user.id)
+        assert result["creator"]["email"] == str(self.staff_user.email)
+        assert result["creator"]["username"] == str(self.staff_user.username)
         assert result["owner"]["id"] == str(self.owner.id)
         assert result["owner"]["email"] == str(self.owner.email)
         assert result["owner"]["username"] == str(self.owner.username)
@@ -96,7 +94,7 @@ class RelocationSerializerTest(TestCase):
     def test_pause(self) -> None:
         relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             status=Relocation.Status.PAUSE.value,
             step=Relocation.Step.IMPORTING.value,
@@ -112,9 +110,9 @@ class RelocationSerializerTest(TestCase):
         assert result["dateAdded"] == TEST_DATE_ADDED
         assert result["dateUpdated"] == TEST_DATE_UPDATED
         assert result["uuid"] == str(relocation.uuid)
-        assert result["creator"]["id"] == str(self.superuser.id)
-        assert result["creator"]["email"] == str(self.superuser.email)
-        assert result["creator"]["username"] == str(self.superuser.username)
+        assert result["creator"]["id"] == str(self.staff_user.id)
+        assert result["creator"]["email"] == str(self.staff_user.email)
+        assert result["creator"]["username"] == str(self.staff_user.username)
         assert result["owner"]["id"] == str(self.owner.id)
         assert result["owner"]["email"] == str(self.owner.email)
         assert result["owner"]["username"] == str(self.owner.username)
@@ -138,7 +136,7 @@ class RelocationSerializerTest(TestCase):
     def test_success(self) -> None:
         relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             status=Relocation.Status.SUCCESS.value,
             step=Relocation.Step.COMPLETED.value,
@@ -155,9 +153,9 @@ class RelocationSerializerTest(TestCase):
         assert result["dateAdded"] == TEST_DATE_ADDED
         assert result["dateUpdated"] == TEST_DATE_UPDATED
         assert result["uuid"] == str(relocation.uuid)
-        assert result["creator"]["id"] == str(self.superuser.id)
-        assert result["creator"]["email"] == str(self.superuser.email)
-        assert result["creator"]["username"] == str(self.superuser.username)
+        assert result["creator"]["id"] == str(self.staff_user.id)
+        assert result["creator"]["email"] == str(self.staff_user.email)
+        assert result["creator"]["username"] == str(self.staff_user.username)
         assert result["owner"]["id"] == str(self.owner.id)
         assert result["owner"]["email"] == str(self.owner.email)
         assert result["owner"]["username"] == str(self.owner.username)
@@ -181,7 +179,7 @@ class RelocationSerializerTest(TestCase):
     def test_failure(self) -> None:
         relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             status=Relocation.Status.FAILURE.value,
             step=Relocation.Step.VALIDATING.value,
@@ -198,9 +196,9 @@ class RelocationSerializerTest(TestCase):
         assert result["dateAdded"] == TEST_DATE_ADDED
         assert result["dateUpdated"] == TEST_DATE_UPDATED
         assert result["uuid"] == str(relocation.uuid)
-        assert result["creator"]["id"] == str(self.superuser.id)
-        assert result["creator"]["email"] == str(self.superuser.email)
-        assert result["creator"]["username"] == str(self.superuser.username)
+        assert result["creator"]["id"] == str(self.staff_user.id)
+        assert result["creator"]["email"] == str(self.staff_user.email)
+        assert result["creator"]["username"] == str(self.staff_user.username)
         assert result["owner"]["id"] == str(self.owner.id)
         assert result["owner"]["email"] == str(self.owner.email)
         assert result["owner"]["username"] == str(self.owner.username)
