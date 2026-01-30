@@ -36,45 +36,47 @@ export function UptimeCheckDetails({check, project}: Props) {
     enabled: true,
   });
 
-  if (isTraceItemPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isTraceItemError) {
-    return <LoadingError message={t('Failed to fetch trace item details')} />;
-  }
-
-  if (!traceItemData) {
-    return (
-      <NoDetailsAvailable size="xl" variant="muted" align="center">
-        {t('No details available for Check-In')}
-      </NoDetailsAvailable>
-    );
-  }
-
   return (
     <Flex data-overlay="true" direction="column">
       <DrawerHeader hideBar />
-      <StyledFlex direction="row" align="center" justify="between" padding="lg 2xl">
+      <StyledFlex
+        height="60px"
+        direction="row"
+        align="center"
+        justify="between"
+        padding="lg 2xl"
+      >
         <Text size="xl" bold>
           {t('Check-In')}
         </Text>
-        <LinkButton
-          size="xs"
-          to={{
-            pathname: `/organizations/${organization.slug}/performance/trace/${check.traceId}/`,
-            query: {
-              includeUptime: '1',
-              timestamp: new Date(check.timestamp).getTime() / 1000,
-              node: `uptime-check-${check.traceItemId}`,
-            },
-          }}
-        >
-          {t('View in Trace')}
-        </LinkButton>
+        {traceItemData && (
+          <LinkButton
+            size="xs"
+            to={{
+              pathname: `/organizations/${organization.slug}/performance/trace/${check.traceId}/`,
+              query: {
+                includeUptime: '1',
+                timestamp: new Date(check.timestamp).getTime() / 1000,
+                node: `uptime-check-${check.traceItemId}`,
+              },
+            }}
+          >
+            {t('View in Trace')}
+          </LinkButton>
+        )}
       </StyledFlex>
       <DrawerBody>
-        <UptimeCheckAttributes attributes={traceItemData.attributes} />
+        {isTraceItemPending ? (
+          <LoadingIndicator />
+        ) : isTraceItemError ? (
+          <LoadingError message={t('Failed to fetch trace item details')} />
+        ) : traceItemData ? (
+          <UptimeCheckAttributes attributes={traceItemData.attributes} />
+        ) : (
+          <NoDetailsAvailable size="xl" variant="muted" align="center">
+            {t('No details available for Check-In')}
+          </NoDetailsAvailable>
+        )}
       </DrawerBody>
     </Flex>
   );
