@@ -1,5 +1,8 @@
 from collections.abc import Callable
+from typing import cast
 
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import (
@@ -14,7 +17,28 @@ from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
 
-def fetch_service_provider(integration_id: int, organization_id: int) -> Provider:
+def map_integration_to_provider(
+    organization_id: int,
+    integration: Integration | RpcIntegration,
+) -> Provider:
+    client = integration.get_installation(organization_id=organization_id).get_client()
+
+    if integration.provider == "github":
+        return GitHubProvider(client)
+    else:
+        raise SCMUnsupportedIntegrationSpecified(integration.provider)
+
+
+def map_repository_model_to_repository(repository: RepositoryModel) -> Repository:
+    return {
+        "integration_id": repository.integration_id,
+        "name": repository.name,
+        "organization_id": repository.organization_id,
+        "status": repository.status,
+    }
+
+
+def fetch_service_provider(organization_id: int, integration_id: int) -> Provider:
     integration = integration_service.get_integration(
         integration_id=integration_id,
         organization_id=organization_id,
@@ -22,12 +46,7 @@ def fetch_service_provider(integration_id: int, organization_id: int) -> Provide
     if not integration:
         raise SCMIntegrationNotFound()
 
-    client = integration.get_installation(organization_id=organization_id).get_client()
-
-    if integration.provider == "github":
-        return GitHubProvider(client)
-    else:
-        raise SCMUnsupportedIntegrationSpecified(integration.provider)
+    return map_integration_to_provider(organization_id, integration)
 
 
 def fetch_repository(
@@ -45,14 +64,7 @@ def fetch_repository(
     except RepositoryModel.DoesNotExist:
         return None
 
-    assert isinstance(repo, RepositoryModel)
-
-    return {
-        "integration_id": repo.integration_id,
-        "name": repo.name,
-        "organization_id": repo.organization_id,
-        "status": repo.status,
-    }
+    return map_repository_model_to_repository(cast(RepositoryModel, repo))
 
 
 def exec_provider_fn[T](
@@ -72,7 +84,7 @@ def exec_provider_fn[T](
     if repository["organization_id"] != organization_id:
         raise SCMRepositoryOrganizationMismatch(repository)
 
-    provider = fetch_service_provider(repository["integration_id"], repository["organization_id"])
+    provider = fetch_service_provider(organization_id, repository["integration_id"])
     if provider.is_rate_limited(organization_id, referrer):
         raise SCMRateLimitExceeded(provider, organization_id, referrer)
 
