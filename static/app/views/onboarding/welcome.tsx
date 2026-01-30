@@ -17,7 +17,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
+import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 
 import type {StepProps} from './types';
 
@@ -53,7 +53,6 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const {activateSidebar} = useOnboardingSidebar();
 
   const source = 'targeted_onboarding';
 
@@ -77,15 +76,6 @@ function TargetedOnboardingWelcome(props: StepProps) {
 
     props.onComplete();
   }, [organization, source, props]);
-
-  const handleSkipOnboarding = useCallback(() => {
-    trackAnalytics('growth.onboarding_clicked_skip', {
-      organization,
-      source,
-    });
-
-    activateSidebar({userClicked: false, source: 'targeted_onboarding_welcome_skip'});
-  }, [organization, source, activateSidebar]);
 
   return (
     <FallingError>
@@ -126,12 +116,7 @@ function TargetedOnboardingWelcome(props: StepProps) {
           <motion.p style={{margin: 0}} {...fadeAway}>
             {t("Gee, I've used Sentry before.")}
             <br />
-            <Link
-              onClick={handleSkipOnboarding}
-              to={`/organizations/${organization.slug}/issues/?referrer=onboarding-welcome-skip`}
-            >
-              {t('Skip onboarding.')}
-            </Link>
+            <WelcomeSkipButton>{t('Skip onboarding.')}</WelcomeSkipButton>
           </motion.p>
         </Wrapper>
       )}

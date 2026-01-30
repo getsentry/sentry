@@ -29,6 +29,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
+import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import type {StepProps} from 'sentry/views/onboarding/types';
 
 const MotionContainer = motion.create(Container);
@@ -293,8 +294,10 @@ export function NewWelcomeUI(props: StepProps) {
           </Container>
         </MotionFlex>
         <GenericFooter>
-          {props.genSkipOnboardingLink()}
-          <Flex align="center" padding="0 lg">
+          <Flex align="center" padding="0 3xl">
+            <WelcomeSkipButton>{t('Skip onboarding')}</WelcomeSkipButton>
+          </Flex>
+          <Flex align="center" padding="0 3xl">
             <Button
               priority="primary"
               onClick={handleComplete}
