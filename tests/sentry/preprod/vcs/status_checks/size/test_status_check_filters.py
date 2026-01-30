@@ -613,10 +613,15 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_release,
         )
 
-        result = _fetch_base_size_metrics([head_artifact])
+        base_artifact_map, base_metrics_by_artifact = _fetch_base_size_metrics([head_artifact])
 
-        assert head_artifact.id in result
-        assert result[head_artifact.id].id == base_metrics.id
+        assert head_artifact.id in base_artifact_map
+        fetched_base_artifact = base_artifact_map[head_artifact.id]
+        assert fetched_base_artifact.id == base_artifact.id
+        assert fetched_base_artifact.id in base_metrics_by_artifact
+        metrics_list = base_metrics_by_artifact[fetched_base_artifact.id]
+        assert len(metrics_list) == 1
+        assert metrics_list[0].id == base_metrics.id
 
     def test_fetch_base_size_metrics_with_different_build_config(self):
         base_commit_comparison = CommitComparison.objects.create(
@@ -662,9 +667,9 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_debug,
         )
 
-        result = _fetch_base_size_metrics([head_artifact])
+        base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
 
-        assert result == {}
+        assert base_size_metrics_map == {}
 
     def test_status_check_with_absolute_diff_rule(self):
         base_commit_comparison = CommitComparison.objects.create(
@@ -723,7 +728,7 @@ class StatusCheckFiltersTest(TestCase):
             )
         }
 
-        base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
+        base_artifact_map, base_metrics_by_artifact = _fetch_base_size_metrics([head_artifact])
 
         rule = StatusCheckRule(
             id="rule1",
@@ -737,7 +742,8 @@ class StatusCheckFiltersTest(TestCase):
             [head_artifact],
             size_metrics_map,
             rules=[rule],
-            base_size_metrics_map=base_size_metrics_map,
+            base_artifact_map=base_artifact_map,
+            base_metrics_by_artifact=base_metrics_by_artifact,
         )
         assert status == StatusCheckStatus.FAILURE
         assert len(triggered_rules) == 1

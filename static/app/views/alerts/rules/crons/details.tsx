@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Alert} from 'sentry/components/core/alert';
@@ -123,7 +125,7 @@ export default function MonitorDetails() {
       <Layout.Body>
         <TimezoneProvider timezone={timezoneOverride}>
           <Layout.Main>
-            <MainActions>
+            <Flex justify="between" align="center" gap="md">
               <StyledPageFilterBar condensed>
                 <DatePageFilter maxPickableDays={30} />
                 <EnvironmentPageFilter />
@@ -133,7 +135,7 @@ export default function MonitorDetails() {
                 userTimezone={userTimezone}
                 onTimezoneSelected={setTimezoneOverride}
               />
-            </MainActions>
+            </Flex>
             {monitor.status === 'disabled' && (
               <Alert.Container>
                 <Alert
@@ -191,13 +193,6 @@ export default function MonitorDetails() {
     </Layout.Page>
   );
 }
-
-const MainActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};

@@ -155,7 +155,7 @@ export default class InstalledIntegration extends Component<Props> {
                     />
                   )}
                   <StyledLinkButton
-                    borderless
+                    priority="transparent"
                     icon={<IconSettings />}
                     disabled={!allowMemberConfiguration && !canConfigure}
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
@@ -180,7 +180,7 @@ export default class InstalledIntegration extends Component<Props> {
                   >
                     <StyledButton
                       disabled={!hasAccess || isPendingDeletion}
-                      borderless
+                      priority="transparent"
                       icon={<IconDelete />}
                       data-test-id="integration-remove-button"
                     >

@@ -198,7 +198,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               <NavigationDropdownButton
                 {...triggerProps}
                 isOpen={isOpen}
-                borderless
+                priority="transparent"
                 size="sm"
                 disabled={hideDropdownButton}
                 aria-label={t('Select issue content')}
