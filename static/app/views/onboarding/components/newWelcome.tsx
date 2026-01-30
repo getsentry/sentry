@@ -193,7 +193,7 @@ export function NewWelcomeUI(props: StepProps) {
         </Flex>
         <GenericFooter>
           <Flex align="center" padding="0 3xl">
-            <WelcomeSkipButton>{t('Skip onboarding')}</WelcomeSkipButton>
+            <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
           </Flex>
           <Flex align="center" padding="0 3xl">
             <Button
@@ -201,7 +201,7 @@ export function NewWelcomeUI(props: StepProps) {
               onClick={handleComplete}
               data-test-id="onboarding-welcome-start"
             >
-              {t('Next')}
+              {t('Begin setup')}
             </Button>
           </Flex>
         </GenericFooter>
