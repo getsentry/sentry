@@ -26,9 +26,7 @@ describe('useHandleAssigneeChange', () => {
       },
     };
 
-    jest
-      .spyOn(groupActionCreators, 'assignToActor')
-      .mockRejectedValue(permissionError);
+    jest.spyOn(groupActionCreators, 'assignToActor').mockRejectedValue(permissionError);
 
     const {result} = renderHookWithProviders(() =>
       useHandleAssigneeChange({
@@ -56,9 +54,7 @@ describe('useHandleAssigneeChange', () => {
       responseJSON: {},
     };
 
-    jest
-      .spyOn(groupActionCreators, 'assignToActor')
-      .mockRejectedValue(genericError);
+    jest.spyOn(groupActionCreators, 'assignToActor').mockRejectedValue(genericError);
 
     const {result} = renderHookWithProviders(() =>
       useHandleAssigneeChange({
