@@ -36,7 +36,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -150,6 +150,8 @@ export function useSpansSeriesQuery(
       },
     [queue]
   );
+  const combine = useCombinedQueryResults<SpansSeriesResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -160,7 +162,7 @@ export function useSpansSeriesQuery(
       // Keep data from previous query keys while fetching new data
       placeholderData: (previousData: unknown) => previousData,
     })),
-    combine: combineQueryResults,
+    combine,
   });
 
   const transformedData = useMemo(() => {
@@ -340,6 +342,8 @@ export function useSpansTableQuery(
 
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
+  const combineTable = useCombinedQueryResults<SpansTableResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -348,7 +352,7 @@ export function useSpansTableQuery(
       enabled,
       retry: false,
     })),
-    combine: combineQueryResults,
+    combine: combineTable,
   });
 
   const transformedData = useMemo(() => {

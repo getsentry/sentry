@@ -32,7 +32,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 
 type TransactionsSeriesResponse =
   | EventsStats
@@ -195,6 +195,8 @@ export function useTransactionsSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
+  const combine = useCombinedQueryResults<TransactionsSeriesResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map((queryKey, queryIndex) => ({
       queryKey,
@@ -213,7 +215,7 @@ export function useTransactionsSeriesQuery(
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
-    combine: combineQueryResults,
+    combine,
   });
 
   const transformedData = useMemo(() => {
@@ -388,6 +390,8 @@ export function useTransactionsTableQuery(
     'visibility-dashboards-async-queue'
   );
 
+  const combineTable = useCombinedQueryResults<TransactionsTableResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -405,7 +409,7 @@ export function useTransactionsTableQuery(
             return false;
           },
     })),
-    combine: combineQueryResults,
+    combine: combineTable,
   });
 
   const transformedData = useMemo(() => {

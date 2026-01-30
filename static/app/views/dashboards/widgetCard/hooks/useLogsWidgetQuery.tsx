@@ -28,7 +28,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 
 type LogsSeriesResponse =
   | EventsStats
@@ -128,6 +128,8 @@ export function useLogsSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
+  const combine = useCombinedQueryResults<LogsSeriesResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -144,7 +146,7 @@ export function useLogsSeriesQuery(
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
-    combine: combineQueryResults,
+    combine,
   });
 
   const transformedData = useMemo(() => {
@@ -268,6 +270,8 @@ export function useLogsTableQuery(
     'visibility-dashboards-async-queue'
   );
 
+  const combineTable = useCombinedQueryResults<LogsTableResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -285,7 +289,7 @@ export function useLogsTableQuery(
             return false;
           },
     })),
-    combine: combineQueryResults,
+    combine: combineTable,
   });
 
   const transformedData = useMemo(() => {

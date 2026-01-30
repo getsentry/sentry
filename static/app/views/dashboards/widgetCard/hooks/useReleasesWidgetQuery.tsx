@@ -137,6 +137,15 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     [api, queue]
   );
 
+  const stableCombine = useCallback(
+    (
+      results: Parameters<
+        typeof combineQueryResultsWithRequestError<SessionApiResponse>
+      >[0]
+    ) => combineQueryResultsWithRequestError<SessionApiResponse>(results),
+    []
+  );
+
   const {isFetching, allHaveData, firstError, queryData} = useQueries({
     queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
       queryKey,
@@ -153,7 +162,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
-    combine: combineQueryResultsWithRequestError,
+    combine: stableCombine,
   });
 
   const transformedData = useMemo(() => {
@@ -321,6 +330,15 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     [api, queue]
   );
 
+  const stableCombineTable = useCallback(
+    (
+      results: Parameters<
+        typeof combineQueryResultsWithRequestError<SessionApiResponse>
+      >[0]
+    ) => combineQueryResultsWithRequestError<SessionApiResponse>(results),
+    []
+  );
+
   const {isFetching, allHaveData, firstError, queryData} = useQueries({
     queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
       queryKey,
@@ -337,7 +355,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
-    combine: combineQueryResultsWithRequestError,
+    combine: stableCombineTable,
   });
 
   const transformedData = useMemo(() => {

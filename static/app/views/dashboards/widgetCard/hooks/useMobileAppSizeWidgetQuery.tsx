@@ -17,7 +17,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 
 type MobileAppSizeSeriesResponse = EventsStats | MultiSeriesEventsStats;
 
@@ -121,6 +121,8 @@ export function useMobileAppSizeSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
+  const combine = useCombinedQueryResults<MobileAppSizeSeriesResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -139,7 +141,7 @@ export function useMobileAppSizeSeriesQuery(
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
-    combine: combineQueryResults,
+    combine,
   });
 
   const transformedData = useMemo(() => {

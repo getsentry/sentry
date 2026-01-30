@@ -20,6 +20,7 @@ import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {ApiQueryKey, UseQueryResult} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   doOnDemandMetricsRequest,
@@ -51,7 +52,7 @@ function combineQueryResultsWithFullError<T>(
   return {
     isFetching: results.some(q => q?.isFetching),
     allHaveData: results.every(q => q?.data?.[0]),
-    firstError: results.find(q => q?.error)?.error as any,
+    firstError: results.find(q => q?.error)?.error as RequestError | undefined,
     queryData: results.map(q => q.data),
   };
 }
@@ -222,6 +223,15 @@ export function useErrorsAndTransactionsSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
+  const stableCombine = useCallback(
+    (
+      results: Parameters<
+        typeof combineQueryResultsWithFullError<ErrorsAndTransactionsSeriesResponse>
+      >[0]
+    ) => combineQueryResultsWithFullError<ErrorsAndTransactionsSeriesResponse>(results),
+    []
+  );
+
   const {isFetching, allHaveData, firstError, queryData} = useQueries({
     queries: queryKeys.map((queryKey, queryIndex) => ({
       queryKey,
@@ -238,7 +248,7 @@ export function useErrorsAndTransactionsSeriesQuery(
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
-    combine: combineQueryResultsWithFullError,
+    combine: stableCombine,
   });
 
   const transformedData = useMemo(() => {
@@ -440,6 +450,15 @@ export function useErrorsAndTransactionsTableQuery(
     'visibility-dashboards-async-queue'
   );
 
+  const stableCombine = useCallback(
+    (
+      results: Parameters<
+        typeof combineQueryResultsWithFullError<ErrorsAndTransactionsTableResponse>
+      >[0]
+    ) => combineQueryResultsWithFullError<ErrorsAndTransactionsTableResponse>(results),
+    []
+  );
+
   const {isFetching, allHaveData, firstError, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -455,7 +474,7 @@ export function useErrorsAndTransactionsTableQuery(
             return false;
           },
     })),
-    combine: combineQueryResultsWithFullError,
+    combine: stableCombine,
   });
 
   const transformedData = useMemo(() => {

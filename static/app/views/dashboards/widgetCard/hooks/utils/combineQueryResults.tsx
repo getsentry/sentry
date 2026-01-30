@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
@@ -16,4 +17,17 @@ export function combineQueryResults<T>(
     errorMessage: results.find(q => q?.error)?.error?.message,
     queryData: results.map(q => q.data),
   };
+}
+
+/**
+ * Returns a stable reference to combineQueryResults for use with useQueries.
+ * This prevents infinite re-render loops by ensuring the combine function
+ * maintains reference stability across renders.
+ */
+export function useCombinedQueryResults<T>() {
+  return useCallback(
+    (results: Parameters<typeof combineQueryResults<T>>[0]) =>
+      combineQueryResults<T>(results),
+    []
+  );
 }

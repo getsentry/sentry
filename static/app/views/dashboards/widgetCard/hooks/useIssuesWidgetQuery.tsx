@@ -21,7 +21,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
@@ -130,6 +130,8 @@ export function useIssuesSeriesQuery(
     [queue]
   );
 
+  const combine = useCombinedQueryResults<IssuesSeriesResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -139,7 +141,7 @@ export function useIssuesSeriesQuery(
       retry: false,
       placeholderData: (previousData: unknown) => previousData,
     })),
-    combine: combineQueryResults,
+    combine,
   });
 
   const transformedData = useMemo(() => {
@@ -269,6 +271,8 @@ export function useIssuesTableQuery(
     [queue]
   );
 
+  const combineTable = useCombinedQueryResults<IssuesTableResponse>();
+
   const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
@@ -277,7 +281,7 @@ export function useIssuesTableQuery(
       enabled,
       retry: false,
     })),
-    combine: combineQueryResults,
+    combine: combineTable,
   });
 
   // Populate GroupStore in effect (outside render phase)
