@@ -1,6 +1,6 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge/tag';
 import {Container} from '@sentry/scraps/layout';
@@ -12,7 +12,6 @@ import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -44,6 +43,7 @@ import {
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
@@ -360,7 +360,10 @@ const BodyCell = memo(function BodyCell({
 function AgentTags({agents}: {agents: string[]}) {
   const [showAll, setShowAll] = useState(false);
   const location = useLocation();
-  const [searchQuery] = useQueryState('query', parseAsString.withDefault(''));
+  const [agentFilters] = useQueryState(
+    'agent',
+    parseAsArrayOf(parseAsString).withDefault([])
+  );
   const [showToggle, setShowToggle] = useState(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -405,25 +408,34 @@ function AgentTags({agents}: {agents: string[]}) {
       }}
       onMouseLeave={() => setShowToggle(false)}
     >
-      {agents.map(agent => (
-        <Tooltip key={agent} title={t('Add to filter')} maxWidth={500} skipWrapper>
-          <Link
-            to={{
-              query: {
-                ...location.query,
-                query: new MutableSearch(searchQuery)
-                  .removeFilter('gen_ai.agent.name')
-                  .addFilterValues('gen_ai.agent.name', [agent])
-                  .formatString(),
-              },
-            }}
+      {agents.map(agent => {
+        const isAgentInUrl = agentFilters.includes(agent);
+        return (
+          <Tooltip
+            key={agent}
+            title={isAgentInUrl ? t('Remove from filter') : t('Add to filter')}
+            maxWidth={500}
+            skipWrapper
           >
-            <Tag key={agent} variant="muted">
-              {agent}
-            </Tag>
-          </Link>
-        </Tooltip>
-      ))}
+            <Link
+              to={{
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  agent: isAgentInUrl
+                    ? agentFilters.filter(urlAgent => urlAgent !== agent)
+                    : [...agentFilters, agent],
+                  [TableUrlParams.CURSOR]: null,
+                },
+              }}
+            >
+              <Tag key={agent} variant="muted">
+                {agent}
+              </Tag>
+            </Link>
+          </Tooltip>
+        );
+      })}
       {/* Placeholder for floating button */}
       <Container width="100px" height="20px" flexShrink={0} />
       <Container
