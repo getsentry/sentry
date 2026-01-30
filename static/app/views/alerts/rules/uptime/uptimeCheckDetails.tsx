@@ -44,6 +44,14 @@ export function UptimeCheckDetails({check, project}: Props) {
     return <LoadingError message={t('Failed to fetch trace item details')} />;
   }
 
+  if (!traceItemData) {
+    return (
+      <NoDetailsAvailable size="xl" variant="muted" align="center">
+        {t('No details available for Check-In')}
+      </NoDetailsAvailable>
+    );
+  }
+
   return (
     <Flex data-overlay="true" direction="column">
       <DrawerHeader hideBar />
@@ -74,4 +82,8 @@ export function UptimeCheckDetails({check, project}: Props) {
 
 const StyledFlex = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+const NoDetailsAvailable = styled(Text)`
+  margin: ${p => p.theme.space['3xl']};
 `;

@@ -49,8 +49,6 @@ const EMPTY_TRACE = '00000000000000000000000000000000';
 
 const emptyCell = '\u2014';
 
-const DETAILS_DRAWER_WIDTH = '650px';
-
 /**
  * The number of system uptime spans that are always recorded for each uptime check.
  */
@@ -193,7 +191,6 @@ function CheckInBodyCell({
             openDrawer(() => <UptimeCheckDetails check={check} project={project} />, {
               ariaLabel: t('Uptime Check Details'),
               drawerKey: `uptime-check-details-${check.uptimeCheckId}`,
-              drawerWidth: DETAILS_DRAWER_WIDTH,
               resizable: true,
             });
           }}
