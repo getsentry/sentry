@@ -97,8 +97,23 @@ class Rule(namedtuple("Rule", "matcher owners")):
         self,
         data: Mapping[str, Any],
         munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
-    ) -> int | bool:
+    ) -> bool:
         return self.matcher.test(data, munged_data)
+
+    def test_with_frame_index(
+        self,
+        data: Mapping[str, Any],
+        munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
+    ) -> int | bool:
+        """
+        Test if this rule matches the event data and return the frame index.
+        
+        Returns:
+            - int: Frame index if a frame-based match (path, module, codeowners)
+            - True: If a non-frame match (url, tags)
+            - False: If no match
+        """
+        return self.matcher.test_with_frame_index(data, munged_data)
 
 
 class Matcher(namedtuple("Matcher", "type pattern")):
@@ -146,7 +161,24 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         self,
         data: Mapping[str, Any],
         munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
+    ) -> bool:
+        result = self.test_with_frame_index(data, munged_data)
+        # Convert frame index or True to True, keep False as False
+        return result is not False
+
+    def test_with_frame_index(
+        self,
+        data: Mapping[str, Any],
+        munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
     ) -> int | bool:
+        """
+        Test if this matcher matches the event data and return the frame index.
+        
+        Returns:
+            - int: Frame index if a frame-based match (path, module, codeowners)
+            - True: If a non-frame match (url, tags)
+            - False: If no match
+        """
         if self.type == URL:
             # URL matching doesn't have frame context, return True for backwards compatibility
             return True if self.test_url(data) else False

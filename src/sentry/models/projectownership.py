@@ -441,7 +441,8 @@ class ProjectOwnership(Model):
         # Collect rules with their matched frame index
         matching_rules: list[tuple[Rule, int | bool, int]] = []
         for rule_index, rule in enumerate(rules):
-            frame_index_or_bool = rule.test(data, munged_data)
+            frame_index_or_bool = rule.test_with_frame_index(data, munged_data)
+            # Check explicitly for False to handle frame index 0 correctly
             if frame_index_or_bool is not False:
                 matching_rules.append((rule, frame_index_or_bool, rule_index))
 
