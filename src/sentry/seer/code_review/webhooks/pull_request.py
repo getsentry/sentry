@@ -10,6 +10,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
@@ -148,6 +149,7 @@ def handle_pull_request_event(
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
+        skip_tada_reaction = features.has("organizations:skip-tada-reaction", organization)
         delete_existing_reactions_and_adds_reaction(
             github_event=github_event,
             github_event_action=action_value,
@@ -156,7 +158,7 @@ def handle_pull_request_event(
             repo=repo,
             pr_number=str(pr_number),
             comment_id=None,
-            reactions_to_delete=[GitHubReaction.HOORAY],
+            reactions_to_delete=[GitHubReaction.HOORAY] if not skip_tada_reaction else [],
             reaction_to_add=GitHubReaction.EYES,
             extra=extra,
         )

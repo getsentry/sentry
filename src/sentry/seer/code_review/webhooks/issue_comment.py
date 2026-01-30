@@ -9,6 +9,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
@@ -87,6 +88,7 @@ def handle_issue_comment_event(
         return
 
     if comment_id:
+        skip_tada_reaction = features.has("organizations:skip-tada-reaction", organization)
         delete_existing_reactions_and_adds_reaction(
             github_event=github_event,
             github_event_action=github_event_action,
@@ -95,7 +97,9 @@ def handle_issue_comment_event(
             repo=repo,
             pr_number=str(pr_number) if pr_number else None,
             comment_id=str(comment_id),
-            reactions_to_delete=[GitHubReaction.HOORAY, GitHubReaction.EYES],
+            reactions_to_delete=(
+                [GitHubReaction.HOORAY, GitHubReaction.EYES] if not skip_tada_reaction else []
+            ),
             reaction_to_add=GitHubReaction.EYES,
             extra=extra,
         )

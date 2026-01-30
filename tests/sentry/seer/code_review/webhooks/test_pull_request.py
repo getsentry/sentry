@@ -27,25 +27,9 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             patch(
                 "sentry.integrations.github.client.GitHubApiClient.get_pull_request"
             ) as mock_get_pull_request,
-            patch(
-                "sentry.integrations.github.client.GitHubApiClient.create_issue_reaction"
-            ) as mock_reaction,
-            patch(
-                "sentry.integrations.github.client.GitHubApiClient.get_issue_reactions"
-            ) as mock_get_reactions,
-            patch(
-                "sentry.integrations.github.client.GitHubApiClient.delete_issue_reaction"
-            ) as mock_delete_reaction,
         ):
             mock_get_pull_request.return_value = {"head": {"sha": "abc123"}}
-            mock_get_reactions.return_value = [
-                {"id": 2, "user": {"login": "other-user"}, "content": "heart"}
-            ]
-
             self.mock_get_pull_request = mock_get_pull_request
-            self.mock_reaction = mock_reaction
-            self.mock_get_reactions = mock_get_reactions
-            self.mock_delete_reaction = mock_delete_reaction
             yield
 
     @pytest.fixture(autouse=True)
@@ -56,6 +40,14 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         """
         with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
             self.mock_seer = mock_seer
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_delete_existing_reactions_and_adds_reaction(self) -> Generator[None]:
+        with patch(
+            "sentry.seer.code_review.webhooks.pull_request.delete_existing_reactions_and_adds_reaction"
+        ) as mock_reaction:
+            self.mock_reaction = mock_reaction
             yield
 
     def test_pull_request_opened(self) -> None:
@@ -74,12 +66,12 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
             payload = call_kwargs["payload"]
             assert payload["request_type"] == SeerCodeReviewRequestType.PR_REVIEW.value
-
-            self.mock_reaction.assert_called_once_with(
-                event["repository"]["full_name"],
-                str(event["pull_request"]["number"]),
-                GitHubReaction.EYES,
-            )
+            self.mock_reaction.assert_called_once()
+            call_kwargs = self.mock_reaction.call_args[1]
+            assert call_kwargs["pr_number"] == str(event["pull_request"]["number"])
+            assert call_kwargs["comment_id"] is None
+            assert call_kwargs["reactions_to_delete"] == [GitHubReaction.HOORAY]
+            assert call_kwargs["reaction_to_add"] == GitHubReaction.EYES
 
     def test_pull_request_skips_draft(self) -> None:
         """Test that draft PRs are skipped."""
