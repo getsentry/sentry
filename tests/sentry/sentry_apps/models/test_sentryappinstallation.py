@@ -34,7 +34,6 @@ class SentryAppInstallationTest(TestCase):
     def test_paranoid(self) -> None:
         self.install.save()
         self.install.delete()
-        assert self.install.date_deleted is not None
         assert self.install not in SentryAppInstallation.objects.all()
 
     @override_options({"sentry-apps.disable-paranoia": True})

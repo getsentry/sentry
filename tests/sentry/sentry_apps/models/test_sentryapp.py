@@ -30,7 +30,6 @@ class SentryAppTest(TestCase):
     def test_paranoid(self) -> None:
         self.sentry_app.save()
         self.sentry_app.delete()
-        assert self.sentry_app.date_deleted is not None
         assert self.sentry_app not in SentryApp.objects.all()
 
     @override_options({"sentry-apps.disable-paranoia": True})

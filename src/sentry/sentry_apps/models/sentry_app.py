@@ -10,7 +10,6 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -74,7 +73,6 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
             installations__organization_id=organization_id,
             is_alertable=True,
             installations__status=SentryAppInstallationStatus.INSTALLED,
-            installations__date_deleted=None,
         ).distinct()
 
     def visible_for_user(self, request: Request) -> QuerySet["SentryApp"]:
@@ -250,11 +248,8 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
 
             SentryAppAvatar.objects.filter(sentry_app=self).delete()
 
-            if options.get("sentry-apps.hard-delete"):
-                # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
-                return super(Model, self).delete(*args, **kwargs)
-
-            return super().delete(*args, **kwargs)
+            # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
+            return super(Model, self).delete(*args, **kwargs)
 
     def _disable(self):
         self.events = []
