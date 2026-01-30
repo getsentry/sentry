@@ -21,15 +21,11 @@ import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {
-  dashboardFiltersToString,
-  eventViewFromWidget,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
@@ -38,38 +34,6 @@ type ErrorsSeriesResponse =
   | MultiSeriesEventsStats
   | GroupedMultiSeriesEventsStats;
 type ErrorsTableResponse = TableData | EventsTableData;
-
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  return cleanWidgetForRequest(processedWidget);
-}
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -89,7 +53,8 @@ export function useErrorsSeriesQuery(
   const prevRawDataRef = useRef<ErrorsSeriesResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -253,7 +218,8 @@ export function useErrorsTableQuery(
   const prevRawDataRef = useRef<ErrorsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
