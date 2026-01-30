@@ -4,31 +4,29 @@ from sentry.scm.helpers import exec_provider_fn, fetch_repository, fetch_service
 from sentry.scm.types import Provider, Reaction, Referrer, Repository, RepositoryId
 
 
-def create_issue_reaction(
-    organization_id: int,
-    repository_id: RepositoryId,
-    issue_id: str,
-    reaction: Reaction,
-    *,
-    referrer: Referrer = "shared",
-    fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
-    fetch_service_provider: Callable[[Repository], Provider] = fetch_service_provider,
-):
-    """Create an issue reaction.
+class SourceCodeManager:
 
-    :param organization_id:
-    :param repository_id:
-    :param issue_id:
-    :param reaction:
-    :param referrer:
-    :param fetch_repository:
-    :param fetch_service_provider:
-    """
-    return exec_provider_fn(
-        organization_id,
-        repository_id,
-        referrer=referrer,
-        fetch_repository=fetch_repository,
-        fetch_service_provider=fetch_service_provider,
-        provider_fn=lambda r, p: p.create_issue_reaction(r, issue_id, reaction),
-    )
+    def __init__(
+        self,
+        organization_id: int,
+        repository_id: RepositoryId,
+        *,
+        referrer: Referrer = "shared",
+        fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
+        fetch_service_provider: Callable[[Repository], Provider] = fetch_service_provider,
+    ):
+        self.organization_id = organization_id
+        self.repository_id = repository_id
+        self.referrer = referrer
+        self.fetch_repository = fetch_repository
+        self.fetch_service_provider = fetch_service_provider
+
+    def create_issue_reaction(self, issue_id: str, reaction: Reaction):
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.create_issue_reaction(r, issue_id, reaction),
+        )
