@@ -401,7 +401,7 @@ def get_grouping_variants_for_event(
         if fingerprint_type == "default"
         else resolve_fingerprint_values(
             raw_fingerprint,
-            event.data,
+            event,
             use_legacy_unknown_variable_handling=use_legacy_unknown_variable_handling,
         )
     )
