@@ -255,8 +255,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:scm-multi-org-install-button': () => GithubInstallationSelectInstallButton,
   'component:metric-alert-quota-message': MetricAlertQuotaMessage,
   'component:metric-alert-quota-icon': MetricAlertQuotaIcon,
-  'component:disabled-detector-action': DisabledDetectorAction,
-  'component:disabled-detector-alert': AnomalyDetectionDisabledAlert,
+  'component:disabled-detector-action': () => DisabledDetectorAction,
+  'component:disabled-detector-alert': () => AnomalyDetectionDisabledAlert,
 
   /**
    * Augment disable feature hooks for augmenting with upsell interfaces

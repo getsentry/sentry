@@ -207,8 +207,8 @@ type ComponentHooks = {
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
-  'component:disabled-detector-action': React.ComponentType<{detector: Detector}>;
-  'component:disabled-detector-alert': React.ComponentType<{
+  'component:disabled-detector-action': () => React.ComponentType<{detector: Detector}>;
+  'component:disabled-detector-alert': () => React.ComponentType<{
     detector: Detector;
     message: string;
   }>;

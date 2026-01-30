@@ -21,7 +21,7 @@ export function AnomalyDetectionDisabledAlert({
 
   const hasFeature = organization.features.includes('anomaly-detection-alerts');
 
-  // For anomaly detectors without feature, show upgrade message without Enable button
+  // For anomaly detectors without feature, show upgrade message only when disabled
   if (isAnomalyDetector && !hasFeature) {
     if (detector.enabled) {
       return null;
