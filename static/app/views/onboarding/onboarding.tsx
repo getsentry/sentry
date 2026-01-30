@@ -65,8 +65,7 @@ export const onboardingSteps: StepDescriptor[] = [
 ];
 
 function WelcomeStep(props: StepProps) {
-  const organization = useOrganization();
-  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
+  const hasNewWelcomeUI = useHasNewWelcomeUI();
 
   if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
 
@@ -115,6 +114,13 @@ function OnboardingStepVariable(
   );
 }
 
+function useHasNewWelcomeUI() {
+  const organization = useOrganization();
+  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
+
+  return hasNewWelcomeUI;
+}
+
 export function OnboardingWithoutContext() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -123,7 +129,7 @@ export function OnboardingWithoutContext() {
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
 
-  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
+  const hasNewWelcomeUI = useHasNewWelcomeUI();
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -284,6 +290,10 @@ export function OnboardingWithoutContext() {
         id={stepObj.id}
         hasNewWelcomeUI={hasNewWelcomeUI}
       >
+        <AdaptivePageCorners
+          // Controls the current corner variant
+          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+        />
         {stepIndex > 0 && (
           <BackMotionDiv
             initial="initial"
@@ -326,10 +336,6 @@ export function OnboardingWithoutContext() {
             )}
           </OnboardingStepVariable>
         </AnimatePresence>
-        <AdaptivePageCorners
-          // Controls the current corner variant
-          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-        />
       </ContainerVariable>
     </Stack>
   );

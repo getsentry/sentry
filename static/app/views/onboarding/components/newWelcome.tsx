@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-// import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
+import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -46,6 +46,7 @@ type ProductOption = {
   id: string;
   title: string;
   badge?: React.ReactNode;
+  extra?: React.ReactNode;
   footer?: React.ReactNode;
 };
 
@@ -123,22 +124,45 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     ),
     footer: <SeerFlag />,
     badge: <FeatureBadge type="new" tooltipProps={{disabled: true}} />,
+    extra: <SeerExtra />,
   },
 ];
 
-type ProductCardProps = {
+function SeerExtra() {
+  return (
+    <SeerIllustrationWrapper>
+      <img src={SeerIllustration} alt="" />
+    </SeerIllustrationWrapper>
+  );
+}
+
+interface ProductCardProps {
   description: string;
   icon: React.ReactNode;
   title: string;
   badge?: ReactNode;
+  extra?: ReactNode;
   footer?: ReactNode;
   span?: number;
-};
+}
 
-function ProductCard({icon, title, description, span, badge, footer}: ProductCardProps) {
+function ProductCard({
+  icon,
+  title,
+  description,
+  span,
+  badge,
+  footer,
+  extra,
+}: ProductCardProps) {
   const CardContainer = span ? SpanningContainer : Container;
   return (
-    <CardContainer border="muted" radius="lg" padding="xl">
+    <CardContainer
+      border="muted"
+      radius="lg"
+      padding="xl"
+      background={span ? 'secondary' : 'primary'}
+    >
       <Grid
         columns="min-content 1fr"
         rows="min-content min-content"
@@ -167,6 +191,8 @@ function ProductCard({icon, title, description, span, badge, footer}: ProductCar
           {footer}
         </Stack>
       </Grid>
+
+      {extra}
     </CardContainer>
   );
 }
@@ -235,7 +261,7 @@ export function NewWelcomeUI(props: StepProps) {
           </Stack>
         </Stack>
 
-        <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg">
+        <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg" flex={0.75}>
           {PRODUCT_OPTIONS.map((product, index) => (
             <ProductCard
               key={product.id}
@@ -245,6 +271,7 @@ export function NewWelcomeUI(props: StepProps) {
               span={index === PRODUCT_OPTIONS.length - 1 ? 2 : undefined}
               badge={product.badge}
               footer={product.footer}
+              extra={product.extra}
             />
           ))}
         </Grid>
@@ -286,9 +313,7 @@ export function NewWelcomeUI(props: StepProps) {
               </Grid>
             </Flex>
 
-            <SeerIllustrationWrapper>
-              <img src={SeerIllustration} alt="" />
-            </SeerIllustrationWrapper>
+
           </Flex>
         </Container> */}
 
@@ -333,25 +358,29 @@ const ContentWrapper = styled(motion.div)`
   gap: 24px;
 `;
 
-// const SeerIllustrationWrapper = styled('div')`
-//   flex-shrink: 0;
-//   margin-top: -20px;
-//   margin-bottom: -40px;
-//   margin-right: -10px;
+const SeerIllustrationWrapper = styled(Flex)`
+  position: absolute;
+  right: 0;
+  top: ${p => p.theme.space.xl};
+  bottom: ${p => p.theme.space.xl};
+  transform: translateX(45%);
 
-//   img {
-//     display: block;
-//     max-height: 120px;
-//     width: auto;
-//   }
+  img {
+    object-fit: cover;
+    object-position: left;
+  }
 
-//   @media (max-width: ${p => p.theme.breakpoints.md}) {
-//     display: none;
-//   }
-// `;
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
+`;
 
 const SpanningContainer = styled(Container)`
+  position: relative;
+  overflow: hidden;
+
   @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding-right: 36%;
     grid-column: span 2;
   }
 `;
