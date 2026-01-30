@@ -1,9 +1,11 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId} from 'sentry/views/onboarding/types';
 
 interface ProductCardProps {
@@ -17,6 +19,19 @@ interface ProductCardProps {
   span?: number;
 }
 
+const CardContainer = styled(Container)<{$seer?: boolean}>`
+  ${p =>
+    p.$seer &&
+    `
+    @media (min-width: ${p.theme.breakpoints.md}) {
+      padding-right: 36%;
+      grid-column: span 2;
+    }
+  `}
+`;
+
+const MotionCardContainer = motion.create(CardContainer);
+
 export function NewWelcomeProductCard({
   icon,
   title,
@@ -29,7 +44,8 @@ export function NewWelcomeProductCard({
   const consideredSeerCard = id === OnboardingWelcomeProductId.SEER;
 
   return (
-    <CardContainer
+    <MotionCardContainer
+      {...ONBOARDING_WELCOME_STAGGER_ITEM}
       border="muted"
       radius="lg"
       padding="xl"
@@ -70,17 +86,6 @@ export function NewWelcomeProductCard({
       </Grid>
 
       {extra}
-    </CardContainer>
+    </MotionCardContainer>
   );
 }
-
-const CardContainer = styled(Container)<{$seer?: boolean}>`
-  ${p =>
-    p.$seer &&
-    `
-    @media (min-width: ${p.theme.breakpoints.md}) {
-      padding-right: 36%;
-      grid-column: span 2;
-    }
-  `}
-`;
