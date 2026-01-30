@@ -349,7 +349,7 @@ export function SearchQueryBuilderCombobox<
 >({
   children,
   description,
-  fullQuery,
+  fullQuery = '',
   items,
   inputValue,
   filterValue = inputValue,
@@ -589,10 +589,8 @@ export function SearchQueryBuilderCombobox<
     return () => {};
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
-  /**
-   * Trigger autosize when the full query or input value changes.
-   */
-  const autosizeInput = useAutosizeInput({value: fullQuery + inputValue});
+  // Triggers resize when either the full query or input value changes.
+  const autosizeInput = useAutosizeInput({value: `${fullQuery}${inputValue}`});
 
   const memoizedInputRef = useMemo(() => {
     return mergeRefs(
