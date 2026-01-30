@@ -527,7 +527,8 @@ const TreeValueErrors = styled('div')`
 
 const TagLinkText = styled('span')`
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
+  text-decoration: underline dotted;
+  text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.rest};
   margin: 0;
   &:hover,
   &:focus {
