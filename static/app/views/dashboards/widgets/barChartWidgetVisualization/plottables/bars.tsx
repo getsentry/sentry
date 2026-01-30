@@ -75,7 +75,7 @@ export class Bars
       barSeries({
         name: this.name,
         stack: this.config?.stack,
-        yAxisIndex: plottingOptions.yAxisPosition === 'right' ? 1 : 0,
+        yAxisIndex: 0,
         xAxisIndex: 0,
         color,
         emphasis: {

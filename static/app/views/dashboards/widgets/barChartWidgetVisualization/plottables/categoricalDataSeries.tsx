@@ -43,11 +43,6 @@ export type CategoricalPlottingOptions = {
    * the original unit if normalization is applied.
    */
   unit?: DataUnit | null;
-  /**
-   * If the chart has multiple Y axes, whether this value should be plotted
-   * on the left or right axis.
-   */
-  yAxisPosition?: 'left' | 'right';
 };
 
 /**
