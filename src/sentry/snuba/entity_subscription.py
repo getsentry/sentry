@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
@@ -33,6 +34,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
@@ -302,6 +304,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             self.event_types
             and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC
         )
+        is_preprod = (
+            self.event_types
+            and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_PREPROD
+        )
 
         query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
         if environment:
@@ -312,6 +318,8 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             dataset_module = OurLogs
         elif is_trace_metric:
             dataset_module = TraceMetrics
+        elif is_preprod:
+            dataset_module = PreprodSize
         else:
             dataset_module = Spans
         now = datetime.now(tz=timezone.utc)
@@ -338,6 +346,11 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
                 disable_aggregate_extrapolation=False,
                 extrapolation_mode=proto_extrapolation_mode,
                 stable_timestamp_quantization=False,
+            )
+        elif is_preprod:
+            search_config = PreprodSizeSearchResolverConfig(
+                stable_timestamp_quantization=False,
+                extrapolation_mode=proto_extrapolation_mode,
             )
         else:
             search_config = SearchResolverConfig(
