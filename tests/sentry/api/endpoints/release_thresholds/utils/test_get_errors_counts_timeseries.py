@@ -180,6 +180,7 @@ class GetErrorCountTimeseriesEAPTest(TestCase):
         mock_timeseries.assert_called_once()
         call_kwargs = mock_timeseries.call_args[1]
         assert "staging" in call_kwargs["query_string"]
+        assert "type:error" in call_kwargs["query_string"]
         assert len(result) == 1
         assert result[0]["environment"] == "staging"
 

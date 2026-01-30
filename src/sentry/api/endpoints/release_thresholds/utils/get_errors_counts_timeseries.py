@@ -128,17 +128,20 @@ def _get_errors_counts_timeseries_eap(
         )
         return []
 
-    projects = list(Project.objects.filter(id__in=project_id_list))
+    projects = list(Project.objects.filter(id__in=project_id_list, organization_id=organization_id))
     if not projects:
         return []
 
     if not release_value_list:
         return []
-    elif len(release_value_list) == 1:
-        query_string = f'release:"{release_value_list[0]}"'
+
+    query_string = "type:error"
+
+    if len(release_value_list) == 1:
+        query_string += f' release:"{release_value_list[0]}"'
     else:
         release_filter = " OR ".join([f'release:"{r}"' for r in release_value_list])
-        query_string = f"({release_filter})"
+        query_string += f" ({release_filter})"
 
     if environments_list:
         if len(environments_list) == 1:
