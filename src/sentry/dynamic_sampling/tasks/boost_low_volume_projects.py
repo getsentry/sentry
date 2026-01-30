@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import (
@@ -37,6 +36,7 @@ from sentry.dynamic_sampling.rules.utils import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.tasks.common import (
+    MEASURE_CONFIGS,
     GetActiveOrgs,
     are_equal_with_epsilon,
     sample_rate_to_float,
@@ -59,10 +59,8 @@ from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -81,14 +79,6 @@ ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 # the same as ProjectVolumes, but with the organization ID added
 OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
-
-
-class MeasureConfig(TypedDict):
-    """Configuration for a sampling measure query."""
-
-    mri: str
-    use_case_id: UseCaseID
-    tags: dict[str, str]
 
 
 @instrumented_task(
@@ -282,29 +272,6 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
             )
 
     return aggregated_projects
-
-
-# Configuration for each sampling measure type
-MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
-    # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
-    SamplingMeasure.SEGMENTS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {"is_segment": "true"},
-    },
-    # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
-    SamplingMeasure.SPANS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {},
-    },
-    # TRANSACTIONS: TransactionMRI without tag filters (legacy)
-    SamplingMeasure.TRANSACTIONS: {
-        "mri": TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.TRANSACTIONS,
-        "tags": {},
-    },
-}
 
 
 @dynamic_sampling_task
