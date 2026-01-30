@@ -1091,11 +1091,7 @@ export default typescript.config([
           type: 'test',
           pattern: 'tests/js',
         },
-        // --- specifics ---
-        {
-          type: 'core-button',
-          pattern: 'static/app/components/core/button',
-        },
+        // --- scraps core components ---
         {
           type: 'core',
           pattern: 'static/app/components/core',
@@ -1234,14 +1230,86 @@ export default typescript.config([
               allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
-            {
-              from: ['core-button'],
-              allow: ['core*'],
-            },
             // todo: sentry* shouldn't be allowed
             {
               from: ['core'],
               allow: ['core*', 'sentry*'],
+            },
+          ],
+        },
+      ],
+      'boundaries/entry-point': [
+        'error',
+        {
+          default: 'disallow',
+          rules: [
+            {
+              target: ['core'],
+              allow: [
+                '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
+                '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
+                '**/*.png', // needed for story-files
+                // todo clean these up! we should have a single entry for each component
+                'alert/alert.tsx',
+                'alert/alertLink.tsx',
+                'avatar/actorAvatar.tsx',
+                'avatar/avatarList.tsx',
+                'avatar/baseAvatar.tsx',
+                'avatar/docIntegrationAvatar.tsx',
+                'avatar/gravatar.tsx',
+                'avatar/letterAvatar.tsx',
+                'avatar/organizationAvatar.tsx',
+                'avatar/projectAvatar.tsx',
+                'avatar/sentryAppAvatar.tsx',
+                'avatar/sentryAvatar.tsx',
+                'avatar/teamAvatar.tsx',
+                'avatar/userAvatar.tsx',
+                'badge/alertBadge.tsx',
+                'badge/badge.tsx',
+                'badge/deployBadge.tsx',
+                'badge/featureBadge.tsx',
+                'badge/tag.tsx',
+                'button/button.tsx',
+                'button/buttonBar.tsx',
+                'button/linkButton.tsx',
+                'checkbox/checkbox.tsx',
+                'code/inlineCode.tsx',
+                'compactSelect/composite.tsx',
+                'compactSelect/control.tsx',
+                'compactSelect/listBox/index.tsx',
+                'compactSelect/types.tsx',
+                'compactSelect/utils.tsx',
+                'disclosure/disclosure.tsx',
+                'image/image.tsx',
+                'input/input.tsx',
+                'input/inputGroup.tsx',
+                'input/numberDragInput.tsx',
+                'input/numberInput.tsx',
+                'input/useAutosizeInput.tsx',
+                'interactionStateLayer/interactionStateLayer.tsx',
+                'layout/container.tsx',
+                'layout/flex.tsx',
+                'layout/grid.tsx',
+                'layout/stack.tsx',
+                'layout/styles.tsx',
+                'layout/surface.tsx',
+                'link/link.tsx',
+                'link/linkBehaviorContext.tsx',
+                'quote/quote.tsx',
+                'select/async.tsx',
+                'select/option.tsx',
+                'separator/separator.tsx',
+                'switch/switch.tsx',
+                'tabs/tabs.tsx',
+                'text/heading.tsx',
+                'text/prose.tsx',
+                'text/text.tsx',
+                'tooltip/tooltip.tsx',
+              ],
+            },
+            {
+              target: ['!core'],
+              allow: '**/*',
             },
           ],
         },
