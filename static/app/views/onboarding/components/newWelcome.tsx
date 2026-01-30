@@ -31,6 +31,9 @@ import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import type {StepProps} from 'sentry/views/onboarding/types';
 
+const MotionContainer = motion.create(Container);
+const MotionFlex = motion.create(Flex);
+
 const fadeAway: MotionProps = {
   variants: {
     initial: {opacity: 0},
@@ -224,59 +227,60 @@ export function NewWelcomeUI(props: StepProps) {
   }, [organization, source, props]);
 
   return (
-    <NewWelcomeWrapper>
-      <WelcomeBackgroundNewUi />
-      <ContentWrapper {...fadeAway}>
-        <Stack gap="md">
-          <Flex direction="column" gap="sm" paddingBottom="2xl">
-            <Container>
-              <Heading as="h1" density="comfortable">
-                {t('Welcome to Sentry')}
-              </Heading>
-            </Container>
-            <Container>
-              <Text variant="muted" size="xl" bold wrap="pre-line">
-                {t("Your code is probably broken. Let's fix it faster.")}
-              </Text>
-            </Container>
-          </Flex>
-
-          <Stack gap="2xs">
-            <Flex align="center" gap="md">
-              <IconBusiness legacySize="16px" variant="accent" />
+    <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
+      <Flex direction="column" align="center">
+        <WelcomeBackgroundNewUi />
+        <MotionFlex direction="column" gap="2xl" {...fadeAway}>
+          <Stack gap="md">
+            <Flex direction="column" gap="sm" paddingBottom="2xl">
               <Container>
-                <Text size="lg" bold density="comfortable">
-                  {t(
-                    'You’ve got 14 days of Business with unlimited access to everything below.'
-                  )}
+                <Heading as="h1" density="comfortable">
+                  {t('Welcome to Sentry')}
+                </Heading>
+              </Container>
+              <Container>
+                <Text variant="muted" size="xl" bold wrap="pre-line">
+                  {t("Your code is probably broken. Let's fix it faster.")}
                 </Text>
               </Container>
             </Flex>
-            <Container>
-              <Text size="md" variant="muted">
-                We’ll walk you through setup next. Start with what matters now, add the
-                rest when you’re ready.
-              </Text>
-            </Container>
+
+            <Stack gap="2xs">
+              <Flex align="center" gap="md">
+                <IconBusiness legacySize="16px" variant="accent" />
+                <Container>
+                  <Text size="lg" bold density="comfortable">
+                    {t(
+                      'You’ve got 14 days of Business with unlimited access to everything below.'
+                    )}
+                  </Text>
+                </Container>
+              </Flex>
+              <Container>
+                <Text size="md" variant="muted">
+                  We’ll walk you through setup next. Start with what matters now, add the
+                  rest when you’re ready.
+                </Text>
+              </Container>
+            </Stack>
           </Stack>
-        </Stack>
 
-        <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg" flex={0.75}>
-          {PRODUCT_OPTIONS.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              icon={product.icon}
-              title={product.title}
-              description={product.description}
-              span={index === PRODUCT_OPTIONS.length - 1 ? 2 : undefined}
-              badge={product.badge}
-              footer={product.footer}
-              extra={product.extra}
-            />
-          ))}
-        </Grid>
+          <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg" flex={0.75}>
+            {PRODUCT_OPTIONS.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                icon={product.icon}
+                title={product.title}
+                description={product.description}
+                span={index === PRODUCT_OPTIONS.length - 1 ? 2 : undefined}
+                badge={product.badge}
+                footer={product.footer}
+                extra={product.extra}
+              />
+            ))}
+          </Grid>
 
-        {/* <Container border="muted" radius="lg" padding="xl" overflow="hidden">
+          {/* <Container border="muted" radius="lg" padding="xl" overflow="hidden">
           <Flex>
             <Flex flex="1">
               <Grid
@@ -317,46 +321,30 @@ export function NewWelcomeUI(props: StepProps) {
           </Flex>
         </Container> */}
 
-        <Container>
-          <Text size="md" variant="muted">
-            {t(
-              "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
-            )}
-          </Text>
-        </Container>
-      </ContentWrapper>
-      <GenericFooter>
-        {props.genSkipOnboardingLink()}
-        <Flex align="center" padding="0 lg">
-          <Button
-            priority="primary"
-            onClick={handleComplete}
-            data-test-id="onboarding-welcome-start"
-          >
-            {t('Next')}
-          </Button>
-        </Flex>
-      </GenericFooter>
-    </NewWelcomeWrapper>
+          <Container>
+            <Text size="md" variant="muted">
+              {t(
+                "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
+              )}
+            </Text>
+          </Container>
+        </MotionFlex>
+        <GenericFooter>
+          {props.genSkipOnboardingLink()}
+          <Flex align="center" padding="0 lg">
+            <Button
+              priority="primary"
+              onClick={handleComplete}
+              data-test-id="onboarding-welcome-start"
+            >
+              {t('Next')}
+            </Button>
+          </Flex>
+        </GenericFooter>
+      </Flex>
+    </MotionContainer>
   );
 }
-
-const NewWelcomeWrapper = styled(motion.div)`
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  max-width: 900px;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-`;
-
-const ContentWrapper = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-`;
 
 const SeerIllustrationWrapper = styled(Flex)`
   position: absolute;
