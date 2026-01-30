@@ -3921,16 +3921,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls whether to validate webhook payloads with Pydantic before sending to Seer
-# This is disabled by default to avoid potential issues with enum key serialization
-# until the validation is fully tested and deployed
-register(
-    "seer.code_review.validate_webhook_payload",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enabled Prebuilt Dashboard IDs
 register(
     "dashboards.prebuilt-dashboard-ids",
