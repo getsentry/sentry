@@ -122,7 +122,13 @@ const NativeHiddenCheckbox = styled('input')<{
   }
 
   &:checked:disabled + div > div {
-    transform: translateY(0px) translateX(${p => toggleWrapperSize[p.nativeSize].width - toggleButtonSize[p.nativeSize].width + 1}px);
+    transform: translateY(0px)
+      translateX(
+        ${p =>
+          toggleWrapperSize[p.nativeSize].width -
+          toggleButtonSize[p.nativeSize].width +
+          1}px
+      );
   }
 `;
 
