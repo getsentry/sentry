@@ -1,9 +1,9 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {tct} from 'sentry/locale';
 
 import {crashReport} from './crashReport';
@@ -89,7 +89,8 @@ const docs: Docs = {
   }),
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/nextjs',
-    configFileName: 'sentry.server.config.ts',
+    clientConfigFileName: 'instrumentation-client.ts',
+    serverConfigFileName: 'sentry.server.config.(ts|js)',
   }),
   mcpOnboarding: mcp,
 };
