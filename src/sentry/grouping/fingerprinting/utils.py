@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any, Literal, NotRequired, TypedDict
 
 from sentry.db.models.fields.node import NodeData
+from sentry.grouping.fingerprinting.types import FingerprintInfo
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
@@ -199,6 +200,16 @@ def get_fingerprint_type(
             else "custom"
         )
     )
+
+
+def get_custom_fingerprint_type(
+    fingerprint_info: FingerprintInfo,
+) -> Literal["built-in", "custom client", "custom server"]:
+    matched_server_rule = fingerprint_info.get("matched_rule")
+    if matched_server_rule:
+        return "built-in" if matched_server_rule.get("is_builtin") else "custom server"
+    else:
+        return "custom client"
 
 
 def resolve_fingerprint_variable(
