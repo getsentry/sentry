@@ -170,6 +170,7 @@ class SeerAutofixTrigger(NotificationData):
 
     @staticmethod
     def from_update(update: SeerAutofixUpdate) -> SeerAutofixTrigger:
+        """Get the next trigger after a given update."""
         match update.current_point:
             case AutofixStoppingPoint.ROOT_CAUSE:
                 stopping_point = AutofixStoppingPoint.SOLUTION

@@ -173,7 +173,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         logging_ctx = {
             "event_type": event_type,
             "cache_payload": cache_payload,
-            "entrypoint_key": SlackEntrypoint.key,
+            "entrypoint_key": SeerEntrypointKey.SLACK.value,
         }
         group_link = f'{cache_payload["group_link"]}?seerDrawer=true'
         data_kwargs = {
@@ -234,10 +234,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                         "summary": summary,
                     }
                 )
-
             case _:
                 logging_ctx["event_type"] = event_type
-                logger.warning("entrypoint.unsupported_event_type", extra=logging_ctx)
+                logger.info("entrypoint.unsupported_event_type", extra=logging_ctx)
                 return
 
         # Determine whether an automation has progressed beyond the current stopping point
@@ -249,6 +248,10 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             )
             logging_ctx["automation_stopping_point"] = automation_stopping_point.value
         logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
+
+        # Special case for solution stopping point, we always progress beyond it.
+        if data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION:
+            data_kwargs["has_progressed"] = True
 
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
@@ -493,15 +496,7 @@ def handle_prepare_autofix_update(
 
     try:
         automation_stopping_point = get_automation_stopping_point(group)
-        logger.info(
-            "entrypoint.get_automation_stopping_point_success",
-            extra={"stopping_point": automation_stopping_point},
-        )
     except Exception:
-        logger.warning(
-            "entrypoint.get_automation_stopping_point_failed",
-            extra=logging_ctx,
-        )
         automation_stopping_point = None
 
     lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
