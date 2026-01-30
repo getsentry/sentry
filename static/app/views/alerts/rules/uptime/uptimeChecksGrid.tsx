@@ -244,7 +244,6 @@ function CheckInBodyCell({
               query: {
                 includeUptime: '1',
                 timestamp: new Date(timestamp).getTime() / 1000,
-                node: `uptime-check-${check.traceItemId}`,
               },
             }}
           >

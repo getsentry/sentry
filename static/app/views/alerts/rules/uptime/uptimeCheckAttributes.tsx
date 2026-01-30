@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Text} from 'sentry/components/core/text';
 import BaseSearchBar from 'sentry/components/searchBar';
@@ -14,8 +14,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {AssertionFailureTree} from './assertions/assertionFailure/assertionFailureTree';
 
@@ -67,12 +65,11 @@ export function UptimeCheckAttributes({
   };
 
   return (
-    <FoldSection
-      sectionKey={SectionKey.SPAN_ATTRIBUTES}
-      title={t('Attributes')}
-      disableCollapsePersistence
-    >
-      <Stack gap="lg" maxWidth="100%">
+    <Flex direction="column" gap="xl">
+      <Text size="lg" bold>
+        {t('Attributes')}
+      </Text>
+      <Flex direction="column" gap="lg">
         <BaseSearchBar
           placeholder={t('Search')}
           onChange={query => setSearchQuery(query)}
@@ -101,8 +98,8 @@ export function UptimeCheckAttributes({
             <p>{t('No matching attributes found')}</p>
           </StyledFlex>
         )}
-      </Stack>
-    </FoldSection>
+      </Flex>
+    </Flex>
   );
 }
 

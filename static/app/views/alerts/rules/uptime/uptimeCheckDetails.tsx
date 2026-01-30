@@ -1,3 +1,6 @@
+import styled from '@emotion/styled';
+
+import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Flex} from '@sentry/scraps/layout/flex';
 
 import {Text} from 'sentry/components/core/text';
@@ -6,6 +9,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -18,6 +22,7 @@ type Props = {
 };
 
 export function UptimeCheckDetails({check, project}: Props) {
+  const organization = useOrganization();
   const {
     data: traceItemData,
     isPending: isTraceItemPending,
@@ -40,16 +45,33 @@ export function UptimeCheckDetails({check, project}: Props) {
   }
 
   return (
-    <Flex direction="column" gap="md">
+    <Flex data-overlay="true" direction="column">
       <DrawerHeader hideBar />
+      <StyledFlex direction="row" align="center" justify="between" padding="lg 2xl">
+        <Text size="xl" bold>
+          {t('Check-In')}
+        </Text>
+        <LinkButton
+          size="xs"
+          to={{
+            pathname: `/organizations/${organization.slug}/performance/trace/${check.traceId}/`,
+            query: {
+              includeUptime: '1',
+              timestamp: new Date(check.timestamp).getTime() / 1000,
+              node: `uptime-check-${check.traceItemId}`,
+            },
+          }}
+        >
+          {t('View in Trace')}
+        </LinkButton>
+      </StyledFlex>
       <DrawerBody>
-        <Flex direction="column" gap="md" align="stretch" width="100%">
-          <Text size="xl" bold>
-            {t('Check-In')}
-          </Text>
-          <UptimeCheckAttributes attributes={traceItemData.attributes} />
-        </Flex>
+        <UptimeCheckAttributes attributes={traceItemData.attributes} />
       </DrawerBody>
     </Flex>
   );
 }
+
+const StyledFlex = styled(Flex)`
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
