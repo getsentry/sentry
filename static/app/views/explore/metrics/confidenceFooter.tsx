@@ -82,8 +82,8 @@ function ConfidenceMessage({
     if (!hasUserQuery) {
       const matchingMetricsCount =
         sampleCount > 1
-          ? t('%s samples', <Count value={sampleCount} />)
-          : t('%s sample', <Count value={sampleCount} />);
+          ? t('%s data points', <Count value={sampleCount} />)
+          : t('%s data point', <Count value={sampleCount} />);
 
       if (isTopN) {
         return tct('[matchingMetricsCount] for top [topEvents] groups', {
@@ -184,8 +184,8 @@ function ConfidenceMessage({
 
     const matchingMetricsCount =
       sampleCount > 1
-        ? t('%s samples', <Count value={sampleCount} />)
-        : t('%s sample', <Count value={sampleCount} />);
+        ? t('%s data points', <Count value={sampleCount} />)
+        : t('%s data point', <Count value={sampleCount} />);
 
     if (isTopN) {
       return tct(
@@ -274,9 +274,9 @@ function ConfidenceMessage({
 
   const totalMetricsCount = defined(rawMetricCounts.highAccuracy.count) ? (
     rawMetricCounts.highAccuracy.count > 1 ? (
-      t('%s samples', <Count value={rawMetricCounts.highAccuracy.count} />)
+      t('%s data points', <Count value={rawMetricCounts.highAccuracy.count} />)
     ) : (
-      t('%s sample', <Count value={rawMetricCounts.highAccuracy.count} />)
+      t('%s data point', <Count value={rawMetricCounts.highAccuracy.count} />)
     )
   ) : (
     <Placeholder width={40} />
@@ -326,10 +326,10 @@ function DownsampledTooltip({
           <br />
           {hasUserQuery
             ? t(
-                'Try reducing the date range, number of projects, or removing filters to attempt scanning all samples.'
+                'Try reducing the date range, number of projects, or removing filters to attempt scanning all data points.'
               )
             : t(
-                'Try reducing the date range or number of projects to attempt scanning all samples.'
+                'Try reducing the date range or number of projects to attempt scanning all data points.'
               )}
         </div>
       }
