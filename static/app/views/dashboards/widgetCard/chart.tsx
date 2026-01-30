@@ -70,6 +70,8 @@ import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegend
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
+import {sampleCountCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/countCategorical';
+import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
@@ -708,10 +710,17 @@ function BigNumberComponent({
 }
 
 function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
-  const keepingKnipHappy = useOrganization().features.includes('a-flag-to-appease-knip');
+  const hasCategoricalBarCharts = useOrganization().features.includes(
+    'dashboards-categorical-bar-charts'
+  );
 
-  if (!keepingKnipHappy) {
-    return <CategoricalSeriesWidgetVisualization plottables={[]} {...props} />;
+  if (hasCategoricalBarCharts) {
+    return (
+      <CategoricalSeriesWidgetVisualization
+        plottables={[new Bars(sampleCountCategoricalData)]}
+        {...props}
+      />
+    );
   }
   return null;
 }
