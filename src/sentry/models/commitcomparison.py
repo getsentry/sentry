@@ -57,3 +57,17 @@ class CommitComparison(DefaultFieldsModel):
             models.Index(fields=["organization_id", "head_repo_name", "head_sha"]),
             models.Index(fields=["organization_id", "head_repo_name", "base_sha"]),
         ]
+        constraints = [
+            # For comparisons (base_sha present - PR scenario)
+            models.UniqueConstraint(
+                fields=["organization_id", "head_repo_name", "head_sha", "base_sha"],
+                condition=models.Q(base_sha__isnull=False),
+                name="sentry_commitcomparison_org_comparison_uniq",
+            ),
+            # For single commits (base_sha NULL - main branch scenario)
+            models.UniqueConstraint(
+                fields=["organization_id", "head_repo_name", "head_sha"],
+                condition=models.Q(base_sha__isnull=True),
+                name="sentry_commitcomparison_org_commit_uniq",
+            ),
+        ]
