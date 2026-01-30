@@ -1,12 +1,14 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
-import type {ListRowProps} from 'react-virtualized';
-import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
+import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import useJumpButtons, {
+  type VisibleRange,
+} from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -16,15 +18,9 @@ import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBre
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
-import useVirtualizedInspector from 'sentry/views/replays/detail/useVirtualizedInspector';
-import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
-// Ensure this object is created once as it is an input to
-// `useVirtualizedList`'s memoization
-const cellMeasurer = {
-  fixedWidth: true,
-  minHeight: 53,
-};
+// Estimated row height - matches previous minHeight from cellMeasurer config
+const ESTIMATED_ROW_HEIGHT = 50;
 
 export default function Breadcrumbs() {
   const replay = useReplayReader();
@@ -35,41 +31,85 @@ export default function Breadcrumbs() {
   const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
   const frames = replay?.getChapterFrames();
 
-  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
-
   const filterProps = useBreadcrumbFilters({frames: frames || []});
-  const {expandPathsRef, items, searchTerm, setSearchTerm} = filterProps;
+  const {expandPathsRef, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const listRef = useRef<ReactVirtualizedList>(null);
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 30,
+  });
 
-  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
-  const {cache, updateList} = useVirtualizedList({
-    cellMeasurer,
-    ref: listRef,
-    deps,
-  });
-  const {handleDimensionChange: handleInspectorExpanded} = useVirtualizedInspector({
-    cache,
-    listRef,
-    expandPathsRef,
-  });
+  const virtualItems = virtualizer.getVirtualItems();
+
+  // Derive visible range from virtual items for jump buttons
+  // Filter to only items actually visible in the viewport (not overscan items)
+  const visibleRange = useMemo<VisibleRange>(() => {
+    if (virtualItems.length === 0) {
+      return {startIndex: 0, stopIndex: 0};
+    }
+    const scrollOffset = virtualizer.scrollOffset ?? 0;
+    const viewportHeight = virtualizer.scrollRect?.height ?? 0;
+    const viewportEnd = scrollOffset + viewportHeight;
+
+    // Find items that are actually within the visible viewport
+    const visibleItems = virtualItems.filter(item => {
+      const itemEnd = item.start + item.size;
+      return itemEnd > scrollOffset && item.start < viewportEnd;
+    });
+
+    if (visibleItems.length === 0) {
+      return {startIndex: 0, stopIndex: 0};
+    }
+
+    return {
+      startIndex: visibleItems[0]!.index,
+      stopIndex: visibleItems[visibleItems.length - 1]!.index,
+    };
+  }, [virtualItems, virtualizer.scrollOffset, virtualizer.scrollRect?.height]);
+
+  // Handle inspector expand/collapse by triggering remeasure
+  const handleInspectorExpanded = useCallback(
+    (index: number, path: string, expandedState: Record<string, boolean>) => {
+      const rowState = expandPathsRef.current?.get(index) || new Set<string>();
+      if (expandedState[path]) {
+        rowState.add(path);
+      } else {
+        rowState.delete(path);
+      }
+      expandPathsRef.current?.set(index, rowState);
+      // Trigger remeasure for dynamic heights
+      virtualizer.measure();
+    },
+    [expandPathsRef, virtualizer]
+  );
+
+  // Callback for jump buttons to scroll directly
+  const handleScrollToRow = useCallback(
+    (row: number) => {
+      virtualizer.scrollToIndex(row, {align: 'center'});
+    },
+    [virtualizer]
+  );
 
   const {
     handleClick: onClickToJump,
-    onRowsRendered,
     showJumpDownButton,
     showJumpUpButton,
   } = useJumpButtons({
     currentTime,
     frames: items,
     isTable: false,
-    setScrollToRow,
+    setScrollToRow: handleScrollToRow,
+    visibleRange,
   });
 
   useScrollToCurrentItem({
-    frames,
-    ref: listRef,
+    frames: items,
+    virtualizer: scrollContainerRef.current ? virtualizer : null,
   });
 
   const handleShowSnipppet = useCallback((index: number) => {
@@ -80,70 +120,51 @@ export default function Breadcrumbs() {
     });
   }, []);
 
-  const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = (items || [])[index]!;
-
-    return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={0}
-        key={key}
-        parent={parent}
-        rowIndex={index}
-      >
-        <BreadcrumbRow
-          index={index}
-          frame={item}
-          startTimestampMs={startTimestampMs}
-          style={style}
-          expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
-          onClick={() => {
-            onClickTimestamp(item);
-          }}
-          updateDimensions={updateList}
-          onInspectorExpanded={handleInspectorExpanded}
-          showSnippet={showSnippetSet.has(index)}
-          allowShowSnippet
-          onShowSnippet={handleShowSnipppet}
-        />
-      </CellMeasurer>
-    );
-  };
+  // Handler to trigger remeasure when dimensions change (e.g., snippet shown)
+  const updateDimensions = useCallback(() => {
+    virtualizer.measure();
+  }, [virtualizer]);
 
   return (
     <Flex direction="column" wrap="nowrap">
       <BreadcrumbFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
-          <AutoSizer onResize={updateList}>
-            {({height, width}) => (
-              <ReactVirtualizedList
-                deferredMeasurementCache={cache}
-                height={height}
-                noRowsRenderer={() => (
-                  <NoRowRenderer
-                    unfilteredItems={frames}
-                    clearSearchTerm={clearSearchTerm}
-                  >
-                    {t('No breadcrumbs recorded')}
-                  </NoRowRenderer>
-                )}
-                onRowsRendered={onRowsRendered}
-                onScroll={() => {
-                  if (scrollToRow !== undefined) {
-                    setScrollToRow(undefined);
-                  }
-                }}
-                overscanRowCount={5}
-                ref={listRef}
-                rowCount={items.length}
-                rowHeight={cache.rowHeight}
-                rowRenderer={renderRow}
-                scrollToIndex={scrollToRow}
-                width={width}
-              />
+          <ScrollContainer ref={scrollContainerRef}>
+            {items.length === 0 ? (
+              <NoRowRenderer unfilteredItems={frames} clearSearchTerm={clearSearchTerm}>
+                {t('No breadcrumbs recorded')}
+              </NoRowRenderer>
+            ) : (
+              <VirtualizedContent style={{height: virtualizer.getTotalSize()}}>
+                <VirtualOffset offset={virtualItems[0]?.start ?? 0}>
+                  {virtualItems.map(virtualItem => {
+                    const item = items[virtualItem.index]!;
+                    return (
+                      <BreadcrumbRow
+                        key={virtualItem.key}
+                        ref={virtualizer.measureElement}
+                        index={virtualItem.index}
+                        frame={item}
+                        startTimestampMs={startTimestampMs}
+                        expandPaths={Array.from(
+                          expandPathsRef.current?.get(virtualItem.index) || []
+                        )}
+                        onClick={() => {
+                          onClickTimestamp(item);
+                        }}
+                        updateDimensions={updateDimensions}
+                        onInspectorExpanded={handleInspectorExpanded}
+                        showSnippet={showSnippetSet.has(virtualItem.index)}
+                        allowShowSnippet
+                        onShowSnippet={handleShowSnipppet}
+                      />
+                    );
+                  })}
+                </VirtualOffset>
+              </VirtualizedContent>
             )}
-          </AutoSizer>
+          </ScrollContainer>
         ) : (
           <Placeholder height="100%" />
         )}
@@ -158,3 +179,23 @@ export default function Breadcrumbs() {
     </Flex>
   );
 }
+
+const ScrollContainer = styled('div')`
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+`;
+
+const VirtualizedContent = styled('div')`
+  position: relative;
+  width: 100%;
+`;
+
+const VirtualOffset = styled('div')<{offset: number}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(${p => p.offset}px);
+`;
