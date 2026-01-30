@@ -19,7 +19,7 @@ describe('Bars', () => {
     });
 
     it('returns name with groupBy when groupBy is present', () => {
-      const bar = new Bars(sampleStackedCategoricalData[0]!);
+      const bar = new Bars(sampleStackedCategoricalData[0]);
       expect(bar.name).toBe('count() : status : success');
     });
 
@@ -29,7 +29,7 @@ describe('Bars', () => {
     });
 
     it('returns groupBy value as label when groupBy is present', () => {
-      const bar = new Bars(sampleStackedCategoricalData[0]!);
+      const bar = new Bars(sampleStackedCategoricalData[0]);
       expect(bar.label).toBe('success');
     });
 
