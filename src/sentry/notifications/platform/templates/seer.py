@@ -38,29 +38,6 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         )
 
 
-@dataclass(frozen=True)
-class SeerAutofixSuccess(NotificationData):
-    run_id: int
-    organization_id: int
-    stopping_point: AutofixStoppingPoint
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_SUCCESS
-
-
-@template_registry.register(SeerAutofixSuccess.source)
-class SeerAutofixSuccessTemplate(NotificationTemplate[SeerAutofixSuccess]):
-    category = NotificationCategory.SEER
-    example_data = SeerAutofixSuccess(
-        source=NotificationTemplateSource.SEER_AUTOFIX_SUCCESS,
-        run_id=12152025,
-        organization_id=1,
-        stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-    )
-    hide_from_debugger = True
-
-    def render(self, data: SeerAutofixSuccess) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(subject="Seer Autofix Success", body=[])
-
-
 class SeerAutofixCodeChange(TypedDict):
     repo_name: str
     diff: str

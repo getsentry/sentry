@@ -21,7 +21,6 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
-    SeerAutofixSuccess,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
 )
@@ -38,17 +37,17 @@ class AutofixStageConfig(TypedDict):
 AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
-        forward_text="_Seer is working on the solution..._",
+        forward_text="Seer is working on the solution...",
         past_steps=[":hourglass: analyzing the root cause..."],
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
         heading=":test_tube:  *Proposed Solution*",
-        forward_text="_Seer is writing the code..._",
+        forward_text="Seer is writing the code...",
         past_steps=[":white_check_mark: root cause analyzed", ":hourglass: planning solution..."],
     ),
     AutofixStoppingPoint.CODE_CHANGES: AutofixStageConfig(
         heading=":pencil2:  *Code Change Suggestions*",
-        forward_text="_Seer is drafting a pull request..._",
+        forward_text="Seer is drafting a pull request...",
         past_steps=[
             ":white_check_mark: root cause analyzed",
             ":white_check_mark: solution planned",
@@ -82,8 +81,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif isinstance(data, SeerAutofixError):
             return cls.render_autofix_error(data)
-        elif isinstance(data, SeerAutofixSuccess):
-            return cls.render_autofix_success(data)
         elif isinstance(data, SeerAutofixUpdate):
             return cls.render_autofix_update(data)
         else:
@@ -119,18 +116,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
             ],
             text="Seer Autofix Error",
-        )
-
-    @classmethod
-    def render_autofix_success(cls, data: SeerAutofixSuccess) -> SlackRenderable:
-        autofix_mrkdwn_parts = AUTOFIX_CONFIG[data.stopping_point].get("past_steps", [])
-        return SlackRenderable(
-            blocks=[
-                SectionBlock(text=MarkdownTextObject(text="*Seer's on it*")),
-                SectionBlock(text=MarkdownTextObject(text="\n\n".join(autofix_mrkdwn_parts))),
-                ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]),
-            ],
-            text="Seer Autofix Success",
         )
 
     @classmethod
