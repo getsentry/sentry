@@ -1,4 +1,5 @@
 import logging
+import time
 import uuid
 from datetime import timedelta
 from enum import StrEnum
@@ -412,7 +413,20 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
             artifact_key="missing_integrations",
             artifact_schema=MissingSdkIntegrationsResult,
         )
-        state = client.get_run(run_id, blocking=True, poll_timeout=120.0)
+        start_time = time.monotonic()
+        state = client.get_run(run_id, blocking=True, poll_timeout=240.0)
+        run_duration = time.monotonic() - start_time
+
+        logger.warning(
+            "missing_sdk_integration_detector.run_completed",
+            extra={
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "project_slug": project.slug,
+                "run_id": run_id,
+                "run_duration": run_duration,
+            },
+        )
 
         # Extract the structured result
         result = state.get_artifact("missing_integrations", MissingSdkIntegrationsResult)
@@ -461,9 +475,15 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
 
         return missing_integrations
 
-    except Exception:
+    except Exception as e:
         logger.exception(
             "autopilot.missing_sdk_integration_detector.error",
-            extra={"organization_id": organization.id, "project_id": project.id},
+            extra={
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "project_slug": project.slug,
+                "run_id": run_id,
+                "error_message": str(e),
+            },
         )
         return None
