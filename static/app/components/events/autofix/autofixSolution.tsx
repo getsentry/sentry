@@ -552,7 +552,7 @@ function AutofixSolutionDisplay({
           {t('Solution')}
           <Button
             size="zero"
-            borderless
+            priority="transparent"
             title={t('Chat with Seer')}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
@@ -610,7 +610,7 @@ function AutofixSolutionDisplay({
             <SubmitButton
               size="zero"
               type="submit"
-              borderless
+              priority="transparent"
               disabled={!instructions.trim()}
               aria-label={t('Add to solution')}
             >

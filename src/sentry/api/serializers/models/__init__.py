@@ -43,7 +43,6 @@ from .projectcodeowners import *  # noqa: F401,F403
 from .projectownership import *  # noqa: F401,F403
 from .pullrequest import *  # noqa: F401,F403
 from .recentsearch import *  # noqa: F401,F403
-from .relay import *  # noqa: F401,F403
 from .relayusage import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .release_file import *  # noqa: F401,F403

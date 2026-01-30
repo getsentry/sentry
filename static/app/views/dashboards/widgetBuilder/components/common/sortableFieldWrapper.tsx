@@ -53,7 +53,7 @@ function SortableVisualizeFieldWrapper({
           aria-label={t('Drag to reorder')}
           icon={<IconGrabbable size="xs" />}
           size="zero"
-          borderless
+          priority="transparent"
           isDragging={isDragging}
         />
       )}

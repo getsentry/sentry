@@ -124,7 +124,7 @@ export function IssueDetailsEventNavigation({
         <LinkButton
           aria-label={t('Previous Event')}
           title={t('Previous Event')}
-          borderless
+          priority="transparent"
           size="xs"
           icon={<IconChevron direction="left" />}
           disabled={!defined(event?.previousEventID)}
@@ -148,7 +148,7 @@ export function IssueDetailsEventNavigation({
         <LinkButton
           aria-label={t('Next Event')}
           title={t('Next Event')}
-          borderless
+          priority="transparent"
           size="xs"
           icon={<IconChevron direction="right" />}
           disabled={!defined(event?.nextEventID)}

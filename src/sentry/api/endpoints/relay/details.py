@@ -3,13 +3,13 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserPermission
 from sentry.models.relay import Relay
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class RelayDetailsEndpoint(Endpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
