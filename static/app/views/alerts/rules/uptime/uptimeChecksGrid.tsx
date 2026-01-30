@@ -183,15 +183,20 @@ function CheckInBodyCell({
         : null;
       return (
         <StatusCell
+          isMiss={isMiss}
           color={color}
-          onClick={() =>
+          onClick={() => {
+            if (isMiss) {
+              return;
+            }
+
             openDrawer(() => <UptimeCheckDetails check={check} project={project} />, {
               ariaLabel: t('Uptime Check Details'),
               drawerKey: `uptime-check-details-${check.uptimeCheckId}`,
               drawerWidth: DETAILS_DRAWER_WIDTH,
               resizable: true,
-            })
-          }
+            });
+          }}
         >
           {statusToText[checkStatus]}{' '}
           {checkStatusReasonLabel && t('(%s)', checkStatusReasonLabel)}
@@ -279,11 +284,15 @@ const TraceCell = styled(Cell)`
   gap: ${space(1)};
 `;
 
-const StatusCell = styled(Cell)<{color: string}>`
+const StatusCell = styled(Cell)<{color: string; isMiss: boolean}>`
   color: ${p => p.color};
   cursor: pointer;
 
-  &:hover {
-    font-weight: bold;
-  }
+  ${p =>
+    !p.isMiss &&
+    `
+    &:hover {
+      font-weight: bold;
+    }
+  `}
 `;
