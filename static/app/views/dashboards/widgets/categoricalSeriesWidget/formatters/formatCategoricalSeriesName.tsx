@@ -10,7 +10,10 @@ export function formatCategoricalSeriesName(series: CategoricalSeries): string {
   if (series.groupBy?.length) {
     name += ` : ${series.groupBy
       .map(groupBy => {
-        return `${groupBy.key} : ${groupBy.value}`;
+        const value = Array.isArray(groupBy.value)
+          ? JSON.stringify(groupBy.value)
+          : groupBy.value;
+        return `${groupBy.key} : ${value}`;
       })
       .join(',')}`;
   }
