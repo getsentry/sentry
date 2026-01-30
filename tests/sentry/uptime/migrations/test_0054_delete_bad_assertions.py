@@ -44,5 +44,5 @@ class DeleteBadAssertionsTest(TestMigrations):
 
         # Test detector with partial config gets both thresholds and preserves existing
         self.obj_assertion.refresh_from_db()
-        assert self.empty_obj_assertion.assertion is None
-        assert self.empty_obj_assertion.id is not None
+        assert self.obj_assertion.assertion is None
+        assert self.obj_assertion.id is not None
