@@ -60,7 +60,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
       <MetricsSwitchHandler
         eventView={props.eventView}
         location={props.location}
-        outcome={metricsCardinality.outcome ?? {forceTransactionsOnly: true}}
+        outcome={metricsCardinality.outcome ?? {forceTransactionsOnly: false}}
         switcherChildren={props.children}
       />
     </Fragment>
