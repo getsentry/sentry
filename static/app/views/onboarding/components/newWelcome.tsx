@@ -1,9 +1,6 @@
-import {useCallback, useEffect, type ReactNode} from 'react';
-import styled from '@emotion/styled';
+import {useCallback, useEffect} from 'react';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
-
-import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -15,7 +12,6 @@ import {
   IconBot,
   IconBusiness,
   IconGraph,
-  IconInfo,
   IconProfiling,
   IconSeer,
   IconSpan,
@@ -28,9 +24,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
+import {NewWelcomeProductCard} from 'sentry/views/onboarding/components/newWelcomeProductCard';
+import {NewWelcomeSeerExtra} from 'sentry/views/onboarding/components/newWelcomeSeerExtra';
+import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeSeerFlag';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
-import type {StepProps} from 'sentry/views/onboarding/types';
+import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
 
 const MotionContainer = motion.create(Container);
 const MotionFlex = motion.create(Flex);
@@ -47,48 +46,35 @@ const fadeAway: MotionProps = {
 type ProductOption = {
   description: string;
   icon: React.ReactNode;
-  id: string;
+  id: OnboardingWelcomeProductId;
   title: string;
   badge?: React.ReactNode;
   extra?: React.ReactNode;
   footer?: React.ReactNode;
 };
 
-function SeerFlag() {
-  return (
-    <Flex gap="md" align="center">
-      <IconInfo legacySize="16px" variant="secondary" />
-      <Container>
-        <Text variant="muted" size="sm" density="comfortable" bold>
-          {t('Requires additional setup')}
-        </Text>
-      </Container>
-    </Flex>
-  );
-}
-
 // Product options in display order (3x2 grid: row1: Error, Logging, Session; row2: Metrics, Tracing, Profiling)
 const PRODUCT_OPTIONS: ProductOption[] = [
   {
-    id: 'error-monitoring',
+    id: OnboardingWelcomeProductId.ERROR_MONITORING,
     icon: <IconWarning legacySize="16px" variant="secondary" />,
     title: t('Error monitoring'),
     description: t('Automatically capture exceptions and stack traces'),
   },
   {
-    id: 'logging',
+    id: OnboardingWelcomeProductId.LOGGING,
     icon: <IconTerminal legacySize="16px" variant="secondary" />,
     title: t('Logging'),
     description: t('See logs in context with errors and performance issues'),
   },
   {
-    id: 'session-replay',
+    id: OnboardingWelcomeProductId.SESSION_REPLAY,
     icon: <IconTimer legacySize="16px" variant="secondary" />,
     title: t('Session replay'),
     description: t('Watch real user sessions to see what went wrong'),
   },
   {
-    id: 'tracing',
+    id: OnboardingWelcomeProductId.TRACING,
     icon: <IconSpan legacySize="16px" variant="secondary" />,
     title: t('Tracing'),
     description: t(
@@ -96,7 +82,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     ),
   },
   {
-    id: 'metrics',
+    id: OnboardingWelcomeProductId.METRICS,
     icon: <IconGraph legacySize="16px" variant="secondary" />,
     title: t('Metrics'),
     description: t(
@@ -104,7 +90,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     ),
   },
   {
-    id: 'profiling',
+    id: OnboardingWelcomeProductId.PROFILING,
     icon: <IconProfiling legacySize="16px" variant="secondary" />,
     title: t('Profiling'),
     description: t(
@@ -112,7 +98,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     ),
   },
   {
-    id: 'agent-monitoring',
+    id: OnboardingWelcomeProductId.AGENT_MONITORING,
     icon: <IconBot legacySize="16px" variant="secondary" />,
     title: t('Agent monitoring'),
     description: t(
@@ -120,90 +106,17 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     ),
   },
   {
-    id: 'seer',
+    id: OnboardingWelcomeProductId.SEER,
     icon: <IconSeer legacySize="16px" variant="secondary" />,
     title: t('Seer: AI Debugging Agent'),
     description: t(
       'Catch breaking changes, automatically root cause issues in production, and fix what you missed.'
     ),
-    footer: <SeerFlag />,
+    footer: <NewWelcomeSeerFlag />,
     badge: <FeatureBadge type="new" tooltipProps={{disabled: true}} />,
-    extra: <SeerExtra />,
+    extra: <NewWelcomeSeerExtra />,
   },
 ];
-
-function SeerExtra() {
-  return (
-    <SeerIllustrationWrapper>
-      <img src={SeerIllustration} alt="" />
-    </SeerIllustrationWrapper>
-  );
-}
-
-interface ProductCardProps {
-  description: string;
-  icon: React.ReactNode;
-  title: string;
-  badge?: ReactNode;
-  extra?: ReactNode;
-  footer?: ReactNode;
-  span?: number;
-}
-
-function ProductCard({
-  icon,
-  title,
-  description,
-  span,
-  badge,
-  footer,
-  extra,
-}: ProductCardProps) {
-  return (
-    <CardContainer
-      border="muted"
-      radius="lg"
-      padding="xl"
-      background={span ? 'secondary' : 'primary'}
-      overflow={span ? 'hidden' : undefined}
-      position={span ? 'relative' : undefined}
-      $span={span}
-    >
-      <Grid
-        columns="min-content 1fr"
-        rows="min-content min-content"
-        gap="xs lg"
-        align="center"
-        areas={`
-          "cell1 cell2"
-          ". cell4"
-        `}
-      >
-        <Flex area="cell1" align="center">
-          {icon}
-        </Flex>
-        <Flex area="cell2" gap="md">
-          <Container>
-            <Text bold size="lg" density="comfortable">
-              {title}
-            </Text>
-          </Container>
-          {badge}
-        </Flex>
-        <Stack area="cell4" gap="xl">
-          <Container>
-            <Text variant="muted" size="md" density="comfortable">
-              {description}
-            </Text>
-          </Container>
-          {footer}
-        </Stack>
-      </Grid>
-
-      {extra}
-    </CardContainer>
-  );
-}
 
 export function NewWelcomeUI(props: StepProps) {
   const organization = useOrganization();
@@ -271,13 +184,13 @@ export function NewWelcomeUI(props: StepProps) {
           </Stack>
 
           <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg" flex={0.75}>
-            {PRODUCT_OPTIONS.map((product, index) => (
-              <ProductCard
+            {PRODUCT_OPTIONS.map(product => (
+              <NewWelcomeProductCard
                 key={product.id}
                 icon={product.icon}
                 title={product.title}
                 description={product.description}
-                span={index === PRODUCT_OPTIONS.length - 1 ? 2 : undefined}
+                id={product.id}
                 badge={product.badge}
                 footer={product.footer}
                 extra={product.extra}
@@ -311,31 +224,3 @@ export function NewWelcomeUI(props: StepProps) {
     </MotionContainer>
   );
 }
-
-const SeerIllustrationWrapper = styled(Flex)`
-  position: absolute;
-  right: 0;
-  top: ${p => p.theme.space.xl};
-  bottom: ${p => p.theme.space.xl};
-  transform: translateX(45%);
-
-  img {
-    object-fit: cover;
-    object-position: left;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
-  }
-`;
-
-const CardContainer = styled(Container)<{$span?: number}>`
-  ${p =>
-    p.$span &&
-    `
-    @media (min-width: ${p.theme.breakpoints.md}) {
-      padding-right: 36%;
-      grid-column: span ${p.$span};
-    }
-  `}
-`;
