@@ -100,7 +100,7 @@ const NativeHiddenCheckbox = styled('input')<{
     > div {
       background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
       border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
-      transform: translateY(-1px)
+      transform: translateY(-1px) translateX(-1px)
         translateX(
           ${p =>
             toggleWrapperSize[p.nativeSize].width -
@@ -116,13 +116,13 @@ const NativeHiddenCheckbox = styled('input')<{
       opacity: ${p => p.theme.tokens.interactive.disabled};
 
       > div {
-        transform: translateY(0px) translateX(0px);
+        transform: translateY(0px) translateX(-1px);
       }
     }
   }
 
   &:checked:disabled + div > div {
-    transform: translateY(0px) translateX(16px);
+    transform: translateY(0px) translateX(${p => toggleWrapperSize[p.nativeSize].width - toggleButtonSize[p.nativeSize].width + 1}px);
   }
 `;
 
