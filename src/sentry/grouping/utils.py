@@ -9,13 +9,30 @@ from uuid import UUID
 from django.utils.encoding import force_bytes
 
 from sentry.grouping.parameterization import Parameterizer
-from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
     from sentry.services.eventstore.models import Event
+
+REGEX_PATTERN_KEYS = (
+    "email",
+    "url",
+    "hostname",
+    "ip",
+    "traceparent",
+    "uuid",
+    "sha1",
+    "md5",
+    "date",
+    "duration",
+    "hex",
+    "float",
+    "int",
+    "quoted_str",
+    "bool",
+)
 
 
 def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:

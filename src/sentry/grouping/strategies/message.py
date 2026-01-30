@@ -15,24 +15,6 @@ from sentry.interfaces.message import Message
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event
 
-REGEX_PATTERN_KEYS = (
-    "email",
-    "url",
-    "hostname",
-    "ip",
-    "traceparent",
-    "uuid",
-    "sha1",
-    "md5",
-    "date",
-    "duration",
-    "hex",
-    "float",
-    "int",
-    "quoted_str",
-    "bool",
-)
-
 
 @strategy(ids=["message:v1"], interface=Message, score=0)
 @produces_variants(["default"])
