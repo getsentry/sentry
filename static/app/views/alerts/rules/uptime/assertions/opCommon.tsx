@@ -3,10 +3,10 @@ import {useDraggable} from '@dnd-kit/core';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';

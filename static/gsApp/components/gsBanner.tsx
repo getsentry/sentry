@@ -5,6 +5,9 @@ import Cookies from 'js-cookie';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -17,11 +20,6 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import {Alert, type AlertProps} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';

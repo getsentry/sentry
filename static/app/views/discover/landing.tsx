@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Switch} from '@sentry/scraps/switch';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Switch} from 'sentry/components/core/switch';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

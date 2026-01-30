@@ -1,11 +1,12 @@
 import {Fragment, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

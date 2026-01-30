@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';

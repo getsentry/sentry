@@ -2,8 +2,9 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import type {TooltipProps} from 'sentry/components/core/tooltip';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useUser} from 'sentry/utils/useUser';

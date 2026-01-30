@@ -1,10 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ClippedBox from 'sentry/components/clippedBox';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -113,7 +114,7 @@ function parseUserContent(node: AITraceSpanNode): string | null {
     | undefined;
 
   const requestMessages =
-    inputMessages ??
+    inputMessages ||
     (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);
 
   if (!requestMessages) {
@@ -284,7 +285,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               isSelected={isAssistant && isSelected}
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
-              <MessageHeader justify={message.role === 'assistant' ? 'end' : 'start'}>
+              <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
                 {message.role === 'user' ? <IconUser size="sm" /> : <IconBot size="sm" />}
                 <Text bold size="sm">
                   {message.role === 'user' ? t('User') : t('Assistant')}
@@ -378,7 +379,7 @@ const MessageBubble = styled('div')<{
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   width: 90%;
-  align-self: ${p => (p.role === 'user' ? 'flex-start' : 'flex-end')};
+  align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
   background-color: ${p =>
     p.role === 'user'
       ? p.theme.tokens.background.secondary

@@ -3,12 +3,12 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';

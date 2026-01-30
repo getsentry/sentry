@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

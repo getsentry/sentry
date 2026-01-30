@@ -2,6 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -9,9 +11,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
