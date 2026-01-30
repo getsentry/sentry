@@ -2,7 +2,7 @@ import type {SeriesOption} from 'echarts';
 
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {DataUnit} from 'sentry/utils/discover/fields';
-import type {CategoricalValueType} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/types';
+import type {CategoricalValueType} from 'sentry/views/dashboards/widgets/common/types';
 
 /**
  * A `CategoricalPlottable` is any object that can be converted to an ECharts

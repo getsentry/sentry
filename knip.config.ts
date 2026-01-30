@@ -66,8 +66,6 @@ const config: KnipConfig = {
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
     // ignore eslint plugins in production
     '!static/eslint/**/*.mjs!',
-    // TODO: temporarily ignore categorical series chart widget visualization
-    '!static/app/views/dashboards/widgets/categoricalSeriesWidget/**/*.{js,mjs,ts,tsx}',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),

@@ -1,4 +1,4 @@
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/types';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 /**
  * Formats a unique name for a categorical series, used internally by ECharts.

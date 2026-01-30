@@ -69,6 +69,7 @@ import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
@@ -219,6 +220,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <WheelComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.CATEGORICAL_SERIES) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <CategoricalSeriesComponent tableResults={tableResults} {...props} />
       </TransitionChart>
     );
   }
@@ -695,6 +705,15 @@ function BigNumberComponent({
       />
     );
   });
+}
+
+function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
+  const keepingKnipHappy = useOrganization().features.includes('a-flag-to-appease-knip');
+
+  if (!keepingKnipHappy) {
+    return <CategoricalSeriesWidgetVisualization plottables={[]} {...props} />;
+  }
+  return null;
 }
 
 function DetailsComponent(props: TableComponentProps): React.ReactNode {
