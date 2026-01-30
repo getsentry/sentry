@@ -72,6 +72,12 @@ export function useUptimeDetectorFormField<T extends UptimeDetectorFormFieldName
 export function uptimeFormDataToEndpointPayload(
   data: UptimeDetectorFormData
 ): UptimeDetectorUpdatePayload {
+  // Convert empty assertion structure to null. This handles the case when:
+  // 1. The assertions field isn't rendered (feature flag off) - the field's getValue
+  //    transform doesn't run, so the empty structure from savedDetectorToFormData persists
+  // 2. The user deleted all assertions (getValue in the field also does this conversion)
+  const assertion = data.assertion?.root?.children?.length === 0 ? null : data.assertion;
+
   return {
     type: 'uptime_domain_failure',
     name: data.name || 'New Monitor',
@@ -88,7 +94,7 @@ export function uptimeFormDataToEndpointPayload(
         url: data.url,
         headers: data.headers,
         body: data.body || null,
-        assertion: data.assertion,
+        assertion,
       },
     ],
     config: {
