@@ -15,25 +15,43 @@ class Repository(TypedDict):
 
 
 class Provider(Protocol):
+    """
+    Providers abstract over an integration. They map generic commands to service-provider specific
+    commands and they map the results of those commands to generic result-types.
+
+    Providers necessarily offer a larger API surface than what is available in an integration. Some
+    methods may be duplicates in some providers. This is intentional. Providers capture programmer
+    intent and translate it into a concrete interface. Therefore, providers provide a large range
+    of behaviors which may or may not be explicitly defined on a service-provider.
+    """
+
+    # Behaviors TODO:
+    # - get_issue_comments
+    # - get_pull_request_comments
+    # - get_comment_reactions
+    # - create_comment_reaction
+    # - get_issue_reactions
+    # - create_issue_reaction
+    # - delete_issue_reaction
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 
-    # Issues
-
-    # def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[IssueReaction]: ...
-
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
-    ) -> None: ...
+    ) -> None:
+        """Create a reaction to an issue."""
+        ...
 
-    # def delete_issue_reaction(
-    #     self, repository: Repository, issue_id: str, reaction_id: str
+    # Examples of how you might implement some of the permutations of issue reaction:
+
+    # def create_comment_reaction(
+    #     self, repository: Repository, comment_id: str, reaction: Reaction
     # ) -> None: ...
 
-    # def get_issue_comment_reactions(
-    #     self, repository: Repository, comment_id: str
-    # ) -> list[CommentReaction]: ...
+    # def create_pull_request_reaction(
+    #     self, repository: Repository, pull_request_id: str, reaction: Reaction
+    # ) -> None: ...
 
-    # def create_issue_comment_reaction(
-    #     self, repository: Repository, comment_id: str, reaction: Reaction
+    # def create_pull_request_review_reaction(
+    #     self, repository: Repository, review_id: str, reaction: Reaction
     # ) -> None: ...
