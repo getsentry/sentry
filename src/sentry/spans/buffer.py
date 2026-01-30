@@ -377,7 +377,6 @@ class SpansBuffer:
                     _,
                 ) = result
 
-                # Collect EVALSHA latency for batch logging
                 latency_entries.append((project_and_trace, evalsha_latency_ms))
 
                 shard = self.assigned_shards[
@@ -439,7 +438,6 @@ class SpansBuffer:
                             evalsha_gauge_metrics,
                         )
 
-            # Log all EVALSHA latencies in a single batch call
             self._buffer_logger.log(latency_entries)
 
             with self.client.pipeline(transaction=False) as p:

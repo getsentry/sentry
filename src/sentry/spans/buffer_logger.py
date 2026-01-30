@@ -7,8 +7,7 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-MAX_ENTRIES = 1000
-LOGGING_ENTRIES = 50
+MAX_ENTRIES = 50
 LOGGING_INTERVAL = 60  # 1 minute in seconds
 
 
@@ -17,16 +16,13 @@ class BufferLogger:
     Tracks EVALSHA operations and logs the dominant project and trace by
     cumulative latency.
 
-    This logger keeps a bounded map (max 1000 entries) of project_and_trace keys
-    to their occurrence counts and cumulative latencies. All entries are tracked
-    regardless of latency. After processing each batch, if the map exceeds 1000
-    entries, it is trimmed to keep only the top 1000 by cumulative latency.
-    Every 1 minute (60 seconds), the top 50 entries by cumulative latency are logged at
-    INFO level, then the tracked data is cleared.
+    This logger keeps a bounded map (max 50 entries) of project_and_trace keys
+    to their occurrence counts and cumulative latencies.
+    Every minute the top 50 traces by cumulative latency are logged at INFO level.
     """
 
     def __init__(self) -> None:
-        self._data: dict[str, tuple[int, float]] = {}
+        self._data: dict[str, tuple[int, int]] = {}
         self._last_log_time: float | None = None
 
     def log(self, entries: list[tuple[str, int]]) -> None:
@@ -35,36 +31,29 @@ class BufferLogger:
 
         :param entries: List of tuples containing (project_and_trace, latency_ms) pairs.
         """
-        if not entries:
-            return
+        if not self._last_log_time:
+            self._last_log_time = time.time()
 
-        # Process all entries and accumulate latencies
         for project_and_trace, latency_ms in entries:
-            if not self._last_log_time:
-                self._last_log_time = time.time()
-
             if project_and_trace in self._data:
                 count, cumulative_latency = self._data[project_and_trace]
                 self._data[project_and_trace] = (count + 1, cumulative_latency + latency_ms)
             else:
                 self._data[project_and_trace] = (1, latency_ms)
 
-        # Trim to top 1000 entries by cumulative latency if needed
         if len(self._data) > MAX_ENTRIES:
             sorted_items = sorted(self._data.items(), key=lambda x: x[1][1], reverse=True)
             keys_to_remove = [key for key, _ in sorted_items[MAX_ENTRIES:]]
             for key in keys_to_remove:
                 del self._data[key]
 
-
-
-        if time.time() - (self._last_log_time or 0.0) >= LOGGING_INTERVAL:
+        if time.time() - self._last_log_time >= LOGGING_INTERVAL:
             sorted_items = sorted(self._data.items(), key=lambda x: x[1][1], reverse=True)
 
             if len(sorted_items) > 0:
                 entries_str = [
                     f"{key}:{count}:{cumulative_latency}"
-                    for key, (count, cumulative_latency) in sorted_items[:50]
+                    for key, (count, cumulative_latency) in sorted_items
                 ]
 
                 logger.info(
