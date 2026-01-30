@@ -321,39 +321,42 @@ function NativeFrame({
               </Tooltip>
             ) : null}
           </SymbolicatorIcon>
-          {showNativeInfo && (
-            <div>
-              {!fullStackTrace && !expanded && leadsToApp && (
-                <Fragment>
-                  <PackageNote>
-                    {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-                  </PackageNote>
-                </Fragment>
-              )}
-              <Tooltip
-                title={
-                  frame.package ??
-                  (isDartAsyncSuspensionFrame
-                    ? t('Dart async operation')
-                    : t('Go to images loaded'))
-                }
-                containerDisplayMode="inline-flex"
-                delay={tooltipDelay}
-                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
-                position="auto-start"
-              >
-                <Package>
-                  {frame.package
-                    ? trimPackage(frame.package)
-                    : isDartAsyncSuspensionFrame
-                      ? t('Dart async')
-                      : `<${t('unknown')}>`}
-                </Package>
-              </Tooltip>
-            </div>
-          )}
-          {showNativeInfo && (
-            <Flex>
+
+          <div>
+            {showNativeInfo && (
+              <Fragment>
+                {!fullStackTrace && !expanded && leadsToApp && (
+                  <Fragment>
+                    <PackageNote>
+                      {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+                    </PackageNote>
+                  </Fragment>
+                )}
+                <Tooltip
+                  title={
+                    frame.package ??
+                    (isDartAsyncSuspensionFrame
+                      ? t('Dart async operation')
+                      : t('Go to images loaded'))
+                  }
+                  containerDisplayMode="inline-flex"
+                  delay={tooltipDelay}
+                  maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+                  position="auto-start"
+                >
+                  <Package>
+                    {frame.package
+                      ? trimPackage(frame.package)
+                      : isDartAsyncSuspensionFrame
+                        ? t('Dart async')
+                        : `<${t('unknown')}>`}
+                  </Package>
+                </Tooltip>
+              </Fragment>
+            )}
+          </div>
+          <Flex>
+            {showNativeInfo && (
               <AddressCell
                 onClick={packageClickable ? handleGoToImagesLoaded : undefined}
               >
@@ -366,8 +369,9 @@ function NativeFrame({
                   {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
                 </Tooltip>
               </AddressCell>
-            </Flex>
-          )}
+            )}
+          </Flex>
+
           <FunctionNameCell>
             {functionName ? (
               <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
