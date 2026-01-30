@@ -213,6 +213,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
             logger.exception("Could not publish message: %s", error)
             return
 
+        if not asynchronous:
+            produce_future.result()  # Wait for the message to be delivered to Kafka
+
     def requires_post_process_forwarder(self) -> bool:
         return True
 
