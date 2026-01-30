@@ -208,6 +208,12 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
         }
+        // When assertions feature is disabled, the UptimeAssertionsField isn't rendered,
+        // so the field's getValue transform doesn't run. Preserve the original assertion
+        // value to avoid overwriting null assertions with the empty default structure.
+        if (!organization.features.includes('uptime-runtime-assertions')) {
+          formModel.setValue('assertion', rule?.assertion ?? null);
+        }
       }}
       extraButton={
         <Flex gap="md">
