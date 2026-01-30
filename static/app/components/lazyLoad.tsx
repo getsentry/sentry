@@ -1,7 +1,8 @@
 import {Component, Suspense, useEffect, useState, type ErrorInfo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

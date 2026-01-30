@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';

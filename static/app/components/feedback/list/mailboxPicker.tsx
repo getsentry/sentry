@@ -1,8 +1,9 @@
-import {Badge} from 'sentry/components/core/badge';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Badge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';

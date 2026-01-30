@@ -2,10 +2,9 @@ import {useCallback} from 'react';
 import {useBlocker} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {removeProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';

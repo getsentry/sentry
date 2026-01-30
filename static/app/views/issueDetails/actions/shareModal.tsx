@@ -1,16 +1,15 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Switch} from 'sentry/components/core/switch';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
