@@ -24,6 +24,7 @@ def _run_server(options: dict[str, Any]):
         reload=options["reload"],
         reload_ignore_worker_failure=options["reload-ignore-worker-failure"],
         process_name=options["proc-name"],
+        workers_lifetime=options["max-worker-lifetime"],
         workers_max_rss=options["reload-on-rss"],
         log_access=options["log-enabled"],
         log_access_format=options["log-format"],
@@ -62,12 +63,13 @@ class SentryHTTPServer(Service):
         options.setdefault("port", port)
         options.setdefault("workers", workers)
         options.setdefault("threads", None)
-        options.setdefault("backlog", max(128, 64 * workers))
+        options.setdefault("backlog", max(128, 64 * options["workers"]))
         options.setdefault("log-enabled", True)
         options.setdefault("proc-name", "sentry")
         options.setdefault("reload", reload)
         options.setdefault("reload-ignore-worker-failure", reload)
         options.setdefault("workers-kill-timeout", 3 if reload else 30)
+        options.setdefault("max-worker-lifetime", None)
         options.setdefault("reload-on-rss", 600)
         options.setdefault(
             "log-format", '%(addr)s - [%(time)s] "%(method)s %(path)s %(scheme)s" %(status)d'
