@@ -325,7 +325,11 @@ const storeConfig: GroupStoreDefinition = {
   // TODO(dcramer): This is not really the best place for this
   onAssignToError(_changeId, itemId, error) {
     this.clearStatus(itemId, 'assignTo');
-    if (error.responseJSON?.detail === 'Cannot assign to non-team member') {
+    // Handle field-specific validation errors (e.g., {"assignedTo": "error message"})
+    const assignedToError = error.responseJSON?.assignedTo;
+    if (typeof assignedToError === 'string') {
+      showAlert(assignedToError, 'error');
+    } else if (error.responseJSON?.detail === 'Cannot assign to non-team member') {
       showAlert(t('Cannot assign to non-team member'), 'error');
     } else {
       showAlert(t('Unable to change assignee. Please try again.'), 'error');

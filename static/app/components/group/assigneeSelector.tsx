@@ -15,6 +15,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
@@ -62,8 +63,17 @@ export function useHandleAssigneeChange({
       }
       onSuccess?.(updatedGroup.assignedTo);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
+    onError: (error: RequestError) => {
+      // Extract specific error message from API response
+      const assignedToError = error?.responseJSON?.assignedTo;
+      const detailError = error?.responseJSON?.detail;
+      const errorMessage =
+        typeof assignedToError === 'string'
+          ? assignedToError
+          : typeof detailError === 'string'
+            ? detailError
+            : t('Failed to update assignee');
+      addErrorMessage(errorMessage);
     },
   });
 

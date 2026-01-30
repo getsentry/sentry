@@ -1910,6 +1910,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         Test that members cannot assign a team they are not a member of as owner.
         This is a regression test for an IDOR vulnerability.
         """
+        # Disable Open Team Membership so validation applies
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         other_team = self.create_team(organization=self.organization, name="other-team")
 
         user_with_team = self.create_user(is_superuser=False)
@@ -1960,6 +1964,31 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             teams=[self.team],
         )
         self.login_as(admin_user)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{other_team.id}"
+
+    def test_owner_team_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can assign any team as owner.
+        """
+        # Enable Open Team Membership
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
 
         data = deepcopy(self.alert_rule_dict)
         data["owner"] = f"team:{other_team.id}"

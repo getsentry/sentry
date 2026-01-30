@@ -1052,6 +1052,7 @@ def validate_bulk_reassignment(
     Validate that the user has permission to assign a team to all groups.
 
     When assigning to a team, a user is permitted if any of the following are true:
+    - Open Team Membership is enabled for the organization, OR
     - They have team:admin scope, OR
     - They are a member of the target team, OR
     - ALL groups are currently assigned to teams the user is a member of
@@ -1059,6 +1060,12 @@ def validate_bulk_reassignment(
     """
     if assigned_actor is None or not assigned_actor.is_team:
         return
+
+    # If Open Team Membership is enabled, users can assign any team
+    if group_list:
+        organization = group_list[0].project.organization
+        if organization.flags.allow_joinleave:
+            return
 
     access = getattr(request, "access", None)
     if access and access.has_scope("team:admin"):

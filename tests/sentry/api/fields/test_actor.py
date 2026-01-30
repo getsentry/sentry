@@ -62,6 +62,9 @@ class OwnerActorFieldTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        # Disable Open Team Membership so validation tests work as expected
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
         # Create a second team that self.user is NOT a member of
         self.other_team = self.create_team(organization=self.organization, name="other-team")
 
@@ -205,6 +208,42 @@ class OwnerActorFieldTest(TestCase):
                 "request": request,
                 "current_owner": current_owner,
             },
+        )
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            "owner": [
+                ErrorDetail(
+                    string="You do not have permission to assign this owner",
+                    code="invalid",
+                )
+            ]
+        }
+
+    def test_open_team_membership_allows_any_team_assignment(self) -> None:
+        """When Open Team Membership is enabled, users can assign any team."""
+        # Enable Open Team Membership
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        request = self.make_request(user=self.user)
+        serializer = DummyOwnerSerializer(
+            data={"owner": f"team:{self.other_team.id}"},
+            context={"organization": self.organization, "request": request},
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["owner"].id == self.other_team.id
+        assert serializer.validated_data["owner"].is_team
+
+    def test_open_team_membership_disabled_requires_membership(self) -> None:
+        """When Open Team Membership is disabled, membership validation applies."""
+        # Explicitly disable Open Team Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        request = self.make_request(user=self.user)
+        serializer = DummyOwnerSerializer(
+            data={"owner": f"team:{self.other_team.id}"},
+            context={"organization": self.organization, "request": request},
         )
         assert not serializer.is_valid()
         assert serializer.errors == {

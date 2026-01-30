@@ -355,8 +355,17 @@ function StreamGroup({
       }
       onAssigneeChange?.(newAssignee);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
+    onError: (error: RequestError) => {
+      // Extract specific error message from API response
+      const assignedToError = error?.responseJSON?.assignedTo;
+      const detailError = error?.responseJSON?.detail;
+      const errorMessage =
+        typeof assignedToError === 'string'
+          ? assignedToError
+          : typeof detailError === 'string'
+            ? detailError
+            : t('Failed to update assignee');
+      addErrorMessage(errorMessage);
     },
   });
 

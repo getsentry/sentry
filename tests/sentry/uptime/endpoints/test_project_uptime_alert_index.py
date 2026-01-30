@@ -348,6 +348,10 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         Test that members cannot assign a team they are not a member of as owner.
         This is a regression test for an IDOR vulnerability.
         """
+        # Disable Open Team Membership so validation applies
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         # Create a second team that the user is NOT a member of
         other_team = self.create_team(organization=self.organization, name="other-team")
 
@@ -426,6 +430,40 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         self.login_as(admin_user)
 
         # Admin should be able to assign any team as owner
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            owner=f"team:{other_team.id}",
+        )
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.owner_team_id == other_team.id
+
+    def test_owner_team_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can assign any team as owner.
+        """
+        # Enable Open Team Membership
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        # Create a second team that the user is NOT a member of
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        # Create a user who is only a member of the project's team
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        # Should succeed because Open Team Membership is enabled
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,

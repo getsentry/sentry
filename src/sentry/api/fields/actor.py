@@ -24,7 +24,10 @@ class OwnerActorField(ActorField):
     """
     ActorField variant for owner assignment that validates team membership.
 
-    When assigning a team as owner, validates that the requesting user either:
+    When assigning a team as owner, validation is skipped if:
+    - Open Team Membership is enabled for the organization (users can join any team)
+
+    Otherwise, validates that the requesting user either:
     - Has team:admin scope, OR
     - Is a member of the team being assigned, OR
     - Is a member of the currently assigned team (can reassign from their team)
@@ -55,6 +58,13 @@ class OwnerActorField(ActorField):
 
     def _validate_team_assignment(self, actor: Actor) -> None:
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
+
+        organization = self.context.get("organization")
+
+        # If Open Team Membership is enabled, users can assign any team
+        # since they could join any team anyway
+        if organization and organization.flags.allow_joinleave:
+            return
 
         request = self.context.get("request")
         # Check for access in context directly for background tasks or on request for API requests
