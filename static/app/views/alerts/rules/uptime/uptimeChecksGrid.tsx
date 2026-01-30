@@ -286,11 +286,11 @@ const TraceCell = styled(Cell)`
 
 const StatusCell = styled(Cell)<{color: string; isMiss: boolean}>`
   color: ${p => p.color};
-  cursor: pointer;
 
   ${p =>
     !p.isMiss &&
     `
+    cursor: pointer;
     &:hover {
       font-weight: bold;
     }
