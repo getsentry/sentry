@@ -357,7 +357,8 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   overflow: hidden;
 
   width: 100%;
-  margin: 0 auto ${p => p.hasFooter && '72px'} 0;
+  margin: 0 auto;
+  margin-bottom: ${p => p.hasFooter && '72px'};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(4)} ${space(3)};

@@ -166,8 +166,9 @@ export function NewWelcomeUI(props: StepProps) {
               </Flex>
               <Container>
                 <Text size="md" variant="muted">
-                  We'll walk you through setup next. Start with what matters now, add the
-                  rest when you're ready.
+                  {t(
+                    "We'll walk you through setup next. Start with what matters now, add the rest when you're ready."
+                  )}
                 </Text>
               </Container>
             </Stack>
