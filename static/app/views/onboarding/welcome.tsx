@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
@@ -9,15 +9,14 @@ import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
+import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
+import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
 
 import type {StepProps} from './types';
 
@@ -51,31 +50,9 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 }
 
 function TargetedOnboardingWelcome(props: StepProps) {
-  const organization = useOrganization();
-  const onboardingContext = useOnboardingContext();
+  useWelcomeAnalyticsEffect();
 
-  const source = 'targeted_onboarding';
-
-  useEffect(() => {
-    trackAnalytics('growth.onboarding_start_onboarding', {
-      organization,
-      source,
-    });
-
-    if (onboardingContext.selectedPlatform) {
-      // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.setSelectedPlatform(undefined);
-    }
-  }, [organization, onboardingContext]);
-
-  const handleComplete = useCallback(() => {
-    trackAnalytics('growth.onboarding_clicked_instrument_app', {
-      organization,
-      source,
-    });
-
-    props.onComplete();
-  }, [organization, source, props]);
+  const handleComplete = useWelcomeHandleComplete(props.onComplete);
 
   return (
     <FallingError>

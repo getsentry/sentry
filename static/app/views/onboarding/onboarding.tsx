@@ -32,6 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
+import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
@@ -112,13 +113,6 @@ function OnboardingStepVariable(
       {props.children}
     </Component>
   );
-}
-
-function useHasNewWelcomeUI() {
-  const organization = useOrganization();
-  const hasNewWelcomeUI = organization.features.includes('onboarding-new-welcome-ui');
-
-  return hasNewWelcomeUI;
 }
 
 export function OnboardingWithoutContext() {

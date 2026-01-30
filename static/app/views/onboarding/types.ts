@@ -21,3 +21,14 @@ export enum OnboardingStepId {
   SELECT_PLATFORM = 'select-platform',
   SETUP_DOCS = 'setup-docs',
 }
+
+export enum OnboardingWelcomeProductId {
+  ERROR_MONITORING = 'error-monitoring',
+  LOGGING = 'logging',
+  SESSION_REPLAY = 'session-replay',
+  TRACING = 'tracing',
+  METRICS = 'metrics',
+  PROFILING = 'profiling',
+  AGENT_MONITORING = 'agent-monitoring',
+  SEER = 'seer',
+}
