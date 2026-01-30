@@ -25,9 +25,11 @@ class GitHubProvider(Provider):
         return False
 
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[None]:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         self.client.get_issue_reactions(repository["name"], issue_id)
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
     ) -> None:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         self.client.create_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
