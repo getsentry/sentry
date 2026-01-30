@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 import type {SeriesOption} from 'echarts';
 
 import type {DataUnit} from 'sentry/utils/discover/fields';
-import {formatCategoricalSeriesLabel} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/formatters/formatCategoricalSeriesLabel';
-import {formatCategoricalSeriesName} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/formatters/formatCategoricalSeriesName';
+import {formatCategoricalSeriesLabel} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatCategoricalSeriesLabel';
+import {formatCategoricalSeriesName} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatCategoricalSeriesName';
 import type {
   CategoricalItem,
   CategoricalSeries,

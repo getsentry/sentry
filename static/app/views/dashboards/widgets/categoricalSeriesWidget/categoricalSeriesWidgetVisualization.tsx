@@ -34,9 +34,9 @@ import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget
 import type {CategoricalPlottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
-export interface BarChartWidgetVisualizationProps {
+export interface CategoricalSeriesWidgetVisualizationProps {
   /**
-   * An array of `BarPlottable` objects to render on the chart.
+   * An array of `CategoricalPlottable` objects to render on the chart.
    */
   plottables: CategoricalPlottable[];
   /**
@@ -68,7 +68,9 @@ export interface BarChartWidgetVisualizationProps {
   truncateCategoryLabels?: number | boolean;
 }
 
-export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationProps) {
+export function CategoricalSeriesWidgetVisualization(
+  props: CategoricalSeriesWidgetVisualizationProps
+) {
   if (props.plottables.every(plottable => plottable.isEmpty)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
@@ -179,7 +181,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
   /** Extract the numeric value from ECharts tooltip param.value. */
   function extractValue(data: unknown): number | null {
     // param.value can be either:
-    // 1. The numeric value directly (for bar charts with axis trigger)
+    // 1. The numeric value directly (for categorical charts with axis trigger)
     // 2. An object {name, value} (depends on series config)
     if (typeof data === 'number') {
       return data;
@@ -188,7 +190,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     return typeof value === 'number' ? value : null;
   }
 
-  // Create tooltip formatter for categorical bar charts
+  // Create tooltip formatter for categorical charts
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
     if (!isChartHovered(chartRef?.current)) {
       return '';
@@ -355,4 +357,4 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
   );
 }
 
-BarChartWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
+CategoricalSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;

@@ -1,6 +1,6 @@
 import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-export const sampleStackedCategoricalData: CategoricalSeries[] = [
+export const sampleStackedCategoricalData: [CategoricalSeries, CategoricalSeries] = [
   {
     valueAxis: 'count()',
     groupBy: [{key: 'status', value: 'success'}],
