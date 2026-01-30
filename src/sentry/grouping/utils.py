@@ -44,6 +44,11 @@ def bool_from_string(value: str) -> bool | None:
     return None
 
 
+# TODO: We should strip whitespace no matter what, whether or not we're trimming. Right now we don't
+# do so in either case. (The `.strip()` used during trimming filters out empty lines, but doesn't
+# actually strip non-empty ones.) This will require a new grouping config, since unstripped and
+# stripped messages won't group together.
+#
 # TODO: Both here during trimming and in the message strategy (where we check if the message has
 # been changed), we assume the kind of change which has happened. Here we add "...", and there we
 # say we "stripped event-specific values," even if all we've done in either case is remove empty
