@@ -499,8 +499,15 @@ def handle_prepare_autofix_update(
 
     try:
         automation_stopping_point = get_automation_stopping_point(group)
-    except Exception:
+    except Exception as e:
+        logger.warning(
+            "entrypoint.get_automation_stopping_point_error",
+            extra={"error": str(e), **logging_ctx},
+        )
         automation_stopping_point = None
+
+    if automation_stopping_point:
+        logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
 
     lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
     try:
