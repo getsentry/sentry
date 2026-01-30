@@ -1,7 +1,7 @@
 import dataclasses
 import re
 from collections import defaultdict
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 __all__ = [
     "ParameterizationCallable",
@@ -240,7 +240,7 @@ class Parameterizer:
         )
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
-    def _make_regex_from_patterns(self, pattern_keys: Sequence[str]) -> re.Pattern[str]:
+    def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
         """
         Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
 
