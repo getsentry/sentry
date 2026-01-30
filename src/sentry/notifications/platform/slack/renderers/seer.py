@@ -205,9 +205,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def render_footer_blocks(
         cls, data: SeerAutofixUpdate, extra_text: str | None = None
     ) -> list[Block]:
-        markdown_text = f"_{data.working_text}_"
-        if extra_text:
-            markdown_text += f"_, {extra_text}_"
+        markdown_text = (
+            f"_{data.working_text}_\n_{extra_text}_" if extra_text else f"_{data.working_text}_"
+        )
         return [
             SectionBlock(
                 text=MarkdownTextObject(text=markdown_text),

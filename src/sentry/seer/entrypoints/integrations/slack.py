@@ -20,11 +20,7 @@ from sentry.notifications.platform.service import (
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-from sentry.notifications.platform.templates.seer import (
-    SeerAutofixError,
-    SeerAutofixSuccess,
-    SeerAutofixUpdate,
-)
+from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixUpdate
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.issue_summary import (
@@ -116,7 +112,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             logger.warning(
                 "entrypoint.invalid_autofix_stopping_point",
                 extra={
-                    "entrypoint_key": SeerEntrypointKey.SLACK,
+                    "entrypoint_key": SeerEntrypointKey.SLACK.value,
                     "stopping_point": action.value,
                     "action_id": action.action_id,
                     "group_id": group_id,
@@ -148,11 +144,14 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             group_link=self.group.get_absolute_url(),
             has_progressed=True,
         )
-        # This comes from the issue alert, so we can't update the entire message as we want.
-        if self.autofix_stopping_point == AutofixStoppingPoint.ROOT_CAUSE:
-            return self.handle_issue_alert_message_update(data=data)
-        else:
-            return self.handle_autofix_message_update(data=data)
+        update_existing_message(
+            request=self.slack_request,
+            install=self.install,
+            channel_id=self.channel_id,
+            message_ts=self.thread_ts,
+            data=data,
+            slack_user_id=self.slack_request.user_id,
+        )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
@@ -248,8 +247,8 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 STOPPING_POINT_HIERARCHY[automation_stopping_point]
                 > STOPPING_POINT_HIERARCHY[data_kwargs["current_point"]]
             )
-        logging_ctx["automation_stopping_point"] = automation_stopping_point
-        logging_ctx["has_progressed"] = data_kwargs["has_progressed"]
+            logging_ctx["automation_stopping_point"] = automation_stopping_point.value
+        logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
 
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
@@ -258,46 +257,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             data=SeerAutofixUpdate(**data_kwargs),
         )
         logger.info("entrypoint.on_autofix_update_success", extra=logging_ctx)
-
-    def handle_issue_alert_message_update(self, *, data: SeerAutofixUpdate) -> None:
-        send_thread_update(
-            install=self.install,
-            thread=self.thread,
-            data=SeerAutofixSuccess(
-                run_id=data.run_id,
-                organization_id=self.organization_id,
-                stopping_point=self.autofix_stopping_point,
-            ),
-        )
-        try:
-            remove_autofix_button(
-                request=self.slack_request,
-                install=self.install,
-                channel_id=self.channel_id,
-                message_ts=self.thread_ts,
-                data=data,
-                slack_user_id=self.slack_request.user_id,
-            )
-        except (IntegrationError, TypeError, KeyError):
-            logger.warning(
-                "entrypoint.update_message_failed",
-                extra={
-                    "entrypoint_key": SlackEntrypoint.key,
-                    "channel_id": self.channel_id,
-                    "message_ts": self.thread_ts,
-                    "organization_id": self.organization_id,
-                },
-            )
-
-    def handle_autofix_message_update(self, *, data: SeerAutofixUpdate) -> None:
-        provider = provider_registry.get(NotificationProviderKey.SLACK)
-        template_cls = template_registry.get(data.source)
-        renderable = NotificationService.render_template(
-            data=data, template=template_cls(), provider=provider
-        )
-        self.install.update_message(
-            channel_id=self.channel_id, message_ts=self.thread_ts, renderable=renderable
-        )
 
 
 def send_thread_update(
@@ -309,7 +268,7 @@ def send_thread_update(
 ) -> None:
     """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
     logging_ctx = {
-        "entrypoint_key": SeerEntrypointKey.SLACK,
+        "entrypoint_key": SeerEntrypointKey.SLACK.value,
         "integration_id": install.model.id,
         "thread_ts": thread["thread_ts"],
         "channel_id": thread["channel_id"],
@@ -446,7 +405,7 @@ def _transform_block_actions(
     return result
 
 
-def remove_autofix_button(
+def update_existing_message(
     *,
     request: SlackActionRequest,
     install: SlackIntegration,
@@ -457,14 +416,23 @@ def remove_autofix_button(
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
-    # XXX: Removes the autofix button to prevent repeated usage
+    def remove_autofix_button_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
+        if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
+            return None
+        return elem
+
+    def remove_all_buttons_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
+        return None
+
+    transformer = (
+        remove_autofix_button_transformer
+        if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
+        else remove_all_buttons_transformer
+    )
+
     blocks = _transform_block_actions(
         request.data["message"]["blocks"],
-        lambda elem: (
-            None
-            if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value)
-            else elem
-        ),
+        transformer,
     )
 
     parsed_blocks = [Block.parse(block) for block in blocks]
@@ -480,7 +448,19 @@ def remove_autofix_button(
         text=request.data["message"]["text"],
     )
 
-    install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
+    try:
+
+        install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
+    except (IntegrationError, TypeError, KeyError):
+        logger.warning(
+            "entrypoint.update_message_failed",
+            extra={
+                "entrypoint_key": SeerEntrypointKey.SLACK.value,
+                "channel_id": channel_id,
+                "message_ts": message_ts,
+                "organization_id": data.organization_id,
+            },
+        )
 
 
 def handle_prepare_autofix_update(
