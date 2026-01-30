@@ -51,7 +51,7 @@ def translate_email_action(rule_action: dict[str, Any]) -> dict[str, Any]:
     # target_identifier is only set for Member/Team, not IssueOwners
     if target_type_str in ("Member", "Team"):
         target_identifier = rule_action.get("targetIdentifier")
-        config["target_identifier"] = str(target_identifier) if target_identifier else ""
+        config["target_identifier"] = str(target_identifier) if target_identifier else str(None)
     else:
         config["target_identifier"] = None
 
