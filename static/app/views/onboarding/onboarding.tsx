@@ -409,6 +409,7 @@ const OnboardingStepNewUi = styled(motion.div)`
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
+  overflow: hidden;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     --corner-scale: 0.5;
   }

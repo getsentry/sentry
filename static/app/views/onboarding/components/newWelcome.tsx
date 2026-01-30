@@ -31,14 +31,37 @@ import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandle
 
 const MotionContainer = motion.create(Container);
 const MotionFlex = motion.create(Flex);
+const MotionStack = motion.create(Stack);
+const MotionGrid = motion.create(Grid);
 
-const fadeAway: MotionProps = {
+// Parent container animation - orchestrates staggered children
+const staggerContainer: MotionProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
   variants: {
-    initial: {opacity: 0},
-    animate: {opacity: 1, filter: 'blur(0px)'},
-    exit: {opacity: 0, filter: 'blur(1px)'},
+    initial: {},
+    animate: {
+      transition: testableTransition({
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+      }),
+    },
+    exit: {},
   },
-  transition: testableTransition({duration: 0.8}),
+};
+
+// Child element animation - used by each staggered item
+const staggerItem: MotionProps = {
+  variants: {
+    initial: {opacity: 0, y: 20},
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: testableTransition({duration: 0.4}),
+    },
+    exit: {opacity: 0, y: -10},
+  },
 };
 
 interface ProductOption {
@@ -123,10 +146,10 @@ export function NewWelcomeUI(props: StepProps) {
 
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
-      <Flex direction="column" align="center">
+      <MotionFlex direction="column" align="center" {...staggerContainer}>
         <WelcomeBackgroundNewUi />
-        <MotionFlex direction="column" gap="2xl" {...fadeAway}>
-          <Stack gap="md">
+        <Flex direction="column" gap="2xl">
+          <MotionStack gap="md" {...staggerItem}>
             <Flex direction="column" gap="sm" paddingBottom="2xl">
               <Container>
                 <Heading as="h1" density="comfortable">
@@ -142,7 +165,9 @@ export function NewWelcomeUI(props: StepProps) {
 
             <Stack gap="2xs">
               <Flex align="center" gap="md">
-                <IconBusiness legacySize="16px" variant="accent" />
+                <Container>
+                  <IconBusiness legacySize="16px" variant="accent" />
+                </Container>
                 <Container>
                   <Text size="lg" bold density="comfortable">
                     {t(
@@ -158,9 +183,13 @@ export function NewWelcomeUI(props: StepProps) {
                 </Text>
               </Container>
             </Stack>
-          </Stack>
+          </MotionStack>
 
-          <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg">
+          <MotionGrid
+            columns={{xs: '1fr', md: 'repeat(3, 1fr)'}}
+            gap="lg"
+            {...staggerItem}
+          >
             {PRODUCT_OPTIONS.map(product => (
               <NewWelcomeProductCard
                 key={product.id}
@@ -173,16 +202,16 @@ export function NewWelcomeUI(props: StepProps) {
                 extra={product.extra}
               />
             ))}
-          </Grid>
+          </MotionGrid>
 
-          <Container>
+          <MotionContainer {...staggerItem}>
             <Text size="md" variant="muted">
               {t(
                 "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
               )}
             </Text>
-          </Container>
-        </MotionFlex>
+          </MotionContainer>
+        </Flex>
         <GenericFooter>
           <Flex align="center" padding="0 3xl">
             <WelcomeSkipButton>{t('Skip onboarding')}</WelcomeSkipButton>
@@ -197,7 +226,7 @@ export function NewWelcomeUI(props: StepProps) {
             </Button>
           </Flex>
         </GenericFooter>
-      </Flex>
+      </MotionFlex>
     </MotionContainer>
   );
 }
