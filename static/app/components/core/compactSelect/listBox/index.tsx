@@ -48,6 +48,11 @@ interface ListBoxProps<T extends ObjectLike>
   listState: ListState<T>;
   children?: CollectionChildren<T>;
   /**
+   * Custom size estimation function for virtualization. Takes the item node and index,
+   * returns estimated height in pixels. Only used when virtualized is true.
+   */
+  estimateSize?: (item: Node<T> | undefined, index: number) => number;
+  /**
    * Whether the list is filtered by search query or not.
    * Used to determine whether to show the size limit message or not.
    */
@@ -93,11 +98,11 @@ interface ListBoxProps<T extends ObjectLike>
    * Size of the list box and its items.
    */
   size?: FormSize;
+
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
-
   /**
    * If true, virtualization will be enabled for the list
    */
@@ -134,6 +139,7 @@ export function ListBox<T extends ObjectLike>({
   showDetails = true,
   onAction,
   virtualized,
+  estimateSize,
   className,
   ...props
 }: ListBoxProps<T>) {
@@ -179,7 +185,12 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, virtualized, size});
+  const virtualizer = useVirtualizedItems({
+    listItems,
+    virtualized,
+    size,
+    estimateSize,
+  });
 
   return (
     <Fragment>
@@ -255,10 +266,12 @@ function useVirtualizedItems<T extends ObjectLike>({
   listItems,
   virtualized = false,
   size,
+  estimateSize: customEstimateSize,
 }: {
   listItems: Array<Node<T>>;
   size: FormSize;
   virtualized: boolean | undefined;
+  estimateSize?: (item: Node<T> | undefined, index: number) => number;
 }) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const heightEstimation = heightEstimations[size];
@@ -268,6 +281,13 @@ function useVirtualizedItems<T extends ObjectLike>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
+
+      // Use custom estimateSize if provided
+      if (customEstimateSize) {
+        return customEstimateSize(item, index);
+      }
+
+      // Default estimation logic
       if (item?.value && 'details' in item.value) {
         return heightEstimation.large;
       }

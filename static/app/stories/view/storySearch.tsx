@@ -240,6 +240,17 @@ function SearchComboBox(props: SearchComboBoxProps) {
             overlayIsOpen={state.isOpen}
             {...listBoxProps}
             style={{maxHeight: 320, minHeight: 132}}
+            estimateSize={(item, _index) => {
+              // Sections need additional height for separator (9px) and header (~28px)
+              if (item?.type === 'section') {
+                const childCount = item.childNodes ? [...item.childNodes].length : 0;
+                // Base section height: separator (9px) + header (28px) + children
+                // Each child is approximately 32px at size="sm"
+                return 37 + childCount * 32;
+              }
+              // Regular items at size="sm"
+              return 32;
+            }}
           >
             {props.children}
           </ListBox>
