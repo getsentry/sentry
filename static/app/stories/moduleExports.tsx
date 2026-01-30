@@ -9,7 +9,9 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
 
   const lines = [];
   // canonical source: @sentry/scraps/<component> (no deep imports)
-  const scrapsSource = props.exports.module.split('/').slice(0, 3).join('/');
+  const importSpecifier = props.exports.module.startsWith('@sentry/scraps/')
+    ? props.exports.module.split('/').slice(0, 3).join('/')
+    : props.exports.module;
   if (Object.entries(props.exports.exports).length > 0) {
     const entries = Object.entries(props.exports.exports);
 
@@ -28,7 +30,7 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
         value ? [value, type].filter(Boolean) : [type].filter(Boolean)
       )
       .join(', ');
-    lines.push(`import {${namedList}} from '${scrapsSource}';`);
+    lines.push(`import {${namedList}} from '${importSpecifier}';`);
   }
 
   if (!lines.length) return null;
