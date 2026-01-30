@@ -283,13 +283,18 @@ def run_missing_sdk_integration_detector_for_organization(organization: Organiza
         )
 
         if repo_config:
-            run_missing_sdk_integration_detector_for_project(
-                organization, project, repo_config.repository.name, repo_config.source_root
+            run_missing_sdk_integration_detector_for_project_task.delay(
+                organization.id, project.id, repo_config.repository.name, repo_config.source_root
             )
 
 
-def run_missing_sdk_integration_detector_for_project(
-    organization: Organization, project: Project, repo_name: str, source_root: str
+@instrumented_task(
+    name="sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task",
+    namespace=autopilot_tasks,
+    processing_deadline_duration=180,
+)
+def run_missing_sdk_integration_detector_for_project_task(
+    organization_id: int, project_id: int, repo_name: str, source_root: str
 ) -> list[str] | None:
     """
     Detect missing SDK integrations for a project using Seer Explorer.
@@ -297,6 +302,16 @@ def run_missing_sdk_integration_detector_for_project(
     Returns:
         List of missing integration names, or None if detection failed.
     """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+        project = Project.objects.get(id=project_id)
+    except (Organization.DoesNotExist, Project.DoesNotExist):
+        logger.warning(
+            "missing_sdk_integration_detector.entity_not_found",
+            extra={"organization_id": organization_id, "project_id": project_id},
+        )
+        return None
+
     try:
         client = SeerExplorerClient(
             organization,
