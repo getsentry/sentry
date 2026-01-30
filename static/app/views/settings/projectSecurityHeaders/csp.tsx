@@ -1,5 +1,6 @@
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Access from 'sentry/components/acl/access';
-import {ExternalLink} from 'sentry/components/core/link';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';

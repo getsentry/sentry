@@ -1,7 +1,10 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 
 import {
   addErrorMessage,
@@ -10,10 +13,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Switch} from 'sentry/components/core/switch';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';

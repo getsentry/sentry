@@ -1,10 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ButtonBar} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
   associateTagsWithMeta,

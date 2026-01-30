@@ -25,15 +25,11 @@ import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base
 import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {
-  dashboardFiltersToString,
-  eventViewFromWidget,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
@@ -42,41 +38,6 @@ type TransactionsSeriesResponse =
   | MultiSeriesEventsStats
   | GroupedMultiSeriesEventsStats;
 type TransactionsTableResponse = TableData | EventsTableData;
-
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  // Apply dashboard filters if provided
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  // Clean widget to remove empty/invalid fields before API request
-  return cleanWidgetForRequest(processedWidget);
-}
 
 // Stable empty array to prevent infinite rerenders
 const EMPTY_ARRAY: any[] = [];
@@ -105,7 +66,8 @@ export function useTransactionsSeriesQuery(
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -340,7 +302,8 @@ export function useTransactionsTableQuery(
   const prevRawDataRef = useRef<TransactionsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 

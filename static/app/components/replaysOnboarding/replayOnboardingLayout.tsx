@@ -1,7 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from 'sentry/components/core/layout';
+import {Stack} from '@sentry/scraps/layout';
+
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';

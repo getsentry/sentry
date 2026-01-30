@@ -1,27 +1,65 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {
   getAgentIntegration,
   getInstallStep,
   getManualConfigureStep,
+  mastraOnboarding,
+  agentMonitoring as nodeAgentMonitoring,
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {getImport} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
+// Meta-frameworks currently have a technical limitation: our server-side integrations do not work,
+// even when added manually. Users must use Sentry’s helper functions or manually instrument their
+// code, for example with `Sentry.startSpan`.
+function getMetaFrameworkAlert({
+  params,
+  functionName,
+}: {
+  functionName: string;
+  params: DocsParams;
+}): ContentBlock[] {
+  const isMetaFramework = javascriptMetaFrameworks.includes(params.platformKey);
+
+  if (!isMetaFramework) {
+    return [];
+  }
+  return [
+    {
+      type: 'alert',
+      alertType: 'info',
+      text: tct(
+        'For [platformName] applications using all runtimes, you need to manually wrap your client instance with [functionName]. See instructions below.',
+        {
+          platformName:
+            platforms.find(p => p.id === params.platformKey)?.name ?? params.platformKey,
+          functionName: <code>{functionName}</code>,
+        }
+      ),
+    },
+  ];
+}
+
 function getClientSideConfig({
   integration,
   params,
   sentryImport,
+  configFileName,
 }: {
   integration: AgentIntegration;
   params: DocsParams;
   sentryImport: string;
+  configFileName?: string;
 }): ContentBlock[] {
   const initConfig: ContentBlock[] = [
     {
@@ -32,7 +70,7 @@ function getClientSideConfig({
       type: 'code',
       tabs: [
         {
-          label: 'JavaScript',
+          label: configFileName ?? 'JavaScript',
           language: 'javascript',
           code: `${sentryImport}
 
@@ -51,6 +89,10 @@ Sentry.init({
 
   if (integration === AgentIntegration.LANGGRAPH) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'instrumentLangGraph',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -107,6 +149,10 @@ const text = lastMessage.content;
 
   if (integration === AgentIntegration.LANGCHAIN) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'createLangChainCallbackHandler',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -161,6 +207,10 @@ const text = response.content;
 
   if (integration === AgentIntegration.GOOGLE_GENAI) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'instrumentGoogleGenAIClient',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -204,6 +254,10 @@ const response = await client.models.generateContent({
 
   if (integration === AgentIntegration.ANTHROPIC) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'instrumentAnthropicAiClient',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -247,6 +301,10 @@ const msg = await client.messages.create({
 
   if (integration === AgentIntegration.OPENAI) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'instrumentOpenAiClient',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -292,13 +350,16 @@ const response = await client.responses.create({
 }
 
 /**
- * Browser-only agent monitoring configuration.
- * Use this for pure browser platforms like React, Vue, Angular, Svelte, etc.
+ * Browser instructions for agent monitoring configuration.
  */
 export function agentMonitoring({
   packageName = '@sentry/browser',
+  clientConfigFileName,
+  serverConfigFileName,
 }: {
+  clientConfigFileName?: string;
   packageName?: `@sentry/${string}`;
+  serverConfigFileName?: string;
 } = {}): OnboardingConfig {
   return {
     install: params =>
@@ -308,13 +369,25 @@ export function agentMonitoring({
     configure: params => {
       const selected = getAgentIntegration(params);
 
+      if (selected === AgentIntegration.VERCEL_AI) {
+        return nodeAgentMonitoring({
+          packageName,
+          configFileName: serverConfigFileName,
+        }).configure(params);
+      }
+
       const importMode = 'esm-only';
 
       if (selected === AgentIntegration.MANUAL) {
         return getManualConfigureStep(params, {
           packageName,
           importMode,
+          configFileName: clientConfigFileName,
         });
+      }
+
+      if (selected === AgentIntegration.MASTRA) {
+        return mastraOnboarding.configure(params);
       }
 
       return [
@@ -324,20 +397,38 @@ export function agentMonitoring({
             integration: selected,
             sentryImport: getImport(packageName, importMode).join('\n'),
             params,
+            configFileName: clientConfigFileName,
           }),
         },
       ];
     },
-    verify: () => [
-      {
-        type: StepType.VERIFY,
-        content: [
-          {
-            type: 'text',
-            text: t('Verify that your instrumentation works by simply calling your LLM.'),
-          },
-        ],
-      },
-    ],
+    verify: params => {
+      const selected = getAgentIntegration(params);
+
+      if (selected === AgentIntegration.VERCEL_AI) {
+        return nodeAgentMonitoring({
+          packageName,
+          configFileName: serverConfigFileName,
+        }).verify(params);
+      }
+
+      if (selected === AgentIntegration.MASTRA) {
+        return mastraOnboarding.verify(params);
+      }
+
+      return [
+        {
+          type: StepType.VERIFY,
+          content: [
+            {
+              type: 'text',
+              text: t(
+                'Verify that your instrumentation works by simply calling your LLM.'
+              ),
+            },
+          ],
+        },
+      ];
+    },
   };
 }

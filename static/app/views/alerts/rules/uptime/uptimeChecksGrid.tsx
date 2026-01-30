@@ -1,9 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Placeholder from 'sentry/components/placeholder';

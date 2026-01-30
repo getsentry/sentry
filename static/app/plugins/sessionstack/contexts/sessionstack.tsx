@@ -1,6 +1,7 @@
 import {Component} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {uniqueId} from 'sentry/utils/guid';
 
 const ASPECT_RATIO = 16 / 9;

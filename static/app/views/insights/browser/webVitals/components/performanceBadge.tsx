@@ -1,4 +1,5 @@
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+
 import {
   scoreToStatus,
   STATUS_TEXT,
