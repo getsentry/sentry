@@ -113,7 +113,7 @@ function parseUserContent(node: AITraceSpanNode): string | null {
     | undefined;
 
   const requestMessages =
-    inputMessages ??
+    inputMessages ||
     (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);
 
   if (!requestMessages) {
