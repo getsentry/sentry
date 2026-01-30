@@ -835,6 +835,77 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "tags[is_debug,boolean]" in keys
         assert "tags[is_production,boolean]" in keys
 
+    def test_aliased_attribute(self) -> None:
+        span1 = self.create_span(
+            {"sentry_tags": {"op": "foo"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"op": "bar"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        self.store_spans([span1, span2])
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "span.op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 1
+        assert "span.op" in keys
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 2
+        assert "transaction.op" in keys
+        assert "span.op" in keys
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "sentry.op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 0
+
+    def test_aliased_attribute_with_paging(self) -> None:
+        span1 = self.create_span(
+            {"tags": {"tag.op": "foo"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        span2 = self.create_span(
+            {"tags": {"tag.op2": "bar"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        self.store_spans([span1, span2])
+
+        all_keys: set[str] = set()
+        for i in range(3):
+            response = self.do_request(
+                query={
+                    "attributeType": "string",
+                    "substringMatch": ".",
+                    "per_page": 20,
+                    "cursor": f"0:{i * 20}:0",
+                }
+            )
+            assert response.status_code == 200, response.content
+
+            keys = {item["key"] for item in response.data}
+            assert len(keys) == 21
+            all_keys = all_keys.union(keys)
+            assert len(all_keys) == (i + 1) * 20 + 1
+        # there's at least 64 total keys for this query, the next page should contain the first custom ones
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "substringMatch": ".",
+                "per_page": 20,
+                "cursor": "0:60:0",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        # The keys from the db should only be from the last page
+        assert "tag.op" in keys
+        assert "tag.op2" in keys
+
 
 class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
     OrganizationTraceItemAttributesEndpointTestBase, TraceMetricsTestCase
