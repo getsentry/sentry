@@ -7,7 +7,7 @@ import type {CategoricalValueType} from 'sentry/views/dashboards/widgets/common/
 /**
  * A `CategoricalPlottable` is any object that can be converted to an ECharts
  * `Series` and therefore plotted on a categorical chart. This could be a data
- * series, markers, or other visual elements. `BarChartWidgetVisualization` uses
+ * series, markers, or other visual elements. `CategoricalSeriesWidgetVisualization` uses
  * `CategoricalPlottable` objects under the hood to convert data coming into
  * the component via props into ECharts series.
  */
@@ -53,17 +53,17 @@ export interface CategoricalPlottable {
    */
   label?: string;
   /**
-   * `BarChartWidgetVisualization` will call this function if the user clicks
+   * `CategoricalSeriesWidgetVisualization` will call this function if the user clicks
    * a point on a series that originated from this plottable.
    */
   onClick?: (dataIndex: number) => void;
   /**
-   * `BarChartWidgetVisualization` will call this function if the user moves
+   * `CategoricalSeriesWidgetVisualization` will call this function if the user moves
    * the highlighting from one point to another on a series from this plottable.
    */
   onDownplay?: (dataIndex: number) => void;
   /**
-   * `BarChartWidgetVisualization` will call this function if the user highlights
+   * `CategoricalSeriesWidgetVisualization` will call this function if the user highlights
    * (via mouse, or imperatively) a point on a series from this plottable.
    */
   onHighlight?: (dataIndex: number) => void;
