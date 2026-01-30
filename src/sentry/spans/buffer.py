@@ -248,14 +248,15 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
+            latency_entries: list[tuple[str, int]] = []
 
             assert len(result_meta) == len(results)
 
             for (project_and_trace, parent_span_id), result in zip(result_meta, results):
                 redirect_depth, set_key, has_root_span, evalsha_latency_ms = result
 
-                # Log individual EVALSHA latency for this trace
-                self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
+                # Collect EVALSHA latency for batch logging
+                latency_entries.append((project_and_trace, evalsha_latency_ms))
 
                 shard = self.assigned_shards[
                     int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
@@ -282,6 +283,9 @@ class SpansBuffer:
                     self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
                 )
                 delete_set.discard(set_key)
+
+            # Log all EVALSHA latencies in a single batch call
+            self._buffer_logger.log(latency_entries)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():

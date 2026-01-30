@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 MAX_ENTRIES = 1000
 LOGGING_ENTRIES = 50
-LOGGING_INTERVAL = 5  # seconds
+LOGGING_INTERVAL = 60  # seconds
 
 
 class BufferLogger:
@@ -27,15 +27,26 @@ class BufferLogger:
         self._data: dict[str, tuple[int, float]] = {}
         self._last_log_time: float | None = None
 
-    def log(self, project_and_trace: str, latency_ms: int) -> None:
+    def log(self, entries: list[tuple[str, int]]) -> None:
         """
-        Record a single EVALSHA operation and periodically log the top offenders.
+        Record a batch of EVALSHA operations and periodically log the top offenders.
+
+        :param entries: List of tuples containing (project_and_trace, latency_ms) pairs.
         """
-        if len(self._data) < MAX_ENTRIES:
-            threshold = options.get("spans.buffer.evalsha-latency-threshold")
+        if not entries:
+            return
+
+        threshold = options.get("spans.buffer.evalsha-latency-threshold")
+        any_above_threshold = False
+
+        for project_and_trace, latency_ms in entries:
+            if len(self._data) >= MAX_ENTRIES:
+                break
 
             if latency_ms <= threshold:
-                return
+                continue
+
+            any_above_threshold = True
 
             if not self._last_log_time:
                 self._last_log_time = time.time()
@@ -45,6 +56,10 @@ class BufferLogger:
                 self._data[project_and_trace] = (count + 1, max(max_latency, latency_ms))
             else:
                 self._data[project_and_trace] = (1, latency_ms)
+
+        # Only check time if we have data or if we processed entries above threshold
+        if not any_above_threshold and not self._last_log_time:
+            return
 
         if time.time() - (self._last_log_time or 0.0) >= LOGGING_INTERVAL:
             if len(self._data) > LOGGING_ENTRIES:

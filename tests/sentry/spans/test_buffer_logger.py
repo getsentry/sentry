@@ -13,30 +13,31 @@ class TestBufferLogger:
     def test_logs_only_above_threshold_with_repeating_traces(self, mock_time, mock_logger):
         with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
             mock_time.time.side_effect = [
-                1000.0,
-                1000.0,
-                1000.0,
-                1000.0,
-                1006.0,
+                1000.0,  # Set _last_log_time when first above-threshold entry is processed
+                1003.0,  # Check if logging interval elapsed (not yet, only 3 seconds)
+                1006.0,  # Check if logging interval elapsed in second call (yes, 6 seconds)
             ]
 
             buffer_logger = BufferLogger()
 
             # Log below threshold - should not be recorded, no time calls
-            buffer_logger.log("project1:trace1", latency_ms=50)
+            buffer_logger.log([("project1:trace1", 50)])
             assert len(buffer_logger._data) == 0
 
-            # Log above threshold - should be recorded (calls time.time() twice)
-            buffer_logger.log("project1:trace1", latency_ms=150)
-            assert buffer_logger._data["project1:trace1"] == (1, 150)
+            # Log above threshold in batches - should be recorded
+            buffer_logger.log(
+                [
+                    ("project1:trace1", 150),
+                    ("project1:trace1", 200),
+                    ("project2:trace2", 120),
+                ]
+            )
 
-            buffer_logger.log("project1:trace1", latency_ms=200)
             assert buffer_logger._data["project1:trace1"] == (2, 200)
-
-            buffer_logger.log("project2:trace2", latency_ms=120)
             assert buffer_logger._data["project2:trace2"] == (1, 120)
 
-            buffer_logger.log("project1:trace1", latency_ms=180)
+            # Second batch triggers logging
+            buffer_logger.log([("project1:trace1", 180)])
 
             # Verify logging was called
             assert mock_logger.info.call_count == 1
@@ -69,11 +70,11 @@ class TestBufferLogger:
 
             buffer_logger = BufferLogger()
 
-            buffer_logger.log("old_project1:trace1", latency_ms=151)
+            buffer_logger.log([("old_project1:trace1", 151)])
             assert len(buffer_logger._data) == 1
             assert mock_logger.info.call_count == 0
 
-            buffer_logger.log("old_project1:trace1", latency_ms=170)
+            buffer_logger.log([("old_project1:trace1", 170)])
             assert len(buffer_logger._data) == 0
 
             # First logging should have occurred
@@ -99,17 +100,17 @@ class TestBufferLogger:
 
             buffer_logger = BufferLogger()
 
-            for i in range(10):
-                buffer_logger.log("high_project:trace", latency_ms=150)
+            # Log in batches to match the new API
+            buffer_logger.log([("high_project:trace", 150)] * 10)
 
-            for i in range(1100):
-                buffer_logger.log(f"high_project{i}:trace{i}", latency_ms=150)
+            entries = [(f"high_project{i}:trace{i}", 150) for i in range(1100)]
+            buffer_logger.log(entries)
 
             assert len(buffer_logger._data) == 1000
 
             mock_time.time.side_effect = [10000.0]
 
-            buffer_logger.log("trigger:trace", latency_ms=150)
+            buffer_logger.log([("trigger:trace", 150)])
 
             # Verify logging occurred
             assert mock_logger.info.call_count == 1
