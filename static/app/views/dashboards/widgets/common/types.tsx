@@ -77,7 +77,7 @@ type IncompleteReason = 'INCOMPLETE_BUCKET';
  * The `value` can sometimes be an array, because some datasets support array values.
  * e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
  */
-export type GroupBy = {
+type GroupBy = {
   key: string;
   value: string | null | Array<string | null> | Array<number | null>;
 };
@@ -151,7 +151,7 @@ export type LegendSelection = Record<string, boolean>;
  * This is the same set of types supported by time series, but defined locally
  * to avoid coupling to time series widgets.
  */
-export type CategoricalValueType = (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number];
+type CategoricalValueType = (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number];
 
 /**
  * A single item in a categorical bar chart series.
