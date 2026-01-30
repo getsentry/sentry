@@ -15,6 +15,7 @@ describe('generateIssueWidgetFieldOptions', () => {
       'field:isSubscribed',
       'field:issue',
       'field:lastSeen',
+      'field:lastSeenAgo',
       'field:level',
       'field:lifetimeEvents',
       'field:lifetimeUsers',

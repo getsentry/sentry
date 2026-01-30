@@ -86,17 +86,17 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'recommended-issues-widget',
-      title: 'Recommended Issues',
+      title: t('Frequent Issues'),
       displayType: DisplayType.TABLE,
       interval: '1h',
       tableWidths: [-1, -1],
       queries: [
         {
           name: '',
-          fields: ['title', 'lastSeen'],
+          fields: ['title', 'lastSeenAgo'],
           aggregates: [],
-          columns: ['title', 'lastSeen'],
-          fieldAliases: ['', ''],
+          columns: ['title', 'lastSeenAgo'],
+          fieldAliases: ['', t('Last seen')],
           conditions: 'is:unresolved event.type:error',
           orderby: 'freq',
           onDemand: [],
