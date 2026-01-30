@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';

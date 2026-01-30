@@ -2,10 +2,10 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
 import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
-import {Flex} from 'sentry/components/core/layout';
 import {IconExpand} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';

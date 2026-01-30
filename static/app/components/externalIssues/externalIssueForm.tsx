@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {useAsyncOptionsCache} from 'sentry/components/externalIssues/useAsyncOptionsCache';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';

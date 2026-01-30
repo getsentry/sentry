@@ -4,8 +4,9 @@ import {css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';

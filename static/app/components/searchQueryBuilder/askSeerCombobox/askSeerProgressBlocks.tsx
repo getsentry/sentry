@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
-
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
 
 import type {AskSeerStep} from './types';
 

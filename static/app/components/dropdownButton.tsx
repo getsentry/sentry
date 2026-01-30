@@ -2,8 +2,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 

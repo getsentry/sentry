@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge/tag';
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout/flex';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import GridEditable, {

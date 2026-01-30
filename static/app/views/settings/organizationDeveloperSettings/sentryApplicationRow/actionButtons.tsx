@@ -1,7 +1,6 @@
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';

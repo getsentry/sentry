@@ -3,8 +3,9 @@ import {useTheme} from '@emotion/react';
 import testAnalyticsPRCommentDark from 'sentry-images/features/test-analytics-pr-comment-dark.png';
 import testAnalyticsPRCommentLight from 'sentry-images/features/test-analytics-pr-comment-light.png';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {Text} from 'sentry/components/core/text';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Text} from '@sentry/scraps/text';
+
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 

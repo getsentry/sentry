@@ -1,10 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ClippedBox from 'sentry/components/clippedBox';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';

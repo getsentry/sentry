@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {OverlayTrigger} from 'sentry/components/core/overlayTrigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CompositeSelect} from './composite';
 

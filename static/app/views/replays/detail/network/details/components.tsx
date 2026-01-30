@@ -3,8 +3,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';

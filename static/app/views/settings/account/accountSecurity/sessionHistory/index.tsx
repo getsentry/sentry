@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';

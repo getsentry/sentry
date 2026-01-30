@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {IconChevron, IconLink, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';

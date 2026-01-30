@@ -1,9 +1,10 @@
 import {useEffect, useState} from 'react';
 import {Outlet, useOutletContext} from 'react-router-dom';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';

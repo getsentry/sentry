@@ -1,7 +1,8 @@
 import type React from 'react';
 import {createContext, Fragment, useCallback, useContext, useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {IconClose} from 'sentry/icons';
 import type {AlertVariant} from 'sentry/utils/theme';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';

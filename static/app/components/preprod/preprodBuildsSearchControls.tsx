@@ -1,7 +1,7 @@
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Container, Flex} from 'sentry/components/core/layout';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';

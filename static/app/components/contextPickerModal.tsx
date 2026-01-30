@@ -2,10 +2,11 @@ import {Component, Fragment, useState, type Dispatch, type SetStateAction} from 
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Link} from '@sentry/scraps/link';
+import type {StylesConfig} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
-import type {StylesConfig} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';

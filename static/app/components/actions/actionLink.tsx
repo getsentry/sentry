@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 
 import ConfirmableAction from './confirmableAction';
 

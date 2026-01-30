@@ -1,11 +1,11 @@
 import {useRef, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout/flex';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconChevron} from 'sentry/icons';

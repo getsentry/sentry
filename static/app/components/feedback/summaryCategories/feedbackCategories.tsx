@@ -1,9 +1,9 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Tag} from 'sentry/components/core/badge/tag';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';

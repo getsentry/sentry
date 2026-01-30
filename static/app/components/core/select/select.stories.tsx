@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import documentation from '!!type-loader!sentry/components/core/select';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import * as Storybook from 'sentry/stories';
 

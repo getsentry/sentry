@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import type {LinkProps} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {LinkProps} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 
 interface Props {

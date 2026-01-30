@@ -2,10 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';

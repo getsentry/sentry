@@ -7,8 +7,8 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Surface} from '@sentry/scraps/layout';
+import {TooltipContext} from '@sentry/scraps/tooltip';
 
-import {TooltipContext} from 'sentry/components/core/tooltip';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';

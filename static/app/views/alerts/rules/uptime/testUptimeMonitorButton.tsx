@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';

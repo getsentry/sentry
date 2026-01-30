@@ -10,13 +10,14 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconChevron} from 'sentry/icons';

@@ -6,7 +6,8 @@ import {css, useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {
   GroupedOptionsType,
   OptionsType,

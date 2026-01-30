@@ -2,8 +2,9 @@ import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Flex} from 'sentry/components/core/layout';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';

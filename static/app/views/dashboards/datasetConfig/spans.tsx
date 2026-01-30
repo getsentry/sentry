@@ -1,6 +1,7 @@
 import pickBy from 'lodash/pickBy';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,

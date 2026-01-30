@@ -1,11 +1,11 @@
 import {Fragment, type ReactNode} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Separator} from 'sentry/components/core/separator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {IconLink} from 'sentry/icons';

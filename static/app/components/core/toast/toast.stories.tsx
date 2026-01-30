@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import documentation from '!!type-loader!sentry/components/core/toast';
 
-import {Toast, type ToastProps} from 'sentry/components/core/toast';
+import {Toast, type ToastProps} from '@sentry/scraps/toast';
+
 import * as Storybook from 'sentry/stories';
 
 function makeToastProps(type: 'success' | 'error' | 'loading' | 'undo'): ToastProps {

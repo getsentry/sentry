@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';

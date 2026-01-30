@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
 
-import {Select} from 'sentry/components/core/select';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

@@ -6,11 +6,11 @@ import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {Badge} from '@sentry/scraps/badge';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
 import {Text} from '@sentry/scraps/text';
 
-import {Badge} from 'sentry/components/core/badge';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';

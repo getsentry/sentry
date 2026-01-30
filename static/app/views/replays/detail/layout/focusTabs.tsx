@@ -1,11 +1,11 @@
 import {useEffect, type ReactNode} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link/link';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

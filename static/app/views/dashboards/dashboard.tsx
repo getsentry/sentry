@@ -9,11 +9,12 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 
+import {Button} from '@sentry/scraps/button';
+
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {Button} from 'sentry/components/core/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';

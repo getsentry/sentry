@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 
 import type {OnDemandBudgets} from 'getsentry/types';

@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import type {Location} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/core/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import {Hovercard} from 'sentry/components/hovercard';

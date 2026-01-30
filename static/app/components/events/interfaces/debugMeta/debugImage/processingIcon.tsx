@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconCheckmark, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ImageStatus} from 'sentry/types/debugImage';

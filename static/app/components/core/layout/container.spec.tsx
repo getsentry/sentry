@@ -7,7 +7,7 @@ import {
   Container,
   type ContainerProps,
   type ContainerPropsWithRenderFunction,
-} from 'sentry/components/core/layout';
+} from '@sentry/scraps/layout';
 
 describe('Container', () => {
   it('renders children', () => {

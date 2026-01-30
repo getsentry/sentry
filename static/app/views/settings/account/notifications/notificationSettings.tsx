@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {AlertLink} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';

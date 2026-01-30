@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
 
 type Props = {

@@ -3,11 +3,11 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {Container, Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import type {
   TabularColumn,

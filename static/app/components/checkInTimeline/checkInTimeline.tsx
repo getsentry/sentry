@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {tn} from 'sentry/locale';
 

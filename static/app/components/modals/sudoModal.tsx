@@ -2,6 +2,8 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -11,9 +13,6 @@ import {
   getBootstrapOrganizationQueryOptions,
   getBootstrapProjectsQueryOptions,
 } from 'sentry/bootstrap/bootstrapRequests';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';

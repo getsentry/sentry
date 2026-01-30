@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import Panel from 'sentry/components/panels/panel';
 import {
   GridBodyCell,

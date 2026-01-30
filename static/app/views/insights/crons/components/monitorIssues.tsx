@@ -1,9 +1,9 @@
 import {Fragment, useState} from 'react';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';

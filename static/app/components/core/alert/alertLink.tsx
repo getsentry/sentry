@@ -2,8 +2,9 @@ import type React from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert, type AlertProps} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 

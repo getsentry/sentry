@@ -1,8 +1,8 @@
 import {CodeBlock} from '@sentry/scraps/code';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Stack} from 'sentry/components/core/layout';
 
 export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['exports']}) {
   if (!props.exports?.exports) return null;

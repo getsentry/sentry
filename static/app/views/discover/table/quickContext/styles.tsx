@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 
 export function ContextContainer(props: FlexProps) {
