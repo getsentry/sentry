@@ -14,24 +14,29 @@ def delete_duplicate_commit_comparisons(
     """
     Delete duplicate CommitComparison records, keeping the oldest (lowest ID) for each unique
     combination of (organization_id, head_repo_name, head_sha, base_sha).
+
+    Before deleting, updates PreprodArtifact foreign key references to point to the kept record.
     """
     CommitComparison = apps.get_model("sentry", "CommitComparison")
+    PreprodArtifact = apps.get_model("preprod", "PreprodArtifact")
 
-    # Track IDs to keep (oldest record for each unique combination)
-    seen_keys: set[tuple] = set()
-    ids_to_delete: list[int] = []
+    key_to_kept_id: dict[tuple, int] = {}
+    duplicate_to_kept: dict[int, int] = {}
 
     for record in RangeQuerySetWrapperWithProgressBar(CommitComparison.objects.all()):
-        # Create key based on unique constraint fields
         key = (record.organization_id, record.head_repo_name, record.head_sha, record.base_sha)
 
-        if key in seen_keys:
-            ids_to_delete.append(record.id)
+        if key in key_to_kept_id:
+            duplicate_to_kept[record.id] = key_to_kept_id[key]
         else:
-            seen_keys.add(key)
+            key_to_kept_id[key] = record.id
 
-    if ids_to_delete:
-        CommitComparison.objects.filter(id__in=ids_to_delete).delete()
+    if duplicate_to_kept:
+        for duplicate_id, kept_id in duplicate_to_kept.items():
+            PreprodArtifact.objects.filter(commit_comparison_id=duplicate_id).update(
+                commit_comparison_id=kept_id
+            )
+        CommitComparison.objects.filter(id__in=duplicate_to_kept.keys()).delete()
 
 
 class Migration(CheckedMigration):
@@ -51,13 +56,14 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1022_add_event_id_to_groupopenperiodactivity"),
+        ("preprod", "0026_add_initial_snapshot_models"),
     ]
 
     operations = [
         migrations.RunPython(
             delete_duplicate_commit_comparisons,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_commitcomparison"]},
+            hints={"tables": ["sentry_commitcomparison", "sentry_preprodartifact"]},
         ),
         migrations.AddConstraint(
             model_name="commitcomparison",

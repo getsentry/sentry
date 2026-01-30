@@ -49,8 +49,6 @@ class DeleteDuplicateCommitComparisonsTest(TestMigrations):
             provider="github",
         )
 
-        return super().setup_before_migration(apps)
-
     def test(self) -> None:
         from sentry.models.commitcomparison import CommitComparison
 
