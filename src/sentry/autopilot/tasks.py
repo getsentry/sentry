@@ -1,5 +1,4 @@
 import logging
-import time
 import uuid
 from datetime import timedelta
 from enum import StrEnum
@@ -292,7 +291,7 @@ def run_missing_sdk_integration_detector_for_organization(organization: Organiza
 @instrumented_task(
     name="sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task",
     namespace=autopilot_tasks,
-    processing_deadline_duration=180,
+    processing_deadline_duration=280,
 )
 def run_missing_sdk_integration_detector_for_project_task(
     organization_id: int, project_id: int, repo_name: str, source_root: str
@@ -413,20 +412,10 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
             artifact_key="missing_integrations",
             artifact_schema=MissingSdkIntegrationsResult,
         )
-        start_time = time.monotonic()
-        state = client.get_run(run_id, blocking=True, poll_timeout=240.0)
-        run_duration = time.monotonic() - start_time
-
-        logger.warning(
-            "missing_sdk_integration_detector.run_completed",
-            extra={
-                "organization_id": organization.id,
-                "project_id": project.id,
-                "project_slug": project.slug,
-                "run_id": run_id,
-                "run_duration": run_duration,
-            },
-        )
+        with metrics.timer(
+            "autopilot.missing_sdk_integration_detector.run_duration", sample_rate=1.0
+        ):
+            state = client.get_run(run_id, blocking=True, poll_timeout=240.0, poll_interval=5.0)
 
         # Extract the structured result
         result = state.get_artifact("missing_integrations", MissingSdkIntegrationsResult)
@@ -482,7 +471,6 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
                 "organization_id": organization.id,
                 "project_id": project.id,
                 "project_slug": project.slug,
-                "run_id": run_id,
                 "error_message": str(e),
             },
         )
