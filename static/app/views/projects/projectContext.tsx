@@ -2,7 +2,6 @@ import {Component, createContext} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
@@ -15,7 +14,6 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
@@ -26,8 +24,6 @@ import {
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 enum ErrorTypes {
   MISSING_MEMBERSHIP = 'MISSING_MEMBERSHIP',
@@ -46,7 +42,6 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   projects: Project[];
-  router: InjectedRouter;
   /**
    * If true, this will not change `state.loading` during `fetchData` phase
    */
@@ -88,7 +83,7 @@ class ProjectContextProvider extends Component<Props, State> {
     // Once loaded we can fetchData in componentDidUpdate
     const {loadingProjects} = this.props;
     if (!loadingProjects) {
-      this.fetchOrRedirectProject();
+      this.fetchData();
     }
   }
 
@@ -104,7 +99,7 @@ class ProjectContextProvider extends Component<Props, State> {
 
   componentDidUpdate(prevProps: Props, _prevState: State) {
     if (prevProps.projectSlug !== this.props.projectSlug) {
-      this.fetchOrRedirectProject();
+      this.fetchData();
     }
 
     // Project list has changed. Likely indicating that a new project has been
@@ -115,7 +110,7 @@ class ProjectContextProvider extends Component<Props, State> {
     // the list could change, but it doesn't seem to be broken anywhere else at
     // the moment that would require deeper checks.
     if (prevProps.projects.length !== this.props.projects.length) {
-      this.fetchOrRedirectProject();
+      this.fetchData();
     }
   }
 
@@ -157,16 +152,6 @@ class ProjectContextProvider extends Component<Props, State> {
   identifyProject() {
     const {projects, projectSlug} = this.props;
     return projects.find(({slug}) => slug === projectSlug) || null;
-  }
-
-  fetchOrRedirectProject() {
-    const {projectSlug} = this.props;
-    if (projectSlug === ':projectId') {
-      navigateTo(this.props.router.location, this.props.router);
-      return;
-    }
-
-    this.fetchData();
   }
 
   async fetchData() {
@@ -314,9 +299,7 @@ class ProjectContextProvider extends Component<Props, State> {
 
 export {ProjectContext, ProjectContextProvider};
 
-export default withApi(
-  withOrganization(withProjects(withSentryRouter(ProjectContextProvider)))
-);
+export default withApi(withOrganization(withProjects(ProjectContextProvider)));
 
 const ErrorWrapper = styled('div')`
   width: 100%;

@@ -1,17 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {ProjectContextProvider} from 'sentry/views/projects/projectContext';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/navigation', () => ({
-  navigateTo: jest.fn(),
-}));
 jest.mock('sentry/actionCreators/redirectToProject', () => ({
   redirectToProject: jest.fn(),
 }));
@@ -19,7 +14,6 @@ jest.mock('sentry/actionCreators/redirectToProject', () => ({
 describe('projectContext component', () => {
   const project = ProjectFixture();
   const org = OrganizationFixture();
-  const router = RouterFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -51,7 +45,6 @@ describe('projectContext component', () => {
         projects={[]}
         organization={org}
         projectSlug={project.slug}
-        router={router}
       >
         {null}
       </ProjectContextProvider>
@@ -83,7 +76,6 @@ describe('projectContext component', () => {
         loadingProjects={false}
         organization={org}
         projectSlug={project.slug}
-        router={router}
       >
         {null}
       </ProjectContextProvider>
@@ -111,7 +103,6 @@ describe('projectContext component', () => {
         loadingProjects={false}
         organization={org}
         projectSlug="new-slug"
-        router={router}
       >
         {null}
       </ProjectContextProvider>
@@ -135,7 +126,6 @@ describe('projectContext component', () => {
         projects={[]}
         organization={org}
         projectSlug={project.slug}
-        router={router}
       >
         {null}
       </ProjectContextProvider>
@@ -160,7 +150,6 @@ describe('projectContext component', () => {
         api={new MockApiClient()}
         projects={[project]}
         projectSlug={project.slug}
-        router={router}
       >
         {null}
       </ProjectContextProvider>
@@ -186,7 +175,6 @@ describe('projectContext component', () => {
         projects={[]}
         organization={org}
         projectSlug={project.slug}
-        router={router}
       >
         {null}
       </ProjectContextProvider>
@@ -195,30 +183,5 @@ describe('projectContext component', () => {
     await waitFor(() => {
       expect(redirectToProject).toHaveBeenCalledWith('renamed-project');
     });
-  });
-
-  it('calls navigateTo when projectSlug is :projectId', () => {
-    const navigateRouter = RouterFixture({
-      location: {
-        pathname: '/settings/org-slug/projects/:projectId/filters/data-filters/',
-      },
-    });
-    render(
-      <ProjectContextProvider
-        api={new MockApiClient()}
-        loadingProjects={false}
-        projects={[]}
-        organization={org}
-        projectSlug=":projectId"
-        router={navigateRouter}
-      >
-        {null}
-      </ProjectContextProvider>
-    );
-
-    expect(navigateTo).toHaveBeenCalledWith(
-      {pathname: '/settings/org-slug/projects/:projectId/filters/data-filters/'},
-      navigateRouter
-    );
   });
 });
