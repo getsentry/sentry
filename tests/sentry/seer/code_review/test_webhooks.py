@@ -446,6 +446,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     "owner": "test-owner",
                     "name": "test-repo",
                     "external_id": "123456",
+                    "base_commit_sha": "abc123",
                 },
                 "pr_id": 123,
                 "bug_prediction_specific_information": {
