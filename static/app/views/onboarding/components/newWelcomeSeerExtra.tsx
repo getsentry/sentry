@@ -19,11 +19,6 @@ const SeerIllustrationWrapper = styled(Flex)`
   bottom: ${p => p.theme.space.xl};
   transform: translateX(45%);
 
-  img {
-    object-fit: cover;
-    object-position: left;
-  }
-
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }
