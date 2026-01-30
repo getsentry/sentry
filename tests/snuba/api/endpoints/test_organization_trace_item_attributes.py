@@ -299,14 +299,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 "secondaryAliases": ["log.severity_number"],
             },
             {
-                "key": "tags[message.parameter.0,number]",
-                "name": "message.parameter.0",
-                "attributeSource": {
-                    "source_type": "sentry",
-                    "is_transformed_alias": True,
-                },
-            },
-            {
                 "key": "tags[message.parameter.1,number]",
                 "name": "message.parameter.1",
                 "attributeSource": {
