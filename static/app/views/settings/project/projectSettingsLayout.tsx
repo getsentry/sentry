@@ -72,7 +72,7 @@ export default function ProjectSettingsLayout() {
             </Button>
           }
         >
-          {t('Select a project in the modal to continue.')}
+          {t('Select a project to continue.')}
         </EmptyMessage>
       </Flex>
     );
