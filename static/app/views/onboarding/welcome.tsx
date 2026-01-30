@@ -6,7 +6,6 @@ import {motion} from 'framer-motion';
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
