@@ -45,6 +45,11 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 internal_name="transaction",
                 search_type="string",
             ),
+            ResolvedAttribute(
+                public_alias="release",
+                internal_name="release",
+                search_type="string",
+            ),
         ]
     )
 }
