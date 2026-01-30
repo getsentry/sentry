@@ -51,12 +51,12 @@ system:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*

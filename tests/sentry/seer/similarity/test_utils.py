@@ -325,7 +325,7 @@ class GetStacktraceStringTest(TestCase):
                                         "id": "frame",
                                         "name": None,
                                         "contributes": True,
-                                        "hint": "marked out of app by stack trace rule (function:dbx v-group -group v-app -app)",
+                                        "hint": "marked out of app by stacktrace rule (function:dbx v-group -group v-app -app)",
                                         "values": [
                                             {
                                                 "id": "module",

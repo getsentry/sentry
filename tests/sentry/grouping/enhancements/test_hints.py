@@ -357,6 +357,7 @@ def test_adds_rule_source_to_stacktrace_rule_hints() -> None:
     frame_component = FrameGroupingComponent(in_app=True, values=[])
     custom_rules = {"function:roll_over +app"}
 
+    # Here 'stack trace' has a space in it because that's how it comes back from the rust enhancer
     built_in_rule_rust_frame = DummyRustFrame(
         hint="marked in-app by stack trace rule (function:shake +app)"
     )
@@ -373,7 +374,7 @@ def test_adds_rule_source_to_stacktrace_rule_hints() -> None:
             "in-app",
             custom_rules,
         )
-        == "marked in-app by built-in stack trace rule (function:shake +app)"
+        == "marked in-app by built-in stacktrace rule (function:shake +app)"
     )
     assert (
         _get_hint_for_frame(
@@ -384,5 +385,5 @@ def test_adds_rule_source_to_stacktrace_rule_hints() -> None:
             "in-app",
             custom_rules,
         )
-        == "marked in-app by custom stack trace rule (function:roll_over +app)"
+        == "marked in-app by custom stacktrace rule (function:roll_over +app)"
     )
