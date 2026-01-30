@@ -326,8 +326,10 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/7.37.0/bundle.feedback.debug.min.js",
                 {"dsn": dsn, "debug": True, "autoInjectFeedback": True},
             ),
-            # Note: There is no bundle.tracing.feedback or bundle.replay.feedback.
-            # When feedback is combined with tracing or replay, we serve the full bundle.
+            # Note: There is no bundle.tracing.feedback.
+            # When feedback is combined with tracing (but not replay), we serve the full bundle.
+            # Even though the full bundle includes replay, we should NOT enable replay config
+            # because the user didn't explicitly enable replay.
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -338,12 +340,11 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/7.37.0/bundle.tracing.replay.feedback.min.js",
                 {
                     "dsn": dsn,
-                    "tracesSampleRate": 1,
-                    "replaysSessionSampleRate": 0.1,
-                    "replaysOnErrorSampleRate": 1,
+                    "tracesSampleRate": 1,  # User explicitly enabled tracing
                     "autoInjectFeedback": True,
                 },
             ),
+            # Note: bundle.replay.feedback DOES exist, so we don't need to force tracing
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -351,10 +352,9 @@ class JavaScriptSdkLoaderTest(TestCase):
                         DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
                     }
                 },
-                b"/7.37.0/bundle.tracing.replay.feedback.min.js",
+                b"/7.37.0/bundle.replay.feedback.min.js",
                 {
                     "dsn": dsn,
-                    "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
                     "autoInjectFeedback": True,
@@ -442,3 +442,230 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert (
             "https://js.sentry-cdn.com/%s.min.js" % self.projectkey.public_key
         ) == self.projectkey.js_sdk_loader_cdn_url
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["10.0.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="10.x"
+    )
+    def test_logs_and_metrics_bundle_modifiers(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        """Test logs and metrics bundles which require SDK >= 10.0.0"""
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        settings.JS_SDK_LOADER_SDK_VERSION = "10.0.0"
+
+        dsn = self.projectkey.get_dsn(public=True)
+
+        for data, expected_bundle, expected_options in [
+            # Logs and metrics alone (no tracing required, bundle.logs.metrics exists)
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.logs.metrics.min.js",
+                {"dsn": dsn, "enableLogs": True},
+            ),
+            # Logs and metrics with performance (user explicitly enables tracing)
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.tracing.logs.metrics.min.js",
+                {"dsn": dsn, "tracesSampleRate": 1, "enableLogs": True},
+            ),
+            # Logs and metrics with debug (no tracing required)
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_DEBUG.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.logs.metrics.debug.min.js",
+                {"dsn": dsn, "debug": True, "enableLogs": True},
+            ),
+            # Logs and metrics with replay (bundle.replay.logs.metrics exists, no tracing required)
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.replay.logs.metrics.min.js",
+                {
+                    "dsn": dsn,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                    "enableLogs": True,
+                },
+            ),
+            # Logs and metrics with tracing and replay (bundle.tracing.replay.logs.metrics exists)
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.tracing.replay.logs.metrics.min.js",
+                {
+                    "dsn": dsn,
+                    "tracesSampleRate": 1,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                    "enableLogs": True,
+                },
+            ),
+            # Logs and metrics with feedback (should use full bundle)
+            # Note: There's no bundle.feedback.logs.metrics, so we must use full bundle.
+            # Even though the full bundle includes tracing and replay, we should NOT enable
+            # their configs because the user didn't explicitly enable them.
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.tracing.replay.feedback.logs.metrics.min.js",
+                {
+                    "dsn": dsn,
+                    "autoInjectFeedback": True,
+                    "enableLogs": True,
+                },
+            ),
+            # Logs and metrics with tracing and feedback (full bundle, replay not explicitly enabled)
+            # Note: There's no bundle.tracing.feedback.logs.metrics, so we must use full bundle.
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.tracing.replay.feedback.logs.metrics.min.js",
+                {
+                    "dsn": dsn,
+                    "tracesSampleRate": 1,  # User explicitly enabled tracing
+                    "autoInjectFeedback": True,
+                    "enableLogs": True,
+                },
+            ),
+            # Logs and metrics with replay and feedback (full bundle required)
+            # Note: There's no bundle.replay.feedback.logs.metrics
+            # Even though the full bundle includes tracing, we should NOT enable
+            # tracesSampleRate because the user didn't explicitly enable it.
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.tracing.replay.feedback.logs.metrics.min.js",
+                {
+                    "dsn": dsn,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                    "autoInjectFeedback": True,
+                    "enableLogs": True,
+                },
+            ),
+            # Logs and metrics with all features
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                        DynamicSdkLoaderOption.HAS_FEEDBACK.value: True,
+                        DynamicSdkLoaderOption.HAS_DEBUG.value: True,
+                    }
+                },
+                b"/10.0.0/bundle.tracing.replay.feedback.logs.metrics.debug.min.js",
+                {
+                    "dsn": dsn,
+                    "tracesSampleRate": 1,
+                    "replaysSessionSampleRate": 0.1,
+                    "replaysOnErrorSampleRate": 1,
+                    "debug": True,
+                    "autoInjectFeedback": True,
+                    "enableLogs": True,
+                },
+            ),
+        ]:
+            self.projectkey.data = data
+            self.projectkey.save()
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+            assert expected_bundle in resp.content
+
+            for key in expected_options:
+                # Convert to e.g. "option_name": 0.1
+                single_option = {key: expected_options[key]}
+                assert json.dumps(single_option)[1:-1].encode() in resp.content
+
+            self.projectkey.data = {}
+            self.projectkey.save()
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["9.99.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="9.x"
+    )
+    def test_logs_and_metrics_not_available_before_v10(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        """Test that logs and metrics are not loaded for SDK < 10.0.0"""
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        settings.JS_SDK_LOADER_SDK_VERSION = "9.99.0"
+
+        self.projectkey.data = {
+            "dynamicSdkLoaderOptions": {
+                DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+            }
+        }
+        self.projectkey.save()
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+        # Should not include logs.metrics in the bundle name
+        assert b"logs.metrics" not in resp.content
+        # Should fall back to base bundle without logs and metrics
+        assert b"/9.99.0/bundle.min.js" in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.10.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
+    )
+    def test_logs_and_metrics_not_available_on_v8(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        """Test that logs and metrics are not loaded for v8 SDK"""
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        settings.JS_SDK_LOADER_SDK_VERSION = "8.10.0"
+
+        self.projectkey.data = {
+            "dynamicSdkLoaderOptions": {
+                DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: True,
+            }
+        }
+        self.projectkey.save()
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+        # Should not include logs.metrics in the bundle name for v8
+        assert b"logs.metrics" not in resp.content
+        # Should fall back to base bundle without logs and metrics
+        assert b"/8.10.0/bundle.min.js" in resp.content
