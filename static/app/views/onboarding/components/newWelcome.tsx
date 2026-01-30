@@ -1,4 +1,4 @@
-import {motion} from 'framer-motion';
+import {motion, type MotionProps} from 'framer-motion';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -24,10 +24,7 @@ import {NewWelcomeSeerExtra} from 'sentry/views/onboarding/components/newWelcome
 import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeSeerFlag';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
-import {
-  ONBOARDING_WELCOME_STAGGER_CONTAINER,
-  ONBOARDING_WELCOME_STAGGER_ITEM,
-} from 'sentry/views/onboarding/consts';
+import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
 import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
@@ -48,6 +45,31 @@ interface ProductOption {
   extra?: React.ReactNode;
   footer?: React.ReactNode;
 }
+
+const STAGGER_CONTAINER: MotionProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  variants: {
+    initial: {},
+    animate: {
+      transition: testableTransition({
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+      }),
+    },
+    exit: {},
+  },
+};
+
+const STAGGER_CHILDREN = {
+  initial: {},
+  animate: {
+    transition: testableTransition({
+      staggerChildren: 0.08,
+    }),
+  },
+};
 
 // Product options in display order (3x2 grid: row1: Error, Logging, Session; row2: Metrics, Tracing, Profiling)
 const PRODUCT_OPTIONS: ProductOption[] = [
@@ -121,11 +143,7 @@ export function NewWelcomeUI(props: StepProps) {
 
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
-      <MotionFlex
-        direction="column"
-        align="center"
-        {...ONBOARDING_WELCOME_STAGGER_CONTAINER}
-      >
+      <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
         <WelcomeBackgroundNewUi />
         <Flex direction="column" gap="2xl">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM}>
@@ -167,14 +185,7 @@ export function NewWelcomeUI(props: StepProps) {
           <MotionGrid
             columns={{xs: '1fr', md: 'repeat(3, 1fr)'}}
             gap="lg"
-            variants={{
-              initial: {},
-              animate: {
-                transition: testableTransition({
-                  staggerChildren: 0.08,
-                }),
-              },
-            }}
+            variants={STAGGER_CHILDREN}
           >
             {PRODUCT_OPTIONS.map(product => (
               <NewWelcomeProductCard
