@@ -13,13 +13,13 @@ class RuleConditionTranslationTest(ConditionTestCase):
     def setUp(self) -> None:
         self.dcg = self.create_data_condition_group()
 
-    def assert_basic_condition_translated(self, payload):
+    def assert_basic_condition_translated(self, payload: dict[str, Any]) -> None:
         dc = self.translate_to_data_condition(payload, self.dcg)
         condition, filters = translate_to_rule_condition_filters(dc, is_filter=False)
         assert condition == payload
         assert filters == []
 
-    def assert_basic_filter_translated(self, payload):
+    def assert_basic_filter_translated(self, payload: dict[str, Any]) -> None:
         dc = self.translate_to_data_condition(payload, self.dcg)
         condition, filters = translate_to_rule_condition_filters(dc, is_filter=True)
         assert condition == {}

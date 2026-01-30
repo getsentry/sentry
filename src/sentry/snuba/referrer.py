@@ -687,6 +687,7 @@ class Referrer(StrEnum):
     ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS = "issues.suspect_tags.query_error_counts"
     ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
     ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
+    ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
@@ -945,6 +946,7 @@ class Referrer(StrEnum):
 
     # Getsentry scripts
     DELETE_EVENTS_FROM_FILE = "delete-events-from-file"
+    DELETE_EVENTS_BY_TAG_VALUE = "delete-events-by-tag-value"
 
     # Referrers in tests
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"

@@ -284,7 +284,7 @@ function FilterSelector({
         <StyledButton
           aria-label={t('Clear Selections')}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() => {
             setSearchQuery('');
             handleChange([]);
@@ -380,7 +380,7 @@ function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" borderless>
+                  <Button {...triggerProps} size="zero" priority="transparent">
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
@@ -423,7 +423,7 @@ export default FilterSelector;
 
 const StyledButton = styled(Button)`
   font-size: inherit;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};
@@ -445,5 +445,5 @@ const WildcardButton = styled(Flex)`
 
 const SubText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

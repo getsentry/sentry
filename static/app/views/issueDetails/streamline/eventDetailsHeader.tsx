@@ -113,7 +113,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             id={IssueDetailsTour.FILTERS}
             title={t('Narrow your focus')}
             description={t(
-              'Filtering data to a specific environment, timeframe, tag value, or user can speed up debugging.'
+              'Filter to a specific environment, timeframe, tag value, or user to speed up debugging.'
             )}
             position="bottom-start"
           >
@@ -214,7 +214,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
-              <MetricIssueChart group={group} project={project} />
+              <MetricIssueChart group={group} event={event} />
             )}
             {issueTypeConfig.header.graph.type === 'uptime-checks' && (
               <IssueUptimeCheckTimeline group={group} />

@@ -8,6 +8,7 @@ import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -43,7 +44,9 @@ export default function BuildList() {
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {query: queryParams},
       ],
       {
@@ -75,12 +78,12 @@ export default function BuildList() {
           <Layout.Title>Builds</Layout.Title>
           <Layout.HeaderActions>
             {projects.length === 1 && (
-              <Feature features="organizations:preprod-issues">
+              <Feature features="organizations:preprod-frontend-routes">
                 <LinkButton
                   size="sm"
                   icon={<IconSettings />}
                   aria-label={t('Settings')}
-                  to={`/settings/${organization.slug}/projects/${projectId}/preprod/`}
+                  to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
                 />
               </Feature>
             )}
@@ -93,7 +96,7 @@ export default function BuildList() {
               <PreprodBuildsTable
                 builds={builds}
                 isLoading={isLoading}
-                error={!!error}
+                error={error}
                 pageLinks={pageLinks}
                 organizationSlug={organization.slug}
               />

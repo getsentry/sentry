@@ -33,11 +33,7 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {
-  DiscoverDatasets,
-  DisplayModes,
-  type SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
@@ -270,9 +266,14 @@ export function getWidgetDiscoverUrl(
     discoverLocation.query.fromMetric = 'true';
   }
 
+  // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+  const projectParam =
+    selection.projects.length === 0 ? '' : discoverLocation.query.project;
+
   // Construct and return the discover url
   const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
     ...discoverLocation.query,
+    project: projectParam,
   })}`;
   return discoverPath;
 }
@@ -292,7 +293,8 @@ export function getWidgetIssueUrl(
     query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
-    project: selection.projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
   })}`;
   return issuesLocation;
@@ -312,7 +314,8 @@ export function getWidgetReleasesUrl(
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
     query: applyDashboardFilters('', dashboardFilters),
-    project: selection.projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
   })}`;
   return releasesLocation;
@@ -344,14 +347,6 @@ export function flattenErrors(
     });
   }
   return update;
-}
-
-export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
-  return isMEPEnabled
-    ? {
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
-      }
-    : {};
 }
 
 export function getNumEquations(possibleEquations: string[]) {

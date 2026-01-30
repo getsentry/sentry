@@ -143,6 +143,19 @@ export function SelectRow({
         ];
         return [true, options];
       }
+    } else if (
+      state.dataset === WidgetType.LOGS &&
+      field.kind === FieldValueKind.FUNCTION
+    ) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('logs'),
+            value: 'message',
+          },
+        ];
+        return [true, options];
+      }
     }
 
     return [false, defaultColumnOptions];
@@ -477,7 +490,7 @@ const FooterWrapper = styled('div')`
   align-items: center;
   justify-content: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const SelectWrapper = styled('div')`

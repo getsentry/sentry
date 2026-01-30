@@ -1,0 +1,33 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "message": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "message",
+            "name": "message",
+            "values": [
+              "event"
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "message",
+      "hash": "4119639092e62c55ea8be348e4d9260d",
+      "hint": null,
+      "key": "message",
+      "type": "component"
+    }
+  }
+}

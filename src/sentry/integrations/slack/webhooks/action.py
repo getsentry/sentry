@@ -114,7 +114,7 @@ def update_group(
 
     resp = update_groups(request=request, groups=[group], user=user, data=data)
     if resp.status_code != 200:
-        _logger.error(
+        _logger.warning(
             "slack.action.update-group-error",
             extra={
                 "group_id": group.id,
@@ -556,7 +556,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             requests_.post(slack_request.response_url, json=payload)
         except ApiError:
-            _logger.exception("slack.action.response-error")
+            _logger.warning("slack.action.response-error")
             return self.respond(status=403)
 
         return self.respond()
@@ -571,16 +571,15 @@ class SlackActionEndpoint(Endpoint):
     ) -> None:
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
+            action=action,
             group=group,
             organization_id=group.project.organization_id,
         )
-        stopping_point = entrypoint.set_autofix_stopping_point(action=action)
-        operator = SeerOperator(entrypoint=entrypoint)
-        operator.trigger_autofix(
+        SeerOperator(entrypoint=entrypoint).trigger_autofix(
             group=group,
             user=user,
-            stopping_point=stopping_point,
-            run_id=entrypoint.get_autofix_run_id(),
+            stopping_point=entrypoint.autofix_stopping_point,
+            run_id=entrypoint.autofix_run_id,
         )
 
     @classmethod
@@ -771,7 +770,7 @@ class SlackActionEndpoint(Endpoint):
                 member.reject_member_invitation(identity_user)
         except Exception:
             # shouldn't error but if it does, respond to the user
-            _logger.exception(
+            _logger.warning(
                 "slack.action.member-invitation-error",
                 extra={
                     "organization_id": organization.id,

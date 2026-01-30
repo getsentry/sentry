@@ -165,7 +165,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
     return (
       <Body data-test-id="feature-tour">
         <CloseButton
-          borderless
+          priority="transparent"
           size="zero"
           onClick={closeModal}
           icon={<IconClose />}
@@ -217,8 +217,8 @@ const TourButtonBar = styled(ButtonBar)`
 
 const StepCounter = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

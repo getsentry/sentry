@@ -1,6 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -37,6 +37,7 @@ import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
+import {MobileAppSizeConfig} from './mobileAppSize';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
 import {TraceMetricsConfig} from './traceMetrics';
@@ -238,21 +239,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
   /**
-   * Generate the request promises for fetching
-   * series data.
-   */
-  getSeriesRequest?: (
-    api: Client,
-    widget: Widget,
-    queryIndex: number,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    referrer?: string,
-    mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
-  /**
    * Get the result type of the series. ie duration, size, percentage, etc
    */
   getSeriesResultType?: (
@@ -266,23 +252,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     data: SeriesResponse,
     widgetQuery: WidgetQuery
   ) => Record<string, DataUnit>;
-  /**
-   * Generate the request promises for fetching
-   * tabular data.
-   */
-  getTableRequest?: (
-    api: Client,
-    widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.
@@ -326,15 +295,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
 
   /**
-   * Hook-based approach for fetching series data
+   * Hook-based approach for fetching series data.
    * Returns transformed data, raw responses for callbacks, and refetch function.
-   * This replaces getSeriesRequest when available.
    */
   useSeriesQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
   /**
-   * Hook-based approach for fetching table data
+   * Hook-based approach for fetching table data.
    * Returns transformed data, raw responses for callbacks, and refetch function.
-   * This replaces getTableRequest when available.
    */
   useTableQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
 }
@@ -355,7 +322,9 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
             ? typeof SpansConfig
             : T extends WidgetType.TRACEMETRICS
               ? typeof TraceMetricsConfig
-              : typeof ErrorsAndTransactionsConfig;
+              : T extends WidgetType.PREPROD_APP_SIZE
+                ? typeof MobileAppSizeConfig
+                : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -367,7 +336,8 @@ export function getDatasetConfig(
   | typeof TransactionsConfig
   | typeof LogsConfig
   | typeof SpansConfig
-  | typeof TraceMetricsConfig {
+  | typeof TraceMetricsConfig
+  | typeof MobileAppSizeConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -383,6 +353,8 @@ export function getDatasetConfig(
       return SpansConfig;
     case WidgetType.TRACEMETRICS:
       return TraceMetricsConfig;
+    case WidgetType.PREPROD_APP_SIZE:
+      return MobileAppSizeConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

@@ -25,7 +25,7 @@ export function DebugNotificationsSidebar() {
               {registrations.map(registration => (
                 <Container key={registration.source} as="li">
                   <NotificationLinkButton
-                    borderless
+                    priority="transparent"
                     active={routeSource === registration.source}
                     to={
                       routeSource === registration.source
@@ -65,7 +65,7 @@ const NotificationLinkButton = styled(LinkButton, {
   display: block;
   color: ${p =>
     p.active ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-align: left;
   /* Undo some button styles */
   height: auto;

@@ -178,7 +178,7 @@ export function SpanDescription({
               <LinkHint value={formattedDescription} />
             </span>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
@@ -283,7 +283,7 @@ function ResourceImage(props: {
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}
@@ -331,7 +331,7 @@ const StyledCodeSnippet = styled(CodeBlock)`
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: baseline;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

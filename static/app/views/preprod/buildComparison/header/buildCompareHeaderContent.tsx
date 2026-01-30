@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -22,7 +21,6 @@ import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
   getLabels,
-  getPlatformIconFromPlatform,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
@@ -35,7 +33,6 @@ interface BuildCompareHeaderContentProps {
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, projectId} = props;
   const organization = useOrganization();
-  const theme = useTheme();
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
@@ -60,7 +57,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
 
   return (
     <Flex justify="between" align="center" gap="lg">
-      <Stack gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
+      <Stack gap="lg" padding="0 0 lg 0">
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
           <FeatureBadge type="beta" />
@@ -80,9 +77,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           <Flex gap="sm" align="center">
             <InfoIcon>
               {buildDetails.app_info.platform ? (
-                <PlatformIcon
-                  platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
-                />
+                <PlatformIcon platform={buildDetails.app_info.platform} />
               ) : null}
             </InfoIcon>
             <Text>

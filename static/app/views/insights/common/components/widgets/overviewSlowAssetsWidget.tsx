@@ -218,7 +218,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
               <Button
                 size="xs"
                 aria-label={t('Open Full-Screen View')}
-                borderless
+                priority="transparent"
                 icon={<IconExpand />}
                 onClick={() => {
                   openInsightChartModal({

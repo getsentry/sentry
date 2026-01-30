@@ -40,6 +40,7 @@ import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerDrawerProps {
   event: Event;
@@ -108,10 +109,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="md">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -164,10 +165,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               crumbs={[
                 {
                   label: (
-                    <CrumbContainer>
+                    <Flex align="center" gap="md">
                       <ProjectAvatar project={project} />
                       <ShortId>{group.shortId}</ShortId>
-                    </CrumbContainer>
+                    </Flex>
                   ),
                 },
                 {label: getShortEventId(event.id)},
@@ -193,10 +194,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="md">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -213,7 +214,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
   // Route to Explorer-based drawer if both feature flags are enabled
   if (
-    organization.features.includes('seer-explorer') &&
+    isSeerExplorerEnabled(organization) &&
     organization.features.includes('autofix-on-explorer')
   ) {
     return (
@@ -380,10 +381,10 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           crumbs={[
             {
               label: (
-                <CrumbContainer>
+                <Flex align="center" gap="md">
                   <ProjectAvatar project={project} />
                   <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
+                </Flex>
               ),
             },
             {label: getShortEventId(event.id)},
@@ -520,6 +521,10 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
+    const isExplorerVersion =
+      isSeerExplorerEnabled(organization) &&
+      organization.features.includes('autofix-on-explorer');
+
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
@@ -527,6 +532,8 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
+      resizable: !isExplorerVersion,
+      drawerWidth: isExplorerVersion ? '50%' : undefined,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
@@ -604,8 +611,8 @@ const SeerDrawerBody = styled(DrawerBody)`
 `;
 
 const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
 `;
 
@@ -614,15 +621,9 @@ const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   padding: 0;
 `;
 
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

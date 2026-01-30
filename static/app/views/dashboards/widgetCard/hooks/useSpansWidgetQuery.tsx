@@ -10,11 +10,13 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import toArray from 'sentry/utils/array/toArray';
+import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   getEquationAliasIndex,
@@ -39,6 +41,8 @@ import {
   cleanWidgetForRequest,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type SpansSeriesResponse =
   | EventsStats
@@ -146,6 +150,13 @@ export function useSpansSeriesQuery(
         ...(period ? {statsPeriod: period} : {}),
       };
 
+      if (queryParams.start) {
+        queryParams.start = getUtcDateString(queryParams.start);
+      }
+      if (queryParams.end) {
+        queryParams.end = getUtcDateString(queryParams.end);
+      }
+
       // Build the API query key for events-stats endpoint
       return [
         `/organizations/${organization.slug}/events-stats/`,
@@ -167,14 +178,8 @@ export function useSpansSeriesQuery(
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchDataQuery<SpansSeriesResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<SpansSeriesResponse>(context).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
@@ -336,41 +341,57 @@ export function useSpansTableQuery(
         requestParams.sort = toArray(orderBy);
       }
 
+      // Always sort by is_starred_transaction first if it's in the fields
+      const existingSort = requestParams.sort || [];
+      const hasStarredField = query.fields?.includes(SpanFields.IS_STARRED_TRANSACTION);
+
+      const alreadySortedByStarred = Array.isArray(existingSort)
+        ? existingSort.some(sort => sort.includes(SpanFields.IS_STARRED_TRANSACTION))
+        : existingSort.includes(SpanFields.IS_STARRED_TRANSACTION);
+
+      if (hasStarredField && !alreadySortedByStarred) {
+        requestParams.sort = [
+          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
+          ...existingSort,
+        ];
+      }
+
       const queryParams = {
         ...eventView.generateQueryStringObject(),
         ...requestParams,
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
-      return [
+      const baseQueryKey: ApiQueryKey = [
         `/organizations/${organization.slug}/events/`,
         {
           method: 'GET' as const,
           query: queryParams,
         },
-      ] satisfies ApiQueryKey;
+      ];
+
+      return [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseQueryKey];
     });
   }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
 
   const createQueryFnTable = useCallback(
     () =>
       async (context: any): Promise<ApiResult<SpansTableResponse>> => {
+        const modifiedContext = {
+          ...context,
+          queryKey: context.queryKey.slice(STARRED_SEGMENT_TABLE_QUERY_KEY.length), // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call,
+        };
+
         if (queue) {
           return new Promise((resolve, reject) => {
             const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchDataQuery<SpansTableResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error);
-                }
-              },
+              current: () =>
+                fetchDataQuery<SpansTableResponse>(modifiedContext).then(resolve, reject),
             };
             queue.addItem({fetchDataRef: fetchFnRef});
           });
         }
-        return fetchDataQuery<SpansTableResponse>(context);
+        return fetchDataQuery<SpansTableResponse>(modifiedContext);
       },
     [queue]
   );

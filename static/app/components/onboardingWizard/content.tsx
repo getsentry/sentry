@@ -297,7 +297,7 @@ function Task({task, hidePanel}: TaskProps) {
                 setShowSkipConfirmation(!showSkipConfirmation);
               }}
               size="zero"
-              borderless
+              priority="transparent"
               title={t('Skip Task')}
             />
           ) : undefined
@@ -484,7 +484,7 @@ function TaskGroup({
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"
-            borderless
+            priority="transparent"
           />
         }
       />
@@ -608,7 +608,7 @@ const TaskCardWrapper = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   p {
     margin: 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
   button {
     visibility: hidden;

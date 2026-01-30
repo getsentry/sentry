@@ -487,7 +487,7 @@ export default function EventsTable({
       ].join('&');
 
       const res: IssueAttachment[] = await api.requestPromise(
-        `/api/0/issues/${issueId}/attachments/?${queries}`
+        `/api/0/organizations/${organization.slug}/issues/${issueId}/attachments/?${queries}`
       );
 
       let newHasMinidumps = false;
@@ -502,7 +502,7 @@ export default function EventsTable({
       setAttachments(res);
       setHasMinidumps(newHasMinidumps);
     },
-    [api, customColumns, issueId]
+    [api, customColumns, issueId, organization.slug]
   );
 
   const totalEventsView = eventView.clone();

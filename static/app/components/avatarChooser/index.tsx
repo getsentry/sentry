@@ -220,7 +220,7 @@ function AvatarChooser({
         aria-label={t('Replace image')}
         title={t('Replace image')}
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconUpload />}
         onClick={openUpload}
       />
@@ -233,7 +233,7 @@ function AvatarChooser({
         external
         href="https://gravatar.com"
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconOpen />}
         aria-label={t('Go to gravatar.com')}
         title={t('Visit gravatar.com to upload your Gravatar to be used on Sentry.')}
@@ -415,7 +415,7 @@ const CropperHovercard = styled(Hovercard)`
 const AvatarHelp = styled('p')`
   margin-right: auto;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 50%;
 `;
 

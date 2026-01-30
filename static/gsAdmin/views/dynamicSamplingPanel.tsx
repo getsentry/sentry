@@ -442,7 +442,7 @@ const PanelHeaderRight = styled('div')`
 const BaseSampleRateWrapper = styled(Alert)`
   padding: ${space(1)};
   margin-right: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   width: max-content;
   flex-basis: 50%;
@@ -455,7 +455,7 @@ const DSRulesTable = styled(PanelTable)`
 `;
 
 const NameColumnDetail = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   > strong {
     margin-right: ${space(0.5)};
   }

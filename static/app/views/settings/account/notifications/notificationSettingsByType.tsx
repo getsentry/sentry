@@ -212,10 +212,8 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
-    const hasSeerUserBilling = organizations.some(
-      organization =>
-        organization.features?.includes('seer-user-billing') &&
-        organization.features?.includes('seer-user-billing-launch')
+    const hasSeerUserBilling = organizations.some(organization =>
+      organization.features?.includes('seer-user-billing-launch')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
@@ -283,7 +281,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
           )
         );
       } else {
-        // TODO(isabella): Once GA, remove this case
         fields.push(
           ...filterCategoryFields(
             QUOTA_FIELDS.map(field => ({
@@ -412,7 +409,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const unlinkedSlackOrgs = getUnlinkedOrgs('slack');
   let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
-  // TODO(isabella): Once GA, remove this
   if (
     notificationType === 'quota' &&
     organizations.some(org => org.features?.includes('spend-visibility-notifications'))

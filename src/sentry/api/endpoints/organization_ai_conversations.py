@@ -1,10 +1,10 @@
 import json  # noqa: S003
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from typing import Any, TypedDict
 
-from rest_framework import serializers
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,11 +14,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
@@ -36,10 +39,21 @@ def _extract_conversation_ids(results: EAPResponse) -> list[str]:
     ]
 
 
-def _compute_duration_ms(start_ts: float, finish_ts: float) -> int:
-    if finish_ts and start_ts:
-        return int((finish_ts - start_ts) * 1000)
-    return 0
+def _to_timestamp_float(ts: Any) -> float:
+    """Convert timestamp to float (seconds since epoch)."""
+    if ts is None:
+        return 0.0
+    if isinstance(ts, (int, float)):
+        return float(ts)
+    if hasattr(ts, "timestamp"):
+        return ts.timestamp()
+    if isinstance(ts, str):
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            return dt.timestamp()
+        except (ValueError, TypeError):
+            return 0.0
+    return 0.0
 
 
 def _compute_timestamp_ms(finish_ts: float) -> int:
@@ -167,7 +181,6 @@ def _build_user_response(
 
 def _build_conversation_response(
     conv_id: str,
-    duration: int,
     timestamp: int,
     errors: int,
     llm_calls: int,
@@ -183,7 +196,6 @@ def _build_conversation_response(
     return {
         "conversationId": conv_id,
         "flow": flow,
-        "duration": duration,
         "errors": errors,
         "llmCalls": llm_calls,
         "toolCalls": tool_calls,
@@ -196,42 +208,6 @@ def _build_conversation_response(
         "lastOutput": last_output,
         "user": user,
     }
-
-
-class OrganizationAIConversationsSerializer(serializers.Serializer):
-    sort = serializers.CharField(required=False, default="-timestamp")
-    query = serializers.CharField(required=False, allow_blank=True)
-    useOptimizedQuery = serializers.BooleanField(required=False, default=False)
-    samplingMode = serializers.ChoiceField(
-        choices=[
-            "NORMAL",
-            "HIGHEST_ACCURACY",
-            "HIGHEST_ACCURACY_FLEX_TIME",
-        ],
-        required=False,
-        default="NORMAL",
-    )
-
-    def validate_sort(self, value):
-        allowed_sorts = {
-            "timestamp",
-            "-timestamp",
-            "duration",
-            "-duration",
-            "errors",
-            "-errors",
-            "llmCalls",
-            "-llmCalls",
-            "toolCalls",
-            "-toolCalls",
-            "totalTokens",
-            "-totalTokens",
-            "totalCost",
-            "-totalCost",
-        }
-        if value not in allowed_sorts:
-            raise serializers.ValidationError(f"Invalid sort option: {value}")
-        return value
 
 
 @region_silo_endpoint
@@ -275,6 +251,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 max_per_page=100,
             )
 
+    @sentry_sdk.trace
     def _get_conversations(
         self,
         snuba_params,
@@ -291,6 +268,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         )
         conversation_ids = _extract_conversation_ids(conversation_ids_results)
 
+        sentry_sdk.set_tag("ai_conversations.count", len(conversation_ids))
+        sentry_sdk.set_tag("ai_conversations.use_optimized", use_optimized)
+
         if not conversation_ids:
             return []
 
@@ -299,6 +279,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         return self._get_conversations_default(snuba_params, conversation_ids)
 
+    @sentry_sdk.trace
     def _fetch_conversation_ids(
         self,
         snuba_params,
@@ -319,25 +300,29 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             sampling_mode=sampling_mode,
         )
 
+    @sentry_sdk.trace
     def _get_conversations_default(self, snuba_params, conversation_ids: list[str]) -> list[dict]:
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            future_aggregations = executor.submit(
-                self._fetch_aggregations, snuba_params, conversation_ids
-            )
-            future_enrichment = executor.submit(
-                self._fetch_enrichment_data, snuba_params, conversation_ids
-            )
-            future_first_last_io = executor.submit(
-                self._fetch_first_last_io, snuba_params, conversation_ids
-            )
+        config = SearchResolverConfig(auto_fields=True)
+        resolver = Spans.get_resolver(snuba_params, config)
 
-            aggregations = future_aggregations.result()
-            enrichment_data = future_enrichment.result()
-            first_last_io_data = future_first_last_io.result()
+        # Build queries
+        queries = [
+            self._build_aggregations_query(resolver, conversation_ids),
+            self._build_enrichment_query(resolver, conversation_ids),
+            self._build_first_last_io_query(resolver, conversation_ids),
+        ]
 
-        conversations_map = self._build_conversations_from_aggregations(aggregations)
-        self._apply_enrichment(conversations_map, enrichment_data)
-        self._apply_first_last_io(conversations_map, first_last_io_data)
+        # Execute all queries in a single bulk RPC call
+        with sentry_sdk.start_span(
+            op="ai_conversations.bulk_rpc", name="Execute bulk table queries"
+        ):
+            results = Spans.run_bulk_table_queries(queries)
+
+        # Process results
+        with sentry_sdk.start_span(op="ai_conversations.process", name="Process query results"):
+            conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
+            self._apply_enrichment(conversations_map, results["enrichment"])
+            self._apply_first_last_io(conversations_map, results["first_last_io"])
 
         return [
             conversations_map[conv_id]
@@ -345,9 +330,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             if conv_id in conversations_map
         ]
 
-    def _fetch_aggregations(self, snuba_params, conversation_ids: list[str]) -> EAPResponse:
-        return Spans.run_table_query(
-            params=snuba_params,
+    def _build_aggregations_query(
+        self, resolver: SearchResolver, conversation_ids: list[str]
+    ) -> TableQuery:
+        return TableQuery(
+            name="aggregations",
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
             selected_columns=[
                 "gen_ai.conversation.id",
@@ -356,43 +343,46 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "count_if(gen_ai.operation.type,equals,tool)",
                 "sum(gen_ai.usage.total_tokens)",
                 "sum(gen_ai.cost.total_tokens)",
-                "min(precise.start_ts)",
                 "max(precise.finish_ts)",
             ],
             orderby=None,
             offset=0,
             limit=len(conversation_ids),
             referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
-            config=SearchResolverConfig(auto_fields=True),
             sampling_mode="HIGHEST_ACCURACY",
+            resolver=resolver,
         )
 
-    def _fetch_enrichment_data(self, snuba_params, conversation_ids: list[str]) -> EAPResponse:
-        return Spans.run_table_query(
-            params=snuba_params,
+    def _build_enrichment_query(
+        self, resolver: SearchResolver, conversation_ids: list[str]
+    ) -> TableQuery:
+        return TableQuery(
+            name="enrichment",
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.operation.type",
                 "gen_ai.agent.name",
                 "trace",
-                "precise.start_ts",
+                "timestamp",
                 "user.id",
                 "user.email",
                 "user.username",
                 "user.ip",
             ],
-            orderby=["precise.start_ts"],
+            orderby=["timestamp"],
             offset=0,
             limit=10000,
             referrer=Referrer.API_AI_CONVERSATIONS_ENRICHMENT.value,
-            config=SearchResolverConfig(auto_fields=True),
             sampling_mode="HIGHEST_ACCURACY",
+            resolver=resolver,
         )
 
-    def _fetch_first_last_io(self, snuba_params, conversation_ids: list[str]) -> EAPResponse:
-        return Spans.run_table_query(
-            params=snuba_params,
+    def _build_first_last_io_query(
+        self, resolver: SearchResolver, conversation_ids: list[str]
+    ) -> TableQuery:
+        return TableQuery(
+            name="first_last_io",
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
             selected_columns=[
                 "gen_ai.conversation.id",
@@ -400,126 +390,143 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "gen_ai.output.messages",
                 "gen_ai.request.messages",
                 "gen_ai.response.text",
-                "precise.start_ts",
-                "precise.finish_ts",
+                "timestamp",
             ],
-            orderby=["precise.start_ts"],
+            orderby=["timestamp"],
             offset=0,
             limit=10000,
             referrer=Referrer.API_AI_CONVERSATIONS_FIRST_LAST_IO.value,
-            config=SearchResolverConfig(auto_fields=True),
             sampling_mode="HIGHEST_ACCURACY",
+            resolver=resolver,
         )
 
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
     ) -> dict[str, dict[str, Any]]:
-        conversations_map: dict[str, dict[str, Any]] = {}
+        with sentry_sdk.start_span(
+            op="ai_conversations.build_from_aggregations",
+            name="Build conversations from aggregations",
+        ):
+            conversations_map: dict[str, dict[str, Any]] = {}
 
-        for row in aggregations.get("data", []):
-            conv_id = row.get("gen_ai.conversation.id", "")
-            start_ts = row.get("min(precise.start_ts)", 0)
-            finish_ts = row.get("max(precise.finish_ts)", 0)
+            for row in aggregations.get("data", []):
+                conv_id = row.get("gen_ai.conversation.id", "")
+                finish_ts = row.get("max(precise.finish_ts)", 0)
 
-            conversations_map[conv_id] = _build_conversation_response(
-                conv_id=conv_id,
-                duration=_compute_duration_ms(start_ts, finish_ts),
-                timestamp=_compute_timestamp_ms(finish_ts),
-                errors=int(row.get("failure_count()") or 0),
-                llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
-                tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,tool)") or 0),
-                total_tokens=int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
-                total_cost=float(row.get("sum(gen_ai.cost.total_tokens)") or 0),
-                trace_ids=[],
-                flow=[],
-                first_input=None,
-                last_output=None,
-            )
+                conversations_map[conv_id] = _build_conversation_response(
+                    conv_id=conv_id,
+                    timestamp=_compute_timestamp_ms(finish_ts),
+                    errors=int(row.get("failure_count()") or 0),
+                    llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
+                    tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,tool)") or 0),
+                    total_tokens=int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
+                    total_cost=float(row.get("sum(gen_ai.cost.total_tokens)") or 0),
+                    trace_ids=[],
+                    flow=[],
+                    first_input=None,
+                    last_output=None,
+                )
 
-        return conversations_map
+            return conversations_map
 
     def _apply_enrichment(
         self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
     ) -> None:
-        flows_by_conversation: dict[str, list[str]] = defaultdict(list)
-        traces_by_conversation: dict[str, set[str]] = defaultdict(set)
-        # Track first user data per conversation (data is sorted by start_ts, so first occurrence wins)
-        user_by_conversation: dict[str, UserResponse] = {}
+        with sentry_sdk.start_span(
+            op="ai_conversations.apply_enrichment",
+            name="Apply enrichment data",
+        ) as span:
+            enrichment_rows = enrichment_data.get("data", [])
+            span.set_data("rows_count", len(enrichment_rows))
 
-        for row in enrichment_data.get("data", []):
-            conv_id = row.get("gen_ai.conversation.id", "")
-            if not conv_id:
-                continue
+            flows_by_conversation: dict[str, list[str]] = defaultdict(list)
+            traces_by_conversation: dict[str, set[str]] = defaultdict(set)
+            # Track first user data per conversation (data is sorted by timestamp, so first occurrence wins)
+            user_by_conversation: dict[str, UserResponse] = {}
 
-            trace_id = row.get("trace", "")
-            if trace_id:
-                traces_by_conversation[conv_id].add(trace_id)
+            for row in enrichment_rows:
+                conv_id = row.get("gen_ai.conversation.id", "")
+                if not conv_id:
+                    continue
 
-            if row.get("gen_ai.operation.type") == "invoke_agent":
-                agent_name = row.get("gen_ai.agent.name", "")
-                if agent_name:
-                    flows_by_conversation[conv_id].append(agent_name)
+                trace_id = row.get("trace", "")
+                if trace_id:
+                    traces_by_conversation[conv_id].add(trace_id)
 
-            # Capture user from the first span (earliest timestamp) for each conversation
-            if conv_id not in user_by_conversation:
-                user_data = _build_user_response(
-                    user_id=row.get("user.id"),
-                    user_email=row.get("user.email"),
-                    user_username=row.get("user.username"),
-                    user_ip=row.get("user.ip"),
-                )
-                if user_data:
-                    user_by_conversation[conv_id] = user_data
+                if row.get("gen_ai.operation.type") == "invoke_agent":
+                    agent_name = row.get("gen_ai.agent.name", "")
+                    if agent_name:
+                        flows_by_conversation[conv_id].append(agent_name)
 
-        for conv_id, conversation in conversations_map.items():
-            traces = traces_by_conversation.get(conv_id, set())
-            conversation["flow"] = flows_by_conversation.get(conv_id, [])
-            conversation["traceIds"] = list(traces)
-            conversation["traceCount"] = len(traces)
-            conversation["user"] = user_by_conversation.get(conv_id)
+                # Capture user from the first span (earliest timestamp) for each conversation
+                if conv_id not in user_by_conversation:
+                    user_data = _build_user_response(
+                        user_id=row.get("user.id"),
+                        user_email=row.get("user.email"),
+                        user_username=row.get("user.username"),
+                        user_ip=row.get("user.ip"),
+                    )
+                    if user_data:
+                        user_by_conversation[conv_id] = user_data
+
+            for conv_id, conversation in conversations_map.items():
+                traces = traces_by_conversation.get(conv_id, set())
+                conversation["flow"] = flows_by_conversation.get(conv_id, [])
+                conversation["traceIds"] = list(traces)
+                conversation["traceCount"] = len(traces)
+                conversation["user"] = user_by_conversation.get(conv_id)
 
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
     ) -> None:
-        first_input_by_conv: dict[str, str] = {}
-        last_output_by_conv: dict[str, tuple[float, str]] = {}
+        with sentry_sdk.start_span(
+            op="ai_conversations.apply_first_last_io",
+            name="Apply first/last IO data",
+        ) as span:
+            io_rows = first_last_io_data.get("data", [])
+            span.set_data("rows_count", len(io_rows))
 
-        for row in first_last_io_data.get("data", []):
-            conv_id = row.get("gen_ai.conversation.id", "")
-            if not conv_id:
-                continue
+            first_input_by_conv: dict[str, str] = {}
+            last_output_by_conv: dict[str, tuple[float, str]] = {}
 
-            finish_ts = row.get("precise.finish_ts", 0)
+            for row in io_rows:
+                conv_id = row.get("gen_ai.conversation.id", "")
+                if not conv_id:
+                    continue
 
-            # Use the new helper functions for priority-based extraction
-            if conv_id not in first_input_by_conv:
-                first_user_content = _get_first_input_message(row)
-                if first_user_content:
-                    first_input_by_conv[conv_id] = first_user_content
+                ts = _to_timestamp_float(row.get("timestamp"))
 
-            output_content = _get_last_output(row)
-            if output_content:
-                current = last_output_by_conv.get(conv_id)
-                if current is None or finish_ts > current[0]:
-                    last_output_by_conv[conv_id] = (finish_ts, output_content)
+                # Use the new helper functions for priority-based extraction
+                if conv_id not in first_input_by_conv:
+                    first_user_content = _get_first_input_message(row)
+                    if first_user_content:
+                        first_input_by_conv[conv_id] = first_user_content
 
-        for conv_id, conversation in conversations_map.items():
-            conversation["firstInput"] = first_input_by_conv.get(conv_id)
-            last_tuple = last_output_by_conv.get(conv_id)
-            conversation["lastOutput"] = last_tuple[1] if last_tuple else None
+                output_content = _get_last_output(row)
+                if output_content:
+                    current = last_output_by_conv.get(conv_id)
+                    if current is None or ts > current[0]:
+                        last_output_by_conv[conv_id] = (ts, output_content)
 
+            for conv_id, conversation in conversations_map.items():
+                conversation["firstInput"] = first_input_by_conv.get(conv_id)
+                last_tuple = last_output_by_conv.get(conv_id)
+                conversation["lastOutput"] = last_tuple[1] if last_tuple else None
+
+    @sentry_sdk.trace
     def _get_conversations_optimized(self, snuba_params, conversation_ids: list[str]) -> list[dict]:
         all_spans = self._fetch_all_spans(snuba_params, conversation_ids)
+        sentry_sdk.set_tag("ai_conversations.spans_fetched", len(all_spans.get("data", [])))
         return self._aggregate_spans(conversation_ids, all_spans)
 
+    @sentry_sdk.trace
     def _fetch_all_spans(self, snuba_params, conversation_ids: list[str]) -> EAPResponse:
         return Spans.run_table_query(
             params=snuba_params,
             query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
             selected_columns=[
                 "gen_ai.conversation.id",
-                "precise.start_ts",
-                "precise.finish_ts",
+                "timestamp",
                 "span.status",
                 "gen_ai.operation.type",
                 "gen_ai.usage.total_tokens",
@@ -535,7 +542,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "user.username",
                 "user.ip",
             ],
-            orderby=["precise.start_ts"],
+            orderby=["timestamp"],
             offset=0,
             limit=10000,
             referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
@@ -543,16 +550,17 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             sampling_mode="HIGHEST_ACCURACY",
         )
 
+    @sentry_sdk.trace
     def _aggregate_spans(self, conversation_ids: list[str], all_spans: EAPResponse) -> list[dict]:
         accumulators = self._init_accumulators(conversation_ids)
-        self._process_spans(accumulators, all_spans)
+        with sentry_sdk.start_span(op="ai_conversations.process_spans", name="Process spans"):
+            self._process_spans(accumulators, all_spans)
         return self._build_results_from_accumulators(conversation_ids, accumulators)
 
     def _init_accumulators(self, conversation_ids: list[str]) -> dict[str, dict[str, Any]]:
         return {
             conv_id: {
-                "min_start_ts": float("inf"),
-                "max_finish_ts": 0.0,
+                "max_ts": 0.0,
                 "failure_count": 0,
                 "ai_client_count": 0,
                 "tool_count": 0,
@@ -561,7 +569,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "traces": set(),
                 "flow": [],
                 "first_input": None,
-                "first_input_ts": float("inf"),
                 "last_output": None,
                 "last_output_ts": 0.0,
                 "user": None,
@@ -586,13 +593,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             self._update_user(acc, row)
 
     def _update_timestamps(self, acc: dict[str, Any], row: dict[str, Any]) -> None:
-        start_ts = row.get("precise.start_ts") or 0
-        finish_ts = row.get("precise.finish_ts") or 0
+        ts = _to_timestamp_float(row.get("timestamp"))
 
-        if start_ts and start_ts < acc["min_start_ts"]:
-            acc["min_start_ts"] = start_ts
-        if finish_ts and finish_ts > acc["max_finish_ts"]:
-            acc["max_finish_ts"] = finish_ts
+        if ts and ts > acc["max_ts"]:
+            acc["max_ts"] = ts
 
     def _update_counts(self, acc: dict[str, Any], row: dict[str, Any]) -> None:
         status = row.get("span.status", "")
@@ -629,23 +633,21 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         if op_type != "ai_client":
             return
 
-        start_ts = row.get("precise.start_ts") or 0
-        finish_ts = row.get("precise.finish_ts") or 0
+        ts = _to_timestamp_float(row.get("timestamp"))
 
-        # Use the new helper functions for priority-based extraction
-        if start_ts and start_ts < acc["first_input_ts"]:
+        # Data is sorted by timestamp, so first occurrence wins for first_input
+        if acc["first_input"] is None:
             first_user = _get_first_input_message(row)
             if first_user:
                 acc["first_input"] = first_user
-                acc["first_input_ts"] = start_ts
 
         output_content = _get_last_output(row)
-        if finish_ts and finish_ts > acc["last_output_ts"] and output_content:
+        if ts and ts > acc["last_output_ts"] and output_content:
             acc["last_output"] = output_content
-            acc["last_output_ts"] = finish_ts
+            acc["last_output_ts"] = ts
 
     def _update_user(self, acc: dict[str, Any], row: dict[str, Any]) -> None:
-        # Capture user from the first span (data is sorted by start_ts)
+        # Capture user from the first span (data is sorted by timestamp)
         if acc["user"] is not None:
             return
 
@@ -668,14 +670,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 continue
 
             acc = accumulators[conv_id]
-            min_ts = acc["min_start_ts"] if acc["min_start_ts"] != float("inf") else 0
-            max_ts = acc["max_finish_ts"]
 
             result.append(
                 _build_conversation_response(
                     conv_id=conv_id,
-                    duration=_compute_duration_ms(min_ts, max_ts),
-                    timestamp=_compute_timestamp_ms(max_ts),
+                    timestamp=_compute_timestamp_ms(acc["max_ts"]),
                     errors=acc["failure_count"],
                     llm_calls=acc["ai_client_count"],
                     tool_calls=acc["tool_count"],

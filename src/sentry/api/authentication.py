@@ -327,7 +327,9 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         except ApiApplication.DoesNotExist:
             raise invalid_pair_error
 
-        if not constant_time_compare(application.client_secret, client_secret):
+        if application.client_secret is None or not constant_time_compare(
+            application.client_secret, client_secret
+        ):
             raise invalid_pair_error
 
         try:
@@ -355,6 +357,9 @@ def get_payload_from_client_secret_jwt(
         raise AuthenticationFailed("Application not found")
 
     client_secret = application.client_secret
+    if client_secret is None:
+        raise AuthenticationFailed("Application does not have a client secret")
+
     try:
         encoded_jwt = tokens[1]
     except IndexError:

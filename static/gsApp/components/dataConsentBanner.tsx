@@ -84,7 +84,7 @@ function DataConsentBanner({
         analyticsEventName="Data Consent Banner: Dismissed"
         analyticsParams={{source}}
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}
@@ -118,7 +118,7 @@ const DataConsentBannerWrapper = styled('div')`
 `;
 
 const DataConsentBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
   font-weight: 600;
 `;

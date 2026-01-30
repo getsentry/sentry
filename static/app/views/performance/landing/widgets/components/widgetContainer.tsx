@@ -293,7 +293,7 @@ function WidgetInteractiveTitle({
       value={chartSetting}
       onChange={handleChange}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
       )}
       offset={4}
     />
@@ -303,13 +303,13 @@ function WidgetInteractiveTitle({
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menus */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 
   button {
     padding: ${space(0.5)} ${space(1)};
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
 `;
 
@@ -355,7 +355,7 @@ function WidgetContainerActions({
         <OverlayTrigger.IconButton
           {...triggerProps}
           size="xs"
-          borderless
+          priority="transparent"
           aria-label={t('More')}
           icon={<IconEllipsis />}
         />

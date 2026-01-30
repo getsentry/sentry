@@ -4,20 +4,23 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
-import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {
+  useEventOpenPeriod,
+  useOpenPeriods,
+} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {GraphAlert} from 'sentry/views/issueDetails/streamline/eventGraph';
 
 interface MetricIssueChartProps {
+  event: Event | undefined;
   group: Group;
-  project: Project;
 }
 
 const CHART_HEIGHT = 180;
@@ -35,7 +38,7 @@ function getDetectorErrorMessage(detectorError: RequestError): string {
   return t('The metric monitor could not be loaded.');
 }
 
-export function MetricIssueChart({group, project: _project}: MetricIssueChartProps) {
+export function MetricIssueChart({group, event}: MetricIssueChartProps) {
   const {detectorDetails} = useIssueDetails();
   const detectorId = detectorDetails?.detectorId;
 
@@ -62,17 +65,29 @@ export function MetricIssueChart({group, project: _project}: MetricIssueChartPro
     return <MetricIssueChartPlaceholder />;
   }
 
-  return <MetricIssueChartContent detector={detector} openPeriods={openPeriods} />;
+  return (
+    <MetricIssueChartContent
+      detector={detector}
+      openPeriods={openPeriods}
+      group={group}
+      event={event}
+    />
+  );
 }
 
 function MetricIssueChartContent({
   detector,
   openPeriods,
+  group,
+  event,
 }: {
   detector: MetricDetector;
+  event: Event | undefined;
+  group: Group;
   openPeriods: GroupOpenPeriod[];
 }) {
   const {selection} = usePageFilters();
+  const {openPeriod} = useEventOpenPeriod({groupId: group.id, eventId: event?.id});
 
   const {
     chartProps,
@@ -81,6 +96,7 @@ function MetricIssueChartContent({
   } = useMetricDetectorChart({
     detector,
     openPeriods,
+    highlightedOpenPeriodId: openPeriod?.id,
     height: CHART_HEIGHT,
     ...normalizeDateTimeParams(selection.datetime),
   });

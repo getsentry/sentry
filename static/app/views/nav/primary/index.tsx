@@ -16,7 +16,6 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -34,7 +33,6 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-import {PREVENT_AI_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
 
 function SidebarBody({
   children,
@@ -70,13 +68,10 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
 }
 
 function showPreventNav(organization: Organization) {
-  if (showNewSeer(organization)) {
-    // If you've got the new seer, then we won't show code-review sub-nav items.
-    // We will show the main prevent nav only if you have test analytics.
-    return organization.features.includes('prevent-test-analytics');
-  }
-  // If you've got the old seer, then we will show the sub-nav items, maybe the test items too
-  return true;
+  // only people with test analytics can see the prevent nav
+  // Legacy Seer and New Seer orgs are getting a Seer Config Reminder icon, which
+  // means that the only Prevent sub-nav item remaining is the Tests item.
+  return organization.features.includes('prevent-test-analytics');
 }
 
 export function PrimaryNavigationItems() {
@@ -160,8 +155,8 @@ export function PrimaryNavigationItems() {
           {showPreventNav(organization) ? (
             <Container position="relative" height="100%">
               <SidebarLink
-                to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-                activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                to={`/${prefix}/prevent/tests/`}
+                activeTo={`/${prefix}/prevent/`}
                 analyticsKey="prevent"
                 group={PrimaryNavGroup.PREVENT}
                 {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
@@ -207,6 +202,9 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
+        <ErrorBoundary customComponent={null}>
+          <Hook name="sidebar:seer-config-reminder" organization={organization} />
+        </ErrorBoundary>
         <PrimaryNavigationHelp />
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationWhatsNew />
@@ -235,7 +233,7 @@ const BetaBadge = styled(FeatureBadge)`
   pointer-events: none;
   top: -2px;
   right: 2px;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};
   height: 16px;
 `;

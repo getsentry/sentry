@@ -252,7 +252,7 @@ const AnimatedContent = styled(motion.div)`
 
 const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     background-color: transparent;
     display: inline-block;
   }
@@ -267,7 +267,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   padding-right: 0;
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   gap: ${space(1)};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
   text-decoration: ${p =>

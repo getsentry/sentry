@@ -41,7 +41,7 @@ export function FrameRegisterValue({meta, value}: Props) {
       <div>
         <ToggleButton
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconSliders size="xs" />}
           onClick={toggleFormat}
           title={formatLabel}
@@ -60,7 +60,7 @@ const InlinePre = styled('pre')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   text-align: left;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ToggleButton = styled(Button)`
