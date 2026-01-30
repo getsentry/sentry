@@ -67,7 +67,26 @@ class TwoFactorAuthView(BaseView):
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
             interface.authenticator.mark_used()
+            logger.info(
+                "user.auth.2fa-success",
+                extra={
+                    "ip_address": request.META["REMOTE_ADDR"],
+                    "user_id": user.id,
+                    "username": user.username,
+                    "interface_type": interface.type,
+                    "interface_id": interface.interface_id,
+                    "is_backup_interface": interface.is_backup_interface,
+                },
+            )
             if not interface.is_backup_interface:
+        logger.info(
+            "user.auth.2fa-failed",
+            extra={
+                "ip_address": request.META["REMOTE_ADDR"],
+                "user_id": user.id,
+                "username": user.username,
+            },
+        )
                 rv.set_cookie(
                     COOKIE_NAME,
                     str(interface.type),
@@ -164,6 +183,14 @@ class TwoFactorAuthView(BaseView):
             type="user.mfa-too-many-attempts",
             context=context,
         )
+            logger.info(
+                "user.auth.2fa-rate-limited",
+                extra={
+                    "ip_address": request.META["REMOTE_ADDR"],
+                    "user_id": user.id,
+                    "username": user.username,
+                },
+            )
         msg.send_async([email])
 
     def handle(self, request: HttpRequest) -> HttpResponse:

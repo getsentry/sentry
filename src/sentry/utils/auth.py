@@ -322,12 +322,32 @@ def login(
         if after_2fa is not None:
             request.session["_after_2fa"] = after_2fa
         request.session.modified = True
+        logger.info(
+            "user.auth.2fa-required",
+            extra={
+                "ip_address": request.META["REMOTE_ADDR"],
+                "username": user.username,
+                "user_id": user.id,
+                "organization_id": organization_id,
+                "source": source,
+            },
+        )
         return False
 
     # TODO(dcramer): this needs to be bound based on MFA options
     if passed_2fa:
         request.session[MFA_SESSION_KEY] = str(user.id)
         request.session.modified = True
+        logger.info(
+            "user.auth.2fa-passed",
+            extra={
+                "ip_address": request.META["REMOTE_ADDR"],
+                "username": user.username,
+                "user_id": user.id,
+                "organization_id": organization_id,
+                "source": source,
+            },
+        )
 
     mfa_state = request.session.pop("_pending_2fa", ())
     if organization_id is None and len(mfa_state) == 3:
