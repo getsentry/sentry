@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
-import {parseAsArrayOf, parseAsString, useQueryState, useQueryStates} from 'nuqs';
+import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,18 +18,18 @@ import {SpanFields} from 'sentry/views/insights/types';
 const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
 
-export function useAgentFilters(): string[] {
-  const [agentFilters] = useQueryState(AGENT_URL_PARAM, parseAsArrayOf(parseAsString));
-  return agentFilters ?? [];
+interface AgentSelectorProps {
+  referrer: string;
+  storageKeyPrefix: string;
 }
 
-export function AgentSelector() {
+export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
 
   // Project-scoped storage key - automatically resets when projects change
   const projectKey = [...pageFilters.selection.projects].sort().join(',');
-  const storageKey = `conversations:agent-filter:${organization.slug}:${projectKey}`;
+  const storageKey = `${storageKeyPrefix}:${organization.slug}:${projectKey}`;
 
   const [storedAgents, setStoredAgents] = useLocalStorageState<string[]>(storageKey, []);
 
@@ -100,7 +100,7 @@ export function AgentSelector() {
       sorts: [{field: 'count()', kind: 'desc'}],
       fields: [SpanFields.GEN_AI_AGENT_NAME, 'count()'],
     },
-    'api.insights.conversations.get-agent-names'
+    referrer
   );
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
