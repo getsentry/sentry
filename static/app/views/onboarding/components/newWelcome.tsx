@@ -1,4 +1,3 @@
-import {useCallback, useEffect} from 'react';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
@@ -7,7 +6,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {
   IconBot,
   IconBusiness,
@@ -20,9 +18,7 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
 import {NewWelcomeProductCard} from 'sentry/views/onboarding/components/newWelcomeProductCard';
 import {NewWelcomeSeerExtra} from 'sentry/views/onboarding/components/newWelcomeSeerExtra';
@@ -30,6 +26,8 @@ import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeS
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
+import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
+import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
 
 const MotionContainer = motion.create(Container);
 const MotionFlex = motion.create(Flex);
@@ -119,30 +117,9 @@ const PRODUCT_OPTIONS: ProductOption[] = [
 ];
 
 export function NewWelcomeUI(props: StepProps) {
-  const organization = useOrganization();
-  const onboardingContext = useOnboardingContext();
+  useWelcomeAnalyticsEffect();
 
-  const source = 'targeted_onboarding';
-
-  useEffect(() => {
-    trackAnalytics('growth.onboarding_start_onboarding', {
-      organization,
-      source,
-    });
-
-    if (onboardingContext.selectedPlatform) {
-      onboardingContext.setSelectedPlatform(undefined);
-    }
-  }, [organization, onboardingContext]);
-
-  const handleComplete = useCallback(() => {
-    trackAnalytics('growth.onboarding_clicked_instrument_app', {
-      organization,
-      source,
-    });
-
-    props.onComplete();
-  }, [organization, source, props]);
+  const handleComplete = useWelcomeHandleComplete(props.onComplete);
 
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
