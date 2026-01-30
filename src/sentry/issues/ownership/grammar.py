@@ -196,9 +196,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archoring-repositories/creating-a-repository-on-github/about-code-owners
-                match_frame_value_func=lambda val, pattern: bool(
-                    codeowners_match(val, pattern)
-                ),
+                match_frame_value_func=lambda val, pattern: bool(codeowners_match(val, pattern)),
                 match_frame_func=lambda frame: frame.get("in_app") is not False,
             )
         return False
