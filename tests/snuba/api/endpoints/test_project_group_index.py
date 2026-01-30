@@ -1431,7 +1431,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # Should fail because user is not a member of other_team
         assert response.status_code == 400, response.content
-        assert "do not have permission" in str(response.data) or "permission" in str(response.data)
+        assert "only assign teams you are a member of" in str(response.data)
         assert not GroupAssignee.objects.filter(group=group, team=other_team).exists()
 
     def test_assign_team_not_member_of_with_team_admin_scope(self) -> None:
@@ -1530,7 +1530,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.client.put(url, data={"assignedTo": f"team:{third_team.id}"})
 
         assert response.status_code == 400, response.content
-        assert "do not have permission" in str(response.data) or "permission" in str(response.data)
+        assert "only assign teams you are a member of" in str(response.data)
         # Issue should still be assigned to other_team
         assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
         assert not GroupAssignee.objects.filter(group=group, team=third_team).exists()
@@ -1570,7 +1570,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # Should fail - can't piggyback unassigned group on assigned group's permission
         assert response.status_code == 400, response.content
-        assert "do not have permission" in str(response.data) or "permission" in str(response.data)
+        assert "only assign teams you are a member of" in str(response.data)
         assert GroupAssignee.objects.filter(group=group1, team=member_team).exists()
         assert not GroupAssignee.objects.filter(group=group2).exists()
 

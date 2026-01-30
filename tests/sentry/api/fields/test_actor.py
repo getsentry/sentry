@@ -112,7 +112,7 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]
@@ -143,7 +143,7 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]
@@ -164,7 +164,7 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]
@@ -213,7 +213,7 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]
@@ -249,7 +249,7 @@ class OwnerActorFieldTest(TestCase):
         assert serializer.errors == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]

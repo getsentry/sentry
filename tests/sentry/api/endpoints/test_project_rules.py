@@ -567,7 +567,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert "owner" in response.data
-        assert str(response.data["owner"][0]) == "You do not have permission to assign this owner"
+        assert str(response.data["owner"][0]) == "You can only assign teams you are a member of"
 
     def test_team_owner_not_member_with_team_admin_scope(self) -> None:
         """Test that users with team:admin scope can assign a team they're not a member of as the owner"""

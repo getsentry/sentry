@@ -1929,7 +1929,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         data["owner"] = f"team:{other_team.id}"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert resp.data == {"owner": ["You do not have permission to assign this owner"]}
+        assert resp.data == {"owner": ["You can only assign teams you are a member of"]}
 
     def test_owner_team_member_allowed(self) -> None:
         """

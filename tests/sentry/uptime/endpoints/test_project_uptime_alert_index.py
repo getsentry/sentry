@@ -379,7 +379,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert resp.data == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]

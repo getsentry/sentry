@@ -80,7 +80,7 @@ class OwnerActorField(ActorField):
 
         # Fail closed
         if not user:
-            raise serializers.ValidationError("You do not have permission to assign this owner")
+            raise serializers.ValidationError("You can only assign teams you are a member of")
 
         # Check if user is a member of the target team
         user_is_target_team_member = OrganizationMemberTeam.objects.filter(
@@ -103,4 +103,4 @@ class OwnerActorField(ActorField):
             if user_is_current_team_member:
                 return
 
-        raise serializers.ValidationError("You do not have permission to assign this owner")
+        raise serializers.ValidationError("You can only assign teams you are a member of")

@@ -1286,7 +1286,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **data,
             status_code=400,
         )
-        assert response.data == {"owner": ["You do not have permission to assign this owner"]}
+        assert response.data == {"owner": ["You can only assign teams you are a member of"]}
 
     def test_owner_team_member_allowed(self) -> None:
         """

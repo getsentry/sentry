@@ -1074,7 +1074,7 @@ def validate_bulk_reassignment(
     user = user or getattr(request, "user", None)
     if not user or not getattr(user, "is_authenticated", False):
         raise serializers.ValidationError(
-            {"assignedTo": "You do not have permission to assign this owner"}
+            {"assignedTo": "You can only assign teams you are a member of"}
         )
 
     user_is_target_team_member = OrganizationMemberTeam.objects.filter(
@@ -1100,7 +1100,7 @@ def validate_bulk_reassignment(
         # Some groups are either unassigned or assigned to users (not teams)
         # User cannot reassign these to a team they're not a member of
         raise serializers.ValidationError(
-            {"assignedTo": "You do not have permission to assign this owner"}
+            {"assignedTo": "You can only assign teams you are a member of"}
         )
 
     current_team_ids = {
@@ -1118,7 +1118,7 @@ def validate_bulk_reassignment(
     # If any group is assigned to a team the user is not a member of, deny
     if current_team_ids - user_team_memberships:
         raise serializers.ValidationError(
-            {"assignedTo": "You do not have permission to assign this owner"}
+            {"assignedTo": "You can only assign teams you are a member of"}
         )
 
 
