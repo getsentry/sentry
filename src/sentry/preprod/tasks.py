@@ -159,8 +159,6 @@ def assemble_preprod_artifact(
             },
         )
 
-        requested_features.append(PreprodFeature.PRE_PROCESS)
-
         if run_size:
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
             PreprodArtifactSizeMetrics.objects.get_or_create(
