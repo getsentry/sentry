@@ -155,6 +155,14 @@ export default function SeerAutomationSettings() {
                   help: t('Seer will provide extra context in supported alerts.'),
                   type: 'boolean',
                 },
+                {
+                  name: 'enableSeerCoding',
+                  label: t('Enable Code Generation'),
+                  help: t(
+                    'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. This does not impact chat sessions where the agent will always be able to emit code snippets and examples while responding to your input. Read more: docs & legal.'
+                  ),
+                  type: 'boolean',
+                },
               ],
             },
           ]}
