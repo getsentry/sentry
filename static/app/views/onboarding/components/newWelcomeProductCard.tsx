@@ -22,9 +22,9 @@ interface NewWelcomeProductCardProps {
   product: ProductOption;
 }
 
-const CardContainer = styled(Container)<{$seer?: boolean}>`
+const CardContainer = styled(Container)<{seer?: boolean}>`
   ${p =>
-    p.$seer &&
+    p.seer &&
     `
     @media (min-width: ${p.theme.breakpoints.md}) {
       padding-right: 36%;
@@ -48,7 +48,7 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
       background={consideredSeerCard ? 'secondary' : 'primary'}
       overflow={consideredSeerCard ? 'hidden' : undefined}
       position={consideredSeerCard ? 'relative' : undefined}
-      $seer={consideredSeerCard}
+      seer={consideredSeerCard}
     >
       <Grid
         columns="min-content 1fr"
