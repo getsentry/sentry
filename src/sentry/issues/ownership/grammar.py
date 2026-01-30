@@ -181,14 +181,14 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         """
         if self.type == URL:
             # URL matching doesn't have frame context, return True for backwards compatibility
-            return True if self.test_url(data) else False
+            return self.test_url(data)
         elif self.type == PATH:
             return self.test_frames(*munged_data)
         elif self.type == MODULE:
             return self.test_frames(find_stack_frames(data), ["module"])
         elif self.type.startswith("tags."):
             # Tag matching doesn't have frame context, return True for backwards compatibility
-            return True if self.test_tag(data) else False
+            return self.test_tag(data)
         elif self.type == CODEOWNERS:
             return self.test_frames(
                 *munged_data,
@@ -196,7 +196,9 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archoring-repositories/creating-a-repository-on-github/about-code-owners
-                match_frame_value_func=lambda val, pattern: bool(codeowners_match(val, pattern)),
+                match_frame_value_func=lambda val, pattern: bool(
+                    codeowners_match(val, pattern)
+                ),
                 match_frame_func=lambda frame: frame.get("in_app") is not False,
             )
         return False
