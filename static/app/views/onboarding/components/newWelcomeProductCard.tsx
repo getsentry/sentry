@@ -8,15 +8,18 @@ import {Text} from '@sentry/scraps/text';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId} from 'sentry/views/onboarding/types';
 
-interface ProductCardProps {
+export interface ProductOption {
   description: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   id: OnboardingWelcomeProductId;
   title: string;
   badge?: ReactNode;
   extra?: ReactNode;
   footer?: ReactNode;
-  span?: number;
+}
+
+interface NewWelcomeProductCardProps {
+  product: ProductOption;
 }
 
 const CardContainer = styled(Container)<{$seer?: boolean}>`
@@ -32,15 +35,8 @@ const CardContainer = styled(Container)<{$seer?: boolean}>`
 
 const MotionCardContainer = motion.create(CardContainer);
 
-export function NewWelcomeProductCard({
-  icon,
-  title,
-  description,
-  badge,
-  footer,
-  extra,
-  id,
-}: ProductCardProps) {
+export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
+  const {icon, title, description, badge, footer, extra, id} = product;
   const consideredSeerCard = id === OnboardingWelcomeProductId.SEER;
 
   return (

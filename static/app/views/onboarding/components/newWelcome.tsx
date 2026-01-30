@@ -19,7 +19,10 @@ import {
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
-import {NewWelcomeProductCard} from 'sentry/views/onboarding/components/newWelcomeProductCard';
+import {
+  NewWelcomeProductCard,
+  type ProductOption,
+} from 'sentry/views/onboarding/components/newWelcomeProductCard';
 import {NewWelcomeSeerExtra} from 'sentry/views/onboarding/components/newWelcomeSeerExtra';
 import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeSeerFlag';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
@@ -33,18 +36,6 @@ const MotionContainer = motion.create(Container);
 const MotionFlex = motion.create(Flex);
 const MotionStack = motion.create(Stack);
 const MotionGrid = motion.create(Grid);
-
-// Parent container animation - orchestrates staggered children
-
-interface ProductOption {
-  description: string;
-  icon: React.ReactNode;
-  id: OnboardingWelcomeProductId;
-  title: string;
-  badge?: React.ReactNode;
-  extra?: React.ReactNode;
-  footer?: React.ReactNode;
-}
 
 const STAGGER_CONTAINER: MotionProps = {
   initial: 'initial',
@@ -188,16 +179,7 @@ export function NewWelcomeUI(props: StepProps) {
             variants={STAGGER_CHILDREN}
           >
             {PRODUCT_OPTIONS.map(product => (
-              <NewWelcomeProductCard
-                icon={product.icon}
-                title={product.title}
-                description={product.description}
-                id={product.id}
-                key={product.id}
-                badge={product.badge}
-                footer={product.footer}
-                extra={product.extra}
-              />
+              <NewWelcomeProductCard key={product.id} product={product} />
             ))}
           </MotionGrid>
 

@@ -46,7 +46,7 @@ export const onboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
-    Component: WelcomeStep,
+    Component: WelcomeVariable,
     cornerVariant: 'top-right',
   },
   {
@@ -65,7 +65,7 @@ export const onboardingSteps: StepDescriptor[] = [
   },
 ];
 
-function WelcomeStep(props: StepProps) {
+function WelcomeVariable(props: StepProps) {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
 
   if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
@@ -73,13 +73,13 @@ function WelcomeStep(props: StepProps) {
   return <TargetedOnboardingWelcome {...props} />;
 }
 
-function ContainerVariable(
-  props: PropsWithChildren<{
-    hasFooter: boolean;
-    hasNewWelcomeUI: boolean;
-    id: OnboardingStepId;
-  }>
-) {
+interface ContainerVariableProps {
+  hasFooter: boolean;
+  hasNewWelcomeUI: boolean;
+  id: OnboardingStepId;
+}
+
+function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
   const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
   const Component = newWelcomeUIStep ? ContainerNewWelcomeUI : Container;
 
@@ -90,9 +90,12 @@ function ContainerVariable(
   );
 }
 
-function OnboardingStepVariable(
-  props: PropsWithChildren<{hasNewWelcomeUI: boolean; id: OnboardingStepId}>
-) {
+interface OnboardingStepVariableProps {
+  hasNewWelcomeUI: boolean;
+  id: OnboardingStepId;
+}
+
+function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
   const Component =
     props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME
       ? OnboardingStepNewUi
