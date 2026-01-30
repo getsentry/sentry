@@ -331,7 +331,7 @@ const storeConfig: GroupStoreDefinition = {
     } else if (typeof assignedToError === 'string') {
       showAlert(assignedToError, 'error');
     } else if (error.responseJSON?.detail) {
-showAlert(error.responseJSON?.detail, 'error');
+      showAlert(error.responseJSON?.detail, 'error');
     } else {
       showAlert(t('Unable to change assignee. Please try again.'), 'error');
     }
