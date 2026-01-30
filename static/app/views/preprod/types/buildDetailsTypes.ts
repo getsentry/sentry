@@ -102,6 +102,13 @@ export function isSizeInfoCompleted(
   return sizeInfo?.state === BuildDetailsSizeAnalysisState.COMPLETED;
 }
 
+export function isSizeInfoRetryable(sizeInfo: BuildDetailsSizeInfo | undefined): boolean {
+  return (
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED ||
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.NOT_RAN
+  );
+}
+
 export function isSizeInfoPendingOrProcessing(
   sizeInfo: BuildDetailsSizeInfo | undefined
 ): boolean {

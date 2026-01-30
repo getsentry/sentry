@@ -18,6 +18,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.uptime.grouptype import (
     UptimeDetectorHandler,
     UptimeDomainCheckFailure,
@@ -212,6 +213,29 @@ class TestUptimeHandler(UptimeTestCase):
         assert evaluation is not None
         assert isinstance(evaluation.result, IssueOccurrence)
         assert evaluation.result.evidence_data["response_capture_id"] == capture.id
+
+    def test_assertion_failure_evidence_data(self) -> None:
+        detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)
+        uptime_subscription = get_uptime_subscription(detector)
+
+        now = datetime.now()
+
+        self.handle_result(
+            detector,
+            uptime_subscription,
+            self.create_uptime_result(scheduled_check_time=now - timedelta(minutes=5)),
+        )
+
+        evaluation = self.handle_result(
+            detector,
+            uptime_subscription,
+            self.create_uptime_result(scheduled_check_time=now - timedelta(minutes=4)),
+        )
+        assert evaluation is not None
+        assert isinstance(evaluation.result, IssueOccurrence)
+        assert (
+            evaluation.result.evidence_data["assertion_failure_data"] == MOCK_ASSERTION_FAILURE_DATA
+        )
 
     def test_occurrence_excludes_old_response_capture(self) -> None:
         detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)
