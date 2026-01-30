@@ -10,6 +10,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -23,7 +24,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_eyes_reaction
+from ..utils import _get_target_commit_sha, delete_existing_reactions_and_adds_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,7 @@ def handle_pull_request_event(
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_adds_reaction(
             github_event=github_event,
             github_event_action=action_value,
             integration=integration,
@@ -155,6 +156,8 @@ def handle_pull_request_event(
             repo=repo,
             pr_number=str(pr_number),
             comment_id=None,
+            reactions_to_delete=[GitHubReaction.HOORAY],
+            reaction_to_add=GitHubReaction.EYES,
             extra=extra,
         )
 
