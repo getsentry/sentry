@@ -31,14 +31,14 @@ import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetL
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
-import type {CategoricalBarChartPlottable} from './plottables/bars';
+import type {CategoricalPlottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 export interface BarChartWidgetVisualizationProps {
   /**
    * An array of `BarPlottable` objects to render on the chart.
    */
-  plottables: CategoricalBarChartPlottable[];
+  plottables: CategoricalPlottable[];
   /**
    * Reference to the chart instance.
    */
@@ -144,7 +144,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
 
   // Track series index to plottable mapping for tooltip formatting
   let seriesIndex = 0;
-  const seriesIndexToPlottableMapRanges: Array<Range<CategoricalBarChartPlottable>> = [];
+  const seriesIndexToPlottableMapRanges: Array<Range<CategoricalPlottable>> = [];
 
   // Track color assignment
   let seriesColorIndex = 0;
@@ -172,7 +172,7 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
     return seriesOfPlottable;
   });
 
-  const seriesIndexToPlottableRangeMap = new RangeMap<CategoricalBarChartPlottable>(
+  const seriesIndexToPlottableRangeMap = new RangeMap<CategoricalPlottable>(
     seriesIndexToPlottableMapRanges
   );
 

@@ -7,9 +7,10 @@ import {Bars} from 'sentry/views/dashboards/widgets/barChartWidgetVisualization/
 
 describe('Bars', () => {
   describe('Properties', () => {
-    it('returns correct name from alias', () => {
+    it('returns canonical name even when alias is provided', () => {
       const bar = new Bars(sampleCountCategoricalData, {alias: 'Custom Name'});
-      expect(bar.name).toBe('Custom Name');
+      // name is always the canonical identifier for ECharts, not the alias
+      expect(bar.name).toBe('count()');
     });
 
     it('returns valueAxis as name when no alias', () => {
