@@ -301,6 +301,7 @@ class SeerExplorerClient:
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        metadata: dict[str, Any] | None = None,
         conduit_channel_id: str | None = None,
         conduit_url: str | None = None,
     ) -> int:
@@ -314,6 +315,7 @@ class SeerExplorerClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key for a new artifact to generate in this step
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
+            metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
             conduit_channel_id: Optional Conduit channel ID for streaming
             conduit_url: Optional Conduit URL for streaming
 
@@ -343,6 +345,9 @@ class SeerExplorerClient:
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        if metadata:
+            payload["metadata"] = metadata
 
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:
