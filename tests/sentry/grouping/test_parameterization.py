@@ -1,17 +1,16 @@
 import pytest
 
 from sentry.grouping.parameterization import Parameterizer
-from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
 @pytest.fixture
 def parameterizer() -> Parameterizer:
-    return Parameterizer(regex_pattern_keys=REGEX_PATTERN_KEYS, experimental=False)
+    return Parameterizer(experimental=False)
 
 
 @pytest.fixture
 def experimental_parameterizer() -> Parameterizer:
-    return Parameterizer(regex_pattern_keys=REGEX_PATTERN_KEYS, experimental=True)
+    return Parameterizer(experimental=True)
 
 
 standard_cases = [
