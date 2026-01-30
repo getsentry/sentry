@@ -104,7 +104,8 @@ const NativeHiddenCheckbox = styled('input')<{
         translateX(
           ${p =>
             toggleWrapperSize[p.nativeSize].width -
-            toggleButtonSize[p.nativeSize].width + 1}px
+            toggleButtonSize[p.nativeSize].width +
+            1}px
         );
     }
   }
