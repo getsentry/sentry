@@ -209,7 +209,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SEER_USER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER],
-    feature: 'seer-user-billing',
+    feature: 'seer-user-billing-launch',
     canProductTrial: false,
     maxAdminGift: 100,
     freeEventsMultiple: 1,
