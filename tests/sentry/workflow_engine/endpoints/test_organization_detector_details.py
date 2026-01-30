@@ -1056,3 +1056,68 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         assert not RegionScheduledDeletion.objects.filter(
             model_name="Detector", object_id=error_detector.id
         ).exists()
+
+
+@region_silo_test
+class OrganizationDetectorDetailsPutCacheInvalidationTest(OrganizationDetectorDetailsBaseTest):
+    """Tests that PUT requests correctly invalidate the detector cache."""
+
+    method = "PUT"
+
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    def test_put_invalidates_cache(
+        self, _mock_schedule_update_project_config: mock.MagicMock
+    ) -> None:
+        from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
+
+        data_source = self.detector.data_sources.first()
+        assert data_source is not None
+
+        # Warm the cache
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].id == self.detector.id
+
+        valid_data = {
+            "id": self.detector.id,
+            "projectId": self.project.id,
+            "name": "Updated Detector Name",
+            "type": MetricIssue.slug,
+            "dateCreated": self.detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "id": self.condition.id,
+                        "comparison": 100,
+                        "type": Condition.GREATER,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                    {
+                        "id": self.resolve_condition.id,
+                        "comparison": 100,
+                        "type": Condition.LESS_OR_EQUAL,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+            "config": self.detector.config,
+        }
+
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **valid_data,
+                status_code=200,
+            )
+
+        # Cache should have been invalidated and refreshed with new data
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].name == "Updated Detector Name"
