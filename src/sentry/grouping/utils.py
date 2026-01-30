@@ -2,13 +2,20 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from hashlib import md5
+from itertools import islice
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
+from sentry.grouping.parameterization import Parameterizer
+from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
+from sentry.options.rollout import in_rollout_group
+from sentry.utils import metrics
+
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
+    from sentry.services.eventstore.models import Event
 
 
 def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:
@@ -36,3 +43,33 @@ def bool_from_string(value: str) -> bool | None:
             return False
 
     return None
+
+
+@metrics.wraps("grouping.normalize_message_for_grouping")
+def normalize_message_for_grouping(message: str, event: Event) -> str:
+    """Replace values from a group's message with placeholders (to hide P.I.I. and
+    improve grouping when no stacktrace is available) and trim to at most 2 lines.
+    """
+    trimmed = "\n".join(
+        # If there are multiple lines, grab the first two non-empty ones.
+        islice(
+            (x for x in message.splitlines() if x.strip()),
+            2,
+        )
+    )
+    if trimmed != message:
+        trimmed += "..."
+
+    parameterizer = Parameterizer(
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
+        experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
+    )
+
+    normalized = parameterizer.parameterize_all(trimmed)
+
+    for key, value in parameterizer.matches_counter.items():
+        # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
+        # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
+        metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
+
+    return normalized
