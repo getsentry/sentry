@@ -24,6 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -108,6 +109,10 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                       resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
                   </PageFilterBar>
+                  <AgentSelector
+                    storageKeyPrefix="agents:agent-filter"
+                    referrer={Referrer.AGENT_SELECTOR}
+                  />
                   {!showOnboarding && (
                     <Flex flex={2}>
                       <TraceItemSearchQueryBuilder

@@ -1,5 +1,4 @@
 import React from 'react';
-import {Link} from 'react-router-dom';
 
 import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -31,7 +30,12 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  isSizeInfoCompleted,
+  isSizeInfoRetryable,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
@@ -46,6 +50,7 @@ interface BuildDetailsHeaderContentProps {
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
+  const router = useRouter();
   const isSentryEmployee = useIsSentryEmployee();
   const {buildDetailsQuery, projectId, artifactId, projectType} = props;
   const {
@@ -118,7 +123,14 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     }
   }
 
+  const areActionsEnabled = isSizeInfoCompleted(buildDetailsData?.size_info);
+  const canRerunStatusChecks =
+    areActionsEnabled || isSizeInfoRetryable(buildDetailsData?.size_info);
+
   const handleCompareClick = () => {
+    if (!areActionsEnabled) {
+      return;
+    }
     trackAnalytics('preprod.builds.details.compare_build_clicked', {
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
@@ -126,6 +138,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       project_type: projectType,
       project_slug: projectId,
     });
+    router.push(
+      getCompareBuildPath({
+        organizationSlug: organization.slug,
+        projectId,
+        headArtifactId: buildDetailsData.id,
+      })
+    );
   };
 
   const handleConfirmDelete = () => {
@@ -164,18 +183,20 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               },
             }}
           />
-          <Link
-            to={getCompareBuildPath({
-              organizationSlug: organization.slug,
-              projectId,
-              headArtifactId: buildDetailsData.id,
-            })}
+          <Button
+            size="sm"
+            priority="default"
+            icon={<IconTelescope />}
             onClick={handleCompareClick}
+            disabled={!areActionsEnabled}
+            title={
+              areActionsEnabled
+                ? undefined
+                : t('Size analysis must be completed to compare builds')
+            }
           >
-            <Button size="sm" priority="default" icon={<IconTelescope />}>
-              {t('Compare Build')}
-            </Button>
-          </Link>
+            {t('Compare Build')}
+          </Button>
           <Feature features="organizations:preprod-frontend-routes">
             <LinkButton
               size="sm"
@@ -203,6 +224,10 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                   ),
                   onAction: handleRerunStatusChecksAction,
                   textValue: t('Rerun Status Checks'),
+                  disabled: !canRerunStatusChecks,
+                  tooltip: canRerunStatusChecks
+                    ? undefined
+                    : t('Size analysis must be completed to rerun status checks'),
                 },
                 {
                   key: 'delete',
