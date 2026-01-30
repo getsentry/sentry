@@ -284,7 +284,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               isSelected={isAssistant && isSelected}
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
-              <MessageHeader justify={message.role === 'assistant' ? 'end' : 'start'}>
+              <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
                 {message.role === 'user' ? <IconUser size="sm" /> : <IconBot size="sm" />}
                 <Text bold size="sm">
                   {message.role === 'user' ? t('User') : t('Assistant')}
@@ -378,7 +378,7 @@ const MessageBubble = styled('div')<{
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   width: 90%;
-  align-self: ${p => (p.role === 'user' ? 'flex-start' : 'flex-end')};
+  align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
   background-color: ${p =>
     p.role === 'user'
       ? p.theme.tokens.background.secondary
