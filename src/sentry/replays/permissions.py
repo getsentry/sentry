@@ -34,7 +34,10 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     if not features.has("organizations:granular-replay-permissions", organization):
         return True
 
-    member = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
+    try:
+        member = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
+    except OrganizationMember.DoesNotExist:
+        return False
 
     org_option = OrganizationOption.objects.filter(
         organization=organization, key="sentry:granular-replay-permissions"
