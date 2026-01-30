@@ -63,7 +63,7 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCError
+from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -378,6 +378,9 @@ def handle_query_errors() -> Generator[None]:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
+    except SnubaRPCRateLimitExceeded:
+        sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+        raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
@@ -398,7 +401,6 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
-            sentry_sdk.capture_exception(error)
             raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
