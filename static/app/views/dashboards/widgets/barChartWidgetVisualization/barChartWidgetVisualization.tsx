@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import dompurify from 'dompurify';
 import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
@@ -10,11 +9,8 @@ import type {
 } from 'echarts/types/dist/shared';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {useRenderToString} from 'sentry/components/core/renderToString';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
 import type {
   EChartClickHandler,
   EChartDownplayHandler,
@@ -26,12 +22,9 @@ import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {
-  NO_PLOTTABLE_VALUES,
-  X_GUTTER,
-  Y_GUTTER,
-} from 'sentry/views/dashboards/widgets/common/settings';
+import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
+import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
@@ -359,30 +352,4 @@ export function BarChartWidgetVisualization(props: BarChartWidgetVisualizationPr
   );
 }
 
-function LoadingPanel() {
-  return (
-    <LoadingPlaceholder>
-      <LoadingMask visible />
-      <LoadingIndicator mini />
-    </LoadingPlaceholder>
-  );
-}
-
-const LoadingPlaceholder = styled('div')`
-  position: absolute;
-  inset: 0;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  gap: ${space(1)};
-
-  padding: ${Y_GUTTER} ${X_GUTTER};
-`;
-
-const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.tokens.background.primary};
-`;
-
-BarChartWidgetVisualization.LoadingPlaceholder = LoadingPanel;
+BarChartWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
