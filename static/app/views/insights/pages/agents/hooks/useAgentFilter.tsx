@@ -1,6 +1,6 @@
+import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
+
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {decodeList} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
 /**
@@ -8,13 +8,15 @@ import {SpanFields} from 'sentry/views/insights/types';
  * Returns an empty string if no agents are selected.
  */
 export function useAgentFilter() {
-  const {agent: agentFilters = []} = useLocationQuery({
-    fields: {agent: decodeList},
-  });
-
+  const [agentFilters] = useQueryState(
+    'agent',
+    parseAsArrayOf(parseAsString).withDefault([])
+  );
   const agentQuery =
     agentFilters.length > 0
-      ? `${SpanFields.GEN_AI_AGENT_NAME}:[${agentFilters.map(a => `"${escapeDoubleQuotes(a)}"`).join(',')}]`
+      ? `${SpanFields.GEN_AI_AGENT_NAME}:[${agentFilters
+          .map(v => `"${escapeDoubleQuotes(v)}"`)
+          .join(', ')}]`
       : '';
 
   return {agentQuery};
