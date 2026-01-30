@@ -22,7 +22,7 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import FormModel, {type FieldValue} from 'sentry/components/forms/model';
+import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -36,7 +36,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {mapAssertionFormErrors} from './assertionFormErrors';
@@ -100,6 +100,9 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
   const queryClient = useQueryClient();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const hasRuntimeAssertions = organization.features.includes(
+    'uptime-runtime-assertions'
+  );
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -208,11 +211,13 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
         }
-        // When assertions feature is disabled, the UptimeAssertionsField isn't rendered,
-        // so the field's getValue transform doesn't run. Preserve the original assertion
-        // value to avoid overwriting null assertions with the empty default structure.
-        if (!organization.features.includes('uptime-runtime-assertions')) {
-          formModel.setValue('assertion', (rule?.assertion ?? null) as FieldValue);
+        // When runtime assertions are disabled, the assertions field is not mounted,
+        // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
+        if (!hasRuntimeAssertions) {
+          const assertion = formModel.getValue<Assertion | null>('assertion');
+          if (!assertion?.root || assertion.root.children?.length === 0) {
+            formModel.setValue('assertion', null);
+          }
         }
       }}
       extraButton={
@@ -231,7 +236,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               <Button priority="danger">{t('Delete Rule')}</Button>
             </Confirm>
           )}
-          {organization.features.includes('uptime-runtime-assertions') && (
+          {hasRuntimeAssertions && (
             <TestUptimeMonitorButton
               label={t('Test Rule')}
               getFormData={() => {
@@ -415,7 +420,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             )}
           </Observer>
         </Configuration>
-        {organization.features.includes('uptime-runtime-assertions') && (
+        {hasRuntimeAssertions && (
           <Fragment>
             <AlertListItem>{t('Verification')}</AlertListItem>
             <ListItemSubText>
