@@ -24,6 +24,7 @@ class GitHubProvider(Provider):
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
         return False
 
+    # TODO: Define contract for issue reaction response (can be None)
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[None]:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         self.client.get_issue_reactions(repository["name"], issue_id)
