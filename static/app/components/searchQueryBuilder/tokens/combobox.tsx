@@ -81,6 +81,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   description?: ReactNode;
   filterValue?: string;
   /**
+   * The full query of the input, rather than just the filter value.
+   * Useful for autosizing the input after the root input has been updated.
+   */
+  fullQuery?: string;
+  /**
    * When passing `isOpen`, the open state is controlled by the parent.
    */
   isOpen?: boolean;
@@ -344,6 +349,7 @@ export function SearchQueryBuilderCombobox<
 >({
   children,
   description,
+  fullQuery,
   items,
   inputValue,
   filterValue = inputValue,
@@ -583,19 +589,26 @@ export function SearchQueryBuilderCombobox<
     return () => {};
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
-  const autosizeInput = useAutosizeInput({value: inputValue});
+  /**
+   * Trigger autosize when the full query or input value changes.
+   */
+  const autosizeInput = useAutosizeInput({value: fullQuery + inputValue});
+
+  const memoizedInputRef = useMemo(() => {
+    return mergeRefs(
+      ref,
+      inputRef,
+      autosizeInput,
+      triggerProps.ref as React.Ref<HTMLInputElement>
+    );
+  }, [ref, inputRef, autosizeInput, triggerProps.ref]);
 
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(
-          ref,
-          inputRef,
-          autosizeInput,
-          triggerProps.ref as React.Ref<HTMLInputElement>
-        )}
+        ref={memoizedInputRef}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}

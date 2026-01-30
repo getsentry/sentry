@@ -425,6 +425,8 @@ function SearchQueryBuilderInputInternal({
     []
   );
 
+  const fullQuery = [...state.collection].map(itemState => itemState.textValue).join(' ');
+
   return (
     <Fragment>
       <HiddenText
@@ -439,6 +441,7 @@ function SearchQueryBuilderInputInternal({
         ref={inputRef}
         items={items}
         placeholder={query === '' ? placeholder : undefined}
+        fullQuery={fullQuery}
         onOptionSelected={option => {
           if (handleOptionSelected) {
             handleOptionSelected(option);

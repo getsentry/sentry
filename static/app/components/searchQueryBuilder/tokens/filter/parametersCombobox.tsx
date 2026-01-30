@@ -357,10 +357,13 @@ export function SearchQueryBuilderParametersCombobox({
     ]
   );
 
+  const fullQuery = [...state.collection].map(itemState => itemState.textValue).join(' ');
+
   return (
     <SearchQueryBuilderCombobox
       ref={inputRef}
       items={items}
+      fullQuery={fullQuery}
       placeholder={placeholder}
       onOptionSelected={handleOptionSelected}
       onCustomValueBlurred={handleInputValueConfirmed}
