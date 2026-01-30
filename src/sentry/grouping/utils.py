@@ -62,6 +62,10 @@ def bool_from_string(value: str) -> bool | None:
     return None
 
 
+# TODO: Both here during trimming and in the message strategy (where we check if the message has
+# been changed), we assume the kind of change which has happened. Here we add "...", and there we
+# say we "stripped event-specific values," even if all we've done in either case is remove empty
+# lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(message: str, event: Event) -> str:
     """
