@@ -20,7 +20,7 @@ def delete_duplicate_commit_comparisons(
     CommitComparison = apps.get_model("sentry", "CommitComparison")
     PreprodArtifact = apps.get_model("preprod", "PreprodArtifact")
 
-    key_to_kept_id: dict[tuple, int] = {}
+    key_to_kept_id: dict[tuple[int, str, str, str | None], int] = {}
     duplicate_to_kept: dict[int, int] = {}
 
     for record in RangeQuerySetWrapperWithProgressBar(CommitComparison.objects.all()):
