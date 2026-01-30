@@ -158,13 +158,15 @@ function ProductCard({
   footer,
   extra,
 }: ProductCardProps) {
-  const CardContainer = span ? SpanningContainer : Container;
   return (
     <CardContainer
       border="muted"
       radius="lg"
       padding="xl"
       background={span ? 'secondary' : 'primary'}
+      overflow={span ? 'hidden' : undefined}
+      position={span ? 'relative' : undefined}
+      $span={span}
     >
       <Grid
         columns="min-content 1fr"
@@ -363,12 +365,13 @@ const SeerIllustrationWrapper = styled(Flex)`
   }
 `;
 
-const SpanningContainer = styled(Container)`
-  position: relative;
-  overflow: hidden;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-right: 36%;
-    grid-column: span 2;
-  }
+const CardContainer = styled(Container)<{$span?: number}>`
+  ${p =>
+    p.$span &&
+    `
+    @media (min-width: ${p.theme.breakpoints.md}) {
+      padding-right: 36%;
+      grid-column: span ${p.$span};
+    }
+  `}
 `;
