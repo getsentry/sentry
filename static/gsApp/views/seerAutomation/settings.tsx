@@ -162,6 +162,7 @@ export default function SeerAutomationSettings() {
                     'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. This does not impact chat sessions where the agent will always be able to emit code snippets and examples while responding to your input. Read more: docs & legal.'
                   ),
                   type: 'boolean',
+                  defaultValue: true, // See ENABLE_SEER_CODING_DEFAULT in sentry/src/sentry/constants.py
                 },
               ],
             },
