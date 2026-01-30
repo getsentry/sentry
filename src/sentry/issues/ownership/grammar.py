@@ -107,7 +107,7 @@ class Rule(namedtuple("Rule", "matcher owners")):
     ) -> int | bool:
         """
         Test if this rule matches the event data and return the frame index.
-        
+
         Returns:
             - int: Frame index if a frame-based match (path, module, codeowners)
             - True: If a non-frame match (url, tags)
@@ -173,7 +173,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     ) -> int | bool:
         """
         Test if this matcher matches the event data and return the frame index.
-        
+
         Returns:
             - int: Frame index if a frame-based match (path, module, codeowners)
             - True: If a non-frame match (url, tags)

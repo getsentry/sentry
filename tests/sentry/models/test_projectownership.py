@@ -958,12 +958,8 @@ class ResolveActorsTestCase(TestCase):
         """
         Test that when multiple rules match the SAME frame, the last rule wins.
         """
-        team1 = self.create_team(
-            organization=self.organization, slug="team1", members=[self.user]
-        )
-        team2 = self.create_team(
-            organization=self.organization, slug="team2", members=[self.user2]
-        )
+        team1 = self.create_team(organization=self.organization, slug="team1", members=[self.user])
+        team2 = self.create_team(organization=self.organization, slug="team2", members=[self.user2])
         project = self.create_project(organization=self.organization, teams=[team1, team2])
 
         # Two rules that match the same file pattern
@@ -999,14 +995,14 @@ class ResolveActorsTestCase(TestCase):
         Test frame prioritization with CODEOWNERS rules combined with ownership rules.
         """
         code_mapping = self.create_code_mapping(project=self.project)
-        
+
         integrations_team = self.create_team(
             organization=self.organization, slug="integrations-team", members=[self.user]
         )
         tasks_team = self.create_team(
             organization=self.organization, slug="tasks-team", members=[self.user2]
         )
-        
+
         # CODEOWNERS rule for tasks (would be "last rule wins" in old behavior)
         codeowners_rule = Rule(
             Matcher("codeowners", "app/tasks/*"), [Owner("team", tasks_team.slug)]
@@ -1017,7 +1013,7 @@ class ResolveActorsTestCase(TestCase):
             raw="app/tasks/* @tasks-team",
             schema=dump_schema([codeowners_rule]),
         )
-        
+
         # Ownership rule for integrations (appears after in combined schema)
         ownership_rule = Rule(
             Matcher("path", "app/integrations/*"), [Owner("team", integrations_team.slug)]
