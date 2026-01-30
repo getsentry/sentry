@@ -12,9 +12,9 @@ from sentry.seer.entrypoints.integrations.slack import (
     SlackThreadDetails,
     handle_prepare_autofix_update,
     process_thread_update,
-    remove_autofix_button,
     schedule_all_thread_updates,
     send_thread_update,
+    update_existing_message,
 )
 from sentry.testutils.cases import TestCase
 
@@ -182,7 +182,7 @@ class SlackEntrypointTest(TestCase):
         }
 
         install = self.integration.get_installation(organization_id=self.organization.id)
-        remove_autofix_button(
+        update_existing_message(
             request=self.slack_request,
             install=install,
             channel_id=self.channel_id,
