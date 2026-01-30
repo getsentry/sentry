@@ -113,8 +113,8 @@ class ProjectOwnership(Model):
         If there are no matching rules, return an empty list, and None for the rule.
 
         If there are matching rules, return the ordered actors.
-            The order is determined by iterating through rules sequentially, evaluating
-            CODEOWNERS (if present), followed by Ownership Rules
+            The order is determined by frame position first (topmost frame wins),
+            then by rule order for rules matching the same frame (last rule wins).
         """
         from sentry.models.projectcodeowners import ProjectCodeOwners
 
@@ -125,10 +125,13 @@ class ProjectOwnership(Model):
         codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
         ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
-        rules = cls._matching_ownership_rules(ownership, data)
+        rules_with_frames = cls._matching_ownership_rules(ownership, data)
 
-        if not rules:
+        if not rules_with_frames:
             return [], None
+
+        # Extract just the rules for backwards compatibility
+        rules = [rule for rule, _ in rules_with_frames]
 
         owners = {o for rule in rules for o in rule.owners}
         owners_to_actors = resolve_actors(owners, project_id)
@@ -177,7 +180,10 @@ class ProjectOwnership(Model):
 
         We combine the schemas from IssueOwners and CodeOwners.
 
-        Returns list of tuple (rule, owners, rule_type)
+        Returns list of tuple (rule, owners, rule_type) ordered by priority:
+        1. Frame position (topmost frame wins)
+        2. Rule order for rules matching the same frame (last rule wins)
+        3. Rule type (Ownership Rules before CodeOwners for same frame/position)
         """
         from sentry.models.projectcodeowners import ProjectCodeOwners
 
@@ -189,30 +195,52 @@ class ProjectOwnership(Model):
         if not ownership:
             ownership = cls(project_id=project_id)
 
-        # rules_with_owners is ordered by priority, descending, see also:
-        # https://docs.sentry.io/product/issues/ownership-rules/#evaluation-flow
-        rules_with_owners = []
+        # Collect all matching rules with their frame indices, rule types, and original positions
+        all_rules_with_frames: list[tuple[Rule, int | bool, str, int]] = []
+        rule_position = 0
 
         with metrics.timer("projectownership.get_issue_owners_ownership_rules"):
-            ownership_rules = list(reversed(cls._matching_ownership_rules(ownership, data)))
-            hydrated_ownership_rules = cls._hydrate_rules(
-                project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
-            )
-            for item in hydrated_ownership_rules:
-                if item[1]:  # actors
-                    rules_with_owners.append(item)
-                    if len(rules_with_owners) == limit:
-                        return rules_with_owners
+            ownership_rules_with_frames = cls._matching_ownership_rules(ownership, data)
+            for rule, frame_index in ownership_rules_with_frames:
+                all_rules_with_frames.append(
+                    (rule, frame_index, OwnerRuleType.OWNERSHIP_RULE.value, rule_position)
+                )
+                rule_position += 1
 
-        if not codeowners:
-            return rules_with_owners
+        if codeowners:
+            with metrics.timer("projectownership.get_issue_owners_codeowners_rules"):
+                codeowners_rules_with_frames = cls._matching_ownership_rules(codeowners, data)
+                for rule, frame_index in codeowners_rules_with_frames:
+                    all_rules_with_frames.append(
+                        (rule, frame_index, OwnerRuleType.CODEOWNERS.value, rule_position)
+                    )
+                    rule_position += 1
 
-        with metrics.timer("projectownership.get_issue_owners_codeowners_rules"):
-            codeowners_rules = list(reversed(cls._matching_ownership_rules(codeowners, data)))
-            hydrated_codeowners_rules = cls._hydrate_rules(
-                project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
-            )
-            for item in hydrated_codeowners_rules:
+        if not all_rules_with_frames:
+            return []
+
+        # Sort combined rules by frame position (lower = higher priority),
+        # then by rule type (ownership rules before codeowners per "last rule wins" in combined schema),
+        # then by position for tie-breaking
+        def sort_key(item: tuple[Rule, int | bool, str, int]) -> tuple[int, int, int]:
+            _, frame_index_or_bool, rule_type, position = item
+            if frame_index_or_bool is True:
+                # Non-frame matches (URL, tags) get lowest priority
+                frame_priority = float("inf")
+            else:
+                # Frame matches: lower index = higher priority
+                frame_priority = frame_index_or_bool
+            # Ownership rules come before codeowners (0 < 1) to match "last rule wins" behavior
+            type_priority = 0 if rule_type == OwnerRuleType.OWNERSHIP_RULE.value else 1
+            return (frame_priority, type_priority, position)
+
+        all_rules_with_frames.sort(key=sort_key)
+
+        # Hydrate rules and return up to limit
+        rules_with_owners = []
+        for rule, _, rule_type, _ in all_rules_with_frames:
+            hydrated = cls._hydrate_rules(project_id, [rule], rule_type)
+            for item in hydrated:
                 if item[1]:  # actors
                     rules_with_owners.append(item)
                     if len(rules_with_owners) == limit:
@@ -389,7 +417,7 @@ class ProjectOwnership(Model):
         cls,
         ownership: ProjectOwnership | ProjectCodeOwners,
         data: Mapping[str, Any],
-    ) -> list[Rule]:
+    ) -> list[tuple[Rule, int | bool]]:
         if ownership.schema is None:
             return []
 
@@ -410,7 +438,29 @@ class ProjectOwnership(Model):
             tags={"ownership_type": ownership_type},
         )
 
-        return [rule for rule in rules if rule.test(data, munged_data)]
+        # Collect rules with their matched frame index
+        matching_rules: list[tuple[Rule, int | bool, int]] = []
+        for rule_index, rule in enumerate(rules):
+            frame_index_or_bool = rule.test(data, munged_data)
+            if frame_index_or_bool is not False:
+                matching_rules.append((rule, frame_index_or_bool, rule_index))
+
+        # Sort by frame position first (lower index = closer to error = higher priority)
+        # For non-frame matches (True), treat as lowest priority (sort to end)
+        # Then by rule index (later rules win ties)
+        def sort_key(item: tuple[Rule, int | bool, int]) -> tuple[int, int]:
+            _, frame_index_or_bool, rule_index = item
+            if frame_index_or_bool is True:
+                # Non-frame matches (URL, tags) get lowest priority
+                frame_priority = float("inf")
+            else:
+                # Frame matches: lower index = higher priority
+                frame_priority = frame_index_or_bool
+            return (frame_priority, -rule_index)  # Negative rule_index for "last rule wins"
+
+        matching_rules.sort(key=sort_key)
+
+        return [(rule, frame_index) for rule, frame_index, _ in matching_rules]
 
 
 def process_resource_change(instance, change, **kwargs):

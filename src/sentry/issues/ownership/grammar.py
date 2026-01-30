@@ -97,7 +97,7 @@ class Rule(namedtuple("Rule", "matcher owners")):
         self,
         data: Mapping[str, Any],
         munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
-    ) -> bool | Any:
+    ) -> int | bool:
         return self.matcher.test(data, munged_data)
 
 
@@ -146,22 +146,24 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         self,
         data: Mapping[str, Any],
         munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
-    ) -> bool:
+    ) -> int | bool:
         if self.type == URL:
-            return self.test_url(data)
+            # URL matching doesn't have frame context, return True for backwards compatibility
+            return True if self.test_url(data) else False
         elif self.type == PATH:
             return self.test_frames(*munged_data)
         elif self.type == MODULE:
             return self.test_frames(find_stack_frames(data), ["module"])
         elif self.type.startswith("tags."):
-            return self.test_tag(data)
+            # Tag matching doesn't have frame context, return True for backwards compatibility
+            return True if self.test_tag(data) else False
         elif self.type == CODEOWNERS:
             return self.test_frames(
                 *munged_data,
                 # Codeowners has a slightly different syntax compared to issue owners
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
-                # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
+                # https://docs.github.com/en/github/creating-cloning-and-archoring-repositories/creating-a-repository-on-github/about-code-owners
                 match_frame_value_func=lambda val, pattern: bool(codeowners_match(val, pattern)),
                 match_frame_func=lambda frame: frame.get("in_app") is not False,
             )
@@ -179,8 +181,8 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
         match_frame_func: Callable[[Mapping[str, Any]], bool] = lambda _: True,
-    ) -> bool:
-        for frame in frames:
+    ) -> int | bool:
+        for frame_index, frame in enumerate(frames):
             if not match_frame_func(frame):
                 continue
 
@@ -190,7 +192,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                     continue
 
                 if match_frame_value_func(value, self.pattern):
-                    return True
+                    return frame_index
 
         return False
 

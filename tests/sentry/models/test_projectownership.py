@@ -894,3 +894,164 @@ class ResolveActorsTestCase(TestCase):
 
         owner = Owner("user", user.email)
         resolve_actors([owner], project.id)
+
+    def test_frame_prioritization_topmost_frame_wins(self) -> None:
+        """
+        Test that when multiple rules match different frames, the rule matching
+        the topmost (closest to error) frame wins, not the last rule in CODEOWNERS.
+        """
+        # Create two teams to differentiate ownership
+        integrations_team = self.create_team(
+            organization=self.organization, slug="integrations-team", members=[self.user]
+        )
+        tasks_team = self.create_team(
+            organization=self.organization, slug="tasks-team", members=[self.user2]
+        )
+        project = self.create_project(
+            organization=self.organization, teams=[integrations_team, tasks_team]
+        )
+
+        # Create rules where tasks rule appears AFTER integrations rule in CODEOWNERS
+        # (simulating "last rule wins" behavior)
+        rule_integrations = Rule(
+            Matcher("path", "app/integrations/*"), [Owner("team", integrations_team.slug)]
+        )
+        rule_tasks = Rule(Matcher("path", "app/tasks/*"), [Owner("team", tasks_team.slug)])
+
+        ProjectOwnership.objects.create(
+            project_id=project.id,
+            schema=dump_schema([rule_integrations, rule_tasks]),
+            fallthrough=True,
+        )
+
+        # Event with error in integrations (topmost frame) and tasks deeper in stack
+        event_data = {
+            "stacktrace": {
+                "frames": [
+                    {
+                        "filename": "app/integrations/upload.py",
+                        "function": "upload_file",
+                        "in_app": True,
+                    },
+                    {
+                        "filename": "app/tasks/decorators.py",
+                        "function": "task_wrapper",
+                        "in_app": True,
+                    },
+                ]
+            }
+        }
+
+        actors, rules = ProjectOwnership.get_owners(project.id, event_data)
+
+        # The integrations team should be first (topmost frame wins)
+        # even though tasks rule appears later in CODEOWNERS
+        assert len(actors) == 2
+        assert actors[0] == Actor(id=integrations_team.id, actor_type=ActorType.TEAM)
+        assert actors[1] == Actor(id=tasks_team.id, actor_type=ActorType.TEAM)
+
+        # Verify rule order matches frame priority
+        assert rules[0] == rule_integrations
+        assert rules[1] == rule_tasks
+
+    def test_frame_prioritization_same_frame_last_rule_wins(self) -> None:
+        """
+        Test that when multiple rules match the SAME frame, the last rule wins.
+        """
+        team1 = self.create_team(
+            organization=self.organization, slug="team1", members=[self.user]
+        )
+        team2 = self.create_team(
+            organization=self.organization, slug="team2", members=[self.user2]
+        )
+        project = self.create_project(organization=self.organization, teams=[team1, team2])
+
+        # Two rules that match the same file pattern
+        rule1 = Rule(Matcher("path", "*.py"), [Owner("team", team1.slug)])
+        rule2 = Rule(Matcher("path", "app/*.py"), [Owner("team", team2.slug)])
+
+        ProjectOwnership.objects.create(
+            project_id=project.id, schema=dump_schema([rule1, rule2]), fallthrough=True
+        )
+
+        event_data = {
+            "stacktrace": {
+                "frames": [
+                    {
+                        "filename": "app/service.py",
+                        "function": "process",
+                        "in_app": True,
+                    }
+                ]
+            }
+        }
+
+        actors, rules = ProjectOwnership.get_owners(project.id, event_data)
+
+        # Both rules match the same frame, so last rule (rule2) should win
+        assert len(actors) == 2
+        # Rule2 should come first since it's the last rule and they match the same frame
+        assert actors[0] == Actor(id=team2.id, actor_type=ActorType.TEAM)
+        assert actors[1] == Actor(id=team1.id, actor_type=ActorType.TEAM)
+
+    def test_frame_prioritization_with_codeowners(self) -> None:
+        """
+        Test frame prioritization with CODEOWNERS rules combined with ownership rules.
+        """
+        code_mapping = self.create_code_mapping(project=self.project)
+        
+        integrations_team = self.create_team(
+            organization=self.organization, slug="integrations-team", members=[self.user]
+        )
+        tasks_team = self.create_team(
+            organization=self.organization, slug="tasks-team", members=[self.user2]
+        )
+        
+        # CODEOWNERS rule for tasks (would be "last rule wins" in old behavior)
+        codeowners_rule = Rule(
+            Matcher("codeowners", "app/tasks/*"), [Owner("team", tasks_team.slug)]
+        )
+        self.create_codeowners(
+            self.project,
+            code_mapping,
+            raw="app/tasks/* @tasks-team",
+            schema=dump_schema([codeowners_rule]),
+        )
+        
+        # Ownership rule for integrations (appears after in combined schema)
+        ownership_rule = Rule(
+            Matcher("path", "app/integrations/*"), [Owner("team", integrations_team.slug)]
+        )
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([ownership_rule]),
+            fallthrough=True,
+        )
+
+        # Event with error in integrations (topmost) and tasks deeper in stack
+        event_data = {
+            "stacktrace": {
+                "frames": [
+                    {
+                        "filename": "app/integrations/upload.py",
+                        "function": "upload_file",
+                        "in_app": True,
+                    },
+                    {
+                        "filename": "app/tasks/decorators.py",
+                        "function": "task_wrapper",
+                        "in_app": True,
+                    },
+                ]
+            }
+        }
+
+        issue_owners = ProjectOwnership.get_issue_owners(self.project.id, event_data, limit=2)
+
+        # Ownership rule (integrations) should come first due to frame position
+        # even though CODEOWNERS appears earlier in combined schema
+        assert len(issue_owners) == 2
+        assert issue_owners[0][2] == OwnerRuleType.OWNERSHIP_RULE.value
+        assert issue_owners[0][0] == ownership_rule
+        assert issue_owners[1][2] == OwnerRuleType.CODEOWNERS.value
+        assert issue_owners[1][0] == codeowners_rule
