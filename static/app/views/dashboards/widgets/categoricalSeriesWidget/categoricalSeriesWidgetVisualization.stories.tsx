@@ -39,11 +39,10 @@ export default Storybook.story(
           </p>
 
           <ul>
-            <li>stacked bar support</li>
-            <li>automatic Y-axis formatting based on data types</li>
-            <li>legend and tooltip support</li>
+            <li>Automatic Y-axis formatting based on data types</li>
+            <li>Legend and tooltip support</li>
             <li>
-              skipping <code>null</code> values while plotting
+              Skipping <code>null</code> values while plotting
             </li>
           </ul>
 
@@ -71,9 +70,15 @@ export default Storybook.story(
             <code>plottables</code> prop, similar to{' '}
             <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />. Each item in the{' '}
             <code>plottables</code> array must implement the{' '}
-            <code>CategoricalBarChartPlottable</code> interface. The <code>Bar</code>{' '}
-            class is provided for this purpose.
+            <code>CategoricalPlottable</code> interface. We currently have support for the
+            following plottables:
           </p>
+
+          <ul>
+            <li>
+              <code>Bars</code>
+            </li>
+          </ul>
 
           <CodeBlock language="jsx">
             {`
