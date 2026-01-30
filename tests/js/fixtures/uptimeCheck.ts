@@ -14,6 +14,8 @@ export function UptimeCheckFixture(params: Partial<UptimeCheck> = {}): UptimeChe
     timestamp: '2025-01-01T00:00:00Z',
     traceId: '97f0e440317c5bb5b5e0024ca202a61d',
     uptimeCheckId: '97f0e440-317c-5bb5-b5e0-024ca202a61d',
+    assertionFailureData: null,
+    traceItemId: '97f0e440-317c-5bb5-b5e0-024ca202a62d',
     ...params,
   };
 }
