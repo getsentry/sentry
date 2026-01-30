@@ -173,7 +173,6 @@ class Spans(rpc_dataset_common.RPCBase):
                     spans.append(span)
 
         response = snuba_rpc.get_trace_rpc(request)
-        thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=2)
         for _ in range(MAX_ITERATIONS):
             columns_by_name = {col.proto_definition.name: col for col in columns}
             if response.page_token.end_pagination:
@@ -194,7 +193,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 break
             request.page_token.CopyFrom(response.page_token)
             # We want to process the spans while querying the next page
-            with thread_pool:
+            with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=2) as thread_pool:
                 _ = thread_pool.submit(process_item_groups, response.item_groups)
                 response_future = thread_pool.submit(snuba_rpc.get_trace_rpc, request)
             response = response_future.result()
