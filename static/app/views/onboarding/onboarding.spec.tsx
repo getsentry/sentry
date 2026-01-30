@@ -45,6 +45,33 @@ describe('Onboarding', () => {
     expect(screen.getByTestId('onboarding-welcome-start')).toBeInTheDocument();
   });
 
+  it('renders the new welcome UI when feature flag is enabled', () => {
+    const organization = OrganizationFixture({
+      features: ['onboarding-new-welcome-ui'],
+    });
+
+    render(
+      <OnboardingContextProvider>
+        <OnboardingWithoutContext />
+      </OnboardingContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/onboarding/${organization.slug}/welcome/`,
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
+      }
+    );
+
+    expect(screen.getByText('Welcome to Sentry')).toBeInTheDocument();
+    expect(screen.getByText('Error monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Tracing')).toBeInTheDocument();
+    expect(screen.getByText('Session replay')).toBeInTheDocument();
+    expect(screen.getByTestId('onboarding-welcome-start')).toBeInTheDocument();
+  });
+
   it('renders the select platform step', async () => {
     render(
       <OnboardingContextProvider>
