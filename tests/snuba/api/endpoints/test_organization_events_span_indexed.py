@@ -9,6 +9,7 @@ from django.utils.timezone import now
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.insights.models import InsightsStarredSegment
+from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba_rpc import _make_rpc_requests, table_rpc
@@ -2161,6 +2162,30 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 504, response.content
         assert "Query timeout" in response.data["detail"]
+
+    @mock.patch(
+        "sentry.utils.snuba_rpc._snuba_pool.urlopen",
+    )
+    @mock.patch(
+        "sentry.utils.snuba_rpc.ErrorProto",
+    )
+    def test_rate_limit(self, mock_proto: mock.MagicMock, mock_rpc: mock.MagicMock) -> None:
+        mock_error = mock.Mock()
+        mock_error.status = 429
+        mock_rpc.return_value = mock_error
+
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 429, response.content
+        assert RATE_LIMIT_ERROR_MESSAGE == response.data["detail"]
 
     def test_extrapolation(self) -> None:
         """Extrapolation only changes the number when there's a sample rate"""
