@@ -13,24 +13,20 @@ from sentry.workflow_engine.utils.metrics import metrics_incr
 CACHE_TTL = 300
 METRIC_PREFIX = "workflow_engine.cache.processing_workflow"
 
-ID_or_wildcard = int | Literal["*"]
 
-
-def processing_workflow_cache_key(
-    detector_id: ID_or_wildcard, env_id: ID_or_wildcard | None
-) -> str:
-    return f"workflows_by_detector_env:{detector_id}:{env_id}"
-
-
-def invalidate_processing_workflows(detector_id: int | None, env_id: int | None) -> bool:
+def processing_workflow_cache_key(detector_id: int | None = None, env_id: int | None = None) -> str:
     if detector_id is None:
         detector_id = "*"
 
     if env_id is None:
-        # TODO - set a wild card for the env_id?
-        # We need to clear all workflow environments on detector change
-        pass
+        env_id = "*"
 
+    return f"workflows_by_detector_env:{detector_id}:{env_id}"
+
+
+def invalidate_processing_workflows(
+    detector_id: int | None = None, env_id: int | None = None
+) -> bool:
     cache_key = processing_workflow_cache_key(detector_id, env_id)
 
     metrics_incr(f"{METRIC_PREFIX}.invalidated")
