@@ -68,8 +68,8 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
     Replace values from a event's message with placeholders (in order to improve grouping) and trim
     to at most 2 lines.
     """
+    # If there are multiple lines, grab the first two non-empty ones
     trimmed = "\n".join(
-        # If there are multiple lines, grab the first two non-empty ones.
         islice(
             (x for x in message.splitlines() if x.strip()),
             2,
