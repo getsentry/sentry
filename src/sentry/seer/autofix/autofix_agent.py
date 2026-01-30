@@ -165,11 +165,10 @@ def trigger_autofix_explorer(
 
     prompt = build_step_prompt(step, group)
 
-    metadata = None
-    if stopping_point:
-        metadata = {"stopping_point": stopping_point.value, "group_id": group.id}
-
     if run_id is None:
+        metadata = None
+        if stopping_point:
+            metadata = {"stopping_point": stopping_point.value, "group_id": group.id}
         run_id = client.start_run(
             prompt=prompt,
             artifact_key=step.value if config.artifact_schema else None,
@@ -182,7 +181,6 @@ def trigger_autofix_explorer(
             prompt=prompt,
             artifact_key=step.value if config.artifact_schema else None,
             artifact_schema=config.artifact_schema,
-            metadata=metadata,
         )
 
     group.update(seer_autofix_last_triggered=timezone.now())
