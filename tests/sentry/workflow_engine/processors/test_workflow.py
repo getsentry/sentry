@@ -755,6 +755,11 @@ class TestTaintTracking(BaseWorkflowTest):
         assert self.workflow in queue_items
         assert stats == EvaluationStats(tainted=0, untainted=0)
 
+    def test_evaluation_stats_add(self) -> None:
+        a = EvaluationStats(tainted=1, untainted=2)
+        b = EvaluationStats(tainted=3, untainted=4)
+        assert a + b == EvaluationStats(tainted=4, untainted=6)
+
 
 @freeze_time(FROZEN_TIME)
 class TestWorkflowEnqueuing(BaseWorkflowTest):
