@@ -351,9 +351,13 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${space(3)};
+
   width: 100%;
-  margin: 0 auto;
-  padding-bottom: ${p => p.hasFooter && '72px'};
+  margin: 0 auto ${p => p.hasFooter && '72px'} 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${space(4)} ${space(3)};
+  }
 `;
 
 const Container = styled('div')<{hasFooter: boolean}>`

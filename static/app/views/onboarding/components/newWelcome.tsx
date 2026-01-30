@@ -1,18 +1,18 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
+// import SeerIllustration from 'sentry-images/spot/seer-onboarding.png';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {
+  IconBot,
   IconBusiness,
   IconGraph,
   IconInfo,
@@ -24,7 +24,6 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,7 +45,22 @@ type ProductOption = {
   icon: React.ReactNode;
   id: string;
   title: string;
+  badge?: React.ReactNode;
+  footer?: React.ReactNode;
 };
+
+function SeerFlag() {
+  return (
+    <Flex gap="md" align="center">
+      <IconInfo legacySize="16px" variant="secondary" />
+      <Container>
+        <Text variant="muted" size="sm" density="comfortable" bold>
+          {t('Requires additional setup')}
+        </Text>
+      </Container>
+    </Flex>
+  );
+}
 
 // Product options in display order (3x2 grid: row1: Error, Logging, Session; row2: Metrics, Tracing, Profiling)
 const PRODUCT_OPTIONS: ProductOption[] = [
@@ -92,17 +106,39 @@ const PRODUCT_OPTIONS: ProductOption[] = [
       'Pinpoint the functions and lines of code responsible for performance issues.'
     ),
   },
+  {
+    id: 'agent-monitoring',
+    icon: <IconBot legacySize="16px" variant="secondary" />,
+    title: t('Agent monitoring'),
+    description: t(
+      'Track all agent runs, error rates, LLM calls, tokens used, and tool executions.'
+    ),
+  },
+  {
+    id: 'seer',
+    icon: <IconSeer legacySize="16px" variant="secondary" />,
+    title: t('Seer: AI Debugging Agent'),
+    description: t(
+      'Catch breaking changes, automatically root cause issues in production, and fix what you missed.'
+    ),
+    footer: <SeerFlag />,
+    badge: <FeatureBadge type="new" tooltipProps={{disabled: true}} />,
+  },
 ];
 
 type ProductCardProps = {
   description: string;
   icon: React.ReactNode;
   title: string;
+  badge?: ReactNode;
+  footer?: ReactNode;
+  span?: number;
 };
 
-function ProductCard({icon, title, description}: ProductCardProps) {
+function ProductCard({icon, title, description, span, badge, footer}: ProductCardProps) {
+  const CardContainer = span ? SpanningContainer : Container;
   return (
-    <Container border="muted" radius="lg" padding="xl">
+    <CardContainer border="muted" radius="lg" padding="xl">
       <Grid
         columns="min-content 1fr"
         rows="min-content min-content"
@@ -114,18 +150,24 @@ function ProductCard({icon, title, description}: ProductCardProps) {
         <Flex area="cell1" align="center">
           {icon}
         </Flex>
-        <Container area="cell2">
-          <Text bold size="lg" density="comfortable">
-            {title}
-          </Text>
-        </Container>
-        <Container area="cell4">
-          <Text variant="muted" size="md" density="comfortable">
-            {description}
-          </Text>
-        </Container>
+        <Flex area="cell2" gap="md">
+          <Container>
+            <Text bold size="lg" density="comfortable">
+              {title}
+            </Text>
+          </Container>
+          {badge}
+        </Flex>
+        <Stack area="cell4" gap="xl">
+          <Container>
+            <Text variant="muted" size="md" density="comfortable">
+              {description}
+            </Text>
+          </Container>
+          {footer}
+        </Stack>
       </Grid>
-    </Container>
+    </CardContainer>
   );
 }
 
@@ -159,46 +201,55 @@ export function NewWelcomeUI(props: StepProps) {
     <NewWelcomeWrapper>
       <WelcomeBackgroundNewUi />
       <ContentWrapper {...fadeAway}>
-        <Stack gap="2xl">
-          <Flex direction="column" gap="lg" paddingBottom="2xl">
-            <Heading as="h1">{t('Welcome to Sentry')}</Heading>
-            <Text variant="muted" size="lg" bold wrap="pre-line" density="comfortable">
-              {t(
-                "Your code is probably broken, and we'll help you fix it faster.\nWe're not just error monitoring anymore y'know."
-              )}
-            </Text>
+        <Stack gap="md">
+          <Flex direction="column" gap="sm" paddingBottom="2xl">
+            <Container>
+              <Heading as="h1" density="comfortable">
+                {t('Welcome to Sentry')}
+              </Heading>
+            </Container>
+            <Container>
+              <Text variant="muted" size="xl" bold wrap="pre-line">
+                {t("Your code is probably broken. Let's fix it faster.")}
+              </Text>
+            </Container>
           </Flex>
 
-          <Flex align="center" gap="md">
-            <IconBusiness size="sm" variant="accent" />
-            <Text size="lg" bold variant="muted" density="comfortable">
-              {t('Your 14-day business trial includes')}{' '}
-              <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/">
-                {t('unlimited access')}
-              </ExternalLink>{' '}
-              {t('to:')}
-            </Text>
-          </Flex>
+          <Stack gap="2xs">
+            <Flex align="center" gap="md">
+              <IconBusiness legacySize="16px" variant="accent" />
+              <Container>
+                <Text size="lg" bold density="comfortable">
+                  {t(
+                    'You’ve got 14 days of Business with unlimited access to everything below.'
+                  )}
+                </Text>
+              </Container>
+            </Flex>
+            <Container>
+              <Text size="md" variant="muted">
+                We’ll walk you through setup next. Start with what matters now, add the
+                rest when you’re ready.
+              </Text>
+            </Container>
+          </Stack>
         </Stack>
 
-        <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} gap="lg">
-          {PRODUCT_OPTIONS.map(product => (
+        <Grid columns={{xs: '1fr', md: 'repeat(3, 1fr)'}} gap="lg">
+          {PRODUCT_OPTIONS.map((product, index) => (
             <ProductCard
               key={product.id}
               icon={product.icon}
               title={product.title}
               description={product.description}
+              span={index === PRODUCT_OPTIONS.length - 1 ? 2 : undefined}
+              badge={product.badge}
+              footer={product.footer}
             />
           ))}
         </Grid>
 
-        <Flex justify="center">
-          <Text size="xl" variant="secondary" bold>
-            +
-          </Text>
-        </Flex>
-
-        <Container border="muted" radius="lg" padding="xl" overflow="hidden">
+        {/* <Container border="muted" radius="lg" padding="xl" overflow="hidden">
           <Flex>
             <Flex flex="1">
               <Grid
@@ -239,13 +290,15 @@ export function NewWelcomeUI(props: StepProps) {
               <img src={SeerIllustration} alt="" />
             </SeerIllustrationWrapper>
           </Flex>
-        </Container>
+        </Container> */}
 
-        <Text variant="muted" bold>
-          {t(
-            "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
-          )}
-        </Text>
+        <Container>
+          <Text size="md" variant="muted">
+            {t(
+              "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
+            )}
+          </Text>
+        </Container>
       </ContentWrapper>
       <GenericFooter>
         {props.genSkipOnboardingLink()}
@@ -272,29 +325,33 @@ const NewWelcomeWrapper = styled(motion.div)`
   width: 100%;
   margin-left: auto;
   margin-right: auto;
-  padding: ${space(2)};
-  gap: ${space(4)};
 `;
 
 const ContentWrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: 24px;
 `;
 
-const SeerIllustrationWrapper = styled('div')`
-  flex-shrink: 0;
-  margin-top: -20px;
-  margin-bottom: -40px;
-  margin-right: -10px;
+// const SeerIllustrationWrapper = styled('div')`
+//   flex-shrink: 0;
+//   margin-top: -20px;
+//   margin-bottom: -40px;
+//   margin-right: -10px;
 
-  img {
-    display: block;
-    max-height: 120px;
-    width: auto;
-  }
+//   img {
+//     display: block;
+//     max-height: 120px;
+//     width: auto;
+//   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
+//   @media (max-width: ${p => p.theme.breakpoints.md}) {
+//     display: none;
+//   }
+// `;
+
+const SpanningContainer = styled(Container)`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-column: span 2;
   }
 `;
