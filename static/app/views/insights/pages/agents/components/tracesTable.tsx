@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 
@@ -247,7 +247,7 @@ export function TracesTable() {
   );
 
   return (
-    <Fragment>
+    <Container>
       <GridEditableContainer>
         <GridEditable
           isLoading={tracesRequest.isPending}
@@ -264,8 +264,8 @@ export function TracesTable() {
         />
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
-    </Fragment>
+      <StyledPagination pageLinks={pageLinks} onCursor={setCursor} />
+    </Container>
   );
 }
 
@@ -443,7 +443,6 @@ function AgentTags({agents}: {agents: string[]}) {
 
 const GridEditableContainer = styled('div')`
   position: relative;
-  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LoadingOverlay = styled('div')`
@@ -476,4 +475,8 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
 const TraceIdButton = styled(Button)`
   font-weight: normal;
   padding: 0;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
 `;
