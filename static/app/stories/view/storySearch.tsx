@@ -207,7 +207,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
     inputValue,
     onInputChange: setInputValue,
     defaultFilter: filter,
-    shouldCloseOnBlur: false,
+    shouldCloseOnBlur: true,
     allowsEmptyCollection: false,
     onSelectionChange: handleSelectionChange,
   });
