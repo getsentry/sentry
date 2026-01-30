@@ -77,6 +77,7 @@ export function getTraceNodeAttribute(
   attributes?: TraceItemResponseAttribute[]
 ): string | number | boolean | undefined {
   const attributeObject = ensureAttributeObject(node, event, attributes);
+  console.log({attributeObject});
   return attributeObject?.[name];
 }
 

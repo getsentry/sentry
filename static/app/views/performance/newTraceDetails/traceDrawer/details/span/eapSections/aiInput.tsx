@@ -357,7 +357,7 @@ export function AIInputSection({
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
   const originalMessagesLength = getTraceNodeAttribute(
-    'gen_ai.request.messages.original_length',
+    'sdk_meta.gen_ai.input.messages.original_length',
     node,
     event,
     attributes
