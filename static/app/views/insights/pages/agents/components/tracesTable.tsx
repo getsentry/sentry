@@ -43,6 +43,7 @@ import {
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
@@ -424,6 +425,7 @@ function AgentTags({agents}: {agents: string[]}) {
                   agent: isAgentInUrl
                     ? agentFilters.filter(urlAgent => urlAgent !== agent)
                     : [...agentFilters, agent],
+                  [TableUrlParams.CURSOR]: null,
                 },
               }}
             >
