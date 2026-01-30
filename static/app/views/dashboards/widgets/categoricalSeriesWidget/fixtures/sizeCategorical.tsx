@@ -1,5 +1,5 @@
 import {SizeUnit} from 'sentry/utils/discover/fields';
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/types';
 
 export const sampleSizeData: CategoricalSeries = {
   valueAxis: 'avg(http.response_content_length)',

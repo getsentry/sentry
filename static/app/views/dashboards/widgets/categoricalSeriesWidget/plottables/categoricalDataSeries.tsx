@@ -8,7 +8,7 @@ import type {
   CategoricalItem,
   CategoricalSeries,
   CategoricalValueType,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/types';
 
 export type CategoricalDataSeriesConfig = {
   /**

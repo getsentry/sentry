@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/types';
 
 /**
  * Formats a user-friendly label for a categorical series, used in legends and tooltips.

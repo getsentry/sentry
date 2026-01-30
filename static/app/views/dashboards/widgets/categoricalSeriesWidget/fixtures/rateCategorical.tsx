@@ -1,5 +1,5 @@
 import {RateUnit} from 'sentry/utils/discover/fields';
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/types';
 
 export const sampleRateData: CategoricalSeries = {
   valueAxis: 'spm()',

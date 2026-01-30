@@ -7,7 +7,7 @@ import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {
   CategoricalItem,
   CategoricalSeries,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/types';
 
 import {
   CategoricalDataSeries,

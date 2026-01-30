@@ -1,4 +1,4 @@
-import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/types';
 
 export const sampleMultiSeriesData: CategoricalSeries[] = [
   {
