@@ -66,6 +66,8 @@ class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstalla
 
 @control_silo_model
 class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
+    default_flush = False
+
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE
 
@@ -126,7 +128,9 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        with outbox_context(transaction.atomic(using=router.db_for_write(SentryAppInstallation))):
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(SentryAppInstallation)), flush=False
+        ):
             for outbox in self.outboxes_for_delete():
                 outbox.save()
 

@@ -88,6 +88,8 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
 
 @control_silo_model
 class SentryApp(ParanoidModel, HasApiScopes, Model):
+    default_flush = False
+
     __relocation_scope__ = RelocationScope.Global
 
     application = models.OneToOneField(
@@ -241,7 +243,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     def delete(self, *args, **kwargs):
         from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
-        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
 
