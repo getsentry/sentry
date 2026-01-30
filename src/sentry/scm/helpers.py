@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing import cast
 
 from sentry import ratelimits
 from sentry.integrations.models.integration import Integration
@@ -35,7 +34,7 @@ def is_rate_limited_with_allocation_policy(
     referrer: Referrer,
     provider: str,
     window: int,
-    allocation_policy: dict[str, int],
+    allocation_policy: dict[Referrer, int],
 ) -> bool:
     # Check if the referrer has reserved quota they have exclusive access to.
     if referrer in allocation_policy:
@@ -106,7 +105,7 @@ def fetch_repository(
     except RepositoryModel.DoesNotExist:
         return None
 
-    return map_repository_model_to_repository(cast(RepositoryModel, repo))
+    return map_repository_model_to_repository(repo)
 
 
 def exec_provider_fn[T](
@@ -115,7 +114,7 @@ def exec_provider_fn[T](
     *,
     referrer: Referrer = "shared",
     fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
-    fetch_service_provider: Callable[[Repository], Provider] = fetch_service_provider,
+    fetch_service_provider: Callable[[int, int], Provider] = fetch_service_provider,
     provider_fn: Callable[[Repository, Provider], T],
 ) -> T:
     repository = fetch_repository(organization_id, repository_id)

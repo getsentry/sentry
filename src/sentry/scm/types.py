@@ -25,15 +25,6 @@ class Provider(Protocol):
     of behaviors which may or may not be explicitly defined on a service-provider.
     """
 
-    # Behaviors TODO:
-    # - get_issue_comments
-    # - get_pull_request_comments
-    # - get_comment_reactions
-    # - create_comment_reaction
-    # - get_issue_reactions
-    # - create_issue_reaction
-    # - delete_issue_reaction
-
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 
     def create_issue_reaction(

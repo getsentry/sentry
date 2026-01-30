@@ -23,7 +23,7 @@ class SourceCodeManager:
         *,
         referrer: Referrer = "shared",
         fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
-        fetch_service_provider: Callable[[Repository], Provider] = fetch_service_provider,
+        fetch_service_provider: Callable[[int, int], Provider] = fetch_service_provider,
     ):
         """
         The SourceCodeManager class manages ACLs, rate-limits, environment setup, and a
