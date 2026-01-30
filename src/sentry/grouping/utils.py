@@ -68,6 +68,11 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
     Replace values from a event's message with placeholders (in order to improve grouping) and trim
     to at most 2 lines.
     """
+    parameterizer = Parameterizer(
+        regex_pattern_keys=REGEX_PATTERN_KEYS,
+        experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
+    )
+
     # If there are multiple lines, grab the first two non-empty ones
     trimmed = "\n".join(
         islice(
@@ -77,11 +82,6 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
     )
     if trimmed != message:
         trimmed += "..."
-
-    parameterizer = Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS,
-        experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
-    )
 
     normalized = parameterizer.parameterize_all(trimmed)
 
