@@ -69,6 +69,12 @@ class EvaluationStats:
                 untainted += 1
         return cls(tainted=tainted, untainted=untainted)
 
+    def __add__(self, other: "EvaluationStats") -> "EvaluationStats":
+        return EvaluationStats(
+            tainted=self.tainted + other.tainted,
+            untainted=self.untainted + other.untainted,
+        )
+
     def report_metrics(self, metric_name: str) -> None:
         metrics_incr(metric_name, self.tainted, tags={"tainted": True})
         metrics_incr(metric_name, self.untainted, tags={"tainted": False})
@@ -567,11 +573,11 @@ def process_workflows(
     triggered_workflows, queue_items_by_workflow_id, trigger_stats = evaluate_workflow_triggers(
         workflows, event_data, event_start_time
     )
-    trigger_stats.report_metrics("process_workflows.workflows_evaluated")
 
     workflow_evaluation_data.triggered_workflows = set(triggered_workflows.keys())
 
     if not triggered_workflows and not queue_items_by_workflow_id:
+        trigger_stats.report_metrics("process_workflows.workflows_evaluated")
         # TODO - re-think tainted once the actions are removed from process_workflows.
         return WorkflowEvaluation(
             tainted=True,
@@ -586,7 +592,7 @@ def process_workflows(
             triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
         )
     )
-    action_stats.report_metrics("process_workflows.workflows_evaluated")
+    (trigger_stats + action_stats).report_metrics("process_workflows.workflows_evaluated")
 
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
 
