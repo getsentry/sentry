@@ -20,7 +20,7 @@ def backfill_delete_assertions(apps: StateApps, schema_editor: BaseDatabaseSchem
         subscription.assertion = None
         subscription.save(update_fields=["assertion"])
         id = f"{subscription.id}"
-        logging.info("0054_delete_bad_assertions %s", id)
+        logger.info("0054_delete_bad_assertions %s", id)
 
 
 class Migration(CheckedMigration):
