@@ -158,8 +158,25 @@ export default function SeerAutomationSettings() {
                 {
                   name: 'enableSeerCoding',
                   label: t('Enable Code Generation'),
-                  help: t(
-                    'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. This does not impact chat sessions where the agent will always be able to emit code snippets and examples while responding to your input. Read more: docs & legal.'
+                  help: (
+                    <Flex gap="sm">
+                      <span>
+                        {tct(
+                          'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. [docs:Read the docs] to learn more.',
+                          {
+                            docs: (
+                              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/#disabling-generative-ai-features" />
+                            ),
+                          }
+                        )}
+                      </span>
+                      <QuestionTooltip
+                        size="xs"
+                        title={t(
+                          'This does not impact chat sessions where the agent will always be able to emit code snippets and examples while responding to your input.'
+                        )}
+                      />
+                    </Flex>
                   ),
                   type: 'boolean',
                   defaultValue: true, // See ENABLE_SEER_CODING_DEFAULT in sentry/src/sentry/constants.py
