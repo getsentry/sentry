@@ -34,6 +34,7 @@ import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
+import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -48,7 +49,6 @@ import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import type DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
 import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
@@ -60,7 +60,7 @@ type Props = {
   frame: Frame;
   frameMeta: Record<any, any>;
   hiddenFrameCount: number | undefined;
-  image: React.ComponentProps<typeof DebugImage>['image'];
+  image: ImageWithCombinedStatus;
   isFirstInAppFrame: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
