@@ -16,7 +16,6 @@ export function UptimeAssertionsSection({event}: {event: Event}) {
     <InterimSection
       type={SectionKey.ASSERTIONS}
       title={t('Assertions')}
-      help={t('The assertions that failed for this issue.')}
       disableCollapsePersistence
     >
       <KeyValueList
