@@ -22,7 +22,7 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import FormModel, {type FieldValue} from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -212,7 +212,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         // so the field's getValue transform doesn't run. Preserve the original assertion
         // value to avoid overwriting null assertions with the empty default structure.
         if (!organization.features.includes('uptime-runtime-assertions')) {
-          formModel.setValue('assertion', rule?.assertion ?? null);
+          formModel.setValue('assertion', (rule?.assertion ?? null) as FieldValue);
         }
       }}
       extraButton={
