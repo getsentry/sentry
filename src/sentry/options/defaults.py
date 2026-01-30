@@ -1112,6 +1112,17 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Code Review A/B Testing Experiments
+# List of (experiment_name, rollout_rate) tuples evaluated in order
+# rollout_rate: 0.0 = disabled, 1.0 = fully released, 0.5 = 50% of PRs
+# Example: [["noop-experiment", 0.5], ["cost-optimized", 0.3]]
+register(
+    "bug-prediction.experiments",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.similarity.global-rate-limit",
     type=Dict,
