@@ -413,7 +413,9 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
             artifact_schema=MissingSdkIntegrationsResult,
         )
         with metrics.timer(
-            "autopilot.missing_sdk_integration_detector.run_duration", sample_rate=1.0
+            "autopilot.missing_sdk_integration_detector.run_duration",
+            tags={"organization_id": organization.id, "project_slug": project.slug},
+            sample_rate=1.0,
         ):
             state = client.get_run(run_id, blocking=True, poll_timeout=240.0, poll_interval=5.0)
 
