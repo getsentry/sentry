@@ -37,7 +37,7 @@ def get_code_review_experiment(
     """
     Determine which experiment this PR should be assigned to.
 
-    Evaluates experiments in order from the bug-prediction.experiments option.
+    Evaluates experiments in order from the code-review.experiments option.
     First matching experiment wins. Uses deterministic hashing for per-PR
     variable assignment.
 
@@ -68,7 +68,7 @@ def get_code_review_experiment(
         return "baseline"
 
     # Get experiment configurations from Options
-    experiments: list[tuple[str, float]] = options.get("bug-prediction.experiments")
+    experiments: list[tuple[str, float]] = options.get("code-review.experiments")
 
     # Evaluate experiments in order - first match wins
     for experiment_name, rollout_rate in experiments:

@@ -4,10 +4,10 @@ from sentry.testutils.cases import TestCase
 
 
 class CodeReviewExperimentAssignmentTest(TestCase):
-    def test_fully_released_experiment(self):
+    def test_fully_released_experiment(self) -> None:
         """Rollout 1.0 means all PRs get the experiment."""
         org = self.create_organization(slug="test-org")
-        options.set("bug-prediction.experiments", [["test-exp", 1.0]])
+        options.set("code-review.experiments", [["test-exp", 1.0]])
 
         with self.feature("organizations:code-review-experiments-enabled"):
             # Test multiple PRs - all should get the experiment
@@ -15,30 +15,30 @@ class CodeReviewExperimentAssignmentTest(TestCase):
                 result = get_code_review_experiment(org, pr_id=str(pr_id))
                 assert result == "test-exp"
 
-    def test_disabled_experiment(self):
+    def test_disabled_experiment(self) -> None:
         """Rollout 0.0 means no PRs get the experiment."""
         org = self.create_organization(slug="test-org")
-        options.set("bug-prediction.experiments", [["test-exp", 0.0]])
+        options.set("code-review.experiments", [["test-exp", 0.0]])
 
         with self.feature("organizations:code-review-experiments-enabled"):
             for pr_id in range(10):
                 result = get_code_review_experiment(org, pr_id=str(pr_id))
                 assert result == "baseline"
 
-    def test_empty_experiments_list(self):
+    def test_empty_experiments_list(self) -> None:
         """Empty list means all PRs get baseline."""
         org = self.create_organization(slug="test-org")
-        options.set("bug-prediction.experiments", [])
+        options.set("code-review.experiments", [])
 
         with self.feature("organizations:code-review-experiments-enabled"):
             result = get_code_review_experiment(org, pr_id="123")
             assert result == "baseline"
 
-    def test_first_match_wins(self):
+    def test_first_match_wins(self) -> None:
         """When multiple experiments could match, first one wins."""
         org = self.create_organization(slug="test-org")
         options.set(
-            "bug-prediction.experiments",
+            "code-review.experiments",
             [
                 ["exp-1", 1.0],  # This will always match first
                 ["exp-2", 1.0],
@@ -49,10 +49,10 @@ class CodeReviewExperimentAssignmentTest(TestCase):
             result = get_code_review_experiment(org, pr_id="123")
             assert result == "exp-1"  # First match wins
 
-    def test_deterministic_per_pr_assignment(self):
+    def test_deterministic_per_pr_assignment(self) -> None:
         """Same PR always gets same result (deterministic hashing)."""
         org = self.create_organization(slug="test-org")
-        options.set("bug-prediction.experiments", [["test-exp", 0.5]])
+        options.set("code-review.experiments", [["test-exp", 0.5]])
 
         with self.feature("organizations:code-review-experiments-enabled"):
             # Call multiple times with same PR ID
@@ -63,10 +63,10 @@ class CodeReviewExperimentAssignmentTest(TestCase):
             # All results should be identical
             assert result1 == result2 == result3
 
-    def test_variable_assignment_across_prs(self):
+    def test_variable_assignment_across_prs(self) -> None:
         """Different PRs from same org can get different assignments."""
         org = self.create_organization(slug="test-org")
-        options.set("bug-prediction.experiments", [["test-exp", 0.5]])
+        options.set("code-review.experiments", [["test-exp", 0.5]])
 
         with self.feature("organizations:code-review-experiments-enabled"):
             results = set()
@@ -78,20 +78,20 @@ class CodeReviewExperimentAssignmentTest(TestCase):
             assert "baseline" in results
             assert "test-exp" in results
 
-    def test_org_not_eligible_always_baseline(self):
+    def test_org_not_eligible_always_baseline(self) -> None:
         """Orgs without flag enabled always get baseline."""
         org = self.create_organization(slug="not-eligible")
-        options.set("bug-prediction.experiments", [["test-exp", 1.0]])
+        options.set("code-review.experiments", [["test-exp", 1.0]])
 
         # Feature flag NOT enabled for this org
         result = get_code_review_experiment(org, pr_id="123")
         assert result == "baseline"
 
-    def test_multiple_experiments_cascading(self):
+    def test_multiple_experiments_cascading(self) -> None:
         """Multiple experiments evaluated in order until match."""
         org = self.create_organization(slug="test-org")
         options.set(
-            "bug-prediction.experiments",
+            "code-review.experiments",
             [
                 ["exp-1", 0.0],  # Disabled - skip
                 ["exp-2", 0.3],  # 30% of PRs
@@ -112,10 +112,10 @@ class CodeReviewExperimentAssignmentTest(TestCase):
             assert results["exp-3"] > 0  # Some get exp-3
             assert results["baseline"] > 0  # Some get baseline
 
-    def test_user_parameter_optional(self):
+    def test_user_parameter_optional(self) -> None:
         """User parameter is optional for assignment."""
         org = self.create_organization(slug="test-org")
-        options.set("bug-prediction.experiments", [["test-exp", 1.0]])
+        options.set("code-review.experiments", [["test-exp", 1.0]])
 
         with self.feature("organizations:code-review-experiments-enabled"):
             # Should work without user

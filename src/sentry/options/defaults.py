@@ -1117,7 +1117,7 @@ register(
 # rollout_rate: 0.0 = disabled, 1.0 = fully released, 0.5 = 50% of PRs
 # Example: [["noop-experiment", 0.5], ["cost-optimized", 0.3]]
 register(
-    "bug-prediction.experiments",
+    "code-review.experiments",
     default=[],
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
