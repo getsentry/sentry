@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0053_add_response_capture_enabled
 
-workflow_engine: 0105_add_incident_identifer_index
+workflow_engine: 0106_migrate_actions_sentry_app_data
