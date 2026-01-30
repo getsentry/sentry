@@ -14,7 +14,7 @@ import type {
   CategoricalValueType,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-export interface BarConfig {
+export interface BarsConfig {
   /**
    * A friendly name for this plottable, used in legends and tooltips.
    */
@@ -123,9 +123,9 @@ export interface CategoricalBarChartPlottable {
  */
 export class Bars implements CategoricalBarChartPlottable {
   readonly categoricalSeries: CategoricalSeries;
-  readonly config: BarConfig;
+  readonly config: BarsConfig;
 
-  constructor(categoricalSeries: CategoricalSeries, config: BarConfig = {}) {
+  constructor(categoricalSeries: CategoricalSeries, config: BarsConfig = {}) {
     this.categoricalSeries = categoricalSeries;
     this.config = config;
   }
