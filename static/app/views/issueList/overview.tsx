@@ -917,6 +917,8 @@ function IssueListOverview({
             paginationAnalyticsEvent={paginationAnalyticsEvent}
             issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
             pageSize={MAX_ITEMS}
+            onSortChange={onSortChange}
+            sort={sort}
           />
         </StyledMain>
       </StyledBody>

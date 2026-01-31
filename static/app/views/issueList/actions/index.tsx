@@ -49,6 +49,8 @@ type IssueListActionsProps = {
   selection: PageFilters;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
+  onSortChange?: (sort: string) => void;
+  sort?: string;
 };
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -76,6 +78,8 @@ function ActionsBarPriority({
   isSavedSearchesOpen,
   statsPeriod,
   selection,
+  onSortChange,
+  sort,
 }: {
   allInQuerySelected: boolean;
   anySelected: boolean;
@@ -94,6 +98,8 @@ function ActionsBarPriority({
   selectedProjectSlug: string | undefined;
   selection: PageFilters;
   statsPeriod: string;
+  onSortChange?: (sort: string) => void;
+  sort?: string;
 }) {
   const shouldDisplayActions = anySelected && !narrowViewport;
 
@@ -141,6 +147,8 @@ function ActionsBarPriority({
               statsPeriod={statsPeriod}
               isReprocessingQuery={displayReprocessingActions}
               isSavedSearchesOpen={isSavedSearchesOpen}
+              onSortChange={onSortChange}
+              sort={sort}
             />
           </AnimatedHeaderItemsContainer>
         )}
@@ -160,6 +168,8 @@ function IssueListActions({
   query,
   selection,
   statsPeriod,
+  onSortChange,
+  sort,
 }: IssueListActionsProps) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -368,6 +378,8 @@ function IssueListActions({
         isSavedSearchesOpen={isSavedSearchesOpen}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}
+        onSortChange={onSortChange}
+        sort={sort}
       />
       {!allResultsVisible && pageSelected && (
         <Alert system variant="warning" showIcon={false}>
