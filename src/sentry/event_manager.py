@@ -1319,9 +1319,7 @@ def assign_event_to_group(
 
     # If we've found one, great. No need to do any more calculations
     if primary.existing_grouphash:
-        group_info = handle_existing_grouphash(
-            job, primary.existing_grouphash, primary.grouphashes
-        )
+        group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         # If handle_existing_grouphash returns None (e.g., group is being deleted), create a new group
         if group_info:
             result = "found_primary"
@@ -1358,9 +1356,7 @@ def assign_event_to_group(
             )
 
             if seer_matched_grouphash:
-                group_info = handle_existing_grouphash(
-                    job, seer_matched_grouphash, all_grouphashes
-                )
+                group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
                 # If handle_existing_grouphash returns None (e.g., group is being deleted), create a new group
                 if not group_info:
                     group_info = create_group_with_grouphashes(job, all_grouphashes)
