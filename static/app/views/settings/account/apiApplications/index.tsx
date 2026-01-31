@@ -19,6 +19,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -33,7 +34,7 @@ export default function ApiApplications() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const ENDPOINT = '/api-applications/';
+  const ENDPOINT = getApiUrl('/api-applications/');
 
   const {
     data: appList = [],

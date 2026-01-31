@@ -20,6 +20,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -43,7 +44,13 @@ function HookStats() {
     refetch,
   } = useApiQuery<Array<{total: number; ts: number}>>(
     [
-      `/projects/${organization.slug}/${projectId}/hooks/${hookId}/stats/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/`, {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          hookId,
+        },
+      }),
       {
         query: {
           since,
@@ -115,7 +122,15 @@ export default function ProjectServiceHookDetails() {
     isError,
     refetch,
   } = useApiQuery<ServiceHook>(
-    [`/projects/${organization.slug}/${projectId}/hooks/${hookId}/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/`, {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          hookId,
+        },
+      }),
+    ],
     {staleTime: 0}
   );
 

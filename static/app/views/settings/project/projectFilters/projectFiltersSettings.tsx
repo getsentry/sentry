@@ -41,6 +41,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -424,10 +425,17 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
-    staleTime: 0,
-    gcTime: 0,
-  });
+  } = useApiQuery<Filter[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      gcTime: 0,
+    }
+  );
 
   const filterList = filterListData ?? [];
 

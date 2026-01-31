@@ -17,6 +17,7 @@ import type {
   PluginProjectItem,
   PluginWithProjectList,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {
   setApiQueryData,
@@ -51,7 +52,12 @@ function makePluginQueryKey({
   orgSlug: string;
   pluginSlug: string;
 }): ApiQueryKey {
-  return [`/organizations/${orgSlug}/plugins/configs/`, {query: {plugins: pluginSlug}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {plugins: pluginSlug}},
+  ];
 }
 
 function PluginDetailedView() {

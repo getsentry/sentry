@@ -21,6 +21,7 @@ import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -76,9 +77,16 @@ export default function ProjectServiceHooks() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<ServiceHook[]>([`/projects/${organization.slug}/${projectId}/hooks/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<ServiceHook[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const onToggleActiveMutation = useMutation({
     mutationFn: ({hook}: {hook: ServiceHook}) => {
@@ -99,7 +107,11 @@ export default function ProjectServiceHooks() {
       clearIndicators();
       setApiQueryData<ServiceHook[]>(
         queryClient,
-        [`/projects/${organization.slug}/${projectId}/hooks/`],
+        [
+          getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/`, {
+            path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+          }),
+        ],
         oldHookList => {
           return oldHookList?.map(h => {
             if (h.id === data.id) {

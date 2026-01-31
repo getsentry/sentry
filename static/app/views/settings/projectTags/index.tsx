@@ -22,6 +22,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -52,7 +53,11 @@ export default function ProjectTags() {
     isPending,
     isError,
   } = useApiQuery<TagWithTopValues[]>(
-    [`/projects/${organization.slug}/${project.slug}/tags/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
     {staleTime: 0}
   );
 
@@ -64,7 +69,14 @@ export default function ProjectTags() {
     onSuccess: (_, {key}) => {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
-        [`/projects/${organization.slug}/${project.slug}/tags/`],
+        [
+          getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/`, {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+        ],
         oldTags => oldTags?.filter(tag => tag.key !== key)
       );
     },

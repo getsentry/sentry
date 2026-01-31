@@ -11,6 +11,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
@@ -48,7 +49,9 @@ export function ProjectFiltersChart({project}: Props) {
 
   const {data, isError, isPending, refetch} = useApiQuery<UsageSeries>(
     [
-      `/organizations/${organization.slug}/stats_v2/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: project.id,

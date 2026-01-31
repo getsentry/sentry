@@ -22,13 +22,16 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const EMPTY_ARRAY: any = [];
-const IDENTITIES_ENDPOINT = '/users/me/user-identities/';
+const IDENTITIES_ENDPOINT = getApiUrl('/users/$userId/user-identities/', {
+  path: {userId: 'me'},
+});
 
 function itemOrder(a: UserIdentityConfig, b: UserIdentityConfig) {
   function categoryRank(c: UserIdentityConfig) {

@@ -6,6 +6,7 @@ import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +24,12 @@ function OrganizationRepositoriesContainer() {
     isError,
     getResponseHeader,
   } = useApiQuery<Repository[]>(
-    [`/organizations/${organization.slug}/repos/`, {query: location.query}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: location.query},
+    ],
     {staleTime: 0}
   );
   const itemListPageLinks = getResponseHeader?.('Link');
@@ -40,7 +46,12 @@ function OrganizationRepositoriesContainer() {
   function onRepositoryChange(data: Pick<Repository, 'id' | 'status'>) {
     setApiQueryData<Repository[]>(
       queryClient,
-      [`/organizations/${organization.slug}/repos/`, {query: location.query}],
+      [
+        getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {query: location.query},
+      ],
       oldItemList =>
         oldItemList?.map(item =>
           item.id === data.id ? {...item, status: data.status} : item

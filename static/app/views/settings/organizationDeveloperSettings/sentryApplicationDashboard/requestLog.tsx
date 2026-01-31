@@ -26,6 +26,7 @@ import type {
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -121,7 +122,12 @@ function makeRequestLogQueryKey(
   slug: string,
   query: Record<string, string>
 ): ApiQueryKey {
-  return [`/sentry-apps/${slug}/webhook-requests/`, {query}];
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/webhook-requests/`, {
+      path: {sentryAppIdOrSlug: slug},
+    }),
+    {query},
+  ];
 }
 
 export default function RequestLog({app}: RequestLogProps) {
