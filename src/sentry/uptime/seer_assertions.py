@@ -192,7 +192,7 @@ def suggestions_to_combined_assertion(
     }
 
 
-async def generate_assertion_suggestions(
+def generate_assertion_suggestions(
     organization: Organization,
     user: User,
     preview_result: dict[str, Any],
@@ -207,44 +207,42 @@ async def generate_assertion_suggestions(
 
     Returns:
         AssertionSuggestions if successful, None if Seer is unavailable or fails
+
+    Raises:
+        Exception: If Seer fails (let caller handle for proper error reporting)
     """
     # Check feature flag
     if not features.has("organizations:seer-explorer", organization, actor=user):
         logger.info("Seer Explorer not enabled for organization %s", organization.slug)
         return None
 
-    try:
-        from sentry.seer.explorer.client import SeerExplorerClient
+    from sentry.seer.explorer.client import SeerExplorerClient
 
-        # Parse the preview response
-        response_data = parse_preview_response(preview_result)
+    # Parse the preview response
+    response_data = parse_preview_response(preview_result)
 
-        if not response_data.get("status_code"):
-            logger.warning("No status code in preview result, skipping Seer suggestions")
-            return None
-
-        # Build the prompt
-        prompt = build_assertion_prompt(response_data)
-
-        # Create Seer client and start run
-        client = SeerExplorerClient(organization, user)
-        run_id = client.start_run(
-            prompt,
-            artifact_key="assertions",
-            artifact_schema=AssertionSuggestions,
-        )
-
-        # Wait for result (with timeout)
-        state = client.get_run(run_id, blocking=True)
-
-        if state.status != "completed":
-            logger.warning("Seer run did not complete successfully: %s", state.status)
-            return None
-
-        # Get the artifact
-        suggestions = state.get_artifact("assertions", AssertionSuggestions)
-        return suggestions
-
-    except Exception as e:
-        logger.exception("Error generating assertion suggestions: %s", e)
+    if not response_data.get("status_code"):
+        logger.warning("No status code in preview result, skipping Seer suggestions")
         return None
+
+    # Build the prompt
+    prompt = build_assertion_prompt(response_data)
+
+    # Create Seer client and start run
+    client = SeerExplorerClient(organization, user)
+    run_id = client.start_run(
+        prompt,
+        artifact_key="assertions",
+        artifact_schema=AssertionSuggestions,
+    )
+
+    # Wait for result (with timeout)
+    state = client.get_run(run_id, blocking=True)
+
+    if state.status != "completed":
+        logger.warning("Seer run did not complete successfully: %s", state.status)
+        return None
+
+    # Get the artifact
+    suggestions = state.get_artifact("assertions", AssertionSuggestions)
+    return suggestions

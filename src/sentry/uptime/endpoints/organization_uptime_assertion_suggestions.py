@@ -5,7 +5,6 @@ This endpoint runs a preview check and uses Seer to analyze the response
 and suggest assertions that would be useful for monitoring the endpoint.
 """
 
-import asyncio
 import logging
 
 from drf_spectacular.utils import extend_schema
@@ -131,24 +130,20 @@ class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
         preview_result = result.json()
 
         # Generate suggestions using Seer
+        seer_error = None
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                suggestions = loop.run_until_complete(
-                    generate_assertion_suggestions(organization, request.user, preview_result)
-                )
-            finally:
-                loop.close()
-        except Exception:
+            suggestions = generate_assertion_suggestions(organization, request.user, preview_result)
+        except Exception as e:
             logger.exception("Error generating assertion suggestions")
             suggestions = None
+            seer_error = str(e)
 
         # Build response
         response_data = {
             "preview_result": preview_result,
             "suggestions": None,
             "suggested_assertion": None,
+            "seer_error": seer_error,
         }
 
         if suggestions and suggestions.suggestions:
