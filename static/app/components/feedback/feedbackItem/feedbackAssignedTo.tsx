@@ -37,7 +37,7 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
           path: {
             organizationIdOrSlug: organization.slug,
             projectIdOrSlug: project.slug,
-            eventId: feedbackEvent?.id!,
+            eventId: feedbackEvent?.id,
           },
         }
       ),

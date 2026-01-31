@@ -25,8 +25,8 @@ export default function useRedirectToFeedbackFromEvent() {
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/', {
         path: {
           organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectSlug!,
-          eventId: eventId!,
+          projectIdOrSlug: projectSlug,
+          eventId,
         },
       }),
     ],
