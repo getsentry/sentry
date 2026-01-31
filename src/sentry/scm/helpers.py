@@ -5,14 +5,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import (
-    SCMIntegrationNotFound,
-    SCMRateLimitExceeded,
-    SCMRepositoryInactive,
-    SCMRepositoryNotFound,
-    SCMRepositoryOrganizationMismatch,
-    SCMUnsupportedIntegrationSpecified,
-)
+from sentry.scm.errors import SCMCodedError
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
@@ -67,7 +60,7 @@ def map_integration_to_provider(
     if integration.provider == "github":
         return GitHubProvider(client)
     else:
-        raise SCMUnsupportedIntegrationSpecified(integration.provider)
+        raise SCMCodedError(integration.provider, code="integration_not_found")
 
 
 def map_repository_model_to_repository(repository: RepositoryModel) -> Repository:
@@ -85,7 +78,7 @@ def fetch_service_provider(organization_id: int, integration_id: int) -> Provide
         organization_id=organization_id,
     )
     if not integration:
-        raise SCMIntegrationNotFound()
+        raise SCMCodedError(code="integration_not_found")
 
     return map_integration_to_provider(organization_id, integration)
 
@@ -119,14 +112,14 @@ def exec_provider_fn[T](
 ) -> T:
     repository = fetch_repository(organization_id, repository_id)
     if not repository:
-        raise SCMRepositoryNotFound(organization_id, repository_id)
+        raise SCMCodedError(organization_id, repository_id, code="repository_not_found")
     if repository["status"] != "active":
-        raise SCMRepositoryInactive(repository)
+        raise SCMCodedError(repository, code="repository_inactive")
     if repository["organization_id"] != organization_id:
-        raise SCMRepositoryOrganizationMismatch(repository)
+        raise SCMCodedError(repository, code="repository_organization_mismatch")
 
     provider = fetch_service_provider(organization_id, repository["integration_id"])
     if provider.is_rate_limited(organization_id, referrer):
-        raise SCMRateLimitExceeded(provider, organization_id, referrer)
+        raise SCMCodedError(provider, organization_id, referrer, code="rate_limit_exceeded")
 
     return provider_fn(repository, provider)
