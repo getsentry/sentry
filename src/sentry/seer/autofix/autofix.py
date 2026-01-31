@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
@@ -457,7 +457,7 @@ def _call_autofix(
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
                 "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding", default=True
+                    "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
                 ),
                 "stopping_point": stopping_point,
             },
