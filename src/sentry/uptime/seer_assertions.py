@@ -241,8 +241,18 @@ def generate_assertion_suggestions(
     logger.info("Seer run completed with status=%s", state.status)
 
     if state.status != "completed":
-        logger.warning("Seer run did not complete successfully: %s", state.status)
-        return None, f"Seer run status: {state.status}"
+        # Try to extract error info from blocks
+        error_details = []
+        for block in state.blocks:
+            if block.message and block.message.content:
+                error_details.append(block.message.content[:500])
+        error_info = "; ".join(error_details) if error_details else "No error details in blocks"
+        logger.warning(
+            "Seer run did not complete successfully: status=%s, details=%s",
+            state.status,
+            error_info,
+        )
+        return None, f"Seer run status: {state.status}. Details: {error_info}"
 
     # Get the artifact
     suggestions = state.get_artifact("assertions", AssertionSuggestions)
