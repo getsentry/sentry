@@ -233,6 +233,24 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200
 
+    def test_active_superuser_with_membership_has_access(self) -> None:
+        """Active superuser can access replay data even when not in allowlist"""
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(organization=self.organization, user=superuser)
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            self.login_as(superuser, superuser=True)
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url)
+            assert response.status_code == 200
+
     def test_staff_access_with_empty_allowlist(self) -> None:
         """Staff can access replay data even when allowlist is empty"""
         staff_user = self.create_user(is_staff=True)
@@ -244,6 +262,40 @@ class TestReplayGranularPermissions(APITestCase):
             self._enable_granular_permissions()
 
             self.login_as(staff_user, staff=True)
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url)
+            assert response.status_code == 200
+
+    def test_active_superuser_without_membership_has_access(self) -> None:
+        """Active superuser can access replay data even when not an org member"""
+        superuser = self.create_user(is_superuser=True)
+        # Note: superuser is NOT added as org member
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            self.login_as(superuser, superuser=True)
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url)
+            assert response.status_code == 200
+
+    def test_active_superuser_without_membership_empty_allowlist(self) -> None:
+        """Active superuser can access replay data even with empty allowlist and no org membership"""
+        superuser = self.create_user(is_superuser=True)
+        # Note: superuser is NOT added as org member
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            # No allowlist records created
+
+            self.login_as(superuser, superuser=True)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(url)
             assert response.status_code == 200
