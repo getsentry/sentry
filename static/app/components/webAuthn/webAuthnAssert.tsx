@@ -17,6 +17,30 @@ import type {ChallengeData} from 'sentry/types/auth';
 
 import {handleSign} from './handlers';
 
+/**
+ * Syncs the CSRF token from the cookie to the form's hidden input field.
+ * This is needed because form.submit() does NOT fire the 'submit' event,
+ * so the global submit listener in auth.html won't catch it. We must
+ * manually sync the token before calling form.submit().
+ */
+function syncCsrfToken(form: HTMLFormElement) {
+  const cookieName = (window as any).csrfCookieName || 'sc';
+  const prefix = `${cookieName}=`;
+  const csrfCookie = document.cookie.split('; ').find(row => row.startsWith(prefix));
+
+  if (csrfCookie) {
+    // Use substring instead of split('=')[1] to preserve any '=' characters
+    // in the cookie value (e.g., base64 padding)
+    const csrfValue = decodeURIComponent(csrfCookie.substring(prefix.length));
+    const csrfInput = form.querySelector<HTMLInputElement>(
+      'input[name="csrfmiddlewaretoken"]'
+    );
+    if (csrfInput) {
+      csrfInput.value = csrfValue;
+    }
+  }
+}
+
 interface WebAuthnParams {
   challenge: string;
   response: string;
@@ -109,10 +133,14 @@ export function WebAuthnAssert({
   // submitted once the response is set.
   const shouldSubmitForm = !onWebAuthn && response !== null;
 
-  useEffect(
-    () => void (shouldSubmitForm && inputRef.current?.form?.submit()),
-    [shouldSubmitForm]
-  );
+  useEffect(() => {
+    if (shouldSubmitForm && inputRef.current?.form) {
+      // Sync CSRF token before submit. form.submit() doesn't fire the 'submit'
+      // event, so we must manually sync the token here for multi-tab scenarios.
+      syncCsrfToken(inputRef.current.form);
+      inputRef.current.form.submit();
+    }
+  }, [shouldSubmitForm]);
 
   // Trigger the webAuthn flow immediately
   useEffect(() => {
