@@ -196,7 +196,7 @@ def generate_assertion_suggestions(
     organization: Organization,
     user: User,
     preview_result: dict[str, Any],
-) -> AssertionSuggestions | None:
+) -> tuple[AssertionSuggestions | None, str | None]:
     """
     Generate assertion suggestions using Seer based on preview check results.
 
@@ -206,27 +206,26 @@ def generate_assertion_suggestions(
         preview_result: The JSON response from the uptime preview check
 
     Returns:
-        AssertionSuggestions if successful, None if Seer is unavailable or fails
-
-    Raises:
-        Exception: If Seer fails (let caller handle for proper error reporting)
+        Tuple of (AssertionSuggestions or None, debug_info string or None)
     """
     # Check feature flag
     if not features.has("organizations:seer-explorer", organization, actor=user):
         logger.info("Seer Explorer not enabled for organization %s", organization.slug)
-        return None
+        return None, "Feature flag 'seer-explorer' not enabled for organization"
 
     from sentry.seer.explorer.client import SeerExplorerClient
 
     # Parse the preview response
     response_data = parse_preview_response(preview_result)
+    logger.info("Parsed response data: %s", response_data)
 
     if not response_data.get("status_code"):
         logger.warning("No status code in preview result, skipping Seer suggestions")
-        return None
+        return None, f"No status_code in parsed response. Got: {response_data}"
 
     # Build the prompt
     prompt = build_assertion_prompt(response_data)
+    logger.info("Built prompt for Seer (length=%d)", len(prompt))
 
     # Create Seer client and start run
     client = SeerExplorerClient(organization, user)
@@ -235,14 +234,21 @@ def generate_assertion_suggestions(
         artifact_key="assertions",
         artifact_schema=AssertionSuggestions,
     )
+    logger.info("Started Seer run with id=%d", run_id)
 
     # Wait for result (with timeout)
     state = client.get_run(run_id, blocking=True)
+    logger.info("Seer run completed with status=%s", state.status)
 
     if state.status != "completed":
         logger.warning("Seer run did not complete successfully: %s", state.status)
-        return None
+        return None, f"Seer run status: {state.status}"
 
     # Get the artifact
     suggestions = state.get_artifact("assertions", AssertionSuggestions)
-    return suggestions
+    if suggestions is None:
+        logger.warning("No artifact returned from Seer")
+        return None, "Seer completed but no artifact returned"
+
+    logger.info("Got %d suggestions from Seer", len(suggestions.suggestions))
+    return suggestions, None
