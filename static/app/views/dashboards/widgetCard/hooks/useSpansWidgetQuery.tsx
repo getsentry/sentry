@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import trimStart from 'lodash/trimStart';
 
 import type {ApiResult} from 'sentry/api';
@@ -36,6 +36,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -67,8 +68,6 @@ export function useSpansSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  // Cache the previous rawData array to prevent unnecessary rerenders
-  const prevRawDataRef = useRef<SpansSeriesResponse[] | undefined>(undefined);
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -151,7 +150,9 @@ export function useSpansSeriesQuery(
       },
     [queue]
   );
-  const queryResults = useQueries({
+  const combine = useCombinedQueryResults<SpansSeriesResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
@@ -161,13 +162,10 @@ export function useSpansSeriesQuery(
       // Keep data from previous query keys while fetching new data
       placeholderData: (previousData: unknown) => previousData,
     })),
+    combine,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       // If there's an error and we're not fetching, we're done loading
       const loading = isFetching || !errorMessage;
@@ -183,12 +181,12 @@ export function useSpansSeriesQuery(
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
     const rawData: SpansSeriesResponse[] = [];
 
-    queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, requestIndex) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = data[0];
 
       rawData[requestIndex] = responseData;
 
@@ -221,30 +219,15 @@ export function useSpansSeriesQuery(
       }
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    // Compare each data object reference - if they're all the same, reuse previous array
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [isFetching, allHaveData, errorMessage, queryData, filteredWidget, organization]);
 
   return transformedData;
 }
@@ -271,7 +254,6 @@ export function useSpansTableQuery(
 
   const {queue} = useWidgetQueryQueue();
 
-  const prevRawDataRef = useRef<SpansTableResponse[] | undefined>(undefined);
   const filteredWidget = useMemo(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
@@ -360,7 +342,9 @@ export function useSpansTableQuery(
 
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
-  const queryResults = useQueries({
+  const combineTable = useCombinedQueryResults<SpansTableResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
@@ -368,13 +352,10 @@ export function useSpansTableQuery(
       enabled,
       retry: false,
     })),
+    combine: combineTable,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       // If there's an error and we're not fetching, we're done loading
       const loading = isFetching || !errorMessage;
@@ -389,13 +370,13 @@ export function useSpansTableQuery(
     const rawData: SpansTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
-    queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, i) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = data[0];
+      const responseMeta = data[2];
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -426,29 +407,22 @@ export function useSpansTableQuery(
       responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    // Compare each data object reference - if they're all the same, reuse previous array
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [
+    isFetching,
+    allHaveData,
+    errorMessage,
+    queryData,
+    filteredWidget,
+    organization,
+    pageFilters,
+  ]);
 
   return transformedData;
 }

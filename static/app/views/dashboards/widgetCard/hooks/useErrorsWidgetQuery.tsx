@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {ApiResult} from 'sentry/api';
@@ -28,6 +28,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 
 type ErrorsSeriesResponse =
   | EventsStats
@@ -50,7 +51,6 @@ export function useErrorsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<ErrorsSeriesResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -123,7 +123,9 @@ export function useErrorsSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
-  const queryResults = useQueries({
+  const combine = useCombinedQueryResults<ErrorsSeriesResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
@@ -139,13 +141,10 @@ export function useErrorsSeriesQuery(
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
+    combine,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
@@ -158,12 +157,12 @@ export function useErrorsSeriesQuery(
     const timeseriesResults: Series[] = [];
     const rawData: ErrorsSeriesResponse[] = [];
 
-    queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, requestIndex) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = data[0];
       rawData[requestIndex] = responseData;
 
       const transformedResult = ErrorsConfig.transformSeries!(
@@ -177,25 +176,13 @@ export function useErrorsSeriesQuery(
       });
     });
 
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [isFetching, allHaveData, errorMessage, queryData, filteredWidget, organization]);
 
   return transformedData;
 }
@@ -215,7 +202,6 @@ export function useErrorsTableQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<ErrorsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -295,7 +281,9 @@ export function useErrorsTableQuery(
     'visibility-dashboards-async-queue'
   );
 
-  const queryResults = useQueries({
+  const combine = useCombinedQueryResults<ErrorsTableResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
@@ -310,13 +298,10 @@ export function useErrorsTableQuery(
             return false;
           },
     })),
+    combine,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
@@ -330,13 +315,13 @@ export function useErrorsTableQuery(
     const rawData: ErrorsTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
-    queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, i) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = data[0];
+      const responseMeta = data[2];
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -354,26 +339,22 @@ export function useErrorsTableQuery(
       responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
     });
 
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [
+    isFetching,
+    allHaveData,
+    errorMessage,
+    queryData,
+    filteredWidget,
+    organization,
+    pageFilters,
+  ]);
 
   return transformedData;
 }

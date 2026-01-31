@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {ApiResult} from 'sentry/api';
@@ -32,6 +32,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 
 type TransactionsSeriesResponse =
   | EventsStats
@@ -62,7 +63,6 @@ export function useTransactionsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<TransactionsSeriesResponse[] | undefined>(undefined);
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -195,7 +195,9 @@ export function useTransactionsSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
-  const queryResults = useQueries({
+  const combine = useCombinedQueryResults<TransactionsSeriesResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map((queryKey, queryIndex) => ({
       queryKey,
       queryFn: createQueryFn(queryIndex),
@@ -213,13 +215,10 @@ export function useTransactionsSeriesQuery(
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
+    combine,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
@@ -232,12 +231,12 @@ export function useTransactionsSeriesQuery(
     const timeseriesResults: Series[] = [];
     const rawData: TransactionsSeriesResponse[] = [];
 
-    queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, requestIndex) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = data[0];
       rawData[requestIndex] = responseData;
 
       const transformedResult = TransactionsConfig.transformSeries!(
@@ -252,27 +251,13 @@ export function useTransactionsSeriesQuery(
       });
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [isFetching, allHaveData, errorMessage, queryData, filteredWidget, organization]);
 
   return transformedData;
 }
@@ -299,7 +284,6 @@ export function useTransactionsTableQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<TransactionsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -406,7 +390,9 @@ export function useTransactionsTableQuery(
     'visibility-dashboards-async-queue'
   );
 
-  const queryResults = useQueries({
+  const combineTable = useCombinedQueryResults<TransactionsTableResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
@@ -423,13 +409,10 @@ export function useTransactionsTableQuery(
             return false;
           },
     })),
+    combine: combineTable,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
@@ -443,13 +426,13 @@ export function useTransactionsTableQuery(
     const rawData: TransactionsTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
-    queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, i) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = data[0];
+      const responseMeta = data[2];
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -468,28 +451,22 @@ export function useTransactionsTableQuery(
       responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [
+    isFetching,
+    allHaveData,
+    errorMessage,
+    queryData,
+    filteredWidget,
+    organization,
+    pageFilters,
+  ]);
 
   return transformedData;
 }

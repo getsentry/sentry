@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
@@ -17,6 +17,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 
 type MobileAppSizeSeriesResponse = EventsStats | MultiSeriesEventsStats;
 
@@ -39,7 +40,6 @@ export function useMobileAppSizeSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<MobileAppSizeSeriesResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -121,7 +121,9 @@ export function useMobileAppSizeSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
-  const queryResults = useQueries({
+  const combine = useCombinedQueryResults<MobileAppSizeSeriesResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
@@ -139,14 +141,10 @@ export function useMobileAppSizeSeriesQuery(
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
+    combine,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const error = queryResults.find(q => q?.error)?.error as any;
-    const errorMessage = error?.responseJSON?.detail || error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
@@ -161,12 +159,12 @@ export function useMobileAppSizeSeriesQuery(
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
     const rawData: MobileAppSizeSeriesResponse[] = [];
 
-    queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, requestIndex) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = data[0];
       rawData[requestIndex] = responseData;
 
       const transformedResult = MobileAppSizeConfig.transformSeries!(
@@ -198,27 +196,15 @@ export function useMobileAppSizeSeriesQuery(
       }
     });
 
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [isFetching, allHaveData, errorMessage, queryData, filteredWidget, organization]);
 
   return transformedData;
 }

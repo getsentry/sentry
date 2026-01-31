@@ -21,6 +21,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {useCombinedQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineQueryResults';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
@@ -43,7 +44,6 @@ export function useIssuesSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<IssuesSeriesResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -130,7 +130,9 @@ export function useIssuesSeriesQuery(
     [queue]
   );
 
-  const queryResults = useQueries({
+  const combine = useCombinedQueryResults<IssuesSeriesResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
@@ -139,13 +141,10 @@ export function useIssuesSeriesQuery(
       retry: false,
       placeholderData: (previousData: unknown) => previousData,
     })),
+    combine,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
@@ -158,12 +157,12 @@ export function useIssuesSeriesQuery(
     const timeseriesResults: Series[] = [];
     const rawData: IssuesSeriesResponse[] = [];
 
-    queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, requestIndex) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = data[0];
       rawData[requestIndex] = responseData;
 
       const transformedResult = IssuesConfig.transformSeries!(
@@ -177,25 +176,13 @@ export function useIssuesSeriesQuery(
       });
     });
 
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [isFetching, allHaveData, errorMessage, queryData, filteredWidget, organization]);
 
   return transformedData;
 }
@@ -215,7 +202,6 @@ export function useIssuesTableQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<IssuesTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -285,7 +271,9 @@ export function useIssuesTableQuery(
     [queue]
   );
 
-  const queryResults = useQueries({
+  const combineTable = useCombinedQueryResults<IssuesTableResponse>();
+
+  const {isFetching, allHaveData, errorMessage, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
@@ -293,26 +281,23 @@ export function useIssuesTableQuery(
       enabled,
       retry: false,
     })),
+    combine: combineTable,
   });
 
   // Populate GroupStore in effect (outside render phase)
   // Track by data reference to avoid redundant calls
   const prevGroupDataRef = useRef<IssuesTableResponse[]>([]);
   useEffect(() => {
-    queryResults.forEach((q, i) => {
-      const data = q?.data?.[0];
-      if (data && data !== prevGroupDataRef.current[i]) {
-        GroupStore.add(data);
-        prevGroupDataRef.current[i] = data;
+    queryData.forEach((data, i) => {
+      const responseData = data?.[0];
+      if (responseData && responseData !== prevGroupDataRef.current[i]) {
+        GroupStore.add(responseData);
+        prevGroupDataRef.current[i] = responseData;
       }
     });
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
-
+  const transformedData = useMemo(() => {
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
@@ -326,13 +311,13 @@ export function useIssuesTableQuery(
     const rawData: IssuesTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
-    queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, i) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = data[0];
+      const responseMeta = data[2];
       rawData[i] = responseData;
 
       const transformedDataItem = {
@@ -350,26 +335,22 @@ export function useIssuesTableQuery(
       responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
     });
 
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [
+    isFetching,
+    allHaveData,
+    errorMessage,
+    queryData,
+    filteredWidget,
+    organization,
+    pageFilters,
+  ]);
 
   return transformedData;
 }

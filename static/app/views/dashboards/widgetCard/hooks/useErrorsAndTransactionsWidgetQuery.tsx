@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
@@ -18,8 +18,9 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseQueryResult} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   doOnDemandMetricsRequest,
@@ -44,6 +45,17 @@ type ErrorsAndTransactionsSeriesResponse =
 type ErrorsAndTransactionsTableResponse = TableData | EventsTableData;
 
 const EMPTY_ARRAY: any[] = [];
+
+function combineQueryResultsWithFullError<T>(
+  results: Array<UseQueryResult<ApiResult<T>, Error>>
+) {
+  return {
+    isFetching: results.some(q => q?.isFetching),
+    allHaveData: results.every(q => q?.data?.[0]),
+    firstError: results.find(q => q?.error)?.error as RequestError | undefined,
+    queryData: results.map(q => q.data),
+  };
+}
 
 function getQueryExtraForSplittingDiscover(
   widget: Widget,
@@ -74,9 +86,6 @@ export function useErrorsAndTransactionsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<ErrorsAndTransactionsSeriesResponse[] | undefined>(
-    undefined
-  );
 
   const filteredWidget = useMemo(
     () =>
@@ -214,7 +223,16 @@ export function useErrorsAndTransactionsSeriesQuery(
     'visibility-dashboards-async-queue'
   );
 
-  const queryResults = useQueries({
+  const stableCombine = useCallback(
+    (
+      results: Parameters<
+        typeof combineQueryResultsWithFullError<ErrorsAndTransactionsSeriesResponse>
+      >[0]
+    ) => combineQueryResultsWithFullError<ErrorsAndTransactionsSeriesResponse>(results),
+    []
+  );
+
+  const {isFetching, allHaveData, firstError, queryData} = useQueries({
     queries: queryKeys.map((queryKey, queryIndex) => ({
       queryKey,
       queryFn: createQueryFn(queryIndex),
@@ -230,29 +248,26 @@ export function useErrorsAndTransactionsSeriesQuery(
           },
       placeholderData: (previousData: unknown) => previousData,
     })),
+    combine: stableCombine,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const error = queryResults.find(q => q?.error)?.error as any;
-
+  const transformedData = useMemo(() => {
     const errorMessage = (() => {
-      if (!error) {
+      if (!firstError) {
         return undefined;
       }
 
-      if (error.responseJSON?.detail) {
-        if (typeof error.responseJSON.detail === 'string') {
-          return error.responseJSON.detail;
+      if (firstError.responseJSON?.detail) {
+        if (typeof firstError.responseJSON.detail === 'string') {
+          return firstError.responseJSON.detail;
         }
-        if (error.responseJSON.detail.message) {
-          return error.responseJSON.detail.message;
+        if (firstError.responseJSON.detail.message) {
+          return firstError.responseJSON.detail.message;
         }
-        return error.message || 'An unknown error occurred.';
+        return firstError.message || 'An unknown error occurred.';
       }
 
-      return error.message || 'An unknown error occurred.';
+      return firstError.message || 'An unknown error occurred.';
     })();
 
     if (!allHaveData || isFetching) {
@@ -267,12 +282,12 @@ export function useErrorsAndTransactionsSeriesQuery(
     const timeseriesResultsTypes: Record<string, any> = {};
     const rawData: ErrorsAndTransactionsSeriesResponse[] = [];
 
-    queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, requestIndex) => {
+      if (!data?.[0]) {
         return;
       }
 
-      let responseData = q.data[0];
+      let responseData = data[0];
 
       if (
         hasDatasetSelector(organization) &&
@@ -306,26 +321,22 @@ export function useErrorsAndTransactionsSeriesQuery(
       }
     });
 
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [
+    isFetching,
+    allHaveData,
+    firstError,
+    queryData,
+    filteredWidget,
+    organization,
+    useOnDemandMetrics,
+  ]);
 
   return transformedData;
 }
@@ -347,9 +358,6 @@ export function useErrorsAndTransactionsTableQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<ErrorsAndTransactionsTableResponse[] | undefined>(
-    undefined
-  );
 
   const filteredWidget = useMemo(
     () =>
@@ -442,7 +450,16 @@ export function useErrorsAndTransactionsTableQuery(
     'visibility-dashboards-async-queue'
   );
 
-  const queryResults = useQueries({
+  const stableCombine = useCallback(
+    (
+      results: Parameters<
+        typeof combineQueryResultsWithFullError<ErrorsAndTransactionsTableResponse>
+      >[0]
+    ) => combineQueryResultsWithFullError<ErrorsAndTransactionsTableResponse>(results),
+    []
+  );
+
+  const {isFetching, allHaveData, firstError, queryData} = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
@@ -457,29 +474,26 @@ export function useErrorsAndTransactionsTableQuery(
             return false;
           },
     })),
+    combine: stableCombine,
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const error = queryResults.find(q => q?.error)?.error as any;
-
+  const transformedData = useMemo(() => {
     const errorMessage = (() => {
-      if (!error) {
+      if (!firstError) {
         return undefined;
       }
 
-      if (error.responseJSON?.detail) {
-        if (typeof error.responseJSON.detail === 'string') {
-          return error.responseJSON.detail;
+      if (firstError.responseJSON?.detail) {
+        if (typeof firstError.responseJSON.detail === 'string') {
+          return firstError.responseJSON.detail;
         }
-        if (error.responseJSON.detail.message) {
-          return error.responseJSON.detail.message;
+        if (firstError.responseJSON.detail.message) {
+          return firstError.responseJSON.detail.message;
         }
-        return error.message || 'An unknown error occurred.';
+        return firstError.message || 'An unknown error occurred.';
       }
 
-      return error.message || 'An unknown error occurred.';
+      return firstError.message || 'An unknown error occurred.';
     })();
 
     if (!allHaveData || isFetching) {
@@ -494,13 +508,13 @@ export function useErrorsAndTransactionsTableQuery(
     const rawData: ErrorsAndTransactionsTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
-    queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+    queryData.forEach((data, i) => {
+      if (!data?.[0]) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = data[0];
+      const responseMeta = data[2];
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -518,26 +532,22 @@ export function useErrorsAndTransactionsTableQuery(
       responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
     });
 
-    let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
-  })();
+  }, [
+    isFetching,
+    allHaveData,
+    firstError,
+    queryData,
+    filteredWidget,
+    organization,
+    pageFilters,
+  ]);
 
   return transformedData;
 }
