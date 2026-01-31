@@ -30,7 +30,7 @@ import {InvoiceStatus} from 'getsentry/types';
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
 export default function InvoiceDetails() {
-  const {invoiceId, orgId, region} = useParams<{
+  const {invoiceId, region} = useParams<{
     invoiceId: string;
     orgId: string;
     region: string;
@@ -90,9 +90,10 @@ export default function InvoiceDetails() {
   const handleRetry = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/retry-payment/`,
+        `/_admin/cells/${region}/invoices/${invoiceId}/retry-payment/`,
         {
           method: 'PUT',
+          host: regionInfo ? regionInfo.url : '',
         }
       );
       updateCache(updatedInvoice);
@@ -105,9 +106,10 @@ export default function InvoiceDetails() {
   const handleEffectiveAt = async (effectiveAt: string) => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/effective-at/`,
+        `/_admin/cells/${region}/invoices/${invoiceId}/effective-at/`,
         {
           method: 'PUT',
+          host: regionInfo ? regionInfo.url : '',
           data: {effectiveAt},
         }
       );
