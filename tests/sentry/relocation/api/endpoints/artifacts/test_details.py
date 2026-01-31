@@ -96,6 +96,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
             pem=self.pub_key_pem.decode("utf-8")
         )
 
+    @override_options({"staff.ga-rollout": False})
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
     def test_good_unencrypted_with_superuser(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
@@ -108,6 +109,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
             response.data["contents"] == f'"runs/{self.relocation.uuid}/somedir/file.json"'.encode()
         )
 
+    @override_options({"staff.ga-rollout": False})
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
     def test_good_encrypted_with_superuser(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
@@ -163,9 +165,10 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), "somedir", "file.json", status_code=403)
 
-    def test_bad_superuser_disabled(self) -> None:
-        self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
-        self.login_as(user=self.superuser, superuser=False)
+    @override_options({"staff.ga-rollout": True})
+    def test_bad_staff_user_disabled(self) -> None:
+        self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
+        self.login_as(user=self.staff_user, staff=False)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
         does_not_exist_uuid = uuid4().hex
@@ -180,8 +183,9 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), "somedir", "file.json", status_code=403)
 
-    def test_bad_has_superuser_but_no_relocation_admin_permission(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+    @override_options({"staff.ga-rollout": True})
+    def test_bad_has_staff_user_but_no_relocation_admin_permission(self) -> None:
+        self.login_as(user=self.staff_user, staff=True)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
         does_not_exist_uuid = uuid4().hex
