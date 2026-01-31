@@ -57,6 +57,7 @@ type ParamKeys =
   | 'shareId'
   | 'spanSlug'
   | 'step'
+  | 'subpage'
   | 'tagKey'
   | 'teamId'
   | 'templateId'
