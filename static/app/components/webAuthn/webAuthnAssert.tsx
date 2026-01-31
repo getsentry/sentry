@@ -25,17 +25,18 @@ import {handleSign} from './handlers';
  */
 function syncCsrfToken(form: HTMLFormElement) {
   const cookieName = (window as any).csrfCookieName || 'sc';
-  const csrfCookie = document.cookie
-    .split('; ')
-    .find(row => row.startsWith(`${cookieName}=`))
-    ?.split('=')[1];
+  const prefix = `${cookieName}=`;
+  const csrfCookie = document.cookie.split('; ').find(row => row.startsWith(prefix));
 
   if (csrfCookie) {
+    // Use substring instead of split('=')[1] to preserve any '=' characters
+    // in the cookie value (e.g., base64 padding)
+    const csrfValue = decodeURIComponent(csrfCookie.substring(prefix.length));
     const csrfInput = form.querySelector<HTMLInputElement>(
       'input[name="csrfmiddlewaretoken"]'
     );
     if (csrfInput) {
-      csrfInput.value = decodeURIComponent(csrfCookie);
+      csrfInput.value = csrfValue;
     }
   }
 }
