@@ -49,7 +49,7 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
   text {
     fill: ${props =>
       props.suggested
-        ? props.theme.tokens.graphics.neutral.muted
+        ? props.theme.tokens.content.secondary
         : getColor(props.identifier, props.theme).content};
   }
 `;
