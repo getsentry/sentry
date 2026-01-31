@@ -14,6 +14,7 @@ import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openI
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
   getLeadHint,
+  getPlatform,
   hasAssembly,
   hasContextRegisters,
   hasContextSource,
@@ -43,6 +44,7 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {isNativePlatform} from 'sentry/utils/platform';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
@@ -278,6 +280,8 @@ function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
+  const frameOrEventPlatform = getPlatform(frame.platform, platform);
+  const showNativeInfo = isNativePlatform(frameOrEventPlatform);
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
@@ -317,47 +321,57 @@ function NativeFrame({
               </Tooltip>
             ) : null}
           </SymbolicatorIcon>
+
           <div>
-            {!fullStackTrace && !expanded && leadsToApp && (
+            {showNativeInfo && (
               <Fragment>
-                <PackageNote>
-                  {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-                </PackageNote>
+                {!fullStackTrace && !expanded && leadsToApp && (
+                  <Fragment>
+                    <PackageNote>
+                      {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+                    </PackageNote>
+                  </Fragment>
+                )}
+                <Tooltip
+                  title={
+                    frame.package ??
+                    (isDartAsyncSuspensionFrame
+                      ? t('Dart async operation')
+                      : t('Go to images loaded'))
+                  }
+                  containerDisplayMode="inline-flex"
+                  delay={tooltipDelay}
+                  maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+                  position="auto-start"
+                >
+                  <Package>
+                    {frame.package
+                      ? trimPackage(frame.package)
+                      : isDartAsyncSuspensionFrame
+                        ? t('Dart async')
+                        : `<${t('unknown')}>`}
+                  </Package>
+                </Tooltip>
               </Fragment>
             )}
-            <Tooltip
-              title={
-                frame.package ??
-                (isDartAsyncSuspensionFrame
-                  ? t('Dart async operation')
-                  : t('Go to images loaded'))
-              }
-              containerDisplayMode="inline-flex"
-              delay={tooltipDelay}
-              maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
-              position="auto-start"
-            >
-              <Package>
-                {frame.package
-                  ? trimPackage(frame.package)
-                  : isDartAsyncSuspensionFrame
-                    ? t('Dart async')
-                    : `<${t('unknown')}>`}
-              </Package>
-            </Tooltip>
           </div>
           <Flex>
-            <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
-              <Tooltip
-                title={addressTooltip}
-                disabled={!(foundByStackScanning || inlineFrame)}
-                delay={tooltipDelay}
-                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+            {showNativeInfo && (
+              <AddressCell
+                onClick={packageClickable ? handleGoToImagesLoaded : undefined}
               >
-                {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
-              </Tooltip>
-            </AddressCell>
+                <Tooltip
+                  title={addressTooltip}
+                  disabled={!(foundByStackScanning || inlineFrame)}
+                  delay={tooltipDelay}
+                  maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+                >
+                  {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
+                </Tooltip>
+              </AddressCell>
+            )}
           </Flex>
+
           <FunctionNameCell>
             {functionName ? (
               <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>

@@ -3,6 +3,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {
   getCurlCommand,
   getCurrentThread,
+  getStacktracePlatform,
   getThreadById,
   stringifyQueryList,
   userContextToActor,
@@ -347,5 +348,38 @@ describe('components/interfaces/utils', () => {
       );
       expect(thread?.name).toBe('puma 002');
     });
+  });
+
+  it('should return event platform when stacktrace is undefined', () => {
+    const event = EventFixture({platform: 'python'});
+    expect(getStacktracePlatform(event)).toBe('python');
+  });
+
+  it('should return "other" when event has no platform and stacktrace is null', () => {
+    const event = EventFixture({platform: undefined});
+    expect(getStacktracePlatform(event, null)).toBe('other');
+  });
+
+  it('should return event platform when any frame platform matches event platform', () => {
+    const event = EventFixture({platform: 'javascript'});
+    const stacktrace = {
+      frames: [
+        {platform: 'native', filename: 'native.c'},
+        {platform: 'javascript', filename: 'app.js'},
+        {platform: 'native', filename: 'framework.c'},
+      ],
+    };
+    expect(getStacktracePlatform(event, stacktrace)).toBe('javascript');
+  });
+
+  it('should return overridden platform when all frames have different platform', () => {
+    const event = EventFixture({platform: 'javascript'});
+    const stacktrace = {
+      frames: [
+        {platform: 'native', filename: 'native.c'},
+        {platform: 'native', filename: 'framework.c'},
+      ],
+    };
+    expect(getStacktracePlatform(event, stacktrace)).toBe('native');
   });
 });

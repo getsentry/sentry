@@ -40,7 +40,7 @@ export function platformToCategory(platform: PlatformKey | undefined): PlatformC
   return PlatformCategory.OTHER;
 }
 
-export function isNativePlatform(platform: string | undefined) {
+export function isNativePlatform(platform: string | undefined): boolean {
   switch (platform) {
     case 'cocoa':
     case 'objc':
