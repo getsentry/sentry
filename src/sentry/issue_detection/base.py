@@ -94,10 +94,7 @@ class PerformanceDetector(ABC):
     def event(self) -> dict[str, Any]:
         return self._event
 
-    @property
-    @abstractmethod
-    def settings_key(self) -> DetectorType:
-        raise NotImplementedError
+    settings_key: ClassVar[DetectorType]
 
     @abstractmethod
     def visit_span(self, span: Span) -> None:
