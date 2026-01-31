@@ -102,7 +102,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data == serialize(self.detector)
 
     def test_does_not_exist(self) -> None:
-        self.get_error_response(self.organization.slug, 3, status_code=404)
+        self.get_error_response(self.organization.slug, 999999999, status_code=404)
 
     def test_permission_denied_when_open_membership_disabled(self) -> None:
         """

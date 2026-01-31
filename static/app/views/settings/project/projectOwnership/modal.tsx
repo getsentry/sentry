@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -118,7 +119,10 @@ function ProjectOwnershipModal({
     isPending: isUrlTagDataPending,
     isError: isUrlTagDataError,
     error,
-  } = useApiQuery<TagWithTopValues>([`/issues/${issueId}/tags/url/`], {staleTime: 0});
+  } = useApiQuery<TagWithTopValues>(
+    [`/organizations/${organization.slug}/issues/${issueId}/tags/url/`],
+    {staleTime: 0}
+  );
 
   const {
     data: ownership,

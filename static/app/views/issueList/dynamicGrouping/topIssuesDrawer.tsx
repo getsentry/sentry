@@ -2,14 +2,14 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {InlineCode} from 'sentry/components/core/code/inlineCode';
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import {
   CrumbContainer,
@@ -43,6 +43,7 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -208,7 +209,13 @@ function ClusterStackTrace({groupId}: ClusterStackTraceProps) {
 
   const {data: event, isPending} = useApiQuery<Event>(
     [
-      `/organizations/${organization.slug}/issues/${groupId}/events/${defaultIssueEvent}/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/`, {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: groupId,
+          eventId: defaultIssueEvent,
+        },
+      }),
       {
         query: {
           collapse: ['fullRelease'],
@@ -601,7 +608,7 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
             skipWrapper
             maxWidth={360}
           >
-            <TagBarHoverArea>
+            <Flex align="center" padding="xs 0" width="100%" height="100%">
               <TagMiniBar aria-hidden="true">
                 {barValues.map((value, index) => {
                   const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
@@ -616,7 +623,7 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
                   );
                 })}
               </TagMiniBar>
-            </TagBarHoverArea>
+            </Flex>
           </Tooltip>
         ) : (
           <Text size="xs" variant="muted">
@@ -1043,14 +1050,6 @@ const TagMiniBar = styled('div')`
   overflow: hidden;
   background: ${p => p.theme.tokens.background.secondary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
-`;
-
-const TagBarHoverArea = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  padding: ${p => p.theme.space.xs} 0;
 `;
 
 const DenseTagChip = styled('div')`

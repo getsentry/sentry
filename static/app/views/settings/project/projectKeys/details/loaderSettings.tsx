@@ -1,12 +1,13 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -33,6 +34,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
   const [optimisticState, setOptimisticState] = useState({
     browserSdkVersion: data.browserSdkVersion,
     hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+    hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
     hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
     hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
   });
@@ -46,6 +48,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           // "7.x" was the "latest" version when "latest" was phased out.
           data.browserSdkVersion === 'latest' ? '7.x' : data.browserSdkVersion,
         hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+        hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
         hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
         hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
       };
@@ -62,6 +65,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     async (changes: {
       browserSdkVersion?: string;
       hasDebug?: boolean;
+      hasFeedback?: boolean;
       hasPerformance?: boolean;
       hasReplay?: boolean;
     }) => {
@@ -69,6 +73,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
       setOptimisticState({
         browserSdkVersion: data.browserSdkVersion,
         hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+        hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
         hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
         hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
         ...changes,
@@ -83,6 +88,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           browserSdkVersion,
           dynamicSdkLoaderOptions: {
             hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+            hasFeedback: changes.hasFeedback ?? data.dynamicSdkLoaderOptions.hasFeedback,
             hasPerformance:
               changes.hasPerformance ?? data.dynamicSdkLoaderOptions.hasPerformance,
             hasReplay: changes.hasReplay ?? data.dynamicSdkLoaderOptions.hasReplay,
@@ -93,6 +99,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           browserSdkVersion,
           dynamicSdkLoaderOptions: {
             hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+            hasFeedback: false,
             hasPerformance: false,
             hasReplay: false,
           },
@@ -121,6 +128,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
       apiEndpoint,
       data.browserSdkVersion,
       data.dynamicSdkLoaderOptions.hasDebug,
+      data.dynamicSdkLoaderOptions.hasFeedback,
       data.dynamicSdkLoaderOptions.hasPerformance,
       data.dynamicSdkLoaderOptions.hasReplay,
       setRequestPending,
@@ -242,6 +250,50 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                             : '',
                         codeReplay: <code />,
                         codeError: <code />,
+                        configDocs: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/loader/#custom-configuration" />
+                        ),
+                      }
+                    )
+                  : undefined
+                : t('Only available in SDK version 7.x and above')
+            }
+            disabledReason={
+              hasAccess ? undefined : t('You do not have permission to edit this setting')
+            }
+          />
+
+          <BooleanField
+            label={t('Enable User Feedback')}
+            name={`${keyId}-has-feedback`}
+            value={
+              sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? values.hasFeedback
+                : false
+            }
+            onChange={(value: any) => {
+              updateLoaderOption({hasFeedback: value});
+            }}
+            disabled={
+              !hasAccess ||
+              requestPending ||
+              !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+            }
+            help={
+              sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? data.dynamicSdkLoaderOptions.hasFeedback
+                  ? tct(
+                      `[es6Warning]The default config is [codeAutoInject:autoInject: true]. [configDocs:Read the docs] to learn how to configure this.`,
+                      {
+                        es6Warning:
+                          // latest is deprecated but resolves to v7
+                          data.browserSdkVersion === '7.x' ||
+                          data.browserSdkVersion === 'latest'
+                            ? t(
+                                'When using User Feedback, the loader will load the ES6 bundle instead of the ES5 bundle.'
+                              ) + ' '
+                            : '',
+                        codeAutoInject: <code />,
                         configDocs: (
                           <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/loader/#custom-configuration" />
                         ),

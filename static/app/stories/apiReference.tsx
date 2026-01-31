@@ -2,10 +2,11 @@ import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import * as Storybook from 'sentry/stories';
@@ -22,7 +23,7 @@ export function APIReference(props: APIReferenceProps) {
   return (
     <Storybook.Section>
       {props.componentProps?.description && <p>{props.componentProps.description}</p>}
-      <StoryTypesSearchContainer>
+      <Container marginBottom="md">
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
@@ -34,7 +35,7 @@ export function APIReference(props: APIReferenceProps) {
           />
           {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
         </InputGroup>
-      </StoryTypesSearchContainer>
+      </Container>
       <StoryTableContainer>
         <StoryTypesTable>
           <StoryTypesTableHeader>
@@ -111,7 +112,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
         <StoryTypesTableDefinitionCell colSpan={2}>
           <Flex align="center">
             <Button
-              borderless
+              priority="transparent"
               icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
               onClick={() => {
                 props.node.expanded = !expanded;
@@ -346,10 +347,6 @@ const StoryTableContainer = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const StoryTypesSearchContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StoryTypesTable = styled('table')`

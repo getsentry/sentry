@@ -4,6 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -44,7 +45,6 @@ export function useProfileTopEventsStats<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/events-stats/`;
   const endpointOptions = {
     query: {
       dataset,
@@ -61,10 +61,18 @@ export function useProfileTopEventsStats<F extends string>({
     },
   };
 
-  const result = useApiQuery<any>([path, endpointOptions], {
-    staleTime: Infinity,
-    enabled,
-  });
+  const result = useApiQuery<any>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      endpointOptions,
+    ],
+    {
+      staleTime: Infinity,
+      enabled,
+    }
+  );
 
   const transformed: EventsStatsSeries<F> = useMemo(
     () => transformTopEventsStatsResponse(dataset, yAxes, result.data),

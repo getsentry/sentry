@@ -4,13 +4,13 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
@@ -53,12 +53,11 @@ function useLastEditedBy({
   groupId,
   lastEditedBy: incomingLastEditedBy,
 }: Pick<GroupPriorityDropdownProps, 'groupId' | 'lastEditedBy'>) {
+  const organization = useOrganization();
   const {data} = useApiQuery<{activity: Activity[]}>(
     [
-      getApiUrl('/issues/$issueId/activities/', {
-        path: {
-          issueId: groupId,
-        },
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/activities/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: groupId},
       }),
     ],
     {
@@ -178,7 +177,7 @@ function GroupPriorityLearnMore() {
       </LinkButton>
       <DismissButton
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}

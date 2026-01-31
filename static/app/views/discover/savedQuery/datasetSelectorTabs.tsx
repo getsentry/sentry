@@ -1,4 +1,5 @@
-import {TabList} from 'sentry/components/core/tabs';
+import {TabList} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert/alert';
+import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Select} from 'sentry/components/core/select';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';

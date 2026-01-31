@@ -1,6 +1,10 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  needsGitHubAuth,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
@@ -296,6 +300,20 @@ export function useExplorerAutofix(
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
+  const intelligenceLevel = useMemo(() => {
+    const random = Math.random();
+
+    if (random < 1 / 3) {
+      return 'high';
+    }
+
+    if (random < 2 / 3) {
+      return 'medium';
+    }
+
+    return 'low';
+  }, []);
+
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
@@ -338,6 +356,7 @@ export function useExplorerAutofix(
             query: {mode: 'explorer'},
             data: {
               step,
+              intelligence_level: intelligenceLevel,
               ...(runId !== undefined && {run_id: runId}),
             },
           }
@@ -359,7 +378,7 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, orgSlug, groupId, queryClient, intelligenceLevel]
   );
 
   /**
@@ -414,10 +433,21 @@ export function useExplorerAutofix(
    * Trigger coding agent handoff for an existing run.
    */
   const triggerCodingAgentHandoff = useCallback(
-    async (runId: number, integrationId: number) => {
+    async (runId: number, integration: CodingAgentIntegration) => {
       setWaitingForResponse(true);
 
       addLoadingMessage('Launching coding agent...');
+
+      const data: Record<string, string | number> = {
+        step: 'coding_agent_handoff',
+        run_id: runId,
+      };
+
+      if (integration.id === null) {
+        data.provider = integration.provider;
+      } else {
+        data.integration_id = parseInt(integration.id, 10);
+      }
 
       try {
         const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
@@ -428,11 +458,7 @@ export function useExplorerAutofix(
             {
               method: 'POST',
               query: {mode: 'explorer'},
-              data: {
-                step: 'coding_agent_handoff',
-                run_id: runId,
-                integration_id: integrationId,
-              },
+              data,
             }
           );
 
@@ -448,6 +474,11 @@ export function useExplorerAutofix(
           queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
         });
       } catch (e: any) {
+        if (needsGitHubAuth(e)) {
+          const currentUrl = window.location.href;
+          window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+          return;
+        }
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
         throw e;
       } finally {

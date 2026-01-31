@@ -1,10 +1,10 @@
 import {useCallback, useMemo} from 'react';
 
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

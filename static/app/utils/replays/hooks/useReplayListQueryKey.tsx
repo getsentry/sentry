@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {type ApiQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {
@@ -33,7 +34,9 @@ export default function useReplayListQueryKey({
   queryReferrer,
 }: Props) {
   return useMemo<ApiQueryKey>(() => {
-    const url = `/organizations/${organization.slug}/replays/`;
+    const url = getApiUrl('/organizations/$organizationIdOrSlug/replays/', {
+      path: {organizationIdOrSlug: organization.slug},
+    });
     if (!options?.query) {
       return [url];
     }

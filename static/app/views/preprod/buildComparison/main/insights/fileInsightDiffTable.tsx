@@ -168,7 +168,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
                         <Flex align="start" gap="xs">
                           <Text monospace>{fileDiffItem.path}</Text>
                           <CopyToClipboardButton
-                            borderless
+                            priority="transparent"
                             size="zero"
                             text={fileDiffItem.path}
                             style={{flexShrink: 0}}

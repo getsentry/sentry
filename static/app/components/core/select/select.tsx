@@ -6,7 +6,8 @@ import {css, useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {
   GroupedOptionsType,
   OptionsType,
@@ -280,7 +281,7 @@ function ClearIndicator(
   return (
     <selectComponents.ClearIndicator {...props}>
       <Button
-        borderless
+        priority="transparent"
         icon={<IconClose legacySize="10px" />}
         size="zero"
         aria-label={t('Clear choices')}

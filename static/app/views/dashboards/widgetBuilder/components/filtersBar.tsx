@@ -1,20 +1,16 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
-import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
+import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
 
 function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
   return (
     <Tooltip
       title={t('Changes to these filters can only be made at the dashboard level')}
@@ -24,13 +20,12 @@ function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
         <ProjectPageFilter disabled />
         <EnvironmentPageFilter disabled />
         <DatePageFilter disabled />
-        <ReleasesProvider organization={organization} selection={selection}>
-          <ReleasesSelectControl
-            isDisabled
-            id="releases-select-control"
-            selectedReleases={releases}
-          />
-        </ReleasesProvider>
+        <ReleasesSelectControl
+          isDisabled
+          id="releases-select-control"
+          selectedReleases={releases}
+          sortBy={ReleasesSortOption.DATE}
+        />
       </StyledPageFilterBar>
     </Tooltip>
   );

@@ -48,6 +48,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -60,6 +61,7 @@ from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 _logger = logging.getLogger(__name__)
 
@@ -571,17 +573,27 @@ class SlackActionEndpoint(Endpoint):
     ) -> None:
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
+            action=action,
             group=group,
             organization_id=group.project.organization_id,
         )
-        stopping_point = entrypoint.set_autofix_stopping_point(action=action)
-        operator = SeerOperator(entrypoint=entrypoint)
-        operator.trigger_autofix(
-            group=group,
-            user=user,
-            stopping_point=stopping_point,
-            run_id=entrypoint.get_autofix_run_id(),
+        lock_key = SlackEntrypoint.get_autofix_lock_key(
+            group_id=group.id,
+            stopping_point=entrypoint.autofix_stopping_point,
         )
+        lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
+        try:
+            with lock.acquire():
+                SeerOperator(entrypoint=entrypoint).trigger_autofix(
+                    group=group,
+                    user=user,
+                    stopping_point=entrypoint.autofix_stopping_point,
+                    run_id=entrypoint.autofix_run_id,
+                )
+        except UnableToAcquireLock:
+            # Might be a double click, or Seer is taking it's time confirming the run start.
+            # The entrypoint will handle removing the button once it starts the run anyway.
+            return
 
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:

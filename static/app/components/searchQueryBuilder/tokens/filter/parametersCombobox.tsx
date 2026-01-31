@@ -4,8 +4,9 @@ import type {ComboBoxState} from '@react-stately/combobox';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {getEscapedKey} from '@sentry/scraps/compactSelect';
+
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';

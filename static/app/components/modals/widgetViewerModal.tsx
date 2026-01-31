@@ -9,18 +9,15 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Select, SelectOption} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Select} from 'sentry/components/core/select';
-import {SelectOption} from 'sentry/components/core/select/option';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -911,6 +908,9 @@ function OpenButton({
       openLabel = t('Open in Explore');
       path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       break;
+    case WidgetType.PREPROD_APP_SIZE:
+      // Mobile app size widgets are not integrated with Explore or Discover
+      return null;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');

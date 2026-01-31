@@ -3,9 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import Feature from 'sentry/components/acl/feature';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -197,7 +198,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               <NavigationDropdownButton
                 {...triggerProps}
                 isOpen={isOpen}
-                borderless
+                priority="transparent"
                 size="sm"
                 disabled={hideDropdownButton}
                 aria-label={t('Select issue content')}
@@ -215,9 +216,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.NAVIGATION}
-        title={t('Compare different examples')}
+        title={t('Compare events')}
         description={t(
-          'You can quickly navigate between different examples in this issue to find their similarities (and differences).'
+          'Review the events associated with an issue. Compare the first, latest, or recommended event to see what changed.'
         )}
       >
         <NavigationWrapper>
@@ -229,19 +230,21 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 isSmallNav={isSmallNav}
               />
               {issueTypeConfig.pages.events.enabled && (
-                <LinkButton
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                  analyticsEventKey="issue_details.all_events_clicked"
-                  analyticsEventName="Issue Details: All Events Clicked"
-                >
-                  {isSmallNav
-                    ? t('More %s', issueTypeConfig.customCopy.eventUnits)
-                    : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
-                </LinkButton>
+                <Feature features="discover-basic" organization={organization}>
+                  <LinkButton
+                    to={{
+                      pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                      query: location.query,
+                    }}
+                    size="xs"
+                    analyticsEventKey="issue_details.all_events_clicked"
+                    analyticsEventName="Issue Details: All Events Clicked"
+                  >
+                    {isSmallNav
+                      ? t('More %s', issueTypeConfig.customCopy.eventUnits)
+                      : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                  </LinkButton>
+                </Feature>
               )}
               {issueTypeConfig.pages.openPeriods.enabled && (
                 <LinkButton
