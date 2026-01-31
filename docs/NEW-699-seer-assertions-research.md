@@ -8,7 +8,7 @@
 
 **Related**: [NEW-683](https://linear.app/getsentry/issue/NEW-683/add-test-monitor-to-the-uptime-monitor-configuration) - Add "test monitor" to uptime monitor configuration
 
-**Status**: In Progress (Backend Complete)
+**Status**: In Progress (Backend + Frontend Complete, PRs Pending)
 **Project**: Uptime Response Assertions
 **Team**: New Products
 
@@ -408,7 +408,7 @@ Modify the uptime-checker's `/execute_config` endpoint to always include respons
 4. [x] ~~Create Sentry PR~~ ✅ - Using new flag in preview checks (branch: `jaygoss/uptime-assertions-ai`)
 5. [x] ~~Design the assertion suggestion prompt~~ ✅ - See `seer_assertions.py:build_assertion_prompt()`
 6. [x] ~~Create API endpoint for suggestions~~ ✅ - `POST /api/0/organizations/{org}/uptime-assertion-suggestions/`
-7. [ ] Frontend integration - Display suggestions in uptime monitor test flow
+7. [x] ~~Frontend integration~~ ✅ - Added `AssertionSuggestionsButton` component with modal UI
 8. [ ] Create and merge PRs for uptime-checker and Sentry
 9. [ ] Reach out in `#proj-seer-explorer` if needed
 
@@ -500,6 +500,56 @@ The endpoint has restrictive rate limits since it calls Seer:
 
 - Per user: 1 request per 5 seconds, max 2 concurrent
 - Per org: 10 requests per 60 seconds, max 5 concurrent
+
+---
+
+## ✅ Frontend Implementation Complete
+
+### New Files
+
+| File                                                                  | Purpose                              |
+| --------------------------------------------------------------------- | ------------------------------------ |
+| `static/app/views/alerts/rules/uptime/assertionSuggestionsButton.tsx` | Button component + suggestions modal |
+
+### Types Added
+
+In `static/app/views/alerts/rules/uptime/types.tsx`:
+
+```typescript
+interface AssertionSuggestion {
+  assertion_json: Op;
+  assertion_type: 'status_code' | 'json_path' | 'header';
+  comparison: 'equals' | 'not_equal' | 'less_than' | 'greater_than';
+  confidence: number;
+  expected_value: string;
+  explanation: string;
+  header_name: string | null;
+  json_path: string | null;
+}
+
+interface AssertionSuggestionsResponse {
+  preview_result: PreviewCheckResponse;
+  suggested_assertion: Assertion | null;
+  suggestions: AssertionSuggestion[] | null;
+}
+```
+
+### User Flow
+
+1. User fills out uptime monitor form (URL, method, headers, etc.)
+2. User clicks "Suggest Assertions" button
+3. System runs preview check against URL
+4. Seer analyzes response and generates suggestions
+5. Modal displays suggestions with confidence scores and explanations
+6. User can "Apply" individual suggestions or "Apply All"
+7. Applied assertions appear in the form's assertion field
+
+### Feature Flags Required
+
+The "Suggest Assertions" button only appears when BOTH flags are enabled:
+
+- `organizations:uptime-runtime-assertions` - Enables uptime assertions
+- `organizations:seer-explorer` - Enables Seer Explorer Client
 
 ---
 
