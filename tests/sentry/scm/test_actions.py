@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.scm.actions import SourceCodeManager
@@ -14,7 +16,11 @@ def fetch_repository(oid, rid):
     return {"integration_id": 1, "name": "test", "organization_id": 1, "status": "active"}
 
 
-def test_rate_limited_action():
+@pytest.mark.parametrize(
+    ("method", "kwargs"),
+    (("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),),
+)
+def test_rate_limited_action(method: str, kwargs: dict[str, Any]):
     class RateLimitedProvider(BaseTestProvider):
         def is_rate_limited(self, oid, ref):
             return True
@@ -27,10 +33,14 @@ def test_rate_limited_action():
     )
 
     with pytest.raises(SCMRateLimitExceeded):
-        scm.create_issue_reaction(issue_id="1", reaction="eyes")
+        getattr(scm, method)(**kwargs)
 
 
-def test_repository_not_found():
+@pytest.mark.parametrize(
+    ("method", "kwargs"),
+    (("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),),
+)
+def test_repository_not_found(method: str, kwargs: dict[str, Any]):
     scm = SourceCodeManager(
         organization_id=1,
         repository_id=1,
@@ -38,10 +48,14 @@ def test_repository_not_found():
     )
 
     with pytest.raises(SCMRepositoryNotFound):
-        scm.create_issue_reaction(issue_id="1", reaction="eyes")
+        getattr(scm, method)(**kwargs)
 
 
-def test_repository_inactive():
+@pytest.mark.parametrize(
+    ("method", "kwargs"),
+    (("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),),
+)
+def test_repository_inactive(method: str, kwargs: dict[str, Any]):
     scm = SourceCodeManager(
         organization_id=1,
         repository_id=1,
@@ -54,14 +68,18 @@ def test_repository_inactive():
     )
 
     with pytest.raises(SCMRepositoryInactive):
-        scm.create_issue_reaction(issue_id="1", reaction="eyes")
+        getattr(scm, method)(**kwargs)
 
 
-def test_repository_organization_mismatch():
+@pytest.mark.parametrize(
+    ("method", "kwargs"),
+    (("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),),
+)
+def test_repository_organization_mismatch(method: str, kwargs: dict[str, Any]):
     scm = SourceCodeManager(organization_id=2, repository_id=1, fetch_repository=fetch_repository)
 
     with pytest.raises(SCMRepositoryOrganizationMismatch):
-        scm.create_issue_reaction(issue_id="1", reaction="eyes")
+        getattr(scm, method)(**kwargs)
 
 
 def test_create_issue_reaction():
