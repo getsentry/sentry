@@ -1,4 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -18,6 +19,11 @@ import {
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+
+const HookedDisabledDetectorAlert = HookOrDefault({
+  hookName: 'component:disabled-detector-alert',
+  defaultComponent: DisabledAlert,
+});
 
 type MetricDetectorDetailsProps = {
   detector: MetricDetector;
@@ -45,7 +51,7 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          <DisabledAlert
+          <HookedDisabledDetectorAlert
             detector={detector}
             message={t('This monitor is disabled and not creating issues.')}
           />
