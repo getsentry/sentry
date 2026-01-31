@@ -19,6 +19,8 @@ def create_preview_check(validated_data, region: UptimeRegionConfig) -> CheckCon
         # We're only going to run in the one specified region.
         "active_regions": [region.slug],
         "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
+        # Always capture response body/headers for preview checks (needed for assertion suggestions)
+        "always_capture_response": True,
     }
 
     if validated_data.get("method") is not None:
