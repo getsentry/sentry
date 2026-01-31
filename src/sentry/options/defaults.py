@@ -827,6 +827,14 @@ register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MOD
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Controls the search_type for the timestamp column in EAP queries.
+register(
+    "eap.timestamp-search-type",
+    type=String,
+    default="string",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Snuba
 register(
     "snuba.search.pre-snuba-candidates-optimizer",
