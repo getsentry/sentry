@@ -327,8 +327,7 @@ const CardColumn = styled('div')`
 `;
 
 export const ValueLink = styled(Link)`
-  text-decoration: underline dotted;
-  text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  text-decoration: underline dotted ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`
