@@ -81,6 +81,20 @@
         syncCsrfTokens();
       }
     }, true);
+
+    // Auto-redirect authenticated users when login occurs in another tab.
+    // Uses BroadcastChannel for instant cross-tab communication.
+    if (window.sentryAuthConfig && window.sentryAuthConfig.broadcastChannelRedirect) {
+      if (typeof BroadcastChannel !== 'undefined') {
+        var authChannel = new BroadcastChannel('sentry-auth');
+        authChannel.onmessage = function(e) {
+          if (e.data && e.data.type === 'login') {
+            // User logged in on another tab, reload to redirect
+            window.location.reload();
+          }
+        };
+      }
+    }
   })();
 </script>
 {% endscript %}
