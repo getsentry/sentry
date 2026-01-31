@@ -3319,6 +3319,73 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert event.group is not None
             assert event.group.times_seen == 1
 
+    def test_event_creates_new_group_when_existing_group_is_pending_deletion(self) -> None:
+        """
+        Test that events create new groups when matching a group that is pending deletion.
+
+        This prevents events from being assigned to groups that are being deleted, which
+        would cause those events to be dropped during the deletion window (between when
+        the group is marked PENDING_DELETION and when the GroupHash records are deleted).
+        """
+        # Create an event to create a group
+        data = {
+            "fingerprint": ["test-fingerprint"],
+            "timestamp": timezone.now().isoformat(),
+        }
+        event1 = self.store_event(data=data, project_id=self.project.id)
+        original_group = event1.group
+        assert original_group is not None
+        original_group_id = original_group.id
+
+        # Mark the group as PENDING_DELETION (simulating the deletion window)
+        # Note: We do NOT delete the GroupHash records, which simulates the race condition
+        original_group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+
+        # Store another event with the same fingerprint
+        event2 = self.store_event(data=data, project_id=self.project.id)
+
+        # Verify that the event created a NEW group instead of reusing the deleted one
+        assert event2.group is not None
+        assert event2.group.id != original_group_id
+        assert event2.group.status == GroupStatus.UNRESOLVED
+
+        # Verify both groups exist
+        assert Group.objects.filter(id=original_group_id).exists()
+        assert Group.objects.filter(id=event2.group.id).exists()
+        assert Group.objects.count() == 2
+
+    def test_event_creates_new_group_when_existing_group_is_deletion_in_progress(self) -> None:
+        """
+        Test that events create new groups when matching a group that is being deleted.
+
+        Similar to the PENDING_DELETION test, but for the DELETION_IN_PROGRESS status.
+        """
+        # Create an event to create a group
+        data = {
+            "fingerprint": ["test-fingerprint-2"],
+            "timestamp": timezone.now().isoformat(),
+        }
+        event1 = self.store_event(data=data, project_id=self.project.id)
+        original_group = event1.group
+        assert original_group is not None
+        original_group_id = original_group.id
+
+        # Mark the group as DELETION_IN_PROGRESS
+        original_group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
+
+        # Store another event with the same fingerprint
+        event2 = self.store_event(data=data, project_id=self.project.id)
+
+        # Verify that the event created a NEW group instead of reusing the deleted one
+        assert event2.group is not None
+        assert event2.group.id != original_group_id
+        assert event2.group.status == GroupStatus.UNRESOLVED
+
+        # Verify both groups exist
+        assert Group.objects.filter(id=original_group_id).exists()
+        assert Group.objects.filter(id=event2.group.id).exists()
+        assert Group.objects.count() == 2
+
 
 class ReleaseIssueTest(TestCase):
     def setUp(self) -> None:
