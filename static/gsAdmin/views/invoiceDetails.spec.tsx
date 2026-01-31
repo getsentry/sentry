@@ -145,11 +145,12 @@ describe('InvoiceDetails', () => {
       });
 
       const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${mockOrg.slug}/invoices/${invoice.id}/retry-payment/`,
+        url: `/_admin/cells/us/invoices/${invoice.id}/retry-payment/`,
         method: 'PUT',
         body: InvoiceFixture({
           nextChargeAttempt: '2020-11-10T10:29:07.724283Z',
         }),
+        host: 'https://us.sentry.io',
       });
 
       render(<InvoiceDetails />, {
