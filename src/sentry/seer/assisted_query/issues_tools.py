@@ -416,13 +416,14 @@ def get_issue_filter_keys(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
+    include_feature_flags: bool = True,
 ) -> dict[str, Any] | None:
     """
     Get available issue filter keys (tags, feature flags, and built-in fields).
 
     Calls the Sentry tags API endpoint with different datasets to get:
     - Tags (dataset=events and dataset=search_issues merged)
-    - Feature flags (dataset=events with useFlagsBackend=1)
+    - Feature flags (dataset=events with useFlagsBackend=1) - optional
     - Built-in fields (e.g., is, assigned_or_suggested, issue.priority, etc.)
 
     Args:
@@ -431,11 +432,12 @@ def get_issue_filter_keys(
         stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
         start: Start date for the query (ISO string). Must be provided with end.
         end: End date for the query (ISO string). Must be provided with start.
+        include_feature_flags: Whether to include feature flags in the response (default True).
 
     Returns:
-        Dictionary containing three arrays:
+        Dictionary containing:
         - tags: Merged tags from events and search_issues datasets
-        - feature_flags: Feature flags from events dataset
+        - feature_flags: Feature flags from events dataset (only if include_feature_flags is True)
         - built_in_fields: Built-in issue search fields (e.g., is, assigned_or_suggested, issue.priority)
         Returns None if organization doesn't exist.
     """
@@ -489,30 +491,36 @@ def get_issue_filter_keys(
             tags_dict[tag.get("key")] = tag
     tags = list(tags_dict.values())
 
-    # Get feature flags
-    flags_params = {
-        **base_params,
-        "dataset": Dataset.Events.value,
-        "useFlagsBackend": "1",
-        "useCache": "1",
-    }
-    flags_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/",
-        params=flags_params,
-    )
-    feature_flags = flags_resp.data if flags_resp.status_code == 200 else []
+    # Get feature flags (optional)
+    feature_flags: list[Any] = []
+    if include_feature_flags:
+        flags_params = {
+            **base_params,
+            "dataset": Dataset.Events.value,
+            "useFlagsBackend": "1",
+            "useCache": "1",
+        }
+        flags_resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/tags/",
+            params=flags_params,
+        )
+        feature_flags = flags_resp.data if flags_resp.status_code == 200 else []
 
     # Get built-in issue fields
     tag_keys = [tag.get("key") for tag in tags if tag.get("key")]
     built_in_fields = _get_built_in_issue_fields(organization, project_ids, tag_keys)
 
-    return {
+    result: dict[str, Any] = {
         "tags": tags,
-        "feature_flags": feature_flags,
         "built_in_fields": built_in_fields,
     }
+
+    if include_feature_flags:
+        result["feature_flags"] = feature_flags
+
+    return result
 
 
 def get_filter_key_values(
