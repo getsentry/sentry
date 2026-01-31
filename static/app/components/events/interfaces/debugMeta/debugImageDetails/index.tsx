@@ -280,8 +280,8 @@ export function DebugImageDetails({
             organizationIdOrSlug: organization.slug,
             projectIdOrSlug: projSlug,
           },
-        }) + `?id=${debugId}`,
-        {method: 'DELETE'}
+        }),
+        {method: 'DELETE', query: {id: debugId}}
       );
       refetch();
     } catch {
