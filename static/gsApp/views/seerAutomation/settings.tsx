@@ -1,3 +1,4 @@
+import {Alert} from '@sentry/scraps/alert/alert';
 import {Flex} from '@sentry/scraps/layout/flex';
 import {ExternalLink, Link} from '@sentry/scraps/link/link';
 
@@ -82,8 +83,26 @@ export default function SeerAutomationSettings() {
                 {
                   name: 'autoOpenPrs',
                   label: t('Enable Autofix PR Creation by Default'),
-                  help: t(
-                    'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
+                  help: (
+                    <Flex direction="column" gap="sm">
+                      {t(
+                        'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
+                      )}
+                      {organization.enableSeerCoding === false && (
+                        <Alert variant="warning">
+                          {tct(
+                            '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+                            {
+                              settings: (
+                                <Link
+                                  to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                                />
+                              ),
+                            }
+                          )}
+                        </Alert>
+                      )}
+                    </Flex>
                   ),
                   type: 'boolean',
                 },
