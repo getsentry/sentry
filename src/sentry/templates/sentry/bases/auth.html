@@ -81,6 +81,42 @@
         syncCsrfTokens();
       }
     }, true);
+
+    // Auto-redirect authenticated users when login occurs in another tab.
+    // Uses BroadcastChannel for instant cross-tab communication.
+    if (window.sentryAuthConfig && window.sentryAuthConfig.broadcastChannelRedirect) {
+      if (typeof BroadcastChannel !== 'undefined') {
+        var authChannel = new BroadcastChannel('sentry-auth');
+        authChannel.onmessage = function(e) {
+          if (e.data && e.data.type === 'login') {
+            // User logged in on another tab, reload to redirect
+            window.location.reload();
+          }
+        };
+      }
+
+      // Fallback: Check authentication status when tab becomes visible.
+      // Catches SSO flows and cases where BroadcastChannel message was missed.
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          fetch('/api/0/auth/', { credentials: 'include' })
+            .then(function(response) {
+              if (response.ok) {
+                return response.json();
+              }
+              return null;
+            })
+            .then(function(data) {
+              if (data && data.isAuthenticated) {
+                window.location.reload();
+              }
+            })
+            .catch(function() {
+              // Ignore errors - this is a best-effort fallback
+            });
+        }
+      });
+    }
   })();
 </script>
 {% endscript %}

@@ -15,6 +15,11 @@
     input: '#id_registration_password',
     element: '.password-strength',
   });
+
+  // Configuration for auth page features (e.g., BroadcastChannel redirect)
+  window.sentryAuthConfig = {
+    broadcastChannelRedirect: {{ broadcast_channel_redirect|yesno:"true,false" }}
+  };
 </script>
 {% endscript %}
 {% endblock %}

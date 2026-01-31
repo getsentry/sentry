@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
+from sentry import features
 from sentry.auth.helper import AuthHelper
 from sentry.auth.store import FLOW_LOGIN
 from sentry.constants import WARN_SESSION_EXPIRED
@@ -21,6 +22,16 @@ logger = logging.getLogger("sentry.saml_setup_error")
 class AuthOrganizationLoginView(AuthLoginView):
     def respond_login(self, request: HttpRequest, context: dict, **kwargs) -> HttpResponse:
         return self.respond("sentry/organization-login.html", context)
+
+    def get_default_context(self, request: HttpRequest, **kwargs) -> dict:
+        context = super().get_default_context(request, **kwargs)
+        organization = kwargs.get("organization")
+        context["broadcast_channel_redirect"] = (
+            features.has("organizations:auth-broadcast-channel-redirect", organization)
+            if organization
+            else False
+        )
+        return context
 
     def handle_sso(self, request: HttpRequest, organization: RpcOrganization, auth_provider):
         if request.method == "POST":

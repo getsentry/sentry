@@ -72,6 +72,18 @@ function LoginForm({authConfig}: Props) {
 
           // TODO(epurkhiser): Reconfigure sentry SDK identity
 
+          // Notify other tabs that login succeeded (if feature flag enabled).
+          // Other tabs on auth pages will reload and redirect to the app.
+          const sentryAuthConfig = (window as any).sentryAuthConfig;
+          if (
+            sentryAuthConfig?.broadcastChannelRedirect &&
+            typeof BroadcastChannel !== 'undefined'
+          ) {
+            const channel = new BroadcastChannel('sentry-auth');
+            channel.postMessage({type: 'login'});
+            channel.close();
+          }
+
           browserHistory.push({pathname: response.nextUri});
         }}
         onSubmitError={response => {
