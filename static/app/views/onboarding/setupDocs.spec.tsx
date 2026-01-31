@@ -357,6 +357,8 @@ describe('Onboarding Setup Docs', () => {
           data: {
             dynamicSdkLoaderOptions: {
               hasDebug: false,
+              hasFeedback: false,
+              hasLogsAndMetrics: false,
               hasPerformance: true,
               hasReplay: true,
             },
@@ -380,6 +382,8 @@ describe('Onboarding Setup Docs', () => {
           data: {
             dynamicSdkLoaderOptions: {
               hasDebug: false,
+              hasFeedback: false,
+              hasLogsAndMetrics: false,
               hasPerformance: true,
               hasReplay: false,
             },

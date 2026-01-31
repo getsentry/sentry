@@ -218,6 +218,7 @@ describe('ProjectKeys', () => {
           hasFeedback: false,
           hasPerformance: false,
           hasReplay: false,
+          hasLogsAndMetrics: false,
         },
       },
     ]);

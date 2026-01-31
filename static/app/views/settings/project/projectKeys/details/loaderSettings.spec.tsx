@@ -15,6 +15,7 @@ const dynamicSdkLoaderOptions = {
   hasFeedback: false,
   hasPerformance: false,
   hasReplay: true,
+  hasLogsAndMetrics: false,
 };
 
 const fullDynamicSdkLoaderOptions = {
@@ -22,6 +23,7 @@ const fullDynamicSdkLoaderOptions = {
   hasFeedback: true,
   hasPerformance: true,
   hasReplay: true,
+  hasLogsAndMetrics: false,
 };
 
 function renderMockRequests(
@@ -206,6 +208,7 @@ describe('Loader Script Settings', () => {
               hasFeedback: false,
               hasPerformance: false,
               hasReplay: false,
+              hasLogsAndMetrics: false,
             },
           },
         })
