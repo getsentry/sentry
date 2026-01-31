@@ -76,8 +76,12 @@ class AuthOrganizationLoginView(AuthLoginView):
             return self.redirect(reverse("sentry-login"))
         organization = org_context.organization
 
-        # Redirect authenticated users away from login page
-        if request.method == "GET" and request.user.is_authenticated:
+        # Redirect authenticated users away from login page (when feature flag enabled)
+        if (
+            request.method == "GET"
+            and request.user.is_authenticated
+            and features.has("organizations:auth-broadcast-channel-redirect", organization)
+        ):
             next_uri = self.get_next_uri(request=request)
             return self.redirect_authenticated_user(request=request, next_uri=next_uri)
 
