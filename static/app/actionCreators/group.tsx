@@ -101,7 +101,7 @@ export function assignToActor({
       return data;
     })
     .catch(data => {
-      GroupStore.onAssignToSuccess(guid, id, data);
+      GroupStore.onAssignToError(guid, id, data);
       throw data;
     });
 }
