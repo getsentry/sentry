@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
@@ -35,6 +35,13 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 
 
+def _get_segment_org_ids() -> set[int]:
+    """
+    Returns the set of organization IDs that should use SEGMENTS measure.
+    """
+    return set(options.get("dynamic-sampling.recalibrate_orgs.span-metric-orgs") or [])
+
+
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_orgs",
     namespace=telemetry_experience_tasks,
@@ -44,13 +51,40 @@ from sentry.taskworker.retry import Retry
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
-    for org_volumes in GetActiveOrgsVolumes():
+    # Process orgs using transaction metrics (default)
+    _process_orgs_volumes(measure=SamplingMeasure.TRANSACTIONS)
+    # Process orgs using segment metrics (opted-in via option)
+    _process_orgs_volumes(measure=SamplingMeasure.SEGMENTS)
+
+
+def _process_orgs_volumes(measure: SamplingMeasure) -> None:
+    """
+    Process organization volumes for recalibration.
+
+    Args:
+        measure: The sampling measure to use for querying volumes.
+    """
+    segment_org_ids = _get_segment_org_ids()
+
+    for org_volumes in GetActiveOrgsVolumes(measure=measure):
+        # Filter to only orgs that match the measure type based on option
+        filtered_volumes = []
+        for v in org_volumes:
+            org_uses_segments = v.org_id in segment_org_ids
+            if measure == SamplingMeasure.SEGMENTS and org_uses_segments:
+                filtered_volumes.append(v)
+            elif measure == SamplingMeasure.TRANSACTIONS and not org_uses_segments:
+                filtered_volumes.append(v)
+
+        if not filtered_volumes:
+            continue
+
         modes = OrganizationOption.objects.get_value_bulk_id(
-            [v.org_id for v in org_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
+            [v.org_id for v in filtered_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
         )
         orgs_batch = []
         projects_batch = []
-        for org_volume in org_volumes:
+        for org_volume in filtered_volumes:
             if not org_volume.is_valid_for_recalibration():
                 continue
             if modes[org_volume.org_id] == DynamicSamplingMode.PROJECT:
