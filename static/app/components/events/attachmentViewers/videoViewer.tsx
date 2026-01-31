@@ -26,7 +26,7 @@ export function VideoViewer({
       `}
     >
       <source
-        src={getAttachmentUrl({attachment, ...props}, true)}
+        src={`/api/0${getAttachmentUrl({attachment, ...props})}?download`}
         type={attachment.mimetype}
       />
       {t('Your browser does not support the video tag.')}

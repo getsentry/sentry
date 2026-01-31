@@ -17,6 +17,7 @@ import StreamGroup, {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, PriorityLevel} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -188,7 +189,13 @@ function GroupList({
 
   const queryClient = useQueryClient();
   const queryKey: ApiQueryKey = [
-    endpointPath ?? `/organizations/${organization.slug}/issues/`,
+    endpointPath
+      ? (endpointPath as any)
+      : getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+          },
+        }),
     {query: computedQueryParams},
   ];
   const {

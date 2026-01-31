@@ -16,6 +16,7 @@ import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
@@ -35,7 +36,11 @@ function OrgFooterMessage() {
   const {data: integrationInfo, isPending: isIntegrationInfoPending} =
     useApiQuery<IntegrationInformation>(
       [
-        `/organizations/${organization.slug}/config/integrations/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+          },
+        }),
         {
           query: {
             provider_key: 'github',
