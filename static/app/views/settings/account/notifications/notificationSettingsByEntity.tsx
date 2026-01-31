@@ -79,7 +79,7 @@ function NotificationSettingsByEntity({
   } = useApiQuery<Project[]>(
     [
       getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
-        path: {organizationIdOrSlug: orgSlug ?? ''},
+        path: {organizationIdOrSlug: orgSlug!},
       }),
       {
         host: organization?.links?.regionUrl,

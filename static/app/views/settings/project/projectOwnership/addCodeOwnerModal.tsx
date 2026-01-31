@@ -93,7 +93,7 @@ export default function AddCodeOwnerModal({
         {
           path: {
             organizationIdOrSlug: organization.slug,
-            configId: String(codeMappingId),
+            configId: codeMappingId!,
           },
         }
       ),

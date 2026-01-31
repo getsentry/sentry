@@ -162,7 +162,7 @@ export default function AccountSecurityEnroll() {
     path: {userId: 'me', authId},
   });
   const enrollEndpoint = getApiUrl(`/users/$userId/authenticators/$interfaceId/enroll/`, {
-    path: {userId: 'me', interfaceId: authId ?? ''},
+    path: {userId: 'me', interfaceId: authId},
   });
 
   const formModel = useMemo(() => new FormModel(), []);

@@ -22,7 +22,7 @@ export default function OrganizationTeamsContainer() {
     () =>
       [
         getApiUrl(`/organizations/$organizationIdOrSlug/access-requests/`, {
-          path: {organizationIdOrSlug: String(organization?.slug)},
+          path: {organizationIdOrSlug: organization?.slug!},
         }),
       ] as const,
     [organization?.slug]
