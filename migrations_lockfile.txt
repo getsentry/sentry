@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0054_delete_bad_assertions
 
-workflow_engine: 0106_migrate_actions_sentry_app_data
+workflow_engine: 0107_fix_email_action_fallthrough_type
