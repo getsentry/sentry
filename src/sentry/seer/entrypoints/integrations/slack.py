@@ -19,13 +19,14 @@ from sentry.notifications.platform.service import (
     NotificationServiceError,
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.templates.seer import (
-    SeerAutofixError,
-    SeerAutofixSuccess,
-    SeerAutofixUpdate,
-)
+from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixUpdate
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
+from sentry.seer.autofix.issue_summary import (
+    STOPPING_POINT_HIERARCHY,
+    get_automation_stopping_point,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
@@ -58,6 +59,7 @@ class SlackEntrypointCachePayload(TypedDict):
     integration_id: int
     group_link: str
     threads: list[SlackThreadDetails]
+    automation_stopping_point: AutofixStoppingPoint | None
 
 
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
@@ -102,17 +104,15 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         it explicit which we use in case there's multiple in the body.
         """
         stopping_point = AutofixStoppingPoint.ROOT_CAUSE
+        if not action.value:
+            return stopping_point
         try:
-            stopping_point = (
-                AutofixStoppingPoint(action.value)
-                if action.value
-                else AutofixStoppingPoint.ROOT_CAUSE
-            )
+            stopping_point = AutofixStoppingPoint(action.value)
         except ValueError:
             logger.warning(
                 "entrypoint.invalid_autofix_stopping_point",
                 extra={
-                    "entrypoint_key": SeerEntrypointKey.SLACK,
+                    "entrypoint_key": SeerEntrypointKey.SLACK.value,
                     "stopping_point": action.value,
                     "action_id": action.action_id,
                     "group_id": group_id,
@@ -135,33 +135,23 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         )
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
-        send_thread_update(
-            install=self.install,
-            thread=self.thread,
-            data=SeerAutofixSuccess(
-                run_id=run_id,
-                organization_id=self.organization_id,
-                stopping_point=self.autofix_stopping_point or AutofixStoppingPoint.ROOT_CAUSE,
-            ),
-            ephemeral_user_id=self.slack_request.user_id,
+        data = SeerAutofixUpdate(
+            run_id=run_id,
+            organization_id=self.organization_id,
+            project_id=self.group.project_id,
+            group_id=self.group.id,
+            current_point=self.autofix_stopping_point,
+            group_link=self.group.get_absolute_url(),
+            has_progressed=True,
         )
-        try:
-            remove_autofix_button(
-                request=self.slack_request,
-                install=self.install,
-                channel_id=self.channel_id,
-                message_ts=self.thread_ts,
-            )
-        except (IntegrationError, TypeError, KeyError):
-            logger.warning(
-                "entrypoint.update_message_failed",
-                extra={
-                    "entrypoint_key": SlackEntrypoint.key,
-                    "channel_id": self.channel_id,
-                    "message_ts": self.thread_ts,
-                    "organization_id": self.organization_id,
-                },
-            )
+        update_existing_message(
+            request=self.slack_request,
+            install=self.install,
+            channel_id=self.channel_id,
+            message_ts=self.thread_ts,
+            data=data,
+            slack_user_id=self.slack_request.user_id,
+        )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
         return SlackEntrypointCachePayload(
@@ -171,6 +161,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             project_id=self.group.project_id,
             group_id=self.group.id,
             group_link=self.group.get_absolute_url(),
+            automation_stopping_point=None,
         )
 
     @staticmethod
@@ -182,53 +173,50 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         logging_ctx = {
             "event_type": event_type,
             "cache_payload": cache_payload,
-            "entrypoint_key": SlackEntrypoint.key,
+            "entrypoint_key": SeerEntrypointKey.SLACK.value,
         }
         group_link = f'{cache_payload["group_link"]}?seerDrawer=true'
+        data_kwargs = {
+            "run_id": event_payload["run_id"],
+            "organization_id": cache_payload["organization_id"],
+            "project_id": cache_payload["project_id"],
+            "group_id": cache_payload["group_id"],
+            "group_link": group_link,
+            "has_progressed": False,
+        }
 
         match event_type:
             case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
                 root_cause = event_payload.get("root_cause", {})
-                data = SeerAutofixUpdate(
-                    run_id=event_payload["run_id"],
-                    organization_id=cache_payload["organization_id"],
-                    project_id=cache_payload["project_id"],
-                    group_id=cache_payload["group_id"],
-                    current_point=AutofixStoppingPoint.ROOT_CAUSE,
-                    summary=root_cause.get("description", ""),
-                    steps=[step.get("title", "") for step in root_cause.get("steps", [])],
-                    group_link=group_link,
+                data_kwargs.update(
+                    {
+                        "current_point": AutofixStoppingPoint.ROOT_CAUSE,
+                        "summary": root_cause.get("description", ""),
+                        "steps": [step.get("title", "") for step in root_cause.get("steps", [])],
+                    }
                 )
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:
                 solution = event_payload.get("solution", {})
-                data = SeerAutofixUpdate(
-                    run_id=event_payload["run_id"],
-                    organization_id=cache_payload["organization_id"],
-                    project_id=cache_payload["project_id"],
-                    group_id=cache_payload["group_id"],
-                    current_point=AutofixStoppingPoint.SOLUTION,
-                    summary=solution.get("description", ""),
-                    steps=[step.get("title", "") for step in solution.get("steps", [])],
-                    group_link=group_link,
+                data_kwargs.update(
+                    {
+                        "current_point": AutofixStoppingPoint.SOLUTION,
+                        "summary": solution.get("description", ""),
+                        "steps": [step.get("title", "") for step in solution.get("steps", [])],
+                    }
                 )
             case SentryAppEventType.SEER_CODING_COMPLETED:
                 changes = event_payload.get("changes", [])
-                data = SeerAutofixUpdate(
-                    run_id=event_payload["run_id"],
-                    organization_id=cache_payload["organization_id"],
-                    project_id=cache_payload["project_id"],
-                    group_id=cache_payload["group_id"],
-                    current_point=AutofixStoppingPoint.CODE_CHANGES,
-                    changes=[
-                        {
-                            "repo_name": change.get("repo_name", ""),
-                            "diff": change.get("diff", ""),
-                            "title": change.get("title", ""),
-                            "description": change.get("description", ""),
-                        }
-                        for change in changes
-                    ],
-                    group_link=group_link,
+                changes_list = [
+                    {
+                        "repo_name": change.get("repo_name", ""),
+                        "diff": change.get("diff", ""),
+                        "title": change.get("title", ""),
+                        "description": change.get("description", ""),
+                    }
+                    for change in changes
+                ]
+                data_kwargs.update(
+                    {"current_point": AutofixStoppingPoint.CODE_CHANGES, "changes": changes_list}
                 )
             case SentryAppEventType.SEER_PR_CREATED:
                 pull_requests = [
@@ -236,33 +224,40 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                     for pr_payload in event_payload.get("pull_requests", [])
                 ]
                 summary = pull_requests[0].get("pr_url", "") if pull_requests else None
-                data = SeerAutofixUpdate(
-                    run_id=event_payload["run_id"],
-                    organization_id=cache_payload["organization_id"],
-                    project_id=cache_payload["project_id"],
-                    group_id=cache_payload["group_id"],
-                    pull_requests=[
-                        {
-                            "pr_number": pr["pr_number"],
-                            "pr_url": pr["pr_url"],
-                        }
-                        for pr in pull_requests
-                    ],
-                    summary=summary,
-                    current_point=AutofixStoppingPoint.OPEN_PR,
-                    group_link=group_link,
+                pull_requests_list = [
+                    {"pr_number": pr["pr_number"], "pr_url": pr["pr_url"]} for pr in pull_requests
+                ]
+                data_kwargs.update(
+                    {
+                        "current_point": AutofixStoppingPoint.OPEN_PR,
+                        "pull_requests": pull_requests_list,
+                        "summary": summary,
+                    }
                 )
-
             case _:
                 logging_ctx["event_type"] = event_type
-                logger.warning("entrypoint.unsupported_event_type", extra=logging_ctx)
+                logger.info("entrypoint.unsupported_event_type", extra=logging_ctx)
                 return
+
+        # Determine whether an automation has progressed beyond the current stopping point
+        automation_stopping_point = cache_payload["automation_stopping_point"]
+        if automation_stopping_point:
+            data_kwargs["has_progressed"] = (
+                STOPPING_POINT_HIERARCHY[automation_stopping_point]
+                > STOPPING_POINT_HIERARCHY[data_kwargs["current_point"]]
+            )
+            logging_ctx["automation_stopping_point"] = automation_stopping_point.value
+        logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
+
+        # Special case for solution stopping point, we always progress beyond it.
+        if data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION:
+            data_kwargs["has_progressed"] = True
 
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
             integration_id=cache_payload["integration_id"],
             organization_id=cache_payload["organization_id"],
-            data=data,
+            data=SeerAutofixUpdate(**data_kwargs),
         )
         logger.info("entrypoint.on_autofix_update_success", extra=logging_ctx)
 
@@ -276,7 +271,7 @@ def send_thread_update(
 ) -> None:
     """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
     logging_ctx = {
-        "entrypoint_key": SeerEntrypointKey.SLACK,
+        "entrypoint_key": SeerEntrypointKey.SLACK.value,
         "integration_id": install.model.id,
         "thread_ts": thread["thread_ts"],
         "channel_id": thread["channel_id"],
@@ -413,32 +408,65 @@ def _transform_block_actions(
     return result
 
 
-def remove_autofix_button(
+def update_existing_message(
     *,
     request: SlackActionRequest,
     install: SlackIntegration,
     channel_id: str,
     message_ts: str,
+    data: SeerAutofixUpdate,
+    slack_user_id: str | None,
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
-    # XXX: Removes the autofix button to prevent repeated usage
+    def remove_autofix_button_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
+        if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
+            return None
+        return elem
+
+    def remove_all_buttons_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
+        return None
+
+    transformer = (
+        remove_autofix_button_transformer
+        if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
+        else remove_all_buttons_transformer
+    )
+
     blocks = _transform_block_actions(
         request.data["message"]["blocks"],
-        lambda elem: (
-            None
-            if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value)
-            else elem
-        ),
+        transformer,
     )
 
     parsed_blocks = [Block.parse(block) for block in blocks]
+    if slack_user_id:
+        parsed_blocks.extend(
+            SeerSlackRenderer.render_footer_blocks(
+                data=data, extra_text=f"(ty <@{slack_user_id}>)", stage_completed=False
+            )
+        )
+    else:
+        parsed_blocks.extend(
+            SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=False)
+        )
+
     renderable = SlackRenderable(
         blocks=[block for block in parsed_blocks if block is not None],
         text=request.data["message"]["text"],
     )
 
-    install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
+    try:
+        install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
+    except (IntegrationError, TypeError, KeyError):
+        logger.warning(
+            "entrypoint.update_message_failed",
+            extra={
+                "entrypoint_key": SeerEntrypointKey.SLACK.value,
+                "channel_id": channel_id,
+                "message_ts": message_ts,
+                "organization_id": data.organization_id,
+            },
+        )
 
 
 def handle_prepare_autofix_update(
@@ -468,6 +496,19 @@ def handle_prepare_autofix_update(
         group_id=group.id,
         stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
     )
+
+    try:
+        automation_stopping_point = get_automation_stopping_point(group)
+    except Exception as e:
+        logger.warning(
+            "entrypoint.get_automation_stopping_point_error",
+            extra={"error": str(e), **logging_ctx},
+        )
+        automation_stopping_point = None
+
+    if automation_stopping_point:
+        logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
+
     lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
     try:
         with lock.blocking_acquire(initial_delay=0.1, timeout=3):
@@ -492,6 +533,7 @@ def handle_prepare_autofix_update(
                     project_id=group.project_id,
                     group_id=group.id,
                     group_link=group.get_absolute_url(),
+                    automation_stopping_point=automation_stopping_point,
                 ),
             )
     except UnableToAcquireLock:
