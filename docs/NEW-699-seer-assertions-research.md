@@ -302,11 +302,11 @@ APP_PORT=9091
 
 ---
 
-## 🚧 Blocker: Response Body Not Available
+## ✅ Resolved: Response Body Now Available
 
-### The Problem
+### The Problem (Resolved)
 
-The uptime preview check endpoint (`/api/0/organizations/{org}/uptime-preview-check/`) does NOT return the HTTP response body, which is **required** for generating assertion suggestions.
+The uptime preview check endpoint (`/api/0/organizations/{org}/uptime-preview-check/`) was NOT returning the HTTP response body, which is **required** for generating assertion suggestions.
 
 ### Root Cause
 
@@ -348,9 +348,9 @@ invoke_checker_preview() ◄────── CheckResult (no body on success)
 
 ---
 
-## Required Changes to Implement NEW-699
+## Implementation: `always_capture_response` Flag (✅ Complete)
 
-### Option A: Add `always_capture_response` Flag (Recommended)
+### Option A: Add `always_capture_response` Flag (Implemented)
 
 **1. Uptime-Checker (Rust)**
 
@@ -402,10 +402,10 @@ Modify the uptime-checker's `/execute_config` endpoint to always include respons
 
 ## Next Steps
 
-1. [ ] ~~Set up Seer repo locally~~ ✅
-2. [ ] ~~Verify Vertex AI access~~ ✅
-3. [ ] **Create uptime-checker PR** to add `always_capture_response` flag
-4. [ ] **Create Sentry PR** to use new flag in preview checks
+1. [x] ~~Set up Seer repo locally~~ ✅
+2. [x] ~~Verify Vertex AI access~~ ✅
+3. [x] ~~Create uptime-checker PR~~ ✅ - Added `always_capture_response` flag (branch: `jaygoss/uptime-assertions-ai`)
+4. [x] ~~Create Sentry PR~~ ✅ - Using new flag in preview checks (branch: `jaygoss/uptime-assertions-ai`)
 5. [ ] Design the assertion suggestion prompt
 6. [ ] Integrate with uptime monitor test flow (see NEW-683)
 7. [ ] Reach out in `#proj-seer-explorer` if needed
