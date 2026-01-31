@@ -211,3 +211,22 @@ export interface PreviewCheckPayload {
   headers?: Array<[string, string]>;
   method?: string;
 }
+
+// Assertion Suggestions Types (from Seer-powered endpoint)
+
+export interface AssertionSuggestion {
+  assertion_json: Op;
+  assertion_type: 'status_code' | 'json_path' | 'header';
+  comparison: 'equals' | 'not_equal' | 'less_than' | 'greater_than';
+  confidence: number;
+  expected_value: string;
+  explanation: string;
+  header_name: string | null;
+  json_path: string | null;
+}
+
+export interface AssertionSuggestionsResponse {
+  preview_result: PreviewCheckResponse;
+  suggested_assertion: Assertion | null;
+  suggestions: AssertionSuggestion[] | null;
+}
