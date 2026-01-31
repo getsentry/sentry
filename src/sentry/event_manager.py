@@ -1320,8 +1320,13 @@ def assign_event_to_group(
     # If we've found one, great. No need to do any more calculations
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
-        result = "found_primary"
-        maybe_send_seer_for_new_model_training(event, primary.existing_grouphash, primary.variants)
+        # If handle_existing_grouphash returns None (e.g., group is being deleted), create a new group
+        if group_info:
+            result = "found_primary"
+            maybe_send_seer_for_new_model_training(event, primary.existing_grouphash, primary.variants)
+        else:
+            group_info = create_group_with_grouphashes(job, primary.grouphashes)
+            result = "no_match"
     # If we haven't, try again using the secondary config. (If there is no secondary config, or
     # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
@@ -1332,10 +1337,15 @@ def assign_event_to_group(
             group_info = handle_existing_grouphash(
                 job, secondary.existing_grouphash, all_grouphashes
             )
-            result = "found_secondary"
-            maybe_send_seer_for_new_model_training(
-                event, secondary.existing_grouphash, secondary.variants
-            )
+            # If handle_existing_grouphash returns None (e.g., group is being deleted), create a new group
+            if group_info:
+                result = "found_secondary"
+                maybe_send_seer_for_new_model_training(
+                    event, secondary.existing_grouphash, secondary.variants
+                )
+            else:
+                group_info = create_group_with_grouphashes(job, all_grouphashes)
+                result = "no_match"
 
         # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
         else:
@@ -1345,6 +1355,9 @@ def assign_event_to_group(
 
             if seer_matched_grouphash:
                 group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
+                # If handle_existing_grouphash returns None (e.g., group is being deleted), create a new group
+                if not group_info:
+                    group_info = create_group_with_grouphashes(job, all_grouphashes)
             # If we *still* haven't found a group into which to put the event, create a new group
             else:
                 group_info = create_group_with_grouphashes(job, all_grouphashes)
