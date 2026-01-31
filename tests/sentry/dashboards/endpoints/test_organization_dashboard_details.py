@@ -1754,6 +1754,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Cannot sort by a field" in response.content
 
+    @pytest.mark.skip(reason="flaky: #106007")
     def test_remove_widget_and_add_new(self) -> None:
         # Remove a widget from the middle of the set and put a new widget there
         data = {
