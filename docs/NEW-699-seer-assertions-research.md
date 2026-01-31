@@ -8,7 +8,7 @@
 
 **Related**: [NEW-683](https://linear.app/getsentry/issue/NEW-683/add-test-monitor-to-the-uptime-monitor-configuration) - Add "test monitor" to uptime monitor configuration
 
-**Status**: In Progress (Backend + Frontend Complete, PRs Pending)
+**Status**: In Progress (Backend + Frontend Complete, Blocked on GCP Permissions)
 **Project**: Uptime Response Assertions
 **Team**: New Products
 
@@ -110,12 +110,24 @@ Create/update `~/code/seer/.env`:
 DD_DOGSTATSD_DISABLE=True
 GITHUB_TOKEN=<your-github-token>
 NO_SENTRY_SDK=1
-NO_RPC_CLIENT=1
+NO_RPC_CLIENT=0           # Enable real RPC client for Sentry integration
 NO_REAL_MODELS=1
 DEV=1
 RPC_SHARED_SECRET="seers-also-very-long-value-haha"
 APP_PORT=9091
+
+# GCP/Vertex AI configuration (required for Seer Explorer LLM calls)
+GOOGLE_CLOUD_PROJECT=ml-ai  # Or your project with Vertex AI access
 ```
+
+**GCP Authentication** (required for Vertex AI):
+
+```bash
+gcloud auth application-default login
+gcloud auth application-default set-quota-project ml-ai  # Or your project
+```
+
+You need the "Service Usage Consumer" IAM role on the GCP project to make Vertex AI API calls.
 
 Run Seer database migrations (first time only):
 
@@ -265,9 +277,39 @@ pip uninstall psycopg psycopg-binary
 ### ✅ Completed Setup
 
 1. **Seer repo running locally** - Configured at `~/code/seer`
-2. **Vertex AI access verified** - GCP permissions working
-3. **Seer Explorer Client tested** - Successfully created runs and received responses
-4. **Uptime-checker running locally** - Preview check endpoint working
+2. **Seer Explorer Client tested** - Successfully created runs
+3. **Uptime-checker running locally** - Preview check endpoint working
+
+### ⚠️ Blocked: GCP/Vertex AI Permissions
+
+**Issue**: Seer Explorer requires Vertex AI access via GCP, but local development is blocked by permission errors.
+
+**Error encountered**:
+
+```
+Error code: 403 - {'error': {'code': 403, 'message': 'Permission denied on resource project ml-ai.',
+'status': 'PERMISSION_DENIED', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+'reason': 'CONSUMER_INVALID', 'domain': 'googleapis.com',
+'metadata': {'service': 'aiplatform.googleapis.com', 'containerInfo': 'ml-ai', 'consumer': 'projects/ml-ai'}}]}}
+```
+
+**Root cause**: The `CONSUMER_INVALID` error means the user's GCP application-default credentials don't have the `serviceusage.services.use` permission on the `ml-ai` project, which is required to make Vertex AI API calls.
+
+**Required Seer configuration** (`~/code/seer/.env`):
+
+```bash
+# GCP/Vertex AI configuration for Seer Explorer LLM calls
+GOOGLE_CLOUD_PROJECT=ml-ai  # Or another project with Vertex AI enabled
+```
+
+**To resolve**:
+
+1. Request "Service Usage Consumer" IAM role on `ml-ai` project, OR
+2. Use a different GCP project where you have Vertex AI access
+3. Run `gcloud auth application-default login` with correct account
+4. Run `gcloud auth application-default set-quota-project <project-id>`
+
+**Note**: Being able to see a project in GCP Console doesn't mean your local ADC credentials have API access. The IAM permissions are separate.
 
 ### Local Dev Configuration
 
@@ -291,11 +333,14 @@ SENTRY_FEATURES["organizations:seer-explorer"] = True  # Enable Seer Explorer cl
 DD_DOGSTATSD_DISABLE=True
 GITHUB_TOKEN=<your-token>
 NO_SENTRY_SDK=1
-NO_RPC_CLIENT=1
+NO_RPC_CLIENT=0           # Enable real RPC client for Sentry integration
 NO_REAL_MODELS=1
 DEV=1
 RPC_SHARED_SECRET="seers-also-very-long-value-haha"
 APP_PORT=9091
+
+# GCP/Vertex AI configuration (required for Seer Explorer LLM calls)
+GOOGLE_CLOUD_PROJECT=ml-ai  # Or your project with Vertex AI access
 ```
 
 **Important**: Keep Sentry and Seer in separate virtual environments. Seer uses `psycopg3` while Sentry uses `psycopg2-binary` - mixing them causes SQL syntax errors.
@@ -403,14 +448,16 @@ Modify the uptime-checker's `/execute_config` endpoint to always include respons
 ## Next Steps
 
 1. [x] ~~Set up Seer repo locally~~ ✅
-2. [x] ~~Verify Vertex AI access~~ ✅
+2. [ ] **BLOCKED**: Verify Vertex AI access - Need GCP permissions (see "Blocked: GCP/Vertex AI Permissions" above)
 3. [x] ~~Create uptime-checker PR~~ ✅ - Added `always_capture_response` flag (branch: `jaygoss/uptime-assertions-ai`)
 4. [x] ~~Create Sentry PR~~ ✅ - Using new flag in preview checks (branch: `jaygoss/uptime-assertions-ai`)
 5. [x] ~~Design the assertion suggestion prompt~~ ✅ - See `seer_assertions.py:build_assertion_prompt()`
 6. [x] ~~Create API endpoint for suggestions~~ ✅ - `POST /api/0/organizations/{org}/uptime-assertion-suggestions/`
 7. [x] ~~Frontend integration~~ ✅ - Added `AssertionSuggestionsButton` component with modal UI
-8. [ ] Create and merge PRs for uptime-checker and Sentry
-9. [ ] Reach out in `#proj-seer-explorer` if needed
+8. [ ] Resolve GCP permissions issue (request IAM role or use different project)
+9. [ ] Test end-to-end with working Vertex AI access
+10. [ ] Create and merge PRs for uptime-checker and Sentry
+11. [ ] Reach out in `#proj-seer-explorer` or `#discuss-seer-infra` for GCP access help
 
 ---
 
@@ -564,4 +611,4 @@ sentry django shell < scripts/test_seer_explorer.py
 ---
 
 _Research conducted: January 2026_
-_Last updated: January 30, 2026_
+_Last updated: January 31, 2026_
