@@ -82,7 +82,10 @@ export default function SeerProjectTable() {
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = ['seer-projects', {query: {query: searchTerm, sort}}];
+  const queryKey: ApiQueryKey = [
+    'seer-projects',
+    {query: {query: searchTerm, sort}},
+  ] as unknown as ApiQueryKey;
 
   const sortedProjects = useMemo(() => {
     return projects.toSorted((a, b) => {

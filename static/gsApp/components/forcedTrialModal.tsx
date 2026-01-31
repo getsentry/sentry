@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
@@ -35,7 +36,9 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
     isError,
   } = useApiQuery<Integration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           includeConfig: 0,

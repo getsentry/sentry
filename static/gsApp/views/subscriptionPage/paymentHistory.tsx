@@ -21,6 +21,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -54,7 +55,9 @@ function PaymentHistory() {
     getResponseHeader,
   } = useApiQuery<InvoiceBase[]>(
     [
-      `/customers/${organization.slug}/invoices/`,
+      getApiUrl(`/customers/$organizationIdOrSlug/invoices/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {cursor: location.query.cursor},
       },
