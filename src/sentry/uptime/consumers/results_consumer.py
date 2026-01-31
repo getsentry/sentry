@@ -163,6 +163,7 @@ def create_uptime_response_capture(
         unit="byte",
     )
 
+    result["had_response_body"] = True  # type: ignore[typeddict-unknown-key]
     return capture
 
 
@@ -397,6 +398,9 @@ def process_result_internal(
         needs_update |= set_response_capture_enabled(uptime_subscription, True)
     elif result["status"] == CHECKSTATUS_FAILURE:
         needs_update |= set_response_capture_enabled(uptime_subscription, False)
+        # Force an update if there was a response body, to make sure we properly sync things here.
+        if result.get("had_response_body"):
+            needs_update = True
 
     if should_run_region_checks(uptime_subscription, result):
         needs_update |= try_check_and_update_regions(uptime_subscription, subscription_regions)
