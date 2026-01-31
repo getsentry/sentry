@@ -1323,7 +1323,9 @@ def assign_event_to_group(
         # If handle_existing_grouphash returns None (e.g., group is being deleted), create a new group
         if group_info:
             result = "found_primary"
-            maybe_send_seer_for_new_model_training(event, primary.existing_grouphash, primary.variants)
+            maybe_send_seer_for_new_model_training(
+                event, primary.existing_grouphash, primary.variants
+            )
         else:
             group_info = create_group_with_grouphashes(job, primary.grouphashes)
             result = "no_match"
