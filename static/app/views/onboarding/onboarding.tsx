@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useState, type PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -32,36 +32,91 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
+import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
+import {NewWelcomeUI} from './components/newWelcome';
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
-import type {StepDescriptor} from './types';
+import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 import TargetedOnboardingWelcome from './welcome';
 
 export const onboardingSteps: StepDescriptor[] = [
   {
-    id: 'welcome',
+    id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
-    Component: TargetedOnboardingWelcome,
+    Component: WelcomeVariable,
     cornerVariant: 'top-right',
   },
   {
-    id: 'select-platform',
+    id: OnboardingStepId.SELECT_PLATFORM,
     title: t('Select platform'),
     Component: PlatformSelection,
     hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
-    id: 'setup-docs',
+    id: OnboardingStepId.SETUP_DOCS,
     title: t('Install the Sentry SDK'),
     Component: SetupDocs,
     hasFooter: true,
     cornerVariant: 'top-left',
   },
 ];
+
+function WelcomeVariable(props: StepProps) {
+  const hasNewWelcomeUI = useHasNewWelcomeUI();
+
+  if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
+
+  return <TargetedOnboardingWelcome {...props} />;
+}
+
+interface ContainerVariableProps {
+  hasFooter: boolean;
+  hasNewWelcomeUI: boolean;
+  id: OnboardingStepId;
+}
+
+function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
+  const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
+  const Component = newWelcomeUIStep ? ContainerNewWelcomeUI : Container;
+
+  return (
+    <Component hasFooter={props.hasFooter || newWelcomeUIStep}>
+      {props.children}
+    </Component>
+  );
+}
+
+interface OnboardingStepVariableProps {
+  hasNewWelcomeUI: boolean;
+  id: OnboardingStepId;
+}
+
+function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
+  const Component =
+    props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME
+      ? OnboardingStepNewUi
+      : OnboardingStep;
+
+  return (
+    <Component
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={{animate: {}}}
+      transition={testableTransition({
+        staggerChildren: 0.2,
+      })}
+      key={props.id}
+      data-test-id={`onboarding-step-${props.id}`}
+    >
+      {props.children}
+    </Component>
+  );
+}
 
 export function OnboardingWithoutContext() {
   const location = useLocation();
@@ -70,6 +125,8 @@ export function OnboardingWithoutContext() {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
+
+  const hasNewWelcomeUI = useHasNewWelcomeUI();
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -225,7 +282,15 @@ export function OnboardingWithoutContext() {
           />
         </UpsellWrapper>
       </Header>
-      <Container hasFooter={containerHasFooter}>
+      <ContainerVariable
+        hasFooter={containerHasFooter}
+        id={stepObj.id}
+        hasNewWelcomeUI={hasNewWelcomeUI}
+      >
+        <AdaptivePageCorners
+          // Controls the current corner variant
+          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+        />
         {stepIndex > 0 && (
           <BackMotionDiv
             initial="initial"
@@ -252,17 +317,7 @@ export function OnboardingWithoutContext() {
           </BackMotionDiv>
         )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
-          <OnboardingStep
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={{animate: {}}}
-            transition={testableTransition({
-              staggerChildren: 0.2,
-            })}
-            key={stepObj.id}
-            data-test-id={`onboarding-step-${stepObj.id}`}
-          >
+          <OnboardingStepVariable id={stepObj.id} hasNewWelcomeUI={hasNewWelcomeUI}>
             {stepObj.Component && (
               <stepObj.Component
                 data-test-id={`onboarding-step-${stepObj.id}`}
@@ -276,13 +331,9 @@ export function OnboardingWithoutContext() {
                 genSkipOnboardingLink={genSkipOnboardingLink}
               />
             )}
-          </OnboardingStep>
+          </OnboardingStepVariable>
         </AnimatePresence>
-        <AdaptivePageCorners
-          // Controls the current corner variant
-          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-        />
-      </Container>
+      </ContainerVariable>
     </Stack>
   );
 }
@@ -294,6 +345,25 @@ function Onboarding() {
     </OnboardingContextProvider>
   );
 }
+
+const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  background: ${p => p.theme.tokens.background.primary};
+  padding: ${space(3)};
+  overflow: hidden;
+
+  width: 100%;
+  margin: 0 auto;
+  margin-bottom: ${p => p.hasFooter && '72px'};
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${space(4)} ${space(3)};
+  }
+`;
 
 const Container = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
@@ -335,8 +405,16 @@ const OnboardingStep = styled(motion.div)`
   flex-direction: column;
 `;
 
+const OnboardingStepNewUi = styled(motion.div)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
+  overflow: hidden;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     --corner-scale: 0.5;
   }
