@@ -119,6 +119,12 @@ class CheckConfig(TypedDict, total=False):
     Whether to capture response body and headers on check failures.
     """
 
+    always_capture_response: bool
+    """
+    Whether to always capture response body and headers regardless of success/failure.
+    Used for preview checks that need response data for assertion suggestions.
+    """
+
 
 class IncidentStatus(IntEnum):
     """
