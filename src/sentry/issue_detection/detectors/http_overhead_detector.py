@@ -53,7 +53,7 @@ class HTTPOverheadDetector(PerformanceDetector):
 
     def __init__(
         self,
-        settings: dict[DetectorType, Any],
+        settings: dict[str, Any],
         event: dict[str, Any],
         organization: Organization | None = None,
         detector_id: int | None = None,
@@ -129,7 +129,7 @@ class HTTPOverheadDetector(PerformanceDetector):
         return True
 
     def _store_performance_problem(self, location: str) -> None:
-        delay_threshold = self.settings.get("http_request_delay_threshold")
+        delay_threshold = self.settings["http_request_delay_threshold"]
 
         max_delay = -1.0
         chain = None

@@ -22,7 +22,9 @@ class QueryInjectionDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = QueryInjectionDetector(self._settings, event)
+        detector = QueryInjectionDetector(
+            self._settings[QueryInjectionDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
