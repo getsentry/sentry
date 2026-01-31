@@ -2,7 +2,7 @@
 title: Switch
 description: Switches are toggle controls that allow users to quickly switch between two possible states.
 category: forms
-source: 'sentry/components/core/switch'
+source: '@sentry/scraps/switch'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/switch/switch.tsx
@@ -16,15 +16,15 @@ resources:
 
 import {useState} from 'react';
 
-import {Switch} from 'sentry/components/core/switch';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import documentation from '!!type-loader!@sentry/scraps/switch';
 
-import SwitchDocumentation from '!!type-loader!sentry/components/core/switch';
-
-export const documentation = SwitchDocumentation;
+export {documentation};
 
 To create a basic switch, use the `<Switch>` component with `checked` and `onChange` props. The switch doesn't include a label, so you'll need to provide your own accompanying label using HTML `<label>` element for accessibility.
 
