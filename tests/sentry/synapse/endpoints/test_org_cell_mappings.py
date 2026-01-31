@@ -103,7 +103,7 @@ class OrgCellMappingsTest(APITestCase):
 
     @override_regions(region_config)
     @patch("sentry.synapse.endpoints.org_cell_mappings.OrgCellMappingsEndpoint.MAX_LIMIT", 2)
-    def test_get_multiple_pages(self) -> None:
+    def test_get_multiple_pages_multiple_locales(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
         org3 = self.create_organization(region=de_region)
@@ -135,6 +135,28 @@ class OrgCellMappingsTest(APITestCase):
             assert res.data["data"][org.slug] == "us"
             assert res.data["data"][str(org.id)] == "us"
         assert len(res.data["data"].keys()) == 4
+        assert res.data["metadata"]["cursor"]
+        assert res.data["metadata"]["cell_to_locality"]
+        assert res.data["metadata"]["has_more"] is False
+
+    @override_regions(region_config)
+    @patch("sentry.synapse.endpoints.org_cell_mappings.OrgCellMappingsEndpoint.MAX_LIMIT", 2)
+    def test_get_locale_filter(self) -> None:
+        # Two orgs in the wrong region to check pagination response data
+        self.create_organization()
+        self.create_organization()
+        org3 = self.create_organization(region=de_region)
+
+        url = reverse("sentry-api-0-org-cell-mappings")
+        res = self.client.get(
+            url,
+            data={"locale": "de"},
+            HTTP_AUTHORIZATION=self.auth_header(url),
+        )
+        assert res.status_code == 200
+        assert res.data["data"][org3.slug] == "de"
+        assert res.data["data"][str(org3.id)] == "de"
+        assert len(res.data["data"].keys()) == 2
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False
