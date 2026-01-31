@@ -60,12 +60,12 @@ class PerformanceDetector(ABC):
 
     def __init__(
         self,
-        settings: dict[DetectorType, Any],
+        settings: dict[str, Any],
         event: dict[str, Any],
         organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        self.settings = settings[self.settings_key]
+        self.settings = settings
         self._event = event
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.organization = organization
