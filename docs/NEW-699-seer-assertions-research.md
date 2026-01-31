@@ -8,7 +8,7 @@
 
 **Related**: [NEW-683](https://linear.app/getsentry/issue/NEW-683/add-test-monitor-to-the-uptime-monitor-configuration) - Add "test monitor" to uptime monitor configuration
 
-**Status**: Planned
+**Status**: In Progress (Backend Complete)
 **Project**: Uptime Response Assertions
 **Team**: New Products
 
@@ -406,9 +406,100 @@ Modify the uptime-checker's `/execute_config` endpoint to always include respons
 2. [x] ~~Verify Vertex AI access~~ ✅
 3. [x] ~~Create uptime-checker PR~~ ✅ - Added `always_capture_response` flag (branch: `jaygoss/uptime-assertions-ai`)
 4. [x] ~~Create Sentry PR~~ ✅ - Using new flag in preview checks (branch: `jaygoss/uptime-assertions-ai`)
-5. [ ] Design the assertion suggestion prompt
-6. [ ] Integrate with uptime monitor test flow (see NEW-683)
-7. [ ] Reach out in `#proj-seer-explorer` if needed
+5. [x] ~~Design the assertion suggestion prompt~~ ✅ - See `seer_assertions.py:build_assertion_prompt()`
+6. [x] ~~Create API endpoint for suggestions~~ ✅ - `POST /api/0/organizations/{org}/uptime-assertion-suggestions/`
+7. [ ] Frontend integration - Display suggestions in uptime monitor test flow
+8. [ ] Create and merge PRs for uptime-checker and Sentry
+9. [ ] Reach out in `#proj-seer-explorer` if needed
+
+---
+
+## ✅ Backend Implementation Complete
+
+### New Files
+
+| File                                                                       | Purpose                          |
+| -------------------------------------------------------------------------- | -------------------------------- |
+| `src/sentry/uptime/seer_assertions.py`                                     | Core module for Seer integration |
+| `src/sentry/uptime/endpoints/organization_uptime_assertion_suggestions.py` | REST API endpoint                |
+
+### API Endpoint
+
+**URL**: `POST /api/0/organizations/{org_slug}/uptime-assertion-suggestions/`
+
+**Request Body** (same as uptime-preview-check):
+
+```json
+{
+  "url": "https://api.example.com/health",
+  "timeout_ms": 5000,
+  "request_method": "GET",
+  "request_headers": [["Authorization", "Bearer token"]]
+}
+```
+
+**Response**:
+
+```json
+{
+  "preview_result": {
+    "check_result": { ... },
+    "assertions_enabled": true
+  },
+  "suggestions": [
+    {
+      "assertion_type": "status_code",
+      "comparison": "equals",
+      "expected_value": "200",
+      "json_path": null,
+      "header_name": null,
+      "confidence": 0.95,
+      "explanation": "Status code 200 indicates the endpoint is responding successfully",
+      "assertion_json": {
+        "op": "status_code_check",
+        "value": 200,
+        "operator": {"cmp": "equals"}
+      }
+    },
+    {
+      "assertion_type": "json_path",
+      "comparison": "equals",
+      "expected_value": "healthy",
+      "json_path": "$.status",
+      "header_name": null,
+      "confidence": 0.85,
+      "explanation": "The status field indicates service health",
+      "assertion_json": {
+        "op": "json_path",
+        "value": "$.status",
+        "operator": {"cmp": "equals"},
+        "operand": {"jsonpath_op": "literal", "value": "healthy"}
+      }
+    }
+  ],
+  "suggested_assertion": {
+    "root": {
+      "op": "and",
+      "children": [
+        {"op": "status_code_check", "value": 200, "operator": {"cmp": "equals"}},
+        {"op": "json_path", "value": "$.status", ...}
+      ]
+    }
+  }
+}
+```
+
+### Feature Flags Required
+
+- `organizations:seer-explorer` - Enables Seer Explorer Client
+- `organizations:uptime-runtime-assertions` - Enables uptime assertions
+
+### Rate Limits
+
+The endpoint has restrictive rate limits since it calls Seer:
+
+- Per user: 1 request per 5 seconds, max 2 concurrent
+- Per org: 10 requests per 60 seconds, max 5 concurrent
 
 ---
 
