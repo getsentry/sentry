@@ -915,7 +915,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             self.internal_integration.slug,
             status_code=204,
         )
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             run_scheduled_deletions_control()
 
         action.refresh_from_db()
