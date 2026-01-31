@@ -16,24 +16,6 @@ if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
     from sentry.services.eventstore.models import Event
 
-REGEX_PATTERN_KEYS = (
-    "email",
-    "url",
-    "hostname",
-    "ip",
-    "traceparent",
-    "uuid",
-    "sha1",
-    "md5",
-    "date",
-    "duration",
-    "hex",
-    "float",
-    "int",
-    "quoted_str",
-    "bool",
-)
-
 
 def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:
     """
@@ -73,7 +55,6 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
     to at most 2 lines.
     """
     parameterizer = Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS,
         experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
     )
 
