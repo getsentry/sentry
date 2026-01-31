@@ -213,5 +213,5 @@ const Circle = styled('div')`
   border-radius: 50%;
   height: 12px;
   width: 12px;
-  border: 1px solid ${p => p.theme.tokens.content.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;

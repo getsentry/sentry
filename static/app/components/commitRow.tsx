@@ -269,7 +269,7 @@ const BoldEmail = styled('strong')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted currentColor;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
