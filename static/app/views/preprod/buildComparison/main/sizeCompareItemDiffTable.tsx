@@ -1,10 +1,9 @@
 import {useEffect, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {ButtonBar} from '@sentry/scraps/buttonBar';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 

@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {Link as RouterLink} from 'react-router-dom';
 
 import type {LinkProps} from '@sentry/scraps/link';
-import {LinkBehaviorContextProvider} from '@sentry/scraps/link/linkBehaviorContext';
+import {LinkBehaviorContextProvider} from '@sentry/scraps/linkBehaviorContext';
 
 import {preload} from 'sentry/router/preload';
 import {useRouteConfig} from 'sentry/router/routeConfigContext';

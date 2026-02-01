@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {ButtonBar} from '@sentry/scraps/buttonBar';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Prose} from '@sentry/scraps/text/prose';
+import {Prose} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
