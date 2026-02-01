@@ -111,27 +111,33 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         serializer = ProjectSeerPreferencesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        all_repos_to_check: set[tuple[str, str, str]] = set()  # (provider, external_id, name)
         for repo_data in serializer.validated_data.get("repositories", []):
-            provider = repo_data.get("provider")
-            external_id = repo_data.get("external_id")
             repo_org_id = repo_data.get("organization_id")
-            owner = repo_data.get("owner")
-            name = repo_data.get("name")
-
             if repo_org_id is not None and repo_org_id != project.organization.id:
                 return Response({"detail": "Invalid repository"}, status=400)
-
             repo_data["organization_id"] = project.organization.id
 
-            repo_exists = Repository.objects.filter(
-                Q(provider=provider) | Q(provider=f"integrations:{provider}"),
-                organization_id=project.organization.id,
-                external_id=external_id,
-                name=f"{owner}/{name}",
-                status=ObjectStatus.ACTIVE,
-            ).exists()
+            provider = repo_data["provider"]
+            external_id = repo_data["external_id"]
+            owner = repo_data["owner"]
+            name = repo_data["name"]
+            all_repos_to_check.add((provider, external_id, f"{owner}/{name}"))
 
-            if not repo_exists:
+        if all_repos_to_check:
+            repo_q = Q()
+            for provider, external_id, full_name in all_repos_to_check:
+                repo_q |= Q(
+                    Q(provider=provider) | Q(provider=f"integrations:{provider}"),
+                    external_id=external_id,
+                    name=full_name,
+                )
+            existing_repos_count = Repository.objects.filter(
+                repo_q,
+                organization_id=project.organization.id,
+                status=ObjectStatus.ACTIVE,
+            ).count()
+            if existing_repos_count != len(all_repos_to_check):
                 return Response({"detail": "Invalid repository"}, status=400)
 
         path = "/v1/project-preference/set"
