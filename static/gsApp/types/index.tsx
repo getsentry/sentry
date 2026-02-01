@@ -1198,6 +1198,12 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   tallyType: 'usage' | 'seat';
   /**
+   * Feature flag required for admin-only product trials.
+   * When set, this category can have product trials started by admins
+   * only if the organization has this feature flag enabled.
+   */
+  adminOnlyProductTrialFeature?: string | null;
+  /**
    * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
    */
   shortenedUnitName?: string;
