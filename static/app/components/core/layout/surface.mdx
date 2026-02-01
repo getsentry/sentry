@@ -7,7 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/surface.tsx
 ---
 
-import {Flex, Stack, Surface} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, Surface} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -69,5 +69,31 @@ Use `variant="overlay"` for floating surfaces like dropdowns, modals, and popove
 </Surface>
 <Surface variant="overlay" elevation="high">
   Overlay: High elevation
+</Surface>
+```
+
+### Composition via Render Function
+
+The `Surface` component can be used to compose other components via render functions. For example, you can use the `Surface` component to create a dropdown menu:
+
+<Storybook.Demo>
+  <Surface variant="overlay" elevation="low" padding="xl lg">
+    {props => (
+      <Container {...props} padding="xl lg">
+        <Text variant="primary">
+          Overlay: Low elevation <Text variant="muted">(default)</Text>
+        </Text>
+      </Container>
+    )}
+  </Surface>
+</Storybook.Demo>
+
+```jsx
+<Surface variant="overlay" elevation="low">
+  {props => (
+    <Container {...props} padding="xl lg">
+      <Text variant="primary">Overlay: Low elevation (default)</Text>
+    </Container>
+  )}
 </Surface>
 ```
