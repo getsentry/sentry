@@ -8,6 +8,8 @@ import {Text} from '@sentry/scraps/text/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
+import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -114,6 +116,8 @@ function SeerProjectDetails() {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
+          <CursorIntegrationCta project={project} />
+          <GithubCopilotIntegrationCta />
         </Stack>
       )}
     </Fragment>
