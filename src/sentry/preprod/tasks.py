@@ -4,7 +4,7 @@ import datetime
 import logging
 import uuid
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Dict
 
 import sentry_sdk
 from django.db import router, transaction
@@ -54,6 +54,18 @@ from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
 
+from sentry.taskworker.registry import TaskRegistry
+
+# Separate registry for launchpad tasks
+launchpad_registry = TaskRegistry(application="launchpad")
+launchpad_namespace = launchpad_registry.create_namespace(name="default")
+
+
+@launchpad_namespace.register(name="process_something")
+def process_something(data: dict[Any, Any]) -> None:
+    """Stub - actual implementation in launchpad service"""
+    pass  # This never runs; it's just for triggering
+
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
@@ -73,6 +85,8 @@ def assemble_preprod_artifact(
     """
     Creates a preprod artifact from uploaded chunks.
     """
+    print("starting assemble_preprod_artifact")
+
     logger.info(
         "Starting preprod artifact assembly",
         extra={
@@ -201,6 +215,9 @@ def assemble_preprod_artifact(
             artifact_id=artifact_id,
             requested_features=requested_features,
         )
+
+        print("> APPLYING ASYNC process_something...")
+        process_something.apply_async()
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
         sentry_sdk.capture_exception(e)

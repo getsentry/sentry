@@ -382,6 +382,7 @@ def child_process(
                 if "__start_time" in kwargs:
                     kwargs.pop("__start_time")
 
+                print(f"> EXECUTING TASK {activation.namespace}:{activation.taskname}")
                 try:
                     task_func(*args, **kwargs)
                     transaction.set_status(SPANSTATUS.OK)
