@@ -172,7 +172,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
   }
 
   return (
-    <DrawerContainer>
+    <DrawerContainer data-test-id="schema-hints-drawer">
       <DrawerHeader hideBar />
       <StyledDrawerBody>
         <Stack marginBottom="xl" gap="md">

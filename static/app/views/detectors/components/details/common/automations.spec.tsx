@@ -216,7 +216,7 @@ describe('DetectorDetailsAutomations', () => {
       await screen.findByRole('button', {name: 'Connect Existing Alerts'})
     );
 
-    const drawer = await screen.findByRole('complementary', {name: 'Connect Alerts'});
+    const drawer = await screen.findByTestId('connect-automations-drawer');
 
     const allAutomationsList = await screen.findByTestId('drawer-all-automations-list');
     expect(
