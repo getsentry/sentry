@@ -98,7 +98,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = RenderBlockingAssetSpanDetector(settings, event)
 
         assert detector.is_creation_allowed_for_project(project)
@@ -109,7 +109,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
             value={"large_render_blocking_asset_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = RenderBlockingAssetSpanDetector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
