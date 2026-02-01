@@ -12,8 +12,10 @@ from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
     _shared_pool,
+    check_cluster_versions,
     get_cluster_from_options,
 )
+from sentry.utils.versioning import Version
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
@@ -113,3 +115,76 @@ def test_get_cluster_from_options_both_options_invalid() -> None:
             {"hosts": {0: {"db": 0}}, "cluster": "foo", "foo": "bar"},
             cluster_manager=manager,
         )
+
+
+def test_check_cluster_versions_with_string_version() -> None:
+    """Test that check_cluster_versions works with standard Redis string versions."""
+    cluster = mock.MagicMock(spec=rb.Cluster)
+    cluster.hosts = {0: mock.MagicMock(host="127.0.0.1", port=6379)}
+
+    # Mock the info() response with a standard Redis version string
+    mock_client = mock.MagicMock()
+    mock_results = mock.MagicMock()
+    mock_results.value = {0: {"redis_version": "7.2.0"}}
+    mock_client.info.return_value = mock_results
+
+    cluster.all.return_value.__enter__.return_value = mock_client
+    cluster.all.return_value.__exit__.return_value = None
+
+    # Should not raise an exception
+    check_cluster_versions(cluster, Version((7, 0, 0)))
+
+
+def test_check_cluster_versions_with_valkey_float_version() -> None:
+    """Test that check_cluster_versions handles Valkey's float version format (e.g., 7.2)."""
+    cluster = mock.MagicMock(spec=rb.Cluster)
+    cluster.hosts = {0: mock.MagicMock(host="127.0.0.1", port=6379)}
+
+    # Mock the info() response with a Valkey float version
+    mock_client = mock.MagicMock()
+    mock_results = mock.MagicMock()
+    mock_results.value = {0: {"redis_version": 7.2}}  # Float, not string
+    mock_client.info.return_value = mock_results
+
+    cluster.all.return_value.__enter__.return_value = mock_client
+    cluster.all.return_value.__exit__.return_value = None
+
+    # Should not raise an exception
+    check_cluster_versions(cluster, Version((7, 0, 0)))
+
+
+def test_check_cluster_versions_with_valkey_short_string_version() -> None:
+    """Test that check_cluster_versions handles Valkey's short string version format (e.g., "7.2")."""
+    cluster = mock.MagicMock(spec=rb.Cluster)
+    cluster.hosts = {0: mock.MagicMock(host="127.0.0.1", port=6379)}
+
+    # Mock the info() response with a Valkey short string version
+    mock_client = mock.MagicMock()
+    mock_results = mock.MagicMock()
+    mock_results.value = {0: {"redis_version": "7.2"}}  # Short string
+    mock_client.info.return_value = mock_results
+
+    cluster.all.return_value.__enter__.return_value = mock_client
+    cluster.all.return_value.__exit__.return_value = None
+
+    # Should not raise an exception
+    check_cluster_versions(cluster, Version((7, 0, 0)))
+
+
+def test_check_cluster_versions_fails_with_old_version() -> None:
+    """Test that check_cluster_versions raises InvalidConfiguration for old versions."""
+    cluster = mock.MagicMock(spec=rb.Cluster)
+    cluster.hosts = {0: mock.MagicMock(host="127.0.0.1", port=6379)}
+
+    # Mock the info() response with an old version
+    mock_client = mock.MagicMock()
+    mock_results = mock.MagicMock()
+    mock_results.value = {0: {"redis_version": "6.0.0"}}
+    mock_client.info.return_value = mock_results
+
+    cluster.all.return_value.__enter__.return_value = mock_client
+    cluster.all.return_value.__exit__.return_value = None
+
+    # Should raise InvalidConfiguration for old version
+    with pytest.raises(InvalidConfiguration):
+        check_cluster_versions(cluster, Version((7, 0, 0)))
