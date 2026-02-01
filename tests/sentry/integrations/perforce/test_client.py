@@ -78,6 +78,7 @@ class PerforceClientTest(TestCase):
             ref="",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
         file2 = SourceLineInfo(
             path="src/utils.py",
@@ -85,6 +86,7 @@ class PerforceClientTest(TestCase):
             ref="",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
 
         blames = self.p4_client.get_blame_for_files([file1, file2], extra={})
@@ -124,6 +126,7 @@ class PerforceClientTest(TestCase):
             ref="",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
 
         blames = self.p4_client.get_blame_for_files([file], extra={})
@@ -161,6 +164,7 @@ class PerforceClientTest(TestCase):
             ref="main",  # Stream name (ignored - path already contains full depot path)
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
 
         blames = self.p4_client.get_blame_for_files([file], extra={})
@@ -207,6 +211,7 @@ class PerforceClientTest(TestCase):
             ref="",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
         file2 = SourceLineInfo(
             path="src/missing.py",
@@ -214,6 +219,7 @@ class PerforceClientTest(TestCase):
             ref="",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
 
         blames = self.p4_client.get_blame_for_files([file1, file2], extra={})
@@ -253,6 +259,7 @@ class PerforceClientTest(TestCase):
             ref="",
             repo=self.repo,
             code_mapping=None,  # type: ignore[arg-type]
+            revision=None,
         )
 
         blames = self.p4_client.get_blame_for_files([file], extra={})
@@ -609,3 +616,63 @@ class PerforceClientTest(TestCase):
 
         path = self.p4_client.build_depot_path(nested_repo, "src/main.cpp")
         assert path == "//depot/game/project/src/main.cpp"
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_blame_for_files_with_revision(self, mock_p4_class):
+        """Test get_blame_for_files uses revision from frame to get exact changelist"""
+        # Mock P4 instance
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        # Mock p4 changes response for file with specific revision
+        mock_p4.run.side_effect = [
+            # First call: changes for file with revision
+            [
+                {
+                    "change": "12345",
+                    "user": "johndoe",
+                    "time": "1609459200",  # 2021-01-01 00:00:00 UTC
+                    "desc": "Fix bug in main module",
+                }
+            ],
+            # Second call: user lookup for johndoe
+            [
+                {
+                    "User": "johndoe",
+                    "Email": "johndoe@example.com",
+                    "FullName": "John Doe",
+                    "Update": "2021/01/01 00:00:00",
+                }
+            ],
+        ]
+
+        file_with_revision = SourceLineInfo(
+            path="src/main.cpp",
+            lineno=42,
+            ref="main",
+            repo=self.repo,
+            code_mapping=None,  # type: ignore[arg-type]
+            revision="12345",  # Revision from symcache
+        )
+
+        blames = self.p4_client.get_blame_for_files([file_with_revision], extra={})
+
+        assert len(blames) == 1
+
+        # Verify the blame info
+        assert blames[0].path == "src/main.cpp"
+        assert blames[0].lineno == 42
+        assert blames[0].commit.commitId == "12345"
+        assert blames[0].commit.commitAuthorName == "John Doe"
+        assert blames[0].commit.commitAuthorEmail == "johndoe@example.com"
+        assert blames[0].commit.commitMessage == "Fix bug in main module"
+
+        # Verify that p4 changes was called with the revision appended to depot path
+        # First call should be: p4.run("changes", "-m", "1", "-l", "//depot/src/main.cpp#12345")
+        assert mock_p4.run.call_count == 2
+        first_call_args = mock_p4.run.call_args_list[0][0]
+        assert first_call_args[0] == "changes"
+        assert first_call_args[1] == "-m"
+        assert first_call_args[2] == "1"
+        assert first_call_args[3] == "-l"
+        assert first_call_args[4] == "//depot/src/main.cpp#12345"
