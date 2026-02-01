@@ -121,7 +121,7 @@ class RpcSentryAppInstallation(RpcModel):
     organization_id: int = -1
     status: int = SentryAppInstallationStatus.PENDING
     sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
-    date_deleted: datetime.datetime | None = None
+    date_deleted: datetime.datetime | None = None  # TODO: remove this field
     uuid: str = ""
     api_token: str | None = None
 

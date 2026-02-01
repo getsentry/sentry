@@ -11,7 +11,6 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry import deletions
 from sentry.analytics.events.sentry_app_schema_validation_error import (
     SentryAppSchemaValidationError,
 )
@@ -528,7 +527,6 @@ class PostSentryAppsTest(SentryAppsTest):
 
     def test_non_unique_app_slug_fails(self) -> None:
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.organization)
-        deletions.exec_sync(sentry_app)
 
         data = self.get_data(name=sentry_app.name)
         response = self.get_error_response(**data, status_code=400)
