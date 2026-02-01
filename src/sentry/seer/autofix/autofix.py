@@ -17,6 +17,7 @@ from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
@@ -45,6 +46,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.snuba import UnqualifiedQueryError
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +251,12 @@ def _get_trace_tree_for_event(
                 "project_id": project.id,
                 "timeout": timeout,
             },
+        )
+        return None
+    except (UnqualifiedQueryError, InvalidSearchQuery):
+        logger.info(
+            "[Autofix] Skipping trace fetch: no projects with event data",
+            extra={"event_id": event.event_id, "trace_id": trace_id, "project_id": project.id},
         )
         return None
     except Exception:
