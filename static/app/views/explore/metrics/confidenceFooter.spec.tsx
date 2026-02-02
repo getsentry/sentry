@@ -39,7 +39,7 @@ describe('ConfidenceFooter', () => {
         hasUserQuery={false}
         isLoading
       />,
-      {wrapper: Wrapper}
+      {additionalWrapper: Wrapper}
     );
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
   });
@@ -56,7 +56,7 @@ describe('ConfidenceFooter', () => {
               isLoading={false}
             />,
             {
-              wrapper: Wrapper,
+              additionalWrapper: Wrapper,
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent('100 data points');
@@ -71,7 +71,7 @@ describe('ConfidenceFooter', () => {
               isLoading={false}
             />,
             {
-              wrapper: Wrapper,
+              additionalWrapper: Wrapper,
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -90,7 +90,7 @@ describe('ConfidenceFooter', () => {
               isLoading={false}
             />,
             {
-              wrapper: Wrapper,
+              additionalWrapper: Wrapper,
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -107,7 +107,7 @@ describe('ConfidenceFooter', () => {
               isLoading={false}
             />,
             {
-              wrapper: Wrapper,
+              additionalWrapper: Wrapper,
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -133,7 +133,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -168,7 +168,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -202,7 +202,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -237,7 +237,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -273,7 +273,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -295,7 +295,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -316,7 +316,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -338,7 +338,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -363,7 +363,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -398,7 +398,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -432,7 +432,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -467,7 +467,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -503,7 +503,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -525,7 +525,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -546,7 +546,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
@@ -568,7 +568,7 @@ describe('ConfidenceFooter', () => {
                 isLoading={false}
               />,
               {
-                wrapper: Wrapper,
+                additionalWrapper: Wrapper,
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
