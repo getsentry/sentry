@@ -283,8 +283,14 @@ def run_missing_sdk_integration_detector_for_organization(organization: Organiza
         )
 
         if repo_config:
-            run_missing_sdk_integration_detector_for_project_task.delay(
-                organization.id, project.id, repo_config.repository.name, repo_config.source_root
+            run_missing_sdk_integration_detector_for_project_task.apply_async(
+                args=(
+                    organization.id,
+                    project.id,
+                    repo_config.repository.name,
+                    repo_config.source_root,
+                ),
+                headers={"sentry-propagate-traces": False},
             )
 
 

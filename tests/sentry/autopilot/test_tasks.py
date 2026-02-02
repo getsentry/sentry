@@ -289,18 +289,20 @@ class TestRunMissingSdkIntegrationDetectorForOrganization(TestCase):
 
     @pytest.mark.django_db
     @mock.patch(
-        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.delay"
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_skips_project_without_repository_mapping(self, mock_delay: mock.MagicMock) -> None:
+    def test_skips_project_without_repository_mapping(
+        self, mock_apply_async: mock.MagicMock
+    ) -> None:
         run_missing_sdk_integration_detector_for_organization(self.organization)
         # No task should be spawned for projects without code mappings
-        assert not mock_delay.called
+        assert not mock_apply_async.called
 
     @pytest.mark.django_db
     @mock.patch(
-        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.delay"
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_skips_inactive_repositories(self, mock_delay: mock.MagicMock) -> None:
+    def test_skips_inactive_repositories(self, mock_apply_async: mock.MagicMock) -> None:
         # Create a code mapping with an inactive repository
         code_mapping = self._create_code_mapping(self.project, "inactive-repo")
         code_mapping.repository.status = ObjectStatus.PENDING_DELETION
@@ -309,19 +311,22 @@ class TestRunMissingSdkIntegrationDetectorForOrganization(TestCase):
         run_missing_sdk_integration_detector_for_organization(self.organization)
 
         # No task should be spawned since repo is inactive
-        assert not mock_delay.called
+        assert not mock_apply_async.called
 
     @pytest.mark.django_db
     @mock.patch(
-        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.delay"
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_spawns_task_for_project_with_mapping(self, mock_delay: mock.MagicMock) -> None:
+    def test_spawns_task_for_project_with_mapping(self, mock_apply_async: mock.MagicMock) -> None:
         self._create_code_mapping(self.project, "test-repo")
 
         run_missing_sdk_integration_detector_for_organization(self.organization)
 
         # Task should be spawned with correct arguments
-        mock_delay.assert_called_once_with(self.organization.id, self.project.id, "test-repo", "")
+        mock_apply_async.assert_called_once_with(
+            args=(self.organization.id, self.project.id, "test-repo", ""),
+            headers={"sentry-propagate-traces": False},
+        )
 
 
 class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
