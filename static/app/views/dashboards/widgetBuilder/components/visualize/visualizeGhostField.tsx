@@ -194,7 +194,7 @@ function VisualizeGhostField({
             </Fragment>
           )}
         </FieldBar>
-        <FieldExtras isTimeSeriesWidget={isTimeSeriesWidget || isBigNumberWidget}>
+        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
           {!isTimeSeriesWidget && !isBigNumberWidget && (
             <LegendAliasInput
               type="text"

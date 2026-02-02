@@ -637,8 +637,3 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.WHEEL,
   ].includes(displayType);
 };
-
-/**
- * @deprecated Use `usesTimeSeriesData` instead. This alias exists for backwards compatibility.
- */
-export const isChartDisplayType = usesTimeSeriesData;

@@ -850,9 +850,7 @@ function Visualize({error, setError}: VisualizeProps) {
                             </Fragment>
                           )}
                         </FieldBar>
-                        <FieldExtras
-                          isTimeSeriesWidget={isTimeSeriesWidget || isBigNumberWidget}
-                        >
+                        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
                           {!isTimeSeriesWidget && !isBigNumberWidget && (
                             <LegendAliasInput
                               name="alias"
@@ -1152,11 +1150,11 @@ export function FieldRow(props: FlexProps<'div'>) {
   return <Flex gap="md" width="100%" minWidth="0" {...props} />;
 }
 
-export const FieldExtras = styled('div')<{isTimeSeriesWidget: boolean}>`
+export const FieldExtras = styled('div')<{compact: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  flex: ${p => (p.isTimeSeriesWidget ? '0' : '1')};
+  flex: ${p => (p.compact ? '0' : '1')};
   align-items: center;
 `;
 
