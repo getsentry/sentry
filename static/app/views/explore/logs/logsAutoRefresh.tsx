@@ -1,7 +1,8 @@
 import {Fragment, useEffect, type ReactNode} from 'react';
 
-import {Switch} from 'sentry/components/core/switch';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Switch} from '@sentry/scraps/switch';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';

@@ -2,16 +2,15 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {assignToActor} from 'sentry/actionCreators/group';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   ImpactAssessmentArtifact,

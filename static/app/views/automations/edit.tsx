@@ -3,8 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/core/layout';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';

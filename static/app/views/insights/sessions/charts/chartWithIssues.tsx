@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Panel from 'sentry/components/panels/panel';
@@ -122,7 +122,7 @@ export default function ChartWithIssues(props: Props) {
           <Button
             size="xs"
             aria-label={t('Open Full-Screen View')}
-            borderless
+            priority="transparent"
             icon={<IconExpand />}
             onClick={() => {
               openInsightChartModal({

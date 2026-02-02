@@ -1,0 +1,78 @@
+---
+title: Switch
+description: Switches are toggle controls that allow users to quickly switch between two possible states.
+category: forms
+source: 'sentry/components/core/switch'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/switch/switch.tsx
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 4.1.2: https://www.w3.org/TR/WCAG22/#name-role-value
+    WAI-ARIA Switch Pattern: https://www.w3.org/WAI/ARIA/apg/patterns/switch/
+---
+
+import {useState} from 'react';
+
+import {Switch} from 'sentry/components/core/switch';
+import * as Storybook from 'sentry/stories';
+
+import {Flex, Stack} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
+
+import SwitchDocumentation from '!!type-loader!sentry/components/core/switch';
+
+export const documentation = SwitchDocumentation;
+
+To create a basic switch, use the `<Switch>` component with `checked` and `onChange` props. The switch doesn't include a label, so you'll need to provide your own accompanying label using HTML `<label>` element for accessibility.
+
+```jsx
+<Switch />
+```
+
+## Sizes
+
+Switches are available in two sizes: `sm` (default) and `lg`.
+
+<Storybook.Demo>
+  <Stack gap="lg">
+    <Text>Large</Text>
+    <Flex gap="md">
+      <Switch size="lg" />
+      <Switch size="lg" defaultChecked />
+      <Switch size="lg" defaultChecked disabled />
+    </Flex>
+    <Text>Small</Text>
+    <Flex gap="md">
+      <Switch size="sm" />
+      <Switch size="sm" defaultChecked />
+      <Switch size="sm" defaultChecked disabled />
+    </Flex>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Switch size="lg" />
+<Switch size="lg" defaultChecked />
+<Switch size="lg" defaultChecked disabled />
+<Switch size="sm" />
+<Switch size="sm" defaultChecked />
+<Switch size="sm" defaultChecked disabled />
+```
+
+## Controlled or Uncontrolled State
+
+Switches support controlled or uncontrolled state. To use a controlled state, pass the `checked` and `onChange` props. To use an uncontrolled state, pass the `defaultChecked` prop.
+
+```jsx
+// Controlled Switch
+<Switch checked={checked} onChange={handleChange} />
+// Uncontrolled Switch
+<Switch defaultChecked />
+```
+
+## See Also
+
+- [Checkbox](/stories/core/checkbox/) - For multi-select options
+- [Radio](/stories/core/radio/) - For single-select from multiple options

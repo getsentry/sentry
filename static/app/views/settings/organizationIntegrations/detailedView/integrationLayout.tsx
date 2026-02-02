@@ -2,14 +2,15 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import type {AlertProps} from '@sentry/scraps/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -57,7 +58,7 @@ function TopSection({
     <Flex justify="between">
       <Flex>
         {integrationIcon}
-        <NameContainer>
+        <Stack justify="center" align="start" paddingLeft="xl">
           <Flex align="center">
             <Name>{integrationName}</Name>
             <StatusWrapper>
@@ -71,7 +72,7 @@ function TopSection({
               </StyledTag>
             ))}
           </Flex>
-        </NameContainer>
+        </Stack>
       </Flex>
       <Flex align="center">
         {addInstallButton}
@@ -311,14 +312,6 @@ export default IntegrationLayout;
 
 const IntegrationDescription = styled('div')`
   flex-grow: 1;
-`;
-
-const NameContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  justify-content: center;
-  padding-left: ${space(2)};
 `;
 
 const Name = styled('div')`

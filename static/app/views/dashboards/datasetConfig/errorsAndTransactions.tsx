@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import trimStart from 'lodash/trimStart';
+
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -16,7 +16,6 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
@@ -31,20 +30,13 @@ import {
   errorsAndTransactionsAggregateFunctionOutputType,
   getAggregateAlias,
   isEquation,
-  isEquationAlias,
   isLegalYAxisType,
   parseFunction,
   prettifyParsedFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import type {
-  DiscoverQueryExtras,
-  DiscoverQueryRequestParams,
-} from 'sentry/utils/discover/genericDiscoverQuery';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
-import {TOP_N} from 'sentry/utils/discover/types';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
@@ -52,21 +44,18 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {
-  eventViewFromWidget,
-  getDashboardsMEPQueryParams,
-  getNumEquations,
-  getWidgetInterval,
-  hasDatasetSelector,
-} from 'sentry/views/dashboards/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
+import {
+  useErrorsAndTransactionsSeriesQuery,
+  useErrorsAndTransactionsTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useErrorsAndTransactionsWidgetQuery';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -78,9 +67,6 @@ import {
   DiscoverQueryPageSource,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
-
-import type {DatasetConfig} from './base';
-import {handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -123,44 +109,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     DisplayType.TABLE,
     DisplayType.TOP_N,
   ],
-  getTableRequest: (
-    api: Client,
-    widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    mepSetting?: MEPState | null
-  ) => {
-    const url = `/organizations/${organization.slug}/events/`;
-
-    const useOnDemandMetrics = shouldUseOnDemandMetrics(
-      organization,
-      widget,
-      onDemandControlContext
-    );
-    const queryExtras = {
-      useOnDemandMetrics,
-      ...getQueryExtraForSplittingDiscover(widget, organization, !!useOnDemandMetrics),
-      onDemandType: 'dynamic_query',
-    };
-    return getEventsRequest(
-      url,
-      api,
-      query,
-      organization,
-      pageFilters,
-      limit,
-      cursor,
-      referrer,
-      mepSetting,
-      queryExtras
-    );
-  },
-  getSeriesRequest: getEventsSeriesRequest,
+  useSeriesQuery: useErrorsAndTransactionsSeriesQuery,
+  useTableQuery: useErrorsAndTransactionsTableQuery,
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
   filterAggregateParams,
@@ -348,7 +298,7 @@ export function filterYAxisOptions(displayType: DisplayType) {
 }
 
 // Get the series result type from the EventsStats meta
-function getSeriesResultType(
+export function getSeriesResultType(
   data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   widgetQuery: WidgetQuery
 ): Record<string, AggregationOutputType> {
@@ -468,169 +418,6 @@ export function getCustomEventsFieldRenderer(
   return getFieldRenderer(field, meta, false);
 }
 
-function getEventsRequest(
-  url: string,
-  api: Client,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  limit?: number,
-  cursor?: string,
-  referrer?: string,
-  mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras
-) {
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const eventView = eventViewFromWidget('', query, pageFilters);
-
-  const params: DiscoverQueryRequestParams = {
-    per_page: limit,
-    cursor,
-    referrer,
-    ...getDashboardsMEPQueryParams(isMEPEnabled),
-    ...queryExtras,
-  };
-
-  if (query.orderby) {
-    params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
-  }
-
-  // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
-  return doDiscoverQuery<TableData | EventsTableData>(
-    api,
-    url,
-    {
-      ...eventView.generateQueryStringObject(),
-      ...params,
-    },
-    // Tries events request up to 3 times on rate limit
-    {
-      retry: hasQueueFeature
-        ? // The queue will handle retries, so we don't need to retry here
-          undefined
-        : {
-            statusCodes: [429],
-            tries: 10,
-          },
-    }
-  );
-}
-
-function getEventsSeriesRequest(
-  api: Client,
-  widget: Widget,
-  queryIndex: number,
-  organization: Organization,
-  pageFilters: PageFilters,
-  onDemandControlContext?: OnDemandControlContext,
-  referrer?: string,
-  mepSetting?: MEPState | null
-) {
-  const widgetQuery = widget.queries[queryIndex]!;
-  const {displayType, limit} = widget;
-  const {environments, projects} = pageFilters;
-  const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(widget, {start, end, period: statsPeriod}, '1m');
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-
-  let requestData: any;
-  if (displayType === DisplayType.TOP_N) {
-    requestData = {
-      organization,
-      interval,
-      start,
-      end,
-      project: projects,
-      environment: environments,
-      period: statsPeriod,
-      query: widgetQuery.conditions,
-      yAxis: widgetQuery.aggregates[widgetQuery.aggregates.length - 1],
-      includePrevious: false,
-      referrer,
-      partial: true,
-      field: [...widgetQuery.columns, ...widgetQuery.aggregates],
-      queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
-      includeAllArgs: true,
-      topEvents: TOP_N,
-    };
-    if (widgetQuery.orderby) {
-      requestData.orderby = widgetQuery.orderby;
-    }
-  } else {
-    requestData = {
-      organization,
-      interval,
-      start,
-      end,
-      project: projects,
-      environment: environments,
-      period: statsPeriod,
-      query: widgetQuery.conditions,
-      yAxis: widgetQuery.aggregates,
-      orderby: widgetQuery.orderby,
-      includePrevious: false,
-      referrer,
-      partial: true,
-      queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
-      includeAllArgs: true,
-    };
-    if (widgetQuery.columns?.length !== 0) {
-      requestData.topEvents = limit ?? TOP_N;
-      requestData.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
-
-      // Compare field and orderby as aliases to ensure requestData has
-      // the orderby selected
-      // If the orderby is an equation alias, do not inject it
-      const orderby = trimStart(widgetQuery.orderby, '-');
-      if (
-        widgetQuery.orderby &&
-        !isEquationAlias(orderby) &&
-        !requestData.field.includes(orderby)
-      ) {
-        requestData.field.push(orderby);
-      }
-
-      // The "Other" series is only included when there is one
-      // y-axis and one widgetQuery
-      requestData.excludeOther =
-        widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
-
-      if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
-        const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
-        const isDescending = widgetQuery.orderby.startsWith('-');
-        const prefix = isDescending ? '-' : '';
-
-        // Construct the alias form of the equation and inject it into the request
-        requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
-        requestData.field = [
-          ...widgetQuery.columns,
-          ...widgetQuery.aggregates,
-          trimStart(widgetQuery.orderby, '-'),
-        ];
-      }
-    }
-  }
-
-  if (shouldUseOnDemandMetrics(organization, widget, onDemandControlContext)) {
-    requestData.queryExtras = {
-      ...requestData.queryExtras,
-      ...getQueryExtraForSplittingDiscover(widget, organization, true),
-    };
-    return doOnDemandMetricsRequest(api, requestData, widget.widgetType);
-  }
-
-  requestData.queryExtras = {
-    ...requestData.queryExtras,
-    ...getQueryExtraForSplittingDiscover(widget, organization, false),
-  };
-
-  return doEventsRequest<true>(api, requestData);
-}
-
 export async function doOnDemandMetricsRequest(
   api: any,
   requestData: any,
@@ -690,22 +477,6 @@ export function filterAggregateParams(
   }
   return true;
 }
-
-const getQueryExtraForSplittingDiscover = (
-  widget: Widget,
-  _organization: Organization,
-  _useOnDemandMetrics: boolean
-) => {
-  // We want to send the dashboardWidgetId on the request if we're in the Widget
-  // Builder with the selector feature flag
-  const isEditing = location.pathname.endsWith('/edit/');
-
-  if (isEditing && widget.id) {
-    return {dashboardWidgetId: widget.id};
-  }
-
-  return {};
-};
 
 const StyledTooltip = styled(Tooltip)`
   vertical-align: middle;

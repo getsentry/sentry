@@ -2,10 +2,11 @@ import {useTheme} from '@emotion/react';
 
 import sizeAnalysisPreview from 'sentry-images/spot/releases-tour-commits.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Image} from 'sentry/components/core/image';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';

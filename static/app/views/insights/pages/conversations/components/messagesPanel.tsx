@@ -1,10 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ClippedBox from 'sentry/components/clippedBox';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -37,31 +38,6 @@ interface RequestMessage {
   role: string;
   content?: string | Array<{text: string}>;
   parts?: Array<{type: string; content?: string; text?: string}>;
-}
-
-// often injected into AI prompts to indicate the role of the message
-const AI_PROMPT_TAGS = new Set([
-  'thinking',
-  'reasoning',
-  'instructions',
-  'user_message',
-  'maybe_relevant_context',
-]);
-
-/**
- * Escapes known AI prompt tags so they display as literal text rather than
- * being stripped by the HTML sanitizer.
- */
-function escapeXmlTags(text: string): string {
-  return text.replace(
-    /<(\/?)([a-z_][a-z0-9_:-]*)([^>]*)>/gi,
-    (match, slash, tagName, rest) => {
-      if (AI_PROMPT_TAGS.has(tagName.toLowerCase())) {
-        return `&lt;${slash}${tagName}${rest}&gt;`;
-      }
-      return match;
-    }
-  );
 }
 
 function getNodeTimestamp(node: AITraceSpanNode): number {
@@ -138,7 +114,7 @@ function parseUserContent(node: AITraceSpanNode): string | null {
     | undefined;
 
   const requestMessages =
-    inputMessages ??
+    inputMessages ||
     (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);
 
   if (!requestMessages) {
@@ -309,7 +285,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               isSelected={isAssistant && isSelected}
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
-              <MessageHeader justify={message.role === 'assistant' ? 'end' : 'start'}>
+              <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
                 {message.role === 'user' ? <IconUser size="sm" /> : <IconBot size="sm" />}
                 <Text bold size="sm">
                   {message.role === 'user' ? t('User') : t('Assistant')}
@@ -329,7 +305,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   <MessageText size="sm">
                     <MarkedText
                       as={TraceDrawerComponents.MarkdownContainer}
-                      text={escapeXmlTags(message.content)}
+                      text={message.content}
                     />
                   </MessageText>
                 </Container>
@@ -403,7 +379,7 @@ const MessageBubble = styled('div')<{
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   width: 90%;
-  align-self: ${p => (p.role === 'user' ? 'flex-start' : 'flex-end')};
+  align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
   background-color: ${p =>
     p.role === 'user'
       ? p.theme.tokens.background.secondary

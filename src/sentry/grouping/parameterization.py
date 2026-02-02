@@ -163,19 +163,27 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="hex",
         raw_pattern=r"""
-            # Hex value with 0x or 0X prefix
+            # Hex value with `0x/0X` prefix (any length, with any mix of numbers and/or letters -
+            # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without 0x or 0X prefix exactly 4 or 8 bytes long.
+            # Hex value without `0x/0X` prefix (including a number, either 8 or 16-64 digits, and
+            # either all uppercase or all lowercase - we're more conservative here on all three
+            # scores in order to reduce false positives).
             #
-            # We don't need to lookahead for a-f since we if it contains at
-            # least one number it must contain at least one a-f otherwise it
-            # would have matched "int".
+            # Note: We use a lookahead for `0-9` but don't need one for `a-f/A-F` since if
+            #   a) the value consists of nothing but potential hex digits, but
+            #   b) none of those potential hex digits is a letter
+            # then the <int> pattern would already have caught it. Given that we're here, it didn't,
+            # so the only thing we need the lookahead to guard against is it being all letters.
             #
-            # (?=.*[0-9]):    At least one 0-9 is in the match.
-            # [0-9a-f]{8/16}: Exactly 8 or 16 hex characters (0-9, a-f).
+            # Each regex consists of two parts:
+            # (?=.*[0-9])             The aforementioned lookahead - at least one `0-9` is present
+            # [0-9a-f/A-F]{8/16,64}   8 or 16-64 hex characters
             (\b(?=.*[0-9])[0-9a-f]{8}\b) |
-            (\b(?=.*[0-9])[0-9a-f]{16}\b)
+            (\b(?=.*[0-9])[0-9a-f]{16,64}\b) |
+            (\b(?=.*[0-9])[0-9A-F]{8}\b) |
+            (\b(?=.*[0-9])[0-9A-F]{16,64}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),

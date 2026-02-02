@@ -1,8 +1,9 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';

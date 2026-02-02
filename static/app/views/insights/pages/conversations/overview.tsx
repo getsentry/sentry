@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -25,6 +25,7 @@ import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/trace
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -32,11 +33,11 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {AgentSelector} from 'sentry/views/insights/pages/conversations/components/agentSelector';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
+const DEFAULT_QUERY = 'has:user.email';
 
 interface ConversationsOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -53,6 +54,13 @@ function ConversationsOverviewPage({
     parseAsString.withOptions({history: 'replace'})
   );
   const {unsetCursor} = useTableCursor();
+
+  useEffect(() => {
+    if (searchQuery === null) {
+      setSearchQuery(DEFAULT_QUERY);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {tags: numberTags = [], isLoading: numberTagsLoading} =
     useTraceItemTags('number');
@@ -113,7 +121,10 @@ function ConversationsOverviewPage({
                           resetParamsOnChange={[TableUrlParams.CURSOR]}
                         />
                       </PageFilterBar>
-                      <AgentSelector />
+                      <AgentSelector
+                        storageKeyPrefix="conversations:agent-filter"
+                        referrer="api.insights.conversations.get-agent-names"
+                      />
                       <Flex flex={2}>
                         <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
                       </Flex>

@@ -69,7 +69,6 @@ from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndp
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
-from sentry.api.endpoints.synapse.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
@@ -449,10 +448,6 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
 from sentry.notifications.platform.api.endpoints import urls as notification_platform_urls
 from sentry.objectstore.endpoints.organization import OrganizationObjectstoreEndpoint
 from sentry.preprod.api.endpoints import urls as preprod_urls
-from sentry.prevent.endpoints.organization_github_repos import (
-    OrganizationPreventGitHubReposEndpoint,
-)
-from sentry.prevent.endpoints.pr_review_github_config import OrganizationPreventGitHubConfigEndpoint
 from sentry.releases.endpoints.organization_release_assemble import (
     OrganizationReleaseAssembleEndpoint,
 )
@@ -599,6 +594,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
@@ -618,6 +614,12 @@ from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
 )
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
+from sentry.uptime.endpoints.project_uptime_response_capture import (
+    ProjectUptimeResponseCaptureEndpoint,
+)
+from sentry.uptime.endpoints.project_uptime_response_captures_index import (
+    ProjectUptimeResponseCapturesIndexEndpoint,
+)
 from sentry.uptime.endpoints.uptime_ips import UptimeIpsEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
@@ -830,7 +832,6 @@ from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay import (
     RelayDetailsEndpoint,
     RelayHealthCheck,
-    RelayIndexEndpoint,
     RelayProjectConfigsEndpoint,
     RelayPublicKeysEndpoint,
     RelayRegisterChallengeEndpoint,
@@ -1095,11 +1096,6 @@ RELOCATION_URLS = [
 
 RELAY_URLS = [
     re_path(
-        r"^$",
-        RelayIndexEndpoint.as_view(),
-        name="sentry-api-0-relays-index",
-    ),
-    re_path(
         r"^register/challenge/$",
         RelayRegisterChallengeEndpoint.as_view(),
         name="sentry-api-0-relay-register-challenge",
@@ -1176,17 +1172,6 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repositories/sync/$",
         SyncReposEndpoint.as_view(),
         name="sentry-api-0-repositories-sync",
-    ),
-    # Prevent AI endpoints
-    re_path(
-        r"^ai/github/config/(?P<git_organization_name>[^/]+)/$",
-        OrganizationPreventGitHubConfigEndpoint.as_view(),
-        name="sentry-api-0-organization-prevent-github-config",
-    ),
-    re_path(
-        r"^ai/github/repos/$",
-        OrganizationPreventGitHubReposEndpoint.as_view(),
-        name="sentry-api-0-organization-prevent-github-repos",
     ),
 ]
 
@@ -3305,6 +3290,16 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/checks/$",
         ProjectUptimeAlertCheckIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-checks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/response-captures/(?P<capture_id>[^/]+)/$",
+        ProjectUptimeResponseCaptureEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-response-capture",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/uptime/(?P<uptime_detector_id>[^/]+)/response-captures/$",
+        ProjectUptimeResponseCapturesIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-response-captures-index",
     ),
     # Tempest
     re_path(

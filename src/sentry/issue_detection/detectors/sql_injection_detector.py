@@ -76,8 +76,14 @@ class SQLInjectionDetector(PerformanceDetector):
     type = DetectorType.SQL_INJECTION
     settings_key = DetectorType.SQL_INJECTION
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.stored_problems = {}
         self.request_parameters: list[Sequence[Any]] = []
@@ -173,6 +179,18 @@ class SQLInjectionDetector(PerformanceDetector):
             f"Untrusted Inputs [{', '.join(vulnerable_keys)}] in `{parameterized_description}`"
         )
 
+        evidence_data = {
+            "op": op,
+            "cause_span_ids": [],
+            "parent_span_ids": [],
+            "offender_span_ids": spans_involved,
+            "transaction_name": self._event.get("transaction", ""),
+            "vulnerable_parameters": vulnerable_parameters,
+            "request_url": self.request_url,
+        }
+        if self.detector_id is not None:
+            evidence_data["detector_id"] = self.detector_id
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             type=QueryInjectionVulnerabilityGroupType,
             fingerprint=fingerprint,
@@ -181,15 +199,7 @@ class SQLInjectionDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=[],
             offender_span_ids=spans_involved,
-            evidence_data={
-                "op": op,
-                "cause_span_ids": [],
-                "parent_span_ids": [],
-                "offender_span_ids": spans_involved,
-                "transaction_name": self._event.get("transaction", ""),
-                "vulnerable_parameters": vulnerable_parameters,
-                "request_url": self.request_url,
-            },
+            evidence_data=evidence_data,
             evidence_display=[
                 IssueEvidence(
                     name="Offending Spans",
