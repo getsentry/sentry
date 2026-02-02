@@ -21,6 +21,7 @@ import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/componen
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SDKUpdateAlert} from 'sentry/views/insights/common/components/sdkUpdateAlert';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -82,6 +83,10 @@ function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
                     </Flex>
                   )}
                 </ToolRibbon>
+              </ModuleLayout.Full>
+
+              <ModuleLayout.Full>
+                <SDKUpdateAlert />
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>

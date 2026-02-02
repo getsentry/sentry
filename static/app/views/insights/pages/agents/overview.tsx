@@ -29,6 +29,7 @@ import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/componen
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SDKUpdateAlert} from 'sentry/views/insights/common/components/sdkUpdateAlert';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -141,6 +142,10 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                   </Alert>
                 </ModuleLayout.Full>
               )}
+
+              <ModuleLayout.Full>
+                <SDKUpdateAlert />
+              </ModuleLayout.Full>
 
               <ModuleLayout.Full>
                 {showOnboarding ? (

@@ -1,0 +1,93 @@
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+
+function getPackageNameFromSdkName(sdkName?: string): string {
+  if (!sdkName) {
+    return t('the Sentry SDK');
+  }
+
+  if (sdkName.startsWith('sentry.python')) {
+    return 'sentry-sdk';
+  }
+
+  if (sdkName.startsWith('sentry.javascript.')) {
+    // Extract the last part of the SDK name (e.g., "nextjs" from "sentry.javascript.nextjs")
+    const flavor = sdkName.split('.').pop();
+    if (flavor) {
+      return `@sentry/${flavor}`;
+    }
+  }
+
+  return t('the Sentry SDK');
+}
+
+const EXPIRATION_DAYS = 30;
+const LOCAL_STORAGE_KEY = 'ai-sdk-update-dismissed';
+
+/**
+ * Displays an alert when a newer SDK version is available compared to the
+ * one used by the project. Only shown when a single project is selected.
+ * The alert can be dismissed for 30 days.
+ */
+export function SDKUpdateAlert() {
+  const {selection} = usePageFilters();
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: EXPIRATION_DAYS,
+  });
+
+  const selectedProjectIds = selection.projects.map(id => id.toString());
+  const isSingleProject = selectedProjectIds.length === 1;
+
+  const {isFetching, needsUpdate, data} = useProjectSdkNeedsUpdate({
+    projectId: selectedProjectIds,
+    enabled: isSingleProject && !isDismissed,
+  });
+
+  if (isDismissed || isFetching || !isSingleProject || !needsUpdate) {
+    return null;
+  }
+
+  const suggestedVersion = data?.[0]?.suggestions.find(
+    s => s.type === 'updateSdk'
+  )?.newSdkVersion;
+
+  const packageName = getPackageNameFromSdkName(data?.[0]?.sdkName);
+
+  const dismissLabel = t('Dismiss banner for %s days', EXPIRATION_DAYS);
+
+  return (
+    <Alert
+      variant="info"
+      showIcon
+      trailingItems={
+        <Button
+          aria-label={dismissLabel}
+          icon={<IconClose />}
+          onClick={dismiss}
+          size="zero"
+          priority="transparent"
+          title={dismissLabel}
+        />
+      }
+    >
+      {suggestedVersion
+        ? tct(
+            'A newer version of [packageName] is available. Update to [version] for the best experience.',
+            {
+              packageName: <code>{packageName}</code>,
+              version: <code>{suggestedVersion}</code>,
+            }
+          )
+        : tct(
+            'A newer version of [packageName] is available. Update to the latest version for the best experience.',
+            {packageName: <code>{packageName}</code>}
+          )}
+    </Alert>
+  );
+}

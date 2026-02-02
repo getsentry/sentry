@@ -30,6 +30,7 @@ import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/componen
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SDKUpdateAlert} from 'sentry/views/insights/common/components/sdkUpdateAlert';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
@@ -138,6 +139,10 @@ function ConversationsOverviewPage({
                       source={SchemaHintsSources.CONVERSATIONS}
                     />
                   </Stack>
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <SDKUpdateAlert />
                 </ModuleLayout.Full>
 
                 <ModuleLayout.Full>
