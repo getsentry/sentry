@@ -30,10 +30,10 @@ export function useCrossEventQueries() {
         case 'logs':
           logQuery.push(crossEvent.query);
           break;
-        case 'metrics':
-          // Temporary disabled metrics cross event querying
-          // metricQuery.push(crossEvent.query);
-          break;
+        // case 'metrics':
+        // Temporary disabled metrics cross event querying
+        // metricQuery.push(crossEvent.query);
+        // break;
         default:
           break;
       }
