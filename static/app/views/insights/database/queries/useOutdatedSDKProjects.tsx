@@ -30,24 +30,16 @@ export function useOutdatedSDKProjects({enabled, projectId}: Options) {
   );
   const {data: availableUpdates} = response;
 
-  console.log({availableUpdates});
-
   const projects = (availableUpdates ?? [])
     .filter(update => {
       const platform = removeFlavorFromSDKName(update.sdkName);
-      console.log({platform});
       const minimumRequiredVersion = MIN_SDK_VERSION_BY_PLATFORM[platform];
-      console.log({minimumRequiredVersion});
 
       if (!minimumRequiredVersion) {
         // If a minimum version is not specified, assume that the platform
         // doesn't have any support at all
         return true;
       }
-
-      console.log({
-        blah: update.sdkVersion,
-      });
 
       return semverCompare(update.sdkVersion, minimumRequiredVersion) === -1;
     })
