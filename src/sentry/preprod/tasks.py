@@ -61,7 +61,7 @@ launchpad_registry = TaskRegistry(application="launchpad")
 launchpad_namespace = launchpad_registry.create_namespace(name="default")
 
 
-@launchpad_namespace.register(name="process_something")
+@launchpad_namespace.register(name="process_artifact")
 def process_artifact(*args: list[Any], **kwargs: dict[str, Any]) -> None:
     """Stub - actual implementation in Launchpad service"""
     pass
@@ -207,7 +207,7 @@ def assemble_preprod_artifact(
         if run_distribution:
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
-        print("> APPLYING ASYNC process_something...")
+        print("> APPLYING ASYNC process_...")
 
         process_artifact.apply_async(
             kwargs={
