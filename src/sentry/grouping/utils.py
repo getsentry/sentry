@@ -54,7 +54,9 @@ def bool_from_string(value: str) -> bool | None:
 # say we "stripped event-specific values," even if all we've done in either case is remove empty
 # lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
-def normalize_message_for_grouping(message: str, event: Event, *, trim_message: bool) -> str:
+def normalize_message_for_grouping(
+    message: str, event: Event, *, source: str, trim_message: bool
+) -> str:
     """
     Replace values from a event's message with placeholders (in order to improve grouping). If
     `trim_message` is True, trim the message to at most 2 lines.
