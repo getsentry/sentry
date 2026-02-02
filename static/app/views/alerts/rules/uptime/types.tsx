@@ -195,6 +195,10 @@ export interface PreviewCheckResponse {
       http_status_code: number | null;
       request_type: string;
       url: string;
+      /** Base64-encoded response body, captured when always_capture_response is enabled */
+      response_body?: string | null;
+      /** Response headers as [key, value] tuples, captured when always_capture_response is enabled */
+      response_headers?: Array<[string, string]> | null;
     } | null;
   };
 }
