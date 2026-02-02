@@ -78,9 +78,11 @@ def normalize_message_for_grouping(message: str, event: Event, *, trim_message: 
     else:
         normalized = parameterizer.parameterize_all(message)
 
-    for key, value in parameterizer.matches_counter.items():
-        # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
-        # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
-        metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
+    parameterization_counts = parameterizer.matches_counter.items()
+    if parameterization_counts:
+        for key, value in parameterization_counts:
+            # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
+            # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
+            metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
 
     return normalized
