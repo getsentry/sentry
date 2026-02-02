@@ -353,6 +353,7 @@ function AggregateSelector({
   onChange,
   numberTags,
   stringTags,
+  booleanTags,
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
@@ -375,6 +376,7 @@ function AggregateSelector({
   const argumentOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
