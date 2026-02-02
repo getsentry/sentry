@@ -352,7 +352,7 @@ function Visualize({error, setError}: VisualizeProps) {
     ];
     options.sort(_sortFn);
     return options;
-  }, [state.dataset, state.fields, stringSpanTags, numericSpanTags]);
+  }, [state.dataset, state.fields, stringSpanTags, numericSpanTags, booleanSpanTags]);
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
