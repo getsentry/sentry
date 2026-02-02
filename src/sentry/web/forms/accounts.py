@@ -135,6 +135,10 @@ class AuthenticationForm(forms.Form):
                 extra={"ip_address": self.request.META["REMOTE_ADDR"]},
             )
             raise forms.ValidationError(self.error_messages["no_cookies"])
+        # Note: We intentionally don't call delete_test_cookie() here.
+        # Deleting it causes a race condition when users have multiple login
+        # tabs open - the first successful login would delete the cookie,
+        # causing subsequent tabs to fail with a "cookies not enabled" error.
 
     def get_user_id(self):
         if self.user_cache:
