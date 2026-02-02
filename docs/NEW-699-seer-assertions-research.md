@@ -467,6 +467,47 @@ Modify the uptime-checker's `/execute_config` endpoint to always include respons
 
 ---
 
+## Architecture Flow
+
+From the client's perspective, assertion suggestions is a **single request**. The backend orchestrates the uptime-checker and Seer calls internally:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Single HTTP Request                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Frontend ──POST──▶ /uptime-assertion-suggestions/                       │
+│                              │                                           │
+│                              ▼ (backend orchestrates internally)         │
+│                       ┌──────────────┐                                   │
+│                       │ 1. Call      │                                   │
+│                       │ uptime-checker│ (get response body/headers)      │
+│                       └──────┬───────┘                                   │
+│                              │                                           │
+│                              ▼                                           │
+│                       ┌──────────────┐                                   │
+│                       │ 2. Call Seer │ (analyze response, generate       │
+│                       │ Explorer     │  assertion suggestions)           │
+│                       └──────┬───────┘                                   │
+│                              │                                           │
+│                              ▼                                           │
+│           ◀────────── Response with suggestions                          │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Step-by-step**:
+
+1. User clicks "Suggest Assertions" in the UI
+2. Frontend sends single POST to `/api/0/organizations/{org}/uptime-assertion-suggestions/`
+3. Backend calls uptime-checker to hit the user's endpoint (preview check with `always_capture_response: true`)
+4. Uptime-checker returns response headers + body (base64 encoded) to backend
+5. Backend forwards response data to Seer Explorer with a prompt asking for assertion suggestions
+6. Seer analyzes the response and returns structured suggestions (~20-25 sec)
+7. Backend returns suggestions to frontend in single response
+
+---
+
 ## Performance Characteristics
 
 Seer Explorer assertion suggestions take approximately **20-25 seconds** to complete. This is due to the agentic architecture:

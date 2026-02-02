@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -183,6 +183,10 @@ export function AssertionSuggestionsButton({
   const organization = useOrganization();
   const [suggestions, setSuggestions] = useState<AssertionSuggestion[] | null>(null);
 
+  // Use a ref to avoid stale closure in useMutation's onSuccess callback
+  const currentAssertionRef = useRef(currentAssertion);
+  currentAssertionRef.current = currentAssertion;
+
   const {mutate: generateSuggestions, isPending} = useMutation<
     AssertionSuggestionsResponse,
     RequestError,
@@ -201,7 +205,7 @@ export function AssertionSuggestionsButton({
           <SuggestionsModal
             {...modalProps}
             suggestions={response.suggestions!}
-            currentAssertion={currentAssertion}
+            currentAssertion={currentAssertionRef.current}
             onApplySuggestion={onApplySuggestion}
           />
         ));
