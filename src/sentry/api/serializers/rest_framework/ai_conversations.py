@@ -4,7 +4,6 @@ from rest_framework import serializers
 class OrganizationAIConversationsSerializer(serializers.Serializer):
     sort = serializers.CharField(required=False, default="-timestamp")
     query = serializers.CharField(required=False, allow_blank=True)
-    useOptimizedQuery = serializers.BooleanField(required=False, default=False)
     samplingMode = serializers.ChoiceField(
         choices=[
             "NORMAL",
