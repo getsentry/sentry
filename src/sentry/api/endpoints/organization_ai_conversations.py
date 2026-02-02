@@ -445,6 +445,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             tool_errors_by_conversation: dict[str, int] = defaultdict(int)
             # Track first user data per conversation (data is sorted by timestamp, so first occurrence wins)
             user_by_conversation: dict[str, UserResponse] = {}
+            non_failure_statuses = {"ok", "cancelled", "unknown"}
 
             for row in enrichment_rows:
                 conv_id = row.get("gen_ai.conversation.id", "")
@@ -465,7 +466,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     if tool_name:
                         tool_names_by_conversation[conv_id].add(tool_name)
                     status = row.get("span.status", "ok")
-                    if status and status != "ok":
+                    if status and status not in non_failure_statuses:
                         tool_errors_by_conversation[conv_id] += 1
 
                 # Capture user from the first span (earliest timestamp) for each conversation

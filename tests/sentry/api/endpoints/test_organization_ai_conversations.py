@@ -1122,6 +1122,28 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             tool_name="external_api",
         )
 
+        # Cancelled tool call should not count as error
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1.5),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            status="cancelled",
+            trace_id=trace_id,
+            tool_name="cache_lookup",
+        )
+
+        # Unknown tool call should not count as error
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1.25),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            status="unknown",
+            trace_id=trace_id,
+            tool_name="feature_flag",
+        )
+
         # Successful tool call
         self.store_ai_span(
             conversation_id=conversation_id,
@@ -1144,12 +1166,14 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert len(response.data) == 1
 
         conversation = response.data[0]
-        assert conversation["toolCalls"] == 4
+        assert conversation["toolCalls"] == 6
         assert conversation["toolErrors"] == 2
         assert set(conversation["toolNames"]) == {
             "weather_api",
             "database_query",
             "external_api",
+            "cache_lookup",
+            "feature_flag",
             "calculator",
         }
 
