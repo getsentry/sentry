@@ -285,6 +285,7 @@ export function ToolbarSaveAs() {
     <StyledToolbarSection data-test-id="section-save-as">
       <ButtonBar>
         <Tooltip
+          disabled={!hasCrossEvents}
           title={t('Saving cross event queries is not supported during early access.')}
         >
           <DropdownMenu
@@ -308,6 +309,7 @@ export function ToolbarSaveAs() {
           />
         </Tooltip>
         <Tooltip
+          disabled={!hasCrossEvents}
           title={t('Comparing cross event queries is not supported during early access.')}
         >
           <LinkButton
