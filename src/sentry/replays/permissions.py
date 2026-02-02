@@ -28,15 +28,15 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     - If allowlist records exist, only users explicitly present in the OrganizationMemberReplayAccess allowlist have access.
     - Returns True if allowed, False otherwise.
     """
+    if not features.has("organizations:granular-replay-permissions", organization):
+        return True
+
     if superuser_has_permission(request):
         return True
 
     # Org auth tokens (org:ci) are not associated with a user and should always
     # have access since they've already passed the org-level permission check.
     if is_org_auth_token_auth(getattr(request, "auth", None)):
-        return True
-
-    if not features.has("organizations:granular-replay-permissions", organization):
         return True
 
     # For personal tokens and session auth, apply granular permissions based on user

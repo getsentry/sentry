@@ -4,6 +4,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -305,7 +306,7 @@ class TestReplayGranularPermissions(APITestCase):
             assert response.status_code == 200
 
     def test_org_auth_token_has_access_with_granular_permissions(self) -> None:
-        """org:ci tokens should have access to replays even with granular permissions enabled"""
+        """Org auth tokens should have access to replays even with granular permissions enabled"""
         with self.feature(
             ["organizations:session-replay", "organizations:granular-replay-permissions"]
         ):
@@ -314,14 +315,14 @@ class TestReplayGranularPermissions(APITestCase):
                 organizationmember=self.member_with_access
             )
 
-            with assume_test_silo_mode(SiloMode.CONTROL):
+            with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
                 token_str = generate_token(self.organization.slug, "")
                 OrgAuthToken.objects.create(
                     organization_id=self.organization.id,
                     name="test token",
                     token_hashed=hash_token(token_str),
                     token_last_characters="ABCD",
-                    scope_list=["org:ci"],
+                    scope_list=["org:read"],
                     date_last_used=None,
                 )
 
@@ -330,21 +331,21 @@ class TestReplayGranularPermissions(APITestCase):
             assert response.status_code == 200
 
     def test_org_auth_token_has_access_with_empty_allowlist(self) -> None:
-        """org:ci tokens should have access to replays even when allowlist is empty"""
+        """Org auth tokens should have access to replays even when allowlist is empty"""
         with self.feature(
             ["organizations:session-replay", "organizations:granular-replay-permissions"]
         ):
             self._enable_granular_permissions()
             # No OrganizationMemberReplayAccess records created - empty allowlist
 
-            with assume_test_silo_mode(SiloMode.CONTROL):
+            with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
                 token_str = generate_token(self.organization.slug, "")
                 OrgAuthToken.objects.create(
                     organization_id=self.organization.id,
                     name="test token",
                     token_hashed=hash_token(token_str),
                     token_last_characters="ABCD",
-                    scope_list=["org:ci"],
+                    scope_list=["org:read"],
                     date_last_used=None,
                 )
 
