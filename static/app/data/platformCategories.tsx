@@ -472,6 +472,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'node',
   'python',
   'php',
+  'react-native',
   'ruby',
 ]);
 
