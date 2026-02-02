@@ -1,5 +1,6 @@
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -42,7 +43,8 @@ export function SDKUpdateAlert() {
   });
 
   const selectedProjectIds = selection.projects.map(id => id.toString());
-  const isSingleProject = selectedProjectIds.length === 1;
+  const isSingleProject =
+    selection.projects.length === 1 && !selection.projects.includes(ALL_ACCESS_PROJECTS);
 
   const {isFetching, needsUpdate, data} = useProjectSdkNeedsUpdate({
     projectId: selectedProjectIds,

@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate, textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -105,6 +106,14 @@ describe('SDKUpdateAlert', () => {
 
   it('does not render when multiple projects are selected', () => {
     renderMockRequests({projects: [1, 2]});
+
+    const {container} = render(<SDKUpdateAlert />, {organization});
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('does not render when "All Projects" is selected', () => {
+    renderMockRequests({projects: [ALL_ACCESS_PROJECTS]});
 
     const {container} = render(<SDKUpdateAlert />, {organization});
 
