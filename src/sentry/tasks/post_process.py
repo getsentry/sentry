@@ -4,7 +4,7 @@ import logging
 import random
 import uuid
 from collections.abc import MutableMapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -1631,6 +1631,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
         # Triage signals V0 behaviour
+        # Avoid running autofix or summary on old issues when an org signs up for Seer.
+        if group.first_seen < (timezone.utcnow() - timedelta(days=14)):
+            return
+
         # If event count < 10, only generate summary (no automation)
         if group.times_seen_with_pending < 10:
             # Check if summary exists in cache
