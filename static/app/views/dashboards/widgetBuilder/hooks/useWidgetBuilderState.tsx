@@ -86,6 +86,9 @@ export const BuilderStateAction = {
   SET_STATE: 'SET_STATE',
   SET_THRESHOLDS: 'SET_THRESHOLDS',
   SET_TRACE_METRIC: 'SET_TRACE_METRIC',
+  // Categorical bar chart specific actions
+  SET_CATEGORICAL_X_AXIS: 'SET_CATEGORICAL_X_AXIS',
+  SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
 } as const;
 
 type WidgetAction =
@@ -109,6 +112,14 @@ type WidgetAction =
   | {
       payload: TraceMetric | undefined;
       type: typeof BuilderStateAction.SET_TRACE_METRIC;
+    }
+  | {
+      payload: string;
+      type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS;
+    }
+  | {
+      payload: Column[];
+      type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE;
     };
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
@@ -801,6 +812,41 @@ function useWidgetBuilderState(): {
               } else {
                 setSort([], options);
               }
+            }
+          }
+          break;
+        case BuilderStateAction.SET_CATEGORICAL_X_AXIS:
+          // Only applies to categorical bar charts
+          if (displayType === DisplayType.CATEGORICAL_BAR) {
+            // Preserve existing aggregates, update only the X-axis field
+            const existingAggregates =
+              fields?.filter(f => f.kind === FieldValueKind.FUNCTION) ?? [];
+            const newXAxisField: Column = {
+              kind: FieldValueKind.FIELD,
+              field: action.payload,
+            };
+            setFields([newXAxisField, ...existingAggregates], options);
+          }
+          break;
+        case BuilderStateAction.SET_CATEGORICAL_AGGREGATE:
+          // Only applies to categorical bar charts
+          if (displayType === DisplayType.CATEGORICAL_BAR) {
+            // Preserve existing X-axis field, update only the aggregates
+            const existingXAxisFields =
+              fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
+            setFields([...existingXAxisFields, ...action.payload], options);
+
+            // Update sort to use the first aggregate (if any)
+            if (action.payload.length > 0) {
+              setSort(
+                [
+                  {
+                    kind: 'desc',
+                    field: generateFieldAsString(action.payload[0]!),
+                  },
+                ],
+                options
+              );
             }
           }
           break;

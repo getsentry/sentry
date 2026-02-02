@@ -79,20 +79,9 @@ export function WidgetBuilderXAxisSelector() {
       return;
     }
 
-    // Preserve any aggregate entries (FUNCTION kind) in state.fields,
-    // and update only the X-axis field entry.
-    const aggregates =
-      state.fields?.filter(f => f.kind === FieldValueKind.FUNCTION) ?? [];
-
-    const newXAxisField = {
-      kind: FieldValueKind.FIELD as const,
-      field: String(option.value),
-    };
-
-    // For categorical bars, state.fields = [X-axis field, ...aggregates]
     dispatch({
-      type: BuilderStateAction.SET_FIELDS,
-      payload: [newXAxisField, ...aggregates],
+      type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+      payload: String(option.value),
     });
   };
 
