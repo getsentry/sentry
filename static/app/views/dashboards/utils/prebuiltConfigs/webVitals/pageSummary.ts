@@ -257,7 +257,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
-      tableWidths: [-1, 200, -1, -1, -1, -1],
+      tableWidths: [-1, 200, -1, -1, -1, -1, -1],
       queries: [
         {
           name: '',
