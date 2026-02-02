@@ -88,11 +88,9 @@ def handle_issue_comment_event(
         return
 
     if comment_id:
-        reactions_to_delete = (
-            []
-            if features.has("organizations:github-rate-limit-sensitive", organization)
-            else [GitHubReaction.HOORAY]
-        )
+        reactions_to_delete = [GitHubReaction.HOORAY]
+        if features.has("organizations:github-rate-limit-sensitive", organization):
+            reactions_to_delete = []
 
         delete_existing_reactions_and_adds_reaction(
             github_event=github_event,
