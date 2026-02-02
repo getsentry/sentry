@@ -66,11 +66,11 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {transformTableToCategoricalSeries} from 'sentry/views/dashboards/widgetCard/transformTableToCategoricalSeries';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
-import {sampleCountCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/countCategorical';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
@@ -226,7 +226,10 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     );
   }
 
-  if (widget.displayType === DisplayType.CATEGORICAL_SERIES) {
+  if (
+    widget.displayType === DisplayType.CATEGORICAL_SERIES ||
+    widget.displayType === DisplayType.CATEGORICAL_BAR
+  ) {
     return (
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
@@ -710,19 +713,34 @@ function BigNumberComponent({
 }
 
 function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
+  const {widget, tableResults, loading} = props;
+
   const hasCategoricalBarCharts = useOrganization().features.includes(
     'dashboards-categorical-bar-charts'
   );
 
-  if (hasCategoricalBarCharts) {
-    return (
-      <CategoricalSeriesWidgetVisualization
-        plottables={[new Bars(sampleCountCategoricalData)]}
-        {...props}
-      />
-    );
+  if (!hasCategoricalBarCharts) {
+    return null;
   }
-  return null;
+
+  if (loading || !tableResults?.[0]) {
+    return <LoadingPlaceholder />;
+  }
+
+  // Transform table data to categorical series format
+  const categoricalSeriesData = transformTableToCategoricalSeries({
+    widget,
+    tableData: tableResults[0],
+  });
+
+  if (categoricalSeriesData.length === 0) {
+    return null;
+  }
+
+  // Create Bars plottables from the transformed data
+  const plottables = categoricalSeriesData.map(series => new Bars(series));
+
+  return <CategoricalSeriesWidgetVisualization plottables={plottables} {...props} />;
 }
 
 function DetailsComponent(props: TableComponentProps): React.ReactNode {
