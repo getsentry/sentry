@@ -1,7 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import Select from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

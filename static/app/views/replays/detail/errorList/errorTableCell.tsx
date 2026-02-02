@@ -3,8 +3,9 @@ import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Link} from 'sentry/components/core/link';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Link} from '@sentry/scraps/link';
+
 import {
   AvatarWrapper,
   ButtonWrapper,

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';

@@ -2,6 +2,8 @@ import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {ButtonBar} from '@sentry/scraps/button';
+
 import {
   closeGuide,
   dismissGuide,
@@ -10,7 +12,6 @@ import {
   registerAnchor,
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';

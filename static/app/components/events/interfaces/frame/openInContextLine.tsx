@@ -1,8 +1,9 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {space} from 'sentry/styles/space';
 import type {

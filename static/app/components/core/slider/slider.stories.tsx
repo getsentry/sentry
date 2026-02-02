@@ -2,7 +2,8 @@ import {Fragment, useState} from 'react';
 import documentation from '!!type-loader!sentry/components/core/slider';
 import styled from '@emotion/styled';
 
-import {Slider} from 'sentry/components/core/slider';
+import {Slider} from '@sentry/scraps/slider';
+
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 

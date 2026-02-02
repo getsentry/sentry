@@ -1,7 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import TextField from 'sentry/components/forms/fields/textField';
