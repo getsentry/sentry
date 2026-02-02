@@ -93,6 +93,7 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
         }),
         query: {
           query: searchQuery,
+          project: replay.project_id,
         },
       }
     : null;

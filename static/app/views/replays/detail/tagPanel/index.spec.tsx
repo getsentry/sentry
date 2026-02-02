@@ -64,11 +64,11 @@ describe('TagPanel', () => {
 
     expect(screen.getByText('bar').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/replays/?query=foo%3A%22bar%22'
+      '/organizations/org-slug/explore/replays/?project=6273278&query=foo%3A%22bar%22'
     );
     expect(screen.getByText('baz').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/replays/?query=foo%3A%22baz%22'
+      '/organizations/org-slug/explore/replays/?project=6273278&query=foo%3A%22baz%22'
     );
   });
 
@@ -77,7 +77,7 @@ describe('TagPanel', () => {
 
     expect(screen.getByText('a wordy value').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/replays/?query=my_custom_tag%3A%22a%20wordy%20value%22'
+      '/organizations/org-slug/explore/replays/?project=6273278&query=my_custom_tag%3A%22a%20wordy%20value%22'
     );
   });
 
