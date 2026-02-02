@@ -152,7 +152,7 @@ const InsightsContainerWithLines = styled('div')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.tokens.border.primary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   margin-left: 16px;
 `;
 

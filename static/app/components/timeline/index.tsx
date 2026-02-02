@@ -165,7 +165,7 @@ const Container = styled('div')`
     width: 1px;
     top: 0;
     bottom: 0;
-    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
 `;
 

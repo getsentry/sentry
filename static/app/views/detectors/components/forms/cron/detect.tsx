@@ -230,7 +230,7 @@ const SubSectionSeparator = styled('hr')`
   border: none;
   margin: 0;
   margin-bottom: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.tokens.border.primary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`

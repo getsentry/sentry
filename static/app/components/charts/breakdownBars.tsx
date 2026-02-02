@@ -89,7 +89,7 @@ const Bar = styled('div')<{active?: boolean}>`
   background-color: ${p =>
     p.active
       ? p.theme.tokens.background.transparent.accent.muted
-      : p.theme.tokens.border.primary};
+      : p.theme.tokens.background.secondary};
   position: absolute;
   top: 0;
   left: 0;

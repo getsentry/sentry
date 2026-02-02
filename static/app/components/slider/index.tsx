@@ -334,7 +334,7 @@ const SliderTrack = styled('div', {
   width: calc(100% - 2px);
   height: 3px;
   border-radius: 3px;
-  background: ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
   margin-left: 1px; /* to better align track with label */
 
   margin-bottom: ${p => (p.hasTickLabels ? '2em' : '0.5rem')};
@@ -381,7 +381,7 @@ const SliderTick = styled('div')<{
   width: 2px;
   height: 6px;
   border-radius: 2px;
-  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => p.theme.tokens.background.transparent.neutral.muted};
 
   ${p =>
     p.inSelection &&

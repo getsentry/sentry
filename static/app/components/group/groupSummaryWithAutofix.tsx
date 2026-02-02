@@ -369,7 +369,7 @@ const InsightGrid = styled('div')`
     top: ${space(4)};
     bottom: ${space(2)};
     width: 1px;
-    background: ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.secondary};
     z-index: 0;
   }
 `;

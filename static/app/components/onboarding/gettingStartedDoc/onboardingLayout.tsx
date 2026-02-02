@@ -219,7 +219,7 @@ export function OnboardingLayout({
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;
   width: 100%;
-  background: ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: none;
   ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;

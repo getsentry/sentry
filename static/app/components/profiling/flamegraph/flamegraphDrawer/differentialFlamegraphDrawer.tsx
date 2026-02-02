@@ -343,7 +343,7 @@ const Separator = styled('li')`
   width: 1px;
   height: 66%;
   margin: 0 ${space(1)};
-  background: 1px solid ${p => p.theme.tokens.border.primary};
+  background: 1px solid ${p => p.theme.tokens.background.secondary};
   transform: translateY(29%);
 `;
 

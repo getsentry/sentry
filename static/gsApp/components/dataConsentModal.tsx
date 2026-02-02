@@ -203,7 +203,7 @@ const LearnMore = styled(ExternalLink)`
 
   &:hover {
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
+    text-decoration-color: ${p => p.theme.tokens.content.accent};
   }
 `;
 

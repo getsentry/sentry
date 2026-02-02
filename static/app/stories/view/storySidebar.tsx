@@ -27,7 +27,7 @@ const SidebarContainer = styled('nav')`
   min-height: 0;
   height: calc(100dvh - 52px);
   z-index: 0;
-  box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
+  box-shadow: 1px 0 0 0 ${p => p.theme.tokens.focus.default};
   width: 256px;
   background: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
@@ -46,7 +46,7 @@ const SidebarContainer = styled('nav')`
     display: block;
     content: '';
     height: 1px;
-    background: ${p => p.theme.tokens.border.secondary};
+    background: ${p => p.theme.tokens.background.tertiary};
     margin: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
   > ul > li:first-child::before {

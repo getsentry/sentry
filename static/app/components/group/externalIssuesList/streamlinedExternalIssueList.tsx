@@ -280,7 +280,7 @@ const LinkedIssueName = styled('div')`
 const HorizontalSeparator = styled('div')`
   width: 1px;
   height: 14px;
-  background: ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const UnlinkButton = styled(Button)`

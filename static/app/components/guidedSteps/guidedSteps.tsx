@@ -248,7 +248,7 @@ const StepWrapper = styled('div')`
     position: absolute;
     height: calc(100% + ${space(2)});
     width: 1px;
-    background: ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.secondary};
     left: 17px;
   }
 `;

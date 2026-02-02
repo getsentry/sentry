@@ -351,7 +351,7 @@ const TagBarPlaceholder = styled('div')`
   height: 8px;
   width: 100%;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;

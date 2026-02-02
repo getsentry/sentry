@@ -749,7 +749,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;

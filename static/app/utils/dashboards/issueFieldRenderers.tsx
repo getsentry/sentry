@@ -293,7 +293,7 @@ const WrappedCount = styled(({value, ...p}: any) => (
 const Divider = styled('div')`
   height: 1px;
   overflow: hidden;
-  background-color: ${p => p.theme.tokens.border.secondary};
+  background-color: ${p => p.theme.tokens.background.tertiary};
 `;
 
 const LinksContainer = styled('span')`

@@ -489,7 +489,7 @@ const CardLineDecorationWrapper = styled('div')`
 const CardLineDecoration = styled('div')`
   width: 1px;
   align-self: stretch;
-  background-color: ${p => p.theme.tokens.border.primary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const CardContent = styled('div')`

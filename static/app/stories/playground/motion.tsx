@@ -87,7 +87,7 @@ const Box = styled(motion.div)`
   display: block;
   width: 128px;
   height: 128px;
-  background: ${p => p.theme.tokens.border.accent.vibrant};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
   border-radius: ${p => p.theme.radius.md};
 `;

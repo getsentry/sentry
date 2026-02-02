@@ -296,7 +296,7 @@ const Separator = styled('hr')`
   outline: 0;
   border: 0;
   height: 1px;
-  background: ${p => p.theme.tokens.border.secondary};
+  background: ${p => p.theme.tokens.background.tertiary};
   margin: 0;
 `;
 

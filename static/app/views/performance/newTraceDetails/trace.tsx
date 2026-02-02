@@ -700,7 +700,7 @@ function VerticalTimestampIndicators({
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
-  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.neutral.muted};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   position: absolute;
   left: 0;
   top: 0;
@@ -805,7 +805,7 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
-      background-color: ${p => p.theme.tokens.border.primary};
+      background-color: ${p => p.theme.tokens.background.secondary};
       left: 50%;
     }
 
@@ -830,7 +830,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
-    background-color: ${p => p.theme.tokens.border.primary};
+    background-color: ${p => p.theme.tokens.background.secondary};
     width: 100%;
     height: 1px;
   }
@@ -1272,10 +1272,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.focus.default} !important;
       }
     }
 
@@ -1582,7 +1582,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      background-color: ${p => p.theme.tokens.border.neutral.muted};
+      background-color: ${p => p.theme.tokens.background.secondary};
       border-radius: 50%;
       height: 6px;
       width: 6px;

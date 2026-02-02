@@ -158,7 +158,7 @@ const TimelineWidthTracker = styled('div')`
 `;
 
 const EventLineTick = styled('div')<{left: number}>`
-  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   width: 2px;
   height: 100%;
   grid-row: 2 / 3;

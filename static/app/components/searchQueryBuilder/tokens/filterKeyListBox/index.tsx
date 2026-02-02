@@ -513,7 +513,7 @@ const RecentFilterPill = styled('li')`
   font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 
@@ -553,7 +553,7 @@ const SectionButton = styled(Button)`
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.accent.muted};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
     color: ${p => p.theme.tokens.content.accent};
     font-weight: ${p => p.theme.font.weight.sans.medium};
   }

@@ -99,7 +99,7 @@ const Option = styled('div')<{isSelected: boolean}>`
     background: ${p =>
       p.isSelected
         ? p.theme.tokens.graphics.accent.vibrant
-        : p.theme.tokens.border.primary};
+        : p.theme.tokens.background.secondary};
     border-radius: ${p => p.theme.radius.md};
     top: ${p => p.theme.space['2xs']};
     transform: translateY(-${p => p.theme.space['2xs']});

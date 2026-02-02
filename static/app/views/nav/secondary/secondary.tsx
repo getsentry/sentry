@@ -359,7 +359,7 @@ const SeparatorWrapper = styled('div')`
 
 const Separator = styled('hr')`
   height: 1px;
-  background: ${p => p.theme.tokens.border.secondary};
+  background: ${p => p.theme.tokens.background.tertiary};
   margin: 0 ${space(1)};
   border: none;
 `;

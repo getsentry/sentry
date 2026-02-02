@@ -584,7 +584,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   align-items: center;
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
-  box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  box-shadow: 0 1px 0 ${p => p.theme.tokens.focus.default};
 
   [data-menu-has-search='true'] > & {
     padding-bottom: 0;
@@ -675,7 +675,7 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 `;
 
 const MenuFooter = styled('div')`
-  box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  box-shadow: 0 -1px 0 ${p => p.theme.tokens.focus.default};
   padding: ${space(1)} ${space(1.5)};
   z-index: 2;
 `;

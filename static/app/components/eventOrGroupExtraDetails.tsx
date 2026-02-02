@@ -191,7 +191,7 @@ const GroupExtra = styled('div')`
 const Separator = styled('div')`
   height: 10px;
   width: 1px;
-  background-color: ${p => p.theme.tokens.border.secondary};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   border-radius: 1px;
 `;
 

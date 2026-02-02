@@ -10,7 +10,7 @@ export const StoryTable = styled('table')`
   border: 0;
   border-collapse: collapse;
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   margin-bottom: ${p => p.theme.space['3xl']};
 
   & thead {

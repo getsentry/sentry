@@ -721,7 +721,7 @@ const SectionDivider = styled('hr')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: 100%;
-  background-color: ${p => p.theme.tokens.border.primary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   margin-top: ${space(0.5)};
 `;
 

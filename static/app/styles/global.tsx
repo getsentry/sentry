@@ -200,7 +200,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   }
 
   .group-detail:before {
-    background: ${theme.tokens.border.primary};
+    background: ${theme.tokens.background.secondary};
   }
 
   .form-actions {

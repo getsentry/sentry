@@ -142,7 +142,7 @@ SavedEntityTable.CellStar = function CellStar({
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
+  text-decoration-color: ${p => p.theme.tokens.content.primary};
   display: block;
   width: 100%;
   white-space: nowrap;

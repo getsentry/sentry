@@ -93,7 +93,7 @@ const FloatingCloseButton = styled('button')`
   border: none;
   color: ${p => p.theme.tokens.content.secondary};
   border-radius: 2px 2px 0 0;
-  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,7 +110,7 @@ const FloatingCloseButton = styled('button')`
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 
@@ -161,6 +161,6 @@ const HoverFocusBorder = styled('div')`
 
   &:focus-within,
   &:hover {
-    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
+    box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;

@@ -268,7 +268,7 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
-    background: ${p => p.theme.tokens.border.secondary};
+    background: ${p => p.theme.tokens.background.tertiary};
   }
 
   &:first-child summary::after {

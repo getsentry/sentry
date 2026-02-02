@@ -223,7 +223,7 @@ const StreamlineGridEditable = styled('div')`
       a {
         color: ${p => p.theme.tokens.content.primary};
         text-decoration: underline;
-        text-decoration-color: ${p => p.theme.tokens.border.primary};
+        text-decoration-color: ${p => p.theme.tokens.content.primary};
       }
     }
   }

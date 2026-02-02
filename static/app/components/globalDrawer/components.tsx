@@ -170,7 +170,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? space(1) : 0)};
   padding: ${space(1.5)};
-  box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
+  box-shadow: ${p => p.theme.tokens.focus.default} 0 1px;
   padding-left: ${p => (p.hideCloseButton ? '24px' : space(2))};
   padding-top: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
   padding-bottom: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
