@@ -290,8 +290,8 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           }
         }
         .loading .loading-indicator {
-          border-color: ${theme.tokens.background.transparent.neutral.muted};
-          border-left-color: ${theme.tokens.background.accent.vibrant};
+          border-color: ${theme.tokens.border.transparent.neutral.muted};
+          border-left-color: ${theme.tokens.border.accent};
         }
 
         .pattern-bg {
@@ -400,13 +400,13 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
             border-bottom-color: ${theme.tokens.border.primary};
           }
           &:after {
-            border-bottom-color: ${theme.tokens.background.primary};
+            border-bottom-color: ${theme.tokens.border.primary};
           }
           &.inverted:before {
             border-top-color: ${theme.tokens.border.primary};
           }
           &.inverted:after {
-            border-top-color: ${theme.tokens.background.primary};
+            border-top-color: ${theme.tokens.border.primary};
           }
         }
       `

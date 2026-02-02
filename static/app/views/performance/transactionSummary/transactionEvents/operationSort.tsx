@@ -212,7 +212,7 @@ const DropdownWrapper = styled('div')`
     }
 
     &:after {
-      border-bottom: 8px solid ${p => p.theme.tokens.background.primary};
+      border-bottom: 8px solid ${p => p.theme.tokens.border.primary};
       top: -8px;
     }
   }
@@ -226,7 +226,7 @@ const DropdownWrapper = styled('div')`
     }
 
     &:after {
-      border-top: 8px solid ${p => p.theme.tokens.background.primary};
+      border-top: 8px solid ${p => p.theme.tokens.border.primary};
       bottom: -8px;
     }
   }

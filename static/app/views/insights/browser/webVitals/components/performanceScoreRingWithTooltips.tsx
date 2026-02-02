@@ -392,7 +392,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   pointer-events: none;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid ${p => p.theme.tokens.background.primary};
+  border-top: 8px solid ${p => p.theme.tokens.border.primary};
   margin-left: -8px;
   &:before {
     border-left: 8px solid transparent;

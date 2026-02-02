@@ -41,7 +41,7 @@ const ActivityBubble = styled('div')<ActivityBubbleProps>`
     height: 0;
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    border-right: 6px solid ${p => p.backgroundColor || p.theme.tokens.background.primary};
+    border-right: 6px solid ${p => p.backgroundColor || p.theme.tokens.border.primary};
     position: absolute;
     left: -6px;
     top: 13px;

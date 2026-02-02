@@ -447,7 +447,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid ${p => p.theme.tokens.background.primary};
+  border: 2px solid ${p => p.theme.tokens.border.primary};
 
   ${p =>
     p.isMobile &&

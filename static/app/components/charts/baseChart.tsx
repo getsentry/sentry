@@ -784,7 +784,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
-      border-bottom: 8px solid ${p.theme.tokens.background.primary};
+      border-bottom: 8px solid ${p.theme.tokens.border.primary};
       border-top: none;
       &:before {
         border-top: none;
@@ -800,7 +800,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p.theme.tokens.background.primary};
+    border-top: 8px solid ${p.theme.tokens.border.primary};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;
