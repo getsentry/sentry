@@ -142,7 +142,7 @@ class FlagAction(EnhancementAction):
         idx: int,
         rule: EnhancementRule | None = None,
     ) -> None:
-        rule_hint = "stack trace rule"
+        rule_hint = "stacktrace rule"
         if rule:
             rule_hint = f"{rule_hint} ({rule.text})"
 

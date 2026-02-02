@@ -569,7 +569,7 @@ def test_apply_new_stack_trace_rules(
     process_and_save,
 ):
     """
-    Assert that after changing stack trace rules, the new grouping config
+    Assert that after changing stacktrace rules, the new grouping config
     is respected by reprocessing.
     """
 
@@ -623,7 +623,7 @@ def test_apply_new_stack_trace_rules(
 
     original_grouping_config = event1.data["grouping_config"]
 
-    # Different group, because different stack trace
+    # Different group, because different stacktrace
     assert event1.group.id != event2.group.id
     original_issue_id = event1.group.id
 
@@ -650,7 +650,7 @@ def test_apply_new_stack_trace_rules(
     assert is_group_finished(event1.group_id)
     assert is_group_finished(event2.group_id)
 
-    # Events should now be in same group because of stack trace rule
+    # Events should now be in same group because of stacktrace rule
     event1 = eventstore.backend.get_event_by_id(default_project.id, event_id1)
     event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
     assert event1 is not None

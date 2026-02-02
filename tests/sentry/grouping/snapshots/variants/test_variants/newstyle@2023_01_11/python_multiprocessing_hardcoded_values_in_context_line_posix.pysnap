@@ -162,7 +162,7 @@ app:
               "handle"
             context_line*
               "self.emit(record)"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -171,7 +171,7 @@ app:
               "connect"
             context_line*
               "sock = self._connect()"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -180,7 +180,7 @@ app:
               "_connect"
             context_line*
               "raise err"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)

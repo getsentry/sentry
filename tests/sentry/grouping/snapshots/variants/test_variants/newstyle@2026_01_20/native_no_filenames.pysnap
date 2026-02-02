@@ -74,7 +74,7 @@ system:
           frame*
             function*
               "std::rt::lang_start"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "std::rt::lang_start_internal"
           frame*
@@ -83,7 +83,7 @@ system:
           frame*
             function*
               "std::panicking::try::do_call"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
           frame*

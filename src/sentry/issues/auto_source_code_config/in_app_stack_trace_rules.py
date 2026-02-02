@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def save_in_app_stack_trace_rules(
     project: Project, code_mappings: Sequence[CodeMapping], platform_config: PlatformConfig
 ) -> list[str]:
-    """Save in app stack trace rules for a given project"""
+    """Save in app stacktrace rules for a given project"""
     rules_from_code_mappings = set()
     for code_mapping in code_mappings:
         try:

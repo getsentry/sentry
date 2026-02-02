@@ -13,7 +13,7 @@ app:
         value*
           "timed out"
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             module*
               "__main__"
             filename (ignored because module takes precedence)
@@ -22,7 +22,7 @@ app:
               "<module>"
             context_line*
               "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=<int>, pipe_handle=<int>)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -31,7 +31,7 @@ app:
               "spawn_main"
             context_line*
               "exitcode = _main(fd, parent_sentinel)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -40,7 +40,7 @@ app:
               "_main"
             context_line*
               "return self._bootstrap(parent_sentinel)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -49,7 +49,7 @@ app:
               "_bootstrap"
             context_line*
               "self.run()"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -112,7 +112,7 @@ app:
               "run_post_process_job"
             context_line*
               "logger.exception("
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -121,7 +121,7 @@ app:
               "exception"
             context_line*
               "self.error(msg, *args, exc_info=exc_info, **kwargs)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -130,7 +130,7 @@ app:
               "error"
             context_line*
               "self._log(ERROR, msg, args, **kwargs)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -139,7 +139,7 @@ app:
               "_log"
             context_line*
               "self.handle(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -148,7 +148,7 @@ app:
               "handle"
             context_line*
               "self.callHandlers(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -157,7 +157,7 @@ app:
               "callHandlers"
             context_line*
               "hdlr.handle(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:/usr/local/lib/** -app))
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -166,7 +166,7 @@ app:
               "handle"
             context_line*
               "self.emit(record)"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -175,7 +175,7 @@ app:
               "connect"
             context_line*
               "sock = self._connect()"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -184,7 +184,7 @@ app:
               "_connect"
             context_line*
               "raise err"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -215,7 +215,7 @@ system:
         value (ignored because stacktrace takes precedence)
           "timed out"
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             module*
               "__main__"
             filename (ignored because module takes precedence)

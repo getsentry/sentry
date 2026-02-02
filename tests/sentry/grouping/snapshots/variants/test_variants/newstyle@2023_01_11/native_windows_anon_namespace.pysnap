@@ -47,12 +47,12 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             filename*
               "exe_common.inl"
             function*

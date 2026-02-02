@@ -13,10 +13,10 @@ app:
         value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (package:/usr/lib/** -app))
             function*
               "start"
-          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
+          frame (marked out of app by built-in stacktrace rule (package:/usr/lib/** -app))
             function*
               "start"
           frame (non app frame)
@@ -37,39 +37,39 @@ app:
           frame (non app frame)
             function*
               "code"
-          frame (marked out of app by built-in stack trace rule (category:system -app))
+          frame (marked out of app by built-in stacktrace rule (category:system -app))
             function*
               "-[NSApplication run]"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "_DPSNextEvent"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "_BlockUntilNextEventMatchingListInModeWithFilter"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "ReceiveNextEventCommon"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "RunCurrentEventLoopInMode"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "__NSThreadPerformPerform"
           frame (non app frame)
             function*
               "code"
-          frame (marked out of app by built-in stack trace rule (category:system -app))
+          frame (marked out of app by built-in stacktrace rule (category:system -app))
             function*
               "-[NSView displayIfNeeded]"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "-[_NSOpenGLViewBackingLayer display]"
           frame (non app frame)
@@ -81,107 +81,107 @@ app:
           frame (non app frame)
             function*
               "CGLTexImageIOSurface2D"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "CGLDescribeRenderer"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "gliSetInteger"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "gldFlushObject"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "intelSubmitCommands"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "IntelCommandBuffer::getNew"
           frame (non app frame)
             function*
               "gpusSubmitDataBuffers"
-          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+          frame (marked out of app by built-in stacktrace rule (category:telemetry -app))
             function*
               "gpusKillClientExt"
-          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+          frame (marked out of app by built-in stacktrace rule (category:telemetry -app))
             function*
               "gpusGenerateCrashLog"
           frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "_sigtramp"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "code"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "code"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "code"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "NSRunAlertPanel"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "_NSTryRunModal"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "CA::Transaction::commit"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "CA::Context::commit_transaction"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "CA::Layer::display_if_needed"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "-[_NSOpenGLViewBackingLayer display]"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "code"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "code"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "CGLTexImageIOSurface2D"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "CGLDescribeRenderer"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "gliSetInteger"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "gldFlushObject"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "intelSubmitCommands"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "IntelCommandBuffer::getNew"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "gpusSubmitDataBuffers"
-          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+          frame (marked out of app by built-in stacktrace rule (category:telemetry -app))
             function*
               "gpusKillClientExt"
-          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+          frame (marked out of app by built-in stacktrace rule (category:telemetry -app))
             function*
               "gpusGenerateCrashLog"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stacktrace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
             function*
               "__pthread_kill"
 --------------------------------------------------------------------------
@@ -197,7 +197,7 @@ system:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
         stacktrace*
-          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*
               "start"
           frame (ignored due to recursion)
@@ -224,19 +224,19 @@ system:
           frame*
             function*
               "-[NSApplication run]"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "_DPSNextEvent"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "_BlockUntilNextEventMatchingListInModeWithFilter"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "ReceiveNextEventCommon"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "RunCurrentEventLoopInMode"
           frame
@@ -244,7 +244,7 @@ system:
           frame (ignored due to recursion)
           frame (ignored due to recursion)
           frame (ignored due to recursion)
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "__NSThreadPerformPerform"
           frame*
@@ -253,7 +253,7 @@ system:
           frame*
             function*
               "-[NSView displayIfNeeded]"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "-[_NSOpenGLViewBackingLayer display]"
           frame*
@@ -265,41 +265,41 @@ system:
           frame*
             function*
               "CGLTexImageIOSurface2D"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "CGLDescribeRenderer"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "gliSetInteger"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "gldFlushObject"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "intelSubmitCommands"
-          frame (ignored by built-in stack trace rule (category:internals -group))
+          frame (ignored by built-in stacktrace rule (category:internals -group))
             function*
               "IntelCommandBuffer::getNew"
           frame*
             function*
               "gpusSubmitDataBuffers"
-          frame (ignored by built-in stack trace rule (category:telemetry -group))
+          frame (ignored by built-in stacktrace rule (category:telemetry -group))
             function*
               "gpusKillClientExt"
-          frame (ignored by built-in stack trace rule (category:telemetry -group))
+          frame (ignored by built-in stacktrace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-          frame (ignored by built-in stack trace rule (category:indirection -group))
+          frame (ignored by built-in stacktrace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "abort"
           frame
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "_sigtramp"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "code"
           frame (ignored due to recursion)
@@ -308,63 +308,63 @@ system:
           frame (ignored due to recursion)
             function*
               "code"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "NSRunAlertPanel"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "_NSTryRunModal"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "CA::Transaction::commit"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "CA::Context::commit_transaction"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "CA::Layer::display_if_needed"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "-[_NSOpenGLViewBackingLayer display]"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "code"
           frame (ignored due to recursion)
             function*
               "code"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "CGLTexImageIOSurface2D"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "CGLDescribeRenderer"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "gliSetInteger"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "gldFlushObject"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "intelSubmitCommands"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "IntelCommandBuffer::getNew"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "gpusSubmitDataBuffers"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "gpusKillClientExt"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "gpusGenerateCrashLog"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stacktrace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"
