@@ -264,13 +264,7 @@ class _TransactionsList extends Component<Props> {
     return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
   }
 
-  renderHeader({
-    numSamples,
-    view,
-  }: {
-    numSamples: number | null | undefined;
-    view?: DomainView;
-  }): React.ReactNode {
+  renderHeader({view}: {view?: DomainView}): React.ReactNode {
     const {
       organization,
       selected,
@@ -281,7 +275,6 @@ class _TransactionsList extends Component<Props> {
       showTransactions,
       breakdown,
     } = this.props;
-    numSamples = numSamples ?? null;
     return (
       <Fragment>
         <div>
@@ -376,10 +369,7 @@ class _TransactionsList extends Component<Props> {
           isLoading
           pageLinks={null}
           tableData={null}
-          header={this.renderHeader({
-            numSamples: null,
-            view: domainViewFilters?.view,
-          })}
+          header={this.renderHeader({view: domainViewFilters?.view})}
         />
       );
     }
@@ -399,10 +389,7 @@ class _TransactionsList extends Component<Props> {
             isLoading={isLoading}
             pageLinks={pageLinks}
             tableData={tableData}
-            header={this.renderHeader({
-              numSamples: tableData?.data?.length ?? null,
-              view: domainViewFilters?.view,
-            })}
+            header={this.renderHeader({view: domainViewFilters?.view})}
           />
         )}
       </DiscoverQuery>
@@ -448,10 +435,7 @@ class _TransactionsList extends Component<Props> {
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
             paginationCursorSize="sm"
-            header={this.renderHeader({
-              numSamples: null,
-              view: domainViewFilters?.view,
-            })}
+            header={this.renderHeader({view: domainViewFilters?.view})}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([
               {field: 'transaction'},
