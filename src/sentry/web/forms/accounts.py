@@ -130,6 +130,10 @@ class AuthenticationForm(forms.Form):
 
     def check_for_test_cookie(self):
         if not self.request.session.test_cookie_worked():
+            logger.info(
+                "user.auth.no-cookies",
+                extra={"ip_address": self.request.META["REMOTE_ADDR"]},
+            )
             raise forms.ValidationError(self.error_messages["no_cookies"])
         else:
             self.request.session.delete_test_cookie()
