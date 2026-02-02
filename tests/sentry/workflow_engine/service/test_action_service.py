@@ -267,6 +267,7 @@ class TestActionService(TestCase):
         action_service.update_action_status_for_sentry_app_via_uuid(
             organization_id=self.organization.id,
             sentry_app_install_uuid=sentry_app_installation.uuid,
+            sentry_app_id=sentry_app_installation.sentry_app.id,
             status=ObjectStatus.DISABLED,
         )
 
@@ -290,6 +291,7 @@ class TestActionService(TestCase):
         action_service.update_action_status_for_sentry_app_via_uuid__region(
             region_name="us",
             sentry_app_install_uuid=sentry_app_installation.uuid,
+            sentry_app_id=sentry_app_installation.sentry_app.id,
             status=ObjectStatus.DISABLED,
         )
         with assume_test_silo_mode(SiloMode.REGION):

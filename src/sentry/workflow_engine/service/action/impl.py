@@ -1,6 +1,9 @@
+from django.db.models import Q
+
+from sentry.constants import SentryAppInstallationStatus
+from sentry.sentry_apps.services.app.service import app_service
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import ActionService
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class DatabaseBackedActionService(ActionService):
@@ -34,11 +37,12 @@ class DatabaseBackedActionService(ActionService):
         organization_id: int,
         status: int,
         sentry_app_install_uuid: str,
+        sentry_app_id: int,
     ) -> None:
         Action.objects.filter(
+            Q(config__target_identifier=sentry_app_install_uuid)
+            | Q(config__target_identifier=sentry_app_id),
             type=Action.Type.SENTRY_APP,
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            config__target_identifier=sentry_app_install_uuid,
         ).update(status=status)
 
     def update_action_status_for_sentry_app_via_uuid__region(
@@ -47,11 +51,12 @@ class DatabaseBackedActionService(ActionService):
         region_name: str,
         status: int,
         sentry_app_install_uuid: str,
+        sentry_app_id: int,
     ) -> None:
         Action.objects.filter(
+            Q(config__target_identifier=sentry_app_install_uuid)
+            | Q(config__target_identifier=sentry_app_id),
             type=Action.Type.SENTRY_APP,
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            config__target_identifier=sentry_app_install_uuid,
         ).update(status=status)
 
     def update_action_status_for_sentry_app_via_sentry_app_id(
@@ -61,10 +66,18 @@ class DatabaseBackedActionService(ActionService):
         status: int,
         sentry_app_id: int,
     ) -> None:
+        # look up all installs and disable - if the sentry app no longer exists, no related actions can fire
+        installs = app_service.get_many(
+            filter={
+                "sentry_app__id": sentry_app_id,
+                "status": SentryAppInstallationStatus.INSTALLED,
+            }
+        )
+
         Action.objects.filter(
+            Q(config__target_identifier=str(sentry_app_id))
+            | Q(config__target_identifier__in=[install.uuid for install in installs]),
             type=Action.Type.SENTRY_APP,
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
-            config__target_identifier=str(sentry_app_id),
         ).update(status=status)
 
     def update_action_status_for_webhook_via_sentry_app_slug(
