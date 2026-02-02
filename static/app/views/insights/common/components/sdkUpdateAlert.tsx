@@ -27,7 +27,7 @@ function getPackageNameFromSdkName(sdkName?: string): string {
 }
 
 const EXPIRATION_DAYS = 30;
-const LOCAL_STORAGE_KEY = 'ai-sdk-update-dismissed';
+export const LOCAL_STORAGE_KEY = 'ai-sdk-update-dismissed';
 
 /**
  * Displays an alert when a newer SDK version is available compared to the

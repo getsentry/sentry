@@ -1,16 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {resetMockDate, setMockDate, textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import localStorage from 'sentry/utils/localStorage';
 
-import {SDKUpdateAlert} from './sdkUpdateAlert';
+import {LOCAL_STORAGE_KEY, SDKUpdateAlert} from './sdkUpdateAlert';
 
-jest.mock('sentry/utils/useDismissAlert');
+jest.mock('sentry/utils/localStorage');
 
-const mockUseDismissAlert = jest.mocked(useDismissAlert);
+const mockGetItem = jest.mocked(localStorage.getItem);
+const mockSetItem = jest.mocked(localStorage.setItem);
 
 const organization = OrganizationFixture();
 
@@ -40,18 +41,20 @@ function renderMockRequests({
   return {sdkUpdatesResponse};
 }
 
+const now = new Date('2020-01-01');
+
 describe('SDKUpdateAlert', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     PageFiltersStore.init();
-    mockUseDismissAlert.mockReturnValue({
-      dismiss: jest.fn(),
-      isDismissed: false,
-    });
+    mockGetItem.mockReset();
+    mockSetItem.mockReset();
+    setMockDate(now);
   });
 
   afterEach(() => {
     jest.resetAllMocks();
+    resetMockDate();
   });
 
   it('renders alert when SDK update is available for single project', async () => {
@@ -119,9 +122,11 @@ describe('SDKUpdateAlert', () => {
   });
 
   it('does not render when alert is dismissed', () => {
-    mockUseDismissAlert.mockReturnValue({
-      dismiss: jest.fn(),
-      isDismissed: true,
+    mockGetItem.mockImplementation(key => {
+      if (key === LOCAL_STORAGE_KEY) {
+        return JSON.stringify(now.getTime().toString());
+      }
+      return null;
     });
 
     const {sdkUpdatesResponse} = renderMockRequests({
@@ -142,13 +147,7 @@ describe('SDKUpdateAlert', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('calls dismiss when dismiss button is clicked', async () => {
-    const dismiss = jest.fn();
-    mockUseDismissAlert.mockReturnValue({
-      dismiss,
-      isDismissed: false,
-    });
-
+  it('dismisses alert and saves to localStorage when dismiss button is clicked', async () => {
     renderMockRequests({
       sdkUpdates: [
         {
@@ -168,6 +167,15 @@ describe('SDKUpdateAlert', () => {
 
     await userEvent.click(dismissButton);
 
-    expect(dismiss).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mockSetItem).toHaveBeenCalledWith(
+        LOCAL_STORAGE_KEY,
+        JSON.stringify(now.getTime().toString())
+      )
+    );
+
+    expect(
+      screen.queryByRole('button', {name: /Dismiss banner for 30 days/})
+    ).not.toBeInTheDocument();
   });
 });
