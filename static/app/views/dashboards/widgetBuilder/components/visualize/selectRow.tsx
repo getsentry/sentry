@@ -101,7 +101,7 @@ export function sortSelectedFirst(
   selectedOption: string,
   options: Array<SelectValue<string>>
 ) {
-  // Single-pass: move selected option to front while preserving order
+  // move selected option to front and remove from the rest of the options
   const result: Array<SelectValue<string>> = [];
   let selectedItem: SelectValue<string> | undefined;
 
