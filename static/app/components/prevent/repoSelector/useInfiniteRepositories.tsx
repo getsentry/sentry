@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   useInfiniteQuery,
@@ -28,7 +29,10 @@ interface Repositories {
   totalCount: number;
 }
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
+type QueryKey = [
+  url: ReturnType<typeof getApiUrl>,
+  endpointOptions: QueryKeyEndpointOptions,
+];
 
 type Props = {
   term?: string;
@@ -45,7 +49,15 @@ export function useInfiniteRepositories({term}: Props) {
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repositories/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            owner: integratedOrgId!,
+          },
+        }
+      ),
       {query: {term}},
     ],
     queryFn: async ({

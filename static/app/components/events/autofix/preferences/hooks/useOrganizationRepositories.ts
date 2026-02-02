@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,7 +22,11 @@ export function useOrganizationRepositories<T extends Repository = Repository>(
 
   const getQueryKey = useCallback(
     ({cursor, per_page}: {cursor: string; per_page: number}): ApiQueryKey => [
-      `/organizations/${organization.slug}/repos/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
       {query: {...queryRef.current, cursor, per_page}},
     ],
     [organization.slug]
