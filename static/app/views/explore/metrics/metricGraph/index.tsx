@@ -128,6 +128,7 @@ function Graph({
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
     aggregate: `count(value,${traceMetric.name},${traceMetric.type},-)`,
+    enabled: Boolean(traceMetric.name),
   });
 
   const chartInfo = useMemo(() => {

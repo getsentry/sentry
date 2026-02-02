@@ -29,9 +29,14 @@ interface UseRawCountsOptions {
    * Used for metrics which require dynamic aggregates like `count(value,<name>,<type>,-)`.
    */
   aggregate?: string;
+  enabled?: boolean;
 }
 
-export function useRawCounts({dataset, aggregate}: UseRawCountsOptions): RawCounts {
+export function useRawCounts({
+  dataset,
+  aggregate,
+  enabled,
+}: UseRawCountsOptions): RawCounts {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -60,7 +65,7 @@ export function useRawCounts({dataset, aggregate}: UseRawCountsOptions): RawCoun
   ];
 
   const normalScanResult = useApiQuery<QueryResult<typeof count>>(normalScanQueryKey, {
-    enabled: true,
+    enabled: enabled ?? true,
     staleTime: 0,
   });
 
@@ -78,7 +83,7 @@ export function useRawCounts({dataset, aggregate}: UseRawCountsOptions): RawCoun
   const highestAccuracyScanResult = useApiQuery<QueryResult<typeof count>>(
     highestAccuracyScanQueryKey,
     {
-      enabled: true,
+      enabled: enabled ?? true,
       staleTime: 0,
     }
   );
