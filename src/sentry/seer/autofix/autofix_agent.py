@@ -172,6 +172,7 @@ def trigger_autofix_explorer(
             metadata = {"stopping_point": stopping_point.value, "group_id": group.id}
         run_id = client.start_run(
             prompt=prompt,
+            prompt_metadata={"step": step.value},
             artifact_key=step.value if config.artifact_schema else None,
             artifact_schema=config.artifact_schema,
             metadata=metadata,
@@ -180,6 +181,7 @@ def trigger_autofix_explorer(
         client.continue_run(
             run_id=run_id,
             prompt=prompt,
+            prompt_metadata={"step": step.value},
             artifact_key=step.value if config.artifact_schema else None,
             artifact_schema=config.artifact_schema,
         )
