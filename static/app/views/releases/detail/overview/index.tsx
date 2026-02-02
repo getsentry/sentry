@@ -401,7 +401,6 @@ function ReleaseOverview() {
               handleDropdownChange={handleTransactionsListSortChange}
               titles={titles}
               generateLink={generateLink}
-              supportsInvestigationRule={false}
             />
           </Feature>
         </Layout.Main>
