@@ -1,4 +1,5 @@
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from '@sentry/scraps/layout';
+
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import ReplaySlugChooser from 'sentry/components/replays/player/__stories__/replaySlugChooser';
 import * as Storybook from 'sentry/stories';

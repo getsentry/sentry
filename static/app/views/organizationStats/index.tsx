@@ -5,11 +5,11 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -288,10 +288,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !hasProfilingStats;
       }
       if (opt.value === DataCategory.SIZE_ANALYSIS) {
-        return organization.features.includes('size-analysis-billing');
+        return organization.features.includes('expose-category-size-analysis');
       }
       if (opt.value === DataCategory.INSTALLABLE_BUILD) {
-        return organization.features.includes('installable-build-billing');
+        return organization.features.includes('expose-category-installable-build');
       }
       return true;
     }).map(opt => {

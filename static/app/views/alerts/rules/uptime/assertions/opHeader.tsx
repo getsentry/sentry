@@ -1,12 +1,12 @@
 import {useId} from 'react';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {t} from 'sentry/locale';
 import type {HeaderCheckOp, HeaderOperand} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -107,7 +107,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                 <OverlayTrigger.Button
                   {...props}
                   size="zero"
-                  borderless
+                  priority="transparent"
                   showChevron={false}
                   title={keyCombinedTooltip}
                   aria-label={t('key comparison %s', keyCombinedLabel)}
@@ -183,7 +183,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                 <OverlayTrigger.Button
                   {...props}
                   size="zero"
-                  borderless
+                  priority="transparent"
                   showChevron={false}
                   title={valueCombinedTooltip}
                   aria-label={t('value comparison %s', valueCombinedLabel)}

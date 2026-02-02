@@ -1,15 +1,18 @@
 import {Fragment, useMemo} from 'react';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
@@ -17,7 +20,9 @@ import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {
   useMetricLabel,
+  useMetricName,
   useMetricVisualize,
+  useMetricVisualizes,
   useSetMetricVisualize,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -60,9 +65,15 @@ export function MetricsGraph({
   infoContentHidden,
   isMetricOptionsEmpty,
 }: MetricsGraphProps) {
+  const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
+  const visualizes = useMetricVisualizes();
   const setVisualize = useSetMetricVisualize();
+
+  const hasMultiVisualize = organization.features.includes(
+    'tracemetrics-overlay-charts-ui'
+  );
 
   useSynchronizeCharts(
     metricQueries.length,
@@ -77,6 +88,8 @@ export function MetricsGraph({
   return (
     <Graph
       visualize={visualize}
+      visualizes={visualizes}
+      hasMultiVisualize={hasMultiVisualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
       orientation={orientation}
@@ -88,8 +101,10 @@ export function MetricsGraph({
 }
 
 interface GraphProps extends MetricsGraphProps {
+  hasMultiVisualize: boolean;
   onChartTypeChange: (chartType: ChartType) => void;
   visualize: ReturnType<typeof useMetricVisualize>;
+  visualizes: ReturnType<typeof useMetricVisualizes>;
 }
 
 function Graph({
@@ -97,6 +112,8 @@ function Graph({
   timeseriesResult,
   orientation,
   visualize,
+  visualizes,
+  hasMultiVisualize,
   infoContentHidden,
   additionalActions,
   isMetricOptionsEmpty,
@@ -104,6 +121,7 @@ function Graph({
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const metricLabel = useMetricLabel();
+  const metricName = useMetricName();
   const userQuery = useQueryParamsQuery();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const traceMetric = useTraceMetric();
@@ -113,9 +131,39 @@ function Graph({
   });
 
   const chartInfo = useMemo(() => {
-    const series = timeseriesResult.data[aggregate] ?? [];
     const isTopEvents = defined(topEventsLimit);
+    const yAxes = hasMultiVisualize ? visualizes.map(v => v.yAxis) : [visualize.yAxis];
+    const rawSeries = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis] ?? []);
+
+    // When displaying multiple aggregates, simplify the legend labels
+    // to just show the function name (e.g., "p50" instead of "p50(metric.name)")
+    // For series with groupBy, show "groupByValue : functionName"
+    let series = rawSeries;
+    if (hasMultiVisualize && visualizes.length > 1) {
+      series = rawSeries.map(s => {
+        const parsed = parseFunction(s.yAxis);
+        if (!parsed) {
+          return s;
+        }
+
+        if (s.groupBy?.length) {
+          // Build a custom label combining groupBy values and the function name,
+          // using the shared formatter to preserve "(no value)" and release formatting.
+          // Clear groupBy so formatTimeSeriesLabel uses yAxis instead
+          const groupByLabel = formatTimeSeriesLabel(s);
+          return {
+            ...s,
+            yAxis: `${groupByLabel} : ${parsed.name}`,
+            groupBy: undefined,
+          };
+        }
+
+        return {...s, yAxis: parsed.name};
+      });
+    }
+
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
+
     return {
       chartType: visualize.chartType,
       series,
@@ -128,13 +176,24 @@ function Graph({
       samplingMode: undefined,
       topEvents: isTopEvents ? series.filter(s => !s.meta.isOther).length : undefined,
     };
-  }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit]);
+  }, [
+    visualize.chartType,
+    visualize.yAxis,
+    timeseriesResult,
+    aggregate,
+    topEventsLimit,
+    hasMultiVisualize,
+    visualizes,
+  ]);
 
-  const Title = (
-    <Widget.WidgetTitle
-      title={metricLabel ?? prettifyAggregation(aggregate) ?? aggregate}
-    />
-  );
+  const chartTitle = useMemo(() => {
+    if (hasMultiVisualize && visualizes.length > 1) {
+      return metricName;
+    }
+    return metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
+  }, [aggregate, hasMultiVisualize, metricLabel, metricName, visualizes.length]);
+
+  const Title = <Widget.WidgetTitle title={chartTitle} />;
 
   const chartIcon =
     visualize.chartType === ChartType.LINE

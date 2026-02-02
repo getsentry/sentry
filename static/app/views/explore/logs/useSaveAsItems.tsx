@@ -104,8 +104,8 @@ export function useSaveAsItems({
 
     items.push({
       key: 'save-query',
-      label: <span>{t('A New Query')}</span>,
-      textValue: t('A New Query'),
+      label: <span>{t('New Query')}</span>,
+      textValue: t('New Query'),
       onAction: () => {
         trackAnalytics('logs.save_query_modal', {
           action: 'open',
@@ -153,8 +153,8 @@ export function useSaveAsItems({
     });
 
     const newAlertLabel = organization.features.includes('workflow-engine-ui')
-      ? t('A Monitor for')
-      : t('An Alert for');
+      ? t('Monitor for')
+      : t('Alert for');
 
     return {
       key: 'create-alert',
@@ -227,12 +227,12 @@ export function useSaveAsItems({
         <Feature
           hookName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+          renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
         >
-          {t('A Dashboard widget')}
+          {t('Dashboard widget')}
         </Feature>
       ),
-      textValue: t('A Dashboard widget'),
+      textValue: t('Dashboard widget'),
       children: dashboardsUrls,
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       isSubmenu: true,

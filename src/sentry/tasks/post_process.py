@@ -243,13 +243,10 @@ def handle_owner_assignment(job):
     assignee_exists = None
     if assignee_cache_value is not None:
         # Cache stores (value, timestamp) tuple for timestamp-based invalidation
-        if isinstance(assignee_cache_value, tuple):
-            cached_assignee_exists, assignee_debounce_time = assignee_cache_value
-            ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
-            if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
-                assignee_exists = cached_assignee_exists
-        else:  # TODO(shashank): for backwards compatibility, remove this and the above tuple check once rolled out for 24hrs
-            assignee_exists = assignee_cache_value
+        cached_assignee_exists, assignee_debounce_time = assignee_cache_value
+        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+        if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
+            assignee_exists = cached_assignee_exists
 
     if assignee_exists is None:
         assignee_exists = group.assignee_set.exists()
@@ -1631,7 +1628,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if is_seer_scanner_rate_limited(group.project, group.organization):
             return
 
-        generate_summary_and_run_automation.delay(group.id)
+        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
         # Triage signals V0 behaviour
         # If event count < 10, only generate summary (no automation)
@@ -1696,7 +1693,9 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     return
 
                 # No summary yet, generate summary + run automation in one go
-                generate_summary_and_run_automation.delay(group.id)
+                generate_summary_and_run_automation.delay(
+                    group.id, trigger_path="seat_based_seer_automation"
+                )
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {

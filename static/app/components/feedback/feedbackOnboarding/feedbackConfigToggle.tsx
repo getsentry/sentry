@@ -1,5 +1,6 @@
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Switch} from 'sentry/components/core/switch';
+import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+
 import {t} from 'sentry/locale';
 
 function FeedbackConfigToggle({

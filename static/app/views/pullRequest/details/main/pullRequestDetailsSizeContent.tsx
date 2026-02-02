@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';

@@ -2,7 +2,8 @@ import type React from 'react';
 import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {
   DataConditionType,

@@ -1,7 +1,7 @@
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
@@ -78,7 +78,7 @@ export default function BuildList() {
           <Layout.Title>Builds</Layout.Title>
           <Layout.HeaderActions>
             {projects.length === 1 && (
-              <Feature features="organizations:preprod-issues">
+              <Feature features="organizations:preprod-frontend-routes">
                 <LinkButton
                   size="sm"
                   icon={<IconSettings />}

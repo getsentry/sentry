@@ -1,13 +1,12 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -96,7 +95,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             >
               <LinkButton
                 size="zero"
-                borderless
+                priority="transparent"
                 icon={<IconChevron direction="left" size="xs" />}
                 disabled={!previousReplay}
                 aria-label={t('Previous replay based on search query')}
@@ -123,7 +122,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             >
               <LinkButton
                 size="zero"
-                borderless
+                priority="transparent"
                 icon={<IconChevron direction="right" size="xs" />}
                 disabled={!nextReplay}
                 aria-label={t('Next replay based on search query')}
@@ -172,7 +171,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
                 size="zero"
-                borderless
+                priority="transparent"
                 icon={<IconCopy size="xs" variant="muted" />}
               />
             )}

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -153,7 +154,7 @@ function ActionDropDown(props: Props) {
           {...triggerProps}
           aria-label={t('Quick Context Action Menu')}
           data-test-id="quick-context-action-trigger"
-          borderless
+          priority="transparent"
           size="zero"
           onClick={e => {
             e.stopPropagation();

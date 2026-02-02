@@ -21,13 +21,16 @@ DEFAULT_OPTIONS = {
     "spans.buffer.max-memory-percentage": 1.0,
     "spans.buffer.flusher.backpressure-seconds": 10,
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
+    "spans.buffer.flusher.use-stuck-detector": False,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
+    "spans.buffer.max-spans-per-evalsha": 0,
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.debug-traces": [],
     "spans.buffer.write-to-zset": True,
     "spans.buffer.write-to-set": False,
     "spans.buffer.read-from-set": False,
+    "spans.buffer.evalsha-cumulative-logger-enabled": True,
 }
 
 
@@ -68,10 +71,22 @@ def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
         segment.spans.sort(key=lambda span: span.payload["span_id"])
 
 
-@pytest.fixture(params=["cluster", "single"])
+@pytest.fixture(
+    params=[
+        pytest.param(("cluster", 0), id="cluster-nochunk"),
+        pytest.param(("cluster", 1), id="cluster-chunk1"),
+        pytest.param(("single", 0), id="single-nochunk"),
+        pytest.param(("single", 1), id="single-chunk1"),
+    ]
+)
 def buffer(request):
-    with override_options(DEFAULT_OPTIONS):
-        if request.param == "cluster":
+    redis_type, max_spans_per_evalsha = request.param
+    test_options = {
+        **DEFAULT_OPTIONS,
+        "spans.buffer.max-spans-per-evalsha": max_spans_per_evalsha,
+    }
+    with override_options(test_options):
+        if redis_type == "cluster":
             from sentry.testutils.helpers.redis import use_redis_cluster
 
             with use_redis_cluster("default"):
@@ -781,9 +796,12 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
     retained_span_ids = {span.payload["span_id"] for span in segment.spans}
 
-    # NB: The buffer can only remove entire batches, using the minimum timestamp within the batch.
-    # The first batch with "b" and "c" should be removed.
-    assert retained_span_ids == {"a" * 16, "d" * 16, "e" * 16}
+    # The root span (highest timestamp) should always be retained. Older spans
+    # (from batch1) should be evicted first by zpopmin. With aggressive
+    # chunking, the size limit check runs per-chunk so more spans may be evicted.
+    assert "a" * 16 in retained_span_ids
+    assert "b" * 16 not in retained_span_ids
+    assert "c" * 16 not in retained_span_ids
 
     # NB: We currently accept that we leak redirect keys when we limit segments.
     # buffer.done_flush_segments(rv)

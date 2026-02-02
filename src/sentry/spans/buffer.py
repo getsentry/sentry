@@ -221,6 +221,7 @@ class SpansBuffer:
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
         debug_traces = set(options.get("spans.buffer.debug-traces"))
         write_to_zset = options.get("spans.buffer.write-to-zset")
         write_to_set = options.get("spans.buffer.write-to-set")
@@ -235,7 +236,16 @@ class SpansBuffer:
             trees = self._group_by_parent(spans)
             pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
 
-            tree_items = list(trees.items())
+            # Split large subsegments into chunks to avoid Lua unpack() limits.
+            # Chunks share the same parent_span_id but are processed separately.
+            tree_items: list[tuple[tuple[str, str], list[Span]]] = []
+            for key, subsegment in trees.items():
+                if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
+                    for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
+                        tree_items.append((key, list(chunk)))
+                else:
+                    tree_items.append((key, subsegment))
+
             tree_batches: Sequence[Sequence[tuple[tuple[str, str], list[Span]]]]
             if pipeline_batch_size > 0:
                 tree_batches = list(itertools.batched(tree_items, pipeline_batch_size))
@@ -331,6 +341,7 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
+            latency_entries: list[tuple[str, int]] = []
             zset_latency_metrics = []
             zset_gauge_metrics = []
             set_latency_metrics = []
@@ -366,8 +377,7 @@ class SpansBuffer:
                     _,
                 ) = result
 
-                # Log individual EVALSHA latency for this trace
-                self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
+                latency_entries.append((project_and_trace, evalsha_latency_ms))
 
                 shard = self.assigned_shards[
                     int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
@@ -428,6 +438,8 @@ class SpansBuffer:
                             evalsha_gauge_metrics,
                         )
 
+            self._buffer_logger.log(latency_entries)
+
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
                     if adds:
@@ -445,6 +457,7 @@ class SpansBuffer:
         metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
+        metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(tree_items))
 
         try:
             if write_to_zset:

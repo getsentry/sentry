@@ -10,7 +10,7 @@ from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import is_internal_relay, relay_from_id
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.models.relay import Relay, RelayUsage
@@ -23,7 +23,7 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
     token = serializers.CharField(required=True)
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class RelayRegisterResponseEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,

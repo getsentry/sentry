@@ -9,15 +9,14 @@ import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
 
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
@@ -273,7 +272,6 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             <ButtonBar>
               <Button
                 priority="link"
-                borderless
                 onClick={this.handleToggleSubfilters.bind(this, true)}
                 disabled={disabled}
               >
@@ -281,7 +279,6 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
               </Button>
               <Button
                 priority="link"
-                borderless
                 onClick={this.handleToggleSubfilters.bind(this, false)}
                 disabled={disabled}
               >

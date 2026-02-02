@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 
 export const ToolbarSection = styled('div')`

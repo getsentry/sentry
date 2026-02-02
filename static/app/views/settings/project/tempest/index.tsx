@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -134,7 +134,6 @@ export default function TempestSettings() {
                   aria-label={t('Dismiss Alert')}
                   title={t('Dismiss Alert')}
                   size="zero"
-                  borderless
                 />
               }
             >

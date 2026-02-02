@@ -1,8 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {StyledButton} from 'sentry/components/core/button';
-// eslint-disable-next-line boundaries/element-types
+import {StyledButton} from '@sentry/scraps/button';
+
 import type {SpaceSize} from 'sentry/utils/theme';
 
 interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct} from 'sentry/locale';
 import useProjects from 'sentry/utils/useProjects';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';

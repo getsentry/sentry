@@ -6,13 +6,14 @@ import {mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {LeadWrap} from 'sentry/components/core/compactSelect/styles';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {
   InnerWrap,
   MenuListItem,
   type MenuListItemProps,
-} from 'sentry/components/core/menuListItem';
+} from '@sentry/scraps/menuListItem';
+
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 

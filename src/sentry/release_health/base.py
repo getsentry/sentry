@@ -437,7 +437,7 @@ class ReleaseHealthBackend(Service):
         self,
         project_releases: Sequence[ProjectRelease],
         now: datetime | None = None,
-    ) -> Mapping[ProjectRelease, str]:
+    ) -> Mapping[ProjectRelease, datetime]:
         """Returns the oldest health data we have observed in a release
         in 90 days.  This is used for backfilling.
         """

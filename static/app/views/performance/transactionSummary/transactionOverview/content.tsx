@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -269,7 +270,6 @@ function OTelSummaryContentInner({
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
             transactionName={transactionName}
-            supportsInvestigationRule
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>
@@ -619,7 +619,6 @@ function SummaryContent({
             domainViewFilters={domainViewFilters}
             forceLoading={isLoading}
             referrer="performance.transactions_summary"
-            supportsInvestigationRule
           />
         </PerformanceAtScaleContextProvider>
         <TagExplorer

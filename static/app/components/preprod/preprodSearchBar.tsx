@@ -15,7 +15,9 @@ interface PreprodSearchBarProps {
    */
   projects: number[];
   /**
-   * Optional list of attribute keys to show. If not provided, all attributes are shown.
+   * List of attribute keys to show in the search bar. When provided, only these
+   * keys will be available. When omitted, all keys except HIDDEN_PREPROD_ATTRIBUTES
+   * are shown.
    */
   allowedKeys?: string[];
   /**
@@ -27,35 +29,37 @@ interface PreprodSearchBarProps {
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
-  hiddenKeys?: string[];
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
   onSearch?: (query: string) => void;
   portalTarget?: HTMLElement | null;
   searchSource?: string;
 }
 
-function filterAttributes(
+function filterToAllowedKeys(
   attributes: TagCollection,
-  allowedKeys?: string[]
+  allowedKeys: string[]
 ): TagCollection {
-  if (!allowedKeys) {
-    return attributes;
-  }
   const allowedSet = new Set(allowedKeys);
-  return Object.fromEntries(
-    Object.entries(attributes).filter(([key]) => allowedSet.has(key))
-  );
+  const result: TagCollection = {};
+  for (const key in attributes) {
+    if (allowedSet.has(key) && attributes[key]) {
+      result[key] = attributes[key];
+    }
+  }
+  return result;
 }
 
 /**
  * A reusable search bar component for preprod/mobile build data.
  * Automatically fetches available attributes from the EAP /attribute endpoint.
+ *
+ * By default, shows all attributes except HIDDEN_PREPROD_ATTRIBUTES.
+ * Use `allowedKeys` to restrict to only specific attributes (for settings pages).
  */
 export function PreprodSearchBar({
   initialQuery,
   projects,
   allowedKeys,
-  hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES,
   onChange,
   onSearch,
   portalTarget,
@@ -71,22 +75,45 @@ export function PreprodSearchBar({
     enabled: organization.features.includes('preprod-app-size-dashboard'),
   };
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+  // When using allowedKeys, we fetch all attributes then filter to the allowlist.
+  // Otherwise, we use HIDDEN_PREPROD_ATTRIBUTES to hide internal fields.
+  const hiddenKeys = allowedKeys ? undefined : HIDDEN_PREPROD_ATTRIBUTES;
+
+  const {attributes: rawStringAttributes, secondaryAliases: rawStringSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string', hiddenKeys);
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+  const {attributes: rawNumberAttributes, secondaryAliases: rawNumberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number', hiddenKeys);
 
-  const filteredStringAttributes = useMemo(
-    () => ({
-      ...filterAttributes(stringAttributes, allowedKeys),
-    }),
-    [stringAttributes, allowedKeys]
+  const stringAttributes = useMemo(
+    () =>
+      allowedKeys
+        ? filterToAllowedKeys(rawStringAttributes, allowedKeys)
+        : rawStringAttributes,
+    [allowedKeys, rawStringAttributes]
   );
-  const filteredNumberAttributes = useMemo(
-    () => ({
-      ...filterAttributes(numberAttributes, allowedKeys),
-    }),
-    [numberAttributes, allowedKeys]
+
+  const stringSecondaryAliases = useMemo(
+    () =>
+      allowedKeys
+        ? filterToAllowedKeys(rawStringSecondaryAliases, allowedKeys)
+        : rawStringSecondaryAliases,
+    [allowedKeys, rawStringSecondaryAliases]
+  );
+
+  const numberAttributes = useMemo(
+    () =>
+      allowedKeys
+        ? filterToAllowedKeys(rawNumberAttributes, allowedKeys)
+        : rawNumberAttributes,
+    [allowedKeys, rawNumberAttributes]
+  );
+
+  const numberSecondaryAliases = useMemo(
+    () =>
+      allowedKeys
+        ? filterToAllowedKeys(rawNumberSecondaryAliases, allowedKeys)
+        : rawNumberSecondaryAliases,
+    [allowedKeys, rawNumberSecondaryAliases]
   );
 
   return (
@@ -95,8 +122,8 @@ export function PreprodSearchBar({
       onSearch={onSearch}
       onChange={onChange}
       itemType={TraceItemDataset.PREPROD}
-      numberAttributes={filteredNumberAttributes}
-      stringAttributes={filteredStringAttributes}
+      numberAttributes={numberAttributes}
+      stringAttributes={stringAttributes}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       searchSource={searchSource}

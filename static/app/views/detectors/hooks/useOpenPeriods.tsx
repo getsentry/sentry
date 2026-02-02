@@ -1,4 +1,5 @@
 import type {GroupOpenPeriod} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
@@ -10,6 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 type CommonParams = {
   cursor?: string;
   end?: string | null;
+  eventId?: string;
   limit?: number;
   start?: string | null;
   statsPeriod?: string | null;
@@ -51,4 +53,31 @@ export function useOpenPeriods(
       ...options,
     }
   );
+}
+
+export function useEventOpenPeriod(
+  params: {
+    eventId: string | undefined;
+    groupId: string;
+  },
+  options: Partial<UseApiQueryOptions<GroupOpenPeriod[]>> = {}
+) {
+  const query = useOpenPeriods(
+    {
+      groupId: params.groupId,
+      eventId: params.eventId,
+      limit: 1,
+    },
+    {
+      enabled: defined(options.enabled)
+        ? options.enabled
+        : defined(params.eventId) && defined(params.groupId),
+      ...options,
+    }
+  );
+
+  return {
+    ...query,
+    openPeriod: query.data?.[0] ?? null,
+  };
 }

@@ -1,6 +1,6 @@
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 
 import type {SaveButtonProps} from './saveButton';

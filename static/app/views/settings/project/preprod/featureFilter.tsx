@@ -1,7 +1,9 @@
 import {useCallback, useState} from 'react';
 
-import {Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -18,12 +20,12 @@ import {useFeatureFilter} from './useFeatureFilter';
 
 const EXAMPLE_BUILDS_COUNT = 5;
 const FEATURE_FILTER_ALLOWED_KEYS = [
-  'app_id',
-  'app_name',
+  // 'app_id',
+  // 'app_name',
   'build_configuration_name',
-  'platform_name',
-  'build_number',
-  'build_version',
+  // 'platform_name',
+  // 'build_number',
+  // 'build_version',
   'git_head_ref',
   'git_base_ref',
   'git_head_sha',
@@ -37,7 +39,6 @@ interface FeatureFilterProps {
   settingsWriteKey: string;
   successMessage: string;
   title: string;
-  children?: React.ReactNode;
   display?: PreprodBuildsDisplay;
 }
 
@@ -47,7 +48,6 @@ export function FeatureFilter({
   settingsReadKey,
   settingsWriteKey,
   display,
-  children,
 }: FeatureFilterProps) {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
@@ -95,13 +95,21 @@ export function FeatureFilter({
 
   return (
     <Panel>
-      <PanelHeader>{title}</PanelHeader>
+      <PanelHeader>
+        <Flex align="center" gap="xs">
+          {t('%s - Configuration', title)}
+          <PageHeadingQuestionTooltip
+            docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
+            title={t('Learn more about configuring build filters.')}
+          />
+        </Flex>
+      </PanelHeader>
       <PanelBody>
         <Stack gap="lg" style={{padding: '16px'}}>
-          {children}
-          <Text size="sm" variant="muted">
+          <Text>
             {t(
-              'Configure a filter to match specific builds. This feature will only apply to new builds that match the filter.'
+              'Builds matching this filter will process for %s. By default, all builds will process.',
+              title
             )}
           </Text>
 
