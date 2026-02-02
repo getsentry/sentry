@@ -275,36 +275,28 @@ def run_missing_sdk_integration_detector() -> None:
 def run_missing_sdk_integration_detector_for_organization(organization: Organization) -> None:
     platform_filter = Q()
     for prefix in SupportedPlatformPrefix:
-        platform_filter |= Q(platform__startswith=prefix)
+        platform_filter |= Q(project__platform__startswith=prefix)
 
-    projects = Project.objects.filter(
-        platform_filter,
-        organization=organization,
-    ).all()
+    repo_configs = (
+        RepositoryProjectPathConfig.objects.filter(
+            platform_filter,
+            project__organization=organization,
+            repository__status=ObjectStatus.ACTIVE,
+        )
+        .select_related("repository")
+        .values("project_id", "repository__name", "source_root")
+    )
 
-    if len(projects) == 0:
-        return
-
-    # Get the repository mapped to each project via RepositoryProjectPathConfig
-    repo_configs = RepositoryProjectPathConfig.objects.filter(
-        project__in=projects,
-        repository__status=ObjectStatus.ACTIVE,
-    ).select_related("repository")
-
-    repo_config_by_project_id = {config.project_id: config for config in repo_configs}
-
-    for project in projects:
-        repo_config = repo_config_by_project_id.get(project.id)
-        if repo_config:
-            run_missing_sdk_integration_detector_for_project_task.apply_async(
-                args=(
-                    organization.id,
-                    project.id,
-                    repo_config.repository.name,
-                    repo_config.source_root,
-                ),
-                headers={"sentry-propagate-traces": False},
-            )
+    for config in repo_configs:
+        run_missing_sdk_integration_detector_for_project_task.apply_async(
+            args=(
+                organization.id,
+                config["project_id"],
+                config["repository__name"],
+                config["source_root"],
+            ),
+            headers={"sentry-propagate-traces": False},
+        )
 
 
 @instrumented_task(
@@ -434,7 +426,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         )
         with metrics.timer(
             "autopilot.missing_sdk_integration_detector.run_duration",
-            tags={"organization_id": organization.id, "project_slug": project.slug},
+            tags={"project_slug": project.slug},
             sample_rate=1.0,
         ):
             state = client.get_run(run_id, blocking=True, poll_timeout=240.0, poll_interval=5.0)
