@@ -27,6 +27,7 @@ const IDENTITY_ICONS = {
   bitbucket,
   bitbucket_server: bitbucketserver,
   github,
+  github_copilot: github,
   github_enterprise: githubEnterprise,
   gitlab,
   google,
