@@ -135,8 +135,6 @@ class AuthenticationForm(forms.Form):
                 extra={"ip_address": self.request.META["REMOTE_ADDR"]},
             )
             raise forms.ValidationError(self.error_messages["no_cookies"])
-        else:
-            self.request.session.delete_test_cookie()
 
     def get_user_id(self):
         if self.user_cache:
