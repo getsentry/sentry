@@ -215,8 +215,8 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 403
 
-    def test_staff_always_has_access(self) -> None:
-        """Staff can access replay data even when not in allowlist"""
+    def test_staff_does_not_have_access(self) -> None:
+        """Staff cannot bypass granular replay permissions"""
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user)
 
@@ -231,7 +231,7 @@ class TestReplayGranularPermissions(APITestCase):
             self.login_as(staff_user, staff=True)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(url)
-            assert response.status_code == 200
+            assert response.status_code == 403
 
     def test_active_superuser_with_membership_has_access(self) -> None:
         """Active superuser can access replay data even when not in allowlist"""
@@ -251,8 +251,8 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200
 
-    def test_staff_access_with_empty_allowlist(self) -> None:
-        """Staff can access replay data even when allowlist is empty"""
+    def test_staff_denied_with_empty_allowlist(self) -> None:
+        """Staff cannot bypass granular replay permissions even when allowlist is empty"""
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user)
 
@@ -264,7 +264,7 @@ class TestReplayGranularPermissions(APITestCase):
             self.login_as(staff_user, staff=True)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(url)
-            assert response.status_code == 200
+            assert response.status_code == 403
 
     def test_active_superuser_without_membership_has_access(self) -> None:
         """Active superuser can access replay data even when not an org member"""

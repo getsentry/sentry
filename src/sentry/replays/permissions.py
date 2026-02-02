@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from django.http import HttpRequest
 
 from sentry import features
-from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import superuser_has_permission
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
@@ -28,7 +27,7 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     - If allowlist records exist, only users explicitly present in the OrganizationMemberReplayAccess allowlist have access.
     - Returns True if allowed, False otherwise.
     """
-    if superuser_has_permission(request) or is_active_staff(request):
+    if superuser_has_permission(request):
         return True
 
     if not features.has("organizations:granular-replay-permissions", organization):
