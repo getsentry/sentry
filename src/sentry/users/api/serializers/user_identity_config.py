@@ -15,6 +15,7 @@ from sentry.exceptions import NotRegistered
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.identity import is_login_provider
 from sentry.integrations.manager import default_manager as integrations
+from sentry.integrations.services.github_copilot_identity import RpcGitHubCopilotIdentity
 from sentry.models.authidentity import AuthIdentity
 from sentry.pipeline.provider import PipelineProvider
 from sentry.users.models.identity import Identity
@@ -24,6 +25,8 @@ from social_auth.models import UserSocialAuth
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.organization import ControlSiloOrganizationSerializerResponse
+
+GITHUB_COPILOT_IDENTITY = "github-copilot-identity"
 
 
 class Status(Enum):
@@ -120,6 +123,21 @@ class UserIdentityConfig:
 
     def get_model_type_for_category(self) -> type[Model]:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
+
+    @classmethod
+    def wrap_github_copilot(
+        cls, identity: RpcGitHubCopilotIdentity, status: Status
+    ) -> UserIdentityConfig:
+        username = identity.data.get("username", identity.github_id)
+        return cls(
+            category=GITHUB_COPILOT_IDENTITY,
+            id=identity.id,
+            provider=UserIdentityProvider(key="github_copilot", name="GitHub Copilot"),
+            name=username,
+            status=status,
+            is_login=False,
+            date_added=datetime.fromisoformat(identity.date_added) if identity.date_added else None,
+        )
 
 
 class UserIdentityConfigSerializerResponse(TypedDict):
