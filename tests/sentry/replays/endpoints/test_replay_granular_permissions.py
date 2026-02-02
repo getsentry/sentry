@@ -1,7 +1,11 @@
+from sentry.models.apitoken import ApiToken
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @region_silo_test
@@ -299,3 +303,89 @@ class TestReplayGranularPermissions(APITestCase):
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(url)
             assert response.status_code == 200
+
+    def test_org_auth_token_has_access_with_granular_permissions(self) -> None:
+        """org:ci tokens should have access to replays even with granular permissions enabled"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                token_str = generate_token(self.organization.slug, "")
+                OrgAuthToken.objects.create(
+                    organization_id=self.organization.id,
+                    name="test token",
+                    token_hashed=hash_token(token_str),
+                    token_last_characters="ABCD",
+                    scope_list=["org:ci"],
+                    date_last_used=None,
+                )
+
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
+            assert response.status_code == 200
+
+    def test_org_auth_token_has_access_with_empty_allowlist(self) -> None:
+        """org:ci tokens should have access to replays even when allowlist is empty"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            # No OrganizationMemberReplayAccess records created - empty allowlist
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                token_str = generate_token(self.organization.slug, "")
+                OrgAuthToken.objects.create(
+                    organization_id=self.organization.id,
+                    name="test token",
+                    token_hashed=hash_token(token_str),
+                    token_last_characters="ABCD",
+                    scope_list=["org:ci"],
+                    date_last_used=None,
+                )
+
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
+            assert response.status_code == 200
+
+    def test_personal_token_with_replay_permission(self) -> None:
+        """Personal tokens should have granular permissions applied - user with access can access"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                api_token = ApiToken.objects.create(
+                    user=self.user_with_access, scope_list=["org:read"]
+                )
+
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {api_token.token}")
+            assert response.status_code == 200
+
+    def test_personal_token_without_replay_permission(self) -> None:
+        """Personal tokens should have granular permissions applied - user without access cannot access"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                api_token = ApiToken.objects.create(
+                    user=self.user_without_access, scope_list=["org:read"]
+                )
+
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {api_token.token}")
+            assert response.status_code == 403

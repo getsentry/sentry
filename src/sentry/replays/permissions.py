@@ -8,6 +8,7 @@ from sentry import features
 from sentry.auth.superuser import superuser_has_permission
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.replays.models import OrganizationMemberReplayAccess
 
 if TYPE_CHECKING:
@@ -19,8 +20,8 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     Determine whether a user has permission to access replay data for a given organization.
 
     Rules:
-    - Superusers always have access.
-    - User must be authenticated and an active org member.
+    - Staff always have access.
+    - Org auth tokens (org:ci) always have access since they've already passed org-level permission checks.
     - If the 'organizations:granular-replay-permissions' feature flag is OFF, all users have access.
     - If the 'sentry:granular-replay-permissions' org option is not set or falsy, all org members have access.
     - If no allowlist records exist for the organization but the feature flag is on, no one has access.
@@ -30,9 +31,15 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     if superuser_has_permission(request):
         return True
 
+    # Org auth tokens (org:ci) are not associated with a user and should always
+    # have access since they've already passed the org-level permission check.
+    if is_org_auth_token_auth(getattr(request, "auth", None)):
+        return True
+
     if not features.has("organizations:granular-replay-permissions", organization):
         return True
 
+    # For personal tokens and session auth, apply granular permissions based on user
     try:
         member = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
     except OrganizationMember.DoesNotExist:
