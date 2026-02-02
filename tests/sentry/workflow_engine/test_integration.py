@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
