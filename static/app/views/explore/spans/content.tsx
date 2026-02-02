@@ -124,7 +124,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
         period: MAX_PERIOD_FOR_CROSS_EVENTS,
         start: null,
         end: null,
-        utc: null,
+        utc: pageFilters.selection.datetime.utc,
       });
     }
   }, [
@@ -133,6 +133,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     pageFilters.selection.datetime.end,
     pageFilters.selection.datetime.period,
     pageFilters.selection.datetime.start,
+    pageFilters.selection.datetime.utc,
   ]);
 
   return (
