@@ -115,6 +115,10 @@ export function CategoricalSeriesWidgetVisualization(
     type: 'category',
     data: allCategories,
     axisLabel: {
+      // Show the first/last category on the axis. We hide them by default
+      // because on time series charts, this causes visual congestion.
+      showMaxLabel: true,
+      showMinLabel: true,
       formatter: (value: string) =>
         truncationFormatter(value, props.truncateCategoryLabels ?? true, false),
     },
