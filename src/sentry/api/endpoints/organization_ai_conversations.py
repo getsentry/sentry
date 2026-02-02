@@ -19,6 +19,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.constants import NON_FAILURE_STATUS
 from sentry.search.events.types import SAMPLING_MODES
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
@@ -445,7 +446,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             tool_errors_by_conversation: dict[str, int] = defaultdict(int)
             # Track first user data per conversation (data is sorted by timestamp, so first occurrence wins)
             user_by_conversation: dict[str, UserResponse] = {}
-            non_failure_statuses = {"ok", "cancelled", "unknown"}
 
             for row in enrichment_rows:
                 conv_id = row.get("gen_ai.conversation.id", "")
@@ -466,7 +466,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     if tool_name:
                         tool_names_by_conversation[conv_id].add(tool_name)
                     status = row.get("span.status", "ok")
-                    if status and status not in non_failure_statuses:
+                    if status and status not in NON_FAILURE_STATUS:
                         tool_errors_by_conversation[conv_id] += 1
 
                 # Capture user from the first span (earliest timestamp) for each conversation
