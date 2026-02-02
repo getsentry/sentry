@@ -18,7 +18,6 @@ import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 import {
   calculateSeerUserSpend,
   formatCategoryQuantityWithDisplayName,
-  getCategoryUnitSuffix,
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   getSingularCategoryName,
@@ -523,33 +522,6 @@ describe('isEmergeCategory', () => {
     expect(isEmergeCategory(DataCategory.TRANSACTIONS)).toBe(false);
     expect(isEmergeCategory(DataCategory.ATTACHMENTS)).toBe(false);
     expect(isEmergeCategory(DataCategory.REPLAYS)).toBe(false);
-  });
-});
-
-describe('getCategoryUnitSuffix', () => {
-  it('returns " (in GB)" for byte categories', () => {
-    expect(getCategoryUnitSuffix(DataCategory.ATTACHMENTS)).toBe(' (in GB)');
-    expect(getCategoryUnitSuffix(DataCategory.LOG_BYTE)).toBe(' (in GB)');
-  });
-
-  it('returns " (in hours)" for profiling categories', () => {
-    expect(getCategoryUnitSuffix(DataCategory.PROFILE_DURATION)).toBe(' (in hours)');
-    expect(getCategoryUnitSuffix(DataCategory.PROFILE_DURATION_UI)).toBe(' (in hours)');
-  });
-
-  it('returns " (in builds)" for SIZE_ANALYSIS', () => {
-    expect(getCategoryUnitSuffix(DataCategory.SIZE_ANALYSIS)).toBe(' (in builds)');
-  });
-
-  it('returns " (in installs)" for INSTALLABLE_BUILD', () => {
-    expect(getCategoryUnitSuffix(DataCategory.INSTALLABLE_BUILD)).toBe(' (in installs)');
-  });
-
-  it('returns empty string for other categories', () => {
-    expect(getCategoryUnitSuffix(DataCategory.ERRORS)).toBe('');
-    expect(getCategoryUnitSuffix(DataCategory.TRANSACTIONS)).toBe('');
-    expect(getCategoryUnitSuffix(DataCategory.REPLAYS)).toBe('');
-    expect(getCategoryUnitSuffix(DataCategory.SPANS)).toBe('');
   });
 });
 
