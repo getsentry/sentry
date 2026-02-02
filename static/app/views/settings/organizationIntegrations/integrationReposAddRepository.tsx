@@ -13,12 +13,7 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {
-  fetchDataQuery,
-  useQuery,
-  type ApiQueryKey,
-  type QueryFunctionContext,
-} from 'sentry/utils/queryClient';
+import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,13 +50,11 @@ export function IntegrationReposAddRepository({
         {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
       ),
       {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},
-    ],
+    ] as const,
     queryFn: async context => {
       try {
         onSearchError(null);
-        return await fetchDataQuery<IntegrationRepoSearchResult>(
-          context as unknown as QueryFunctionContext<ApiQueryKey, unknown>
-        );
+        return await fetchDataQuery<IntegrationRepoSearchResult>(context);
       } catch (error: any) {
         onSearchError(error?.status);
         throw error;
