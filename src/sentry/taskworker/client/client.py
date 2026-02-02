@@ -156,7 +156,7 @@ class TaskworkerClient:
 
         self._cur_host = random.choice(self._hosts)
         self._host_to_stubs: dict[str, ConsumerServiceStub] = {
-            self._cur_host: self._connect_to_host(self._cur_host)
+            host: self._connect_to_host(host) for host in self._hosts
         }
 
         self._max_tasks_before_rebalance = max_tasks_before_rebalance
