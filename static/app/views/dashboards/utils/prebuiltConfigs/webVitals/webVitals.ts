@@ -350,7 +350,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       layout: {
-        y: 6,
+        y: 4,
         w: 6,
         h: 6,
         x: 0,
