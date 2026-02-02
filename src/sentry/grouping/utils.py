@@ -49,26 +49,29 @@ def bool_from_string(value: str) -> bool | None:
 # say we "stripped event-specific values," even if all we've done in either case is remove empty
 # lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
-def normalize_message_for_grouping(message: str, event: Event) -> str:
+def normalize_message_for_grouping(message: str, event: Event, *, trim_message: bool) -> str:
     """
-    Replace values from a event's message with placeholders (in order to improve grouping) and trim
-    to at most 2 lines.
+    Replace values from a event's message with placeholders (in order to improve grouping). If
+    `trim_message` is True, trim the message to at most 2 lines.
     """
     parameterizer = Parameterizer(
         experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
     )
 
-    # If there are multiple lines, grab the first two non-empty ones
-    trimmed = "\n".join(
-        islice(
-            (x for x in message.splitlines() if x.strip()),
-            2,
+    if trim_message:
+        # If there are multiple lines, grab the first two non-empty ones
+        trimmed = "\n".join(
+            islice(
+                (x for x in message.splitlines() if x.strip()),
+                2,
+            )
         )
-    )
-    if trimmed != message:
-        trimmed += "..."
+        if trimmed != message:
+            trimmed += "..."
 
-    normalized = parameterizer.parameterize_all(trimmed)
+        normalized = parameterizer.parameterize_all(trimmed)
+    else:
+        normalized = parameterizer.parameterize_all(message)
 
     for key, value in parameterizer.matches_counter.items():
         # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
