@@ -33,6 +33,7 @@ export interface UptimeRule {
 }
 
 export interface UptimeCheck {
+  assertionFailureData: Assertion | null;
   checkStatus: CheckStatus;
   checkStatusReason: CheckStatusReason | null;
   durationMs: number;
@@ -44,6 +45,7 @@ export interface UptimeCheck {
   scheduledCheckTime: string;
   timestamp: string;
   traceId: string;
+  traceItemId: string;
   uptimeCheckId: string;
 }
 
