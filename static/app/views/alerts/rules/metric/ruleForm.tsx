@@ -64,7 +64,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
-import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
+import {getBackendAlertType, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -806,12 +806,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
         // Add or update is just the PUT/POST to the org alert-rules api
         // we're splatting the full rule in, then overwriting all the data?
+        // Get transformed form data and convert frontend-only alert types to backend equivalents
+        const formData = model.getTransformedData();
+        if (formData.alertType) {
+          formData.alertType = getBackendAlertType(formData.alertType);
+        }
+
         const [data, , resp] = await addOrUpdateRule(
           this.api,
           organization.slug,
           {
             ...rule, // existing rule
-            ...model.getTransformedData(), // form data
+            ...formData, // form data
             projects: [project.slug],
             triggers: sanitizedTriggers,
             resolveThreshold:

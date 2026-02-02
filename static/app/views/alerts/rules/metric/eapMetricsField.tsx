@@ -1,0 +1,211 @@
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
+
+import {Tag} from '@sentry/scraps/badge/tag';
+import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {parseFunction} from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
+import usePrevious from 'sentry/utils/usePrevious';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  TraceMetricKnownFieldKey,
+  type TraceMetricTypeValue,
+} from 'sentry/views/explore/metrics/types';
+import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+
+interface Props {
+  aggregate: string;
+  onChange: (value: string, meta: Record<string, any>) => void;
+}
+
+const METRICS_OPERATIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.SUM,
+  AggregationKey.AVG,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P90,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
+  'per_second',
+  'per_minute',
+].map(aggregate => ({
+  label: aggregate,
+  value: aggregate,
+}));
+
+interface MetricSelectOption {
+  label: string;
+  metricName: string;
+  metricType: TraceMetricTypeValue;
+  value: string;
+}
+
+function MetricTypeBadge({metricType}: {metricType: TraceMetricTypeValue}) {
+  if (!metricType) {
+    return null;
+  }
+  return <Tag variant="muted">{metricType}</Tag>;
+}
+
+function makeMetricSelectValue(metric: TraceMetric): string {
+  return `${metric.name}||${metric.type}`;
+}
+
+function parseMetricAggregate(aggregate: string): {
+  aggregation: string;
+  traceMetric: TraceMetric;
+} {
+  const parsed = parseFunction(aggregate);
+  if (!parsed) {
+    return {
+      aggregation: 'count',
+      traceMetric: {name: '', type: ''},
+    };
+  }
+
+  // Format is: aggregate(value,metric_name,metric_type,unit)
+  const args = parsed.arguments ?? [];
+  const metricName = args[1] ?? '';
+  const metricType = args[2] ?? '';
+
+  return {
+    aggregation: parsed.name,
+    traceMetric: {name: metricName, type: metricType},
+  };
+}
+
+export default function EAPMetricsField({aggregate, onChange}: Props) {
+  const [search, setSearch] = useState('');
+  const {data: metricOptionsData, isFetching} = useMetricOptions({search});
+
+  const {aggregation, traceMetric} = parseMetricAggregate(aggregate);
+
+  const metricSelectValue = makeMetricSelectValue(traceMetric);
+  const optionFromTraceMetric: MetricSelectOption = useMemo(
+    () => ({
+      label: traceMetric.name || t('Select a metric'),
+      value: metricSelectValue,
+      metricType: traceMetric.type as TraceMetricTypeValue,
+      metricName: traceMetric.name,
+    }),
+    [metricSelectValue, traceMetric.name, traceMetric.type]
+  );
+
+  const metricOptions = useMemo((): MetricSelectOption[] => {
+    const shouldIncludeOptionFromTraceMetric =
+      traceMetric.name &&
+      !metricOptionsData?.data?.some(
+        option => option[TraceMetricKnownFieldKey.METRIC_NAME] === traceMetric.name
+      );
+    return [
+      ...(shouldIncludeOptionFromTraceMetric ? [optionFromTraceMetric] : []),
+      ...(metricOptionsData?.data?.map(option => ({
+        label: `${option[TraceMetricKnownFieldKey.METRIC_NAME]}`,
+        value: makeMetricSelectValue({
+          name: option[TraceMetricKnownFieldKey.METRIC_NAME],
+          type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
+        }),
+        metricType: option[TraceMetricKnownFieldKey.METRIC_TYPE],
+        metricName: option[TraceMetricKnownFieldKey.METRIC_NAME],
+      })) ?? []),
+    ];
+  }, [metricOptionsData, optionFromTraceMetric, traceMetric.name]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSetSearch = useCallback(
+    debounce(newSearch => {
+      setSearch(newSearch);
+    }, DEFAULT_DEBOUNCE_DURATION),
+    [setSearch]
+  );
+
+  const handleOperationChange = useCallback(
+    (option: {value: string}) => {
+      const newAggregate = makeMetricsAggregate({
+        aggregate: option.value,
+        traceMetric,
+      });
+      onChange(newAggregate, {});
+    },
+    [onChange, traceMetric]
+  );
+
+  const handleMetricChange = useCallback(
+    (option: MetricSelectOption) => {
+      const newMetric: TraceMetric = {
+        name: option.metricName,
+        type: option.metricType,
+      };
+      const newAggregate = makeMetricsAggregate({
+        aggregate: aggregation,
+        traceMetric: newMetric,
+      });
+      onChange(newAggregate, {});
+    },
+    [aggregation, onChange]
+  );
+
+  const traceMetricSelectValue = makeMetricSelectValue(traceMetric);
+  const previousOptions = usePrevious(metricOptions ?? []);
+
+  // Auto-select the first metric when API resolves and no metric is selected
+  useEffect(() => {
+    if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
+      const firstMetric = metricOptions[0];
+      const newAggregate = makeMetricsAggregate({
+        aggregate: aggregation,
+        traceMetric: {name: firstMetric.metricName, type: firstMetric.metricType},
+      });
+      onChange(newAggregate, {});
+    }
+  }, [metricOptions, onChange, traceMetric.name, aggregation]);
+
+  return (
+    <Flex gap="md">
+      <FlexWrapper>
+        <StyledSelectControl
+          searchable
+          options={isFetching ? previousOptions : (metricOptions ?? [])}
+          value={traceMetricSelectValue}
+          loading={isFetching}
+          onSearch={debouncedSetSearch}
+          placeholder={t('Select a metric')}
+          noOptionsMessage={() => t('No metrics found')}
+          onChange={(option: MetricSelectOption) => handleMetricChange(option)}
+          formatOptionLabel={(option: MetricSelectOption) => (
+            <Flex gap="sm" align="center">
+              <span>{option.label}</span>
+              {option.metricType ? (
+                <MetricTypeBadge metricType={option.metricType} />
+              ) : null}
+            </Flex>
+          )}
+        />
+      </FlexWrapper>
+      <StyledSelectControl
+        searchable
+        placeholder={t('Select an operation')}
+        options={METRICS_OPERATIONS}
+        value={aggregation}
+        onChange={handleOperationChange}
+      />
+    </Flex>
+  );
+}
+
+const FlexWrapper = styled('div')`
+  flex: 1;
+`;
+
+const StyledSelectControl = styled(Select)`
+  width: 200px;
+`;
