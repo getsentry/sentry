@@ -2,7 +2,7 @@
 title: Disclosure
 description: Disclosure components display content that can be toggled open and closed.
 category: navigation
-source: 'sentry/components/core/disclosure/disclosure'
+source: '@sentry/scraps/disclosure'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/disclosure/disclosure.tsx
   a11y:
@@ -17,10 +17,10 @@ import {useState} from 'react';
 
 import {IconEdit} from 'sentry/icons';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Button} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {Disclosure} from 'sentry/components/core/disclosure/disclosure';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import * as Storybook from 'sentry/stories';
