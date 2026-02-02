@@ -64,7 +64,8 @@ import {findSuggestedColumns} from 'sentry/views/explore/utils';
 const crossEventDropdownItems: DropdownMenuProps['items'] = [
   {key: 'spans', label: t('Spans')},
   {key: 'logs', label: t('Logs')},
-  {key: 'metrics', label: t('Metrics')},
+  // We're temporarily disabling metrics cross event querying for EA
+  // {key: 'metrics', label: t('Metrics')},
 ];
 
 function CrossEventQueryingDropdown() {
@@ -260,7 +261,8 @@ function SpansTabCrossEventSearchBars() {
               options={[
                 {value: 'spans', label: t('Spans')},
                 {value: 'logs', label: t('Logs')},
-                {value: 'metrics', label: t('Metrics')},
+                // We're temporarily disabling metrics cross event querying for EA
+                // {value: 'metrics', label: t('Metrics')},
               ]}
               onChange={({value: newValue}) => {
                 if (!isCrossEventType(newValue)) return;
