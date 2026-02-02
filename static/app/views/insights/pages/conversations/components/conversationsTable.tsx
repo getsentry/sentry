@@ -2,6 +2,7 @@ import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge/tag';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -49,11 +50,18 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
   {key: 'llmToolCalls', name: t('LLM/Tool Calls'), width: 140},
+  {key: 'toolsUsed', name: t('Tools Used'), width: 150},
+  {key: 'toolErrors', name: t('Tool Errors'), width: 100},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
-const rightAlignColumns = new Set(['llmToolCalls', 'tokensAndCost', 'timestamp']);
+const rightAlignColumns = new Set([
+  'llmToolCalls',
+  'toolErrors',
+  'tokensAndCost',
+  'timestamp',
+]);
 
 function ConversationsTableInner() {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
@@ -156,6 +164,32 @@ function UserNotInstrumentedTooltip() {
         }
       )}
     </Text>
+  );
+}
+
+const MAX_VISIBLE_TOOLS = 3;
+
+function ToolsUsedCell({toolNames}: {toolNames: string[]}) {
+  if (toolNames.length === 0) {
+    return <Text variant="muted">&mdash;</Text>;
+  }
+
+  const visibleTools = toolNames.slice(0, MAX_VISIBLE_TOOLS);
+  const remainingCount = toolNames.length - MAX_VISIBLE_TOOLS;
+
+  return (
+    <Flex gap="xs" wrap="wrap" align="center">
+      {visibleTools.map(name => (
+        <Tag key={name} variant="muted">
+          {name}
+        </Tag>
+      ))}
+      {remainingCount > 0 && (
+        <Tooltip title={toolNames.slice(MAX_VISIBLE_TOOLS).join(', ')}>
+          <Tag variant="muted">+{remainingCount}</Tag>
+        </Tooltip>
+      )}
+    </Flex>
   );
 }
 
@@ -262,6 +296,18 @@ const BodyCell = memo(function BodyCell({
       return (
         <TextAlignRight>
           <Count value={dataRow.llmCalls} /> / <Count value={dataRow.toolCalls} />
+        </TextAlignRight>
+      );
+    case 'toolsUsed':
+      return <ToolsUsedCell toolNames={dataRow.toolNames} />;
+    case 'toolErrors':
+      return (
+        <TextAlignRight>
+          {dataRow.toolErrors > 0 ? (
+            <Text variant="danger">{dataRow.toolErrors}</Text>
+          ) : (
+            <Text variant="muted">0</Text>
+          )}
         </TextAlignRight>
       );
     case 'tokensAndCost':

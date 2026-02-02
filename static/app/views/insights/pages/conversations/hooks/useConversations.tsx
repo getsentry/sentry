@@ -28,6 +28,8 @@ export interface Conversation {
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
+  toolErrors: number;
+  toolNames: string[];
   totalCost: number | null;
   totalTokens: number;
   traceCount: number;
