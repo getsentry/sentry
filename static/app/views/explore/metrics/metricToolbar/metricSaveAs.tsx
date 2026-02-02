@@ -57,6 +57,7 @@ export function MetricSaveAs() {
         trigger={triggerProps => (
           <Button
             {...triggerProps}
+            disabled={isMultiVisDisabled}
             size="sm"
             aria-label={t('Save as')}
             onClick={e => {
