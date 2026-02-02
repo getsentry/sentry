@@ -100,6 +100,7 @@ def build_step_prompt(step: AutofixStep, group: Group) -> str:
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
+        artifact_key=step.value,
     )
 
 
