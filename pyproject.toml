@@ -170,6 +170,7 @@ dev = [
     "pytest-xdist>=3.0.2",
     "pyupgrade>=3.19.1",
     "responses>=0.23.1",
+    "ruff>=0.14.0",
     "selenium>=4.16.0",
     "sentry-cli>=2.16.0",
     "sentry-covdefaults-disable-branch-coverage>=1.0.2",
