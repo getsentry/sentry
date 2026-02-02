@@ -4,7 +4,7 @@ import datetime
 import logging
 import uuid
 from collections.abc import Callable
-from typing import Any, Dict
+from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
@@ -26,7 +26,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
+from sentry.preprod.producer import PreprodFeature
 from sentry.preprod.quotas import (
     has_installable_quota,
     has_size_quota,
@@ -62,9 +62,9 @@ launchpad_namespace = launchpad_registry.create_namespace(name="default")
 
 
 @launchpad_namespace.register(name="process_something")
-def process_something(data: dict[Any, Any]) -> None:
-    """Stub - actual implementation in launchpad service"""
-    pass  # This never runs; it's just for triggering
+def process_artifact(*args: list[Any], **kwargs: dict[str, Any]) -> None:
+    """Stub - actual implementation in Launchpad service"""
+    pass
 
 
 @instrumented_task(
@@ -85,8 +85,6 @@ def assemble_preprod_artifact(
     """
     Creates a preprod artifact from uploaded chunks.
     """
-    print("starting assemble_preprod_artifact")
-
     logger.info(
         "Starting preprod artifact assembly",
         extra={
@@ -209,15 +207,16 @@ def assemble_preprod_artifact(
         if run_distribution:
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=artifact_id,
-            requested_features=requested_features,
-        )
-
         print("> APPLYING ASYNC process_something...")
-        process_something.apply_async()
+
+        process_artifact.apply_async(
+            kwargs={
+                "artifact_id": str(artifact_id),
+                "project_id": str(project_id),
+                "organization_id": str(org_id),
+                "requested_features": [feature.value for feature in requested_features],
+            }
+        )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
         sentry_sdk.capture_exception(e)
