@@ -1,6 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -9,11 +15,6 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import ClippedBox from 'sentry/components/clippedBox';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';

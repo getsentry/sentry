@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import type {EventErrorData} from 'sentry/components/events/interfaces/types';

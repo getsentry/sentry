@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import color from 'color';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/core/button';
-import {Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -572,7 +573,7 @@ function CartDiff({
         <Button
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
         />

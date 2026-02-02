@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -71,7 +70,7 @@ function Banner(props: BannerProps) {
         position="bottom-end"
         triggerProps={{
           showChevron: false,
-          borderless: true,
+          priority: 'transparent',
           icon: <IconClose variant="muted" />,
         }}
         size="xs"

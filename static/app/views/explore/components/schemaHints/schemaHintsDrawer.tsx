@@ -2,10 +2,10 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {InputGroup} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';

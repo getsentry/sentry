@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';

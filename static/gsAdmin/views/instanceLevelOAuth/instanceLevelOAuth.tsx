@@ -1,6 +1,7 @@
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 
 import PageHeader from 'admin/components/pageHeader';

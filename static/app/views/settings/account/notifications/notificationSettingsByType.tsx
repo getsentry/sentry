@@ -212,10 +212,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
-    const hasSeerUserBilling = organizations.some(
-      organization =>
-        organization.features?.includes('seer-user-billing') &&
-        organization.features?.includes('seer-user-billing-launch')
+    const hasSeerUserBilling = organizations.some(organization =>
+      organization.features?.includes('seer-user-billing-launch')
+    );
+
+    const hasSizeAnalysisBilling = organizations.some(organization =>
+      organization.features?.includes('expose-category-size-analysis')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
@@ -224,6 +226,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
     const includeSeer = hasSeerBilling;
     const includeLogs = hasLogsBilling;
+    const includeSizeAnalysis = hasSizeAnalysisBilling;
 
     return fields.filter(field => {
       if (field.name === 'quotaSpans' && !includeSpans) {
@@ -245,6 +248,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
         return false;
       }
       if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
+        return false;
+      }
+      if (field.name.startsWith('quotaSizeAnalysis') && !includeSizeAnalysis) {
         return false;
       }
       return true;

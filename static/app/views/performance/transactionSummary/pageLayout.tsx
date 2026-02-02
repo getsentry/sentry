@@ -5,10 +5,11 @@ import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Tabs} from '@sentry/scraps/tabs';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';

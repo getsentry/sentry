@@ -1,10 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

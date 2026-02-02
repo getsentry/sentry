@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';

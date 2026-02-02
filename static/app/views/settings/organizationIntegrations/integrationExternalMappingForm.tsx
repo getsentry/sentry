@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectAsyncControlProps} from 'sentry/components/core/select/async';
+import type {SelectAsyncControlProps} from '@sentry/scraps/select';
+
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';

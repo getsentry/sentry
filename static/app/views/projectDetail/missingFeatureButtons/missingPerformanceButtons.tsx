@@ -1,7 +1,7 @@
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

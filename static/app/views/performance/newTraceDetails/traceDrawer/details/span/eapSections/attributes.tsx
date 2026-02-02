@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';

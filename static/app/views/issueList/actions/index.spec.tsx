@@ -65,6 +65,41 @@ describe('IssueListActions', () => {
     });
   });
 
+  describe('selection state', () => {
+    it('hides action buttons when nothing is selected', () => {
+      render(<WrappedComponent />);
+
+      expect(screen.queryByRole('button', {name: 'Resolve'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Archive'})).not.toBeInTheDocument();
+    });
+
+    it('shows action buttons when any items are selected', () => {
+      SelectedGroupStore.toggleSelect('1');
+      render(<WrappedComponent />);
+
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+    });
+
+    it('shows select all checkbox as checked when all items are selected', () => {
+      SelectedGroupStore.toggleSelect('1');
+      SelectedGroupStore.toggleSelect('2');
+      SelectedGroupStore.toggleSelect('3');
+      render(<WrappedComponent />);
+
+      // When all selected, label changes to "Deselect all"
+      expect(screen.getByRole('checkbox', {name: 'Deselect all'})).toBeChecked();
+    });
+
+    it('shows select all checkbox as indeterminate when some items are selected', () => {
+      SelectedGroupStore.toggleSelect('1');
+      render(<WrappedComponent />);
+
+      const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
+      expect(checkbox).toBePartiallyChecked();
+    });
+  });
+
   describe('Bulk', () => {
     describe('Total results greater than bulk limit', () => {
       it('after checking "Select all" checkbox, displays bulk select message', async () => {
@@ -193,7 +228,7 @@ describe('IssueListActions', () => {
           method: 'PUT',
         });
 
-        jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+        SelectedGroupStore.toggleSelect('1');
 
         render(<WrappedComponent groupIds={['1', '2', '3', '6', '9']} />);
 
@@ -220,7 +255,7 @@ describe('IssueListActions', () => {
       url: '/organizations/org-slug/issues/',
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    SelectedGroupStore.toggleSelect('1');
 
     render(<WrappedComponent {...defaultProps} />);
 
@@ -245,7 +280,7 @@ describe('IssueListActions', () => {
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    SelectedGroupStore.toggleSelect('1');
 
     render(<WrappedComponent {...defaultProps} />, {organization});
 
@@ -279,7 +314,7 @@ describe('IssueListActions', () => {
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    SelectedGroupStore.toggleSelect('1');
 
     render(<WrappedComponent {...defaultProps} query="is:archived" />, {
       organization,
@@ -297,9 +332,9 @@ describe('IssueListActions', () => {
   });
 
   it('can resolve but not merge issues from different projects', async () => {
-    jest
-      .spyOn(SelectedGroupStore, 'getSelectedIds')
-      .mockImplementation(() => new Set(['1', '2', '3']));
+    SelectedGroupStore.toggleSelect('1');
+    SelectedGroupStore.toggleSelect('2');
+    SelectedGroupStore.toggleSelect('3');
     jest.spyOn(GroupStore, 'get').mockImplementation(id => {
       switch (id) {
         case '1':
@@ -317,9 +352,7 @@ describe('IssueListActions', () => {
   });
 
   it('sets the project ID when My Projects is selected', async () => {
-    jest
-      .spyOn(SelectedGroupStore, 'getSelectedIds')
-      .mockImplementation(() => new Set(['1']));
+    SelectedGroupStore.toggleSelect('1');
     jest
       .spyOn(GroupStore, 'get')
       .mockImplementation(id =>
@@ -367,9 +400,9 @@ describe('IssueListActions', () => {
         method: 'PUT',
       });
 
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2', '3']));
+      SelectedGroupStore.toggleSelect('1');
+      SelectedGroupStore.toggleSelect('2');
+      SelectedGroupStore.toggleSelect('3');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         return GroupFixture({
           id,
@@ -405,9 +438,8 @@ describe('IssueListActions', () => {
 
   describe('performance issues', () => {
     it('disables options that are not supported for performance issues', async () => {
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2']));
+      SelectedGroupStore.toggleSelect('1');
+      SelectedGroupStore.toggleSelect('2');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         switch (id) {
           case '1':
@@ -446,9 +478,8 @@ describe('IssueListActions', () => {
     });
 
     it('disables delete if user does not have permission to delete issues', async () => {
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2']));
+      SelectedGroupStore.toggleSelect('1');
+      SelectedGroupStore.toggleSelect('2');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         return GroupFixture({id});
       });

@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Input} from 'sentry/components/core/input';
-import {TextArea} from 'sentry/components/core/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import TextCopyInput from 'sentry/components/textCopyInput';

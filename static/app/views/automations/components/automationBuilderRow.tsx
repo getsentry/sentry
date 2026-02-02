@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -31,7 +32,7 @@ export default function AutomationBuilderRow({
           aria-label={t('Delete row')}
           size="sm"
           icon={<IconDelete />}
-          borderless
+          priority="transparent"
           onClick={onDelete}
           className="delete-row"
         />

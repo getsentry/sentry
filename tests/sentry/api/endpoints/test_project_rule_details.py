@@ -671,8 +671,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert rule.owner_user_id == self.user.id
 
     def test_team_owner_not_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         team = self.create_team(organization=self.organization)
-        # Create a non-privileged member user (without team:admin scope)
         member_user = self.create_user()
         self.create_member(
             user=member_user,
@@ -697,10 +699,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             **payload,
         )
         assert "owner" in response.data
-        assert (
-            str(response.data["owner"][0])
-            == "You must be a member of a team to assign it as the rule owner."
-        )
+        assert str(response.data["owner"][0]) == "You can only assign teams you are a member of"
 
     def test_team_owner_not_member_with_team_admin_scope(self) -> None:
         """Test that users with team:admin scope can assign a team they're not a member of as the owner"""
@@ -733,6 +732,85 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
+
+    def test_reassign_owner_from_own_team_to_any_team(self) -> None:
+        """Test that a user can reassign rule ownership from their team to any other team"""
+        member_team = self.create_team(organization=self.organization)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[member_team],
+        )
+
+        target_team = self.create_team(organization=self.organization)
+
+        self.rule.owner_team_id = member_team.id
+        self.rule.save()
+
+        self.login_as(member_user)
+        payload = {
+            "name": "hello world",
+            "owner": f"team:{target_team.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=status.HTTP_200_OK,
+            **payload,
+        )
+        assert response.data["owner"] == f"team:{target_team.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id == target_team.id
+
+    def test_cannot_reassign_owner_from_other_team(self) -> None:
+        """Test that a user cannot reassign rule ownership from a team they don't belong to"""
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization)
+
+        member_team = self.create_team(organization=self.organization)
+        self.project.add_team(member_team)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[member_team],
+        )
+
+        target_team = self.create_team(organization=self.organization)
+
+        self.rule.owner_team_id = other_team.id
+        self.rule.save()
+
+        self.login_as(member_user)
+        payload = {
+            "name": "hello world",
+            "owner": f"team:{target_team.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            **payload,
+        )
+        assert "owner" in response.data
+        # Rule should still be owned by other_team
+        rule = Rule.objects.get(id=self.rule.id)
+        assert rule.owner_team_id == other_team.id
 
     def test_update_name(self) -> None:
         conditions = [

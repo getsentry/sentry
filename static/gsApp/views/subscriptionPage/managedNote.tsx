@@ -1,4 +1,5 @@
-import {Container} from 'sentry/components/core/layout';
+import {Container} from '@sentry/scraps/layout';
+
 import PanelBody from 'sentry/components/panels/panelBody';
 import {tct} from 'sentry/locale';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

@@ -5,8 +5,9 @@ import styled from '@emotion/styled';
 import color from 'color';
 import moment, {type Moment} from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import {Alert} from 'sentry/components/core/alert';
 import {Hovercard} from 'sentry/components/hovercard';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconExclamation} from 'sentry/icons';
