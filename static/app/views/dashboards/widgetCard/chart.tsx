@@ -740,7 +740,11 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
   // Create Bars plottables from the transformed data
   const plottables = categoricalSeriesData.map(series => new Bars(series));
 
-  return <CategoricalSeriesWidgetVisualization plottables={plottables} {...props} />;
+  return (
+    <ChartWrapper autoHeightResize>
+      <CategoricalSeriesWidgetVisualization plottables={plottables} {...props} />
+    </ChartWrapper>
+  );
 }
 
 function DetailsComponent(props: TableComponentProps): React.ReactNode {

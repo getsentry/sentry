@@ -34,10 +34,7 @@ describe('transformTableToCategoricalSeries', () => {
           browser: 'string',
           'count()': 'integer',
         },
-        units: {
-          browser: null,
-          'count()': null,
-        },
+        units: {},
       },
     };
 
@@ -90,8 +87,6 @@ describe('transformTableToCategoricalSeries', () => {
           'avg(span.duration)': 'duration',
         },
         units: {
-          browser: null,
-          'count()': null,
           'avg(span.duration)': 'millisecond',
         },
       },
@@ -143,7 +138,8 @@ describe('transformTableToCategoricalSeries', () => {
       ],
     });
 
-    const tableData: TableDataWithTitle = {
+    // Cast to any to test edge cases - APIs can return null even though TS types don't allow it
+    const tableData = {
       title: 'Test Query',
       data: [
         {id: '1', browser: 'Chrome', 'count()': 100},
@@ -157,7 +153,7 @@ describe('transformTableToCategoricalSeries', () => {
         },
         units: {},
       },
-    };
+    } as TableDataWithTitle;
 
     const result = transformTableToCategoricalSeries({
       widget,
