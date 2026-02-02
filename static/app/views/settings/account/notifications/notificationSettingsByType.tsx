@@ -250,7 +250,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
         return false;
       }
-      if (field.name.startsWith('quotaSizeAnalysis') && !includeSizeAnalysis) {
+      if (field.name.startsWith('quotaSize') && !includeSizeAnalysis) {
         return false;
       }
       return true;
