@@ -254,6 +254,7 @@ def _generate_integration_to_files_mapping(
                     ref=code_mapping.default_branch or "master",
                     repo=code_mapping.repository,
                     code_mapping=code_mapping,
+                    revision=frame.revision,
                 )
             )
             break

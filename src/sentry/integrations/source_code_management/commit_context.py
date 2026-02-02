@@ -84,6 +84,7 @@ class SourceLineInfo:
     ref: str
     repo: Repository
     code_mapping: RepositoryProjectPathConfig
+    revision: str | None
 
 
 @dataclass

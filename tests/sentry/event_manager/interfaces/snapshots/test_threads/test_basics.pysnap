@@ -1,5 +1,5 @@
 ---
-source: tests/sentry/event_manager/interfaces/test_threads.py
+source: tests/sentry/event_manager/interfaces/test_threads.py::test_basics
 ---
 api_context:
   values:
@@ -30,6 +30,7 @@ api_context:
         package: null
         platform: null
         rawFunction: null
+        revision: null
         sourceLink: null
         symbol: null
         symbolAddr: null
@@ -54,6 +55,7 @@ api_context:
         package: null
         platform: null
         rawFunction: null
+        revision: null
         sourceLink: null
         symbol: null
         symbolAddr: null
