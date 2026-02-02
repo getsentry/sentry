@@ -15,6 +15,7 @@ import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   getGenAiOpType,
   getIsAiAgentNode,
+  hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
@@ -504,23 +505,6 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   }
 
   return nodeInfo;
-}
-
-function hasError(node: AITraceSpanNode) {
-  if (node.errors.size > 0) {
-    return true;
-  }
-
-  const spanStatus = node.attributes?.[SpanFields.SPAN_STATUS] as string | undefined;
-  if (!!spanStatus && typeof spanStatus === 'string') {
-    return spanStatus.includes('error');
-  }
-  const status = node.attributes?.status;
-  if (!!status && typeof status === 'string') {
-    return status.includes('error');
-  }
-
-  return false;
 }
 
 const ListItemContainer = styled('div')<{

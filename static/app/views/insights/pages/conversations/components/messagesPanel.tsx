@@ -7,10 +7,11 @@ import {Text} from '@sentry/scraps/text';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {IconUser} from 'sentry/icons';
+import {IconFire, IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import {hasError} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -20,6 +21,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 interface ToolCall {
+  hasError: boolean;
   name: string;
   nodeId: string;
 }
@@ -82,7 +84,7 @@ function findToolCallsBetween(
     })
     .map(span => {
       const name = span.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
-      return name ? {name, nodeId: span.id} : null;
+      return name ? {name, nodeId: span.id, hasError: hasError(span)} : null;
     })
     .filter((tc): tc is ToolCall => tc !== null);
 }
@@ -329,7 +331,9 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                       return (
                         <ClickableTag
                           key={tool.nodeId}
-                          variant="info"
+                          variant={tool.hasError ? 'danger' : 'info'}
+                          icon={tool.hasError ? <IconFire /> : undefined}
+                          hasError={tool.hasError}
                           isSelected={isToolSelected}
                           onClick={e => {
                             e.stopPropagation();
@@ -412,7 +416,7 @@ const ToolCallsFooter = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
+const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
   cursor: pointer;
   &:hover {
     opacity: 0.8;
@@ -420,7 +424,7 @@ const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.tokens.focus.default};
+    outline: 2px solid ${p.hasError ? p.theme.tokens.content.danger : p.theme.tokens.focus.default};
     outline-offset: -2px;
   `}
 `;
