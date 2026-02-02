@@ -120,3 +120,5 @@ export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [
 export const SENTRY_TRACEMETRIC_NUMBER_TAGS: string[] = [];
 
 export const MAX_CROSS_EVENT_QUERIES = 2;
+// We want a maximum of 7 days for cross events to avoid overwhelming the backend.
+export const MAX_DAYS_FOR_CROSS_EVENTS = 7;
