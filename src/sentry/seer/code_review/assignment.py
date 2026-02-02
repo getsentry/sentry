@@ -29,7 +29,7 @@ def get_code_review_experiment(
     organization: Organization,
     pr_id: str,
     user: User | None = None,
-) -> str:
+) -> str | None:
     """
     Determine which experiment this PR should be assigned to.
 
@@ -43,20 +43,20 @@ def get_code_review_experiment(
         user: The user who opened the PR (optional)
 
     Returns:
-        Experiment name (e.g., "noop-experiment", "cost-optimized") or "baseline"
+        Experiment name (e.g., "noop-experiment", "cost-optimized") or None for control group
 
     Examples:
         >>> # Option: [["a", 1], ["b", 1]]
-        >>> # Equal weights → 50% A, 50% B, 0% baseline
+        >>> # Equal weights → 50% A, 50% B, 0% control
         >>>
         >>> # Option: [["a", 10], ["b", 1]]
-        >>> # Weighted 10:1 → 90.9% A, 9.1% B, 0% baseline
+        >>> # Weighted 10:1 → 90.9% A, 9.1% B, 0% control
         >>>
         >>> # Option: [["a", 0]]
-        >>> # Weight 0 = disabled → 100% baseline
+        >>> # Weight 0 = disabled → 100% control (None)
         >>>
         >>> # Option: []
-        >>> # No experiments → 100% baseline
+        >>> # No experiments → 100% control (None)
     """
     # Check if org is eligible for experiments via Flagpole
     if not features.has(
@@ -64,7 +64,7 @@ def get_code_review_experiment(
         organization,
         actor=user,
     ):
-        return "baseline"
+        return None
 
     # Get experiment configurations from Options
     experiments: list[tuple[str, float]] = options.get("code-review.experiments")
@@ -73,7 +73,7 @@ def get_code_review_experiment(
     active_experiments = [(name, weight) for name, weight in experiments if weight > 0]
 
     if not active_experiments:
-        return "baseline"
+        return None
 
     total_weight = sum(weight for _, weight in active_experiments)
 
@@ -91,4 +91,4 @@ def get_code_review_experiment(
             return experiment_name
 
     # Fallback (should not reach here due to floating point precision)
-    return "baseline"
+    return None

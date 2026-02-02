@@ -23,16 +23,16 @@ class CodeReviewExperimentAssignmentTest(TestCase):
         with self.feature("organizations:code-review-experiments-enabled"):
             for pr_id in range(10):
                 result = get_code_review_experiment(org, pr_id=str(pr_id))
-                assert result == "baseline"
+                assert result is None
 
     def test_empty_experiments_list(self) -> None:
-        """Empty list means all PRs get baseline."""
+        """Empty list means all PRs get None (control group)."""
         org = self.create_organization(slug="test-org")
         options.set("code-review.experiments", [])
 
         with self.feature("organizations:code-review-experiments-enabled"):
             result = get_code_review_experiment(org, pr_id="123")
-            assert result == "baseline"
+            assert result is None
 
     def test_equal_weights_split_traffic(self) -> None:
         """Equal weights split traffic proportionally."""
@@ -46,17 +46,17 @@ class CodeReviewExperimentAssignmentTest(TestCase):
         )
 
         with self.feature("organizations:code-review-experiments-enabled"):
-            results = {"exp-1": 0, "exp-2": 0, "baseline": 0}
+            results = {"exp-1": 0, "exp-2": 0, None: 0}
 
             # Test 100 PRs to see distribution
             for pr_id in range(100):
                 result = get_code_review_experiment(org, pr_id=str(pr_id))
                 results[result] += 1
 
-            # Should have both experiments represented, no baseline
+            # Should have both experiments represented, no control group
             assert results["exp-1"] > 0
             assert results["exp-2"] > 0
-            assert results["baseline"] == 0
+            assert results[None] == 0
 
     def test_deterministic_per_pr_assignment(self) -> None:
         """Same PR always gets same result (deterministic hashing)."""
@@ -87,14 +87,14 @@ class CodeReviewExperimentAssignmentTest(TestCase):
             assert "exp-a" in results
             assert "exp-b" in results
 
-    def test_org_not_eligible_always_baseline(self) -> None:
-        """Orgs without flag enabled always get baseline."""
+    def test_org_not_eligible_always_none(self) -> None:
+        """Orgs without flag enabled always get None (control group)."""
         org = self.create_organization(slug="not-eligible")
         options.set("code-review.experiments", [["test-exp", 1]])
 
         # Feature flag NOT enabled for this org
         result = get_code_review_experiment(org, pr_id="123")
-        assert result == "baseline"
+        assert result is None
 
     def test_weighted_distribution(self) -> None:
         """Weights determine proportional distribution of traffic."""
@@ -111,7 +111,7 @@ class CodeReviewExperimentAssignmentTest(TestCase):
         # Total weight: 6, so exp-2: 50%, exp-3: 33%, exp-4: 17%
 
         with self.feature("organizations:code-review-experiments-enabled"):
-            results = {"baseline": 0, "exp-1": 0, "exp-2": 0, "exp-3": 0, "exp-4": 0}
+            results = {None: 0, "exp-1": 0, "exp-2": 0, "exp-3": 0, "exp-4": 0}
 
             # Test 1000 PRs to get distribution
             for pr_id in range(1000):
@@ -129,8 +129,8 @@ class CodeReviewExperimentAssignmentTest(TestCase):
             assert results["exp-3"] > 0
             assert results["exp-4"] > 0
 
-            # No baseline since all weights add up to 100%
-            assert results["baseline"] == 0
+            # No control group since all weights add up to 100%
+            assert results[None] == 0
 
     def test_user_parameter_optional(self) -> None:
         """User parameter is optional for assignment."""
