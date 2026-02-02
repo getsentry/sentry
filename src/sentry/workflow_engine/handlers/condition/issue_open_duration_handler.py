@@ -1,12 +1,16 @@
-from datetime import timedelta
 from typing import Any
 
 from django.utils import timezone
 
 from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.rules.age import AgeComparisonType, age_comparison_map
+from sentry.rules.filters.age_comparison import timeranges
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
+@condition_handler_registry.register(Condition.ISSUE_OPEN_DURATION)
 class IssueOpenDurationConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
@@ -14,14 +18,14 @@ class IssueOpenDurationConditionHandler(DataConditionHandler[WorkflowEventData])
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "comparison": {
+            "comparison_type": {
                 "type": "string",
-                "enum": ["older", "younger"],
+                "enum": [AgeComparisonType.OLDER, AgeComparisonType.NEWER],
             },
             "value": {"type": "integer", "minimum": 0},
-            "unit": {"type": "string", "enum": ["minutes", "hours", "days"]},
+            "time": {"type": "string", "enum": list(timeranges.keys())},
         },
-        "required": ["comparison", "value", "unit"],
+        "required": ["comparison_type", "value", "time"],
         "additionalProperties": False,
     }
 
@@ -32,17 +36,14 @@ class IssueOpenDurationConditionHandler(DataConditionHandler[WorkflowEventData])
         if not latest_open_period:
             return False
 
+        comparison_type = comparison["comparison_type"]
+        time = comparison["time"]
         value = int(comparison["value"])
-        time_unit = comparison["unit"]
+        _, delta_time = timeranges[time]
 
-        # convert to minutes
-        if time_unit == "hours":
-            value = value * 60
-        elif time_unit == "days":
-            value = value * 60 * 24
+        current_time = timezone.now()
 
-        comparison_timestamp = timezone.now() - timedelta(minutes=value)
-
-        if comparison["comparison"] == "older":
-            return latest_open_period.date_started < comparison_timestamp
-        return latest_open_period.date_started > comparison_timestamp
+        passes: bool = age_comparison_map[comparison_type](
+            latest_open_period.date_started + (value * delta_time), current_time
+        )
+        return passes
