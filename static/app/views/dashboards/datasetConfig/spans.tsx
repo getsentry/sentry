@@ -272,7 +272,12 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    if (field === 'transaction') {
+    if (
+      field === SpanFields.TRANSACTION &&
+      !widget?.queries?.[0]?.linkedDashboards?.some(
+        linkedDashboard => linkedDashboard.field === SpanFields.TRANSACTION
+      )
+    ) {
       return renderTransactionAsLinkable;
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
