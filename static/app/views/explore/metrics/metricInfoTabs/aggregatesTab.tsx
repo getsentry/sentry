@@ -80,12 +80,10 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   const meta = result.meta ?? {};
 
-  // Count how many groupBy fields are actually in the fields array
-  const groupByFieldCount = groupBys.filter(g => g && fields.includes(g)).length;
+  const groupByFieldCount = groupBys.length;
+  const aggregateFieldCount = fields.length - groupByFieldCount;
 
   const tableStyle = useMemo(() => {
-    const aggregateFieldCount = fields.length - groupByFieldCount;
-
     // First aggregate column gets 1fr, pushing remaining aggregates to the right
     if (groupByFieldCount > 0 && aggregateFieldCount > 0) {
       // groupBys: auto ... auto | aggregates: 1fr auto ... auto
@@ -103,7 +101,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       gridTemplateColumns:
         fields.length > 1 ? `repeat(${fields.length - 1}, auto) 1fr` : '1fr',
     };
-  }, [fields.length, groupByFieldCount]);
+  }, [aggregateFieldCount, fields.length, groupByFieldCount]);
 
   const firstColumnOffset = useMemo(() => {
     return groupBys.length > 0 ? '15px' : '8px';
