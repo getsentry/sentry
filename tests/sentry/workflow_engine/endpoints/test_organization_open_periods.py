@@ -481,13 +481,27 @@ class OrganizationOpenPeriodsTest(APITestCase):
             project=self.group.project,
             date_started=base_time,
             date_ended=base_time + timedelta(minutes=5),
-            event_id=event_id_1,
+            event_id="c" * 32,
         )
         open_period_2 = GroupOpenPeriod.objects.create(
             group=self.group,
             project=self.group.project,
             date_started=base_time + timedelta(minutes=6),
             date_ended=base_time + timedelta(minutes=10),
+            event_id="d" * 32,
+        )
+        GroupOpenPeriodActivity.objects.create(
+            date_added=base_time,
+            group_open_period=open_period_1,
+            type=OpenPeriodActivityType.OPENED,
+            value=self.group.priority,
+            event_id=event_id_1,
+        )
+        GroupOpenPeriodActivity.objects.create(
+            date_added=base_time + timedelta(minutes=6),
+            group_open_period=open_period_2,
+            type=OpenPeriodActivityType.OPENED,
+            value=self.group.priority,
             event_id=event_id_2,
         )
 
