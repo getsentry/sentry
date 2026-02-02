@@ -134,12 +134,14 @@ const SpansTabCrossEventSearchBar = memo(
     const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
       useTraceItemTags('string');
 
-    const traceItemType =
-      type === 'spans'
-        ? TraceItemDataset.SPANS
-        : type === 'logs'
-          ? TraceItemDataset.LOGS
-          : TraceItemDataset.TRACEMETRICS;
+    let traceItemType = TraceItemDataset.SPANS;
+    if (type === 'logs') {
+      traceItemType = TraceItemDataset.LOGS;
+    }
+    // Temporary disabled metrics cross event querying
+    // else if (crossEvent.type === 'metrics') {
+    //   traceItemType = TraceItemDataset.TRACEMETRICS;
+    // }
 
     const eapSpanSearchQueryBuilderProps = useMemo(
       () => ({
@@ -236,12 +238,14 @@ function SpansTabCrossEventSearchBars() {
   }
 
   return crossEvents.map((crossEvent, index) => {
-    const traceItemType =
-      crossEvent.type === 'spans'
-        ? TraceItemDataset.SPANS
-        : crossEvent.type === 'logs'
-          ? TraceItemDataset.LOGS
-          : TraceItemDataset.TRACEMETRICS;
+    let traceItemType = TraceItemDataset.SPANS;
+    if (crossEvent.type === 'logs') {
+      traceItemType = TraceItemDataset.LOGS;
+    }
+    // Temporary disabled metrics cross event querying
+    // else if (crossEvent.type === 'metrics') {
+    //   traceItemType = TraceItemDataset.TRACEMETRICS;
+    // }
 
     const maxCrossEventQueriesReached = index >= MAX_CROSS_EVENT_QUERIES;
 
