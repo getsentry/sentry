@@ -6,10 +6,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const COLD_START_CONDITION =
-  'span.op:app.start.cold span.description:["Cold Start","Cold App Start"]';
-const WARM_START_CONDITION =
-  'span.op:app.start.warm span.description:["Warm Start","Warm App Start"]';
+const TRANSACTION_OP_CONDITION = 'transaction.op:[ui.load,navigation]';
 const OPERATIONS_CONDITION =
   '!span.description:"Cold Start" !span.description:"Warm Start" !span.description:"Cold App Start" !span.description:"Warm App Start" !span.description:"Initial Frame Render" has:span.description transaction.op:[ui.load,navigation] has:ttid app_start_type:cold span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
 
@@ -24,12 +21,12 @@ const avgColdStartLineWidget: Widget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+      fields: [`avg(${SpanFields.APP_START_COLD})`],
+      aggregates: [`avg(${SpanFields.APP_START_COLD})`],
       columns: [],
       fieldAliases: [],
-      conditions: COLD_START_CONDITION,
-      orderby: `avg(${SpanFields.SPAN_DURATION})`,
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: `-avg(${SpanFields.APP_START_COLD})`,
     },
   ],
 };
@@ -48,7 +45,7 @@ const coldStartDeviceDistributionWidget: Widget = {
       fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_COLD})`],
       aggregates: [`avg(${SpanFields.APP_START_COLD})`],
       columns: [SpanFields.DEVICE_CLASS],
-      conditions: '',
+      conditions: TRANSACTION_OP_CONDITION,
       orderby: '-avg(measurements.app_start_cold)',
     },
   ],
@@ -65,12 +62,12 @@ const avgWarmStartLineWidget: Widget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+      fields: [`avg(${SpanFields.APP_START_WARM})`],
+      aggregates: [`avg(${SpanFields.APP_START_WARM})`],
       columns: [],
       fieldAliases: [],
-      conditions: WARM_START_CONDITION,
-      orderby: `avg(${SpanFields.SPAN_DURATION})`,
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: `-avg(${SpanFields.APP_START_WARM})`,
     },
   ],
 };
@@ -89,7 +86,7 @@ const warmStartDeviceDistributionWidget: Widget = {
       fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_WARM})`],
       aggregates: [`avg(${SpanFields.APP_START_WARM})`],
       columns: [SpanFields.DEVICE_CLASS],
-      conditions: '',
+      conditions: TRANSACTION_OP_CONDITION,
       orderby: '-avg(measurements.app_start_warm)',
     },
   ],
