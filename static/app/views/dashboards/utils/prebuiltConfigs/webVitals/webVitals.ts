@@ -537,6 +537,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
               dashboardId: '-1',
               field: SpanFields.TRANSACTION,
               staticDashboardId: 7,
+              additionalDatasets: [WidgetType.ISSUE],
             },
           ],
         },

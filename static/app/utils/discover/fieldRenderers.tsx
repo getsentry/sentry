@@ -1443,11 +1443,18 @@ function getDashboardUrl(
         .addFilterValueList(field, [data[field]])
         .toString();
 
-      newTemporaryFilters.push({
-        dataset: widget.widgetType,
-        tag: {key: field, name: field, kind: FieldKind.TAG},
-        value: formattedValue,
-        isTemporary: true,
+      const datasetsToApplyFiltersTo = [
+        widget.widgetType,
+        ...(dashboardLink.additionalDatasets ?? []),
+      ];
+
+      datasetsToApplyFiltersTo.forEach(dataset => {
+        newTemporaryFilters.push({
+          dataset,
+          tag: {key: field, name: field, kind: FieldKind.TAG},
+          value: formattedValue,
+          isTemporary: true,
+        });
       });
 
       // Preserve project, environment, and time range query params
