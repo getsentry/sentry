@@ -12,37 +12,51 @@ import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import {IconArrow, IconChevron, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface AutofixStartBoxProps {
   groupId: string;
   onSend: (message: string, stoppingPoint?: AutofixStoppingPoint) => void;
 }
 
-const STOPPING_POINT_OPTIONS = [
-  {
-    key: AutofixStoppingPoint.ROOT_CAUSE,
-    label: t('Start Root Cause Analysis'),
-    value: AutofixStoppingPoint.ROOT_CAUSE,
-  },
-  {
-    key: AutofixStoppingPoint.SOLUTION,
-    label: t('Plan a Solution'),
-    value: AutofixStoppingPoint.SOLUTION,
-  },
-  {
-    key: AutofixStoppingPoint.CODE_CHANGES,
-    label: t('Write Code Changes'),
-    value: AutofixStoppingPoint.CODE_CHANGES,
-  },
-  {
-    key: AutofixStoppingPoint.OPEN_PR,
-    label: t('Draft a Pull Request'),
-    value: AutofixStoppingPoint.OPEN_PR,
-  },
-] as const;
+function getStoppingPointOptions(organization: Organization) {
+  return [
+    {
+      key: AutofixStoppingPoint.ROOT_CAUSE,
+      label: t('Start Root Cause Analysis'),
+      value: AutofixStoppingPoint.ROOT_CAUSE,
+      disabled: false,
+      tooltip: undefined,
+    },
+    {
+      key: AutofixStoppingPoint.SOLUTION,
+      label: t('Plan a Solution'),
+      value: AutofixStoppingPoint.SOLUTION,
+      disabled: false,
+      tooltip: undefined,
+    },
+    {
+      key: AutofixStoppingPoint.CODE_CHANGES,
+      label: t('Write Code Changes'),
+      value: AutofixStoppingPoint.CODE_CHANGES,
+      disabled: !organization.enableSeerCoding,
+      tooltip: t('Code generation is disabled for this organization'),
+    },
+    {
+      key: AutofixStoppingPoint.OPEN_PR,
+      label: t('Draft a Pull Request'),
+      value: AutofixStoppingPoint.OPEN_PR,
+      disabled: false,
+      tooltip: undefined,
+    },
+  ] as const;
+}
 
 export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
+  const organization = useOrganization();
+  organization.enableSeerCoding = false;
   const [message, setMessage] = useState('');
   const [selectedStoppingPoint, setSelectedStoppingPoint] =
     useLocalStorageState<AutofixStoppingPoint>(
@@ -61,19 +75,21 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   );
 
   const {primaryOption, dropdownOptions} = useMemo(() => {
+    const options = getStoppingPointOptions(organization);
     const primary =
-      STOPPING_POINT_OPTIONS.find(opt => opt.value === selectedStoppingPoint) ??
-      STOPPING_POINT_OPTIONS[0];
-    const dropdown = STOPPING_POINT_OPTIONS.filter(
-      opt => opt.value !== selectedStoppingPoint
-    ).map(opt => ({
-      key: opt.key,
-      label: opt.label,
-      onAction: () =>
-        handleSubmit({preventDefault: () => {}} as React.FormEvent, opt.value),
-    }));
+      options.find(opt => opt.value === selectedStoppingPoint) ?? options[0];
+    const dropdown = options
+      .filter(opt => opt.value !== selectedStoppingPoint)
+      .map(opt => ({
+        key: opt.key,
+        label: opt.label,
+        disabled: opt.disabled ?? false,
+        tooltip: opt.tooltip,
+        onAction: () =>
+          handleSubmit({preventDefault: () => {}} as React.FormEvent, opt.value),
+      }));
     return {primaryOption: primary, dropdownOptions: dropdown};
-  }, [selectedStoppingPoint, handleSubmit]);
+  }, [organization, selectedStoppingPoint, handleSubmit]);
 
   return (
     <Wrapper>
