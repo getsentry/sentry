@@ -6,15 +6,22 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import type {
   TabularColumn,
   TabularData,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {Actions, copyToClipboard} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
 import {
@@ -54,7 +61,9 @@ export type AttributeBreakdownViewerModalOptions =
   | SingleModeOptions
   | ComparisonModeOptions;
 
-type Props = ModalRenderProps & AttributeBreakdownViewerModalOptions;
+type Props = ModalRenderProps & {
+  selection: PageFilters;
+} & AttributeBreakdownViewerModalOptions;
 
 // Data computation types
 type SingleModeData = {
@@ -315,9 +324,12 @@ function PopulationIndicatorComponent({
   );
 }
 
-export default function AttributeBreakdownViewerModal(props: Props) {
+export function AttributeBreakdownViewerModal(props: Props) {
   const {Header, Body, mode} = props;
+
   const theme = useTheme();
+  const navigate = useNavigate();
+  const organization = useOrganization();
   const formatSingleModeTooltip = useFormatSingleModeTooltip();
 
   const primaryColor = theme.chart.getColorPalette(0)?.[0];
@@ -461,12 +473,71 @@ export default function AttributeBreakdownViewerModal(props: Props) {
             scrollable
             tableData={computedData.tableData}
             columns={computedData.tableColumns}
+            onTriggerCellAction={(action, value) => {
+              const query = new MutableSearch('');
+              switch (action) {
+                case Actions.OPEN_ROW_IN_EXPLORE:
+                  query.addFilterValue(computedData.attributeName, `${value}`);
+                  navigate(
+                    getExploreUrl({
+                      organization,
+                      selection: props.selection,
+                      query: query.formatString(),
+                    })
+                  );
+                  closeModal();
+                  return;
+                case Actions.ADD:
+                  query.addFilterValue(computedData.attributeName, `${value}`);
+                  navigate(
+                    getExploreUrl({
+                      organization,
+                      selection: props.selection,
+                      table: 'attribute_breakdowns',
+                      query: query.formatString(),
+                    })
+                  );
+                  closeModal();
+                  return;
+                case Actions.EXCLUDE:
+                  query.addFilterValue(`!${computedData.attributeName}`, `${value}`);
+                  navigate(
+                    getExploreUrl({
+                      organization,
+                      selection: props.selection,
+                      table: 'attribute_breakdowns',
+                      query: query.formatString(),
+                    })
+                  );
+                  closeModal();
+                  return;
+                case Actions.COPY_TO_CLIPBOARD:
+                  copyToClipboard(value);
+                  closeModal();
+                  return;
+                default:
+                  return;
+              }
+            }}
+            allowedCellActions={cellInfo => {
+              if (cellInfo.column.key === t('Value')) {
+                return [
+                  Actions.OPEN_ROW_IN_EXPLORE,
+                  Actions.EXCLUDE,
+                  Actions.ADD,
+                  Actions.COPY_TO_CLIPBOARD,
+                ];
+              }
+              return [];
+            }}
           />
         </Flex>
       </Body>
     </Fragment>
   );
 }
+
+export default withPageFilters(AttributeBreakdownViewerModal);
 
 const PopulationIndicator = styled(Flex)<{color?: string}>`
   align-items: center;
