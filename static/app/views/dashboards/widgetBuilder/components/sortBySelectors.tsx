@@ -146,11 +146,15 @@ export function SortBySelectors({
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
         {
-          // Trace Metrics also uses the table sort options because it constrains the options to the selected
-          // group bys and aggregate which is consistent for the explore page (i.e. you can't sort by a field
-          // that is not in the group bys or aggregate).
+          // Table-like displays use getTableSortOptions because they constrain options to the selected
+          // columns and aggregates. This includes:
+          // - TABLE: standard table display
+          // - DETAILS: details display
+          // - CATEGORICAL_BAR: bar chart with categorical X-axis (uses table data)
+          // - Trace Metrics: constrains to selected group bys and aggregate
           displayType === DisplayType.TABLE ||
           displayType === DisplayType.DETAILS ||
+          displayType === DisplayType.CATEGORICAL_BAR ||
           widgetType === WidgetType.TRACEMETRICS ? (
             <Select
               name="sortBy"

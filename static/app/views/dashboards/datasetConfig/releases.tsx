@@ -63,6 +63,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 };
 
 export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiResponse> = {
+  defaultCategoryField: 'release',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,

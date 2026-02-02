@@ -157,11 +157,11 @@ function WidgetBuilderSlideout({
   // Sort By controls the ordering of results.
   // - Table widgets: always show to control row ordering
   // - Time-series widgets with Group By: show to control which top N groups are displayed
-  // - Categorical Bar widgets: sorting is not applicable, we only allow one Visualize
+  // - Categorical Bar widgets: show to control category ordering (like tables)
   const showSortByStep =
-    !isCategoricalBar &&
-    ((isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
-      state.displayType === DisplayType.TABLE);
+    isCategoricalBar ||
+    (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
+    state.displayType === DisplayType.TABLE;
 
   const observer = useMemo(
     () =>

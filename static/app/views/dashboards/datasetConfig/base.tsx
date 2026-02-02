@@ -162,6 +162,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters
   ) => TableData;
   /**
+   * Default field to use as the X-axis category for categorical bar charts.
+   * This should be a non-aggregate field name (e.g., 'transaction', 'browser').
+   */
+  defaultCategoryField?: string;
+  /**
    * Default field to add to the widget query when adding a new field for series display type.
    */
   defaultSeriesField?: QueryFieldValue;

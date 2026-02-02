@@ -21,31 +21,42 @@ export function WidgetBuilderXAxisSelector() {
   const organization = useOrganization();
   const tags: TagCollection = useTags();
 
-  const {tags: numericSpanTags} = useTraceItemTags('number');
+  // Only use string tags for categorical X-axis (numeric values don't make good categories)
   const {tags: stringSpanTags} = useTraceItemTags('string');
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
-  // Get field options similar to how tables get column options.
-  // These are non-aggregate fields that can be used as the X-axis categories.
+  // Get string field options for X-axis categories.
+  // Only string fields make sense as categorical X-axis values (e.g., browser, country, transaction).
+  // Numeric fields would create too many unique categories and are better suited for Y-axis aggregates.
   const fieldOptions = useMemo(() => {
     if (
       state.dataset === WidgetType.SPANS ||
       state.dataset === WidgetType.LOGS ||
       state.dataset === WidgetType.TRACEMETRICS
     ) {
-      const allTags = {...numericSpanTags, ...stringSpanTags};
-      return Object.values(allTags).map(tag => ({
+      // For EAP datasets, use only string tags
+      return Object.values(stringSpanTags).map(tag => ({
         label: prettifyTagKey(tag.name),
         value: tag.key,
       }));
     }
 
-    // For other datasets, use getGroupByFieldOptions which returns non-aggregate fields
+    // For other datasets, use getGroupByFieldOptions and filter for string types only
     if (datasetConfig.getGroupByFieldOptions) {
       const options = datasetConfig.getGroupByFieldOptions(organization, tags);
       return Object.values(options)
-        .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
+        .filter(option => {
+          // Exclude functions and equations (they don't have dataType)
+          if (
+            option.value.kind === FieldValueKind.FUNCTION ||
+            option.value.kind === FieldValueKind.EQUATION
+          ) {
+            return false;
+          }
+          // Only include string fields
+          return option.value.meta.dataType === 'string';
+        })
         .map(option => ({
           label: option.value.meta.name,
           value: option.value.meta.name,
@@ -53,7 +64,7 @@ export function WidgetBuilderXAxisSelector() {
     }
 
     return [];
-  }, [state.dataset, datasetConfig, organization, tags, numericSpanTags, stringSpanTags]);
+  }, [state.dataset, datasetConfig, organization, tags, stringSpanTags]);
 
   // Extract the current X-axis field from state.fields.
   // For categorical bars, state.fields contains both X-axis fields (FIELD kind)

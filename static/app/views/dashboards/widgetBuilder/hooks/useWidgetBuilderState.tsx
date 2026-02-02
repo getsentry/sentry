@@ -352,7 +352,6 @@ function useWidgetBuilderState(): {
             // aggregate (FUNCTION kind) in state.fields, not yAxis
             setYAxis([], options);
             setLegendAlias([], options);
-            setSort([], options);
             setLimit(undefined, options);
 
             // Build the aggregate list from existing state, similar to time-series charts
@@ -368,17 +367,33 @@ function useWidgetBuilderState(): {
               });
             }
 
-            // Get an X-axis field from existing columns or use a sensible default
+            // Get an X-axis field from existing columns or use the dataset's default
             const nextColumns = [...columnsWithoutAlias.slice(0, 1)];
-            if (nextColumns.length === 0) {
+            if (nextColumns.length === 0 && currentDatasetConfig.defaultCategoryField) {
               nextColumns.push({
                 kind: FieldValueKind.FIELD,
-                field: 'transaction',
+                field: currentDatasetConfig.defaultCategoryField,
                 alias: undefined,
               });
             }
 
-            setFields([...nextColumns, ...nextAggregates.slice(0, 1)], options);
+            const categoricalBarFields = [...nextColumns, ...nextAggregates.slice(0, 1)];
+            setFields(categoricalBarFields, options);
+
+            // Set default sort to descending on the aggregate (like tables)
+            const aggregateField = nextAggregates[0];
+            if (aggregateField) {
+              setSort(
+                [
+                  {
+                    kind: 'desc',
+                    field: generateFieldAsString(aggregateField),
+                  },
+                ],
+                options
+              );
+            }
+
             setQuery(query?.slice(0, 1), options);
           } else {
             setFields(columnsWithoutAlias, options);
