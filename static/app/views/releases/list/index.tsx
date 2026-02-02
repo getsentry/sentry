@@ -541,18 +541,21 @@ export default function ReleasesList() {
                       )}
                       position="top-start"
                     >
-                      <ReleaseListInner
-                        activeDisplay={activeDisplay}
-                        loading={isReleasesPending}
-                        organization={organization}
-                        releases={releases}
-                        releasesPageLinks={releasesPageLinks}
-                        reloading={isReleasesRefetching}
-                        selectedProject={selectedProject}
-                        selection={selection}
-                        shouldShowQuickstart={shouldShowQuickstart}
-                        showReleaseAdoptionStages={showReleaseAdoptionStages}
-                      />
+                      {props => (
+                        <ReleaseListInner
+                          {...props}
+                          activeDisplay={activeDisplay}
+                          loading={isReleasesPending}
+                          organization={organization}
+                          releases={releases}
+                          releasesPageLinks={releasesPageLinks}
+                          reloading={isReleasesRefetching}
+                          selectedProject={selectedProject}
+                          selection={selection}
+                          shouldShowQuickstart={shouldShowQuickstart}
+                          showReleaseAdoptionStages={showReleaseAdoptionStages}
+                        />
+                      )}
                     </DemoTourElement>
                   )}
                 </Fragment>

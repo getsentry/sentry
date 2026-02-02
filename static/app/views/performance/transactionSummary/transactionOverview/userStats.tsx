@@ -113,14 +113,16 @@ function UserStats({
               See User Misery, Apdex, and more metrics, along with related events and suspect spans.`
           )}
         >
-          <SectionHeading>
-            {t('User Misery')}
-            <QuestionTooltip
-              position="top"
-              title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
-              size="sm"
-            />
-          </SectionHeading>
+          {props => (
+            <SectionHeading {...props}>
+              {t('User Misery')}
+              <QuestionTooltip
+                position="top"
+                title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
+                size="sm"
+              />
+            </SectionHeading>
+          )}
         </DemoTourElement>
         {userMisery}
       </Fragment>

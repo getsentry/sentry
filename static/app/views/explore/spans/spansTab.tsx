@@ -165,18 +165,20 @@ function SpanTabControlSection({
 
   return (
     <ExploreControlSection expanded={controlSectionExpanded}>
-      <TourElement<ExploreSpansTour>
-        tourContext={ExploreSpansTourContext}
-        id={ExploreSpansTour.TOOLBAR}
-        title={t('Configure Your Query')}
-        description={t(
-          'Based on your search, you can determine how you want your results shown. Choose your metric visualization, group (optional) and sort.'
-        )}
-        position="right"
-        margin={-8}
-      >
-        {controlSectionExpanded && <ExploreToolbar width={300} extras={toolbarExtras} />}
-      </TourElement>
+      {controlSectionExpanded && (
+        <TourElement<ExploreSpansTour>
+          tourContext={ExploreSpansTourContext}
+          id={ExploreSpansTour.TOOLBAR}
+          title={t('Configure Your Query')}
+          description={t(
+            'Based on your search, you can determine how you want your results shown. Choose your metric visualization, group (optional) and sort.'
+          )}
+          position="right"
+          margin={-8}
+        >
+          {props => <ExploreToolbar {...props} width={300} extras={toolbarExtras} />}
+        </TourElement>
+      )}
     </ExploreControlSection>
   );
 }
@@ -337,30 +339,35 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ExploreCharts
-          confidences={confidences}
-          query={query}
-          extrapolate={extrapolate}
-          timeseriesResult={timeseriesResult}
-          visualizes={visualizes}
-          setVisualizes={setVisualizes}
-          samplingMode={timeseriesSamplingMode}
-          setTab={setTab}
-          rawSpanCounts={rawSpanCounts}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          tab={tab}
-          setTab={(newTab: Mode | Tab) => {
-            if (newTab === Mode.AGGREGATE) {
-              setControlSectionExpanded(true);
-            }
-            setTab(newTab);
-          }}
-        />
+        {props => (
+          <Fragment>
+            <ExploreCharts
+              {...props}
+              confidences={confidences}
+              query={query}
+              extrapolate={extrapolate}
+              timeseriesResult={timeseriesResult}
+              visualizes={visualizes}
+              setVisualizes={setVisualizes}
+              samplingMode={timeseriesSamplingMode}
+              setTab={setTab}
+              rawSpanCounts={rawSpanCounts}
+            />
+            <ExploreTables
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+              tracesTableResult={tracesTableResult}
+              confidences={confidences}
+              tab={tab}
+              setTab={(newTab: Mode | Tab) => {
+                if (newTab === Mode.AGGREGATE) {
+                  setControlSectionExpanded(true);
+                }
+                setTab(newTab);
+              }}
+            />
+          </Fragment>
+        )}
       </TourElement>
     </ExploreContentSection>
   );

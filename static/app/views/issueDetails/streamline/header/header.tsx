@@ -266,32 +266,34 @@ export default function StreamlinedGroupHeader({
         id={IssueDetailsTour.WORKFLOWS}
         title={t('Take action')}
         description={t(
-          'Now that you’ve learned about this issue, it’s time to assign an owner, update priority, and take additional actions.'
+          "Now that you've learned about this issue, it's time to assign an owner, update priority, and take additional actions."
         )}
         position="bottom-end"
       >
-        <ActionBar isComplete={isComplete} role="banner">
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-          />
-          <WorkflowActions>
-            <Workflow>
-              {t('Priority')}
-              <GroupPriority group={group} />
-            </Workflow>
-            <Workflow>
-              {t('Assignee')}
-              <GroupHeaderAssigneeSelector
-                group={group}
-                project={project}
-                event={event}
-              />
-            </Workflow>
-          </WorkflowActions>
-        </ActionBar>
+        {props => (
+          <ActionBar {...props} isComplete={isComplete} role="banner">
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+            />
+            <WorkflowActions>
+              <Workflow>
+                {t('Priority')}
+                <GroupPriority group={group} />
+              </Workflow>
+              <Workflow>
+                {t('Assignee')}
+                <GroupHeaderAssigneeSelector
+                  group={group}
+                  project={project}
+                  event={event}
+                />
+              </Workflow>
+            </WorkflowActions>
+          </ActionBar>
+        )}
       </TourElement>
     </Fragment>
   );

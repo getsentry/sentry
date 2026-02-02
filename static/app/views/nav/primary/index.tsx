@@ -86,14 +86,17 @@ export function PrimaryNavigationItems() {
     <Fragment>
       <SidebarBody ref={ref}>
         <NavTourElement id={StackedNavigationTour.ISSUES} title={null} description={null}>
-          <SidebarLink
-            to={`/${prefix}/issues/`}
-            analyticsKey="issues"
-            group={PrimaryNavGroup.ISSUES}
-            {...makeNavItemProps(PrimaryNavGroup.ISSUES)}
-          >
-            <IconIssues />
-          </SidebarLink>
+          {props => (
+            <SidebarLink
+              to={`/${prefix}/issues/`}
+              analyticsKey="issues"
+              group={PrimaryNavGroup.ISSUES}
+              {...makeNavItemProps(PrimaryNavGroup.ISSUES)}
+              {...props}
+            >
+              <IconIssues />
+            </SidebarLink>
+          )}
         </NavTourElement>
 
         <NavTourElement
@@ -101,15 +104,18 @@ export function PrimaryNavigationItems() {
           title={null}
           description={null}
         >
-          <SidebarLink
-            to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
-            activeTo={`/${prefix}/explore`}
-            analyticsKey="explore"
-            group={PrimaryNavGroup.EXPLORE}
-            {...makeNavItemProps(PrimaryNavGroup.EXPLORE)}
-          >
-            <IconCompass />
-          </SidebarLink>
+          {props => (
+            <SidebarLink
+              to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
+              activeTo={`/${prefix}/explore`}
+              analyticsKey="explore"
+              group={PrimaryNavGroup.EXPLORE}
+              {...makeNavItemProps(PrimaryNavGroup.EXPLORE)}
+              {...props}
+            >
+              <IconCompass />
+            </SidebarLink>
+          )}
         </NavTourElement>
 
         <Feature
@@ -122,15 +128,18 @@ export function PrimaryNavigationItems() {
             title={null}
             description={null}
           >
-            <SidebarLink
-              to={`/${prefix}/dashboards/`}
-              activeTo={`/${prefix}/dashboard`}
-              analyticsKey="dashboards"
-              group={PrimaryNavGroup.DASHBOARDS}
-              {...makeNavItemProps(PrimaryNavGroup.DASHBOARDS)}
-            >
-              <IconDashboard />
-            </SidebarLink>
+            {props => (
+              <SidebarLink
+                to={`/${prefix}/dashboards/`}
+                activeTo={`/${prefix}/dashboard`}
+                analyticsKey="dashboards"
+                group={PrimaryNavGroup.DASHBOARDS}
+                {...makeNavItemProps(PrimaryNavGroup.DASHBOARDS)}
+                {...props}
+              >
+                <IconDashboard />
+              </SidebarLink>
+            )}
           </NavTourElement>
         </Feature>
 
@@ -140,15 +149,18 @@ export function PrimaryNavigationItems() {
             title={null}
             description={null}
           >
-            <SidebarLink
-              to={`/${prefix}/insights/`}
-              activeTo={`/${prefix}/insights`}
-              analyticsKey="insights"
-              group={PrimaryNavGroup.INSIGHTS}
-              {...makeNavItemProps(PrimaryNavGroup.INSIGHTS)}
-            >
-              <IconGraph type="area" />
-            </SidebarLink>
+            {props => (
+              <SidebarLink
+                to={`/${prefix}/insights/`}
+                activeTo={`/${prefix}/insights`}
+                analyticsKey="insights"
+                group={PrimaryNavGroup.INSIGHTS}
+                {...makeNavItemProps(PrimaryNavGroup.INSIGHTS)}
+                {...props}
+              >
+                <IconGraph type="area" />
+              </SidebarLink>
+            )}
           </NavTourElement>
         </Feature>
 
@@ -190,15 +202,18 @@ export function PrimaryNavigationItems() {
           title={null}
           description={null}
         >
-          <SidebarLink
-            to={`/settings/${organization.slug}/`}
-            activeTo="/settings/"
-            analyticsKey="settings"
-            group={PrimaryNavGroup.SETTINGS}
-            {...makeNavItemProps(PrimaryNavGroup.SETTINGS)}
-          >
-            <IconSettings />
-          </SidebarLink>
+          {props => (
+            <SidebarLink
+              to={`/settings/${organization.slug}/`}
+              activeTo="/settings/"
+              analyticsKey="settings"
+              group={PrimaryNavGroup.SETTINGS}
+              {...makeNavItemProps(PrimaryNavGroup.SETTINGS)}
+              {...props}
+            >
+              <IconSettings />
+            </SidebarLink>
+          )}
         </NavTourElement>
       </SidebarBody>
 

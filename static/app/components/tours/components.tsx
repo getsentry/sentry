@@ -173,7 +173,7 @@ export interface TourElementProps<T extends TourEnumType>
    * </TourElement>
    * ```
    */
-  children: (props: TourRenderProps) => React.ReactElement;
+  children: (props: TourRenderProps) => React.ReactNode;
   /**
    * The description of the tour step.
    * If null, a tooltip will not be displayed. This is useful if there are multiple
@@ -352,7 +352,7 @@ interface TourGuideProps
   /**
    * Render function that receives tour props to apply to the element.
    */
-  children: (props: TourRenderProps) => React.ReactElement;
+  children: (props: TourRenderProps) => React.ReactNode;
   description: React.ReactNode;
   isOpen: UseOverlayProps['isOpen'];
   /**
