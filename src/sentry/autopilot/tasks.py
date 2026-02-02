@@ -5,6 +5,7 @@ from enum import StrEnum
 from itertools import chain, groupby
 from typing import Any
 
+from django.db.models import Q
 from django.utils import timezone
 from packaging import version
 from pydantic import BaseModel
@@ -28,6 +29,12 @@ from sentry.taskworker.namespaces import autopilot_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+class SupportedPlatformPrefix(StrEnum):
+    JAVASCRIPT = "javascript"
+    NODE = "node"
+    PYTHON = "python"
 
 
 class AutopilotDetectorName(StrEnum):
@@ -266,22 +273,28 @@ def run_missing_sdk_integration_detector() -> None:
 
 
 def run_missing_sdk_integration_detector_for_organization(organization: Organization) -> None:
-    projects = Project.objects.filter(organization=organization).all()
+    platform_filter = Q()
+    for prefix in SupportedPlatformPrefix:
+        platform_filter |= Q(platform__startswith=prefix)
+
+    projects = Project.objects.filter(
+        platform_filter,
+        organization=organization,
+    ).all()
 
     if len(projects) == 0:
         return
 
-    for project in projects:
-        # Get the repository mapped to this project via RepositoryProjectPathConfig
-        repo_config = (
-            RepositoryProjectPathConfig.objects.filter(
-                project=project,
-                repository__status=ObjectStatus.ACTIVE,
-            )
-            .select_related("repository")
-            .first()
-        )
+    # Get the repository mapped to each project via RepositoryProjectPathConfig
+    repo_configs = RepositoryProjectPathConfig.objects.filter(
+        project__in=projects,
+        repository__status=ObjectStatus.ACTIVE,
+    ).select_related("repository")
 
+    repo_config_by_project_id = {config.project_id: config for config in repo_configs}
+
+    for project in projects:
+        repo_config = repo_config_by_project_id.get(project.id)
         if repo_config:
             run_missing_sdk_integration_detector_for_project_task.apply_async(
                 args=(
@@ -344,11 +357,12 @@ def run_missing_sdk_integration_detector_for_project_task(
     # Get docs URL from platform data
     platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(project.platform or "", {})
     docs_url = platform_data.get("link", None)
-    integration_docs_url = (
-        f"{docs_url}configuration/integrations/"
-        if docs_url
-        else "https://docs.sentry.io/platforms/"
-    )
+    if project.platform and project.platform.startswith(SupportedPlatformPrefix.PYTHON):
+        integration_docs_url = "https://docs.sentry.io/platforms/python/integrations/"
+    elif docs_url:
+        integration_docs_url = f"{docs_url}configuration/integrations/"
+    else:
+        integration_docs_url = "https://docs.sentry.io/platforms/"
 
     prompt = f"""# Objective
 Find missing Sentry SDK integrations for the project `{project.slug}` in repository `{repo_name}`.
