@@ -1,9 +1,10 @@
 import type {ReactNode} from 'react';
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ButtonBar} from '@sentry/scraps/button';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -14,13 +15,20 @@ import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {
+  useMaxPickableDays,
+  type MaxPickableDaysOptions,
+} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {MAX_DAYS_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
+  useQueryParamsCrossEvents,
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
@@ -38,14 +46,36 @@ import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
+const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
+  defaultPeriod: '7d',
+  maxPickableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+  maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+};
+
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
+  return (
+    <SpansQueryParamsProvider>
+      <ExploreContentInner />
+    </SpansQueryParamsProvider>
+  );
+}
+
+function ExploreContentInner() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
-  const maxPickableDays = useMaxPickableDays({
+  const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const crossEvents = useQueryParamsCrossEvents();
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+
+  const maxPickableDays = hasCrossEvents
+    ? CROSS_EVENTS_DATE_OVERRIDE
+    : dataCategoryMaxPickableDays;
+
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
@@ -71,12 +101,33 @@ export function ExploreContent() {
 }
 
 function SpansTabWrapper({children}: SpansTabContextProps) {
+  const pageFilters = usePageFilters();
+  const crossEvents = useQueryParamsCrossEvents();
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+
+  useEffect(() => {
+    if (!hasCrossEvents) return;
+
+    const days = statsPeriodToDays(
+      pageFilters.selection.datetime.period,
+      pageFilters.selection.datetime.start,
+      pageFilters.selection.datetime.end
+    );
+
+    if (days > MAX_DAYS_FOR_CROSS_EVENTS) {
+      updateDateTime({period: '7d'});
+    }
+  }, [
+    hasCrossEvents,
+    pageFilters.selection.datetime.end,
+    pageFilters.selection.datetime.period,
+    pageFilters.selection.datetime.start,
+  ]);
+
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
-      <SpansQueryParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
-      </SpansQueryParamsProvider>
+      <ExploreTagsProvider>{children}</ExploreTagsProvider>
     </SpansTabTourProvider>
   );
 }
