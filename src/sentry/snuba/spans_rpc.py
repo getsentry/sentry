@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import sentry_sdk
@@ -134,58 +135,68 @@ class Spans(rpc_dataset_common.RPCBase):
                 )
             ],
         )
-        spans = []
+        spans: list[dict[str, Any]] = []
         start_time = int(time.time())
         MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
-        for _ in range(MAX_ITERATIONS):
-            response = snuba_rpc.get_trace_rpc(request)
-            with sentry_sdk.start_span(op="process.rpc_response"):
-                columns_by_name = {col.proto_definition.name: col for col in columns}
-                for item_group in response.item_groups:
-                    for span_item in item_group.items:
-                        span: dict[str, Any] = {
-                            "id": span_item.id,
-                            "children": [],
-                            "errors": [],
-                            "occurrences": [],
-                            "event_type": "span",
-                        }
-                        for attribute in span_item.attributes:
-                            resolved_column = columns_by_name[attribute.key.name]
-                            if resolved_column.proto_definition.type == STRING:
-                                span[resolved_column.public_alias] = attribute.value.val_str
-                            elif resolved_column.proto_definition.type == DOUBLE:
-                                span[resolved_column.public_alias] = attribute.value.val_double
-                            elif resolved_column.search_type == "boolean":
-                                span[resolved_column.public_alias] = (
-                                    attribute.value.val_bool or attribute.value.val_int == 1
-                                )
-                            elif resolved_column.proto_definition.type == BOOLEAN:
-                                span[resolved_column.public_alias] = attribute.value.val_bool
 
-                            elif resolved_column.proto_definition.type == INT:
-                                span[resolved_column.public_alias] = attribute.value.val_int
-                                if resolved_column.public_alias == "project.id":
-                                    span["project.slug"] = resolver.params.project_id_map.get(
-                                        span[resolved_column.public_alias], "Unknown"
-                                    )
-                        spans.append(span)
-                if response.page_token.end_pagination:
-                    break
-                if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
-                    # If timeout is not set then logging this is not helpful
-                    rpc_debug_json = json.loads(MessageToJson(request))
-                    logger.info(
-                        "running a trace query timed out while paginating",
-                        extra={
-                            "rpc_query": rpc_debug_json,
-                            "referrer": request.meta.referrer,
-                            "trace_item_type": request.meta.trace_item_type,
-                        },
-                    )
-                    break
-                request.page_token.CopyFrom(response.page_token)
+        @sentry_sdk.tracing.trace
+        def process_item_groups(item_groups):
+            for item_group in item_groups:
+                for span_item in item_group.items:
+                    span: dict[str, Any] = {
+                        "id": span_item.id,
+                        "children": [],
+                        "errors": [],
+                        "occurrences": [],
+                        "event_type": "span",
+                    }
+                    for attribute in span_item.attributes:
+                        resolved_column = columns_by_name[attribute.key.name]
+                        if resolved_column.proto_definition.type == STRING:
+                            span[resolved_column.public_alias] = attribute.value.val_str
+                        elif resolved_column.proto_definition.type == DOUBLE:
+                            span[resolved_column.public_alias] = attribute.value.val_double
+                        elif resolved_column.search_type == "boolean":
+                            span[resolved_column.public_alias] = (
+                                attribute.value.val_bool or attribute.value.val_int == 1
+                            )
+                        elif resolved_column.proto_definition.type == BOOLEAN:
+                            span[resolved_column.public_alias] = attribute.value.val_bool
+
+                        elif resolved_column.proto_definition.type == INT:
+                            span[resolved_column.public_alias] = attribute.value.val_int
+                            if resolved_column.public_alias == "project.id":
+                                span["project.slug"] = resolver.params.project_id_map.get(
+                                    span[resolved_column.public_alias], "Unknown"
+                                )
+                    spans.append(span)
+
+        response = snuba_rpc.get_trace_rpc(request)
+        for _ in range(MAX_ITERATIONS):
+            columns_by_name = {col.proto_definition.name: col for col in columns}
+            if response.page_token.end_pagination:
+                # always need to process the last response
+                process_item_groups(response.item_groups)
+                break
+            if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
+                # If timeout is not set then logging this is not helpful
+                rpc_debug_json = json.loads(MessageToJson(request))
+                logger.info(
+                    "running a trace query timed out while paginating",
+                    extra={
+                        "rpc_query": rpc_debug_json,
+                        "referrer": request.meta.referrer,
+                        "trace_item_type": request.meta.trace_item_type,
+                    },
+                )
+                break
+            request.page_token.CopyFrom(response.page_token)
+            # We want to process the spans while querying the next page
+            with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=2) as thread_pool:
+                _ = thread_pool.submit(process_item_groups, response.item_groups)
+                response_future = thread_pool.submit(snuba_rpc.get_trace_rpc, request)
+            response = response_future.result()
         return spans
 
     @classmethod
