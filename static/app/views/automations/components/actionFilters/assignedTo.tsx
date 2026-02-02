@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -81,7 +81,7 @@ function IdentifierField() {
 
   if (condition.comparison.targetType === TargetType.TEAM) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <TeamSelector
           name={`${condition_id}.data.targetIdentifier`}
           aria-label={t('Team')}
@@ -99,13 +99,13 @@ function IdentifierField() {
           useId
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
 
   if (condition.comparison.targetType === TargetType.MEMBER) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <SelectMembers
           organization={organization}
           key={`${condition_id}.data.targetIdentifier`}
@@ -123,7 +123,7 @@ function IdentifierField() {
           }}
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
 
@@ -150,7 +150,3 @@ export function validateAssignedToCondition({
   }
   return undefined;
 }
-
-const SelectWrapper = styled('div')`
-  width: 200px;
-`;

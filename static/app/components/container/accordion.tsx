@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -35,7 +36,7 @@ export default function Accordion({
                 aria-label={collapsible && isExpanded ? t('Collapse') : t('Expand')}
                 aria-expanded={isExpanded}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={() => setExpandedIndex(collapsible && isExpanded ? -1 : index)}
               />
               <LineItemWrapper

@@ -4,15 +4,14 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
   type DropdownMenuProps,
@@ -145,7 +144,7 @@ function SubtitleWithCopyButton({
       {clipboardText ? (
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
-          borderless
+          priority="transparent"
           size="zero"
           text={clipboardText}
           tooltipProps={{disabled: true}}
@@ -176,7 +175,7 @@ function TitleOp({text}: {text: string}) {
           {text}
           <CopyToClipboardButton
             aria-label={t('Copy to clipboard')}
-            borderless
+            priority="transparent"
             size="zero"
             text={text}
             tooltipProps={{disabled: true}}
@@ -1145,7 +1144,7 @@ function CopyableCardValueWithLink({
         {value}
         {typeof value === 'string' ? (
           <StyledCopyToClipboardButton
-            borderless
+            priority="transparent"
             size="zero"
             text={value}
             aria-label={t('Copy to clipboard')}

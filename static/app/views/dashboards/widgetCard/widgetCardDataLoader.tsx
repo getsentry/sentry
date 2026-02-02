@@ -12,6 +12,7 @@ import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQu
 import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
 import IssueWidgetQueries from './issueWidgetQueries';
+import MobileAppSizeWidgetQueries from './mobileAppSizeWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
 
@@ -142,6 +143,18 @@ export function WidgetCardDataLoader({
     );
   }
 
+  if (widget.widgetType === WidgetType.PREPROD_APP_SIZE) {
+    return (
+      <MobileAppSizeWidgetQueries
+        widget={widget}
+        selection={selection}
+        dashboardFilters={dashboardFilters}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </MobileAppSizeWidgetQueries>
+    );
+  }
+
   return (
     <WidgetQueries
       widget={widget}
@@ -158,6 +171,7 @@ export function WidgetCardDataLoader({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
         confidence,
       }) => (
         <Fragment>
@@ -167,6 +181,7 @@ export function WidgetCardDataLoader({
             errorMessage,
             loading,
             timeseriesResultsTypes,
+            timeseriesResultsUnits,
             confidence,
           })}
         </Fragment>

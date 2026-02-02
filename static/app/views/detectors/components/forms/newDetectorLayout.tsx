@@ -23,6 +23,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
   environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
+  extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
@@ -37,6 +38,7 @@ export function NewDetectorLayout<
   disabledCreate,
   mapFormErrors,
   environment,
+  extraFooterButton,
   previewChart,
   detectorType,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
@@ -92,7 +94,11 @@ export function NewDetectorLayout<
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-      <NewDetectorFooter maxWidth={maxWidth} disabledCreate={disabledCreate} />
+      <NewDetectorFooter
+        maxWidth={maxWidth}
+        disabledCreate={disabledCreate}
+        extras={extraFooterButton}
+      />
     </EditLayout>
   );
 }

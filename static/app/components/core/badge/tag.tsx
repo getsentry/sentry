@@ -1,7 +1,8 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
@@ -42,7 +43,6 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
           }}
           size="zero"
           priority="link"
-          borderless
           aria-label={t('Dismiss')}
           icon={<IconClose size="xs" />}
         />

@@ -1,8 +1,8 @@
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import FormField from 'sentry/components/forms/formField';
 import {t, tct} from 'sentry/locale';

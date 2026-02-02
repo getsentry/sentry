@@ -3,6 +3,9 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link/link';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip/tooltip';
 
@@ -17,8 +20,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -1513,7 +1514,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
                   <AlertListItem>
                     {
-                      <HeadingContainer>
+                      <Flex align="center" gap="sm">
                         {t('Set thresholds')}
                         {showExtrapolationModeChangeWarning && (
                           <WarningIcon
@@ -1534,7 +1535,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                             id="thresholds-warning-icon"
                           />
                         )}
-                      </HeadingContainer>
+                      </Flex>
                     }
                   </AlertListItem>
                   {thresholdTypeForm(formDisabled)}
@@ -1633,12 +1634,6 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 
 const Aggregate = styled('span')`
   margin-right: ${space(1)};
-`;
-
-const HeadingContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

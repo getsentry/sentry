@@ -111,7 +111,11 @@ class ProjectReplaySummaryTestCase(
         mock_make_seer_api_request.assert_called_once()
         call_args = mock_make_seer_api_request.call_args
         assert call_args[1]["path"] == SEER_POLL_STATE_ENDPOINT_PATH
-        assert json.loads(call_args[1]["body"].decode()) == {"replay_id": self.replay_id}
+        assert json.loads(call_args[1]["body"].decode()) == {
+            "replay_id": self.replay_id,
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
+        }
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_simple(self, mock_make_seer_api_request: Mock) -> None:

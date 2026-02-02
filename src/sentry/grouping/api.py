@@ -401,7 +401,7 @@ def get_grouping_variants_for_event(
         if fingerprint_type == "default"
         else resolve_fingerprint_values(
             raw_fingerprint,
-            event.data,
+            event,
             use_legacy_unknown_variable_handling=use_legacy_unknown_variable_handling,
         )
     )
@@ -477,7 +477,7 @@ def _apply_custom_title_if_needed(
 
     if custom_title_template:
         resolved_title = expand_title_template(
-            custom_title_template, event.data, use_legacy_unknown_variable_handling
+            custom_title_template, event, use_legacy_unknown_variable_handling
         )
         event.data["title"] = resolved_title
 

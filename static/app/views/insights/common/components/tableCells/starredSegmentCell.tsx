@@ -1,6 +1,7 @@
 import type {Simplify} from 'type-fest';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -93,7 +94,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
       <Button
         onClick={toggleStarredTransaction}
         disabled={disabled}
-        borderless
+        priority="transparent"
         size="zero"
         icon={
           <IconStar
