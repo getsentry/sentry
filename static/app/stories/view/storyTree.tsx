@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';

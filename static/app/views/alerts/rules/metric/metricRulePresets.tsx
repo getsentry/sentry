@@ -1,4 +1,5 @@
-import type {LinkProps} from 'sentry/components/core/link';
+import type {LinkProps} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

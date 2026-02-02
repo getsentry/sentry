@@ -4,10 +4,10 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import type {Client} from 'sentry/api';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';

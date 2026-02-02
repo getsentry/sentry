@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   ToolbarFooter,

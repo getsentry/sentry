@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import List from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

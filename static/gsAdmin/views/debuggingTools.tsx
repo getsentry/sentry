@@ -1,12 +1,13 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';

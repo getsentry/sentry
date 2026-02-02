@@ -1,16 +1,13 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import type {BaseAvatarProps} from '@sentry/scraps/avatar';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';

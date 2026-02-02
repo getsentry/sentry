@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import dataConsentImage from 'sentry-images/spot/add-integration-provider.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

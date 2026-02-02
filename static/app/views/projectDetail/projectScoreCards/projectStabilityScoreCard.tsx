@@ -1,5 +1,6 @@
+import {Button} from '@sentry/scraps/button';
+
 import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';

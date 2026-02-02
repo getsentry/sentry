@@ -1,6 +1,7 @@
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {InlineCode} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 

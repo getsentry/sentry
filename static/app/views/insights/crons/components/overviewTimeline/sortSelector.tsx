@@ -1,10 +1,7 @@
+import {CompositeSelect, type CompositeSelectProps} from '@sentry/scraps/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {
-  CompositeSelect,
-  type CompositeSelectProps,
-} from 'sentry/components/core/compactSelect/composite';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';

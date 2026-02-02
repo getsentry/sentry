@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import type {ButtonProps} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 

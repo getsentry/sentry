@@ -2,11 +2,12 @@ import {Fragment, useMemo, useRef} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -50,6 +51,7 @@ import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
+import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
@@ -221,6 +223,9 @@ export function EventDetailsContent({
         />
       )}
       <EventEvidence event={event} group={group} project={project} />
+      {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
+        <UptimeAssertionsSection event={event} />
+      )}
       {hasStreamlinedUI && issueTypeConfig.instrumentationFixSection.enabled && (
         <ErrorBoundary mini>
           <InstrumentationFixSection event={event} group={group} />
