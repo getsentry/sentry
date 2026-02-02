@@ -311,12 +311,12 @@ const screenLoadTable: Widget = {
       fields: [
         SpanFields.TRANSACTION,
         `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
-        `avg(${SpanFields.SPAN_DURATION})`,
+        `avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`,
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         `avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
-        `avg(${SpanFields.SPAN_DURATION})`,
+        `avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`,
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
