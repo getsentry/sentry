@@ -137,6 +137,7 @@ describe('LoaderScript', () => {
           hasFeedback: false,
           hasPerformance: false,
           hasReplay: false,
+          hasLogsAndMetrics: false,
         },
       },
     ]);
@@ -287,6 +288,7 @@ describe('LoaderScript', () => {
           hasFeedback: false,
           hasPerformance: false,
           hasReplay: false,
+          hasLogsAndMetrics: false,
         },
       },
     ]);

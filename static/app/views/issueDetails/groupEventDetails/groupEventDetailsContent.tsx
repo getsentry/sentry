@@ -51,6 +51,7 @@ import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
+import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
@@ -222,6 +223,9 @@ export function EventDetailsContent({
         />
       )}
       <EventEvidence event={event} group={group} project={project} />
+      {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
+        <UptimeAssertionsSection event={event} />
+      )}
       {hasStreamlinedUI && issueTypeConfig.instrumentationFixSection.enabled && (
         <ErrorBoundary mini>
           <InstrumentationFixSection event={event} group={group} />
