@@ -294,6 +294,8 @@ class TestRunMissingSdkIntegrationDetectorForOrganization(TestCase):
     def test_skips_project_without_repository_mapping(
         self, mock_apply_async: mock.MagicMock
     ) -> None:
+        self.project.platform = "python"
+        self.project.save()
         run_missing_sdk_integration_detector_for_organization(self.organization)
         # No task should be spawned for projects without code mappings
         assert not mock_apply_async.called
@@ -303,6 +305,8 @@ class TestRunMissingSdkIntegrationDetectorForOrganization(TestCase):
         "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
     def test_skips_inactive_repositories(self, mock_apply_async: mock.MagicMock) -> None:
+        self.project.platform = "python"
+        self.project.save()
         # Create a code mapping with an inactive repository
         code_mapping = self._create_code_mapping(self.project, "inactive-repo")
         code_mapping.repository.status = ObjectStatus.PENDING_DELETION
