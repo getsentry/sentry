@@ -3,6 +3,7 @@ import type {
   SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -15,7 +16,14 @@ export function makeProjectSeerPreferencesQueryKey(
   orgSlug: string,
   projectSlug: string
 ): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/seer/preferences/`];
+  return [
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+      },
+    }),
+  ];
 }
 
 export function useProjectSeerPreferences(project: Project) {

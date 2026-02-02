@@ -216,6 +216,7 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
                 group_open_period=open_period,
                 type=OpenPeriodActivityType.OPENED,
                 value=group.priority,
+                event_id=event_id,
             )
 
 

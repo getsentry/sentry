@@ -668,7 +668,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Size Analysis Builds'),
     productName: t('Size Analysis Build'),
     uid: 35,
-    isBilledCategory: false,
+    isBilledCategory: true,
     statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },

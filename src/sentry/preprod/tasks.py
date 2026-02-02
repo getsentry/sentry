@@ -281,14 +281,16 @@ def create_preprod_artifact(
             if head_sha and head_repo_name and provider and head_ref:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
                     organization_id=org_id,
+                    head_repo_name=head_repo_name,
                     head_sha=head_sha,
                     base_sha=base_sha,
-                    provider=provider,
-                    head_repo_name=head_repo_name,
-                    base_repo_name=base_repo_name,
-                    head_ref=head_ref,
-                    base_ref=base_ref,
-                    pr_number=pr_number,
+                    defaults={
+                        "provider": provider,
+                        "base_repo_name": base_repo_name,
+                        "head_ref": head_ref,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
+                    },
                 )
             else:
                 logger.info(

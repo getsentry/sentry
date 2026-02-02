@@ -29,7 +29,9 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = NPlusOneAPICallsDetector(self._settings, event)
+        detector = NPlusOneAPICallsDetector(
+            self._settings[NPlusOneAPICallsDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -454,7 +456,8 @@ def test_parameterizes_url(url: str, parameterized_url: str) -> None:
 )
 @pytest.mark.django_db
 def test_allows_eligible_spans(span: Span) -> None:
-    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    settings = get_detection_settings()[NPlusOneAPICallsDetector.settings_key]
+    detector = NPlusOneAPICallsDetector(settings, {})
     assert detector._is_span_eligible(span)
 
 
@@ -514,7 +517,8 @@ def test_allows_eligible_spans(span: Span) -> None:
 )
 @pytest.mark.django_db
 def test_rejects_ineligible_spans(span: Span) -> None:
-    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    settings = get_detection_settings()[NPlusOneAPICallsDetector.settings_key]
+    detector = NPlusOneAPICallsDetector(settings, {})
     assert not detector._is_span_eligible(span)
 
 
