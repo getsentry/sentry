@@ -96,7 +96,7 @@ class WorkflowData:
             "trigger_conditions": trigger_conditions,
         }
 
-        return json.dumps(workflow_data)
+        return json.dumps(workflow_data, sort_keys=True)
 
 
 def deduplicate_workflows(organization: Organization):
@@ -155,20 +155,21 @@ def deduplicate_workflows(organization: Organization):
 
             canonical_workflow_id = workflow_ids.pop()
 
-            try:
-                # Update the DetectorWorkflow references to use the canonical version
-                DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
-                    workflow_id=canonical_workflow_id
-                )
+            with transaction.atomic(router.db_for_write(Workflow)):
+                try:
+                    # Update the DetectorWorkflow references to use the canonical version
+                    DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
+                        workflow_id=canonical_workflow_id
+                    )
 
-                # Update AlertRuleWorkflow entries to point to the canonical workflow
-                AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
-                    workflow_id=canonical_workflow_id
-                )
-            except IntegrityError:
-                # the DetectorWorkflow or AlertRuleWorkflow connections that we're attempting to create
-                # already exist. We should just continue with the rest of the process for this workflow.
-                pass
+                    # Update AlertRuleWorkflow entries to point to the canonical workflow
+                    AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
+                        workflow_id=canonical_workflow_id
+                    )
+                except IntegrityError:
+                    # the DetectorWorkflow or AlertRuleWorkflow connections that we're attempting to create
+                    # already exist. We should just continue with the rest of the process for this workflow.
+                    pass
 
             # Before deleting workflows, clean up related models that won't be cascade deleted
             # Also deletes DataConditionGroupAction
