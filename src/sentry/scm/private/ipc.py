@@ -119,7 +119,7 @@ def serialize_event(event: SubscriptionEvent) -> bytearray:
     )
 
     buf = bytearray(64)
-    buf[0] = b"\x00"  # Version tag.
+    buf[0] = b"\x00"  # Version 0 tag.
     encoder.encode_into(structured_event, buf, offset=1)
     return buf
 
