@@ -363,7 +363,9 @@ function useWidgetBuilderState(): {
             // aggregate (FUNCTION kind) in state.fields, not yAxis
             setYAxis([], options);
             setLegendAlias([], options);
-            setLimit(undefined, options);
+            // Fetch more rows than displayed (10 categories max) to ensure accurate
+            // "Other" aggregation when there are many unique category values
+            setLimit(20, options);
 
             // Build the aggregate list from existing state, similar to time-series charts
             const nextAggregates = [
