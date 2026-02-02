@@ -218,6 +218,7 @@ describe('ProductUnavailableCTA', () => {
         reservedSeerAutofix: undefined,
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
+        reservedSizeAnalyses: undefined,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});
