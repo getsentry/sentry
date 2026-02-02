@@ -33,7 +33,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def __init__(
         self,
-        settings: dict[DetectorType, Any],
+        settings: dict[str, Any],
         event: dict[str, Any],
         organization: Organization | None = None,
         detector_id: int | None = None,
@@ -63,7 +63,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             return
 
         span_duration = get_span_duration(span).total_seconds() * 1000
-        if span_duration < self.settings.get("span_duration_threshold"):
+        if span_duration < self.settings["span_duration_threshold"]:
             return
 
         if self._overlaps_last_span(span):
@@ -76,16 +76,16 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         self.consecutive_http_spans.append(span)
 
     def _validate_and_store_performance_problem(self) -> None:
-        exceeds_count_threshold = len(self.consecutive_http_spans) >= self.settings.get(
-            "consecutive_count_threshold"
+        exceeds_count_threshold = (
+            len(self.consecutive_http_spans) >= self.settings["consecutive_count_threshold"]
         )
         if not exceeds_count_threshold:
             return
 
         exceeds_min_time_saved_duration = False
         if self.consecutive_http_spans:
-            exceeds_min_time_saved_duration = self._calculate_time_saved() >= self.settings.get(
-                "min_time_saved"
+            exceeds_min_time_saved_duration = (
+                self._calculate_time_saved() >= self.settings["min_time_saved"]
             )
         if not exceeds_min_time_saved_duration:
             return
@@ -94,7 +94,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             get_duration_between_spans(
                 self.consecutive_http_spans[idx - 1], self.consecutive_http_spans[idx]
             )
-            < self.settings.get("max_duration_between_spans")
+            < self.settings["max_duration_between_spans"]
             for idx in range(1, len(self.consecutive_http_spans))
         )
         if not subceeds_duration_between_spans_threshold:

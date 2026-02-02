@@ -37,7 +37,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         self, event: dict[str, Any], settings: dict[DetectorType, Any] | None = None
     ) -> list[PerformanceProblem]:
         detector_settings = settings or self._settings
-        detector = self.detector(detector_settings, event)
+        detector = self.detector(detector_settings[self.detector.settings_key], event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -220,7 +220,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
-        detector = self.detector(settings, event)
+        detector = self.detector(settings[self.detector.settings_key], event)
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -231,7 +231,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         )
 
         settings = get_detection_settings(project.id)
-        detector = self.detector(settings, event)
+        detector = self.detector(settings[self.detector.settings_key], event)
 
         assert not detector.is_creation_allowed_for_project(project)
 
