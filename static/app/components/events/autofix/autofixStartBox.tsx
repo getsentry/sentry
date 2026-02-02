@@ -48,15 +48,14 @@ function getStoppingPointOptions(organization: Organization) {
       key: AutofixStoppingPoint.OPEN_PR,
       label: t('Draft a Pull Request'),
       value: AutofixStoppingPoint.OPEN_PR,
-      disabled: false,
-      tooltip: undefined,
+      disabled: !organization.enableSeerCoding,
+      tooltip: t('Code generation is disabled for this organization'),
     },
   ] as const;
 }
 
 export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const organization = useOrganization();
-  organization.enableSeerCoding = false;
   const [message, setMessage] = useState('');
   const [selectedStoppingPoint, setSelectedStoppingPoint] =
     useLocalStorageState<AutofixStoppingPoint>(
