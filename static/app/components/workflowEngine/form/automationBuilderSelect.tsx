@@ -1,7 +1,7 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
 
 export function AutomationBuilderSelect(props: ComponentProps<typeof Select>) {
   return (

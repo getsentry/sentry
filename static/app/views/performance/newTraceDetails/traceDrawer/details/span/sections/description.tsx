@@ -2,12 +2,12 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {CodeBlock} from '@sentry/scraps/code';
+import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Image} from 'sentry/components/core/image/image';
-import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';

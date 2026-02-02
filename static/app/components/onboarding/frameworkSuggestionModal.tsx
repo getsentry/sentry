@@ -6,10 +6,11 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {Radio} from '@sentry/scraps/radio';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import {Button} from 'sentry/components/core/button';
-import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';

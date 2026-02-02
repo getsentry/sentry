@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import * as Storybook from 'sentry/stories';
 

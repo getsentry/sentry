@@ -1,11 +1,10 @@
 import invariant from 'invariant';
 
-import {Flex} from '@sentry/scraps/layout';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';

@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {OverlayTrigger} from 'sentry/components/core/overlayTrigger';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 

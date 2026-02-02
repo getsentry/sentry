@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';

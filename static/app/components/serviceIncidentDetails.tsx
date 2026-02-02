@@ -5,9 +5,10 @@ import color from 'color';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Prose} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Prose} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';

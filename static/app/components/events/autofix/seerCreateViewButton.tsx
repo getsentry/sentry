@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';

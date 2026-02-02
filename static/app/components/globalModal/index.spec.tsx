@@ -6,8 +6,9 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
-import {Tooltip} from 'sentry/components/core/tooltip';
 
 describe('GlobalModal', () => {
   beforeEach(() => {

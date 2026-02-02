@@ -2,11 +2,11 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {AvatarList} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';

@@ -24,7 +24,6 @@ from sentry.seer.code_review.webhooks.task import (
     process_github_webhook_event,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 
 
 class ProcessGitHubWebhookEventTest(TestCase):
@@ -447,6 +446,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     "owner": "test-owner",
                     "name": "test-repo",
                     "external_id": "123456",
+                    "base_commit_sha": "abc123",
                 },
                 "pr_id": 123,
                 "bug_prediction_specific_information": {
@@ -475,12 +475,9 @@ class ProcessGitHubWebhookEventTest(TestCase):
         pr_call = mock_request.call_args
         assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
 
-    @override_options({"seer.code_review.validate_webhook_payload": True})
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_validation_enabled_converts_enum_keys_to_strings(
-        self, mock_request: MagicMock
-    ) -> None:
-        """Test that when validation is enabled, enum keys are properly converted to strings.
+    def test_validation_converts_enum_keys_to_strings(self, mock_request: MagicMock) -> None:
+        """Test that validation converts enum keys to strings for JSON serialization.
 
         This test verifies the fix for the Pydantic v1 enum key serialization bug:
         - Pydantic v1 converts string keys to enum members during parsing
@@ -541,41 +538,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         for key in features.keys():
             assert isinstance(key, str), f"Expected string key, got {type(key)}"
 
-    @override_options({"seer.code_review.validate_webhook_payload": False})
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_validation_disabled_skips_pydantic_parsing(self, mock_request: MagicMock) -> None:
-        """Test that when validation is disabled, payload is passed through without Pydantic parsing."""
-        mock_request.return_value = self._mock_response(200, b"{}")
-
-        event_payload = {
-            "request_type": "pr-review",
-            "external_owner_id": "456",
-            "data": {
-                "repo": {
-                    "provider": "github",
-                    "owner": "test-owner",
-                    "name": "test-repo",
-                    "external_id": "123456",
-                    "base_commit_sha": "abc123",
-                },
-                "pr_id": 123,
-                "bug_prediction_specific_information": {
-                    "organization_id": 789,
-                    "organization_slug": "test-org",
-                },
-            },
-        }
-
-        process_github_webhook_event._func(
-            github_event=GithubWebhookType.PULL_REQUEST,
-            event_payload=event_payload,
-            enqueued_at_str=self.enqueued_at_str,
-        )
-
-        # Verify the request was made with the original payload (no validation)
-        assert mock_request.call_count == 1
-
-    @override_options({"seer.code_review.validate_webhook_payload": True})
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_pr_review_validation_passes_without_organization_id(
         self, mock_request: MagicMock
@@ -616,7 +578,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         assert mock_request.call_count == 1
 
-    @override_options({"seer.code_review.validate_webhook_payload": True})
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_pr_closed_validation_fails_without_organization_id(
         self, mock_request: MagicMock
@@ -663,7 +624,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         errors = exc_info.value.errors()
         assert any("organization_id" in str(error) for error in errors)
 
-    @override_options({"seer.code_review.validate_webhook_payload": True})
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_pr_closed_validation_fails_without_integration_id(
         self, mock_request: MagicMock
@@ -710,7 +670,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         errors = exc_info.value.errors()
         assert any("integration_id" in str(error) for error in errors)
 
-    @override_options({"seer.code_review.validate_webhook_payload": True})
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_pr_closed_validation_passes_with_required_fields(
         self, mock_request: MagicMock

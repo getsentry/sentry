@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';

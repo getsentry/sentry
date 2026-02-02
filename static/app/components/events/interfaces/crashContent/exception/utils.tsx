@@ -2,8 +2,9 @@ import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {isUrl} from 'sentry/utils/string/isUrl';
 

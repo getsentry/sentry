@@ -1,13 +1,13 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Access from 'sentry/components/acl/access';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';

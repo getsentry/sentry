@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import type {ApiResult} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
@@ -15,13 +14,11 @@ import {
   type IssuesSeriesResponse,
 } from 'sentry/views/dashboards/datasetConfig/issues';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
-import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -30,35 +27,6 @@ const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
 
 type IssuesTableResponse = Group[];
-
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  return cleanWidgetForRequest(processedWidget);
-}
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -78,7 +46,8 @@ export function useIssuesSeriesQuery(
   const prevRawDataRef = useRef<IssuesSeriesResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -249,7 +218,8 @@ export function useIssuesTableQuery(
   const prevRawDataRef = useRef<IssuesTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 

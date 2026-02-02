@@ -3131,6 +3131,11 @@ register(
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.evalsha-cumulative-logger-enabled",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
@@ -3919,16 +3924,6 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Controls whether to validate webhook payloads with Pydantic before sending to Seer
-# This is disabled by default to avoid potential issues with enum key serialization
-# until the validation is fully tested and deployed
-register(
-    "seer.code_review.validate_webhook_payload",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Enabled Prebuilt Dashboard IDs

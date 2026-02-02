@@ -1,10 +1,10 @@
+import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import DocIntegrationModal from 'admin/components/docIntegrationModal';

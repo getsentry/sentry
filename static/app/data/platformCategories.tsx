@@ -463,6 +463,9 @@ export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
 
 export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'android',
+  'apple',
+  'bun',
+  'electron',
   'go',
   'java',
   'javascript',

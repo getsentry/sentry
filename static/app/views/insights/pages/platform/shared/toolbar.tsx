@@ -1,4 +1,5 @@
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeSorts} from 'sentry/utils/queryString';

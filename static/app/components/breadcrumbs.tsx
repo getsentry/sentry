@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import type {LinkProps} from 'sentry/components/core/link';
-import {Link} from 'sentry/components/core/link';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconSlashForward} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';

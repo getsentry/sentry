@@ -1,8 +1,9 @@
 import type {MouseEvent, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import Stacked from 'sentry/components/container/stacked';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
