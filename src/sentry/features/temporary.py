@@ -727,6 +727,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:trace-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Triage signals V0 for AI powered issue classification in sentry
     manager.add("projects:triage-signals-v0", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the new Replay pipeline in Relay.
+    manager.add("organizations:new-replay-processing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     manager.add("projects:project-detail-apple-app-hang-rate", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # fmt: on
