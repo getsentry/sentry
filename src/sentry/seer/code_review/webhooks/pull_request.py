@@ -149,9 +149,11 @@ def handle_pull_request_event(
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
-        github_rate_limit_sensitive = features.has(
-            "organizations:github-rate-limit-sensitive", organization
-        )
+        if features.has("organizations:github-rate-limit-sensitive", organization):
+            reactions_to_delete = []
+        else:
+            reactions_to_delete = [GitHubReaction.HOORAY]
+
         delete_existing_reactions_and_adds_reaction(
             github_event=github_event,
             github_event_action=action_value,
@@ -160,7 +162,7 @@ def handle_pull_request_event(
             repo=repo,
             pr_number=str(pr_number),
             comment_id=None,
-            reactions_to_delete=[] if github_rate_limit_sensitive else [GitHubReaction.HOORAY],
+            reactions_to_delete=reactions_to_delete,
             reaction_to_add=GitHubReaction.EYES,
             extra=extra,
         )
