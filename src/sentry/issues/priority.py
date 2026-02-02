@@ -41,6 +41,7 @@ def update_priority(
     actor: User | RpcUser | None = None,
     project: Project | None = None,
     is_regression: bool = False,
+    event_id: str | None = None,
 ) -> None:
     """
     Update the priority of a group and record the change in the activity and group history.
@@ -109,6 +110,7 @@ def update_priority(
                 group_open_period=open_period,
                 type=OpenPeriodActivityType.OPENED,
                 value=priority,
+                event_id=event_id,
             )
     else:
         # make a new activity entry
@@ -116,6 +118,7 @@ def update_priority(
             group_open_period=open_period,
             type=OpenPeriodActivityType.STATUS_CHANGE,
             value=priority,
+            event_id=event_id,
         )
 
 
