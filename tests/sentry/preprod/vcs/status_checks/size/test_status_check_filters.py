@@ -581,7 +581,7 @@ class StatusCheckFiltersTest(TestCase):
 
         head_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
-            head_sha="a" * 40,
+            head_sha="d" * 40,
             base_sha="b" * 40,
             provider="github",
             head_repo_name="owner/repo",
@@ -635,7 +635,7 @@ class StatusCheckFiltersTest(TestCase):
 
         head_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
-            head_sha="a" * 40,
+            head_sha="e" * 40,
             base_sha="b" * 40,
             provider="github",
             head_repo_name="owner/repo",
@@ -683,7 +683,7 @@ class StatusCheckFiltersTest(TestCase):
 
         head_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
-            head_sha="a" * 40,
+            head_sha="f" * 40,
             base_sha="b" * 40,
             provider="github",
             head_repo_name="owner/repo",
