@@ -250,7 +250,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise NotFound from e
         except SnubaRPCRateLimitExceeded as e:
             sentry_sdk.capture_exception()
-            raise Throttled(detail=str(e)) from e
+            raise Throttled(detail="Rate limit exceeded") from e
         except Exception as e:
             if in_test_environment():
                 raise
