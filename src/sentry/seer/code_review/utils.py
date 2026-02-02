@@ -365,6 +365,8 @@ def extract_github_info(
             - github_event_url: URL to the specific event (check_run, pull_request, or comment)
             - github_event: The GitHub event type
             - github_event_action: The event action (e.g., "opened", "closed", "created")
+            - github_actor_login: The GitHub username who triggered the action
+            - github_actor_id: The GitHub user ID (as string)
     """
     result: dict[str, str | None] = {
         "github_owner": None,
@@ -373,6 +375,8 @@ def extract_github_info(
         "github_event_url": None,
         "github_event": github_event,
         "github_event_action": None,
+        "github_actor_login": None,
+        "github_actor_id": None,
     }
 
     repository = event.get("repository", {})
@@ -404,6 +408,12 @@ def extract_github_info(
             if html_url := pull_request_data.get("html_url"):
                 if result["github_event_url"] is None:
                     result["github_event_url"] = html_url
+
+    if sender := event.get("sender"):
+        if actor_login := sender.get("login"):
+            result["github_actor_login"] = actor_login
+        if actor_id := sender.get("id"):
+            result["github_actor_id"] = str(actor_id)
 
     return result
 

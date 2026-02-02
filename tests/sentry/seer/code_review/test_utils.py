@@ -318,6 +318,8 @@ class TestExtractGithubInfo:
         assert result["github_event_url"] == "https://github.com/baxterthehacker/public-repo/pull/1"
         assert result["github_event"] == "pull_request"
         assert result["github_event_action"] == "opened"
+        assert result["github_actor_login"] == "baxterthehacker"
+        assert result["github_actor_id"] == "6752317"
 
     def test_extract_from_check_run_event(self) -> None:
         event = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
@@ -329,6 +331,8 @@ class TestExtractGithubInfo:
         assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/4"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "rerequested"
+        assert result["github_actor_login"] == "test-user"
+        assert result["github_actor_id"] == "12345678"
 
     def test_extract_from_check_run_completed_event(self) -> None:
         event = orjson.loads(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
@@ -340,6 +344,8 @@ class TestExtractGithubInfo:
         assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/9876543"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "completed"
+        assert result["github_actor_login"] == "test-user"
+        assert result["github_actor_id"] == "12345678"
 
     def test_extract_from_issue_comment_event(self) -> None:
         event = {
@@ -359,6 +365,10 @@ class TestExtractGithubInfo:
                 "html_url": "https://github.com/comment-owner/comment-repo/pull/42#issuecomment-123456",
                 "id": 123456,
             },
+            "sender": {
+                "login": "commenter-user",
+                "id": 98765,
+            },
         }
         result = extract_github_info(event, github_event="issue_comment")
 
@@ -371,6 +381,8 @@ class TestExtractGithubInfo:
         )
         assert result["github_event"] == "issue_comment"
         assert result["github_event_action"] == "created"
+        assert result["github_actor_login"] == "commenter-user"
+        assert result["github_actor_id"] == "98765"
 
     def test_comment_url_takes_precedence_over_pr_url(self) -> None:
         event = {
@@ -424,6 +436,8 @@ class TestExtractGithubInfo:
         assert result["github_event_url"] is None
         assert result["github_event"] is None
         assert result["github_event_action"] is None
+        assert result["github_actor_login"] is None
+        assert result["github_actor_id"] is None
 
     def test_missing_repository_owner_returns_none(self) -> None:
         event = {"repository": {"name": "repo-without-owner"}}
