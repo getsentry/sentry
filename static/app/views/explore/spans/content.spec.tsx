@@ -158,6 +158,9 @@ describe('ExploreContent', () => {
       await waitFor(() => {
         expect(pageFiltersActionCreators.updateDateTime).toHaveBeenCalledWith({
           period: '7d',
+          start: null,
+          end: null,
+          utc: null,
         });
       });
     });

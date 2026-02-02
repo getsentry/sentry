@@ -117,7 +117,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     );
 
     if (days > MAX_DAYS_FOR_CROSS_EVENTS) {
-      updateDateTime({period: '7d', start: null, end: null});
+      updateDateTime({period: '7d', start: null, end: null, utc: null});
     }
   }, [
     hasCrossEvents,
