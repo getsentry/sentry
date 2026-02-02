@@ -8,7 +8,7 @@
 
 **Related**: [NEW-683](https://linear.app/getsentry/issue/NEW-683/add-test-monitor-to-the-uptime-monitor-configuration) - Add "test monitor" to uptime monitor configuration
 
-**Status**: In Progress (Backend + Frontend Complete, Blocked on GCP Permissions)
+**Status**: In Progress (Backend + Frontend Complete, End-to-End Tested Locally)
 **Project**: Uptime Response Assertions
 **Team**: New Products
 
@@ -64,8 +64,8 @@ suggestions = state.get_artifact("assertions", AssertionSuggestions)
    - `~/code/sentry` - Main Sentry repo
    - `~/code/seer` - Seer AI service
    - `~/code/uptime-checker` - Uptime checker service (Rust)
-2. **Vertex AI access**: Required for LLM calls. You should have access to the `ml-ai` GCP project by default. If not, ask in `#discuss-seer-infra`.
-3. **GCP auth**: Run `gcloud auth application-default login` if needed.
+2. **Vertex AI access**: Required for LLM calls. You need access to the `ml-ai-420606` GCP project (note: the project ID is `ml-ai-420606`, not `ml-ai`). Request "Service Usage Consumer" IAM role if needed - ask in `#discuss-seer-infra`.
+3. **GCP auth**: Run `gcloud auth application-default login` and set the quota project (see Step 2 below).
 
 ### Step-by-Step Setup
 
@@ -117,58 +117,68 @@ RPC_SHARED_SECRET="seers-also-very-long-value-haha"
 APP_PORT=9091
 
 # GCP/Vertex AI configuration (required for Seer Explorer LLM calls)
-GOOGLE_CLOUD_PROJECT=ml-ai  # Or your project with Vertex AI access
+# IMPORTANT: Use the project ID (ml-ai-420606), not the display name (ml-ai)
+GOOGLE_CLOUD_PROJECT=ml-ai-420606
 ```
 
 **GCP Authentication** (required for Vertex AI):
 
 ```bash
 gcloud auth application-default login
-gcloud auth application-default set-quota-project ml-ai  # Or your project
+gcloud auth application-default set-quota-project ml-ai-420606
 ```
 
-You need the "Service Usage Consumer" IAM role on the GCP project to make Vertex AI API calls.
+You need the "Service Usage Consumer" IAM role on the GCP project to make Vertex AI API calls. If you get `CONSUMER_INVALID` errors, verify:
+
+1. The project ID is correct (`ml-ai-420606`, not `ml-ai`)
+2. You have the IAM role (request in `#discuss-seer-infra` if needed)
+3. Re-run `gcloud auth application-default login` after getting the role
 
 Run Seer database migrations (first time only):
 
 ```bash
 cd ~/code/seer
-source .venv/bin/activate
-SEER_ENVIRONMENT=local alembic upgrade head
+make update
 ```
 
 #### Step 3: Start Services (in order)
 
-**Terminal 1 - Sentry Devserver:**
+**Terminal 1 - Start devservices (from Sentry directory):**
 
 ```bash
 cd ~/code/sentry
-sentry devserver
+devservices up --mode=uptime  # Starts Sentry + uptime dependencies
+devservices up seer           # Starts Seer's dependencies (RabbitMQ, PostgreSQL)
+```
+
+Note: `devservices` is installed in Sentry's venv, so run it from the Sentry directory.
+
+**Terminal 2 - Sentry Devserver:**
+
+```bash
+cd ~/code/sentry
+sentry devserver --workers --ingest
 ```
 
 Wait for devserver to fully start (watch for "Booting worker" messages).
 
-**Terminal 2 - Seer:**
+**Terminal 3 - Seer:**
 
 ```bash
 cd ~/code/seer
-source .venv/bin/activate
-flask run -p 9091
+make dev
 ```
 
+This starts the Granian web server (FastAPI), Celery workers, and Flower dashboard.
 Verify with: `curl http://127.0.0.1:9091/health/live`
 
-**Terminal 3 - Uptime Checker:**
+> **Note**: Seer uses FastAPI + Granian, not Flask. `make dev` calls `devservices up` and `devservices serve` internally. If you get "devservices not found", run `devservices up seer` from the Sentry directory first, then use `./devserver.sh` directly in Seer.
+
+**Terminal 4 - Uptime Checker:**
 
 ```bash
 cd ~/code/uptime-checker
-cargo run -- --config config/local.toml --region default
-```
-
-Or if you have a pre-built binary:
-
-```bash
-./target/debug/uptime-checker --config config/local.toml --region default
+make run-verbose
 ```
 
 The checker listens on port 12345 by default.
@@ -221,13 +231,16 @@ pip uninstall psycopg psycopg-binary
 
 ### Service Ports Reference
 
-| Service        | Port  | URL                    |
-| -------------- | ----- | ---------------------- |
-| Sentry Web     | 9000  | http://localhost:9000  |
-| Seer           | 9091  | http://127.0.0.1:9091  |
-| Uptime Checker | 12345 | http://localhost:12345 |
-| PostgreSQL     | 5432  | (via devservices)      |
-| Redis          | 6379  | (via devservices)      |
+| Service             | Port  | URL                    |
+| ------------------- | ----- | ---------------------- |
+| Sentry Web          | 9000  | http://localhost:9000  |
+| Seer                | 9091  | http://127.0.0.1:9091  |
+| Uptime Checker      | 12345 | http://localhost:12345 |
+| PostgreSQL (Sentry) | 5432  | (via devservices)      |
+| PostgreSQL (Seer)   | 5433  | (via devservices)      |
+| Redis               | 6379  | (via devservices)      |
+| RabbitMQ            | 5672  | (via devservices)      |
+| Flower (Celery UI)  | 5555  | http://localhost:5555  |
 
 ---
 
@@ -280,36 +293,28 @@ pip uninstall psycopg psycopg-binary
 2. **Seer Explorer Client tested** - Successfully created runs
 3. **Uptime-checker running locally** - Preview check endpoint working
 
-### ⚠️ Blocked: GCP/Vertex AI Permissions
+### ✅ Resolved: GCP/Vertex AI Permissions
 
-**Issue**: Seer Explorer requires Vertex AI access via GCP, but local development is blocked by permission errors.
+**Issue**: Seer Explorer requires Vertex AI access via GCP.
 
-**Error encountered**:
-
-```
-Error code: 403 - {'error': {'code': 403, 'message': 'Permission denied on resource project ml-ai.',
-'status': 'PERMISSION_DENIED', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo',
-'reason': 'CONSUMER_INVALID', 'domain': 'googleapis.com',
-'metadata': {'service': 'aiplatform.googleapis.com', 'containerInfo': 'ml-ai', 'consumer': 'projects/ml-ai'}}]}}
-```
-
-**Root cause**: The `CONSUMER_INVALID` error means the user's GCP application-default credentials don't have the `serviceusage.services.use` permission on the `ml-ai` project, which is required to make Vertex AI API calls.
+**Key learning**: The GCP project ID is `ml-ai-420606`, NOT `ml-ai`. GCP projects have both a display name and a project ID - they're different!
 
 **Required Seer configuration** (`~/code/seer/.env`):
 
 ```bash
 # GCP/Vertex AI configuration for Seer Explorer LLM calls
-GOOGLE_CLOUD_PROJECT=ml-ai  # Or another project with Vertex AI enabled
+# IMPORTANT: Use project ID (ml-ai-420606), not display name (ml-ai)
+GOOGLE_CLOUD_PROJECT=ml-ai-420606
 ```
 
-**To resolve**:
+**Setup steps**:
 
-1. Request "Service Usage Consumer" IAM role on `ml-ai` project, OR
-2. Use a different GCP project where you have Vertex AI access
-3. Run `gcloud auth application-default login` with correct account
-4. Run `gcloud auth application-default set-quota-project <project-id>`
+1. Request "Service Usage Consumer" IAM role on `ml-ai-420606` project (ask in `#discuss-seer-infra`)
+2. Run `gcloud auth application-default login`
+3. Run `gcloud auth application-default set-quota-project ml-ai-420606`
+4. If you just got the IAM role, re-run step 2 to pick up the new permissions
 
-**Note**: Being able to see a project in GCP Console doesn't mean your local ADC credentials have API access. The IAM permissions are separate.
+**Common error**: If you see `CONSUMER_INVALID` errors, double-check you're using the project ID (`ml-ai-420606`) not the display name (`ml-ai`).
 
 ### Local Dev Configuration
 
@@ -340,7 +345,8 @@ RPC_SHARED_SECRET="seers-also-very-long-value-haha"
 APP_PORT=9091
 
 # GCP/Vertex AI configuration (required for Seer Explorer LLM calls)
-GOOGLE_CLOUD_PROJECT=ml-ai  # Or your project with Vertex AI access
+# IMPORTANT: Use project ID, not display name
+GOOGLE_CLOUD_PROJECT=ml-ai-420606
 ```
 
 **Important**: Keep Sentry and Seer in separate virtual environments. Seer uses `psycopg3` while Sentry uses `psycopg2-binary` - mixing them causes SQL syntax errors.
@@ -448,16 +454,37 @@ Modify the uptime-checker's `/execute_config` endpoint to always include respons
 ## Next Steps
 
 1. [x] ~~Set up Seer repo locally~~ ✅
-2. [ ] **BLOCKED**: Verify Vertex AI access - Need GCP permissions (see "Blocked: GCP/Vertex AI Permissions" above)
+2. [x] ~~Verify Vertex AI access~~ ✅ - Resolved with correct project ID (`ml-ai-420606`)
 3. [x] ~~Create uptime-checker PR~~ ✅ - Added `always_capture_response` flag (branch: `jaygoss/uptime-assertions-ai`)
 4. [x] ~~Create Sentry PR~~ ✅ - Using new flag in preview checks (branch: `jaygoss/uptime-assertions-ai`)
 5. [x] ~~Design the assertion suggestion prompt~~ ✅ - See `seer_assertions.py:build_assertion_prompt()`
 6. [x] ~~Create API endpoint for suggestions~~ ✅ - `POST /api/0/organizations/{org}/uptime-assertion-suggestions/`
 7. [x] ~~Frontend integration~~ ✅ - Added `AssertionSuggestionsButton` component with modal UI
-8. [ ] Resolve GCP permissions issue (request IAM role or use different project)
-9. [ ] Test end-to-end with working Vertex AI access
+8. [x] ~~Resolve GCP permissions issue~~ ✅ - Key: use project ID `ml-ai-420606`, not display name `ml-ai`
+9. [x] ~~Test end-to-end with working Vertex AI access~~ ✅ - Working locally
 10. [ ] Create and merge PRs for uptime-checker and Sentry
-11. [ ] Reach out in `#proj-seer-explorer` or `#discuss-seer-infra` for GCP access help
+11. [ ] Production testing and rollout
+
+---
+
+## Performance Characteristics
+
+Seer Explorer assertion suggestions take approximately **20-25 seconds** to complete. This is due to the agentic architecture:
+
+**Typical request breakdown**:
+
+```
+Task received
+├── First LLM call: ~16 seconds (main analysis of HTTP response)
+├── Second LLM call: ~5 seconds (structured output generation)
+└── Total: ~20-25 seconds
+```
+
+**Model used**: `claude-sonnet-4-5@20250929` via Vertex AI
+
+This timing is expected and similar in production since the LLM calls go through the same cloud infrastructure. The local environment doesn't add significant overhead.
+
+**Note**: The Celery worker log may show a harmless `AttributeError: '_MainProcess' object has no attribute 'index'` when running with `--pool=solo` locally. This doesn't affect functionality.
 
 ---
 
@@ -611,4 +638,4 @@ sentry django shell < scripts/test_seer_explorer.py
 ---
 
 _Research conducted: January 2026_
-_Last updated: January 31, 2026_
+_Last updated: February 2, 2026_
