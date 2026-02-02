@@ -52,6 +52,11 @@ const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
   maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
 };
 
+function useHasCrossEvents() {
+  const crossEvents = useQueryParamsCrossEvents();
+  return defined(crossEvents) && crossEvents.length > 0;
+}
+
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
@@ -64,13 +69,11 @@ export function ExploreContent() {
 
 function ExploreContentInner() {
   const organization = useOrganization();
+  const hasCrossEvents = useHasCrossEvents();
   const onboardingProject = useOnboardingProject();
   const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
-
-  const crossEvents = useQueryParamsCrossEvents();
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const maxPickableDays = hasCrossEvents
     ? CROSS_EVENTS_DATE_OVERRIDE
@@ -102,8 +105,7 @@ function ExploreContentInner() {
 
 function SpansTabWrapper({children}: SpansTabContextProps) {
   const pageFilters = usePageFilters();
-  const crossEvents = useQueryParamsCrossEvents();
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+  const hasCrossEvents = useHasCrossEvents();
 
   useEffect(() => {
     if (!hasCrossEvents) return;
