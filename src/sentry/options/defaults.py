@@ -1113,9 +1113,13 @@ register(
 )
 
 # Code Review A/B Testing Experiments
-# List of (experiment_name, rollout_rate) tuples evaluated in order
-# rollout_rate: 0.0 = disabled, 1.0 = fully released, 0.5 = 50% of PRs
-# Example: [["noop-experiment", 0.5], ["cost-optimized", 0.3]]
+# List of (experiment_name, weight) tuples using proportional weight allocation
+# Weight system works like CSS flex-grow: relative values determine proportions
+# weight: 0 = disabled, positive values determine proportion of traffic
+# Examples:
+#   [["a", 1], ["b", 1]] → 50% A, 50% B (equal weights)
+#   [["a", 10], ["b", 1]] → 90.9% A, 9.1% B (10:1 ratio)
+#   [["a", 3], ["b", 2], ["c", 1]] → 50% A, 33% B, 17% C
 register(
     "code-review.experiments",
     default=[],

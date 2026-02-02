@@ -5,28 +5,24 @@ from sentry.models.organization import Organization
 from sentry.users.models.user import User
 
 
-def _hash_assignment_key(key: str, rollout_rate: float, granularity: int = 100) -> bool:
+def _get_hash_bucket(key: str, granularity: int = 100) -> int:
     """
-    Deterministically decide if a key should be included in a rollout.
+    Get a deterministic hash bucket for a key.
 
     Uses SHA1 hashing to create consistent assignment across the same key.
 
     Args:
-        key: The assignment key (e.g., "org_id:pr_id:experiment_name")
-        rollout_rate: Percentage as float (0.0 to 1.0)
-        granularity: Modulo granularity (default 100 for percentage)
+        key: The assignment key (e.g., "org_id:pr_id")
+        granularity: Modulo granularity (default 100 for percentage-based bucketing)
 
     Returns:
-        True if the key is included in the rollout, False otherwise
+        Integer bucket value between 0 and granularity-1
     """
     # Hash the key to get a consistent number
     hash_value = int(hashlib.sha1(key.encode("utf-8")).hexdigest(), 16)
 
     # Use modulo to get a value between 0 and granularity-1
-    bucket = hash_value % granularity
-
-    # Check if this bucket is within the rollout percentage
-    return bucket < (granularity * rollout_rate)
+    return hash_value % granularity
 
 
 def get_code_review_experiment(
@@ -37,9 +33,9 @@ def get_code_review_experiment(
     """
     Determine which experiment this PR should be assigned to.
 
-    Evaluates experiments in order from the code-review.experiments option.
-    First matching experiment wins. Uses deterministic hashing for per-PR
-    variable assignment.
+    Uses a weight-based system (like CSS flex-grow) where experiment weights
+    determine proportional assignment. Each PR is hashed once to a bucket,
+    then assigned based on cumulative weight ranges.
 
     Args:
         organization: The organization owning the PR
@@ -50,14 +46,17 @@ def get_code_review_experiment(
         Experiment name (e.g., "noop-experiment", "cost-optimized") or "baseline"
 
     Examples:
-        >>> # Option: [["noop", 1.0], ["cost", 0.5]]
-        >>> # All PRs get "noop" (100% rollout takes priority)
+        >>> # Option: [["a", 1], ["b", 1]]
+        >>> # Equal weights → 50% A, 50% B, 0% baseline
         >>>
-        >>> # Option: [["noop", 0.0], ["cost", 0.5]]
-        >>> # noop disabled, 50% of PRs get "cost", 50% get "baseline"
+        >>> # Option: [["a", 10], ["b", 1]]
+        >>> # Weighted 10:1 → 90.9% A, 9.1% B, 0% baseline
+        >>>
+        >>> # Option: [["a", 0]]
+        >>> # Weight 0 = disabled → 100% baseline
         >>>
         >>> # Option: []
-        >>> # No experiments configured → all PRs get "baseline"
+        >>> # No experiments → 100% baseline
     """
     # Check if org is eligible for experiments via Flagpole
     if not features.has(
@@ -70,21 +69,26 @@ def get_code_review_experiment(
     # Get experiment configurations from Options
     experiments: list[tuple[str, float]] = options.get("code-review.experiments")
 
-    # Evaluate experiments in order - first match wins
-    for experiment_name, rollout_rate in experiments:
-        # Skip disabled experiments
-        if rollout_rate <= 0.0:
-            continue
+    # Filter out disabled experiments (weight 0) and calculate total weight
+    active_experiments = [(name, weight) for name, weight in experiments if weight > 0]
 
-        # Fully released experiment (100%)
-        if rollout_rate >= 1.0:
+    if not active_experiments:
+        return "baseline"
+
+    total_weight = sum(weight for _, weight in active_experiments)
+
+    # Hash PR once to get consistent bucket (0-99)
+    assignment_key = f"{organization.id}:{pr_id}"
+    bucket = _get_hash_bucket(assignment_key, granularity=100)
+
+    # Assign based on cumulative weight ranges
+    cumulative = 0.0
+    for experiment_name, weight in active_experiments:
+        # Calculate cumulative threshold as percentage (0-100)
+        cumulative += (weight / total_weight) * 100
+
+        if bucket < cumulative:
             return experiment_name
 
-        # Per-PR variable assignment using hash of org + PR + experiment
-        # Including experiment_name ensures independent rollout per experiment
-        assignment_key = f"{organization.id}:{pr_id}:{experiment_name}"
-        if _hash_assignment_key(assignment_key, rollout_rate):
-            return experiment_name
-
-    # No experiment matched
+    # Fallback (should not reach here due to floating point precision)
     return "baseline"
