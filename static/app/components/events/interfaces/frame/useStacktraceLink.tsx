@@ -1,5 +1,6 @@
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -46,7 +47,15 @@ const stacktraceLinkQueryKey = (
   orgSlug: string,
   projectSlug: string | undefined,
   query: StacktraceLinkQuery
-): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/stacktrace-link/`, {query}];
+): ApiQueryKey => [
+  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      projectIdOrSlug: projectSlug!,
+    },
+  }),
+  {query},
+];
 
 function useStacktraceLink(
   {event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps,

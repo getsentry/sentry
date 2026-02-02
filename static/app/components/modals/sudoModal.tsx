@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -112,7 +113,7 @@ function SudoModal({
     data: authenticators = [],
     isFetching: authenticatorsFetching,
     isFetchedAfterMount: authenticatorsLoaded,
-  } = useApiQuery<Authenticator[]>(['/authenticators/'], {
+  } = useApiQuery<Authenticator[]>([getApiUrl('/authenticators/')], {
     // Fetch authenticators after preload requests to avoid overwriting session cookie
     enabled: !bootstrapIsPending,
     staleTime: 0,

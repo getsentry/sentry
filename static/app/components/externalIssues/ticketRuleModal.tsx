@@ -29,6 +29,7 @@ import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -60,7 +61,12 @@ function makeIntegrationIssueConfigTicketRuleQueryKey({
   query?: Record<string, string>;
 }): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/integrations/${integrationId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        integrationId,
+      },
+    }),
     {query: {ignored: IGNORED_FIELDS, ...query}},
   ];
 }

@@ -12,7 +12,7 @@ function ImageViewer({onLoad, onError, className, ...props}: Props) {
     <img
       className={className}
       data-test-id="image-viewer"
-      src={getAttachmentUrl(props, true)}
+      src={`/api/0${getAttachmentUrl(props)}?download`}
       onLoad={onLoad}
       onError={onError}
     />

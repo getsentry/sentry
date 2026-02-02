@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -22,7 +23,11 @@ const makeAskSeerQueryKey = (orgSlug: string, runId?: number): ApiQueryKey | nul
   if (!runId) {
     return null;
   }
-  return [`/organizations/${orgSlug}/search-agent/state/${runId}/`, {}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/search-agent/state/$runId/', {
+      path: {organizationIdOrSlug: orgSlug, runId},
+    }),
+  ];
 };
 
 /**

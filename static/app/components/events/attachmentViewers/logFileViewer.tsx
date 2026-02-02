@@ -12,7 +12,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 
 function LogFileViewer(props: ViewerProps) {
   const {data, isPending, isError} = useApiQuery<string>(
-    [getAttachmentUrl(props), {headers: {Accept: '*/*; charset=utf-8'}}],
+    [
+      getAttachmentUrl(props),
+      {headers: {Accept: '*/*; charset=utf-8'}, query: {download: true}},
+    ],
     {
       staleTime: Infinity,
     }

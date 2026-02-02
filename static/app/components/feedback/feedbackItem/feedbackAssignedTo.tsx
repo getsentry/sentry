@@ -9,6 +9,7 @@ import {
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -30,7 +31,16 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
 
   const {data: eventOwners} = useApiQuery<EventOwners>(
     [
-      `/projects/${organization.slug}/${project.slug}/events/${feedbackEvent?.id}/owners/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/owners/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            eventId: feedbackEvent?.id,
+          },
+        }
+      ),
     ],
     {
       staleTime: 0,

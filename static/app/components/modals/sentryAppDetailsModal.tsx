@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
@@ -59,9 +60,16 @@ export default function SentryAppDetailsModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([`/sentry-apps/${sentryApp.slug}/features/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<IntegrationFeature[]>(
+    [
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
+        path: {sentryAppIdOrSlug: sentryApp.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const installMutation = useMutation({
     mutationFn: onInstall,

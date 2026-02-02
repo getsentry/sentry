@@ -10,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -29,9 +30,12 @@ function RecoveryOptionsModal({
     isError,
     refetch: refetchAuthenticators,
     data: authenticators = [],
-  } = useApiQuery<Authenticator[]>(['/users/me/authenticators/'], {
-    staleTime: 5000, // expire after 5 seconds
-  });
+  } = useApiQuery<Authenticator[]>(
+    [getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me'}})],
+    {
+      staleTime: 5000, // expire after 5 seconds
+    }
+  );
   const [skipSms, setSkipSms] = useState<boolean>(false);
 
   const {recovery, sms} = authenticators.reduce<Record<string, Authenticator>>(

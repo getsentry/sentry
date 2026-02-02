@@ -2,6 +2,7 @@ import {AvatarList} from '@sentry/scraps/avatar';
 
 import Placeholder from 'sentry/components/placeholder';
 import type {User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -23,11 +24,24 @@ export default function ReplayViewers({projectId, replayId}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
   const projectSlug = project?.slug;
-  const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
 
-  const {data, isError, isPending} = useApiQuery<TResponseData>([url], {
-    staleTime: 0,
-  });
+  const {data, isError, isPending} = useApiQuery<TResponseData>(
+    [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug!,
+            replayId,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   return isPending || isError ? (
     <Placeholder width="25px" height="25px" />

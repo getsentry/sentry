@@ -5,6 +5,7 @@ import {
   type EventGroupVariant,
 } from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -68,7 +69,18 @@ export function useEventGroupingInfo({
   const hasPerformanceGrouping = event.occurrence && event.type === 'transaction';
 
   const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
-    [`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`],
+    [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/grouping-info/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            eventId: event.id,
+          },
+        }
+      ),
+    ],
     {
       enabled: !hasPerformanceGrouping,
       staleTime: Infinity,
