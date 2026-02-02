@@ -1,7 +1,7 @@
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
+  ABYTE_UNITS,
   DurationUnit,
   RATE_UNIT_LABELS,
   RateUnit,

@@ -99,14 +99,14 @@ class BitbucketPluginWebhookEndpoint(View):
             id=organization_id, only_visible=True
         )
         if not org_exists:
-            logger.error(
+            logger.warning(
                 "bitbucket.webhook.invalid-organization", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
 
         body = bytes(request.body)
         if not body:
-            logger.error(
+            logger.warning(
                 "bitbucket.webhook.missing-body", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
@@ -114,7 +114,7 @@ class BitbucketPluginWebhookEndpoint(View):
         try:
             handler = self.get_handler(request.META["HTTP_X_EVENT_KEY"])
         except KeyError:
-            logger.exception(
+            logger.warning(
                 "bitbucket.webhook.missing-event", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
@@ -130,7 +130,7 @@ class BitbucketPluginWebhookEndpoint(View):
                 valid_ip = True
                 break
         if not valid_ip and address_string not in BITBUCKET_IPS:
-            logger.error(
+            logger.warning(
                 "bitbucket.webhook.invalid-ip-range", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=401)
@@ -138,7 +138,7 @@ class BitbucketPluginWebhookEndpoint(View):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.exception(
+            logger.warning(
                 "bitbucket.webhook.invalid-json",
                 extra={"organization_id": organization_id},
             )

@@ -2,9 +2,9 @@ import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -139,6 +139,19 @@ export function SelectRow({
             label: t('spans'),
             value: DEFAULT_VISUALIZATION_FIELD,
             textValue: DEFAULT_VISUALIZATION_FIELD,
+          },
+        ];
+        return [true, options];
+      }
+    } else if (
+      state.dataset === WidgetType.LOGS &&
+      field.kind === FieldValueKind.FUNCTION
+    ) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('logs'),
+            value: 'message',
           },
         ];
         return [true, options];

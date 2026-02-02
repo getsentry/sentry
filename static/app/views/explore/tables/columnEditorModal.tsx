@@ -3,14 +3,12 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -263,7 +261,7 @@ function ColumnEditorRow({
     >
       <StyledButton
         aria-label={t('Drag to reorder')}
-        borderless
+        priority="transparent"
         size="sm"
         icon={<IconGrabbable size="sm" />}
         {...listeners}
@@ -289,7 +287,7 @@ function ColumnEditorRow({
       />
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
+        priority="transparent"
         disabled={!canDelete || required}
         size="sm"
         icon={<IconDelete size="sm" />}

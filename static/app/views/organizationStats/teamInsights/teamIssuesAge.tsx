@@ -3,8 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {BarChart} from 'sentry/components/charts/barChart';
-import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -142,11 +144,15 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
         emptyMessage={t('No unresolved issues for this team’s projects')}
         headers={[
           t('Oldest Issues'),
-          <RightAligned key="events">{t('Events')}</RightAligned>,
-          <RightAligned key="users">{t('Users')}</RightAligned>,
-          <RightAligned key="age">
+          <Flex as="span" justify="end" align="center" key="events">
+            {t('Events')}
+          </Flex>,
+          <Flex as="span" justify="end" align="center" key="users">
+            {t('Users')}
+          </Flex>,
+          <Flex as="span" justify="end" align="center" key="age">
             {t('Age')} <IconArrow direction="down" size="xs" variant="muted" />
-          </RightAligned>,
+          </Flex>,
         ]}
         isLoading={isLoading}
       >
@@ -172,15 +178,15 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
                   </Link>
                 </TitleOverflow>
               </ProjectTitleContainer>
-              <RightAligned>
+              <Flex as="span" justify="end" align="center">
                 <Count value={issue.count} />
-              </RightAligned>
-              <RightAligned>
+              </Flex>
+              <Flex as="span" justify="end" align="center">
                 <Count value={issue.userCount} />
-              </RightAligned>
-              <RightAligned>
+              </Flex>
+              <Flex as="span" justify="end" align="center">
                 <TimeSince date={issue.firstSeen} />
-              </RightAligned>
+              </Flex>
             </Fragment>
           );
         })}
@@ -215,12 +221,6 @@ const StyledPanelTable = styled(PanelTable)`
         padding: 48px ${space(2)};
       }
     `}
-`;
-
-const RightAligned = styled('span')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 `;
 
 const ProjectTitleContainer = styled('div')`

@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {UserReport} from 'sentry/types/group';
@@ -46,13 +46,12 @@ export function EventUserFeedback({
           <Flex align="center" gap="md">
             <ActivityAuthor>{report.name}</ActivityAuthor>
             <CopyButton
-              borderless
+              priority="transparent"
               onClick={() =>
                 copy(report.email, {successMessage: t('Copied email to clipboard')})
               }
               size="zero"
               tooltipProps={{delay: 0}}
-              translucentBorder
               icon={<StyledIconCopy size="xs" />}
             >
               {report.email}

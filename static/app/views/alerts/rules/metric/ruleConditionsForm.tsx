@@ -3,6 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
@@ -10,10 +16,6 @@ import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -732,7 +734,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                       />
                     ) : (
-                      <SearchContainer>
+                      <Flex align="center" gap="md">
                         <SearchQueryBuilder
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
@@ -811,7 +813,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                               )}
                             />
                           ))}
-                      </SearchContainer>
+                      </Flex>
                     );
                   }}
                 </FormField>
@@ -914,12 +916,6 @@ const StyledPanelBody = styled(PanelBody)`
   h4 {
     margin-bottom: ${space(1)};
   }
-`;
-
-const SearchContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const StyledListItem = styled(ListItem)`

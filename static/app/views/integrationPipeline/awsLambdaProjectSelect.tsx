@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 import * as qs from 'query-string';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';

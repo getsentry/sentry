@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';

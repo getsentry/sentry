@@ -3,13 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -1102,7 +1102,7 @@ export default function ReleaseComparisonChart({
             </ShowMoreTitle>
             <Flex justify="end" align="center" column="2 / -1">
               <Button
-                borderless
+                priority="transparent"
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
                 aria-label={t('Toggle additional charts')}

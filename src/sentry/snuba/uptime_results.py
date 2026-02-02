@@ -35,7 +35,6 @@ class UptimeResults(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
-        debug: bool = False,
         additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
@@ -51,7 +50,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
                 resolver=search_resolver or cls.get_resolver(params, config),
                 page_token=page_token,
             ),
-            debug,
+            params.debug,
         )
 
     @classmethod

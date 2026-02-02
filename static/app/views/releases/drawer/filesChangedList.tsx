@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
@@ -8,7 +9,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -58,12 +58,12 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   return (
     <div>
       {releaseRepos.length > 1 && (
-        <Actions>
+        <Container marginBottom="xl">
           <RepositorySwitcher
             repositories={releaseRepos}
             activeRepository={activeReleaseRepo}
           />
-        </Actions>
+        </Container>
       )}
       <div>
         {fileListError && <LoadingError onRetry={refetch} />}
@@ -119,7 +119,3 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
     </div>
   );
 }
-
-const Actions = styled('div')`
-  margin-bottom: ${space(2)};
-`;

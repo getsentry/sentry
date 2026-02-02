@@ -561,6 +561,8 @@ const arrayToOptions = (array: string[]) =>
   array.map(item => ({
     value: item,
     label: item,
+    details: 'Details',
+    leadingItems: <IconSiren size="xs" />,
   }));
 
 const COUNTRY_NAMES = Object.keys(countryNameToCode).sort();

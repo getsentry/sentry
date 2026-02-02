@@ -174,6 +174,40 @@ describe('uptimeFormDataToEndpointPayload', () => {
     expect(payload.config.recoveryThreshold).toBe(UPTIME_DEFAULT_RECOVERY_THRESHOLD);
     expect(payload.config.downtimeThreshold).toBe(UPTIME_DEFAULT_DOWNTIME_THRESHOLD);
   });
+
+  it('converts empty assertion structure to null', () => {
+    // When the assertions field isn't rendered (feature flag off), the empty
+    // assertion structure from savedDetectorToFormData persists. This should
+    // be converted to null before sending to the API.
+    const formData = {
+      name: 'Test Monitor',
+      owner: 'user:1',
+      projectId: '123',
+      workflowIds: [],
+      description: null,
+      intervalSeconds: 60,
+      method: 'GET',
+      timeoutMs: 10000,
+      traceSampling: false,
+      url: 'https://example.com',
+      headers: [],
+      body: '',
+      assertion: {
+        root: {
+          op: 'and' as const,
+          id: 'empty-root',
+          children: [],
+        },
+      },
+      recoveryThreshold: 1,
+      downtimeThreshold: 3,
+      environment: 'production',
+    };
+
+    const payload = uptimeFormDataToEndpointPayload(formData);
+
+    expect(payload.dataSources[0]?.assertion).toBeNull();
+  });
 });
 
 describe('uptimeSavedDetectorToFormData', () => {
@@ -235,7 +269,10 @@ describe('uptimeSavedDetectorToFormData', () => {
     expect(formData.assertion).toEqual(assertion);
   });
 
-  it('sets assertion to null when not present in data source', () => {
+  it('returns empty assertion structure when not present in data source', () => {
+    // When editing a monitor with no assertions, we return an empty assertion structure
+    // rather than null, because FormField converts null to '' which we can't distinguish
+    // from "new form". Empty children signals "edit with no assertions" to the UI.
     const detector = UptimeDetectorFixture({
       dataSources: [
         {
@@ -250,7 +287,13 @@ describe('uptimeSavedDetectorToFormData', () => {
 
     const formData = uptimeSavedDetectorToFormData(detector);
 
-    expect(formData.assertion).toBeNull();
+    expect(formData.assertion).toMatchObject({
+      root: {
+        op: 'and',
+        children: [],
+        id: expect.any(String),
+      },
+    });
   });
 
   it('uses default values when data source is missing', () => {
@@ -268,7 +311,15 @@ describe('uptimeSavedDetectorToFormData', () => {
       url: 'https://example.com',
       headers: [],
       body: '',
-      assertion: null,
+      // Uses empty assertion structure (not null) for consistency with the main case.
+      // null would cause a crash in getValue when accessing value.root.children.length
+      assertion: {
+        root: {
+          op: 'and',
+          children: [],
+          id: expect.any(String),
+        },
+      },
     });
   });
 
