@@ -499,7 +499,7 @@ describe('ConfidenceFooter', () => {
                   isSampled: true,
                   dataScanned: 'full',
                 })}
-                hasUserQuery={false}
+                hasUserQuery
                 isLoading={false}
               />,
               {
@@ -507,7 +507,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 data point'
+              'Estimated from 1 match of 1k data points'
             );
           });
 
@@ -521,7 +521,7 @@ describe('ConfidenceFooter', () => {
                   dataScanned: 'full',
                   topEvents: 5,
                 })}
-                hasUserQuery={false}
+                hasUserQuery
                 isLoading={false}
               />,
               {
@@ -529,7 +529,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 data point'
+              'Estimated for top 5 groups from 1 match of 1k data points'
             );
           });
 
@@ -542,7 +542,7 @@ describe('ConfidenceFooter', () => {
                   isSampled: true,
                   dataScanned: 'full',
                 })}
-                hasUserQuery={false}
+                hasUserQuery
                 isLoading={false}
               />,
               {
@@ -550,7 +550,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 data points'
+              'Estimated from 10 matches of 1k data points'
             );
           });
 
@@ -564,7 +564,7 @@ describe('ConfidenceFooter', () => {
                   dataScanned: 'full',
                   topEvents: 5,
                 })}
-                hasUserQuery={false}
+                hasUserQuery
                 isLoading={false}
               />,
               {
@@ -572,7 +572,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 data points'
+              'Estimated for top 5 groups from 10 matches of 1k data points'
             );
           });
         });
