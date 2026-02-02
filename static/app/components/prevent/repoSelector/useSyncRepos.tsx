@@ -3,11 +3,14 @@ import {useQuery} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   fetchMutation,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
+  type QueryFunctionContext,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,7 +34,10 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
   const {integratedOrgId} = usePreventContext();
   const queryClient = useQueryClient();
 
-  const syncReposUrl = `/organizations/${orgSlug}/prevent/owner/${integratedOrgId}/repositories/sync/`;
+  const syncReposUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/sync/',
+    {path: {organizationIdOrSlug: orgSlug, owner: integratedOrgId!}}
+  );
 
   const isSyncingInCache = Boolean(queryClient.getQueryData([syncReposUrl]));
 
@@ -56,7 +62,9 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
   useQuery<boolean, Error, boolean, QueryKey>({
     queryKey: [syncReposUrl],
     queryFn: async context => {
-      const result = await fetchDataQuery<SyncReposResponse>(context);
+      const result = await fetchDataQuery<SyncReposResponse>(
+        context as unknown as QueryFunctionContext<ApiQueryKey, unknown>
+      );
 
       return result[0].isSyncing;
     },
