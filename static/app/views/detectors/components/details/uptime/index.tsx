@@ -72,7 +72,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <div>
               <UptimeChecksTable
                 detectorId={detector.id}
-                projectSlug={project.slug}
+                project={project}
                 traceSampling={detector.dataSources[0].queryObj.traceSampling}
               />
             </div>

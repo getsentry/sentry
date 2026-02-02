@@ -1,4 +1,13 @@
-import type {GroupOp, Op} from 'sentry/views/alerts/rules/uptime/types';
+import type {ReactNode} from 'react';
+
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {t} from 'sentry/locale';
+import type {
+  GroupOp,
+  HeaderCheckOp,
+  HeaderOperand,
+  Op,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 /**
  * Checks if one op is directly after another op in a container's children array.
@@ -201,4 +210,102 @@ export function moveTo(
   // First remove, then insert
   const withoutSource = removeOp(rootOp);
   return insertOp(withoutSource) as GroupOp;
+}
+
+export const HEADER_OPERAND_OPTIONS: Array<
+  SelectOption<'literal' | 'glob'> & {symbol: string}
+> = [
+  {value: 'literal', label: t('Literal'), symbol: '""'},
+  {value: 'glob', label: t('Glob Pattern'), symbol: '\u2217'},
+];
+
+export function getHeaderOperandValue(operand: HeaderOperand): string {
+  return operand.header_op === 'literal'
+    ? operand.value
+    : operand.header_op === 'glob'
+      ? operand.pattern.value
+      : '';
+}
+
+export function shouldShowHeaderValueInput(op: HeaderCheckOp): boolean {
+  return ['equals', 'not_equal'].includes(op.key_op.cmp);
+}
+
+export function getHeaderKeyComparisonOptions<T extends {value: string}>(
+  options: T[]
+): T[] {
+  return options.filter(opt => !['less_than', 'greater_than'].includes(opt.value));
+}
+
+export function getHeaderValueComparisonOptions<T extends {value: string}>(
+  options: T[]
+): T[] {
+  return options.filter(opt => ['equals', 'not_equal'].includes(opt.value));
+}
+
+type HeaderComparisonOption = {symbol: string; value: string; label?: ReactNode};
+
+export function getHeaderKeyCombinedLabelAndTooltip(
+  op: HeaderCheckOp,
+  headerKeyComparisonOptions: HeaderComparisonOption[]
+): {combinedLabel: string; combinedTooltip: string} {
+  const keyOperandType = op.key_operand.header_op;
+
+  const keyComparisonLabel =
+    headerKeyComparisonOptions.find(opt => opt.value === op.key_op.cmp)?.label ?? '';
+  const keyComparisonSymbol =
+    headerKeyComparisonOptions.find(opt => opt.value === op.key_op.cmp)?.symbol ?? '';
+
+  const keyOperandLabel =
+    keyOperandType === 'none'
+      ? ''
+      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === keyOperandType)?.label ?? '');
+  const keyOperandSymbol =
+    keyOperandType === 'none'
+      ? ''
+      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === keyOperandType)?.symbol ?? '');
+
+  const combinedLabel = keyOperandSymbol
+    ? `${keyComparisonSymbol}${keyOperandSymbol}`
+    : keyComparisonSymbol;
+
+  const combinedTooltip =
+    keyOperandType === 'none'
+      ? t('Header key %s', keyComparisonLabel)
+      : t('Header key %s matching a string %s', keyComparisonLabel, keyOperandLabel);
+
+  return {combinedLabel, combinedTooltip};
+}
+
+export function getHeaderValueCombinedLabelAndTooltip(
+  op: HeaderCheckOp,
+  headerValueComparisonOptions: HeaderComparisonOption[]
+): {combinedLabel: string; combinedTooltip: string} {
+  const valueOperandType = op.value_operand.header_op;
+
+  const valueComparisonLabel =
+    headerValueComparisonOptions.find(opt => opt.value === op.value_op.cmp)?.label ?? '';
+  const valueComparisonSymbol =
+    headerValueComparisonOptions.find(opt => opt.value === op.value_op.cmp)?.symbol ?? '';
+
+  const valueOperandLabel =
+    valueOperandType === 'none'
+      ? ''
+      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === valueOperandType)?.label ?? '');
+  const valueOperandSymbol =
+    valueOperandType === 'none'
+      ? ''
+      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === valueOperandType)?.symbol ??
+        '');
+
+  const combinedLabel = valueOperandSymbol
+    ? `${valueComparisonSymbol}${valueOperandSymbol}`
+    : valueComparisonSymbol;
+
+  const combinedTooltip =
+    valueOperandType === 'none'
+      ? t('Header value %s', valueComparisonLabel)
+      : t('Header value %s to a string %s', valueComparisonLabel, valueOperandLabel);
+
+  return {combinedLabel, combinedTooltip};
 }
