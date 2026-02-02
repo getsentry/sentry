@@ -19,7 +19,7 @@ export interface SVGIconProps extends Omit<React.SVGAttributes<SVGSVGElement>, '
 export function SvgIcon(props: SVGIconProps) {
   const theme = useTheme();
   const iconProps = useIconDefaults(props);
-  const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'sm'];
+  const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'md'];
 
   const {variant: _variant, size: _size, legacySize: _legacySize, ...rest} = iconProps;
 
