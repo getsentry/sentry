@@ -254,7 +254,7 @@ const screenRenderingTable: Widget = {
         `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `avg(tags[frames_delay,number])`,
+        `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
@@ -263,7 +263,7 @@ const screenRenderingTable: Widget = {
         `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `avg(tags[frames_delay,number])`,
+        `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
