@@ -101,8 +101,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDayEndPreview,
   .rdrDayInPreview {
     border: 0;
-    background: ${p => p.theme.tokens.background.primary};
-    opacity: 0.08;
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
     z-index: -1;
   }
 
