@@ -655,7 +655,7 @@ describe('SpansTabContent', () => {
               crossEvents: JSON.stringify([
                 {query: '', type: 'spans'},
                 {query: '', type: 'logs'},
-                {query: '', type: 'metrics'},
+                {query: '', type: 'logs'},
               ]),
             },
           },
