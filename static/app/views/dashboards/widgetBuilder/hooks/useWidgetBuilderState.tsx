@@ -355,22 +355,30 @@ function useWidgetBuilderState(): {
             setSort([], options);
             setLimit(undefined, options);
 
-            // Get an aggregate from existing state or use the default
-            const existingAggregate = aggregatesWithoutAlias[0] ?? yAxisWithoutAlias?.[0];
-            const defaultAggregate = existingAggregate ?? {
-              ...currentDatasetConfig.defaultField,
-              alias: undefined,
-            };
+            // Build the aggregate list from existing state, similar to time-series charts
+            const nextAggregates = [
+              ...aggregatesWithoutAlias.slice(0, 1),
+              ...(yAxisWithoutAlias?.slice(0, 1) ?? []),
+            ];
+            // If no existing aggregate found, use the dataset's default
+            if (nextAggregates.length === 0) {
+              nextAggregates.push({
+                ...currentDatasetConfig.defaultField,
+                alias: undefined,
+              });
+            }
 
             // Get an X-axis field from existing columns or use a sensible default
-            // For most datasets, 'transaction' or the first available field works well
-            const existingColumn = columnsWithoutAlias[0];
-            const defaultXAxisField: Column = existingColumn ?? {
-              kind: FieldValueKind.FIELD,
-              field: 'transaction',
-            };
+            const nextColumns = [...columnsWithoutAlias.slice(0, 1)];
+            if (nextColumns.length === 0) {
+              nextColumns.push({
+                kind: FieldValueKind.FIELD,
+                field: 'transaction',
+                alias: undefined,
+              });
+            }
 
-            setFields([defaultXAxisField, defaultAggregate], options);
+            setFields([...nextColumns, ...nextAggregates.slice(0, 1)], options);
             setQuery(query?.slice(0, 1), options);
           } else {
             setFields(columnsWithoutAlias, options);
