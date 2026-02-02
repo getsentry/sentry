@@ -1,5 +1,6 @@
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 
 export type ViewerProps = {
   attachment: EventAttachment;
@@ -9,11 +10,18 @@ export type ViewerProps = {
   className?: string;
 };
 
-export function getAttachmentUrl(props: ViewerProps, withPrefix?: boolean): string {
+export function getAttachmentUrl(props: ViewerProps) {
   const {orgSlug, projectSlug, eventId, attachment} = props;
-  return `${
-    withPrefix ? '/api/0' : ''
-  }/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/${
-    attachment.id
-  }/?download`;
+
+  return getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/$attachmentId/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        eventId,
+        attachmentId: attachment.id,
+      },
+    }
+  );
 }

@@ -10,6 +10,7 @@ import type {Event} from 'sentry/types/event';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,7 +22,16 @@ const actionableItemsQuery = ({
   projectSlug,
   eventId,
 }: UseActionableItemsProps): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/events/${eventId}/actionable-items/`,
+  getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/actionable-items/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        eventId,
+      },
+    }
+  ),
 ];
 
 export interface ActionableItemsResponse {
