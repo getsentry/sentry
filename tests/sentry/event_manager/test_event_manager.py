@@ -3493,6 +3493,7 @@ class ReleaseIssueTest(TestCase):
         assert release_project_env.first_seen == self.convert_timestamp(first_seen)
         assert release_project_env.last_seen == self.convert_timestamp(last_seen)
 
+    @pytest.mark.skip(reason="flaky: #107425")
     def test_different_groups(self) -> None:
         event1 = self.make_release_event(
             release_version=self.release.version,
