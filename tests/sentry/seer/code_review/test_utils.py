@@ -43,7 +43,7 @@ class TestGetTriggerMetadata:
         assert result["trigger_comment_type"] == "issue_comment"
         assert result["trigger_at"] == datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
 
-    def test_extracts_issue_comment_trigger_at_when_missing(self) -> None:
+    def test_extracts_issue_comment_trigger_at_defaults_to_now_when_missing(self) -> None:
         event_payload = {
             "comment": {
                 "id": 12345,
@@ -51,7 +51,8 @@ class TestGetTriggerMetadata:
             }
         }
         result = _get_trigger_metadata_for_issue_comment(event_payload)
-        assert result["trigger_at"] is None
+        assert isinstance(result["trigger_at"], datetime)
+        assert result["trigger_at"].tzinfo is not None
 
     def test_issue_comment_falls_back_to_created_at(self) -> None:
         event_payload = {
@@ -93,13 +94,14 @@ class TestGetTriggerMetadata:
         assert result["trigger_comment_type"] is None
         assert result["trigger_at"] == datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
 
-    def test_pull_request_no_data_returns_none_values(self) -> None:
+    def test_pull_request_no_data_defaults_trigger_at_to_now(self) -> None:
         result = _get_trigger_metadata_for_pull_request({})
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
         assert result["trigger_user"] is None
         assert result["trigger_user_id"] is None
-        assert result["trigger_at"] is None
+        assert isinstance(result["trigger_at"], datetime)
+        assert result["trigger_at"].tzinfo is not None
 
 
 class GetTargetCommitShaTest(TestCase):

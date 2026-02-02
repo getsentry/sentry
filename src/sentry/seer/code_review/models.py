@@ -49,7 +49,7 @@ class SeerCodeReviewConfig(BaseModel):
     trigger_comment_type: Literal["issue_comment"] | None = None
     trigger_user: str | None = None
     trigger_user_id: int | None = None
-    trigger_at: datetime | None = None
+    trigger_at: datetime
 
     def is_feature_enabled(self, feature: SeerCodeReviewFeature) -> bool:
         return self.features.get(feature, False)
