@@ -59,7 +59,7 @@ describe('ConfidenceFooter', () => {
               wrapper: Wrapper,
             }
           );
-          expect(screen.getByTestId('wrapper')).toHaveTextContent('100 metrics');
+          expect(screen.getByTestId('wrapper')).toHaveTextContent('100 data points');
         });
 
         it('loaded with top events', () => {
@@ -75,7 +75,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            '100 metrics for top 5 groups'
+            '100 data points for top 5 groups'
           );
         });
       });
@@ -94,7 +94,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            '100 matches of 1k metrics'
+            '100 matches of 1k data points'
           );
         });
 
@@ -111,7 +111,7 @@ describe('ConfidenceFooter', () => {
             }
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
-            '100 matches of 1k metrics for top 5 groups'
+            '100 matches of 1k data points for top 5 groups'
           );
         });
       });
@@ -137,19 +137,19 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 sample of 1k metrics'
+              'Estimated from 1 sample of 1k data points'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 sample')
             );
             expect(
               await screen.findByText(
-                /The volume of metrics in this time range is too large for us to do a full scan./
+                /The volume of metric data points in this time range is too large for us to do a full scan./
               )
             ).toBeInTheDocument();
             expect(
               await screen.findByText(
-                /Try reducing the date range or number of projects to attempt scanning all metrics./
+                /Try reducing the date range or number of projects to attempt scanning all data points./
               )
             ).toBeInTheDocument();
           });
@@ -172,19 +172,19 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 sample of 1k metrics'
+              'Estimated for top 5 groups from 1 sample of 1k data points'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 sample')
             );
             expect(
               await screen.findByText(
-                /The volume of metrics in this time range is too large for us to do a full scan./
+                /The volume of metric data points in this time range is too large for us to do a full scan./
               )
             ).toBeInTheDocument();
             expect(
               await screen.findByText(
-                /Try reducing the date range or number of projects to attempt scanning all metrics./
+                /Try reducing the date range or number of projects to attempt scanning all data points./
               )
             ).toBeInTheDocument();
           });
@@ -206,19 +206,19 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 samples of 1k metrics'
+              'Estimated from 10 samples of 1k data points'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 samples')
             );
             expect(
               await screen.findByText(
-                /The volume of metrics in this time range is too large for us to do a full scan./
+                /The volume of metric data points in this time range is too large for us to do a full scan./
               )
             ).toBeInTheDocument();
             expect(
               await screen.findByText(
-                /Try reducing the date range or number of projects to attempt scanning all metrics./
+                /Try reducing the date range or number of projects to attempt scanning all data points./
               )
             ).toBeInTheDocument();
           });
@@ -241,19 +241,19 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 samples of 1k metrics'
+              'Estimated for top 5 groups from 10 samples of 1k data points'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 samples')
             );
             expect(
               await screen.findByText(
-                /The volume of metrics in this time range is too large for us to do a full scan./
+                /The volume of metric data points in this time range is too large for us to do a full scan./
               )
             ).toBeInTheDocument();
             expect(
               await screen.findByText(
-                /Try reducing the date range or number of projects to attempt scanning all metrics./
+                /Try reducing the date range or number of projects to attempt scanning all data points./
               )
             ).toBeInTheDocument();
           });
@@ -277,7 +277,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 metric'
+              'Estimated from 1 data point'
             );
           });
 
@@ -299,7 +299,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 metric'
+              'Estimated for top 5 groups from 1 data point'
             );
           });
 
@@ -320,7 +320,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 metrics'
+              'Estimated from 10 data points'
             );
           });
 
@@ -342,7 +342,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 metrics'
+              'Estimated for top 5 groups from 10 data points'
             );
           });
         });
@@ -367,19 +367,19 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 match after scanning 100 samples of 1k metrics'
+              'Estimated from 1 match after scanning 100 samples of 1k data points'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 match')
             );
             expect(
               await screen.findByText(
-                /The volume of metrics in this time range is too large for us to do a full scan./
+                /The volume of metric data points in this time range is too large for us to do a full scan./
               )
             ).toBeInTheDocument();
             expect(
               await screen.findByText(
-                /Try reducing the date range, number of projects, or removing filters to attempt scanning all metrics./
+                /Try reducing the date range, number of projects, or removing filters to attempt scanning all data points./
               )
             ).toBeInTheDocument();
           });
@@ -402,19 +402,19 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 match after scanning 100 samples of 1k metrics'
+              'Estimated for top 5 groups from 1 match after scanning 100 samples of 1k data points'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '1 match')
             );
             expect(
               await screen.findByText(
-                /The volume of metrics in this time range is too large for us to do a full scan./
+                /The volume of metric data points in this time range is too large for us to do a full scan./
               )
             ).toBeInTheDocument();
             expect(
               await screen.findByText(
-                /Try reducing the date range, number of projects, or removing filters to attempt scanning all metrics./
+                /Try reducing the date range, number of projects, or removing filters to attempt scanning all data points./
               )
             ).toBeInTheDocument();
           });
@@ -436,19 +436,19 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 matches after scanning 100 samples of 1k metrics'
+              'Estimated from 10 matches after scanning 100 samples of 1k data points'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 matches')
             );
             expect(
               await screen.findByText(
-                /The volume of metrics in this time range is too large for us to do a full scan./
+                /The volume of metric data points in this time range is too large for us to do a full scan./
               )
             ).toBeInTheDocument();
             expect(
               await screen.findByText(
-                /Try reducing the date range, number of projects, or removing filters to attempt scanning all metrics./
+                /Try reducing the date range, number of projects, or removing filters to attempt scanning all data points./
               )
             ).toBeInTheDocument();
           });
@@ -471,19 +471,19 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 matches after scanning 100 samples of 1k metrics'
+              'Estimated for top 5 groups from 10 matches after scanning 100 samples of 1k data points'
             );
             await userEvent.hover(
               screen.getByText((_, element) => element?.textContent === '10 matches')
             );
             expect(
               await screen.findByText(
-                /The volume of metrics in this time range is too large for us to do a full scan./
+                /The volume of metric data points in this time range is too large for us to do a full scan./
               )
             ).toBeInTheDocument();
             expect(
               await screen.findByText(
-                /Try reducing the date range, number of projects, or removing filters to attempt scanning all metrics./
+                /Try reducing the date range, number of projects, or removing filters to attempt scanning all data points./
               )
             ).toBeInTheDocument();
           });
@@ -507,7 +507,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 1 metric'
+              'Estimated from 1 data point'
             );
           });
 
@@ -529,7 +529,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 1 metric'
+              'Estimated for top 5 groups from 1 data point'
             );
           });
 
@@ -550,7 +550,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated from 10 metrics'
+              'Estimated from 10 data points'
             );
           });
 
@@ -572,7 +572,7 @@ describe('ConfidenceFooter', () => {
               }
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
-              'Estimated for top 5 groups from 10 metrics'
+              'Estimated for top 5 groups from 10 data points'
             );
           });
         });

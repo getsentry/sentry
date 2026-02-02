@@ -321,7 +321,7 @@ function DownsampledTooltip({
       title={
         <div>
           {t(
-            'The volume of metric samples in this time range is too large for us to do a full scan.'
+            'The volume of metric data points in this time range is too large for us to do a full scan.'
           )}
           <br />
           <br />
