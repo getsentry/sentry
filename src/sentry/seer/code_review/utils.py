@@ -422,7 +422,7 @@ def delete_existing_reactions_and_adds_reaction(
     repo: Repository,
     pr_number: str | None,
     comment_id: str | None,
-    reactions_to_delete: list[GitHubReaction | None],
+    reactions_to_delete: list[GitHubReaction],
     reaction_to_add: GitHubReaction | None,
     extra: Mapping[str, str | None],
 ) -> None:
