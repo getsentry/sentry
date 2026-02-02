@@ -2,7 +2,7 @@
 title: Tooltip
 description: Tooltips provide contextual information about an element when users hover over it.
 category: overlays
-source: 'sentry/components/core/tooltip'
+source: '@sentry/scraps/tooltip'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/tooltip/index.tsx
   a11y:
@@ -11,9 +11,10 @@ resources:
     WAI-ARIA Tooltip Practices: https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
 ---
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
