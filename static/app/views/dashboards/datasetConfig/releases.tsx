@@ -89,6 +89,7 @@ export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiRespons
     DisplayType.AREA,
     DisplayType.BAR,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,

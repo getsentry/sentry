@@ -118,6 +118,13 @@ export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
+  /**
+   * Fields/columns used by the widget. Usage varies by display type:
+   * - Tables: all columns (both plain fields and aggregates)
+   * - Big Numbers: aggregate fields
+   * - Time-series charts (area, bar, line): grouping fields (non-aggregates)
+   * - Categorical Bars: both X-axis field (FIELD kind) and aggregate (FUNCTION kind)
+   */
   fields?: Column[];
   legendAlias?: string[];
   limit?: number;
@@ -128,6 +135,10 @@ export interface WidgetBuilderState {
   thresholds?: ThresholdsConfig | null;
   title?: string;
   traceMetric?: TraceMetric;
+  /**
+   * Y-axis aggregates for time-series charts (area, bar, line).
+   * Not used by tables, big numbers, or categorical bar widgets.
+   */
   yAxis?: Column[];
 }
 

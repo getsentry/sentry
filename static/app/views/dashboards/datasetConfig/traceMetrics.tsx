@@ -208,8 +208,9 @@ export const TraceMetricsConfig: DatasetConfig<
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
-    DisplayType.LINE,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
+    DisplayType.LINE,
   ],
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,

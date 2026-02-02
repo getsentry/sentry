@@ -31,6 +31,7 @@ export enum DisplayType {
   TOP_N = 'top_n',
   WHEEL = 'wheel',
   CATEGORICAL_SERIES = 'categorical_series',
+  CATEGORICAL_BAR = 'categorical_bar',
 }
 
 export enum WidgetType {
