@@ -111,7 +111,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
   const hasCrossEvents = useHasCrossEvents();
 
   useEffect(() => {
-    if (!hasCrossEvents) return;
+    if (!pageFilters.isReady || !hasCrossEvents) return;
 
     const days = statsPeriodToDays(
       pageFilters.selection.datetime.period,
@@ -129,6 +129,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     }
   }, [
     hasCrossEvents,
+    pageFilters.isReady,
     pageFilters.selection.datetime.end,
     pageFilters.selection.datetime.period,
     pageFilters.selection.datetime.start,
