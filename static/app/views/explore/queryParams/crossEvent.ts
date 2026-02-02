@@ -33,7 +33,8 @@ export function getCrossEventsFromLocation(
 }
 
 export function isCrossEventType(value: string): value is CrossEventType {
-  return value === 'logs' || value === 'spans' || value === 'metrics';
+  // We're temporarily disabling metrics cross event querying for EA
+  return value === 'logs' || value === 'spans' /* || value === 'metrics' */;
 }
 
 function isCrossEvent(value: any): value is CrossEvent {
