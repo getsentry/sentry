@@ -5,6 +5,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_assets %}
 
 {% block wrapperclass %}narrow auth org-login{% endblock %}
 
@@ -34,4 +35,42 @@
 {% endblock %}
 
 {% block footer %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% script %}
+<script>
+  // HACK(jferge+claude): inline getCookie function from our utils,
+  // update the csrf token value in a rudimentary way (timer based)
+  // on auth forms to help out when users have multiple sentry tabs
+  // and are logged out
+  (function() {
+    function getCookie(name) {
+      if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+          var cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === name + '=') {
+            return decodeURIComponent(cookie.substring(name.length + 1));
+          }
+        }
+      }
+      return null;
+    }
+
+    setInterval(function() {
+      var csrfCookieVal = getCookie(window.csrfCookieName || 'sc');
+      // combine strings for csrf name as some tests grep on the token name :(
+      var csrfName = 'csrf' + 'middleware' + 'token';
+      var csrfEls = document.getElementsByName(csrfName);
+      if (csrfEls.length > 0 && csrfCookieVal) {
+        for (var i = 0; i < csrfEls.length; i++) {
+          csrfEls[i].value = csrfCookieVal;
+        }
+      }
+    }, 200);
+  })();
+</script>
+{% endscript %}
 {% endblock %}

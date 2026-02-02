@@ -1,4 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -24,7 +25,11 @@ export default function useFeedbackSummary(): {
 
   const {data, isPending, isError} = useApiQuery<FeedbackSummaryResponse>(
     [
-      `/organizations/${organization.slug}/feedback-summary/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/feedback-summary/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
       {
         query: {
           ...normalizedDateRange,

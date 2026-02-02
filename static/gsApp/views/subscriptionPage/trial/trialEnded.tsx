@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {tct} from 'sentry/locale';
 
 import ZendeskLink from 'getsentry/components/zendeskLink';

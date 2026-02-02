@@ -341,6 +341,7 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
+            latency_entries: list[tuple[str, int]] = []
             zset_latency_metrics = []
             zset_gauge_metrics = []
             set_latency_metrics = []
@@ -376,8 +377,7 @@ class SpansBuffer:
                     _,
                 ) = result
 
-                # Log individual EVALSHA latency for this trace
-                self._buffer_logger.log(project_and_trace, evalsha_latency_ms)
+                latency_entries.append((project_and_trace, evalsha_latency_ms))
 
                 shard = self.assigned_shards[
                     int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
@@ -437,6 +437,8 @@ class SpansBuffer:
                             evalsha_latency_metrics,
                             evalsha_gauge_metrics,
                         )
+
+            self._buffer_logger.log(latency_entries)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():

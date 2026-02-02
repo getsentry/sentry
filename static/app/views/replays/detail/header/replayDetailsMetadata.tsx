@@ -1,4 +1,5 @@
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import Placeholder from 'sentry/components/placeholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';

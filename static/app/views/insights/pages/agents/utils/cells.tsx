@@ -1,4 +1,5 @@
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import Placeholder from 'sentry/components/placeholder';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 

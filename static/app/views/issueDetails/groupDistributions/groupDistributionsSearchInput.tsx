@@ -1,6 +1,7 @@
 import type {Dispatch, SetStateAction} from 'react';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

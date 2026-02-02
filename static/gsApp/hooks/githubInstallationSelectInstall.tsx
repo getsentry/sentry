@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectKey} from 'sentry/components/core/compactSelect';
+import {Button} from '@sentry/scraps/button';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
+
 import GlobalModal from 'sentry/components/globalModal';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';

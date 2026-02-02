@@ -1,6 +1,7 @@
 import keyBy from 'lodash/keyBy';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import RadioField from 'sentry/components/forms/fields/radioField';
