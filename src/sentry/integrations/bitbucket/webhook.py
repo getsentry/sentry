@@ -30,7 +30,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.scm.subscriptions.publisher import publish_subscription_event
+from sentry.scm.subscriptions.producer import publish_subscription_event
 from sentry.utils.email import parse_email
 
 logger = logging.getLogger("sentry.webhooks")

@@ -12,24 +12,48 @@ optimization and a convenient, typed deserialization library.
 from collections.abc import Callable
 
 import msgspec
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import Topic as ArroyoTopic
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.scm.subscriptions.types import SubscriptionEvent
 from sentry.scm.types import ProviderName
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 
 
-class SubscriptionEventParser(msgspec.Struct, gc=False):
-    received_at: int
-    type: ProviderName
+# Serialization omits keys. Changes to this schema requires incrementing the version number. This
+# doubles the performance of decoders but limits our ability to change the schema. This schema is
+# probably frozen. If we want to change it it means defining a totally new struct.
+#
+# GC is disabled. You MUST NEVER use this in such a way that a reference cycle is created.
+# Fortunately this is a private struct not intended for use anywhere but here. So as long as we
+# know what to do we can give great performace to our consumers transparently.
+#
+# Frozen is set to ensure immuatability. Attributes may not be changed after being set.
+class SubscriptionEventParser(msgspec.Struct, gc=False, array_like=True, frozen=True):
     event_type_hint: str | None
     event: bytes
     extra: dict[str, str | None | bool | int | float]
+    received_at: int
     sentry_meta: list["SubscriptionEventSentryMetaParser"] | None
+    type: ProviderName
 
 
-class SubscriptionEventSentryMetaParser(msgspec.Struct, gc=False):
+class SubscriptionEventSentryMetaParser(msgspec.Struct, gc=False, array_like=True, frozen=True):
     id: int | None
     integration_id: int
     organization_id: int
+
+
+# $$$$$$$\                                          $$\           $$\ $$\
+# $$  __$$\                                         \__|          $$ |\__|
+# $$ |  $$ | $$$$$$\   $$$$$$$\  $$$$$$\   $$$$$$\  $$\  $$$$$$\  $$ |$$\ $$$$$$$$\  $$$$$$\   $$$$$$\
+# $$ |  $$ |$$  __$$\ $$  _____|$$  __$$\ $$  __$$\ $$ | \____$$\ $$ |$$ |\____$$  |$$  __$$\ $$  __$$\
+# $$ |  $$ |$$$$$$$$ |\$$$$$$\  $$$$$$$$ |$$ |  \__|$$ | $$$$$$$ |$$ |$$ |  $$$$ _/ $$$$$$$$ |$$ |  \__|
+# $$ |  $$ |$$   ____| \____$$\ $$   ____|$$ |      $$ |$$  __$$ |$$ |$$ | $$  _/   $$   ____|$$ |
+# $$$$$$$  |\$$$$$$$\ $$$$$$$  |\$$$$$$$\ $$ |      $$ |\$$$$$$$ |$$ |$$ |$$$$$$$$\ \$$$$$$$\ $$ |
+# \_______/  \_______|\_______/  \_______|\__|      \__| \_______|\__|\__|\________| \_______|\__|
 
 
 # A decoder global is defined. This is a performance optimization. Because this decoder will be
@@ -62,3 +86,75 @@ def deserialize_event(
     except msgspec.DecodeError as e:
         report_exception(e)
         return None
+
+
+#  $$$$$$\                      $$\           $$\ $$\
+# $$  __$$\                     \__|          $$ |\__|
+# $$ /  \__| $$$$$$\   $$$$$$\  $$\  $$$$$$\  $$ |$$\ $$$$$$$$\  $$$$$$\   $$$$$$\
+# \$$$$$$\  $$  __$$\ $$  __$$\ $$ | \____$$\ $$ |$$ |\____$$  |$$  __$$\ $$  __$$\
+#  \____$$\ $$$$$$$$ |$$ |  \__|$$ | $$$$$$$ |$$ |$$ |  $$$$ _/ $$$$$$$$ |$$ |  \__|
+# $$\   $$ |$$   ____|$$ |      $$ |$$  __$$ |$$ |$$ | $$  _/   $$   ____|$$ |
+# \$$$$$$  |\$$$$$$$\ $$ |      $$ |\$$$$$$$ |$$ |$$ |$$$$$$$$\ \$$$$$$$\ $$ |
+#  \______/  \_______|\__|      \__| \_______|\__|\__|\________| \_______|\__|
+
+
+encoder = msgspec.msgpack.Encoder()
+
+
+def serialize_event(event: SubscriptionEvent) -> bytearray:
+    structured_event = SubscriptionEventParser(
+        event=event["event"],
+        event_type_hint=event["event_type_hint"],
+        extra=event["extra"],
+        received_at=event["received_at"],
+        sentry_meta=[
+            SubscriptionEventSentryMetaParser(
+                id=item["id"],
+                integration_id=item["integration_id"],
+                organization_id=item["organization_id"],
+            )
+            for item in event["sentry_meta"]
+        ],
+        type=event["type"],
+    )
+
+    buf = bytearray(64)
+    buf[0] = b"\x00"  # Version tag.
+    encoder.encode_into(structured_event, buf, offset=1)
+    return buf
+
+
+# $$$$$$$\            $$\       $$\ $$\           $$\
+# $$  __$$\           $$ |      $$ |\__|          $$ |
+# $$ |  $$ |$$\   $$\ $$$$$$$\  $$ |$$\  $$$$$$$\ $$$$$$$\   $$$$$$\   $$$$$$\
+# $$$$$$$  |$$ |  $$ |$$  __$$\ $$ |$$ |$$  _____|$$  __$$\ $$  __$$\ $$  __$$\
+# $$  ____/ $$ |  $$ |$$ |  $$ |$$ |$$ |\$$$$$$\  $$ |  $$ |$$$$$$$$ |$$ |  \__|
+# $$ |      $$ |  $$ |$$ |  $$ |$$ |$$ | \____$$\ $$ |  $$ |$$   ____|$$ |
+# $$ |      \$$$$$$  |$$$$$$$  |$$ |$$ |$$$$$$$  |$$ |  $$ |\$$$$$$$\ $$ |
+# \__|       \______/ \_______/ \__|\__|\_______/ \__|  \__| \_______|\__|
+
+
+ingest_scm_subscription_events = SingletonProducer(
+    lambda: get_arroyo_producer(
+        name="sentry.scm.subscription_events",
+        topic=Topic.INGEST_SCM_SUBSCRIPTION_EVENTS,
+    )
+)
+
+
+def publish_subscription_event(event: SubscriptionEvent) -> None:
+    """
+    Publish source code management service provider subscription events to the
+    ingest-scm-subscription-events topic.
+
+    Events are encoded with msgpack. Exact details listed in the msgspec structs above.
+    """
+    # Horrific copy here but Kafka does not accept bytearray as a valid input type. I wonder if I
+    # could cast? Do they operate the same internally? Really not interested in finding out right
+    # now. Possible TODO if performance ever depends on this allocation (which I highly doubt).
+    message = bytes(serialize_event(event))
+
+    ingest_scm_subscription_events.produce(
+        ArroyoTopic(get_topic_definition(Topic.INGEST_SCM_SUBSCRIPTION_EVENTS)["real_topic_name"]),
+        payload=KafkaPayload(None, message, []),
+    )

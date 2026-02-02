@@ -32,7 +32,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.scm.subscriptions.publisher import publish_subscription_event
+from sentry.scm.subscriptions.producer import publish_subscription_event
 
 logger = logging.getLogger("sentry.webhooks")
 

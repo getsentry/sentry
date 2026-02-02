@@ -60,7 +60,7 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
-from sentry.scm.subscriptions.publisher import publish_subscription_event
+from sentry.scm.subscriptions.producer import publish_subscription_event
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
