@@ -48,7 +48,7 @@ export abstract class TreeNode<T extends Op = Op> {
 
     // Vertical connectors for ancestor columns.
     let ancestor = this.parent;
-    while (ancestor && ancestor.parent) {
+    while (ancestor?.parent) {
       if (!ancestor.isLastChild) {
         connectors.push({type: 'vertical', depth: ancestor.depth - 1});
       }
