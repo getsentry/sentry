@@ -201,7 +201,7 @@ export default function UptimeAlertDetails() {
           <SectionHeading>{t('Checks List')}</SectionHeading>
           <UptimeChecksTable
             detectorId={detector.id}
-            projectSlug={project.slug}
+            project={project}
             traceSampling={uptimeSub.traceSampling}
           />
         </Layout.Main>
