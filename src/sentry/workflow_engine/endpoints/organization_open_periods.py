@@ -153,7 +153,9 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         )
 
         if event_id_param:
-            open_periods = open_periods.filter(event_id=event_id_param)
+            open_periods = open_periods.filter(
+                groupopenperiodactivity__event_id=event_id_param
+            ).distinct()
 
         return self.paginate(
             request=request,
