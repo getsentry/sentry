@@ -2,14 +2,15 @@
 title: Avatar
 description: Avatars display an image of users, teams, organizations, and other Sentry-specific items.
 category: display
-source: 'sentry/components/core/avatar'
+source: '@sentry/scraps/avatar'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/index.tsx
 ---
 
 import {Fragment, useEffect} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import Placeholder from 'sentry/components/placeholder';
 import * as Storybook from 'sentry/stories';
 import {useMembers} from 'sentry/utils/useMembers';

@@ -27,6 +27,7 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -161,7 +162,18 @@ function EventDisplay({
   const eventIds = data?.data.map(({id}) => id);
 
   const {data: eventData, isFetching} = useApiQuery<EventTransaction>(
-    [`/organizations/${organization.slug}/events/${project.slug}:${selectedEventId}/`],
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            eventId: selectedEventId,
+          },
+        }
+      ),
+    ],
     {staleTime: Infinity, retry: false, enabled: !!selectedEventId && !!project.slug}
   );
 
