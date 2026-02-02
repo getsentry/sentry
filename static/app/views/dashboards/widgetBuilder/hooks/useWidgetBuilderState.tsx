@@ -347,6 +347,31 @@ function useWidgetBuilderState(): {
               options
             );
             setQuery(query?.slice(0, 1), options);
+          } else if (action.payload === DisplayType.CATEGORICAL_BAR) {
+            // Categorical bar widgets store both X-axis field (FIELD kind) and
+            // aggregate (FUNCTION kind) in state.fields, not yAxis
+            setYAxis([], options);
+            setLegendAlias([], options);
+            setSort([], options);
+            setLimit(undefined, options);
+
+            // Get an aggregate from existing state or use the default
+            const existingAggregate = aggregatesWithoutAlias[0] ?? yAxisWithoutAlias?.[0];
+            const defaultAggregate = existingAggregate ?? {
+              ...currentDatasetConfig.defaultField,
+              alias: undefined,
+            };
+
+            // Get an X-axis field from existing columns or use a sensible default
+            // For most datasets, 'transaction' or the first available field works well
+            const existingColumn = columnsWithoutAlias[0];
+            const defaultXAxisField: Column = existingColumn ?? {
+              kind: FieldValueKind.FIELD,
+              field: 'transaction',
+            };
+
+            setFields([defaultXAxisField, defaultAggregate], options);
+            setQuery(query?.slice(0, 1), options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [

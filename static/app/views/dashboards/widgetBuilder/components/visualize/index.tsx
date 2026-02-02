@@ -358,17 +358,6 @@ function Visualize({error, setError}: VisualizeProps) {
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
-  // Determines whether "Add Series/Column/Equation" buttons are shown:
-  // - Time-series chart widgets: can add multiple y-axis series
-  // - Table widgets: can add multiple columns
-  // - Big Number widgets: can add fields only if equations are enabled for the dataset
-  // - Categorical Bar widgets: limited to a single aggregate, so adding is disabled
-  const canAddFields =
-    !isCategoricalBarWidget &&
-    (isTimeSeriesWidget ||
-      isTableWidget ||
-      (isBigNumberWidget && datasetConfig.enableEquations));
-
   // Determines which state field stores the visualization fields:
   // - Time-series charts (Line, Area, Bar): use state.yAxis for aggregates
   // - Tables, Big Numbers: use state.fields for all columns (fields + aggregates)
@@ -377,9 +366,24 @@ function Visualize({error, setError}: VisualizeProps) {
   const usesYAxis = isTimeSeriesWidget && !isCategoricalBarWidget;
 
   const allFields = usesYAxis ? state.yAxis : state.fields;
-  const fields = isCategoricalBarWidget
+  // For categorical bars, only show aggregate fields (FUNCTION kind) in the Visualize section
+  // The X-axis field (FIELD kind) is managed separately in the X-Axis selector
+  const aggregateFields = isCategoricalBarWidget
     ? allFields?.filter(f => f.kind === FieldValueKind.FUNCTION)
-    : allFields;
+    : null;
+  const fields = isCategoricalBarWidget ? aggregateFields : allFields;
+
+  // Determines whether "Add Series/Column/Equation" buttons are shown:
+  // - Time-series chart widgets: can add multiple y-axis series
+  // - Table widgets: can add multiple columns
+  // - Big Number widgets: can add fields only if equations are enabled for the dataset
+  // - Categorical Bar widgets: can add one aggregate if none exists yet
+  const canAddFields =
+    (isCategoricalBarWidget && (!aggregateFields || aggregateFields.length === 0)) ||
+    (!isCategoricalBarWidget &&
+      (isTimeSeriesWidget ||
+        isTableWidget ||
+        (isBigNumberWidget && datasetConfig.enableEquations)));
   const linkedDashboards = state.linkedDashboards || [];
   const updateAction = usesYAxis
     ? BuilderStateAction.SET_Y_AXIS
@@ -575,9 +579,11 @@ function Visualize({error, setError}: VisualizeProps) {
   return (
     <Fragment>
       <SectionHeader
-        title={isTimeSeriesWidget ? t('Visualize') : t('Columns')}
+        title={
+          isTimeSeriesWidget || isCategoricalBarWidget ? t('Visualize') : t('Columns')
+        }
         tooltipText={
-          isTimeSeriesWidget
+          isTimeSeriesWidget || isCategoricalBarWidget
             ? t(
                 'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
               )
@@ -839,6 +845,9 @@ function Visualize({error, setError}: VisualizeProps) {
                                   columnFilterMethod={columnFilterMethod}
                                   aggregates={aggregates}
                                   disabled={disableTransactionWidget}
+                                  wrapPayload={
+                                    isCategoricalBarWidget ? wrapFieldsPayload : undefined
+                                  }
                                 />
                               )}
                               {field.kind === FieldValueKind.FUNCTION &&
@@ -907,46 +916,53 @@ function Visualize({error, setError}: VisualizeProps) {
                             </Fragment>
                           )}
                         </FieldBar>
-                        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
-                          {!isTimeSeriesWidget && !isBigNumberWidget && (
-                            <LegendAliasInput
-                              name="alias"
-                              placeholder={t('Add Alias')}
-                              value={field.alias ?? ''}
-                              disabled={disableTransactionWidget}
-                              onChange={e => {
-                                const newFields = cloneDeep(fields);
-                                newFields[index]!.alias = e.target.value;
-                                dispatch(
-                                  {
-                                    type: updateAction,
-                                    payload: wrapFieldsPayload(newFields),
-                                  },
-                                  {updateUrl: false}
-                                );
-                              }}
-                              onBlur={e => {
-                                const newFields = cloneDeep(fields);
-                                newFields[index]!.alias = e.target.value;
-                                dispatch(
-                                  {
-                                    type: updateAction,
-                                    payload: wrapFieldsPayload(newFields),
-                                  },
-                                  {updateUrl: true}
-                                );
-                                trackAnalytics('dashboards_views.widget_builder.change', {
-                                  builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                  field: 'visualize.legendAlias',
-                                  from: source,
-                                  new_widget: !isEditing,
-                                  value: '',
-                                  widget_type: state.dataset ?? '',
-                                  organization,
-                                });
-                              }}
-                            />
-                          )}
+                        <FieldExtras
+                          compact={isTimeSeriesWidget || isBigNumberWidget || isCategoricalBarWidget}
+                        >
+                          {!isTimeSeriesWidget &&
+                            !isBigNumberWidget &&
+                            !isCategoricalBarWidget && (
+                              <LegendAliasInput
+                                name="alias"
+                                placeholder={t('Add Alias')}
+                                value={field.alias ?? ''}
+                                disabled={disableTransactionWidget}
+                                onChange={e => {
+                                  const newFields = cloneDeep(fields);
+                                  newFields[index]!.alias = e.target.value;
+                                  dispatch(
+                                    {
+                                      type: updateAction,
+                                      payload: wrapFieldsPayload(newFields),
+                                    },
+                                    {updateUrl: false}
+                                  );
+                                }}
+                                onBlur={e => {
+                                  const newFields = cloneDeep(fields);
+                                  newFields[index]!.alias = e.target.value;
+                                  dispatch(
+                                    {
+                                      type: updateAction,
+                                      payload: wrapFieldsPayload(newFields),
+                                    },
+                                    {updateUrl: true}
+                                  );
+                                  trackAnalytics(
+                                    'dashboards_views.widget_builder.change',
+                                    {
+                                      builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                      field: 'visualize.legendAlias',
+                                      from: source,
+                                      new_widget: !isEditing,
+                                      value: '',
+                                      widget_type: state.dataset ?? '',
+                                      organization,
+                                    }
+                                  );
+                                }}
+                              />
+                            )}
                           {hasDrillDownFlows &&
                             isTableWidget &&
                             fields[index]?.kind === FieldValueKind.FIELD && (

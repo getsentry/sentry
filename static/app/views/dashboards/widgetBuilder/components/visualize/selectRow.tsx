@@ -66,6 +66,11 @@ interface SelectRowProps {
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
   stringFields?: string[];
+  /**
+   * Optional wrapper function for the dispatch payload.
+   * Used by categorical bar widgets to preserve X-axis fields when updating aggregates.
+   */
+  wrapPayload?: (payload: QueryFieldValue[]) => QueryFieldValue[];
 }
 
 export function renderDropdownMenuFooter() {
@@ -132,6 +137,7 @@ export function SelectRow({
   columnFilterMethod,
   aggregates,
   disabled,
+  wrapPayload,
 }: SelectRowProps) {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -443,7 +449,7 @@ export function SelectRow({
           }
           dispatch({
             type: updateAction,
-            payload: newFields,
+            payload: wrapPayload ? wrapPayload(newFields) : newFields,
           });
           setError?.({...error, queries: []});
         }}
@@ -471,7 +477,7 @@ export function SelectRow({
               }
               dispatch({
                 type: updateAction,
-                payload: newFields,
+                payload: wrapPayload ? wrapPayload(newFields) : newFields,
               });
               setError?.({...error, queries: []});
               trackAnalytics('dashboards_views.widget_builder.change', {

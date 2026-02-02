@@ -410,15 +410,15 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-                    {showVisualizeSection && (
-                      <Section>
-                        <Visualize error={error} setError={setError} />
-                      </Section>
-                    )}
-
                     {showXAxisSelector && (
                       <Section>
                         <WidgetBuilderXAxisSelector />
+                      </Section>
+                    )}
+
+                    {showVisualizeSection && (
+                      <Section>
+                        <Visualize error={error} setError={setError} />
                       </Section>
                     )}
 
