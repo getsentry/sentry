@@ -5,15 +5,19 @@ from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.project import Project
-from sentry.preprod.models import (
-    PreprodArtifact,
-    PreprodArtifactSizeMetrics,
-    PreprodComparisonApproval,
-)
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.types import TriggeredRule
 
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
+
+
+def format_no_quota_messages() -> tuple[str, str, str]:
+    """Format status check messages when quota is exhausted."""
+    title = _SIZE_ANALYZER_TITLE_BASE
+    subtitle = _("Quota exceeded")
+    summary = _("No quota available for size analysis. Contact support to increase your quota.")
+    return str(title), str(subtitle), str(summary)
 
 
 def format_status_check_messages(
@@ -21,17 +25,19 @@ def format_status_check_messages(
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     overall_status: StatusCheckStatus,
     project: Project,
+    base_artifact_map: dict[int, PreprodArtifact],
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]],
     triggered_rules: list[TriggeredRule] | None = None,
-    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[str, str, str]:
     """
     Args:
         artifacts: List of PreprodArtifact objects
-        size_metrics_map: Dict mapping artifact_id to PreprodArtifactSizeMetrics
+        size_metrics_map: Dict mapping artifact_id to list of PreprodArtifactSizeMetrics
         overall_status: The overall status of the check
         project: The project associated with the artifacts
+        base_artifact_map: Dict mapping head_artifact_id to base_artifact (pre-fetched)
+        base_metrics_by_artifact: Dict mapping base_artifact_id to list of size metrics
         triggered_rules: List of triggered rules with artifact associations
-        approvals_map: Dict mapping artifact_id to PreprodComparisonApproval
 
     Returns:
         tuple: (title, subtitle, summary)
@@ -64,6 +70,8 @@ def format_status_check_messages(
                             analyzed_count += 1
                         case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
                             errored_count += 1
+                        case PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
+                            errored_count += 1
                         case _:
                             raise ValueError(f"Unknown size analysis state: {metrics.state}")
 
@@ -75,7 +83,7 @@ def format_status_check_messages(
         raise ValueError("No metrics exist for VCS size status check")
 
     parts = []
-    if analyzed_count > 0:
+    if analyzed_count > 0 and not triggered_rules:
         parts.append(
             ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
             % {"count": analyzed_count}
@@ -114,7 +122,9 @@ def format_status_check_messages(
         # Failed apps section
         summary_parts.append(failed_header)
         summary_parts.append(
-            _format_artifact_summary(failed_artifacts, size_metrics_map, approvals_map)
+            _format_artifact_summary(
+                failed_artifacts, size_metrics_map, base_artifact_map, base_metrics_by_artifact
+            )
         )
         summary_parts.append(_format_failed_checks_details(triggered_rules, settings_url))
 
@@ -130,7 +140,9 @@ def format_status_check_messages(
             ) % {"count": passed_metrics_count}
             summary_parts.append(passed_header)
             summary_parts.append(
-                _format_artifact_summary(passed_artifacts, size_metrics_map, approvals_map)
+                _format_artifact_summary(
+                    passed_artifacts, size_metrics_map, base_artifact_map, base_metrics_by_artifact
+                )
             )
 
         # Footer link
@@ -146,7 +158,11 @@ def format_status_check_messages(
     else:
         # Success or in-progress
         summary_parts = []
-        summary_parts.append(_format_artifact_summary(artifacts, size_metrics_map, approvals_map))
+        summary_parts.append(
+            _format_artifact_summary(
+                artifacts, size_metrics_map, base_artifact_map, base_metrics_by_artifact
+            )
+        )
         summary_parts.append(_format_configure_link(project, settings_url))
 
         summary = "\n\n".join(summary_parts)
@@ -157,9 +173,17 @@ def format_status_check_messages(
 def _format_artifact_summary(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
-    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
+    base_artifact_map: dict[int, PreprodArtifact],
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]],
 ) -> str:
-    """Format summary for artifacts with size data."""
+    """Format summary for artifacts with size data.
+
+    Args:
+        artifacts: List of PreprodArtifact objects
+        size_metrics_map: Dict mapping artifact_id to list of PreprodArtifactSizeMetrics
+        base_artifact_map: Dict mapping head_artifact_id to base_artifact (pre-fetched)
+        base_metrics_by_artifact: Dict mapping base_artifact_id to list of size metrics
+    """
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
 
     grouped_rows: dict[str, list[str]] = {"android": [], "ios": []}
@@ -191,18 +215,18 @@ def _format_artifact_summary(
         # App version
         version_string = _format_version_string(artifact, default=str(_("Unknown")))
 
-        base_artifact = None
+        base_artifact = base_artifact_map.get(artifact.id)
         base_metrics = None
-        if (
-            size_metrics
-            and size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-        ):
-            base_artifact = artifact.get_base_artifact_for_commit().first()
-            if base_artifact:
-                base_metrics = base_artifact.get_size_metrics(
-                    metrics_artifact_type=size_metrics.metrics_artifact_type,
-                    identifier=size_metrics.identifier,
-                ).first()
+        if base_artifact and size_metrics:
+            base_metrics = next(
+                (
+                    m
+                    for m in base_metrics_by_artifact.get(base_artifact.id, [])
+                    if m.metrics_artifact_type == size_metrics.metrics_artifact_type
+                    and m.identifier == size_metrics.identifier
+                ),
+                None,
+            )
 
         # Install + Download sizes
         download_size_display, download_change, install_size_display, install_change = (
@@ -227,13 +251,7 @@ def _format_artifact_summary(
             f"{artifact.build_configuration.name or '--'}" if artifact.build_configuration else "--"
         )
 
-        approval = approvals_map.get(artifact.id) if approvals_map else None
-        if approval:
-            approval_text = "✅ Approved"
-        else:
-            approval_text = str(_("N/A"))
-
-        row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} | {approval_text} |"
+        row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} |"
 
         group_key = "android" if artifact.is_android() else "ios"
         grouped_rows[group_key].append(row)
@@ -242,8 +260,8 @@ def _format_artifact_summary(
 
     def _render_table(rows: list[str], install_label: str) -> str:
         return _(
-            "| Name | Configuration | Version | Download Size | {install_label} | Approval |\n"
-            "|------|--------------|---------|----------|-----------------|----------|\n"
+            "| Name | Configuration | Version | Download Size | {install_label} |\n"
+            "|------|--------------|---------|----------|------------------|\n"
             "{table_rows}"
         ).format(table_rows="\n".join(rows), install_label=install_label)
 
@@ -334,7 +352,7 @@ def _format_failed_checks_details(
             measurement_display = _get_measurement_display_name(tr.rule.measurement)
             threshold_display = _format_threshold_value(tr.rule.value, tr.rule.measurement)
             details_content.append(
-                f"- **{metric_display} - {measurement_display}** ≥ **{threshold_display}**"
+                f"- **{metric_display} ({measurement_display})** > **{threshold_display}**"
             )
 
     return (

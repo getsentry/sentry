@@ -1,8 +1,9 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -253,7 +254,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
               <Button
                 size="xs"
                 aria-label={t('Open Full-Screen View')}
-                borderless
+                priority="transparent"
                 icon={<IconExpand />}
                 onClick={() => {
                   openInsightChartModal({

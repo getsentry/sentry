@@ -1,11 +1,12 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
+import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -23,7 +24,10 @@ import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOption
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
+import {
+  agentMonitoringPlatforms,
+  javascriptMetaFrameworks,
+} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -32,7 +36,10 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -42,23 +49,12 @@ import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/quer
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
 import {
+  AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from './utils/agentIntegrations';
-
-// Full-stack JS frameworks that support server-side agent SDKs.
-const fullStackJsPlatforms = [
-  'javascript-astro',
-  'javascript-nextjs',
-  'javascript-nuxt',
-  'javascript-react-router',
-  'javascript-remix',
-  'javascript-solidstart',
-  'javascript-sveltekit',
-  'javascript-tanstackstart-react',
-];
 
 const serverSideNodeIntegrations = new Set([
   AgentIntegration.VERCEL_AI,
@@ -222,6 +218,8 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -236,7 +234,9 @@ export function Onboarding() {
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  const isFullStackJsPlatform = fullStackJsPlatforms.includes(project?.platform ?? '');
+  const isFullStackJsPlatform = javascriptMetaFrameworks.includes(
+    project?.platform ?? 'other'
+  );
   const hasServerSideNode = isNodePlatform || isFullStackJsPlatform;
 
   const integrationOptions = {
@@ -246,6 +246,9 @@ export function Onboarding() {
         ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
             value: integration,
+            leadingItems: (
+              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+            ),
           }))
         : (hasServerSideNode
             ? NODE_AGENT_INTEGRATIONS
@@ -255,9 +258,13 @@ export function Onboarding() {
           ).map(integration => ({
             label: AGENT_INTEGRATION_LABELS[integration],
             value: integration,
+            leadingItems: (
+              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+            ),
           })),
     },
   };
+
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
 
   const {isPending: isLoadingRegistry, data: registryData} =
@@ -325,13 +332,24 @@ export function Onboarding() {
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <GuidedSteps>
+      <GuidedSteps
+        initialStep={decodeInteger(location.query.guidedStep)}
+        onStepChange={step => {
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              guidedStep: step,
+            },
+          });
+        }}
+      >
         {steps
-          // Only show non-optional steps
+          // Only show non-collapsible steps
           .filter(step => !step.collapsible)
           .map((step, index) => (
             <StepRenderer
-              key={index}
+              key={step.title || step.type}
               project={project}
               step={step}
               isLastStep={index === steps.length - 1}

@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';

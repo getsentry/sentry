@@ -1,8 +1,8 @@
 import groupBy from 'lodash/groupBy';
 
-import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import type {BaseAvatarProps} from '@sentry/scraps/avatar';
+import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+
 import {t} from 'sentry/locale';
 import type {DetailedTeam, Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';

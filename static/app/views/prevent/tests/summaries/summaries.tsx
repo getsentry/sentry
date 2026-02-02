@@ -1,4 +1,5 @@
-import {Grid} from 'sentry/components/core/layout';
+import {Grid} from '@sentry/scraps/layout';
+
 import {useTestResultsAggregates} from 'sentry/views/prevent/tests/queries/useTestResultsAggregates';
 import {CIEfficiency} from 'sentry/views/prevent/tests/summaries/ciEfficiency';
 import {TestPerformance} from 'sentry/views/prevent/tests/summaries/testPerformance';

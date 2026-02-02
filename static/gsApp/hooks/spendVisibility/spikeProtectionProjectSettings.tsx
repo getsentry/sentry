@@ -1,4 +1,5 @@
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';

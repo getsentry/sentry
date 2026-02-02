@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';

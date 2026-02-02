@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Text} from 'sentry/components/core/text/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 import type {PullRequestDetailsSuccessResponse} from 'sentry/views/pullRequest/types/pullRequestDetailsTypes';
 

@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
 
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
 import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';

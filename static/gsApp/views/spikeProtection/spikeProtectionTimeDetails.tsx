@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {AlertBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
-import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {IconCalendar} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';

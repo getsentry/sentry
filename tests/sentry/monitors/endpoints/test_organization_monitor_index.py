@@ -722,6 +722,9 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         Test that members cannot assign a team they are not a member of as owner.
         This is a regression test for an IDOR vulnerability.
         """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         other_team = self.create_team(organization=self.organization, name="other-team")
 
         user_with_team = self.create_user(is_superuser=False)
@@ -744,7 +747,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert response.data == {
             "owner": [
                 ErrorDetail(
-                    string="You do not have permission to assign this owner",
+                    string="You can only assign teams you are a member of",
                     code="invalid",
                 )
             ]
@@ -788,6 +791,35 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             teams=[self.team],
         )
         self.login_as(admin_user)
+
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "owner": f"team:{other_team.id}",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+        assert monitor.owner_team_id == other_team.id
+
+    def test_owner_team_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can assign any team as owner.
+        """
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
 
         data = {
             "project": self.project.slug,

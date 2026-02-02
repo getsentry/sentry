@@ -1,11 +1,12 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Select} from 'sentry/components/core/select';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
@@ -118,7 +119,7 @@ export default function AutomationBuilder() {
         ))}
         <span>
           <PurpleTextButton
-            borderless
+            priority="transparent"
             icon={<IconAdd />}
             size="xs"
             onClick={() => actions.addIf()}
@@ -212,7 +213,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
-              borderless
+              priority="transparent"
               onClick={() => actions.removeIf(actionFilter.id)}
               className="delete-condition-group"
             />

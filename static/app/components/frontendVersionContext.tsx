@@ -3,13 +3,14 @@ import {createContext, useContext, useEffect, useState} from 'react';
 import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 /**
  * Delay before starting to check for new versions. This prevents users from
  * being prompted to reload immediately after opening the app.
  */
-const VERSION_CHECK_DELAY_MS = 10 * 60 * 1000; // 10 minutes
+const VERSION_CHECK_DELAY_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Static check for whether version checking can be enabled. These values are
@@ -103,7 +104,7 @@ export function FrontendVersionProvider({children, force, releaseVersion}: Props
   const enabled = canCheckVersion && delayElapsed;
 
   const {data: frontendVersionData} = useApiQuery<FrontendVersionResponse>(
-    ['/internal/frontend-version/'],
+    [getApiUrl('/internal/frontend-version/')],
     {
       staleTime: 5 * 60 * 1000,
       refetchInterval: 5 * 60 * 1000,

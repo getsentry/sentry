@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {
   isWebVitalsEvent,
   TRACE_WATERFALL_PREFERENCES_KEY,

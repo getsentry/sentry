@@ -11,6 +11,7 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   setApiQueryData,
@@ -35,7 +36,12 @@ export const makeAutofixQueryKey = (
   groupId: string,
   isUserWatching = false
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      issueId: groupId,
+    },
+  }),
   {query: {isUserWatching: isUserWatching ? true : false, mode: 'legacy'}},
 ];
 
@@ -323,9 +329,18 @@ export function useCodingAgentIntegrations() {
 
   return useApiQuery<{
     integrations: CodingAgentIntegration[];
-  }>([`/organizations/${organization.slug}/integrations/coding-agents/`], {
-    staleTime: 5 * 60 * 1000,
-  });
+  }>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
+    ],
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 }
 
 interface LaunchCodingAgentParams {
@@ -356,7 +371,7 @@ function getErrorMessage(error: RequestError, agentName: string): string {
   return t('Failed to launch %s', agentName);
 }
 
-function needsGitHubAuth(error: RequestError): boolean {
+export function needsGitHubAuth(error: RequestError): boolean {
   const detail = error.responseJSON?.detail;
   return (
     typeof detail === 'string' &&

@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {tct} from 'sentry/locale';
 import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
 

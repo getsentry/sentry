@@ -1,10 +1,12 @@
 from typing import Any
+from unittest.mock import patch
 
 import orjson
 from django.test import override_settings
 
 from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
+from sentry.preprod.quotas import DISTRIBUTION_ENABLED_QUERY_KEY, SIZE_ENABLED_QUERY_KEY
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 
@@ -523,6 +525,104 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert mobile_app_info.build_number is None
         assert mobile_app_info.app_name is None
         assert mobile_app_info.app_icon_id is None
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_returns_requested_features(self) -> None:
+        """Test that the response includes requestedFeatures with both features by default."""
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" in resp_data["requestedFeatures"]
+        assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_filters_size_by_query(self) -> None:
+        """Test that SIZE_ANALYSIS is filtered out when project query doesn't match."""
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        # Set a query filter that doesn't match
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" not in resp_data["requestedFeatures"]
+        assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_includes_size_when_query_matches(self) -> None:
+        """Test that SIZE_ANALYSIS is included when project query matches."""
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        # Set a query filter that matches
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.my.app")
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" in resp_data["requestedFeatures"]
+        assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_filters_distribution_by_query(self) -> None:
+        """Test that BUILD_DISTRIBUTION is filtered out when project query doesn't match."""
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        # Set a query filter that doesn't match
+        self.project.update_option(DISTRIBUTION_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" in resp_data["requestedFeatures"]
+        assert "build_distribution" not in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch("sentry.preprod.quotas.has_size_quota")
+    def test_update_preprod_artifact_filters_size_when_no_quota(self, mock_has_size_quota) -> None:
+        """Test that SIZE_ANALYSIS is filtered out when organization has no quota."""
+        mock_has_size_quota.return_value = False
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" not in resp_data["requestedFeatures"]
+        assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch("sentry.preprod.quotas.has_installable_quota")
+    def test_update_preprod_artifact_filters_distribution_when_no_quota(
+        self, mock_has_installable_quota
+    ) -> None:
+        """Test that BUILD_DISTRIBUTION is filtered out when organization has no quota."""
+        mock_has_installable_quota.return_value = False
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert "requestedFeatures" in resp_data
+        assert "size_analysis" in resp_data["requestedFeatures"]
+        assert "build_distribution" not in resp_data["requestedFeatures"]
 
 
 class FindOrCreateReleaseTest(TestCase):

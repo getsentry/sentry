@@ -1,6 +1,7 @@
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
 from sentry.search.eap import constants
+from sentry.search.eap.aggregate_utils import count_processor
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
@@ -9,14 +10,6 @@ from sentry.search.eap.columns import (
     count_argument_resolver_optimized,
 )
 from sentry.search.eap.validator import literal_validator
-
-
-def count_processor(count_value: int | None) -> int:
-    if count_value is None:
-        return 0
-    else:
-        return count_value
-
 
 TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.metric_name", type=AttributeKey.Type.TYPE_STRING),

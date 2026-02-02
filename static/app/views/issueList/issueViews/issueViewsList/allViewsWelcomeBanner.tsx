@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,7 +29,7 @@ export default function AllViewsWelcomeBanner() {
           analyticsEventKey="issue_views.all_views.banner_dismissed"
           analyticsEventName="Issue Views: All Views Banner Dismissed"
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconClose size="xs" />}
           aria-label={t('Dismiss')}
           onClick={() => dismissPrompt()}

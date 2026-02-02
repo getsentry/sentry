@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';

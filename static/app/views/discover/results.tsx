@@ -5,15 +5,16 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -651,7 +652,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
               />
             }
           >
@@ -724,7 +725,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
               />
             }
           >

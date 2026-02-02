@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
   DiffFileType,
   DiffLineType,

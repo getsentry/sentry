@@ -1,6 +1,7 @@
 import pickBy from 'lodash/pickBy';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -271,7 +272,12 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    if (field === 'transaction') {
+    if (
+      field === SpanFields.TRANSACTION &&
+      !widget?.queries?.[0]?.linkedDashboards?.some(
+        linkedDashboard => linkedDashboard.field === SpanFields.TRANSACTION
+      )
+    ) {
       return renderTransactionAsLinkable;
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);

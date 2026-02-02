@@ -83,16 +83,30 @@ interface BuildDetailsSizeInfoFailed {
   state: BuildDetailsSizeAnalysisState.FAILED;
 }
 
+interface BuildDetailsSizeInfoNotRan {
+  error_code: number;
+  error_message: string;
+  state: BuildDetailsSizeAnalysisState.NOT_RAN;
+}
+
 export type BuildDetailsSizeInfo =
   | BuildDetailsSizeInfoPending
   | BuildDetailsSizeInfoProcessing
   | BuildDetailsSizeInfoCompleted
-  | BuildDetailsSizeInfoFailed;
+  | BuildDetailsSizeInfoFailed
+  | BuildDetailsSizeInfoNotRan;
 
 export function isSizeInfoCompleted(
   sizeInfo: BuildDetailsSizeInfo | undefined
 ): sizeInfo is BuildDetailsSizeInfoCompleted {
   return sizeInfo?.state === BuildDetailsSizeAnalysisState.COMPLETED;
+}
+
+export function isSizeInfoRetryable(sizeInfo: BuildDetailsSizeInfo | undefined): boolean {
+  return (
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED ||
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.NOT_RAN
+  );
 }
 
 export function isSizeInfoPendingOrProcessing(
@@ -140,6 +154,7 @@ export enum BuildDetailsSizeAnalysisState {
   PROCESSING = 1,
   COMPLETED = 2,
   FAILED = 3,
+  NOT_RAN = 4,
 }
 
 interface PostedStatusChecks {

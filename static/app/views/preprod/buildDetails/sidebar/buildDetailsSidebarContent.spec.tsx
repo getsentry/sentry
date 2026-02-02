@@ -17,7 +17,7 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
     name: 'Test App',
     version: '1.0.0',
     build_number: '100',
-    platform: 'ios',
+    platform: 'apple',
     artifact_type: 0,
     build_configuration: 'Release',
     date_built: '2023-01-01T00:00:00Z',

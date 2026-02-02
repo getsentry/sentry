@@ -2,15 +2,15 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
