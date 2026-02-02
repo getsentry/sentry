@@ -24,7 +24,10 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
-import {MAX_DAYS_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
+import {
+  MAX_DAYS_FOR_CROSS_EVENTS,
+  MAX_PERIOD_FOR_CROSS_EVENTS,
+} from 'sentry/views/explore/constants';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
@@ -47,7 +50,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
-  defaultPeriod: '7d',
+  defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
   maxPickableDays: MAX_DAYS_FOR_CROSS_EVENTS,
   maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
 };
@@ -117,7 +120,12 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     );
 
     if (days > MAX_DAYS_FOR_CROSS_EVENTS) {
-      updateDateTime({period: '7d', start: null, end: null, utc: null});
+      updateDateTime({
+        period: MAX_PERIOD_FOR_CROSS_EVENTS,
+        start: null,
+        end: null,
+        utc: null,
+      });
     }
   }, [
     hasCrossEvents,
