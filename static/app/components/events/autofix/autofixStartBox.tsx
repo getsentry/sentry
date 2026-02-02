@@ -48,7 +48,7 @@ function getStoppingPointOptions(organization: Organization) {
       key: AutofixStoppingPoint.OPEN_PR,
       label: t('Draft a Pull Request'),
       value: AutofixStoppingPoint.OPEN_PR,
-      disabled: !organization.enableSeerCoding,
+      disabled: organization.enableSeerCoding === false,
       tooltip: t('Code generation is disabled for this organization'),
     },
   ] as const;
