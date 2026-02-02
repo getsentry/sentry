@@ -621,14 +621,24 @@ export function applyDashboardFilters(
   return baseQuery;
 }
 
-export const isChartDisplayType = (displayType?: DisplayType) => {
+/**
+ * Returns true if the display type uses time-series data (events-stats endpoint)
+ * and stores aggregates in yAxis state. Returns false for display types that
+ * use table-style data (events endpoint) and store everything in fields state.
+ */
+export const usesTimeSeriesData = (displayType?: DisplayType) => {
   if (!displayType) {
     return true;
   }
   return ![
     DisplayType.BIG_NUMBER,
-    DisplayType.TABLE,
     DisplayType.DETAILS,
+    DisplayType.TABLE,
     DisplayType.WHEEL,
   ].includes(displayType);
 };
+
+/**
+ * @deprecated Use `usesTimeSeriesData` instead. This alias exists for backwards compatibility.
+ */
+export const isChartDisplayType = usesTimeSeriesData;
