@@ -360,7 +360,7 @@ def _detect_performance_problems(
 
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
-            detector_class(detection_settings, data, organization)
+            detector_class(detection_settings[detector_class.settings_key], data, organization)
             for detector_class in DETECTOR_CLASSES
             if detector_class.is_detection_allowed_for_system()
         ]

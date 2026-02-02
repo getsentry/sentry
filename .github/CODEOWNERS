@@ -255,7 +255,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/dashboards/                                                     @getsentry/dashboards
 /tests/sentry/dashboards/                                                   @getsentry/dashboards
 
-/src/sentry/api/serializers/models/dashboard.py                      @getsentry/dashboards
+/src/sentry/api/serializers/models/dashboard*                        @getsentry/dashboards
 /src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/data-browsing
 /src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/dashboards
 

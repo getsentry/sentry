@@ -58,7 +58,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
     def __init__(
         self,
-        settings: dict[DetectorType, Any],
+        settings: dict[str, Any],
         event: dict[str, Any],
         organization: Organization | None = None,
         detector_id: int | None = None,
@@ -162,7 +162,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             return
 
         # Do we have enough spans?
-        count = self.settings.get("count")
+        count = self.settings["count"]
         if len(self.n_spans) < count:
             return
 
@@ -235,7 +235,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             )
 
     def _is_slower_than_threshold(self) -> bool:
-        duration_threshold = self.settings.get("duration_threshold")
+        duration_threshold = self.settings["duration_threshold"]
         return total_span_time(self.n_spans) >= duration_threshold
 
     def _metrics_for_extra_matching_spans(self) -> None:
