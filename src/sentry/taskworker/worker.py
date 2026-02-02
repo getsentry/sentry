@@ -192,6 +192,7 @@ class TaskWorker:
 
         inflight = self.fetch_task()
         if inflight:
+            print(f"> GOT TASK {inflight.activation.taskname}")
             try:
                 start_time = time.monotonic()
                 self._child_tasks.put(inflight)

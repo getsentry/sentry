@@ -124,6 +124,9 @@ class Task(Generic[P, R]):
         activation = self.create_activation(
             args=args, kwargs=kwargs, headers=headers, expires=expires, countdown=countdown
         )
+
+        print(f"> CREATED ACTIVATION {activation.taskname} (application {activation.application})")
+
         if settings.TASKWORKER_ALWAYS_EAGER:
             self._func(*args, **kwargs)
         else:
