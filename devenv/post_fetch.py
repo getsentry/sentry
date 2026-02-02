@@ -50,12 +50,12 @@ def main(context: dict[str, str]) -> int:
                 cwd=reporoot,
             )
     elif LINUX:
-        # if not constants.CI:
-        not_installed = dpkgs_not_installed(REQUIRED_APT_PKGS)
-        if not_installed:
-            raise SystemExit(
-                f"Please install the following apt packages: {' '.join(REQUIRED_APT_PKGS)}"
-            )
+        if not constants.CI:
+            not_installed = dpkgs_not_installed(REQUIRED_APT_PKGS)
+            if not_installed:
+                raise SystemExit(
+                    f"Please install the following apt packages: {' '.join(REQUIRED_APT_PKGS)}"
+                )
     else:
         print(
             f"Unsupported platform; assuming you have the equivalent of the following apt packages installed: {' '.join(REQUIRED_APT_PKGS)}"
