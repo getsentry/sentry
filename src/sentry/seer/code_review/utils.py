@@ -424,7 +424,7 @@ def extract_github_info(
     return result
 
 
-def delete_existing_reactions_and_adds_reaction(
+def delete_existing_reactions_and_add_reaction(
     github_event: GithubWebhookType,
     github_event_action: str,
     integration: RpcIntegration | None,

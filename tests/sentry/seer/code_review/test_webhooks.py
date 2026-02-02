@@ -8,7 +8,7 @@ from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.utils import ClientError, delete_existing_reactions_and_adds_reaction
+from sentry.seer.code_review.utils import ClientError, delete_existing_reactions_and_add_reaction
 from sentry.seer.code_review.webhooks.issue_comment import (
     GitHubIssueCommentAction,
     is_pr_review_command,
@@ -745,7 +745,7 @@ class AddEyesReactionTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.logger")
     def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
-        delete_existing_reactions_and_adds_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=None,
@@ -762,7 +762,7 @@ class AddEyesReactionTest(TestCase):
         mock_logger.warning.assert_called_once_with("github.webhook.missing-integration", extra={})
 
     def test_adds_reaction_to_pr(self) -> None:
-        delete_existing_reactions_and_adds_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -782,7 +782,7 @@ class AddEyesReactionTest(TestCase):
         )
 
     def test_adds_reaction_to_comment(self) -> None:
-        delete_existing_reactions_and_adds_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
@@ -809,7 +809,7 @@ class AddEyesReactionTest(TestCase):
             {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
         ]
 
-        delete_existing_reactions_and_adds_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -837,7 +837,7 @@ class AddEyesReactionTest(TestCase):
             {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
         ]
 
-        delete_existing_reactions_and_adds_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
@@ -863,7 +863,7 @@ class AddEyesReactionTest(TestCase):
     ) -> None:
         self.mock_client.get_issue_reactions.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_adds_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -892,7 +892,7 @@ class AddEyesReactionTest(TestCase):
         ]
         self.mock_client.delete_issue_reaction.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_adds_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -916,7 +916,7 @@ class AddEyesReactionTest(TestCase):
     def test_logs_warning_when_create_reaction_fails(self, mock_logger: MagicMock) -> None:
         self.mock_client.create_issue_reaction.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_adds_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
