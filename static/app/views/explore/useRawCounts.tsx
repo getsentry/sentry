@@ -23,13 +23,24 @@ export interface RawCounts {
 
 interface UseRawCountsOptions {
   dataset: DiscoverDatasets;
+  /**
+   * Optional custom aggregate function. If not provided, a default aggregate
+   * will be determined based on the dataset.
+   * Used for metrics which require dynamic aggregates like `count(value,<name>,<type>,-)`.
+   */
+  aggregate?: string;
+  enabled?: boolean;
 }
 
-export function useRawCounts({dataset}: UseRawCountsOptions): RawCounts {
+export function useRawCounts({
+  dataset,
+  aggregate,
+  enabled,
+}: UseRawCountsOptions): RawCounts {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const count = getAggregateForDataset(dataset);
+  const count = aggregate ?? getAggregateForDataset(dataset);
 
   const baseQueryParams = {
     dataset,
@@ -54,7 +65,7 @@ export function useRawCounts({dataset}: UseRawCountsOptions): RawCounts {
   ];
 
   const normalScanResult = useApiQuery<QueryResult<typeof count>>(normalScanQueryKey, {
-    enabled: true,
+    enabled: enabled ?? true,
     staleTime: 0,
   });
 
@@ -72,7 +83,7 @@ export function useRawCounts({dataset}: UseRawCountsOptions): RawCounts {
   const highestAccuracyScanResult = useApiQuery<QueryResult<typeof count>>(
     highestAccuracyScanQueryKey,
     {
-      enabled: true,
+      enabled: enabled ?? true,
       staleTime: 0,
     }
   );
@@ -99,6 +110,8 @@ function getBaseReferrer(dataset: DiscoverDatasets) {
       return 'api.explore.spans.raw-count' as const;
     case DiscoverDatasets.OURLOGS:
       return 'api.explore.logs.raw-count' as const;
+    case DiscoverDatasets.TRACEMETRICS:
+      return 'api.explore.metrics.raw-count' as const;
     default:
       throw new Error(`Unsupported dataset: ${dataset}`);
   }
