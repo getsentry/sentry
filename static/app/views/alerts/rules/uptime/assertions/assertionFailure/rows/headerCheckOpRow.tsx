@@ -33,8 +33,8 @@ export function HeaderCheckOpRow({node}: {node: HeaderCheckOpTreeNode}) {
   const keyValueText = keyOperandValue || t('[Empty Header Key]');
   const valueValueText = valueOperandValue || t('[Empty Header Value]');
 
-  return (
-    <Text variant="muted" ellipsis>
+  const content = (
+    <Fragment>
       <Text variant="danger">[Failed] </Text>
       Header Check | Rule:{' '}
       <Text variant="primary">
@@ -53,6 +53,14 @@ export function HeaderCheckOpRow({node}: {node: HeaderCheckOpTreeNode}) {
           </Fragment>
         )}
       </Text>
-    </Text>
+    </Fragment>
+  );
+
+  return (
+    <Tooltip title={<Text variant="muted">{content}</Text>} showOnlyOnOverflow>
+      <Text variant="muted" ellipsis>
+        {content}
+      </Text>
+    </Tooltip>
   );
 }
