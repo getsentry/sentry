@@ -82,6 +82,8 @@ def normalize_message_for_grouping(
 
     parameterization_counts = parameterizer.matches_counter.items()
     if parameterization_counts:
+        metrics.incr("grouping.message_parameterized", tags={"source": source})
+
         for key, value in parameterization_counts:
             # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
             # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
