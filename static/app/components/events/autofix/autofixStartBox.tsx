@@ -41,7 +41,7 @@ function getStoppingPointOptions(organization: Organization) {
       key: AutofixStoppingPoint.CODE_CHANGES,
       label: t('Write Code Changes'),
       value: AutofixStoppingPoint.CODE_CHANGES,
-      disabled: !organization.enableSeerCoding,
+      disabled: organization.enableSeerCoding === false,
       tooltip: t('Code generation is disabled for this organization'),
     },
     {
@@ -150,6 +150,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               <StyledButton
                 type="submit"
                 priority="primary"
+                disabled={primaryOption.disabled}
                 analyticsEventKey={
                   message
                     ? 'autofix.give_instructions_clicked'
