@@ -1,6 +1,5 @@
 import {useId} from 'react';
 
-import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -11,12 +10,15 @@ import {t} from 'sentry/locale';
 import type {HeaderCheckOp, HeaderOperand} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer} from './opCommon';
-
-const HEADER_OPERAND_OPTIONS: Array<SelectOption<'literal' | 'glob'> & {symbol: string}> =
-  [
-    {value: 'literal', label: t('Literal'), symbol: '""'},
-    {value: 'glob', label: t('Glob Pattern'), symbol: '\u2217'},
-  ];
+import {
+  getHeaderKeyCombinedLabelAndTooltip,
+  getHeaderKeyComparisonOptions,
+  getHeaderOperandValue,
+  getHeaderValueCombinedLabelAndTooltip,
+  getHeaderValueComparisonOptions,
+  HEADER_OPERAND_OPTIONS,
+  shouldShowHeaderValueInput,
+} from './utils';
 
 interface AssertionOpHeaderProps {
   onChange: (op: HeaderCheckOp) => void;
@@ -27,74 +29,22 @@ interface AssertionOpHeaderProps {
 export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeaderProps) {
   const inputId = useId();
 
-  // Filter options for header key comparisons (no less_than/greater_than)
-  const headerKeyComparisonOptions = COMPARISON_OPTIONS.filter(
-    opt => !['less_than', 'greater_than'].includes(opt.value)
-  );
+  const headerKeyComparisonOptions = getHeaderKeyComparisonOptions(COMPARISON_OPTIONS);
+  const headerValueComparisonOptions =
+    getHeaderValueComparisonOptions(COMPARISON_OPTIONS);
 
-  // Filter options for header value comparisons (only equals, not_equal)
-  const headerValueComparisonOptions = COMPARISON_OPTIONS.filter(opt =>
-    ['equals', 'not_equal'].includes(opt.value)
-  );
-
-  const showValueInput = ['equals', 'not_equal'].includes(value.key_op.cmp);
-
-  const getOperandValue = (operand: HeaderOperand) =>
-    operand.header_op === 'literal'
-      ? operand.value
-      : operand.header_op === 'glob'
-        ? operand.pattern.value
-        : '';
+  const showValueInput = shouldShowHeaderValueInput(value);
 
   const keyOperandType = value.key_operand.header_op;
-  const keyOperandValue = getOperandValue(value.key_operand);
+  const keyOperandValue = getHeaderOperandValue(value.key_operand);
   const valueOperandType = value.value_operand.header_op;
-  const valueOperandValue = getOperandValue(value.value_operand);
+  const valueOperandValue = getHeaderOperandValue(value.value_operand);
 
-  // Get combined label for key (comparison + operand)
-  const keyComparisonLabel =
-    headerKeyComparisonOptions.find(opt => opt.value === value.key_op.cmp)?.label ?? '';
-  const keyComparisonSymbol =
-    headerKeyComparisonOptions.find(opt => opt.value === value.key_op.cmp)?.symbol ?? '';
-  const keyOperandLabel =
-    keyOperandType === 'none'
-      ? ''
-      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === keyOperandType)?.label ?? '');
-  const keyOperandSymbol =
-    keyOperandType === 'none'
-      ? ''
-      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === keyOperandType)?.symbol ?? '');
-  const keyCombinedLabel = keyOperandSymbol
-    ? `${keyComparisonSymbol}${keyOperandSymbol}`
-    : keyComparisonSymbol;
-  const keyCombinedTooltip =
-    keyOperandType === 'none'
-      ? t('Header key %s', keyComparisonLabel)
-      : t('Header key %s matching a string %s', keyComparisonLabel, keyOperandLabel);
+  const {combinedLabel: keyCombinedLabel, combinedTooltip: keyCombinedTooltip} =
+    getHeaderKeyCombinedLabelAndTooltip(value, headerKeyComparisonOptions);
 
-  // Get combined label for value (comparison + operand)
-  const valueComparisonLabel =
-    headerValueComparisonOptions.find(opt => opt.value === value.value_op.cmp)?.label ??
-    '';
-  const valueComparisonSymbol =
-    headerValueComparisonOptions.find(opt => opt.value === value.value_op.cmp)?.symbol ??
-    '';
-  const valueOperandLabel =
-    valueOperandType === 'none'
-      ? ''
-      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === valueOperandType)?.label ?? '');
-  const valueOperandSymbol =
-    valueOperandType === 'none'
-      ? ''
-      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === valueOperandType)?.symbol ??
-        '');
-  const valueCombinedLabel = valueOperandSymbol
-    ? `${valueComparisonSymbol}${valueOperandSymbol}`
-    : valueComparisonSymbol;
-  const valueCombinedTooltip =
-    valueOperandType === 'none'
-      ? t('Header value %s', valueComparisonLabel)
-      : t('Header value %s to a string %s', valueComparisonLabel, valueOperandLabel);
+  const {combinedLabel: valueCombinedLabel, combinedTooltip: valueCombinedTooltip} =
+    getHeaderValueCombinedLabelAndTooltip(value, headerValueComparisonOptions);
 
   const keyInput = (
     <Container flexGrow={1}>
