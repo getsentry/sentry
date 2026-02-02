@@ -474,6 +474,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'python',
   'php',
   'ruby',
+  'flutter',
 ]);
 
 export const profiling: PlatformKey[] = [
