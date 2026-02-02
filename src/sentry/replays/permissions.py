@@ -19,7 +19,7 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     Determine whether a user has permission to access replay data for a given organization.
 
     Rules:
-    - Superusers and staff always have access.
+    - Superusers always have access.
     - User must be authenticated and an active org member.
     - If the 'organizations:granular-replay-permissions' feature flag is OFF, all users have access.
     - If the 'sentry:granular-replay-permissions' org option is not set or falsy, all org members have access.
