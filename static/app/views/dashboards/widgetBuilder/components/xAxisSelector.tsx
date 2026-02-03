@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -22,19 +23,22 @@ export function WidgetBuilderXAxisSelector() {
   const tags: TagCollection = useTags();
 
   // Only use string tags for categorical X-axis (numeric values don't make good categories)
-  const {tags: stringSpanTags} = useTraceItemTags('string');
+  const {tags: stringSpanTags, isLoading: isLoadingSpanTags} = useTraceItemTags('string');
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
+
+  // Determine if we're loading tags for EAP datasets
+  const isEAPDataset =
+    state.dataset === WidgetType.SPANS ||
+    state.dataset === WidgetType.LOGS ||
+    state.dataset === WidgetType.TRACEMETRICS;
+  const isLoading = isEAPDataset && isLoadingSpanTags;
 
   // Get string field options for X-axis categories.
   // Only string fields make sense as categorical X-axis values (e.g., browser, country, transaction).
   // Numeric fields would create too many unique categories and are better suited for Y-axis aggregates.
   const fieldOptions = useMemo(() => {
-    if (
-      state.dataset === WidgetType.SPANS ||
-      state.dataset === WidgetType.LOGS ||
-      state.dataset === WidgetType.TRACEMETRICS
-    ) {
+    if (isEAPDataset) {
       // For EAP datasets, use only string tags
       return Object.values(stringSpanTags).map(tag => ({
         label: prettifyTagKey(tag.name),
@@ -64,7 +68,7 @@ export function WidgetBuilderXAxisSelector() {
     }
 
     return [];
-  }, [state.dataset, datasetConfig, organization, tags, stringSpanTags]);
+  }, [isEAPDataset, datasetConfig, organization, tags, stringSpanTags]);
 
   // Extract the current X-axis field from state.fields.
   // For categorical bars, state.fields contains both X-axis fields (FIELD kind)
@@ -96,6 +100,7 @@ export function WidgetBuilderXAxisSelector() {
       <StyledFieldGroup inline={false} flexibleControlStateSize>
         <StyledCompactSelect
           searchable
+          loading={isLoading}
           value={currentXAxisField}
           options={fieldOptions}
           onChange={handleXAxisChange}

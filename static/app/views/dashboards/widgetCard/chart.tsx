@@ -733,8 +733,14 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     tableData: tableResults[0],
   });
 
+  // Empty series array means the widget is misconfigured (missing X-axis or aggregate)
+  // This is different from "no data found" which would return series with empty values
   if (categoricalSeriesData.length === 0) {
-    return null;
+    return (
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
+    );
   }
 
   // Create Bars plottables from the transformed data

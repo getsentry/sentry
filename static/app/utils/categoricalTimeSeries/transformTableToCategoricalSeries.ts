@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
@@ -61,10 +62,20 @@ export function transformTableToCategoricalSeries({
     const fieldUnit = meta?.units?.[aggregate] as DataUnit | undefined;
 
     // Transform rows to categorical items
-    const values = rows.map(row => ({
-      category: String(row[xAxisField] ?? ''),
-      value: typeof row[aggregate] === 'number' ? row[aggregate] : null,
-    }));
+    // Handle null/undefined/empty values distinctly from valid category values
+    const values = rows.map(row => {
+      const rawCategory = row[xAxisField];
+      let category: string;
+      if (rawCategory === null || rawCategory === undefined || rawCategory === '') {
+        category = t('(empty)');
+      } else {
+        category = String(rawCategory);
+      }
+      return {
+        category,
+        value: typeof row[aggregate] === 'number' ? row[aggregate] : null,
+      };
+    });
 
     return {
       valueAxis: aggregate,

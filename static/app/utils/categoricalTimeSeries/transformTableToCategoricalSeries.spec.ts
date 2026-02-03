@@ -163,7 +163,7 @@ describe('transformTableToCategoricalSeries', () => {
     expect(result).toHaveLength(1);
     expect(result[0]!.values).toEqual([
       {category: 'Chrome', value: 100},
-      {category: '', value: 50}, // null becomes empty string
+      {category: '(empty)', value: 50}, // null/empty becomes "(empty)" label
       {category: 'Safari', value: null}, // non-numeric becomes null
     ]);
   });
