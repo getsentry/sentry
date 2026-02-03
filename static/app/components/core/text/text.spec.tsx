@@ -3,8 +3,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-// eslint-disable-next-line boundaries/entry-point
-import {Text, type TextProps} from './text';
+import {Text, type TextProps} from '@sentry/scraps/text';
 
 describe('Text', () => {
   it('Defaults to span', () => {
