@@ -12,7 +12,7 @@ import {
   TimeRangeSelectTrigger,
 } from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
-import {TourElement, type TourRenderProps} from 'sentry/components/tours/components';
+import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
