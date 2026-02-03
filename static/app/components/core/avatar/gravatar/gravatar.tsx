@@ -76,6 +76,7 @@ function useGravatarHash(gravatarId: string) {
     hashGravatarId(trimmedGravatarId)
       .then(setAvatarHash)
       .catch(error => {
+        setAvatarHash(null);
         Sentry.withScope(scope => {
           scope.setFingerprint(['gravatar-hash-error']);
           Sentry.captureException(error);
