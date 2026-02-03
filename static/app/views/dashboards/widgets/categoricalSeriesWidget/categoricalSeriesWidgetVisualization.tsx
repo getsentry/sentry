@@ -8,9 +8,10 @@ import type {
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
 
+import {useRenderToString} from '@sentry/scraps/renderToString';
+
 import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import {useRenderToString} from 'sentry/components/core/renderToString';
 import type {
   EChartClickHandler,
   EChartDownplayHandler,

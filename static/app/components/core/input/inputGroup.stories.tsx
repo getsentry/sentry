@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/components/core/input/inputGroup';
+import documentation from '!!type-loader!@sentry/scraps/input/inputGroup';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';

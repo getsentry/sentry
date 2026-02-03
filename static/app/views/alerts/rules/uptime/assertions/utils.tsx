@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
 import type {
   GroupOp,

@@ -1,6 +1,6 @@
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Text} from 'sentry/components/core/text/text';
 import {t} from 'sentry/locale';
 
 export function AndOpRow() {

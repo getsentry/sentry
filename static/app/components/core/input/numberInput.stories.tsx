@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/components/core/input/numberInput';
+import documentation from '!!type-loader!@sentry/scraps/input/numberInput';
 
 import * as Storybook from 'sentry/stories';
 

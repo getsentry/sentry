@@ -48,7 +48,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('can pass trialDays and enterprise plan onConfirm', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -80,7 +80,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('can pass trialDays and extend enterprise plan onConfirm', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -104,7 +104,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('can pass trialDays and trialPlanOverride onConfirm', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -138,7 +138,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('displays correct trial end date when starting trial', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -166,7 +166,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('displays correct trial end date when starting enterprise trial', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -195,7 +195,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('displays correct trial end date when extending trial', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -224,7 +224,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('displays correct trial end date when converting from trial to enterprise trial', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -254,7 +254,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('displays am3 trial tier option when free plan', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -281,7 +281,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('displays am3 trial tier option when am3 plan', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -308,7 +308,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('displays am3 trial tier option when am2 plan', async () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -335,7 +335,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('defaults 14-day trial for self-serve', () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -357,7 +357,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('defaults 28-day trial for isEnterpriseTrial', () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
@@ -379,7 +379,7 @@ describe('TrialSubscriptionAction', () => {
   });
 
   it('defaults 28-day trial for startEnterpriseTrial', () => {
-    jest.mock('sentry/components/core/alert');
+    jest.mock('@sentry/scraps/alert');
 
     openAdminConfirmModal({
       onConfirm,
