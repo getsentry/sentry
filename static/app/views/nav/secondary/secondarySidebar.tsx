@@ -48,45 +48,49 @@ export function SecondarySidebar() {
   const activeNavGroup = activePrimaryNavGroup ?? defaultActiveNavGroup;
 
   return (
-    <SecondarySidebarWrapper
+    <NavTourElement
       id={stepId}
       description={STACKED_NAVIGATION_TOUR_CONTENT[stepId].description}
       title={STACKED_NAVIGATION_TOUR_CONTENT[stepId].title}
     >
-      <ResizeWrapper
-        ref={resizableContainerRef}
-        {...{
-          [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-        }}
-      >
-        <AnimatePresence mode="popLayout" initial={false}>
-          <MotionDiv
-            key={activeNavGroup}
-            initial={{x: -6, opacity: 0}}
-            animate={{x: 0, opacity: 1}}
-            exit={{x: 6, opacity: 0}}
-            transition={{duration: 0.06}}
+      {tourProps => (
+        <SecondarySidebarWrapper {...tourProps}>
+          <ResizeWrapper
+            ref={resizableContainerRef}
+            {...{
+              [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+            }}
           >
-            <SecondarySidebarInner>
-              <SecondaryNavContent group={activeNavGroup} />
-            </SecondarySidebarInner>
-            <ResizeHandle
-              ref={resizeHandleRef}
-              onMouseDown={handleStartResize}
-              onDoubleClick={() => {
-                setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-              }}
-              atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-              atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-            />
-          </MotionDiv>
-        </AnimatePresence>
-      </ResizeWrapper>
-    </SecondarySidebarWrapper>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <MotionDiv
+                key={activeNavGroup}
+                initial={{x: -6, opacity: 0}}
+                animate={{x: 0, opacity: 1}}
+                exit={{x: 6, opacity: 0}}
+                transition={{duration: 0.06}}
+              >
+                <SecondarySidebarInner>
+                  <SecondaryNavContent group={activeNavGroup} />
+                </SecondarySidebarInner>
+                <ResizeHandle
+                  ref={resizeHandleRef}
+                  onMouseDown={handleStartResize}
+                  onDoubleClick={() => {
+                    setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                  }}
+                  atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                  atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+                />
+              </MotionDiv>
+            </AnimatePresence>
+          </ResizeWrapper>
+        </SecondarySidebarWrapper>
+      )}
+    </NavTourElement>
   );
 }
 
-const SecondarySidebarWrapper = styled(NavTourElement)`
+const SecondarySidebarWrapper = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;

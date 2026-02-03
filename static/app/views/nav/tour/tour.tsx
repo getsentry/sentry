@@ -244,7 +244,7 @@ export function StackedNavigationTourReminder({children}: {children: React.React
       }
       isOpen={showTourReminder}
     >
-      {children}
+      {tourProps => <span {...tourProps}>{children}</span>}
     </TourGuide>
   );
 }
