@@ -34,6 +34,10 @@ class AutofixStageConfig(TypedDict):
     working_text: str | None
 
 
+MAX_STEPS = 10
+MAX_CHANGES = 5
+MAX_PRS = 3
+
 AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
@@ -132,12 +136,12 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.summary:
             blocks.append(SectionBlock(text=MarkdownTextObject(text=data.summary)))
         if data.steps:
-            parts = [RichTextElementParts.Text(text=step) for step in data.steps]
+            parts = [RichTextElementParts.Text(text=step) for step in data.steps[:MAX_STEPS]]
             sections = [RichTextSectionElement(elements=[part]) for part in parts]
             list_element = RichTextListElement(style="ordered", indent=0, elements=sections)
             blocks.append(RichTextBlock(elements=[list_element]))
         if data.changes:
-            for change in data.changes:
+            for change in data.changes[:MAX_CHANGES]:
                 change_mrkdwn = f"_In {change['repo_name']}_:\n*{change['title']}*\n{change['description']}\n```\n{change['diff']}```"
                 blocks.append(SectionBlock(text=MarkdownTextObject(text=change_mrkdwn)))
         if data.pull_requests:
@@ -146,7 +150,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 organization_id=data.organization_id,
                 project_id=data.project_id,
             )
-            for pr in data.pull_requests:
+            for pr in data.pull_requests[:MAX_PRS]:
                 action_elements.append(
                     LinkButtonElement(
                         text=f"View PR (#{pr['pr_number']})",

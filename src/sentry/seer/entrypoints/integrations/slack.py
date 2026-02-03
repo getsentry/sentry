@@ -95,6 +95,10 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         return features.has("organizations:seer-slack-workflows", organization)
 
     @staticmethod
+    def get_group_link(group: Group) -> str:
+        return f"{group.get_absolute_url()}?seerDrawer=true"
+
+    @staticmethod
     def get_autofix_stopping_point_from_action(
         *, action: BlockKitMessageAction, group_id: int
     ) -> AutofixStoppingPoint:
@@ -141,7 +145,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             project_id=self.group.project_id,
             group_id=self.group.id,
             current_point=self.autofix_stopping_point,
-            group_link=self.group.get_absolute_url(),
+            group_link=self.get_group_link(self.group),
             has_progressed=True,
         )
         update_existing_message(
@@ -160,7 +164,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             integration_id=self.install.model.id,
             project_id=self.group.project_id,
             group_id=self.group.id,
-            group_link=self.group.get_absolute_url(),
+            group_link=self.get_group_link(self.group),
             automation_stopping_point=None,
         )
 
@@ -175,13 +179,13 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             "cache_payload": cache_payload,
             "entrypoint_key": SeerEntrypointKey.SLACK.value,
         }
-        group_link = f'{cache_payload["group_link"]}?seerDrawer=true'
+        # Piecemeal assembly of frozen SeerAutofixUpdate dataclass
         data_kwargs = {
             "run_id": event_payload["run_id"],
             "organization_id": cache_payload["organization_id"],
             "project_id": cache_payload["project_id"],
             "group_id": cache_payload["group_id"],
-            "group_link": group_link,
+            "group_link": cache_payload["group_link"],
             "has_progressed": False,
         }
 
@@ -419,6 +423,13 @@ def update_existing_message(
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
+    logging_ctx = {
+        "entrypoint_key": SeerEntrypointKey.SLACK.value,
+        "channel_id": channel_id,
+        "message_ts": message_ts,
+        "organization_id": data.organization_id,
+    }
+
     def remove_autofix_button_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
         if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
             return None
@@ -433,10 +444,15 @@ def update_existing_message(
         else remove_all_buttons_transformer
     )
 
-    blocks = _transform_block_actions(
-        request.data["message"]["blocks"],
-        transformer,
-    )
+    try:
+        message_data = request.data["message"]
+        original_blocks = message_data["blocks"]
+        original_text = message_data["text"]
+    except (KeyError, TypeError):
+        logger.exception("entrypoint.update_message_invalid_payload", extra=logging_ctx)
+        return
+
+    blocks = _transform_block_actions(original_blocks, transformer)
 
     parsed_blocks = [Block.parse(block) for block in blocks]
     if slack_user_id:
@@ -452,21 +468,13 @@ def update_existing_message(
 
     renderable = SlackRenderable(
         blocks=[block for block in parsed_blocks if block is not None],
-        text=request.data["message"]["text"],
+        text=original_text,
     )
 
     try:
         install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
-    except (IntegrationError, TypeError, KeyError):
-        logger.warning(
-            "entrypoint.update_message_failed",
-            extra={
-                "entrypoint_key": SeerEntrypointKey.SLACK.value,
-                "channel_id": channel_id,
-                "message_ts": message_ts,
-                "organization_id": data.organization_id,
-            },
-        )
+    except IntegrationError:
+        logger.exception("entrypoint.update_message_failed", extra=logging_ctx)
 
 
 def handle_prepare_autofix_update(
@@ -532,7 +540,7 @@ def handle_prepare_autofix_update(
                     integration_id=integration_id,
                     project_id=group.project_id,
                     group_id=group.id,
-                    group_link=group.get_absolute_url(),
+                    group_link=SlackEntrypoint.get_group_link(group),
                     automation_stopping_point=automation_stopping_point,
                 ),
             )

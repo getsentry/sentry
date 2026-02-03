@@ -13,7 +13,19 @@ from sentry.notifications.platform.types import (
     ParagraphBlock,
     PlainTextBlock,
 )
+from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+
+# Inverted hierarchy for looking up stopping point by rank
+_RANK_TO_STOPPING_POINT = {rank: point for point, rank in STOPPING_POINT_HIERARCHY.items()}
+
+
+def _get_next_stopping_point(current: AutofixStoppingPoint) -> AutofixStoppingPoint | None:
+    """Get the next stopping point in the autofix progression sequence."""
+    current_rank = STOPPING_POINT_HIERARCHY.get(current)
+    if current_rank is None:
+        return None
+    return _RANK_TO_STOPPING_POINT.get(current_rank + 1)
 
 
 @dataclass(frozen=True)
@@ -68,15 +80,7 @@ class SeerAutofixUpdate(NotificationData):
 
     @property
     def next_point(self) -> AutofixStoppingPoint | None:
-        match self.current_point:
-            case AutofixStoppingPoint.ROOT_CAUSE:
-                return AutofixStoppingPoint.SOLUTION
-            case AutofixStoppingPoint.SOLUTION:
-                return AutofixStoppingPoint.CODE_CHANGES
-            case AutofixStoppingPoint.CODE_CHANGES:
-                return AutofixStoppingPoint.OPEN_PR
-            case AutofixStoppingPoint.OPEN_PR:
-                return None
+        return _get_next_stopping_point(self.current_point)
 
 
 @template_registry.register(SeerAutofixUpdate.source)
@@ -136,15 +140,9 @@ class SeerAutofixTrigger(NotificationData):
     @staticmethod
     def from_update(update: SeerAutofixUpdate) -> SeerAutofixTrigger:
         """Get the next trigger after a given update."""
-        match update.current_point:
-            case AutofixStoppingPoint.ROOT_CAUSE:
-                stopping_point = AutofixStoppingPoint.SOLUTION
-            case AutofixStoppingPoint.SOLUTION:
-                stopping_point = AutofixStoppingPoint.CODE_CHANGES
-            case AutofixStoppingPoint.CODE_CHANGES:
-                stopping_point = AutofixStoppingPoint.OPEN_PR
-            case _:
-                raise ValueError(f"Invalid stopping point, {update.current_point}")
+        stopping_point = _get_next_stopping_point(update.current_point)
+        if stopping_point is None:
+            raise ValueError(f"No next stopping point for {update.current_point}")
         return SeerAutofixTrigger(
             group_id=update.group_id,
             project_id=update.project_id,
