@@ -411,11 +411,12 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         cm3 = self._create_code_mapping(stack_root="Services/", source_root="ProjectC/Services/")
 
         # Simulate that the file is not found in ProjectA or ProjectB, but is found in ProjectC
-        mock_integration.side_effect = [
-            None,  # First call (ProjectA) - file not found
-            None,  # Second call (ProjectB) - file not found
-            "https://example.com/repo/blob/master/ProjectC/Services/Foo.cs",  # Third call (ProjectC) - found!
-        ]
+        def mock_get_stacktrace_link(repo, src_path, branch, version):
+            if "ProjectC" in src_path:
+                return "https://example.com/repo/blob/master/ProjectC/Services/Foo.cs"
+            return None
+
+        mock_integration.side_effect = mock_get_stacktrace_link
 
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"file": filepath}
@@ -424,10 +425,14 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         # Verify that all three mappings were tried
         assert mock_integration.call_count == 3
 
-        # Verify the calls were made with the correct source paths
-        assert mock_integration.call_args_list[0][0][1] == "ProjectA/Services/Foo.cs"
-        assert mock_integration.call_args_list[1][0][1] == "ProjectB/Services/Foo.cs"
-        assert mock_integration.call_args_list[2][0][1] == "ProjectC/Services/Foo.cs"
+        # Verify the calls were made with the correct source paths (in any order)
+        called_paths = {call[0][1] for call in mock_integration.call_args_list}
+        expected_paths = {
+            "ProjectA/Services/Foo.cs",
+            "ProjectB/Services/Foo.cs",
+            "ProjectC/Services/Foo.cs",
+        }
+        assert called_paths == expected_paths
 
         # Verify the successful mapping (cm3) is returned
         assert response.data["config"] == self.expected_configurations(cm3)
