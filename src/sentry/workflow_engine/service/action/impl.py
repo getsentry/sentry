@@ -37,13 +37,22 @@ class DatabaseBackedActionService(ActionService):
         organization_id: int,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: int = 0,
+        sentry_app_id: int | None,
     ) -> None:
-        Action.objects.filter(
-            Q(config__target_identifier=sentry_app_install_uuid)
-            | Q(config__target_identifier=str(sentry_app_id)),
-            type=Action.Type.SENTRY_APP,
-        ).update(status=status)
+        actions = None
+        if sentry_app_id is not None:
+            actions = Action.objects.filter(
+                Q(config__target_identifier=sentry_app_install_uuid)
+                | Q(config__target_identifier=str(sentry_app_id)),
+                type=Action.Type.SENTRY_APP,
+            )
+        else:
+            actions = Action.objects.filter(
+                config__target_identifier=sentry_app_install_uuid, type=Action.Type.SENTRY_APP
+            )
+
+        if actions:
+            actions.update(status=status)
 
     def update_action_status_for_sentry_app_via_uuid__region(
         self,
@@ -51,14 +60,22 @@ class DatabaseBackedActionService(ActionService):
         region_name: str,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: int = 0,
+        sentry_app_id: int | None,
     ) -> None:
-        actions = Action.objects.filter(
-            Q(config__target_identifier=sentry_app_install_uuid)
-            | Q(config__target_identifier=str(sentry_app_id)),
-            type=Action.Type.SENTRY_APP,
-        )
-        actions.update(status=status)
+        actions = None
+        if sentry_app_id is not None:
+            actions = Action.objects.filter(
+                Q(config__target_identifier=sentry_app_install_uuid)
+                | Q(config__target_identifier=str(sentry_app_id)),
+                type=Action.Type.SENTRY_APP,
+            )
+        else:
+            actions = Action.objects.filter(
+                config__target_identifier=sentry_app_install_uuid, type=Action.Type.SENTRY_APP
+            )
+
+        if actions:
+            actions.update(status=status)
 
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,
