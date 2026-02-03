@@ -8,13 +8,11 @@ from sentry import features
 from sentry.auth.superuser import superuser_has_permission
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.sentry_apps.services.app import app_service
 
 if TYPE_CHECKING:
-    from sentry.auth.services.auth import AuthenticatedToken
-    from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
     from sentry.models.organization import Organization
 
 
@@ -42,7 +40,7 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
         return True
     # Allow API access with org tokens
     auth = getattr(request, "auth", None)
-    if is_org_auth_token_auth(auth) and _org_auth_token_has_event_read(auth):
+    if is_org_auth_token_auth(auth) and auth.has_scope("event:read"):
         return True
     # Allow access to SentryApp with proxy user
     if is_sentry_app_with_permission(request.user, organization):
@@ -64,18 +62,6 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     has_access = OrganizationMemberReplayAccess.objects.filter(organizationmember=member).exists()
 
     return has_access
-
-
-def _org_auth_token_has_event_read(
-    auth: AuthenticatedToken | OrgAuthToken | OrgAuthTokenReplica,
-) -> bool:
-    """Check if an org auth token has event:read scope."""
-    from sentry.auth.services.auth import AuthenticatedToken
-
-    if isinstance(auth, AuthenticatedToken):
-        return "event:read" in auth.scopes
-    # OrgAuthToken and OrgAuthTokenReplica both have has_scope method
-    return auth.has_scope("event:read")
 
 
 def is_sentry_app_with_permission(user: Any, organization: Organization) -> bool:
