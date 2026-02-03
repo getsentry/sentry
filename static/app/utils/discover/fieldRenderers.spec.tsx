@@ -157,6 +157,49 @@ describe('getFieldRenderer', () => {
     );
   });
 
+  it('can render dashboard links to additional datasets', () => {
+    const widget = WidgetFixture({
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          linkedDashboards: [
+            {
+              dashboardId: '123',
+              field: 'transaction',
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
+            },
+          ],
+          aggregates: [],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+        },
+      ],
+    });
+    const dashboardFilters: DashboardFilters = {};
+
+    const renderer = getFieldRenderer(
+      'transaction',
+      {transaction: 'string'},
+      undefined,
+      widget,
+      dashboardFilters
+    );
+
+    render(
+      renderer(data, {
+        location,
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/?globalFilter=%7B%22dataset%22%3A%22spans%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D&globalFilter=%7B%22dataset%22%3A%22issue%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D'
+    );
+  });
   describe('rate', () => {
     it('can render null rate', () => {
       const renderer = getFieldRenderer(
