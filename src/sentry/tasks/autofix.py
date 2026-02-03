@@ -136,7 +136,7 @@ def run_automation_only_task(group_id: int) -> None:
         return
 
     # Track issue age when running automation
-    issue_age_days = (timezone.now() - group.first_seen).days
+    issue_age_days = int((timezone.now() - group.first_seen).total_seconds() / (60 * 60 * 24))
     metrics.distribution("seer.automation.issue_age_since_first_seen", issue_age_days, unit="day")
 
     run_automation(
