@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import documentation from '!!type-loader!@sentry/scraps/button/buttonBar';
+import documentation from '!!type-loader!@sentry/scraps/button';
 
 import {Button, ButtonBar, type ButtonProps} from '@sentry/scraps/button';
 

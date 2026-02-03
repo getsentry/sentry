@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!@sentry/scraps/input/numberInput';
+import documentation from '!!type-loader!@sentry/scraps/input';
+
+import {NumberInput} from '@sentry/scraps/input';
 
 import * as Storybook from 'sentry/stories';
-
-import {NumberInput} from './numberInput';
 
 export default Storybook.story('NumberInput', (story, APIReference) => {
   APIReference(documentation.props?.NumberInput);
