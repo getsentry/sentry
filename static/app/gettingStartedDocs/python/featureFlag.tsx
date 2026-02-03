@@ -9,7 +9,6 @@ type FeatureFlagConfiguration = {
   integrationName: string;
   makeConfigureCode: (dsn: string) => string;
   makeVerifyCode: () => string;
-  packageName: string;
 };
 
 const FEATURE_FLAG_CONFIGURATION_MAP: Record<
@@ -18,7 +17,6 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
 > = {
   [FeatureFlagProviderEnum.GENERIC]: {
     integrationName: ``,
-    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `sentry_sdk.init(
     dsn="${dsn}",
     # Add data like request headers and IP for users, if applicable;
@@ -37,7 +35,6 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
     integrationName: `LaunchDarklyIntegration`,
-    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.launchdarkly import LaunchDarklyIntegration
 import ldclient
@@ -58,7 +55,6 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.OPENFEATURE]: {
     integrationName: `OpenFeatureIntegration`,
-    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.openfeature import OpenFeatureIntegration
 from openfeature import api
@@ -79,7 +75,6 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.STATSIG]: {
     integrationName: `StatsigIntegration`,
-    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.statsig import StatsigIntegration
 from statsig.statsig_user import StatsigUser
@@ -103,7 +98,6 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.UNLEASH]: {
     integrationName: `UnleashIntegration`,
-    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.unleash import UnleashIntegration
 from UnleashClient import UnleashClient
@@ -127,7 +121,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 export const featureFlag: OnboardingConfig = {
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
-    const {integrationName, packageName, makeConfigureCode, makeVerifyCode} =
+    const {integrationName, makeConfigureCode, makeVerifyCode} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
       ];
@@ -140,7 +134,7 @@ export const featureFlag: OnboardingConfig = {
             type: 'text',
             text: t('Install the Sentry SDK.'),
           },
-          getPythonInstallCodeBlock({packageName}),
+          getPythonInstallCodeBlock(),
         ],
       },
       {

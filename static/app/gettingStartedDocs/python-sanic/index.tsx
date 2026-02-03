@@ -19,12 +19,10 @@ const docs: Docs = {
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk'}),
+  profilingOnboarding: profiling(),
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk',
-  }),
+  logsOnboarding: logs(),
   metricsOnboarding: metrics(),
 };
 

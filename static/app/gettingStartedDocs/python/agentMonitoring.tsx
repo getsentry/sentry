@@ -20,7 +20,7 @@ export const agentMonitoring: OnboardingConfig = {
             type: 'text',
             text: t('Install our Python SDK:'),
           },
-          getPythonInstallCodeBlock({packageName: 'sentry-sdk'}),
+          getPythonInstallCodeBlock(),
         ],
       },
     ];

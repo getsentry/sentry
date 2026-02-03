@@ -44,7 +44,7 @@ export const onboarding: OnboardingConfig = {
             code: <code />,
           }),
         },
-        getPythonInstallCodeBlock({packageName: 'sentry-sdk'}),
+        getPythonInstallCodeBlock({additionalPackage: 'sanic'}),
         ...getPythonAiocontextvarsCodeBlocks(),
       ],
     },
