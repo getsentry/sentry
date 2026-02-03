@@ -51,10 +51,35 @@ function renderToolMessage(content: any) {
   return content;
 }
 
+function extractMessagesArray(value: any): any[] | null {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value && typeof value === 'object' && value.messages) {
+    const inner = value.messages;
+    if (Array.isArray(inner)) {
+      return inner;
+    }
+    if (typeof inner === 'string') {
+      const parsed = JSON.parse(inner);
+      return extractMessagesArray(parsed);
+    }
+  }
+
+  return null;
+}
+
 function parseAIMessages(messages: string): AIMessage[] | string {
   try {
-    const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
-    return array
+    const parsed = Array.isArray(messages) ? messages : JSON.parse(messages);
+    const messagesArray = extractMessagesArray(parsed);
+
+    if (!messagesArray) {
+      return messages;
+    }
+
+    return messagesArray
       .map((message: any) => {
         if (!message.role || !message.content) {
           return null;
