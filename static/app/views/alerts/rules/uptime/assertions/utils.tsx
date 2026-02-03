@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import type {SelectOption} from '@sentry/scraps/select';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
 import type {
