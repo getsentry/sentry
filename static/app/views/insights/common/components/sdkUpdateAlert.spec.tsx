@@ -75,7 +75,7 @@ describe('SDKUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'A newer version of @sentry/nextjs is available. Update to 8.0.0 for the best experience.'
+          "We've detected you're using @sentry/nextjs and a newer version (8.0.0) is available. Update for a better experience."
         )
       )
     ).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('SDKUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'A newer version of sentry-sdk is available. Update to the latest version for the best experience.'
+          "We've detected you're using sentry-sdk and a newer version is available. Update for a better experience."
         )
       )
     ).toBeInTheDocument();
