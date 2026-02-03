@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {Tag} from '@sentry/scraps/badge/tag';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -9,6 +8,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {MetricOptionLabel} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
@@ -18,14 +18,6 @@ interface MetricSelectOption extends SelectOption<string> {
   metricName: string;
   metricType: TraceMetricTypeValue;
   metricUnit?: string;
-}
-
-export function MetricTypeBadge({metricType}: {metricType: TraceMetricTypeValue}) {
-  if (!metricType) {
-    return null;
-  }
-
-  return <Tag variant="muted">{metricType}</Tag>;
 }
 
 export function MetricSelector({
@@ -46,7 +38,10 @@ export function MetricSelector({
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricName: traceMetric.name,
       trailingItems: (
-        <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
+        <MetricOptionLabel
+          label={traceMetric.name}
+          metricType={traceMetric.type as TraceMetricTypeValue}
+        />
       ),
     }),
     [metricSelectValue, traceMetric.name, traceMetric.type]
@@ -69,7 +64,10 @@ export function MetricSelector({
         metricType: option[TraceMetricKnownFieldKey.METRIC_TYPE],
         metricName: option[TraceMetricKnownFieldKey.METRIC_NAME],
         trailingItems: (
-          <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
+          <MetricOptionLabel
+            label={option[TraceMetricKnownFieldKey.METRIC_NAME]}
+            metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]}
+          />
         ),
       })) ?? []),
     ];
