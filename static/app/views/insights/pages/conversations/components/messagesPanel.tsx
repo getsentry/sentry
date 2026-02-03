@@ -379,7 +379,7 @@ const MessageBubble = styled('div')<{
   isClickable?: boolean;
   isSelected?: boolean;
 }>`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
+  position: relative;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   width: 90%;
@@ -388,12 +388,22 @@ const MessageBubble = styled('div')<{
     p.role === 'user'
       ? p.theme.tokens.background.secondary
       : p.theme.tokens.background.primary};
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: inherit;
+    pointer-events: none;
+  }
   ${p =>
     p.isClickable &&
     `
     cursor: pointer;
-    &:hover {
+    &:hover::after {
       border-color: ${p.theme.tokens.border.accent.moderate};
+    }
+    &:hover {
       background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
     &:active {
