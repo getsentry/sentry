@@ -84,10 +84,10 @@ class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
     ) -> Response:
-        # Check if Seer Explorer is enabled
-        if not features.has("organizations:seer-explorer", organization, actor=request.user):
+        # Check if AI features are enabled
+        if not features.has("organizations:gen-ai-features", organization, actor=request.user):
             return self.respond(
-                {"detail": "Seer Explorer is not enabled for this organization"},
+                {"detail": "AI features are not enabled for this organization"},
                 status=403,
             )
 

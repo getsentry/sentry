@@ -14,45 +14,81 @@
 
 ---
 
-## Recommended Approach: Seer Explorer Client
+## Recommended Approach: Seer LLM Proxy
 
-Based on Sentry's "How to Build with AI" guidelines, this feature is a perfect fit for the **Seer Explorer Client** - the recommended approach for most LLM-powered features.
+For simple single-shot LLM tasks like assertion suggestions, use Seer's **LLM Proxy** (`/v1/llm/generate`) instead of Seer Explorer. This provides:
 
-### Why This Approach
+- **Faster response times**: ~5-10 seconds vs ~20-25 seconds with Explorer
+- **Single LLM call**: No agentic loop overhead
+- **Structured output**: JSON schema support for typed responses
+- **No Seer repo changes**: Uses existing endpoint
 
-- No code needed in `getsentry/seer` repo
-- Minimal code in `getsentry/sentry`
-- Supports structured artifacts (Pydantic models) for typed assertion suggestions
-- Can run synchronously to validate suggestions
-- Built-in tools already available; custom tools likely unnecessary
+### Why Not Seer Explorer?
+
+Seer Explorer is designed for complex agentic tasks that require tools and iteration. For simple prompt → structured response use cases, it introduces unnecessary overhead:
+
+1. Explorer's artifact system uses tools, requiring 2+ LLM calls
+2. The agentic loop adds ~15 seconds of latency
+3. No tools are needed for assertion suggestions
 
 ### Implementation Pattern
 
 ```python
-from sentry.seer.explorer.client import SeerExplorerClient
-from pydantic import BaseModel
+import orjson
+import requests
+from django.conf import settings
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 
-# Define structured output for assertions
-class SuggestedAssertion(BaseModel):
-    assertion_type: str  # e.g., "status_code", "response_time", "body_contains"
-    operator: str        # e.g., "equals", "less_than", "contains"
-    value: str
-    confidence: float
-    explanation: str
+# Define JSON schema for structured output
+RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "suggestions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "assertion_type": {"type": "string"},
+                    "comparison": {"type": "string"},
+                    "expected_value": {"type": "string"},
+                    "confidence": {"type": "number"},
+                    "explanation": {"type": "string"},
+                },
+                "required": ["assertion_type", "comparison", "expected_value", "confidence", "explanation"],
+            },
+        }
+    },
+    "required": ["suggestions"],
+}
 
-class AssertionSuggestions(BaseModel):
-    suggestions: list[SuggestedAssertion]
+# Call Seer's LLM proxy
+body = orjson.dumps({
+    "provider": "anthropic",
+    "model": "sonnet",
+    "referrer": "sentry.uptime.assertion-suggestions",
+    "prompt": f"Analyze this HTTP response: {response_data}",
+    "system_prompt": "You are an expert at suggesting monitoring assertions...",
+    "temperature": 0.3,
+    "max_tokens": 1500,
+    "response_schema": RESPONSE_SCHEMA,
+})
 
-# Use the client
-client = SeerExplorerClient(organization, user)
-run_id = client.start_run(
-    f"Analyze this HTTP response and suggest monitoring assertions: {response_data}",
-    artifact_key="assertions",
-    artifact_schema=AssertionSuggestions
+response = requests.post(
+    f"{settings.SEER_AUTOFIX_URL}/v1/llm/generate",
+    data=body,
+    headers={
+        "content-type": "application/json;charset=utf-8",
+        **sign_with_seer_secret(body),
+    },
+    timeout=30,
 )
-state = client.get_run(run_id, blocking=True)
-suggestions = state.get_artifact("assertions", AssertionSuggestions)
+data = response.json()
+suggestions = json.loads(data["content"])  # Structured JSON response
 ```
+
+### Reference Implementation
+
+See PR [#105970](https://github.com/getsentry/sentry/pull/105970) for a similar pattern (AI-generated issue view titles).
 
 ---
 
@@ -502,30 +538,39 @@ From the client's perspective, assertion suggestions is a **single request**. Th
 2. Frontend sends single POST to `/api/0/organizations/{org}/uptime-assertion-suggestions/`
 3. Backend calls uptime-checker to hit the user's endpoint (preview check with `always_capture_response: true`)
 4. Uptime-checker returns response headers + body (base64 encoded) to backend
-5. Backend forwards response data to Seer Explorer with a prompt asking for assertion suggestions
-6. Seer analyzes the response and returns structured suggestions (~20-25 sec)
+5. Backend calls Seer's LLM proxy (`/v1/llm/generate`) with structured output schema
+6. Seer makes a single LLM call and returns structured suggestions (~5-10 sec)
 7. Backend returns suggestions to frontend in single response
 
 ---
 
 ## Performance Characteristics
 
-Seer Explorer assertion suggestions take approximately **20-25 seconds** to complete. This is due to the agentic architecture:
+### Current Implementation: LLM Proxy (Recommended)
 
-**Typical request breakdown**:
+Using Seer's `/v1/llm/generate` endpoint with structured output takes approximately **5-10 seconds**.
+
+**Model used**: `claude-sonnet-4-5` via Anthropic (through Seer)
+
+This is a single LLM call with JSON schema-based structured output.
+
+### Previous Implementation: Seer Explorer (Deprecated for this use case)
+
+The original implementation used Seer Explorer Client, which took **20-25 seconds** due to the agentic architecture:
 
 ```
 Task received
 ├── First LLM call: ~16 seconds (main analysis of HTTP response)
-├── Second LLM call: ~5 seconds (structured output generation)
+├── Second LLM call: ~5 seconds (artifact tool call + final response)
 └── Total: ~20-25 seconds
 ```
 
-**Model used**: `claude-sonnet-4-5@20250929` via Vertex AI
+The two LLM calls occurred because:
 
-This timing is expected and similar in production since the LLM calls go through the same cloud infrastructure. The local environment doesn't add significant overhead.
+1. Seer Explorer uses an agentic loop where artifacts are written via tools
+2. After any tool call, the agent needs another LLM call to process the result
 
-**Note**: The Celery worker log may show a harmless `AttributeError: '_MainProcess' object has no attribute 'index'` when running with `--pool=solo` locally. This doesn't affect functionality.
+For simple single-shot structured output (like assertion suggestions), the LLM proxy is more appropriate and ~2-4x faster.
 
 ---
 
@@ -606,7 +651,7 @@ This timing is expected and similar in production since the LLM calls go through
 
 ### Feature Flags Required
 
-- `organizations:seer-explorer` - Enables Seer Explorer Client
+- `organizations:gen-ai-features` - Enables AI features (for LLM proxy access)
 - `organizations:uptime-runtime-assertions` - Enables uptime assertions
 
 ### Rate Limits
@@ -664,7 +709,7 @@ interface AssertionSuggestionsResponse {
 The "Suggest Assertions" button only appears when BOTH flags are enabled:
 
 - `organizations:uptime-runtime-assertions` - Enables uptime assertions
-- `organizations:seer-explorer` - Enables Seer Explorer Client
+- `organizations:gen-ai-features` - Enables AI features
 
 ---
 

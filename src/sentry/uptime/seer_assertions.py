@@ -1,7 +1,7 @@
 """
 Seer-powered assertion suggestions for uptime monitoring.
 
-This module uses the Seer Explorer Client to generate assertion suggestions
+This module uses Seer's LLM proxy to generate assertion suggestions
 based on HTTP response data from uptime preview checks.
 """
 
@@ -9,14 +9,81 @@ import base64
 import logging
 from typing import Any
 
+import orjson
+import requests
+from django.conf import settings
 from pydantic import BaseModel, Field
 
 from sentry import features
 from sentry.models.organization import Organization
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+# JSON schema for structured LLM response
+ASSERTION_SUGGESTIONS_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "suggestions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "assertion_type": {
+                        "type": "string",
+                        "description": "Type of assertion: 'status_code', 'json_path', or 'header'",
+                    },
+                    "comparison": {
+                        "type": "string",
+                        "description": "Comparison operator: 'equals', 'not_equal', 'less_than', 'greater_than'",
+                    },
+                    "expected_value": {
+                        "type": "string",
+                        "description": "The expected value as a string",
+                    },
+                    "json_path": {
+                        "type": "string",
+                        "description": "JSONPath expression (for json_path assertions)",
+                    },
+                    "header_name": {
+                        "type": "string",
+                        "description": "Header name (for header assertions)",
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "description": "Confidence score from 0.0 to 1.0",
+                    },
+                    "explanation": {
+                        "type": "string",
+                        "description": "Why this assertion is useful",
+                    },
+                },
+                "required": [
+                    "assertion_type",
+                    "comparison",
+                    "expected_value",
+                    "confidence",
+                    "explanation",
+                ],
+            },
+        }
+    },
+    "required": ["suggestions"],
+}
+
+SYSTEM_PROMPT = """You are an expert at analyzing HTTP responses and suggesting monitoring assertions.
+Given an HTTP response from an uptime check, suggest practical assertions that would help detect
+when the endpoint is unhealthy or behaving incorrectly.
+
+Guidelines:
+1. Always suggest a status_code assertion (usually checking for 200 or 2xx range)
+2. If the body is JSON, suggest json_path assertions for key fields that indicate health
+3. Suggest header assertions only for headers that are meaningful for monitoring
+4. Focus on assertions that would detect real problems, not minor variations
+5. Prefer simple, robust assertions over complex ones
+6. Suggest 3-5 practical assertions total"""
 
 
 # Pydantic models for Seer artifact schema
@@ -89,33 +156,13 @@ def build_assertion_prompt(response_data: dict[str, Any]) -> str:
     Returns:
         Prompt string for Seer
     """
-    return f"""Analyze this HTTP response from an uptime monitor test and suggest assertions
-that would be useful for monitoring this endpoint's health.
+    return f"""Analyze this HTTP response and suggest monitoring assertions:
 
-HTTP Response Data:
+HTTP Response:
 - Status Code: {response_data.get('status_code')}
 - Response Time: {response_data.get('response_time_ms')}ms
 - Headers: {json.dumps(response_data.get('headers', {}), indent=2)}
-- Body: {json.dumps(response_data.get('body'), indent=2) if response_data.get('body') else 'N/A'}
-
-For each suggestion, provide:
-- assertion_type: One of 'status_code', 'json_path', or 'header'
-- comparison: One of 'equals', 'not_equal', 'less_than', 'greater_than'
-- expected_value: The value to check against (as a string)
-- json_path: For json_path assertions, the JSONPath expression (e.g., '$.status', '$.data.count')
-- header_name: For header assertions, the header name to check
-- confidence: How confident you are this is a good assertion (0.0-1.0)
-- explanation: Brief explanation of why this assertion is useful
-
-Guidelines:
-1. Always suggest a status_code assertion (usually checking for 200 or 2xx range)
-2. If the body is JSON, suggest json_path assertions for key fields that indicate health
-3. Suggest header assertions only for headers that are meaningful for monitoring
-4. Focus on assertions that would detect if the endpoint is unhealthy or behaving incorrectly
-5. Prefer simple, robust assertions over complex ones
-6. Suggest 3-5 practical assertions total
-
-Return your suggestions as a structured list."""
+- Body: {json.dumps(response_data.get('body'), indent=2) if response_data.get('body') else 'N/A'}"""
 
 
 def suggestion_to_assertion_json(suggestion: SuggestedAssertion) -> dict[str, Any]:
@@ -198,7 +245,7 @@ def generate_assertion_suggestions(
     preview_result: dict[str, Any],
 ) -> tuple[AssertionSuggestions | None, str | None]:
     """
-    Generate assertion suggestions using Seer based on preview check results.
+    Generate assertion suggestions using Seer's LLM proxy based on preview check results.
 
     Args:
         organization: The organization making the request
@@ -209,11 +256,9 @@ def generate_assertion_suggestions(
         Tuple of (AssertionSuggestions or None, debug_info string or None)
     """
     # Check feature flag
-    if not features.has("organizations:seer-explorer", organization, actor=user):
-        logger.info("Seer Explorer not enabled for organization %s", organization.slug)
-        return None, "Feature flag 'seer-explorer' not enabled for organization"
-
-    from sentry.seer.explorer.client import SeerExplorerClient
+    if not features.has("organizations:gen-ai-features", organization, actor=user):
+        logger.info("Gen AI features not enabled for organization %s", organization.slug)
+        return None, "Feature flag 'gen-ai-features' not enabled for organization"
 
     # Parse the preview response
     response_data = parse_preview_response(preview_result)
@@ -225,40 +270,50 @@ def generate_assertion_suggestions(
 
     # Build the prompt
     prompt = build_assertion_prompt(response_data)
-    logger.info("Built prompt for Seer (length=%d)", len(prompt))
+    logger.info("Built prompt for Seer LLM proxy (length=%d)", len(prompt))
 
-    # Create Seer client and start run
-    client = SeerExplorerClient(organization, user)
-    run_id = client.start_run(
-        prompt,
-        artifact_key="assertions",
-        artifact_schema=AssertionSuggestions,
+    # Call Seer's LLM proxy endpoint
+    body = orjson.dumps(
+        {
+            "provider": "anthropic",
+            "model": "sonnet",
+            "referrer": "sentry.uptime.assertion-suggestions",
+            "prompt": prompt,
+            "system_prompt": SYSTEM_PROMPT,
+            "temperature": 0.3,
+            "max_tokens": 1500,
+            "response_schema": ASSERTION_SUGGESTIONS_SCHEMA,
+        }
     )
-    logger.info("Started Seer run with id=%d", run_id)
 
-    # Wait for result (with timeout)
-    state = client.get_run(run_id, blocking=True)
-    logger.info("Seer run completed with status=%s", state.status)
-
-    if state.status != "completed":
-        # Try to extract error info from blocks
-        error_details = []
-        for block in state.blocks:
-            if block.message and block.message.content:
-                error_details.append(block.message.content[:500])
-        error_info = "; ".join(error_details) if error_details else "No error details in blocks"
-        logger.warning(
-            "Seer run did not complete successfully: status=%s, details=%s",
-            state.status,
-            error_info,
+    try:
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}/v1/llm/generate",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+            timeout=30,
         )
-        return None, f"Seer run status: {state.status}. Details: {error_info}"
+        response.raise_for_status()
+    except requests.RequestException as e:
+        logger.exception("Failed to call Seer LLM proxy")
+        return None, f"Seer LLM proxy request failed: {e}"
 
-    # Get the artifact
-    suggestions = state.get_artifact("assertions", AssertionSuggestions)
-    if suggestions is None:
-        logger.warning("No artifact returned from Seer")
-        return None, "Seer completed but no artifact returned"
+    try:
+        data = response.json()
+        content = data.get("content")
+        if not content:
+            logger.warning("Empty content from Seer LLM proxy")
+            return None, "Seer LLM proxy returned empty content"
 
-    logger.info("Got %d suggestions from Seer", len(suggestions.suggestions))
-    return suggestions, None
+        # Parse the structured JSON response
+        suggestions_data = json.loads(content)
+        suggestions = AssertionSuggestions.model_validate(suggestions_data)
+
+        logger.info("Got %d suggestions from Seer LLM proxy", len(suggestions.suggestions))
+        return suggestions, None
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.exception("Failed to parse Seer LLM proxy response")
+        return None, f"Failed to parse Seer response: {e}"
