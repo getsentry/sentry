@@ -163,7 +163,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       <Layout.HeaderContent>
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
         <Layout.Title>
           <Flex align="center" gap="sm" minHeight="1lh">
