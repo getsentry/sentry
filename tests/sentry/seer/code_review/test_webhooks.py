@@ -8,10 +8,7 @@ from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.utils import (
-    ClientError,
-    delete_existing_reactions_and_add_eyes_reaction,
-)
+from sentry.seer.code_review.utils import ClientError, delete_existing_reactions_and_add_reaction
 from sentry.seer.code_review.webhooks.issue_comment import (
     GitHubIssueCommentAction,
     is_pr_review_command,
@@ -748,7 +745,7 @@ class AddEyesReactionTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.logger")
     def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=None,
@@ -756,19 +753,16 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
             extra={},
         )
 
         self.mock_client.create_issue_reaction.assert_not_called()
         mock_logger.warning.assert_called_once_with("github.webhook.missing-integration", extra={})
 
-    def test_adds_eyes_to_pr(self) -> None:
-        self.mock_client.get_issue_reactions.return_value = [
-            {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
-            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
-        ]
-
-        delete_existing_reactions_and_add_eyes_reaction(
+    def test_adds_reaction_to_pr(self) -> None:
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -776,21 +770,19 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
             extra={},
         )
 
+        self.mock_client.get_issue_reactions.assert_not_called()
         self.mock_client.delete_issue_reaction.assert_not_called()
         self.mock_client.create_issue_reaction.assert_called_once_with(
             self.repo.name, "42", GitHubReaction.EYES
         )
 
-    def test_adds_eyes_to_comment(self) -> None:
-        self.mock_client.get_issue_reactions.return_value = [
-            {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
-            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
-        ]
-
-        delete_existing_reactions_and_add_eyes_reaction(
+    def test_adds_reaction_to_comment(self) -> None:
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
@@ -798,15 +790,18 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number=None,
             comment_id="123456",
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
             extra={},
         )
 
+        self.mock_client.get_issue_reactions.assert_not_called()
         self.mock_client.delete_issue_reaction.assert_not_called()
         self.mock_client.create_comment_reaction.assert_called_once_with(
             self.repo.name, "123456", GitHubReaction.EYES
         )
 
-    def test_deletes_tada_and_eyes_before_adding_eyes_to_pr(self) -> None:
+    def test_deletes_existing_reactions_before_adding_reaction_to_pr(self) -> None:
         self.mock_client.get_issue_reactions.return_value = [
             {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
@@ -814,7 +809,7 @@ class AddEyesReactionTest(TestCase):
             {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
         ]
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -822,6 +817,8 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            reactions_to_delete=[GitHubReaction.HOORAY, GitHubReaction.EYES],
+            reaction_to_add=GitHubReaction.EYES,
             extra={},
         )
 
@@ -832,7 +829,7 @@ class AddEyesReactionTest(TestCase):
             self.repo.name, "42", GitHubReaction.EYES
         )
 
-    def test_deletes_tada_and_eyes_before_adding_eyes_to_comment(self) -> None:
+    def test_deletes_existing_reactions_before_adding_reaction_to_comment(self) -> None:
         self.mock_client.get_issue_reactions.return_value = [
             {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
             {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
@@ -840,7 +837,7 @@ class AddEyesReactionTest(TestCase):
             {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
         ]
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.ISSUE_COMMENT,
             github_event_action=GitHubIssueCommentAction.CREATED.value,
             integration=self.mock_integration,
@@ -848,6 +845,8 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id="123456",
+            reactions_to_delete=[GitHubReaction.HOORAY, GitHubReaction.EYES],
+            reaction_to_add=GitHubReaction.EYES,
             extra={},
         )
 
@@ -859,12 +858,12 @@ class AddEyesReactionTest(TestCase):
         )
 
     @patch("sentry.seer.code_review.utils.logger")
-    def test_logs_warning_and_adds_eyes_when_get_reactions_fails(
+    def test_logs_warning_and_adds_reaction_when_get_reactions_fails(
         self, mock_logger: MagicMock
     ) -> None:
         self.mock_client.get_issue_reactions.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -872,6 +871,8 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            reactions_to_delete=[GitHubReaction.HOORAY],
+            reaction_to_add=GitHubReaction.EYES,
             extra={},
         )
 
@@ -883,17 +884,15 @@ class AddEyesReactionTest(TestCase):
         )
 
     @patch("sentry.seer.code_review.utils.logger")
-    def test_logs_warning_and_adds_eyes_when_delete_reaction_fails(
+    def test_logs_warning_and_adds_reaction_when_delete_reaction_fails(
         self, mock_logger: MagicMock
     ) -> None:
         self.mock_client.get_issue_reactions.return_value = [
-            {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
-            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
-            {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"},
+            {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"}
         ]
         self.mock_client.delete_issue_reaction.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -901,6 +900,8 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            reactions_to_delete=[GitHubReaction.HOORAY],
+            reaction_to_add=GitHubReaction.EYES,
             extra={},
         )
 
@@ -913,10 +914,9 @@ class AddEyesReactionTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.logger")
     def test_logs_warning_when_create_reaction_fails(self, mock_logger: MagicMock) -> None:
-        self.mock_client.get_issue_reactions.return_value = []
         self.mock_client.create_issue_reaction.side_effect = Exception("API Error")
 
-        delete_existing_reactions_and_add_eyes_reaction(
+        delete_existing_reactions_and_add_reaction(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_event_action=PullRequestAction.OPENED.value,
             integration=self.mock_integration,
@@ -924,6 +924,8 @@ class AddEyesReactionTest(TestCase):
             repo=self.repo,
             pr_number="42",
             comment_id=None,
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
             extra={},
         )
 

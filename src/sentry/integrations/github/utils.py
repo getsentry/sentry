@@ -155,3 +155,8 @@ def should_create_or_increment_contributor_seat(
         data_category=DataCategory.SEER_USER,
         seat_object=contributor,
     )
+
+
+def is_github_rate_limit_sensitive(organization: Organization) -> bool:
+    """Check if an organization is in the list of GitHub rate-limit sensitive organizations."""
+    return organization.slug in options.get("github-app.rate-limit-sensitive-orgs")
