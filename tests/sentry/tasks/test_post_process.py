@@ -3408,23 +3408,22 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     @with_feature(
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
-    def test_triage_signals_skips_automation_for_old_unprocessed_issues(
+    def test_triage_signals_skips_automation_for_old_issues(
         self,
         mock_run_automation,
         mock_generate_summary_and_run_automation,
         mock_get_seer_org_acknowledgement,
     ):
-        """Test that automation is skipped for old issues without a fixability score (>= 10 events path)."""
+        """Test that automation is skipped for issues older than 14 days."""
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
         )
 
-        # Old issue with >= 10 events but no fixability score (never processed)
+        # Old issue with >= 10 events
         group = event.group
         group.first_seen = timezone.now() - timedelta(days=20)
-        group.seer_fixability_score = None
         group.times_seen = 1
         group.save()
 
@@ -3441,7 +3440,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
                 event=event,
             )
 
-        # Automation should be skipped for old unprocessed issues
+        # Automation should be skipped for old issues
         mock_generate_summary_and_run_automation.assert_not_called()
         mock_run_automation.assert_not_called()
 

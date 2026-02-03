@@ -1658,11 +1658,8 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if group.seer_autofix_last_triggered is not None:
                 return
 
-            # Don't backfill automation on old unprocessed issues
-            if (
-                group.first_seen < (timezone.utcnow() - timedelta(days=14))
-                and group.seer_fixability_score is None
-            ):
+            # Don't run automation on old issues
+            if group.first_seen < (timezone.utcnow() - timedelta(days=14)):
                 return
 
             # Triage signals will not run issues if they are not fixable at MEDIUM threshold
