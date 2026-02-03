@@ -16,11 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 from ..metrics import WebhookFilteredReason, record_webhook_filtered, record_webhook_received
-from ..utils import (
-    _get_target_commit_sha,
-    delete_existing_reactions_and_add_reaction,
-    is_github_rate_limit_sensitive,
-)
+from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -91,12 +87,6 @@ def handle_issue_comment_event(
         return
 
     if comment_id:
-        # We shouldn't ever need to delete :eyes: from the PR description unless Seer fails to do so.
-        # But if we're already deleting :tada: we might as well delete :eyes: if we come across it.
-        reactions_to_delete = [GitHubReaction.HOORAY, GitHubReaction.EYES]
-        if is_github_rate_limit_sensitive(organization):
-            reactions_to_delete = []
-
         delete_existing_reactions_and_add_reaction(
             github_event=github_event,
             github_event_action=github_event_action,
@@ -105,7 +95,7 @@ def handle_issue_comment_event(
             repo=repo,
             pr_number=str(pr_number) if pr_number else None,
             comment_id=str(comment_id),
-            reactions_to_delete=reactions_to_delete,
+            reactions_to_delete=[GitHubReaction.HOORAY, GitHubReaction.EYES],
             reaction_to_add=GitHubReaction.EYES,
             extra=extra,
         )
