@@ -7,18 +7,23 @@ import type {JsonPathOpTreeNode} from 'sentry/views/alerts/rules/uptime/assertio
 import {
   getJsonPathCombinedLabelAndTooltip,
   getJsonPathOperandValue,
+  normalizeJsonPathOp,
 } from 'sentry/views/alerts/rules/uptime/assertions/utils';
+import type {JsonPathOp} from 'sentry/views/alerts/rules/uptime/types';
 
 export function JsonPathOpRow({node}: {node: JsonPathOpTreeNode}) {
-  const operandValue = getJsonPathOperandValue(node.value.operand);
-  const {combinedLabel, combinedTooltip} = getJsonPathCombinedLabelAndTooltip(node.value);
+  const normalizedOp: JsonPathOp = normalizeJsonPathOp(node.value);
+
+  const operandValue = getJsonPathOperandValue(normalizedOp.operand);
+  const {combinedLabel, combinedTooltip} =
+    getJsonPathCombinedLabelAndTooltip(normalizedOp);
 
   const content = (
     <Fragment>
       <Text variant="danger">[Failed] </Text>
       JSON Path | Rule:{' '}
       <Text variant="primary">
-        {node.value.value}{' '}
+        {normalizedOp.value}{' '}
         <Tooltip skipWrapper title={combinedTooltip}>
           {combinedLabel}
         </Tooltip>{' '}

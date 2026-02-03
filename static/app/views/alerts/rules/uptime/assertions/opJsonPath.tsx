@@ -1,7 +1,7 @@
 import {useEffect, useId} from 'react';
 
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -12,7 +12,11 @@ import {isNumericString} from 'sentry/utils';
 import type {JsonPathOp, JsonPathOperand} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
-import {getJsonPathCombinedLabelAndTooltip, getJsonPathOperandValue} from './utils';
+import {
+  getJsonPathCombinedLabelAndTooltip,
+  getJsonPathOperandValue,
+  normalizeJsonPathOp,
+} from './utils';
 
 interface AssertionOpJsonPathProps {
   onChange: (op: JsonPathOp) => void;
@@ -27,8 +31,11 @@ export function AssertionOpJsonPath({
 }: AssertionOpJsonPathProps) {
   const inputId = useId();
 
-  const operandValue = getJsonPathOperandValue(value.operand);
-  const {combinedLabel, combinedTooltip} = getJsonPathCombinedLabelAndTooltip(value);
+  const normalizedOp: JsonPathOp = normalizeJsonPathOp(value);
+
+  const operandValue = getJsonPathOperandValue(normalizedOp.operand);
+  const {combinedLabel, combinedTooltip} =
+    getJsonPathCombinedLabelAndTooltip(normalizedOp);
 
   const isNumeric = isNumericString(operandValue);
 
@@ -51,14 +58,15 @@ export function AssertionOpJsonPath({
 
     if (
       !isNumeric &&
-      (value.operator.cmp === 'less_than' || value.operator.cmp === 'greater_than')
+      (normalizedOp.operator.cmp === 'less_than' ||
+        normalizedOp.operator.cmp === 'greater_than')
     ) {
-      nextValue = {...value, operator: {cmp: 'equals'}};
+      nextValue = {...normalizedOp, operator: {cmp: 'equals'}};
     }
 
-    if (isNumeric && value.operand.jsonpath_op === 'glob') {
+    if (isNumeric && normalizedOp.operand.jsonpath_op === 'glob') {
       nextValue = {
-        ...(nextValue ?? value),
+        ...(nextValue ?? normalizedOp),
         operand: {jsonpath_op: 'literal', value: operandValue},
       };
     }
@@ -66,7 +74,7 @@ export function AssertionOpJsonPath({
     if (nextValue) {
       onChange(nextValue);
     }
-  }, [isNumeric, onChange, operandValue, value]);
+  }, [isNumeric, onChange, operandValue, normalizedOp]);
 
   const jsonPathInput = (
     <Container flexGrow={2}>
@@ -76,8 +84,8 @@ export function AssertionOpJsonPath({
             data-test-id="json-path-value-input"
             aria-label={t('JSON path value input')}
             id={inputId}
-            value={value.value}
-            onChange={e => onChange({...value, value: e.target.value})}
+            value={normalizedOp.value}
+            onChange={e => onChange({...normalizedOp, value: e.target.value})}
             placeholder="$.status"
             monospace
           />
@@ -110,20 +118,22 @@ export function AssertionOpJsonPath({
               <CompositeSelect.Region
                 data-test-id="json-path-operator-options"
                 aria-label={t('JSON path operator options')}
-                value={value.operator.cmp}
-                onChange={option => onChange({...value, operator: {cmp: option.value}})}
+                value={normalizedOp.operator.cmp}
+                onChange={option =>
+                  onChange({...normalizedOp, operator: {cmp: option.value}})
+                }
                 options={comparisonOptions}
               />
               {!isNumeric && (
                 <CompositeSelect.Region
                   label={t('String operand types')}
-                  value={value.operand.jsonpath_op}
+                  value={normalizedOp.operand.jsonpath_op}
                   onChange={option => {
                     const newOperand: JsonPathOperand =
                       option.value === 'literal'
                         ? {jsonpath_op: 'literal', value: operandValue}
                         : {jsonpath_op: 'glob', pattern: {value: operandValue}};
-                    onChange({...value, operand: newOperand});
+                    onChange({...normalizedOp, operand: newOperand});
                   }}
                   options={STRING_OPERAND_OPTIONS}
                 />
@@ -138,10 +148,10 @@ export function AssertionOpJsonPath({
 
               const newOperand: JsonPathOperand = nextIsNumeric
                 ? {jsonpath_op: 'literal', value: nextValue}
-                : value.operand.jsonpath_op === 'glob'
+                : normalizedOp.operand.jsonpath_op === 'glob'
                   ? {jsonpath_op: 'glob', pattern: {value: nextValue}}
                   : {jsonpath_op: 'literal', value: nextValue};
-              onChange({...value, operand: newOperand});
+              onChange({...normalizedOp, operand: newOperand});
             }}
             data-test-id="json-path-operand-value"
             aria-label={t('JSON path operand value')}
@@ -164,7 +174,7 @@ export function AssertionOpJsonPath({
           link: <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9535.html" />,
         }
       )}
-      op={value}
+      op={normalizedOp}
     >
       <Flex gap="sm" align="center" width="100%">
         {jsonPathInput}

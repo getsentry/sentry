@@ -298,6 +298,21 @@ export function getJsonPathOperandValue(operand: JsonPathOperand): string {
       : '';
 }
 
+// Safe guarding against legacy json_path ops that don't have an operator or operand.
+// It just ensures that we don't break the UI when we receive legacy ops from the backend.
+// TODO Abdullah Khan: This is added during LA, only our own montors are affected. Can
+// remove once we have EA'd assertions.
+export function normalizeJsonPathOp(op: JsonPathOp): JsonPathOp {
+  const hasOperator = 'operator' in op && op.operator;
+  const hasOperand = 'operand' in op && op.operand;
+
+  return {
+    ...op,
+    operator: hasOperator ? op.operator : {cmp: 'equals'},
+    operand: hasOperand ? op.operand : {jsonpath_op: 'literal', value: ''},
+  };
+}
+
 export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
   combinedLabel: string;
   combinedTooltip: string;

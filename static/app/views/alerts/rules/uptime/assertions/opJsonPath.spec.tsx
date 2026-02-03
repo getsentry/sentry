@@ -199,4 +199,17 @@ describe('AssertionOpJsonPath', () => {
       })
     );
   });
+
+  it('renders safely when given a legacy op without operator or operand', async () => {
+    await renderOp({
+      id: 'test-id-1',
+      op: 'json_path',
+      value: '$.status',
+    } as JsonPathOp);
+
+    // Should render with safe defaults (equals + literal) instead of crashing.
+    expect(screen.getByTestId('json-path-value-input')).toHaveValue('$.status');
+    expect(screen.getByTestId('json-path-operand-value')).toHaveValue('');
+    expect(screen.getByTestId('json-path-operators-trigger')).toHaveTextContent('=""');
+  });
 });
