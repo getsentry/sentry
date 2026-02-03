@@ -1,4 +1,6 @@
-from typing import TypedDict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, TypedDict
 
 import orjson
 from slack_sdk.models.blocks import (
@@ -26,6 +28,9 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.platform.types import NotificationData, NotificationRenderedTemplate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+
+if TYPE_CHECKING:
+    from sentry.models.group import Group
 
 
 class AutofixStageConfig(TypedDict):
@@ -69,15 +74,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
         if isinstance(data, SeerAutofixTrigger):
-            autofix_button = cls.render_autofix_button(data)
+            autofix_button = cls._render_autofix_button(data)
             return SlackRenderable(
                 blocks=[ActionsBlock(elements=[autofix_button])],
                 text="Seer Autofix Trigger",
             )
         elif isinstance(data, SeerAutofixError):
-            return cls.render_autofix_error(data)
+            return cls._render_autofix_error(data)
         elif isinstance(data, SeerAutofixUpdate):
-            return cls.render_autofix_update(data)
+            return cls._render_autofix_update(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -88,7 +93,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return orjson.dumps({"issue": group_id, "run_id": run_id}).decode()
 
     @classmethod
-    def render_autofix_button(cls, data: SeerAutofixTrigger) -> ButtonElement:
+    def _render_autofix_button(cls, data: SeerAutofixTrigger) -> ButtonElement:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
@@ -104,7 +109,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
-    def render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:
+    def _render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:
         return SlackRenderable(
             blocks=[
                 SectionBlock(text=data.error_title),
@@ -114,18 +119,22 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
-    def render_autofix_update(cls, data: SeerAutofixUpdate) -> SlackRenderable:
+    def _render_autofix_update(cls, data: SeerAutofixUpdate) -> SlackRenderable:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
         first_block_id = cls.create_first_block_id(group_id=data.group_id, run_id=data.run_id)
-        link_button = cls._render_link_button(data=data)
+        link_button = cls._render_link_button(
+            organization_id=data.organization_id,
+            project_id=data.project_id,
+            group_link=data.group_link,
+        )
         action_elements: list[InteractiveElement] = []
         if not data.has_progressed:
             action_elements.append(link_button)
         if not data.has_progressed and data.current_point != AutofixStoppingPoint.OPEN_PR:
             action_elements.append(
-                cls.render_autofix_button(data=SeerAutofixTrigger.from_update(data))
+                cls._render_autofix_button(data=SeerAutofixTrigger.from_update(data))
             )
 
         config = AUTOFIX_CONFIG[data.current_point]
@@ -168,17 +177,19 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return SlackRenderable(blocks=blocks, text="Seer has an update on fixing the issue!")
 
     @classmethod
-    def _render_link_button(cls, data: SeerAutofixUpdate) -> LinkButtonElement:
+    def _render_link_button(
+        cls, *, organization_id: int, project_id: int, group_link: str
+    ) -> LinkButtonElement:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
         return LinkButtonElement(
             text="View in Sentry",
-            url=data.group_link,
+            url=group_link,
             action_id=encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
-                organization_id=data.organization_id,
-                project_id=data.project_id,
+                organization_id=organization_id,
+                project_id=project_id,
             ),
         )
 
@@ -201,7 +212,40 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return [
             SectionBlock(
                 text=MarkdownTextObject(text=markdown_text),
-                accessory=cls._render_link_button(data),
+                accessory=cls._render_link_button(
+                    organization_id=data.organization_id,
+                    project_id=data.project_id,
+                    group_link=data.group_link,
+                ),
             ),
             ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]),
         ]
+
+    @classmethod
+    def render_alert_autofix_element(cls, group: Group) -> InteractiveElement:
+        """
+        Will either render an autofix button, or a link to the autofix panel in Sentry.
+        If the issue has automations, a run should be scheduled/in-progress.
+            - So, it'll render the link (the updates will be threaded later)
+        If the issue doesn't have automations, a run will only be triggered manually.
+            - So, we can render the autofix button for RCA.
+        """
+        from sentry.seer.autofix.issue_summary import get_automation_stopping_point
+        from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
+
+        automation_stopping_point = get_automation_stopping_point(group=group)
+        if automation_stopping_point:
+            return cls._render_link_button(
+                organization_id=group.project.organization_id,
+                project_id=group.project_id,
+                group_link=SlackEntrypoint.get_group_link(group),
+            )
+        else:
+            return cls._render_autofix_button(
+                data=SeerAutofixTrigger(
+                    group_id=group.id,
+                    project_id=group.project_id,
+                    organization_id=group.project.organization_id,
+                    stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+                )
+            )

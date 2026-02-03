@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from slack_sdk.models.blocks.blocks import Block
 
 from sentry import features
-from sentry.constants import ObjectStatus
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
@@ -23,6 +23,7 @@ from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixUpdate
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
+from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.autofix.issue_summary import (
     STOPPING_POINT_HIERARCHY,
     get_automation_stopping_point,
@@ -250,12 +251,18 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 STOPPING_POINT_HIERARCHY[automation_stopping_point]
                 > STOPPING_POINT_HIERARCHY[data_kwargs["current_point"]]
             )
-            logging_ctx["automation_stopping_point"] = automation_stopping_point.value
+            logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
         logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
 
         # Special case for solution stopping point, we always progress beyond it.
         if data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION:
-            data_kwargs["has_progressed"] = True
+            enable_seer_coding = organization_service.get_option(
+                organization_id=cache_payload["organization_id"],
+                key="sentry:enable_seer_coding",
+            )
+            data_kwargs["has_progressed"] = (
+                enable_seer_coding if enable_seer_coding is not None else ENABLE_SEER_CODING_DEFAULT
+            )
 
         schedule_all_thread_updates(
             threads=cache_payload["threads"],

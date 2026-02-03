@@ -85,7 +85,7 @@ class SlackEntrypointTest(TestCase):
         ep = self._get_entrypoint()
         cache_payload = ep.create_autofix_cache_payload()
         SlackEntrypointCachePayload(**cache_payload)
-        assert cache_payload["group_link"] == self.group.get_absolute_url()
+        assert cache_payload["group_link"] == SlackEntrypoint.get_group_link(self.group)
         assert cache_payload["organization_id"] == self.organization.id
         assert cache_payload["integration_id"] == self.integration.id
         assert cache_payload["project_id"] == self.group.project.id
