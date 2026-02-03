@@ -21,12 +21,14 @@ export type SeerAnalyticsEventsParameters = {
     organization: Organization;
     project_slug: string;
     provider: string;
+    source: 'cta' | 'settings';
     user_id: string;
   };
   'coding_integration.setup_handoff_clicked': {
     organization: Organization;
     project_slug: string;
     provider: string;
+    source: 'cta' | 'settings_dropdown' | 'settings_toggle';
     user_id: string;
   };
   'seer.autofix.feedback_submitted': {
