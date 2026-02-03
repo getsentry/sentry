@@ -32,29 +32,39 @@ export function AssertionOpJsonPath({
 
   const isNumeric = isNumericString(operandValue);
 
-  const comparisonOptions = COMPARISON_OPTIONS.filter(
-    opt => !['always', 'never'].includes(opt.value)
-  ).filter(opt =>
-    isNumeric ? true : !['less_than', 'greater_than'].includes(opt.value)
-  );
+  const comparisonOptions = COMPARISON_OPTIONS.filter(opt => {
+    if (opt.value === 'always' || opt.value === 'never') {
+      return false;
+    }
+    if (!isNumeric && (opt.value === 'less_than' || opt.value === 'greater_than')) {
+      return false;
+    }
+    return true;
+  });
 
-  // If the operand isn't numeric, prevent using < or > comparisons.
   useEffect(() => {
-    if (isNumeric) {
-      return;
-    }
-    if (value.operator.cmp === 'less_than' || value.operator.cmp === 'greater_than') {
-      onChange({...value, operator: {cmp: 'equals'}});
-    }
-  }, [isNumeric, onChange, value]);
+    // Normalize the op based on whether the operand is numeric.
+    //
+    // - Non-numeric: disallow < and > comparisons (force equals).
+    // - Numeric: force a literal operand (hide/disable glob).
+    let nextValue: JsonPathOp | null = null;
 
-  // If the operand is numeric, force the operand type to literal.
-  useEffect(() => {
-    if (!isNumeric) {
-      return;
+    if (
+      !isNumeric &&
+      (value.operator.cmp === 'less_than' || value.operator.cmp === 'greater_than')
+    ) {
+      nextValue = {...value, operator: {cmp: 'equals'}};
     }
-    if (value.operand.jsonpath_op === 'glob') {
-      onChange({...value, operand: {jsonpath_op: 'literal', value: operandValue}});
+
+    if (isNumeric && value.operand.jsonpath_op === 'glob') {
+      nextValue = {
+        ...(nextValue ?? value),
+        operand: {jsonpath_op: 'literal', value: operandValue},
+      };
+    }
+
+    if (nextValue) {
+      onChange(nextValue);
     }
   }, [isNumeric, onChange, operandValue, value]);
 
