@@ -118,6 +118,20 @@ def process_github_webhook_event(
         else:
             payload = event_payload
 
+        repo_data = event_payload.get("data", {}).get("repo", {})
+        logger.info(
+            "%s.sending_request_to_seer",
+            PREFIX,
+            extra={
+                "provider": repo_data.get("provider"),
+                "repo_owner": repo_data.get("owner"),
+                "repo_name": repo_data.get("name"),
+                "pr_id": event_payload.get("data", {}).get("pr_id"),
+                "commit_sha": repo_data.get("base_commit_sha"),
+                "request_type": event_payload.get("request_type"),
+                "github_event": github_event,
+            },
+        )
         make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
