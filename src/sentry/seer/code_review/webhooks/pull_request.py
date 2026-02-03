@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -24,11 +25,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import (
-    _get_target_commit_sha,
-    delete_existing_reactions_and_add_reaction,
-    is_github_rate_limit_sensitive,
-)
+from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
 
 logger = logging.getLogger(__name__)
 
