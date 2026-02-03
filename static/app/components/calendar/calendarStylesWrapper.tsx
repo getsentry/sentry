@@ -20,7 +20,7 @@ const CalendarStylesWrapper = styled('div')`
     right: 0;
     top: 3px;
     bottom: 3px;
-    background-color: ${p => p.theme.tokens.interactive.link.accent.active};
+    background-color: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rdrDayNumber {
@@ -59,11 +59,11 @@ const CalendarStylesWrapper = styled('div')`
 
   .rdrDayToday .rdrDayNumber {
     border-radius: 2rem;
-    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.interactive.link.accent.active};
+    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.border.accent};
   }
 
   .rdrDayNumber span:after {
-    background-color: ${p => p.theme.tokens.interactive.link.accent.active};
+    background-color: ${p => p.theme.tokens.background.accent.vibrant};
     font-variant-numeric: tabular-nums;
   }
 
@@ -74,7 +74,7 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrInRange {
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rdrDayInPreview {
@@ -101,8 +101,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDayEndPreview,
   .rdrDayInPreview {
     border: 0;
-    background: ${p => p.theme.tokens.content.primary};
-    opacity: 0.08;
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
     z-index: -1;
   }
 
@@ -216,7 +215,7 @@ const CalendarStylesWrapper = styled('div')`
       position: absolute;
       inset: 0;
       border-radius: ${p => p.theme.radius.md};
-      background: ${p => p.theme.tokens.content.primary};
+      background: ${p => p.theme.tokens.background.primary};
       opacity: 0.08;
       z-index: -1;
     }
@@ -236,12 +235,12 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrPprevButton i {
-    border-right-color: ${p => p.theme.tokens.content.primary};
+    border-right-color: ${p => p.theme.tokens.border.primary};
     margin: 0;
   }
 
   .rdrNextButton i {
-    border-left-color: ${p => p.theme.tokens.content.primary};
+    border-left-color: ${p => p.theme.tokens.border.primary};
     margin: 0;
   }
 

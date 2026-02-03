@@ -36,10 +36,12 @@ import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -196,6 +198,7 @@ function CodingAgentSettings({
 
 function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
+  const user = useUser();
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
@@ -237,6 +240,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         if (!cursorIntegration?.id) {
           throw new Error('Cursor integration not found');
         }
+        trackAnalytics('coding_integration.setup_handoff_clicked', {
+          organization,
+          project_slug: project.slug,
+          provider: 'cursor',
+          source: 'settings_dropdown',
+          user_id: user.id,
+        });
         updateProjectSeerPreferences({
           repositories: preference?.repositories || [],
           automated_run_stopping_point: 'root_cause',
@@ -255,7 +265,14 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         });
       }
     },
-    [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
+    [
+      organization,
+      project.slug,
+      user.id,
+      updateProjectSeerPreferences,
+      preference?.repositories,
+      cursorIntegration,
+    ]
   );
 
   // Handler for Cursor's "Auto-Create PR" toggle (from PR #103730)
@@ -341,6 +358,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           );
           return;
         }
+        trackAnalytics('coding_integration.setup_handoff_clicked', {
+          organization,
+          project_slug: project.slug,
+          provider: 'cursor',
+          source: 'settings_toggle',
+          user_id: user.id,
+        });
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
@@ -390,12 +414,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       }
     },
     [
+      organization,
+      project.slug,
+      user.id,
       updateProjectSeerPreferences,
       preference?.repositories,
       cursorIntegration,
       queryClient,
-      organization.slug,
-      project.slug,
     ]
   );
 

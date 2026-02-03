@@ -76,7 +76,7 @@ describe('useCrossEventQueries', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
       additionalWrapper: Wrapper([
         {type: 'logs', query: 'test:a'},
-        {type: 'metrics', query: 'test:b'},
+        {type: 'spans', query: 'test:b'},
         {type: 'spans', query: 'test:c'},
       ]),
     });
@@ -84,8 +84,7 @@ describe('useCrossEventQueries', () => {
     // Since MAX_CROSS_EVENT_QUERIES is 2, the third query ('spans') will be dropped.
     expect(result.current).toStrictEqual({
       logQuery: ['test:a'],
-      metricQuery: ['test:b'],
-      spanQuery: [],
+      spanQuery: ['test:b'],
     });
   });
 
@@ -101,7 +100,6 @@ describe('useCrossEventQueries', () => {
     // Only first 2 are kept
     expect(result.current).toStrictEqual({
       logQuery: [],
-      metricQuery: [],
       spanQuery: ['test:a', 'test:b'],
     });
   });
@@ -117,7 +115,6 @@ describe('useCrossEventQueries', () => {
 
     expect(result.current).toStrictEqual({
       logQuery: ['test:a'],
-      metricQuery: [],
       spanQuery: ['test:c'],
     });
   });

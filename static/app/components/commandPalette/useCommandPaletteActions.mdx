@@ -6,10 +6,11 @@ source: 'sentry/components/commandPalette/useCommandPaletteActions'
 
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openCommandPalette} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {
