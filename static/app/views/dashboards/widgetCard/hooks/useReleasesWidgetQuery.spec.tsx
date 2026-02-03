@@ -461,9 +461,9 @@ describe('useReleasesTableQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['session.status', `sum(${SessionField.SESSION})`],
+          fields: [SessionField.STATUS, `sum(${SessionField.SESSION})`],
           aggregates: [`sum(${SessionField.SESSION})`],
-          columns: ['session.status'],
+          columns: [SessionField.STATUS],
           conditions: '',
           orderby: '',
         },
