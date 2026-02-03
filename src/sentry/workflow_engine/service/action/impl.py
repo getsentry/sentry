@@ -37,7 +37,7 @@ class DatabaseBackedActionService(ActionService):
         organization_id: int,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: str,
+        sentry_app_id: int,
     ) -> None:
         Action.objects.filter(
             Q(config__target_identifier=sentry_app_install_uuid)
@@ -67,7 +67,7 @@ class DatabaseBackedActionService(ActionService):
         status: int,
         sentry_app_id: int,
     ) -> None:
-        # look up all installs and disable the action - if the sentry app no longer exists, no related actions can fire
+        # look up all installs for the sentry app and disable the action - if the sentry app no longer exists, no related actions can fire
         installs = app_service.get_many(
             filter={
                 "sentry_app__id": sentry_app_id,

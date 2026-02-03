@@ -148,6 +148,15 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         except SentryApp.DoesNotExist:
             return None
 
+    @property
+    def sentry_app_id(self) -> int | None:
+        from sentry.sentry_apps.models.sentry_app import SentryApp
+
+        try:
+            return self.sentry_app.id
+        except SentryApp.DoesNotExist:
+            return None
+
     def outbox_region_names(self) -> Collection[str]:
         return find_regions_for_orgs([self.organization_id])
 
@@ -164,7 +173,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
                 region_name=region_name,
-                payload={"uuid": self.uuid, "sentry_app_id": self.sentry_app.id},
+                payload={"uuid": self.uuid, "sentry_app_id": self.sentry_app_id or 0},
             )
             for region_name in find_all_region_names()
         ]
