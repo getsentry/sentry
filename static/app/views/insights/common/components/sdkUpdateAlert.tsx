@@ -80,14 +80,14 @@ export function SDKUpdateAlert() {
     >
       {suggestedVersion
         ? tct(
-            'A newer version of [packageName] is available. Update to [version] for the best experience.',
+            "We've detected you're using [packageName] and a newer version ([version]) is available. Update for a better experience.",
             {
               packageName: <code>{packageName}</code>,
               version: <code>{suggestedVersion}</code>,
             }
           )
         : tct(
-            'A newer version of [packageName] is available. Update to the latest version for the best experience.',
+            "We've detected you're using [packageName] and a newer version is available. Update for a better experience.",
             {packageName: <code>{packageName}</code>}
           )}
     </Alert>
