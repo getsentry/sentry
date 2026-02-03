@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -117,33 +117,24 @@ export function ConversationSummary({
       <Divider />
       <StatsRow>
         <StatItem
-          icon={
-            <span style={{color: colors[2], display: 'flex'}}>
-              <IconChat size="sm" />
-            </span>
-          }
+          icon={<IconChat size="sm" />}
+          iconColor={colors[2]}
           label={t('LLM Calls')}
           value={<Count value={stats.llmCalls} />}
           to={stats.llmCalls > 0 ? llmCallsUrl : undefined}
           isLoading={isLoading}
         />
         <StatItem
-          icon={
-            <span style={{color: colors[5], display: 'flex'}}>
-              <IconFix size="sm" />
-            </span>
-          }
+          icon={<IconFix size="sm" />}
+          iconColor={colors[5]}
           label={t('Tool Calls')}
           value={<Count value={stats.toolCalls} />}
           to={stats.toolCalls > 0 ? toolCallsUrl : undefined}
           isLoading={isLoading}
         />
         <StatItem
-          icon={
-            <span style={{color: colors[6], display: 'flex'}}>
-              <IconFire size="sm" />
-            </span>
-          }
+          icon={<IconFire size="sm" />}
+          iconColor={colors[6]}
           label={t('Errors')}
           value={<Count value={stats.errorCount} />}
           to={stats.errorCount > 0 ? errorsUrl : undefined}
@@ -166,6 +157,7 @@ export function ConversationSummary({
 
 function StatItem({
   icon,
+  iconColor,
   label,
   value,
   to,
@@ -174,18 +166,25 @@ function StatItem({
   label: string;
   value: React.ReactNode;
   icon?: React.ReactNode;
+  iconColor?: string;
   isLoading?: boolean;
   to?: string;
 }) {
+  const isInteractive = !!to && !isLoading;
+
   const content = (
-    <Flex gap="xs" align="center">
-      {icon}
+    <StatItemContainer isInteractive={isInteractive}>
+      {icon && <IconWrapper color={iconColor}>{icon}</IconWrapper>}
       <Text variant="muted">{label}</Text>
-      {isLoading ? <Placeholder width="20px" height="16px" /> : <Text>{value}</Text>}
-    </Flex>
+      {isLoading ? (
+        <Placeholder width="20px" height="16px" />
+      ) : (
+        <StatValue isInteractive={isInteractive}>{value}</StatValue>
+      )}
+    </StatItemContainer>
   );
 
-  if (to && !isLoading) {
+  if (isInteractive) {
     return <StyledLink to={to}>{content}</StyledLink>;
   }
 
@@ -208,12 +207,44 @@ const Divider = styled('div')`
 const StatsRow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.sm};
   flex-wrap: wrap;
 `;
 
+const StatItemContainer = styled('div')<{isInteractive?: boolean}>`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
+  transition: background 50ms ease-in-out;
+
+  ${p =>
+    p.isInteractive &&
+    css`
+      cursor: pointer;
+      &:hover {
+        background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+      }
+      &:active {
+        background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      }
+    `}
+`;
+
+const IconWrapper = styled('span')<{color?: string}>`
+  display: flex;
+  color: ${p => p.color ?? 'inherit'};
+`;
+
+const StatValue = styled(Text)<{isInteractive?: boolean}>`
+  ${p =>
+    p.isInteractive &&
+    css`
+      color: ${p.theme.tokens.interactive.link.accent.rest};
+    `}
+`;
+
 const StyledLink = styled(Link)`
-  &:hover {
-    text-decoration: underline;
-  }
+  text-decoration: none;
 `;
