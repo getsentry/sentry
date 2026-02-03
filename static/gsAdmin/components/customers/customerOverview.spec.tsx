@@ -395,6 +395,53 @@ describe('CustomerOverview', () => {
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
+  it('renders admin-only product trials when feature flag is enabled', () => {
+    const organization = OrganizationFixture({
+      features: ['expose-category-size-analysis'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Product Trials')).toBeInTheDocument();
+    // SIZE_ANALYSIS should appear because org has the feature flag
+    expect(screen.getByText('Size Analysis Builds:')).toBeInTheDocument();
+  });
+
+  it('does not render admin-only product trials when feature flag is disabled', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Product Trials')).toBeInTheDocument();
+    // SIZE_ANALYSIS should NOT appear because org lacks the feature flag
+    expect(screen.queryByText('Size Analysis Builds:')).not.toBeInTheDocument();
+    // Regular product trials should still appear
+    expect(screen.getByText('Spans:')).toBeInTheDocument();
+    expect(screen.getByText('Replays:')).toBeInTheDocument();
+  });
+
   it('renders product trials based on current subscription state', () => {
     const organization = OrganizationFixture();
     const am3Subscription = SubscriptionFixture({
