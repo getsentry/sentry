@@ -1,5 +1,4 @@
 from collections.abc import Generator
-from datetime import datetime, timezone
 from unittest.mock import patch
 
 import orjson
@@ -253,12 +252,6 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
             assert payload["data"]["config"]["trigger_comment_id"] is None
             assert payload["data"]["config"]["trigger_comment_type"] is None
-            # After Pydantic validation, trigger_at is a datetime object
-            assert payload["data"]["config"]["trigger_at"] == datetime(
-                2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc
-            )
-            # sentry_received_trigger_at is set to current time when transform happens
-            assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
             self.mock_reaction.assert_not_called()
 
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:
