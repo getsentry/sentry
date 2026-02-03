@@ -1429,12 +1429,16 @@ function getDashboardUrl(
       linkedDashboard => linkedDashboard.field === field
     );
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
+      const datasetsToApplyFiltersTo = dashboardLink.additionalDatasets ?? [
+        widget.widgetType,
+      ];
+
       const newTemporaryFilters: GlobalFilter[] = [
         ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
       ].filter(
         filter =>
           Boolean(filter.value) &&
-          !(filter.tag.key === field && filter.dataset === widget.widgetType)
+          !(filter.tag.key === field && datasetsToApplyFiltersTo.includes(filter.dataset))
       );
 
       // Format the value as a proper filter condition string
@@ -1442,11 +1446,6 @@ function getDashboardUrl(
       const formattedValue = mutableSearch
         .addFilterValueList(field, [data[field]])
         .toString();
-
-      const datasetsToApplyFiltersTo = [
-        widget.widgetType,
-        ...(dashboardLink.additionalDatasets ?? []),
-      ];
 
       datasetsToApplyFiltersTo.forEach(dataset => {
         newTemporaryFilters.push({
