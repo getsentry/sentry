@@ -136,7 +136,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
       project_type: projectType,
-      project_slug: projectId,
+      project_slug: project?.slug,
     });
     router.push(
       getCompareBuildPath({
@@ -153,7 +153,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
-      project_slug: projectId,
+      project_slug: project?.slug,
       project_type: projectType,
     });
   };
@@ -198,12 +198,14 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             {t('Compare Build')}
           </Button>
           <Feature features="organizations:preprod-frontend-routes">
-            <LinkButton
-              size="sm"
-              icon={<IconSettings />}
-              aria-label={t('Settings')}
-              to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
-            />
+            {project && (
+              <LinkButton
+                size="sm"
+                icon={<IconSettings />}
+                aria-label={t('Settings')}
+                to={`/settings/${organization.slug}/projects/${project?.slug}/mobile-builds/`}
+              />
+            )}
           </Feature>
           <ConfirmDelete
             message={t(
