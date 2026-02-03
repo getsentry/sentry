@@ -11,15 +11,15 @@ type Payload = {
 };
 
 type Props = {
-  organization: Organization;
-  onSubmit?: (
+  onSubmit: (
     data: Payload,
     onSuccess: (team: Team) => void,
     onError: (team: Team) => void
   ) => void;
+  organization: Organization;
 };
 
-function CreateTeamForm({organization, ...props}: Props) {
+function CreateTeamForm({organization, onSubmit}: Props) {
   return (
     <Fragment>
       <p>
@@ -31,7 +31,7 @@ function CreateTeamForm({organization, ...props}: Props) {
         apiEndpoint={`/organizations/${organization.slug}/teams/`}
         apiMethod="POST"
         onSubmit={(data, onSuccess, onError) =>
-          props.onSubmit?.(data as Payload, onSuccess, onError)
+          onSubmit(data as Payload, onSuccess, onError)
         }
         requireChanges
       >
