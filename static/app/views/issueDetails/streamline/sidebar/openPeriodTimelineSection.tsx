@@ -1,4 +1,8 @@
 import {Fragment, type ReactNode} from 'react';
+import orderBy from 'lodash/orderBy';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {DateTime} from 'sentry/components/dateTime';
@@ -95,19 +99,37 @@ export function OpenPeriodTimelineSection({
     );
   }
 
+  const sortedActivities = orderBy(openPeriod.activities, 'dateCreated', 'desc');
+
   return (
     <TimelineSection>
       <Timeline.Container>
-        {openPeriod.activities.map(activity => (
-          <Timeline.Item
-            key={activity.id}
-            title={getOpenPeriodActivityLabel(activity)}
-            timestamp={<DateTime date={activity.dateCreated} />}
-            icon={getOpenPeriodActivityIcon(activity)}
-          >
-            {getOpenPeriodActivitySubtext(activity)}
-          </Timeline.Item>
-        ))}
+        {sortedActivities.map(activity => {
+          const isCurrentEvent = activity.eventId === eventId;
+          const activityLabel = getOpenPeriodActivityLabel(activity);
+          const title = isCurrentEvent ? (
+            <Flex align="center" gap="xs">
+              {activityLabel}
+              <Text variant="muted" bold={false}>
+                {' - ' + t('This event')}
+              </Text>
+            </Flex>
+          ) : (
+            activityLabel
+          );
+
+          return (
+            <Timeline.Item
+              key={activity.id}
+              data-test-id="open-period-timeline-row"
+              title={title}
+              timestamp={<DateTime date={activity.dateCreated} />}
+              icon={getOpenPeriodActivityIcon(activity)}
+            >
+              {getOpenPeriodActivitySubtext(activity)}
+            </Timeline.Item>
+          );
+        })}
       </Timeline.Container>
     </TimelineSection>
   );

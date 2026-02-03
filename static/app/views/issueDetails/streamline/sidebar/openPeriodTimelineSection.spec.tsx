@@ -4,7 +4,7 @@ import {
   GroupOpenPeriodFixture,
 } from 'sentry-fixture/groupOpenPeriod';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {OpenPeriodTimelineSection} from 'sentry/views/issueDetails/streamline/sidebar/openPeriodTimelineSection';
 
@@ -14,7 +14,7 @@ describe('OpenPeriodTimelineSection', () => {
   });
 
   const defaultProps: ComponentProps<typeof OpenPeriodTimelineSection> = {
-    eventId: 'event-1',
+    eventId: 'event-2',
     groupId: 'group-1',
   };
 
@@ -37,13 +37,15 @@ describe('OpenPeriodTimelineSection', () => {
         GroupOpenPeriodActivityFixture({
           id: 'activity-1',
           type: 'opened',
-          value: 'high',
+          value: 'medium',
           dateCreated: '2024-01-01T00:00:00Z',
+          eventId: 'event-1',
         }),
         GroupOpenPeriodActivityFixture({
           id: 'activity-2',
           type: 'status_change',
           value: 'high',
+          eventId: 'event-2',
           dateCreated: '2024-01-01T00:02:00Z',
         }),
         GroupOpenPeriodActivityFixture({
@@ -62,9 +64,19 @@ describe('OpenPeriodTimelineSection', () => {
 
     render(<OpenPeriodTimelineSection {...defaultProps} />);
 
-    expect(await screen.findByText('Opened')).toBeInTheDocument();
-    expect(screen.getByText('Status Changed')).toBeInTheDocument();
-    expect(screen.getByText('Resolved')).toBeInTheDocument();
-    expect(screen.getAllByText('Priority: high')).toHaveLength(2);
+    const activityRows = await screen.findAllByTestId('open-period-timeline-row');
+    expect(activityRows).toHaveLength(3);
+    const resolvedRow = activityRows[0]!;
+    const statusChangedRow = activityRows[1]!;
+    const openedRow = activityRows[2]!;
+
+    expect(within(resolvedRow).getByText('Resolved')).toBeInTheDocument();
+
+    expect(within(statusChangedRow).getByText(/Status Changed/)).toBeInTheDocument();
+    expect(within(statusChangedRow).getByText(/This event/)).toBeInTheDocument();
+    expect(within(statusChangedRow).getByText('Priority: high')).toBeInTheDocument();
+
+    expect(within(openedRow).getByText('Opened')).toBeInTheDocument();
+    expect(within(openedRow).getByText('Priority: medium')).toBeInTheDocument();
   });
 });
