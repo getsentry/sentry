@@ -1,3 +1,5 @@
+from typing import Any
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 
@@ -46,7 +48,7 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request, organization):
+    def get(self, request: Any, organization: Any) -> Any:
         """
         Returns a list of data conditions for a given org
         """
