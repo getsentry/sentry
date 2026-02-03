@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useRef} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {ButtonBar} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {
   closeGuide,
@@ -137,7 +137,6 @@ function BaseGuideAnchor({
         handleDismiss(e);
         window.location.hash = '';
       }}
-      wrapperComponent={GuideAnchorWrapper}
       actions={
         <ButtonBar>
           {lastStep ? (
@@ -155,7 +154,11 @@ function BaseGuideAnchor({
       position={position}
       offset={offset}
     >
-      <ScrollToGuide>{children}</ScrollToGuide>
+      {props => (
+        <Container as="span" maxWidth="100%" display="inline-block" {...props}>
+          <ScrollToGuide>{children}</ScrollToGuide>
+        </Container>
+      )}
     </TourGuide>
   );
 }
@@ -179,10 +182,5 @@ function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
   }
   return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
 }
-
-const GuideAnchorWrapper = styled('span')`
-  display: inline-block;
-  max-width: 100%;
-`;
 
 export default GuideAnchor;
