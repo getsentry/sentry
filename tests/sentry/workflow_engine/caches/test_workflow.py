@@ -1,25 +1,24 @@
-from django.core.cache import cache
-
 from sentry.models.environment import Environment
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.caches.workflow import (
+    _WorkflowCacheAccess,
     invalidate_processing_workflows,
-    processing_workflow_cache_key,
 )
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.workflow import Workflow
 
 
-class TestProcessingWorkflowCacheKey(TestCase):
+class TestProcessingWorkflowCacheAccess(TestCase):
     def setUp(self) -> None:
         self.environment = self.create_environment()
         self.detector = self.create_detector()
 
     def test_processing_workflow_cache_key(self) -> None:
-        key = processing_workflow_cache_key(self.detector.id, self.environment.id)
+        key = _WorkflowCacheAccess(self.detector.id, self.environment.id).key()
         assert key == f"workflows_by_detector_env:{self.detector.id}:{self.environment.id}"
 
     def test_processing_workflow_cache_key__no_env(self) -> None:
-        key = processing_workflow_cache_key(self.detector.id)
+        key = _WorkflowCacheAccess(self.detector.id, None).key()
         assert key == f"workflows_by_detector_env:{self.detector.id}:None"
 
 
@@ -40,18 +39,18 @@ class TestProcessingWorkflowCacheInvaliadation(TestCase):
             detector=self.detector, workflow=self.workflow_no_env
         )
 
-        self.key = processing_workflow_cache_key(self.detector.id, self.environment.id)
-        self.key_no_env = processing_workflow_cache_key(self.detector.id, None)
+        self.cache = _WorkflowCacheAccess(self.detector.id, self.environment.id)
+        self.cache_no_env = _WorkflowCacheAccess(self.detector.id, None)
 
         # warm the cache for the invalidation tests
-        self.cache_value = "test"
-        cache.set(self.key, self.cache_value)
-        cache.set(self.key_no_env, self.cache_value)
+        self.cache_value = {self.workflow}
+        self.cache.set(self.cache_value, 60)
+        self.cache_no_env.set(self.cache_value, 60)
 
-        assert cache.get(self.key) == self.cache_value
-        assert cache.get(self.key_no_env) == self.cache_value
+        assert self.cache.get() == self.cache_value
+        assert self.cache_no_env.get() == self.cache_value
 
-    def _env_and_workflow(self, detector: Detector | None = None) -> Environment:
+    def _env_and_workflow(self, detector: Detector | None = None) -> tuple[Environment, Workflow]:
         if detector is None:
             detector = self.detector
 
@@ -59,27 +58,28 @@ class TestProcessingWorkflowCacheInvaliadation(TestCase):
         workflow = self.create_workflow(environment=env)
         self.create_detector_workflow(workflow=workflow, detector=detector)
 
-        return env
+        return env, workflow
 
     def test_cache_invalidate__by_detector_and_env(self):
         invalidate_processing_workflows(self.detector.id, self.environment.id)
 
         # Removes all items for the detector + env
-        assert cache.get(self.key) is None
-        assert cache.get(self.key_no_env) == self.cache_value
+        assert self.cache.get() is None
 
-    def test_cache_invalidate__by_detector_no_env(self):
-        env = self._env_and_workflow()
+        # Other value is still set
+        assert self.cache_no_env.get() == self.cache_value
 
-        key = processing_workflow_cache_key(self.detector.id, env.id)
-        cache.set(key, "another_test")
+    def test_cache_invalidate__by_detector(self):
+        env, workflow = self._env_and_workflow()
+
+        workflow_cache = _WorkflowCacheAccess(self.detector.id, env.id)
+        workflow_cache.set({workflow}, 60)
 
         invalidate_processing_workflows(self.detector.id)
 
-        # Removes all items for detector.id
-        assert cache.get(self.key) is None
-        assert cache.get(key) is None
-        assert cache.get(self.key_no_env) is None
+        assert self.cache.get() is None
+        assert self.cache_no_env.get() is None
+        assert workflow_cache.get() is None
 
 
 class TestGetProcessingWorkflows(TestCase):

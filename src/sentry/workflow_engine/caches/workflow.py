@@ -4,6 +4,7 @@ from django.db.models import Q
 
 from sentry.models.environment import Environment
 from sentry.utils.cache import cache
+from sentry.workflow_engine.caches.cache_access import CacheAccess
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
@@ -11,13 +12,17 @@ from sentry.workflow_engine.utils.metrics import metrics_incr
 CACHE_TTL = 60  # TODO - Increase TTL once we confirm everything
 METRIC_PREFIX = "workflow_engine.cache.processing_workflow"
 
-DEFAULT_VALUE = "default"
+DEFAULT_VALUE: Literal["default"] = "default"
 WORKFLOW_CACHE_PREFIX = "workflows_by_detector_env"
 
 
-# TODO - make the keys here safer with CacheAccess[T]
-def processing_workflow_cache_key(detector_id: int, env_id: int | None = None) -> str:
-    return f"{WORKFLOW_CACHE_PREFIX}:{detector_id}:{env_id}"
+class _WorkflowCacheAccess(CacheAccess[set[Workflow]]):
+    # To reduce lookups, this uses id's instead of full models
+    def __init__(self, detector_id: int, env_id: int | None):
+        self._key = f"{WORKFLOW_CACHE_PREFIX}:{detector_id}:{env_id}"
+
+    def key(self) -> str:
+        return self._key
 
 
 def invalidate_processing_workflows(
@@ -42,11 +47,11 @@ def invalidate_processing_workflows(
     metrics_incr(f"{METRIC_PREFIX}.invalidated")
 
     if env_id is not DEFAULT_VALUE:
-        cache_key = processing_workflow_cache_key(detector_id, env_id)
-        return cache.delete(cache_key)
+        return _WorkflowCacheAccess(detector_id, env_id).delete()
 
     # Lookup all of the environment_ids associated with the Detector,
-    # TODO - improve this to track active keys in Redis
+    # TODO - improve this so we don't need to go to the DB, we could
+    # track everything in redis instead.
     environment_ids = (
         DetectorWorkflow.objects.filter(detector_id=detector_id)
         .select_related("workflow")
@@ -54,13 +59,9 @@ def invalidate_processing_workflows(
     )
 
     # Build explicit cache keys from relationships
-    keys: set[str] = set()
-
-    for environment_id in environment_ids:
-        keys.add(processing_workflow_cache_key(detector_id, environment_id))
-
+    keys = {_WorkflowCacheAccess(detector_id, env_id).key() for env_id in environment_ids}
     # Also add key for workflows with no environment
-    keys.add(processing_workflow_cache_key(detector_id, None))
+    keys.add(_WorkflowCacheAccess(detector_id, None).key())
 
     if keys:
         cache.delete_many(keys)
@@ -76,8 +77,8 @@ def get_processing_workflows(detector: Detector, environment: Environment | None
     This method uses a read-through cache, and returns which workflows to evaluate.
     """
     env_id = environment.id if environment is not None else None
-    cache_key = processing_workflow_cache_key(detector.id, env_id)
-    workflows = cache.get(cache_key)
+    cache_access = _WorkflowCacheAccess(detector.id, env_id)
+    workflows = cache_access.get()
 
     if workflows is None:
         metrics_incr(f"{METRIC_PREFIX}.miss")
@@ -98,7 +99,7 @@ def get_processing_workflows(detector: Detector, environment: Environment | None
             .distinct()
         )
 
-        cache.set(cache_key, workflows, timeout=CACHE_TTL)
+        cache_access.set(workflows, CACHE_TTL)
     else:
         metrics_incr(f"{METRIC_PREFIX}.hit")
 
