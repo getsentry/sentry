@@ -278,7 +278,7 @@ export function MobileBuildsChart({
                 if (!firstParam) {
                   return '';
                 }
-                const timestamp = (firstParam as TooltipAxisParams).axisValue;
+                const timestamp = (firstParam as unknown as TooltipAxisParams).axisValue;
                 const formattedDate = moment(timestamp).format('MMM D, YYYY h:mm A');
 
                 const rows = params
