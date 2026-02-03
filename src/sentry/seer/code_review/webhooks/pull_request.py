@@ -145,7 +145,7 @@ def handle_pull_request_event(
     if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
         return
 
-    pr_number = pull_request.get("number")
+    pr_number = event.get("number") or pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
         delete_existing_reactions_and_add_eyes_reaction(
             github_event=github_event,

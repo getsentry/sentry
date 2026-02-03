@@ -367,6 +367,8 @@ def extract_github_info(
             - github_event_action: The event action (e.g., "opened", "closed", "created")
             - github_actor_login: The GitHub username who triggered the action
             - github_actor_id: The GitHub user ID (as string)
+            - github_pr_number: The PR number (from pull_request or issue events)
+            - github_comment_id: The comment ID (from issue_comment events)
     """
     result: dict[str, str | None] = {
         "github_owner": None,
@@ -377,7 +379,12 @@ def extract_github_info(
         "github_event_action": None,
         "github_actor_login": None,
         "github_actor_id": None,
+        "github_pr_number": None,
+        "github_comment_id": None,
     }
+
+    if pr_number := event.get("number"):
+        result["github_pr_number"] = str(pr_number)
 
     repository = event.get("repository", {})
     if repository:
@@ -394,6 +401,8 @@ def extract_github_info(
     if pull_request := event.get("pull_request"):
         if html_url := pull_request.get("html_url"):
             result["github_event_url"] = html_url
+        if result["github_pr_number"] is None and (pr_number := pull_request.get("number")):
+            result["github_pr_number"] = str(pr_number)
 
     if check_run := event.get("check_run"):
         if html_url := check_run.get("html_url"):
@@ -402,12 +411,16 @@ def extract_github_info(
     if comment := event.get("comment"):
         if html_url := comment.get("html_url"):
             result["github_event_url"] = html_url
+        if comment_id := comment.get("id"):
+            result["github_comment_id"] = str(comment_id)
 
     if issue := event.get("issue"):
         if pull_request_data := issue.get("pull_request"):
             if html_url := pull_request_data.get("html_url"):
                 if result["github_event_url"] is None:
                     result["github_event_url"] = html_url
+        if result["github_pr_number"] is None and (pr_number := issue.get("number")):
+            result["github_pr_number"] = str(pr_number)
 
     if sender := event.get("sender"):
         if actor_login := sender.get("login"):
