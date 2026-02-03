@@ -4,21 +4,9 @@ import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields
 import type {Widget} from 'sentry/views/dashboards/types';
 import {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
-  CategoricalItem,
   CategoricalSeries,
   CategoricalValueType,
 } from 'sentry/views/dashboards/widgets/common/types';
-
-/**
- * Maximum number of categories to display in a categorical bar chart.
- * Categories beyond this limit are aggregated into an "Other" bucket.
- */
-const MAX_CATEGORIES = 10;
-
-/**
- * Label used for the aggregated "Other" category.
- */
-export const OTHER_CATEGORY_LABEL = 'Other';
 
 interface TransformOptions {
   tableData: TableDataWithTitle;
@@ -73,13 +61,10 @@ export function transformTableToCategoricalSeries({
     const fieldUnit = meta?.units?.[aggregate] as DataUnit | undefined;
 
     // Transform rows to categorical items
-    const allValues: CategoricalItem[] = rows.map(row => ({
+    const values = rows.map(row => ({
       category: String(row[xAxisField] ?? ''),
       value: typeof row[aggregate] === 'number' ? row[aggregate] : null,
     }));
-
-    // Limit categories and aggregate overflow into "Other"
-    const limitedValues = limitCategoriesWithOther(allValues);
 
     return {
       valueAxis: aggregate,
@@ -87,41 +72,9 @@ export function transformTableToCategoricalSeries({
         valueType: mapToCategoricalValueType(fieldType),
         valueUnit: fieldUnit ?? null,
       },
-      values: limitedValues,
+      values,
     };
   });
-}
-
-/**
- * Limits the number of categories in a categorical series by aggregating
- * lower-value categories into an "Other" bucket.
- *
- * The function:
- * 1. Sorts categories by value (descending)
- * 2. Keeps the top (limit - 1) categories
- * 3. Sums remaining categories into an "Other" bucket
- *
- * If the number of categories is already at or below the limit, returns unchanged.
- */
-function limitCategoriesWithOther(
-  values: CategoricalItem[],
-  limit: number = MAX_CATEGORIES
-): CategoricalItem[] {
-  if (values.length <= limit) {
-    return values;
-  }
-
-  // Sort by value descending (nulls treated as 0)
-  const sorted = [...values].sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
-
-  // Take top (limit - 1) to leave room for "Other"
-  const topItems = sorted.slice(0, limit - 1);
-  const otherItems = sorted.slice(limit - 1);
-
-  // Sum the remaining values into "Other"
-  const otherValue = otherItems.reduce((sum, item) => sum + (item.value ?? 0), 0);
-
-  return [...topItems, {category: OTHER_CATEGORY_LABEL, value: otherValue}];
 }
 
 /**
