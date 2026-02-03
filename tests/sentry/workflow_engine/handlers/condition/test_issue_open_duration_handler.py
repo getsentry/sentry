@@ -13,6 +13,7 @@ from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
+@pytest.mark.skip()
 @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
 class TestIssueOpenDurationCondition(ConditionTestCase):
     condition = Condition.ISSUE_OPEN_DURATION

@@ -5,12 +5,9 @@ from django.utils import timezone
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.rules.age import AgeComparisonType, age_comparison_map
 from sentry.rules.filters.age_comparison import timeranges
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
-@condition_handler_registry.register(Condition.ISSUE_OPEN_DURATION)
 class IssueOpenDurationConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
