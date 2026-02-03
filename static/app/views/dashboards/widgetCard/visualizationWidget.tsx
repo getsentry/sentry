@@ -216,9 +216,7 @@ function VisualizationWidgetContent({
     ? timeseriesResults
         .map((series, index) => ({series, index}))
         .filter(({series}) => {
-          // Series names are formatted as "aggregate : groupValue"
-          const groupValue = series.seriesName.split(' : ').slice(1).join(' : ');
-          return groupValue !== 'Other';
+          return series.seriesName !== 'Other';
         })
     : [];
 
