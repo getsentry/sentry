@@ -22,6 +22,8 @@ from sentry.preprod.authentication import (
     LaunchpadRpcSignatureAuthentication,
 )
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
+from sentry.preprod.producer import PreprodFeature
+from sentry.preprod.quotas import should_run_distribution, should_run_size
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -397,10 +399,22 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 build_number=build_number,
             )
 
+        # Determine which features can run based on quota and filters
+        requested_features: list[PreprodFeature] = []
+
+        can_run_size, _ = should_run_size(head_artifact)
+        if can_run_size:
+            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
+
+        can_run_distro, _ = should_run_distribution(head_artifact)
+        if can_run_distro:
+            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+
         return Response(
             {
                 "success": True,
                 "artifactId": head_artifact_id,
                 "updatedFields": updated_fields,
+                "requestedFeatures": [feature.value for feature in requested_features],
             }
         )

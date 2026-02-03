@@ -150,10 +150,18 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
             [],
         ),
         pytest.param(
-            ["user_misery(300)", "apdex(300)", "count_if(transaction.duration,greater,300)"],
+            [
+                "user_misery(300)",
+                "apdex(300)",
+                "apdex(.5)",
+                "apdex(0.7)",
+                "count_if(transaction.duration,greater,300)",
+            ],
             [
                 "equation|user_misery(span.duration,300)",
                 "equation|apdex(span.duration,300)",
+                "equation|apdex(span.duration,0.5)",
+                "equation|apdex(span.duration,0.7)",
                 "equation|count_if(span.duration,greater,300)",
             ],
             [],
