@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
@@ -20,6 +20,7 @@ import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useUser} from 'sentry/utils/useUser';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
@@ -31,9 +32,38 @@ const animationProps: MotionNodeAnimationOptions = {
 interface CodingAgentCardProps {
   codingAgentState: CodingAgentState;
   repo?: SeerRepoDefinition;
+  source?: 'autofix' | 'explorer';
 }
 
-function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
+function CodingAgentCard({
+  codingAgentState,
+  repo,
+  source = 'autofix',
+}: CodingAgentCardProps) {
+  const user = useUser();
+
+  const getProviderForAnalytics = (
+    provider: CodingAgentProvider
+  ): 'cursor' | 'github_copilot' => {
+    switch (provider) {
+      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
+        return 'cursor';
+      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
+        return 'github_copilot';
+      default:
+        return 'cursor';
+    }
+  };
+
+  const openAgentAnalyticsParams = useMemo(
+    () => ({
+      provider: getProviderForAnalytics(codingAgentState.provider),
+      source,
+      user_id: user.id,
+    }),
+    [codingAgentState.provider, source, user.id]
+  );
+
   const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
@@ -165,6 +195,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               icon={<IconOpen />}
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
+                              analyticsParams={openAgentAnalyticsParams}
                             >
                               {codingAgentState.provider ===
                               CodingAgentProvider.CURSOR_BACKGROUND_AGENT
