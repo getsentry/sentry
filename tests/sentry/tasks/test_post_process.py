@@ -3403,40 +3403,45 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
         return_value=True,
     )
-    @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
     @with_feature(
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
-    def test_triage_signals_skips_old_issues(
+    def test_triage_signals_skips_automation_for_old_unprocessed_issues(
         self,
         mock_run_automation,
         mock_generate_summary_and_run_automation,
-        mock_generate_summary_only,
         mock_get_seer_org_acknowledgement,
     ):
-        """Test that issues older than 15 days are skipped to avoid backfilling when an org signs up for Seer."""
+        """Test that automation is skipped for old issues without a fixability score (>= 10 events path)."""
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
         )
 
-        # Set first_seen to 20 days ago (older than the 15-day threshold)
+        # Old issue with >= 10 events but no fixability score (never processed)
         group = event.group
         group.first_seen = timezone.now() - timedelta(days=20)
+        group.seer_fixability_score = None
+        group.times_seen = 1
         group.save()
 
-        self.call_post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
+        from sentry import buffer
 
-        # No automation tasks should be called for old issues
-        mock_generate_summary_only.assert_not_called()
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
+
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        # Automation should be skipped for old unprocessed issues
         mock_generate_summary_and_run_automation.assert_not_called()
         mock_run_automation.assert_not_called()
 

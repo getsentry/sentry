@@ -1631,10 +1631,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
         # Triage signals V0 behaviour
-        # Avoid running autofix or summary on old issues when an org signs up for Seer.
-        if group.first_seen < (timezone.utcnow() - timedelta(days=14)):
-            return
-
         # If event count < 10, only generate summary (no automation)
         if group.times_seen_with_pending < 10:
             # Check if summary exists in cache
@@ -1660,6 +1656,13 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Event count >= 10: run automation
             # Long-term check to avoid re-running
             if group.seer_autofix_last_triggered is not None:
+                return
+
+            # Don't backfill automation on old unprocessed issues
+            if (
+                group.first_seen < (timezone.utcnow() - timedelta(days=14))
+                and group.seer_fixability_score is None
+            ):
                 return
 
             # Triage signals will not run issues if they are not fixable at MEDIUM threshold
