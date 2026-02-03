@@ -3,13 +3,10 @@ import {useMemo} from 'react';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
-import {SpanFields} from 'sentry/views/insights/types';
 
 export interface ConversationUser {
   email: string | null;
@@ -42,15 +39,7 @@ export function useConversations() {
   const organization = useOrganization();
   const {cursor, setCursor} = useTableCursor();
   const pageFilters = usePageFilters();
-  const {agent: agentFilters = []} = useLocationQuery({
-    fields: {agent: decodeList},
-  });
-
-  const agentQuery =
-    agentFilters.length > 0
-      ? `${SpanFields.GEN_AI_AGENT_NAME}:[${agentFilters.map(a => `"${a}"`).join(',')}]`
-      : '';
-  const combinedQuery = useCombinedQuery(agentQuery) || undefined;
+  const combinedQuery = useCombinedQuery();
 
   const {
     data: rawData,

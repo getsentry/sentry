@@ -3,12 +3,12 @@ import React from 'react';
 import {type Callout as CalloutProps} from '@r4ai/remark-callout';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';
-import {Quote, type QuoteProps} from '@sentry/scraps/quote/quote';
+import {InlineCode} from '@sentry/scraps/code';
+import {Stack, type StackProps} from '@sentry/scraps/layout';
+import {Quote, type QuoteProps} from '@sentry/scraps/quote';
+import type {TextProps} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
-import {InlineCode} from 'sentry/components/core/code';
-import {Stack, type StackProps} from 'sentry/components/core/layout';
-import type {TextProps} from 'sentry/components/core/text/text';
-import {Text} from 'sentry/components/core/text/text';
 import * as Stories from 'sentry/stories';
 
 import {StoryHeading} from './storyHeading';

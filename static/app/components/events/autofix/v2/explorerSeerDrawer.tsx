@@ -2,14 +2,14 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button, ButtonBar} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
@@ -206,9 +206,9 @@ export function ExplorerSeerDrawer({
   }, [runState?.run_id]);
 
   const handleCodingAgentHandoff = useCallback(
-    async (integrationId: number) => {
+    async (integration: CodingAgentIntegration) => {
       if (runState?.run_id) {
-        await triggerCodingAgentHandoff(runState.run_id, integrationId);
+        await triggerCodingAgentHandoff(runState.run_id, integration);
       }
     },
     [triggerCodingAgentHandoff, runState?.run_id]
@@ -394,12 +394,13 @@ export function ExplorerSeerDrawer({
 
           {/* Status card when processing */}
           <AnimatePresence initial={false}>
-            {runState.status === 'processing' && !isChatAlreadyOpen && (
+            {runState.status === 'processing' && (
               <ExplorerStatusCard
                 key="status_card"
                 status={runState.status}
                 loadingBlock={loadingBlock}
                 blocks={blocks}
+                isChatAlreadyOpen={isChatAlreadyOpen}
                 onOpenChat={handleOpenChat}
               />
             )}

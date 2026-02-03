@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';

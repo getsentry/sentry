@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-// eslint-disable-next-line boundaries/element-types
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {

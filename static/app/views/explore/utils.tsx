@@ -94,11 +94,12 @@ export function getExploreUrl({
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     mode,
     query,
@@ -214,11 +215,12 @@ export function getExploreMultiQueryUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     queries: queries.map(
       ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>

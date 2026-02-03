@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 

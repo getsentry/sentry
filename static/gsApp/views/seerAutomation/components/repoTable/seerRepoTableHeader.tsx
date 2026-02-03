@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -26,7 +26,6 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Name'), key: 'name', sortKey: 'name'},
-  {title: t('Projects'), key: 'projects'},
   {title: t('Code Review'), key: 'code_review'},
 ];
 

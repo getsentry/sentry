@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';

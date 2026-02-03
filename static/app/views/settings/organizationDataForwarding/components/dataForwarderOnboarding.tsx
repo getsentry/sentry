@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 
 import tracingTelescopeImg from 'sentry-images/spot/tracing-telescope.svg';
 
-import {Image} from '@sentry/scraps/image/image';
+import {LinkButton} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';

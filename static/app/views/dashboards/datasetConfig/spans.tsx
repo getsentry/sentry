@@ -1,6 +1,7 @@
 import pickBy from 'lodash/pickBy';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -201,7 +202,10 @@ function extractSeriesMetadata<T>({
     if (isSingleAggregateMultiGroup) {
       // Use hardcoded config for all series
       Object.keys(data).forEach(seriesName => {
-        result[seriesName] = getFieldMetaValue(firstMeta);
+        // Don't overwrite fieldMeta values
+        if (!(seriesName in result)) {
+          result[seriesName] = getFieldMetaValue(firstMeta);
+        }
       });
     } else {
       Object.keys(data).forEach(seriesName => {
@@ -212,7 +216,8 @@ function extractSeriesMetadata<T>({
         widgetQuery.aggregates?.forEach(aggregate => {
           // Multi-series can be keyed by aggregate or series name depending on aggregate count
           const key = widgetQuery.aggregates?.length > 1 ? aggregate : seriesName;
-          if (seriesData.meta) {
+          // Don't overwrite fieldMeta values
+          if (seriesData.meta && !(key in result)) {
             result[key] = getMetaField(seriesData.meta, aggregate);
           }
         });
@@ -222,7 +227,8 @@ function extractSeriesMetadata<T>({
     Object.keys(data).forEach(groupName => {
       widgetQuery.aggregates?.forEach(aggregate => {
         const seriesData = data[groupName]?.[aggregate] as EventsStats;
-        if (seriesData?.meta && aggregate) {
+        // Don't overwrite fieldMeta values
+        if (seriesData?.meta && aggregate && !(aggregate in result)) {
           result[aggregate] = getMetaField(seriesData.meta, aggregate);
         }
       });
@@ -271,7 +277,12 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    if (field === 'transaction') {
+    if (
+      field === SpanFields.TRANSACTION &&
+      !widget?.queries?.[0]?.linkedDashboards?.some(
+        linkedDashboard => linkedDashboard.field === SpanFields.TRANSACTION
+      )
+    ) {
       return renderTransactionAsLinkable;
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);

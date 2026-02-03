@@ -1,9 +1,9 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-// eslint-disable-next-line boundaries/element-types
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {

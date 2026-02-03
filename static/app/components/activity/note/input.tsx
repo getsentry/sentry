@@ -5,8 +5,9 @@ import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
+import {Button} from '@sentry/scraps/button';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -317,8 +318,8 @@ const FooterButton = styled(Button)<{error?: boolean}>`
       &:active,
       &:focus,
       &:hover {
-        border-bottom-color: ${p.theme.tokens.content.danger};
-        border-right-color: ${p.theme.tokens.content.danger};
+        border-bottom-color: ${p.theme.tokens.border.danger};
+        border-right-color: ${p.theme.tokens.border.danger};
       }
     `}
 `;

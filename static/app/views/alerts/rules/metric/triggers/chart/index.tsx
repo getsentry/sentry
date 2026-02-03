@@ -6,6 +6,7 @@ import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
@@ -23,7 +24,6 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import LoadingMask from 'sentry/components/loadingMask';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
@@ -439,7 +439,7 @@ class TriggersChart extends PureComponent<Props, State> {
               trigger={triggerProps => (
                 <OverlayTrigger.Button
                   {...triggerProps}
-                  borderless
+                  priority="transparent"
                   prefix={t('Display')}
                 />
               )}

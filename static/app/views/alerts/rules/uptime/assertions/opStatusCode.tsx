@@ -1,10 +1,10 @@
 import {useId, type ChangeEventHandler, type FocusEventHandler} from 'react';
 
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -80,7 +80,7 @@ export function AssertionOpStatusCode({
               <OverlayTrigger.Button
                 {...triggerProps}
                 size="zero"
-                borderless
+                priority="transparent"
                 showChevron={false}
               >
                 <Text monospace>{selectedOption?.symbol ?? ''}</Text>

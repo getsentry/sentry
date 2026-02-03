@@ -1,11 +1,11 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
-import {Flex} from 'sentry/components/core/layout';
 import {IconExpand} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -146,7 +146,7 @@ export function Chart({
           </AttributeBreakdownsComponent.PopulationIndicator>
           <Button
             size="zero"
-            borderless
+            priority="transparent"
             icon={<IconExpand size="xs" />}
             aria-label={t('Expand chart')}
             onClick={() =>

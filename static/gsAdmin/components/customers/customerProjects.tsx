@@ -1,10 +1,10 @@
 import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import {IconProject} from 'sentry/icons';
 
 import ResultGrid from 'admin/components/resultGrid';

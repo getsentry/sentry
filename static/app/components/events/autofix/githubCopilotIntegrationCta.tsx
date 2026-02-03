@@ -1,19 +1,34 @@
+import {useCallback} from 'react';
+
+import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 export function GithubCopilotIntegrationCta() {
   const organization = useOrganization();
+  const user = useUser();
 
   const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} =
     useCodingAgentIntegrations();
+
+  const handleInstallClick = useCallback(() => {
+    trackAnalytics('coding_integration.install_clicked', {
+      organization,
+      project_slug: '', // GitHub Copilot CTA is not project-specific
+      provider: 'github_copilot',
+      source: 'cta',
+      user_id: user.id,
+    });
+  }, [organization, user.id]);
 
   const githubCopilotIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'github_copilot'
@@ -72,6 +87,7 @@ export function GithubCopilotIntegrationCta() {
               to={`/settings/${organization.slug}/integrations/github_copilot/`}
               priority="default"
               size="sm"
+              onClick={handleInstallClick}
             >
               {t('Install GitHub Copilot Integration')}
             </LinkButton>

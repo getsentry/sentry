@@ -1,10 +1,11 @@
 import {Fragment, useCallback, useId, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -106,7 +107,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
             external
             icon={<IconMail variant="muted" />}
             aria-label={t(`Email %s`, user)}
-            borderless
+            priority="transparent"
             size="zero"
           />
         </Tooltip>

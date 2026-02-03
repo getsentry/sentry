@@ -1,12 +1,13 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct, tn} from 'sentry/locale';

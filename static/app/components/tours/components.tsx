@@ -4,10 +4,9 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   useTourReducer,
@@ -48,10 +47,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
   /**
-   * Whether to omit the blurring window.
-   */
-  omitBlur?: boolean;
-  /**
    * Called when the tour is ended by the user, either by dismissing the tour or by completing the last step.
    */
   onEndTour?: () => void;
@@ -78,7 +73,6 @@ export function TourContextProvider<T extends TourEnumType>({
   isCompleted,
   tourKey,
   TourContext,
-  omitBlur,
   orderedStepIds,
   onEndTour,
   onStartTour,
@@ -139,7 +133,7 @@ export function TourContextProvider<T extends TourEnumType>({
 
   return (
     <TourContext value={tourContextValue}>
-      {isTourActive && !omitBlur && <BlurWindow data-test-id="tour-blur-window" />}
+      {isTourActive && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
     </TourContext>
   );
@@ -420,7 +414,6 @@ export function TourGuide({
                             {isDismissVisible && (
                               <Button
                                 priority="transparent"
-                                borderless
                                 onClick={handleDismiss}
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
@@ -503,7 +496,7 @@ export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} priority="primary" size="sm" />;
 }
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" size="sm" borderless />;
+  return <Button {...props} priority="transparent" size="sm" />;
 }
 
 const BlurWindow = styled('div')`

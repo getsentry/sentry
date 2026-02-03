@@ -1,9 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import {AnimatePresence} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
@@ -28,6 +29,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface InstrumentationFixSectionProps {
   event: Event;
@@ -37,8 +39,8 @@ interface InstrumentationFixSectionProps {
 export function InstrumentationFixSection({group}: InstrumentationFixSectionProps) {
   const organization = useOrganization();
 
-  const isSeerExplorerEnabled =
-    organization.features.includes('seer-explorer') &&
+  const seerExplorerEnabled =
+    isSeerExplorerEnabled(organization) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
 
@@ -94,15 +96,15 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
   }, [runState?.run_id]);
 
   const handleCodingAgentHandoff = useCallback(
-    async (integrationId: number) => {
+    async (integration: CodingAgentIntegration) => {
       if (runState?.run_id) {
-        await triggerCodingAgentHandoff(runState.run_id, integrationId);
+        await triggerCodingAgentHandoff(runState.run_id, integration);
       }
     },
     [triggerCodingAgentHandoff, runState?.run_id]
   );
 
-  if (!isSeerExplorerEnabled) {
+  if (!seerExplorerEnabled) {
     return null;
   }
 

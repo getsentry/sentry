@@ -59,6 +59,21 @@ class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
             download_size=Subquery(main_metrics.values("max_download_size")[:1]),
         )
 
+    def annotate_platform_name(self) -> Self:
+        # Import here to avoid circular import since PreprodArtifact
+        # is defined later in this file
+        from sentry.preprod.models import PreprodArtifact
+
+        return self.annotate(
+            platform_name=Case(
+                When(artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE, then=Value("apple")),
+                When(artifact_type=PreprodArtifact.ArtifactType.AAB, then=Value("android")),
+                When(artifact_type=PreprodArtifact.ArtifactType.APK, then=Value("android")),
+                default=Value(None),
+                output_field=models.CharField(),
+            )
+        )
+
 
 class PreprodArtifactModelManager(BaseManager["PreprodArtifact"]):
     def get_queryset(self) -> PreprodArtifactQuerySet:
@@ -188,21 +203,22 @@ class PreprodArtifact(DefaultFieldsModel):
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
-        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type).
+        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type, build_configuration_id).
 
-        When multiple artifacts exist for the same (app_id, artifact_type) combination
+        When multiple artifacts exist for the same (app_id, artifact_type, build_configuration_id) combination
         (e.g., due to reprocessing or CI retries), this method returns only one artifact
         per combination to prevent duplicate rows in status checks:
-        - For the calling artifact's (app_id, artifact_type): Returns the calling artifact itself
+        - For the calling artifact's combination: Returns the calling artifact itself
         - For other combinations: Returns the earliest (oldest) artifact for that combination
 
-        Note: Deduplication by both app_id and artifact_type is necessary because
-        iOS and Android apps can share the same app_id (e.g., "com.example.app").
+        Note: Deduplication by app_id, artifact_type, and build_configuration_id is necessary because:
+        - iOS and Android apps can share the same app_id (e.g., "com.example.app")
+        - The same app can have multiple build configurations (e.g., Release, AdHoc, Debug)
 
         Results are filtered by the current artifact's organization for security.
 
         Returns:
-            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type),
+            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type, build_configuration_id),
             ordered by app_id
         """
         if not self.commit_comparison:
@@ -215,17 +231,21 @@ class PreprodArtifact(DefaultFieldsModel):
             )
             .select_related("build_configuration", "commit_comparison")
             .prefetch_related("mobile_app_info")
-            .order_by("app_id", "artifact_type", "date_added")
+            .order_by("app_id", "artifact_type", "build_configuration_id", "date_added")
         )
 
         artifacts_by_key = defaultdict(list)
         for artifact in all_artifacts:
-            key = (artifact.app_id, artifact.artifact_type)
+            key = (artifact.app_id, artifact.artifact_type, artifact.build_configuration_id)
             artifacts_by_key[key].append(artifact)
 
         selected_artifacts = []
-        for (app_id, artifact_type), artifacts in artifacts_by_key.items():
-            if self.app_id == app_id and self.artifact_type == artifact_type:
+        for (app_id, artifact_type, build_config_id), artifacts in artifacts_by_key.items():
+            if (
+                self.app_id == app_id
+                and self.artifact_type == artifact_type
+                and self.build_configuration_id == build_config_id
+            ):
                 # Find the prefetched version of self to preserve prefetched relations
                 self_artifact = next((a for a in artifacts if a.id == self.id), None)
                 selected_artifacts.append(self_artifact or artifacts[0])
@@ -520,6 +540,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """Size analysis completed successfully."""
         FAILED = 3
         """Size analysis failed. See error_code and error_message for details."""
+        NOT_RAN = 4
+        """Size analysis not ran. See error_code and error_message for details."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -528,6 +550,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.PROCESSING, "processing"),
                 (cls.COMPLETED, "completed"),
                 (cls.FAILED, "failed"),
+                (cls.NOT_RAN, "not_ran"),
             )
 
     class ErrorCode(IntEnum):
@@ -539,6 +562,10 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """The artifact type is not supported for size analysis."""
         PROCESSING_ERROR = 3
         """An error occurred during size analysis processing."""
+        NO_QUOTA = 4
+        """NOT_RAN state: No quota available."""
+        SKIPPED = 5
+        """NOT_RAN state: Size analysis was not requested on this build."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -547,6 +574,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.TIMEOUT, "timeout"),
                 (cls.UNSUPPORTED_ARTIFACT, "unsupported_artifact"),
                 (cls.PROCESSING_ERROR, "processing_error"),
+                (cls.NO_QUOTA, "no_quota"),
+                (cls.SKIPPED, "skipped"),
             )
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -769,3 +798,8 @@ class PreprodComparisonApproval(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodcomparisonapproval"
+
+
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+
+__all__ = ["PreprodSnapshotComparison", "PreprodSnapshotMetrics"]

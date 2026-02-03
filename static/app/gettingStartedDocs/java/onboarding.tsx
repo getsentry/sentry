@@ -1,14 +1,19 @@
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 import {metricsVerify} from './metrics';
+import {
+  getJavaProfilingConfigSnippet,
+  getProfilingSentryPropertiesSnippet,
+} from './profiling';
 import {
   getGradleInstallSnippet,
   getMavenInstallSnippet,
   getOpenTelemetryRunSnippet,
+  getSbtInstallSnippet,
   getVerifyJavaSnippet,
   PackageManager,
   packageManagerName,
@@ -22,14 +27,25 @@ dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
 send-default-pii=true${
+  params.isLogsSelected
+    ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+    : ''
+}${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
     : ''
-}`;
+}${params.isProfilingSelected ? getProfilingSentryPropertiesSnippet() : ''}`;
 
 const getConfigureSnippet = (params: Params) => `
-import io.sentry.Sentry;
+import io.sentry.Sentry;${
+  params.isProfilingSelected
+    ? `
+import io.sentry.ProfileLifecycle;`
+    : ''
+}
 
 Sentry.init(options -> {
   options.setDsn("${params.dsn.public}");
@@ -50,7 +66,7 @@ Sentry.init(options -> {
   // We recommend adjusting this value in production.
   options.setTracesSampleRate(1.0);`
       : ''
-  }
+  }${params.isProfilingSelected ? getJavaProfilingConfigSnippet() : ''}
   // When first trying Sentry it's good to see what the SDK is doing:
   options.setDebug(true);
 });`;
@@ -148,11 +164,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
             {
               type: 'code',
               language: 'scala',
-              code: `libraryDependencies += "io.sentry" % "sentry" % "${getPackageVersion(
-                params,
-                'sentry.java',
-                '6.27.0'
-              )}"`,
+              code: getSbtInstallSnippet(params),
             },
           ],
         },

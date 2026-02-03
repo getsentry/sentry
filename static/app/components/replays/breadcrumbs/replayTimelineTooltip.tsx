@@ -2,7 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
+
 import {Overlay} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';

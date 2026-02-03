@@ -30,9 +30,8 @@ from sentry.grouping.strategies.base import (
     call_with_variants,
     strategy,
 )
-from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
-from sentry.grouping.utils import hash_from_values
+from sentry.grouping.utils import hash_from_values, normalize_message_for_grouping
 from sentry.interfaces.exception import Exception as ChainedException
 from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
@@ -597,7 +596,9 @@ def single_exception(
 
         raw = exception.value
         if raw is not None:
-            normalized = normalize_message_for_grouping(raw, event)
+            normalized = normalize_message_for_grouping(
+                raw, event, source="value_component", trim_message=True
+            )
             hint = "stripped event-specific values" if raw != normalized else None
             if normalized:
                 value_component.update(values=[normalized], hint=hint)
@@ -957,6 +958,10 @@ JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = [
     "UndeliverableException",
 ]
 
+KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES = [
+    "DiagnosticCoroutineContextException",
+]
+
 
 def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int | None:
     if len(exceptions) < 2:
@@ -987,9 +992,40 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
     return None
 
 
+def kotlin_coroutine_framework_exceptions(exceptions: list[SingleException]) -> int | None:
+    """
+    DiagnosticCoroutineContextException is added by Kotlin Coroutines for debugging.
+    It has no stacktrace and no meaningful message, so it should not determine the title.
+    When found with a parent, return the parent exception as the main one.
+    """
+    if len(exceptions) < 2:
+        return None
+
+    # Build a set of valid exception IDs for validation
+    valid_exception_ids = {
+        exc.mechanism.exception_id
+        for exc in exceptions
+        if exc.mechanism and exc.mechanism.exception_id is not None
+    }
+
+    for exception in exceptions:
+        if (
+            exception.module == "kotlinx.coroutines.internal"
+            and exception.type in KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES
+            and exception.mechanism
+            and exception.mechanism.parent_id is not None
+            and exception.mechanism.parent_id in valid_exception_ids
+        ):
+            # Return the parent as the main exception
+            return exception.mechanism.parent_id
+
+    return None
+
+
 MAIN_EXCEPTION_ID_FUNCS = [
     react_error_with_cause,
     java_rxjava_framework_exceptions,
+    kotlin_coroutine_framework_exceptions,
 ]
 
 
@@ -1000,5 +1036,5 @@ def _maybe_override_main_exception_id(event: Event, exceptions: list[SingleExcep
         if main_exception_id is not None:
             break
 
-    if main_exception_id:
+    if main_exception_id is not None:
         event.data["main_exception_id"] = main_exception_id

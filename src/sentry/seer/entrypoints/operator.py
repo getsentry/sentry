@@ -4,6 +4,7 @@ from typing import Any
 from rest_framework.response import Response
 
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix import trigger_autofix as _trigger_autofix
 from sentry.seer.autofix.autofix import update_autofix
 from sentry.seer.autofix.types import (
@@ -12,14 +13,15 @@ from sentry.seer.autofix.types import (
     AutofixSelectSolutionPayload,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
-from sentry.seer.entrypoints.types import SeerEntrypoint
+from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
+from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils.cache import cache
 
 SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
@@ -37,7 +39,6 @@ logger = logging.getLogger(__name__)
 # The cache here will not stop entrypoints from triggering autofixupdates, it only affects the
 # entrypoint's ability to receive updates from those triggers. So 12 is plenty, even accounting for
 # incidents, since a run should not take nearly that long to complete.
-AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
 PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 
 
@@ -52,8 +53,30 @@ class SeerOperator[CachePayloadT]:
         self.logging_ctx: dict[str, str] = {"entrypoint_key": str(entrypoint.key)}
 
     @classmethod
-    def get_autofix_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
-        return f"seer:autofix:{entrypoint_key}:{run_id}"
+    def has_access(
+        cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey | None = None
+    ) -> bool:
+        """
+        Checks if the organization has access to Seer, and atleast one entrypoint.
+        If an entrypoint_key is provided, ensures the organization has access to that entrypoint.
+        """
+        if not has_seer_access(organization):
+            return False
+
+        if entrypoint_key:
+            if entrypoint_key not in entrypoint_registry.registrations:
+                logger.warning(
+                    "operator.invalid_entrypoint_key",
+                    extra={"entrypoint_key": entrypoint_key, "organization_id": organization.id},
+                )
+                return False
+            entrypoint_cls = entrypoint_registry.registrations[entrypoint_key]
+            return entrypoint_cls.has_access(organization)
+
+        return any(
+            entrypoint_cls.has_access(organization=organization)
+            for entrypoint_cls in entrypoint_registry.registrations.values()
+        )
 
     def trigger_autofix(
         self,
@@ -96,11 +119,13 @@ class SeerOperator[CachePayloadT]:
             elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                 payload = AutofixCreatePRPayload(type="create_pr")
             else:
-                logger.error("operator.invalid_stopping_point", extra=self.logging_ctx)
+                logger.warning("operator.invalid_stopping_point", extra=self.logging_ctx)
                 self.entrypoint.on_trigger_autofix_error(error="Invalid stopping point provided")
                 return
 
-            raw_response = update_autofix(run_id=run_id, payload=payload)
+            raw_response = update_autofix(
+                organization_id=group.organization.id, run_id=run_id, payload=payload
+            )
 
         # Type-safety...
         assert raw_response is not None
@@ -110,14 +135,14 @@ class SeerOperator[CachePayloadT]:
         # Let the entrypoint signal to the external service that no run was started :/
         if error_message:
             self.logging_ctx["error_message"] = error_message
-            logger.info("operator.trigger_autofix_error", extra=self.logging_ctx)
+            logger.warning("operator.trigger_autofix_error", extra=self.logging_ctx)
             self.entrypoint.on_trigger_autofix_error(error=error_message)
             return
 
         run_id = raw_response.data.get("run_id") if not run_id else run_id
         # Shouldn't ever happen, but if it we have no run_id, we can't listen for updates
         if not run_id:
-            logger.info("operator.trigger_autofix_no_run_id", extra=self.logging_ctx)
+            logger.warning("operator.trigger_autofix_no_run_id", extra=self.logging_ctx)
             self.entrypoint.on_trigger_autofix_error(error="An unknown error has occurred")
             return
 
@@ -128,11 +153,12 @@ class SeerOperator[CachePayloadT]:
         cache_payload = self.entrypoint.create_autofix_cache_payload()
 
         if cache_payload:
-            cache_key = self.get_autofix_cache_key(
-                entrypoint_key=str(self.entrypoint.key), run_id=run_id
+            cache_result = SeerOperatorAutofixCache.populate_post_autofix_cache(
+                entrypoint_key=str(self.entrypoint.key),
+                cache_payload=cache_payload,
+                run_id=run_id,
             )
-            self.logging_ctx["cache_key"] = cache_key
-            cache.set(cache_key, cache_payload, timeout=AUTOFIX_CACHE_TIMEOUT_SECONDS)
+            self.logging_ctx["cache_key"] = cache_result["key"]
         logger.info("operator.trigger_autofix_success", extra=self.logging_ctx)
 
 
@@ -143,28 +169,45 @@ class SeerOperator[CachePayloadT]:
     retry=None,
 )
 def process_autofix_updates(
-    run_id: int, event_type: SentryAppEventType, event_payload: dict[str, Any]
+    *, event_type: SentryAppEventType, event_payload: dict[str, Any], organization_id: int
 ) -> None:
     """
-    Use the registry to iterate over all entrypoints and check if this run_id has been cached.
-    If so, call the entrypoint's handler with the payload it had previously cached.
+    Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
+    has a cache. If so, call the entrypoint's handler with the payload it had previously cached.
     """
-    logging_ctx = {"event_type": event_type, "run_id": run_id}
+
+    run_id = event_payload.get("run_id")
+    group_id = event_payload.get("group_id")
+    logging_ctx = {"event_type": event_type, "run_id": run_id, "group_id": group_id}
+
+    if not run_id or not group_id:
+        logger.warning("operator.missing_identifiers", extra=logging_ctx)
+        return
 
     if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
         logger.info("operator.skipping_update", extra=logging_ctx)
         return
 
+    try:
+        Group.objects.get(id=group_id, project__organization_id=organization_id)
+    except Group.DoesNotExist:
+        logger.warning("operator.group_not_found", extra=logging_ctx)
+        return
+
     for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
-        cache_key = SeerOperator.get_autofix_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
-        logging_ctx["cache_key"] = cache_key
-        cache_payload = cache.get(cache_key)
-        if not cache_payload:
+        cache_result = SeerOperatorAutofixCache.get(
+            entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
+        )
+        if not cache_result:
             logger.info("operator.no_cache_payload", extra=logging_ctx)
             continue
+        logging_ctx["cache_source"] = cache_result["source"]
+        logging_ctx["cache_key"] = cache_result["key"]
         try:
             entrypoint_cls.on_autofix_update(
-                event_type=event_type, event_payload=event_payload, cache_payload=cache_payload
+                event_type=event_type,
+                event_payload=event_payload,
+                cache_payload=cache_result["payload"],
             )
         except Exception:
             logger.exception("operator.on_autofix_update_error", extra=logging_ctx)

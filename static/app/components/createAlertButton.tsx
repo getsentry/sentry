@@ -1,5 +1,9 @@
 import type {LocationDescriptor} from 'history';
 
+import type {LinkButtonProps} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -8,9 +12,6 @@ import {
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';

@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Alert} from '@sentry/scraps/alert/alert';
+import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';

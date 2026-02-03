@@ -3,8 +3,9 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';

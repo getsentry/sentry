@@ -1,4 +1,5 @@
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';

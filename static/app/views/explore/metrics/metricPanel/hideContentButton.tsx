@@ -21,7 +21,7 @@ export function HideContentButton({
   return (
     <Button
       size="zero"
-      borderless
+      priority="transparent"
       aria-label={infoContentHidden ? t('Show Table') : t('Hide Table')}
       icon={<Icon />}
       onClick={onToggle}

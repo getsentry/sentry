@@ -1,12 +1,13 @@
 import {useState} from 'react';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import ScreenshotModal, {
   modalCss,

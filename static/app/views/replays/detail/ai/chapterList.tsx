@@ -2,10 +2,10 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
@@ -231,7 +231,6 @@ function ChapterRow({
             allowShowSnippet={false}
             startTimestampMs={replay?.getStartTimestampMs() ?? 0}
             key={`breadcrumb-${j}`}
-            style={{}}
           />
         ))}
       </div>
